@@ -1,5 +1,6 @@
 __author__ = 'Doomgoroth'
 
+import os
 
 class Subscriptable(object):
     def __init__(self):
