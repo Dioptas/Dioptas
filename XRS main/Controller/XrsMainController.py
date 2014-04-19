@@ -5,7 +5,7 @@ import sys
 
 from PyQt4 import QtGui, QtCore
 from Views.XrsMainView import XrsMainView
-from Data.XrsData import XrsData
+from Data.XrsImgData import XrsImgData
 import pyqtgraph as pg
 import time
 ## Switch to using white background and black foreground
@@ -22,17 +22,18 @@ import matplotlib.pyplot as plt
 class XrsMainController(object):
     def __init__(self):
         self.view = XrsMainView()
-        self.data = XrsData()
+        self.data = XrsImgData()
         self.create_signals()
         self.view.show()
 
         self.first_image()
         self.view.setWindowState(self.view.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.view.activateWindow()
+        self.view.raise_()
 
     def first_image(self):
-        self.data.set_calibration_file('ExampleData/LaB6_p49_001.poni')
-        self.data.load_file('ExampleData/2013-06-03 10.26.38.jpg')
+        self.data.set_calibration_file('../ExampleData/LaB6_p49_001.poni')
+        self.data.load_file('../ExampleData/test_001.tif')
         self.plot_data()
 
     def plot_data(self):
