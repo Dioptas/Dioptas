@@ -1,0 +1,27 @@
+from: http://stackoverflow.com/questions/14487322/get-all-pixel-array-inside-circle
+
+List<int> indices = new List<int>();
+
+for (int x = 0; x < width; x++)
+{
+    for (int y = 0; y < height; y++)
+    {
+        double dx = x - m1;
+        double dy = y - m2;
+        double distanceSquared = dx * dx + dy * dy;
+
+        if (distanceSquared <= radiusSquared)
+        {
+            indices.Add(x + y * width);
+        }
+    }
+}
+
+for ellipse:
+
+http://www.mathworks.com/matlabcentral/newsreader/view_thread/169873
+http://stackoverflow.com/questions/11041547/finding-the-distance-of-a-point-to-an-ellipse-wether-its-inside-or-outside-of-e
+
+for polygon
+
+http://stackoverflow.com/questions/2771670/calculate-pixels-within-a-polygon

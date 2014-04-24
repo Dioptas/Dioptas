@@ -3,18 +3,16 @@ __author__ = 'Clemens Prescher'
 import sys
 import os
 
-from PyQt4 import QtGui, QtCore
-from Views.XrsCalibrationView import XrsCalibrationView
-from Data.XrsImgData import XrsImgData
-from Data.XrsCalibrationData import XrsCalibrationData
 import pyqtgraph as pg
-import time
-## Switch to using white background and black foreground
 pg.setConfigOption('useOpenGL', False)
 pg.setConfigOption('leftButtonPan', False)
 pg.setConfigOption('background', 'k')
 pg.setConfigOption('foreground', 'w')
 pg.setConfigOption('antialias', True)
+from PyQt4 import QtGui, QtCore
+from Views.XrsCalibrationView import XrsCalibrationView
+from Data.XrsImgData import XrsImgData
+from Data.XrsCalibrationData import XrsCalibrationData
 
 import numpy as np
 

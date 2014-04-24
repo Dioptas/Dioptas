@@ -18,8 +18,7 @@ class ImgView(object):
 
     def create_graphics(self):
         #create basic image view
-        self.img_view_box = self.pg_layout.addViewBox(0, 0)
-        self.img_view_box.setAspectLocked()
+        self.img_view_box = self.pg_layout.addViewBox()
 
         #create the item handling the Data img
         self.data_img_item = pg.ImageItem()
@@ -28,7 +27,10 @@ class ImgView(object):
         #creating the histogram with colorbar-chooser
         self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         self.img_histogram_LUT.axis.hide()
-        self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+        self.pg_layout.addItem(self.img_histogram_LUT)
+
+
+        self.img_view_box.setAspectLocked()
 
     def create_scatter_plot(self):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
