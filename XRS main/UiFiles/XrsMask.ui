@@ -19,10 +19,10 @@
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QGraphicsView" name="graphicsView"/>
+        <widget class="GraphicsLayoutWidget" name="img_pg_layout"/>
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
@@ -40,7 +40,7 @@
           </spacer>
          </item>
          <item>
-          <widget class="QLabel" name="label">
+          <widget class="QLabel" name="pos_lbl">
            <property name="text">
             <string>TextLabel</string>
            </property>
@@ -53,37 +53,52 @@
      <widget class="QWidget" name="widget" native="true">
       <layout class="QGridLayout" name="gridLayout">
        <item row="0" column="0">
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="circle_btn">
          <property name="text">
           <string>Circle</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item row="0" column="1" colspan="2">
-        <widget class="QPushButton" name="pushButton_3">
+        <widget class="QPushButton" name="ellipse_btn">
          <property name="text">
           <string>Ellipse</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QPushButton" name="pushButton_4">
+        <widget class="QPushButton" name="rectangle_btn">
          <property name="text">
           <string>Rectangle</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item row="1" column="1" colspan="2">
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="QPushButton" name="polygon_btn">
          <property name="text">
           <string>Polygon</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item row="2" column="0">
-        <widget class="QPushButton" name="pushButton_5">
+        <widget class="QPushButton" name="point_btn">
          <property name="text">
           <string>Point</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -91,27 +106,27 @@
         <widget class="QSpinBox" name="spinBox"/>
        </item>
        <item row="3" column="0">
-        <widget class="QPushButton" name="pushButton_6">
+        <widget class="QPushButton" name="above_thresh_btn">
          <property name="text">
           <string>Above Thresh</string>
          </property>
         </widget>
        </item>
        <item row="3" column="2">
-        <widget class="QLineEdit" name="lineEdit"/>
+        <widget class="QLineEdit" name="above_thresh_txt"/>
        </item>
        <item row="4" column="0">
-        <widget class="QPushButton" name="pushButton_10">
+        <widget class="QPushButton" name="below_thresh_btn">
          <property name="text">
           <string>Below Thresh</string>
          </property>
         </widget>
        </item>
        <item row="4" column="2">
-        <widget class="QLineEdit" name="lineEdit_2"/>
+        <widget class="QLineEdit" name="below_thresh_txt"/>
        </item>
        <item row="5" column="0" colspan="3">
-        <widget class="QPushButton" name="pushButton_9">
+        <widget class="QPushButton" name="cosmic_btn">
          <property name="text">
           <string>Cosmic Removal</string>
          </property>
@@ -131,14 +146,14 @@
         </spacer>
        </item>
        <item row="7" column="0" colspan="2">
-        <widget class="QPushButton" name="pushButton_7">
+        <widget class="QPushButton" name="back_btn">
          <property name="text">
           <string>Back</string>
          </property>
         </widget>
        </item>
        <item row="7" column="2">
-        <widget class="QPushButton" name="pushButton_8">
+        <widget class="QPushButton" name="forward_btn">
          <property name="text">
           <string>Forward</string>
          </property>
@@ -150,6 +165,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>GraphicsLayoutWidget</class>
+   <extends>QGraphicsView</extends>
+   <header>pyqtgraph</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
