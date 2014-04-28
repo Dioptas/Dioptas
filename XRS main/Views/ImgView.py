@@ -15,6 +15,7 @@ class ImgView(object):
 
         self.mouse_move_observer = []
         self.left_click_observer = []
+        self.img_data = None
 
     def create_graphics(self):
         #create basic image view
@@ -56,9 +57,20 @@ class ImgView(object):
     def add_left_click_observer(self, function):
         self.left_click_observer.append(function)
 
+    def del_left_click_observer(self, function):
+        try:
+            self.left_click_observer.remove(function)
+        except ValueError:
+            pass
+
     def add_mouse_move_observer(self, function):
         self.mouse_move_observer.append(function)
 
+    def del_mouse_move_observer(self, function):
+        try:
+            self.mouse_move_observer.remove(function)
+        except ValueError:
+            pass
 
     def mouseMoved(self, pos):
         pos = self.data_img_item.mapFromScene(pos)
@@ -79,11 +91,13 @@ class ImgView(object):
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
             view_range = np.array(self.img_view_box.viewRange()) * 2
-            if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
-                            (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
-                self.img_view_box.autoRange()
-            else:
-                self.img_view_box.scaleBy(2)
+            if self.img_data is not None:
+                if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
+                                (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
+                    self.img_view_box.autoRange()
+                else:
+                    self.img_view_box.scaleBy(2)
+
         if ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
@@ -126,11 +140,15 @@ class ImgView(object):
             pg.ViewBox.wheelEvent(self.img_view_box, ev)
         else:
             view_range = np.array(self.img_view_box.viewRange())
-            if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
-                            (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
-                self.img_view_box.autoRange()
+            if self.img_data is not None:
+                if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
+                                (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
+                    self.img_view_box.autoRange()
+                else:
+                    pg.ViewBox.wheelEvent(self.img_view_box, ev)
             else:
                 pg.ViewBox.wheelEvent(self.img_view_box, ev)
+
 
 
 class CalibrationCakeView(ImgView):
@@ -150,6 +168,72 @@ class CalibrationCakeView(ImgView):
     def set_cross(self, x, y):
         self.vertical_line.setValue(x)
         self.horizontal_line.setValue(y)
+
+
+class MaskImgView(ImgView):
+    def __init__(self, pg_layout):
+        super(MaskImgView, self).__init__(pg_layout)
+        self.mask_img_item = pg.ImageItem()
+        self.img_view_box.addItem(self.mask_img_item)
+
+    def plot_mask(self, mask_data):
+        self.mask_data = mask_data
+        self.data_img_item.setImage(mask_data.T)
+
+    def draw_circle(self, x, y):
+        circle = MyCircle(x,y,0)
+        self.img_view_box.addItem(circle)
+        return circle
+
+    def draw_rectangle(self, x, y):
+        rect = MyRectangle(x,y,0,0)
+        self.img_view_box.addItem(rect)
+        return rect
+
+    def draw_ellipse(self, x, y):
+        ellipse = MyEllipse(x,y,0)
+        self.img_view_box.addItem(ellipse)
+        return ellipse
+
+
+class MyCircle(QtGui.QGraphicsEllipseItem):
+    def __init__(self, x,y, radius):
+        QtGui.QGraphicsEllipseItem.__init__(self, y-radius, x-radius, radius*2, radius*2)
+        self.radius = radius
+        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255,0,0,150)))
+        self.center_x = x
+        self.center_y = y
+
+    def set_size(self, y, x):
+        self.radius = np.sqrt((y-self.center_y)**2+(x-self.center_x)**2)
+        self.setRect(self.center_y-self.radius, self.center_x-self.radius, self.radius*2, self.radius*2)
+
+class MyEllipse(MyCircle):
+    def __init__(self, x,y, radius):
+        MyCircle.__init__(self, x, y, radius)
+
+    def set_size2(self , y, x):
+        self.radius2 = abs(x-self.center_x)
+        self.setRect(self.center_y-self.radius, self.center_x-self.radius2, self.radius*2, self.radius2*2)
+
+
+class MyRectangle(QtGui.QGraphicsRectItem):
+    def __init__(self, x, y, width, height):
+        QtGui.QGraphicsRectItem.__init__(self, y, x-height, width, height)
+        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255,0,0,150)))
+
+        self.initial_x = x
+        self.initial_y = y
+
+    def set_size(self, y, x):
+        height = x-self.initial_x
+        width  = y-self.initial_y
+        self.setRect(self.initial_y,self.initial_x+height, width, -height)
+
+
+
 
 
 

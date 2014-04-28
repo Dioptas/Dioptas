@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'XrsCalibration.ui'
 #
-# Created: Thu Apr 24 12:53:12 2014
+# Created: Thu Apr 24 13:55:51 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!

@@ -10,11 +10,16 @@ class Observable(object):
     def subscribe(self, function):
         self.observer.append(function)
 
+    def unsubscribe(self, function):
+        try:
+            self.observer.remove(function)
+        except ValueError:
+            pass
+
     def notify(self):
         if self.notification:
             for observer in self.observer:
                 observer()
-
     def turn_off_notification(self):
         self.notification = False
 

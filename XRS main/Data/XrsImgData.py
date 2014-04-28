@@ -93,9 +93,6 @@ class XrsImgData(Observable):
 
 
 if __name__ == '__main__':
-    def test():
-        print 'huhu'
-
     my_observable = Observable()
     my_observable.subscribe(test)
     my_observable.notify()
