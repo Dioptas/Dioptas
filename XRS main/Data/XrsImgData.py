@@ -2,11 +2,14 @@ __author__ = 'Clemens Prescher'
 
 import numpy as np
 import fabio
-import pyFAI, pyFAI.utils
+import pyFAI
+import pyFAI.utils
 import matplotlib.pyplot as plt
 from XrsHelper import Observable, rotate_matrix_p90, rotate_matrix_m90
 
+
 class XrsImgData(Observable):
+
     def __init__(self):
         super(XrsImgData, self).__init__()
 
@@ -48,7 +51,8 @@ class XrsImgData(Observable):
 
     def integrate_img(self):
         if self.integrator is not None:
-            self.tth, self.I = self.integrator.integrate1d(self.img_data, 1000, unit='2th_deg', method="lut_ocl")
+            self.tth, self.I = self.integrator.integrate1d(
+                self.img_data, 1000, unit='2th_deg', method="lut_ocl")
 
     def get_spectrum(self):
         return self.tth, self.I

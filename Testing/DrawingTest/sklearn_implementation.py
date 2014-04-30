@@ -8,9 +8,10 @@ import time
 def fill_circle(mask_data, qt_circle_item):
     cx = qt_circle_item.boundingRect().center().x()
     cy = qt_circle_item.boundingRect().center().y()
-    radius = qt_circle_item.boundingRect().width()*0.5
-    rr, cc = circle(cy,cx, radius, mask_data.shape)
+    radius = qt_circle_item.boundingRect().width() * 0.5
+    rr, cc = circle(cy, cx, radius, mask_data.shape)
     mask_data[rr, cc] = True
+
 
 def fill_polygon(mask_data, qt_graphics_object):
     x, y = get_polygon_points(qt_graphics_object)

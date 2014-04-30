@@ -1,22 +1,32 @@
 __author__ = 'Clemens Prescher'
 import numpy as np
 import pyqtgraph as pg
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtGui
 from collections import deque
 import skimage.draw
 
+import time
+from sys import getsizeof
 
 class XrsMaskData(object):
 
-    def __init__(self, mask_dimension):
+    def __init__(self, mask_dimension=None):
         self.mask_dimension = mask_dimension
-        self._mask_data = np.zeros(mask_dimension, dtype=bool)
-        self.mask_img = np.zeros((mask_dimension[0],
-                                  mask_dimension[1], 4), dtype='uint8')
+        self.reset_dimension()
 
-        # initialize undo/redo deque
-        self._undo_deque = deque(maxlen=50)
-        self._redo_deque = deque(maxlen=50)
+    def set_dimension(self, mask_dimension):
+        if not np.array_equal(mask_dimension, self.mask_dimension):
+            self.mask_dimension = mask_dimension
+            self.reset_dimension()
+
+    def reset_dimension(self):
+        if self.mask_dimension is not None:
+            self._mask_data = np.zeros(self.mask_dimension, dtype=bool)
+            self.mask_img = np.zeros((self.mask_dimension[0],
+                                      self.mask_dimension[1], 4),
+                                     dtype='uint8')
+            self._undo_deque = deque(maxlen=50)
+            self._redo_deque = deque(maxlen=50)
 
     def get_mask(self):
         mask_data = np.copy(self._mask_data)
@@ -24,9 +34,34 @@ class XrsMaskData(object):
         return mask_data
 
     def get_img(self):
-        ind = np.where(self._mask_data > 0)
-        self.mask_img[ind] = [0, 255, 0, 200]
-        return self.mask_img
+        self.mask_img[:,:,0] = self._mask_data*255
+        self.mask_img[:,:,3] = self._mask_data*180
+        return self._mask_data
+
+    def update_deque(self):
+        """
+        Saves the current mask data into a deque, which can be popped later
+        to provide an undo/redo feature.
+        When performing a new action the old redo steps will be cleared..._
+        """
+        self._undo_deque.append(np.copy(self._mask_data))
+        self._redo_deque.clear()
+
+    def undo(self):
+        try:
+            old_data = self._undo_deque.pop()
+            self._redo_deque.append(np.copy(self._mask_data))
+            self._mask_data = old_data
+        except IndexError:
+            pass
+
+    def redo(self):
+        try:
+            new_data = self._redo_deque.pop()
+            self._undo_deque.append(np.copy(self._mask_data))
+            self._mask_data = new_data
+        except IndexError:
+            pass
 
     def mask_below_threshold(self, img_data, threshold):
         self.update_deque()
@@ -38,18 +73,15 @@ class XrsMaskData(object):
 
     def mask_QGraphicsRectItem(self, QGraphicsRectItem):
         rect = QGraphicsRectItem.rect()
-        print rect.width()
-        print rect.height()
-        print rect.x()
-        print rect.y()
-        self.mask_rect(rect.left(), rect.top(), rect.width(), rect.height())
+        self.mask_rect(rect.top(), rect.left(), rect.height(), rect.width())
 
     def mask_QGraphicsPolygonItem(self, QGraphicsPolygonItem):
         """
-        Masks a polygon given by a QGraphicsPolygonItem from the QtGui Library. Uses the sklimage.draw.polygon function.
+        Masks a polygon given by a QGraphicsPolygonItem from the QtGui Library.
+        Uses the sklimage.draw.polygon function.
         """
 
-        #get polygon points
+        # get polygon points
         poly_list = list(QGraphicsPolygonItem.shape().toFillPolygon())
         x = np.zeros(len(poly_list))
         y = np.zeros(len(poly_list))
@@ -61,9 +93,10 @@ class XrsMaskData(object):
 
     def mask_QGraphicsEllipseItem(self, QGraphicsEllipseItem):
         """
-        Masks an Ellipse given by a QGraphicsEllipseItem from the QtGui Library. Uses the sklimage.draw.ellipse function.
+        Masks an Ellipse given by a QGraphicsEllipseItem from the QtGui
+        Library. Uses the sklimage.draw.ellipse function.
         """
-        bounding_rect = QGraphicsEllipseItem()
+        bounding_rect = QGraphicsEllipseItem.rect()
         cx = bounding_rect.center().x()
         cy = bounding_rect.center().y()
         x_radius = bounding_rect.width() * 0.5
@@ -72,19 +105,35 @@ class XrsMaskData(object):
 
     def mask_rect(self, x, y, width, height):
         """
-        Masks a rectangle. x and y parameters are the upper left corner of the rectangle.
+        Masks a rectangle. x and y parameters are the upper left corner
+        of the rectangle.
         """
         self.update_deque()
-        x_ind1 = np.round(x)
-        x_ind2 = np.round(x + width)
-        y_ind1 = np.round(y)
-        y_ind2 = np.round(y + height)
+        if width > 0:
+            x_ind1 = np.round(x)
+            x_ind2 = np.round(x + width)
+        else:
+            x_ind1 = np.round(x + width)
+            x_ind2 = np.round(x)
+        if height > 0:
+            y_ind1 = np.round(y)
+            y_ind2 = np.round(y + height)
+        else:
+            y_ind1 = np.round(y + height)
+            y_ind2 = np.round(y)
+
+        if x_ind1 < 0:
+            x_ind1 = 0
+        if y_ind1 < 0:
+            y_ind1 = 0
+
         self._mask_data[x_ind1:x_ind2, y_ind1:y_ind2] = True
 
     def mask_polygon(self, x, y):
         """
-        Masks the a polygon with given vertices. x and y are lists of the polygon vertices.
-        Uses the draw.polygon implementation of the skimage library.
+        Masks the a polygon with given vertices. x and y are lists of
+        the polygon vertices. Uses the draw.polygon implementation of
+        the skimage library.
         """
         self.update_deque()
         rr, cc = skimage.draw.polygon(y, x, self._mask_data.shape)
@@ -92,29 +141,14 @@ class XrsMaskData(object):
 
     def mask_ellipse(self, cx, cy, x_radius, y_radius):
         """
-        Masks an ellipse with center coordinates (cx, cy) and the radii given. Uses the draw.ellipse implementation of
+        Masks an ellipse with center coordinates (cx, cy) and the radii
+        given. Uses the draw.ellipse implementation of
         the skimage library.
         """
         self.update_deque()
-        rr, cc = skimage.draw.ellipse(cy, cx, y_radius, x_radius, self._mask_data.shape)
-        self.mask_data[rr, cc] = True
-
-    def update_deque(self):
-        """
-        Saves the current mask data into a deque, which can be popped later
-        to provide an undo/redo feature. 
-        When performing a new action the old redo steps will be cleared..._
-        """
-        self._undo_deque.append(np.copy(self._mask_data))
-        self._redo_deque.clear()
-
-    def undo(self):
-        self._redo_deque.append(np.copy(self._mask_data))
-        self._mask_data = self._undo_deque.pop()
-
-    def redo(self):
-        self._undo_deque.append(np.copy(self._mask_data))
-        self._mask_data = self._redo_deque.pop()
+        rr, cc = skimage.draw.ellipse(
+            cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
+        self._mask_data[rr, cc] = True
 
 
 def test_mask_data():
@@ -141,19 +175,20 @@ def test_mask_data():
     mask_data.undo()
 
     mask_data.mask_rect(200, 400, 400, 100)
-    mask_data.mask_QGraphicsRectItem(QtGui.QGraphicsRectItem(100, 10, 100, 100))
+    mask_data.mask_QGraphicsRectItem(
+        QtGui.QGraphicsRectItem(100, 10, 100, 100))
     mask_data.undo()
 
-    mask_data.mask_polygon(np.array([0, 100, 150, 100, 0]), np.array([0, 0, 50, 100, 100]))
-    mask_data.mask_QGraphicsPolygonItem(QtGui.QGraphicsEllipseItem(350, 350, 20, 20))
+    mask_data.mask_polygon(
+        np.array([0, 100, 150, 100, 0]), np.array([0, 0, 50, 100, 100]))
+    mask_data.mask_QGraphicsPolygonItem(
+        QtGui.QGraphicsEllipseItem(350, 350, 20, 20))
 
-    #performing the plot
+    # performing the plot
     pg.image(mask_data.get_img())
 
 
 if __name__ == "__main__":
-    import sys
-
     print 'testing mask data'
     test_mask_data()
     pg.QtGui.QApplication.exec_()

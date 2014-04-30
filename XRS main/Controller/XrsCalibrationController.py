@@ -143,11 +143,11 @@ class XrsCalibrationController(object):
 
     def first_image(self):
         self.data.load_file('../ExampleData/LaB6_WOS_30keV_005.tif')
-        self.view.img_view.plot_image(self.data.get_img_data(), False)
+        self.view.img_view.load_image(self.data.get_img_data(), False)
         self.view.img_view.auto_range()
 
     def plot_image(self):
-        self.view.img_view.plot_image(self.data.get_img_data(), False)
+        self.view.img_view.load_image(self.data.get_img_data(), False)
         self.view.set_img_filename(self.data.filename)
 
     def connect_click_function(self, emitter, function):
@@ -175,7 +175,7 @@ class XrsCalibrationController(object):
         self.view.set_calibration_parameters(pyFAI_parameter,fit2d_parameter)
 
         self.view.tab_widget.setCurrentIndex(1)
-        self.view.cake_view.plot_image(self.calibration_data.cake_img, True)
+        self.view.cake_view.load_image(self.calibration_data.cake_img, True)
         self.calibration_data.calibrant.setWavelength_change2th(pyFAI_parameter['wavelength'])
 
         self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
@@ -192,7 +192,7 @@ class XrsCalibrationController(object):
     def update_all(self):
             self.calibration_data.integrate_1d()
             self.calibration_data.integrate_2d()
-            self.view.cake_view.plot_image(self.calibration_data.cake_img, True)
+            self.view.cake_view.load_image(self.calibration_data.cake_img, True)
 
             self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
             self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th())/np.pi*180)
