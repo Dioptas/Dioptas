@@ -15,7 +15,9 @@ class ImgView(object):
 
         self.mouse_move_observer = []
         self.left_click_observer = []
+        self.left_double_click_observer = []
         self.img_data = None
+        self.mask_data = None
 
     def create_graphics(self):
         #create basic image view
@@ -25,11 +27,9 @@ class ImgView(object):
         self.data_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.data_img_item)
 
-        #creating the histogram with colorbar-chooser
         self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         self.img_histogram_LUT.axis.hide()
         self.pg_layout.addItem(self.img_histogram_LUT)
-
 
         self.img_view_box.setAspectLocked()
 
@@ -45,7 +45,7 @@ class ImgView(object):
 
     def auto_range(self):
         hist_x, hist_y = self.data_img_item.getHistogram()
-        ind = np.where(np.cumsum(hist_y)<(0.995*np.sum(hist_y)))
+        ind = np.where(np.cumsum(hist_y) < (0.995 * np.sum(hist_y)))
         self.img_histogram_LUT.setLevels(np.min(np.min(self.img_data)), hist_x[ind[0][-1]])
 
     def add_scatter_data(self, x, y):
@@ -62,6 +62,16 @@ class ImgView(object):
             self.left_click_observer.remove(function)
         except ValueError:
             pass
+
+    def add_left_double_click_observer(self, function):
+        self.left_double_click_observer.append(function)
+
+    def del_left_double_click_observer(self, function):
+        try:
+            self.left_double_click_observer.remove(function)
+        except ValueError:
+            pass
+
 
     def add_mouse_move_observer(self, function):
         self.mouse_move_observer.append(function)
@@ -109,6 +119,11 @@ class ImgView(object):
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
             self.img_view_box.autoRange()
+        if ev.button() == QtCore.Qt.LeftButton:
+            pos = self.img_view_box.mapFromScene(ev.pos())
+            pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
+            for function in self.left_double_click_observer:
+                function(pos.x(), pos.y())
 
     def myMouseDragEvent(self, ev, axis=None):
         #most of this code is copied behavior of left click mouse drag from the original code
@@ -150,7 +165,6 @@ class ImgView(object):
                 pg.ViewBox.wheelEvent(self.img_view_box, ev)
 
 
-
 class CalibrationCakeView(ImgView):
     def __init__(self, pg_layout):
         super(CalibrationCakeView, self).__init__(pg_layout)
@@ -159,8 +173,8 @@ class CalibrationCakeView(ImgView):
         self.add_left_click_observer(self.set_cross)
 
     def create_cross(self):
-        self.vertical_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(255,0,0), width=2))
-        self.horizontal_line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=(255,0,0), width=2))
+        self.vertical_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(255, 0, 0), width=2))
+        self.horizontal_line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2))
 
         self.img_view_box.addItem(self.vertical_line)
         self.img_view_box.addItem(self.horizontal_line)
@@ -175,62 +189,107 @@ class MaskImgView(ImgView):
         super(MaskImgView, self).__init__(pg_layout)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
+        self.mask_img_item.setLookupTable(self.create_color_map())
 
     def plot_mask(self, mask_data):
         self.mask_data = mask_data
-        self.data_img_item.setImage(mask_data.T)
+        #self.mask_img_item.setImage(mask_data.transpose((1,0,2)))
+        self.mask_img_item.setImage(mask_data.T)
 
-    def draw_circle(self, x, y):
-        circle = MyCircle(x,y,0)
+    def create_color_map(self):
+        steps = np.array([0, 1])
+        colors = np.array([[0, 0, 0, 0], [255, 0, 0, 255]], dtype=np.ubyte)
+        color_map = pg.ColorMap(steps, colors)
+        return color_map.getLookupTable(0.0, 1.0, 256, True)
+
+    def draw_circle(self, x=0, y=0):
+        circle = MyCircle(x, y, 0)
         self.img_view_box.addItem(circle)
         return circle
 
     def draw_rectangle(self, x, y):
-        rect = MyRectangle(x,y,0,0)
+        rect = MyRectangle(x, y, 0, 0)
         self.img_view_box.addItem(rect)
         return rect
 
-    def draw_ellipse(self, x, y):
-        ellipse = MyEllipse(x,y,0)
-        self.img_view_box.addItem(ellipse)
-        return ellipse
+    def draw_point(self, radius=0):
+        point = MyPoint(radius)
+        self.img_view_box.addItem(point)
+        return point
+
+    def draw_polygon(self, x, y):
+        polygon = MyPolygon(x, y)
+        self.img_view_box.addItem(polygon)
+        return polygon
+
+
+class MyPolygon(QtGui.QGraphicsPolygonItem):
+    def __init__(self, x, y):
+        QtGui.QGraphicsPolygonItem.__init__(self)
+        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+
+        self.vertices = []
+        self.vertices.append(QtCore.QPoint(y, x))
+
+    def set_size(self, x, y):
+        temp_points = list(self.vertices)
+        temp_points.append(QtCore.QPointF(x, y))
+        self.setPolygon(QtGui.QPolygonF(temp_points))
+
+    def add_point(self, y, x):
+        self.vertices.append(QtCore.QPointF(x, y))
+        self.setPolygon(QtGui.QPolygonF(self.vertices))
 
 
 class MyCircle(QtGui.QGraphicsEllipseItem):
-    def __init__(self, x,y, radius):
-        QtGui.QGraphicsEllipseItem.__init__(self, y-radius, x-radius, radius*2, radius*2)
+    def __init__(self, x, y, radius):
+        QtGui.QGraphicsEllipseItem.__init__(self, y - radius, x - radius, radius * 2, radius * 2)
         self.radius = radius
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255,0,0,150)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
         self.center_x = x
         self.center_y = y
 
     def set_size(self, y, x):
-        self.radius = np.sqrt((y-self.center_y)**2+(x-self.center_x)**2)
-        self.setRect(self.center_y-self.radius, self.center_x-self.radius, self.radius*2, self.radius*2)
+        self.radius = np.sqrt((y - self.center_y) ** 2 + (x - self.center_x) ** 2)
+        self.setRect(self.center_y - self.radius, self.center_x - self.radius, self.radius * 2, self.radius * 2)
 
-class MyEllipse(MyCircle):
-    def __init__(self, x,y, radius):
-        MyCircle.__init__(self, x, y, radius)
+    def set_position(self, y, x):
+        self.setRect(y - self.radius, x - self.radius, self.radius * 2, self.radius * 2)
 
-    def set_size2(self , y, x):
-        self.radius2 = abs(x-self.center_x)
-        self.setRect(self.center_y-self.radius, self.center_x-self.radius2, self.radius*2, self.radius2*2)
 
+class MyPoint(QtGui.QGraphicsEllipseItem):
+    def __init__(self, radius):
+        QtGui.QGraphicsEllipseItem.__init__(self, 0, 0, radius*2, radius*2)
+        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+        self.radius = radius
+        self.x = 0
+        self.y = 0
+
+    def set_position(self, y, x):
+        self.x = x
+        self.y = y
+        self.setRect(y - self.radius, x - self.radius, self.radius * 2, self.radius * 2)
+
+    def set_radius(self, radius):
+        self.radius = radius
+        self.set_position(self.y, self.x)
 
 class MyRectangle(QtGui.QGraphicsRectItem):
     def __init__(self, x, y, width, height):
-        QtGui.QGraphicsRectItem.__init__(self, y, x-height, width, height)
+        QtGui.QGraphicsRectItem.__init__(self, y, x - height, width, height)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255,0,0,150)))
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
 
         self.initial_x = x
         self.initial_y = y
 
     def set_size(self, y, x):
-        height = x-self.initial_x
-        width  = y-self.initial_y
-        self.setRect(self.initial_y,self.initial_x+height, width, -height)
+        height = x - self.initial_x
+        width = y - self.initial_y
+        self.setRect(self.initial_y, self.initial_x + height, width, -height)
 
 
 

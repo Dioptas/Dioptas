@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>801</width>
-    <height>519</height>
+    <width>803</width>
+    <height>532</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>XRS - Suite Mask creation</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2">
    <item>
@@ -51,38 +51,61 @@
       </layout>
      </widget>
      <widget class="QWidget" name="widget" native="true">
-      <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0">
-        <widget class="QPushButton" name="circle_btn">
-         <property name="text">
-          <string>Circle</string>
+      <property name="maximumSize">
+       <size>
+        <width>200</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <property name="horizontalSpacing">
+          <number>-1</number>
          </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-        </widget>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="circle_btn">
+           <property name="text">
+            <string>Circle</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="rectangle_btn">
+           <property name="text">
+            <string>Rectangle</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="point_btn">
+           <property name="text">
+            <string>Point</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSpinBox" name="point_size_sb">
+           <property name="maximum">
+            <number>4000</number>
+           </property>
+           <property name="value">
+            <number>20</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
-       <item row="0" column="1" colspan="2">
-        <widget class="QPushButton" name="ellipse_btn">
-         <property name="text">
-          <string>Ellipse</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QPushButton" name="rectangle_btn">
-         <property name="text">
-          <string>Rectangle</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1" colspan="2">
+       <item>
         <widget class="QPushButton" name="polygon_btn">
          <property name="text">
           <string>Polygon</string>
@@ -92,47 +115,95 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QPushButton" name="point_btn">
-         <property name="text">
-          <string>Point</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
+       <item>
+        <widget class="Line" name="line">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
-       <item row="2" column="2">
-        <widget class="QSpinBox" name="spinBox"/>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QPushButton" name="above_thresh_btn">
+           <property name="text">
+            <string>Above Thresh</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="above_thresh_txt"/>
+         </item>
+        </layout>
        </item>
-       <item row="3" column="0">
-        <widget class="QPushButton" name="above_thresh_btn">
-         <property name="text">
-          <string>Above Thresh</string>
-         </property>
-        </widget>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <widget class="QPushButton" name="below_thresh_btn">
+           <property name="text">
+            <string>Below Thresh</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="below_thresh_txt"/>
+         </item>
+        </layout>
        </item>
-       <item row="3" column="2">
-        <widget class="QLineEdit" name="above_thresh_txt"/>
-       </item>
-       <item row="4" column="0">
-        <widget class="QPushButton" name="below_thresh_btn">
-         <property name="text">
-          <string>Below Thresh</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="2">
-        <widget class="QLineEdit" name="below_thresh_txt"/>
-       </item>
-       <item row="5" column="0" colspan="3">
+       <item>
         <widget class="QPushButton" name="cosmic_btn">
          <property name="text">
           <string>Cosmic Removal</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="0" colspan="3">
+       <item>
+        <widget class="Line" name="line_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0" colspan="2">
+          <widget class="QPushButton" name="invert_mask_btn">
+           <property name="text">
+            <string>Invert Mask</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0" colspan="2">
+          <widget class="QPushButton" name="clear_mask_btn">
+           <property name="text">
+            <string>Clear Mask</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QPushButton" name="undo_btn">
+           <property name="text">
+            <string>undo</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QPushButton" name="redo_btn">
+           <property name="text">
+            <string>Redo</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="Line" name="line_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -145,19 +216,37 @@
          </property>
         </spacer>
        </item>
-       <item row="7" column="0" colspan="2">
-        <widget class="QPushButton" name="back_btn">
-         <property name="text">
-          <string>Back</string>
+       <item>
+        <widget class="Line" name="line_4">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
-       <item row="7" column="2">
-        <widget class="QPushButton" name="forward_btn">
-         <property name="text">
-          <string>Forward</string>
-         </property>
-        </widget>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0" colspan="2">
+          <widget class="QPushButton" name="save_mask_btn">
+           <property name="text">
+            <string>Save Mask</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="load_mask_btn">
+           <property name="text">
+            <string>Load Mask</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="add_mask_btn">
+           <property name="text">
+            <string>Add Mask</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>
