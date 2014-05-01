@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>803</width>
-    <height>532</height>
+    <width>712</width>
+    <height>527</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -59,22 +59,47 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <property name="spacing">
-        <number>7</number>
+        <number>5</number>
        </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
+       <property name="margin">
         <number>0</number>
        </property>
        <item>
-        <layout class="QGridLayout" name="gridLayout_2">
-         <property name="leftMargin">
-          <number>0</number>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QRadioButton" name="mask_rb">
+           <property name="text">
+            <string>mask</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="unmask_rb">
+           <property name="text">
+            <string>unmask</string>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="Line" name="line_2">
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
          </property>
-         <property name="horizontalSpacing">
-          <number>-1</number>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout">
          <item row="0" column="0">
           <widget class="QPushButton" name="circle_btn">
            <property name="text">
@@ -118,17 +143,17 @@
            </property>
           </widget>
          </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="QPushButton" name="polygon_btn">
+           <property name="text">
+            <string>Polygon</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
         </layout>
-       </item>
-       <item>
-        <widget class="QPushButton" name="polygon_btn">
-         <property name="text">
-          <string>Polygon</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-        </widget>
        </item>
        <item>
         <widget class="Line" name="line">
@@ -141,82 +166,75 @@
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
-         <item>
-          <widget class="QPushButton" name="above_thresh_btn">
-           <property name="text">
-            <string>Above Thresh</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="above_thresh_txt">
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
-         <item>
-          <widget class="QPushButton" name="below_thresh_btn">
-           <property name="text">
-            <string>Below Thresh</string>
-           </property>
-          </widget>
-         </item>
-         <item>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="1" column="1">
           <widget class="QLineEdit" name="below_thresh_txt">
            <property name="alignment">
             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
            </property>
           </widget>
          </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="below_thresh_btn">
+           <property name="text">
+            <string>Below Thresh</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="QPushButton" name="cosmic_btn">
+           <property name="text">
+            <string>Cosmic Removal</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="above_thresh_txt">
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="above_thresh_btn">
+           <property name="text">
+            <string>Above Thresh</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>
-        <widget class="QPushButton" name="cosmic_btn">
-         <property name="text">
-          <string>Cosmic Removal</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="Line" name="line_2">
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
+        <widget class="Line" name="line_5">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
        <item>
-        <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="0" colspan="2">
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="0" column="0">
           <widget class="QPushButton" name="invert_mask_btn">
            <property name="text">
-            <string>Invert Mask</string>
+            <string>Invert</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="0" colspan="2">
+         <item row="0" column="1">
           <widget class="QPushButton" name="clear_mask_btn">
            <property name="text">
-            <string>Clear Mask</string>
+            <string>Clear</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="0">
+         <item row="1" column="0">
           <widget class="QPushButton" name="undo_btn">
            <property name="text">
             <string>undo</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
+         <item row="1" column="1">
           <widget class="QPushButton" name="redo_btn">
            <property name="text">
             <string>redo</string>
@@ -233,6 +251,29 @@
         </widget>
        </item>
        <item>
+        <widget class="QWidget" name="" native="true">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QRadioButton" name="fill_rb">
+            <property name="text">
+             <string>Fill</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="transparent_rb">
+            <property name="text">
+             <string>Transparent</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -244,16 +285,6 @@
           </size>
          </property>
         </spacer>
-       </item>
-       <item>
-        <widget class="Line" name="line_4">
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
        </item>
        <item>
         <layout class="QGridLayout" name="gridLayout_3">
@@ -281,6 +312,17 @@
         </layout>
        </item>
       </layout>
+      <zorder>polygon_btn</zorder>
+      <zorder>line</zorder>
+      <zorder>cosmic_btn</zorder>
+      <zorder>line_2</zorder>
+      <zorder>line_3</zorder>
+      <zorder>mask_rb</zorder>
+      <zorder>unmask_rb</zorder>
+      <zorder>line_5</zorder>
+      <zorder>unmask_rb</zorder>
+      <zorder>fill_rb</zorder>
+      <zorder>transparent_rb</zorder>
      </widget>
     </widget>
    </item>
