@@ -278,6 +278,13 @@ class MyPoint(QtGui.QGraphicsEllipseItem):
     def set_radius(self, radius):
         self.radius = radius
         self.set_position(self.y, self.x)
+        return self.radius
+
+    def inc_size(self, step):
+        self.radius = self.radius + step
+        self.set_position(self.y, self.x)
+        return self.radius
+
 
 
 class MyRectangle(QtGui.QGraphicsRectItem):
