@@ -12,7 +12,7 @@ class XrsMaskView(QtGui.QWidget, Ui_xrs_mask_widget):
     def __init__(self):
         super(XrsMaskView, self).__init__(None)
         self.setupUi(self)
-        self.splitter.setStretchFactor(0, 1)
+        #self.splitter.setStretchFactor(0, 1)
         self.img_view = MaskImgView(self.img_pg_layout)
         self.img_view.add_mouse_move_observer(self.show_img_mouse_position)
         self.set_validator()
@@ -25,7 +25,7 @@ class XrsMaskView(QtGui.QWidget, Ui_xrs_mask_widget):
     def show_img_mouse_position(self,x,y):
         try:
             if x > 0 and y > 0:
-                str = "x: %8.1f   y: %8.1f   I: %6.f" % (x, y, self.img_view.img_data.T[np.round(x), np.round(y)])
+                str = "x: %8.1f   y: %8.1f   I: %6.f" % (x, y, self.img_view.img_data.T[np.floor(x), np.floor(y)])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):

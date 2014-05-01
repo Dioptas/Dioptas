@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'XrsMask.ui'
 #
-# Created: Wed Apr 30 15:56:53 2014
+# Created: Thu May  1 09:46:35 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -52,9 +52,11 @@ class Ui_xrs_mask_widget(object):
         self.widget.setMaximumSize(QtCore.QSize(200, 16777215))
         self.widget.setObjectName(_fromUtf8("widget"))
         self.verticalLayout_2 = QtGui.QVBoxLayout(self.widget)
-        self.verticalLayout_2.setMargin(0)
+        self.verticalLayout_2.setSpacing(7)
+        self.verticalLayout_2.setContentsMargins(0, -1, 0, -1)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.gridLayout_2 = QtGui.QGridLayout()
+        self.gridLayout_2.setContentsMargins(0, -1, -1, -1)
         self.gridLayout_2.setObjectName(_fromUtf8("gridLayout_2"))
         self.circle_btn = QtGui.QPushButton(self.widget)
         self.circle_btn.setCheckable(True)
@@ -69,6 +71,7 @@ class Ui_xrs_mask_widget(object):
         self.point_btn.setObjectName(_fromUtf8("point_btn"))
         self.gridLayout_2.addWidget(self.point_btn, 1, 0, 1, 1)
         self.point_size_sb = QtGui.QSpinBox(self.widget)
+        self.point_size_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.point_size_sb.setMaximum(4000)
         self.point_size_sb.setProperty("value", 20)
         self.point_size_sb.setObjectName(_fromUtf8("point_size_sb"))
@@ -79,6 +82,7 @@ class Ui_xrs_mask_widget(object):
         self.polygon_btn.setObjectName(_fromUtf8("polygon_btn"))
         self.verticalLayout_2.addWidget(self.polygon_btn)
         self.line = QtGui.QFrame(self.widget)
+        self.line.setFrameShadow(QtGui.QFrame.Raised)
         self.line.setFrameShape(QtGui.QFrame.HLine)
         self.line.setFrameShadow(QtGui.QFrame.Sunken)
         self.line.setObjectName(_fromUtf8("line"))
@@ -89,6 +93,7 @@ class Ui_xrs_mask_widget(object):
         self.above_thresh_btn.setObjectName(_fromUtf8("above_thresh_btn"))
         self.horizontalLayout_3.addWidget(self.above_thresh_btn)
         self.above_thresh_txt = QtGui.QLineEdit(self.widget)
+        self.above_thresh_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.above_thresh_txt.setObjectName(_fromUtf8("above_thresh_txt"))
         self.horizontalLayout_3.addWidget(self.above_thresh_txt)
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
@@ -98,6 +103,7 @@ class Ui_xrs_mask_widget(object):
         self.below_thresh_btn.setObjectName(_fromUtf8("below_thresh_btn"))
         self.horizontalLayout_4.addWidget(self.below_thresh_btn)
         self.below_thresh_txt = QtGui.QLineEdit(self.widget)
+        self.below_thresh_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.below_thresh_txt.setObjectName(_fromUtf8("below_thresh_txt"))
         self.horizontalLayout_4.addWidget(self.below_thresh_txt)
         self.verticalLayout_2.addLayout(self.horizontalLayout_4)
@@ -105,6 +111,7 @@ class Ui_xrs_mask_widget(object):
         self.cosmic_btn.setObjectName(_fromUtf8("cosmic_btn"))
         self.verticalLayout_2.addWidget(self.cosmic_btn)
         self.line_2 = QtGui.QFrame(self.widget)
+        self.line_2.setFrameShadow(QtGui.QFrame.Raised)
         self.line_2.setFrameShape(QtGui.QFrame.HLine)
         self.line_2.setFrameShadow(QtGui.QFrame.Sunken)
         self.line_2.setObjectName(_fromUtf8("line_2"))
@@ -132,6 +139,7 @@ class Ui_xrs_mask_widget(object):
         spacerItem1 = QtGui.QSpacerItem(228, 224, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem1)
         self.line_4 = QtGui.QFrame(self.widget)
+        self.line_4.setFrameShadow(QtGui.QFrame.Raised)
         self.line_4.setFrameShape(QtGui.QFrame.HLine)
         self.line_4.setFrameShadow(QtGui.QFrame.Sunken)
         self.line_4.setObjectName(_fromUtf8("line_4"))
@@ -166,7 +174,7 @@ class Ui_xrs_mask_widget(object):
         self.invert_mask_btn.setText(_translate("xrs_mask_widget", "Invert Mask", None))
         self.clear_mask_btn.setText(_translate("xrs_mask_widget", "Clear Mask", None))
         self.undo_btn.setText(_translate("xrs_mask_widget", "undo", None))
-        self.redo_btn.setText(_translate("xrs_mask_widget", "Redo", None))
+        self.redo_btn.setText(_translate("xrs_mask_widget", "redo", None))
         self.save_mask_btn.setText(_translate("xrs_mask_widget", "Save Mask", None))
         self.load_mask_btn.setText(_translate("xrs_mask_widget", "Load Mask", None))
         self.add_mask_btn.setText(_translate("xrs_mask_widget", "Add Mask", None))

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'XrsMain.ui'
 #
-# Created: Wed Apr 30 15:56:52 2014
+# Created: Thu May  1 09:46:35 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!

@@ -4,12 +4,14 @@ import pyqtgraph as pg
 from PyQt4 import QtGui
 from collections import deque
 import skimage.draw
+import scipy.signal
+from cosmics import cosmicsimage
 
 import time
 from sys import getsizeof
 
-class XrsMaskData(object):
 
+class XrsMaskData(object):
     def __init__(self, mask_dimension=None):
         self.mask_dimension = mask_dimension
         self.reset_dimension()
@@ -22,20 +24,13 @@ class XrsMaskData(object):
     def reset_dimension(self):
         if self.mask_dimension is not None:
             self._mask_data = np.zeros(self.mask_dimension, dtype=bool)
-            self.mask_img = np.zeros((self.mask_dimension[0],
-                                      self.mask_dimension[1], 4),
-                                     dtype='uint8')
             self._undo_deque = deque(maxlen=50)
             self._redo_deque = deque(maxlen=50)
 
     def get_mask(self):
-        mask_data = np.copy(self._mask_data)
-        mask_data[np.where(self._mask_data > 0)] = 1
-        return mask_data
+        return self._mask_data
 
     def get_img(self):
-        self.mask_img[:,:,0] = self._mask_data*255
-        self.mask_img[:,:,3] = self._mask_data*180
         return self._mask_data
 
     def update_deque(self):
@@ -65,11 +60,11 @@ class XrsMaskData(object):
 
     def mask_below_threshold(self, img_data, threshold):
         self.update_deque()
-        self._mask_data += (img_data <= threshold)
+        self._mask_data += (img_data < threshold)
 
     def mask_above_threshold(self, img_data, threshold):
         self.update_deque()
-        self._mask_data += (img_data >= threshold)
+        self._mask_data += (img_data > threshold)
 
     def mask_QGraphicsRectItem(self, QGraphicsRectItem):
         rect = QGraphicsRectItem.rect()
@@ -150,6 +145,33 @@ class XrsMaskData(object):
             cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
         self._mask_data[rr, cc] = True
 
+    def invert_mask(self):
+        self.update_deque()
+        self._mask_data = np.invert(self._mask_data)
+
+    def clear_mask(self):
+        self.update_deque()
+        self._mask_data[:, :] = False
+
+    def remove_cosmic(self, img):
+        self.update_deque()
+        test = cosmicsimage(img, sigclip=2.5, objlim=2.5, satlevel=-1)
+        num = 4
+        for i in xrange(num):
+            test.lacosmiciteration(True)
+            test.clean()
+            self._mask_data += np.array(test.mask, dtype = 'bool')
+
+        print test.mask
+
+
+    def set_mask(self, mask_data):
+        self.update_deque()
+        self._mask_data = mask_data
+
+    def add_mask(self, mask_data):
+        self._mask_data += np.array(mask_data, dtype = 'bool')
+
 
 def test_mask_data():
     # create Gaussian image:
@@ -162,7 +184,7 @@ def test_mask_data():
     width = 30000.0
     intensity = 5000.0
     img_data = intensity * \
-        np.exp(-((X - center_x) ** 2 + (Y - center_y) ** 2) / width)
+               np.exp(-((X - center_x) ** 2 + (Y - center_y) ** 2) / width)
     mask_data = XrsMaskData(img_data.shape)
 
     # test the undo and redo commands
