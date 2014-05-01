@@ -189,17 +189,20 @@ class MaskImgView(ImgView):
         super(MaskImgView, self).__init__(pg_layout)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
-        self.mask_img_item.setLookupTable(self.create_color_map())
+        self.set_color()
 
     def plot_mask(self, mask_data):
         self.mask_data = mask_data
         self.mask_img_item.setImage(mask_data.T)
 
-    def create_color_map(self):
+    def create_color_map(self, color):
         steps = np.array([0, 1])
-        colors = np.array([[0, 0, 0, 0], [255, 0, 0, 255]], dtype=np.ubyte)
+        colors = np.array([[0, 0, 0, 0], color], dtype=np.ubyte)
         color_map = pg.ColorMap(steps, colors)
         return color_map.getLookupTable(0.0, 1.0, 256, True)
+
+    def set_color(self, color= [255, 0, 0, 255]):
+        self.mask_img_item.setLookupTable(self.create_color_map(color))
 
     def draw_circle(self, x=0, y=0):
         circle = MyCircle(x, y, 0)
@@ -260,7 +263,7 @@ class MyCircle(QtGui.QGraphicsEllipseItem):
 
 class MyPoint(QtGui.QGraphicsEllipseItem):
     def __init__(self, radius):
-        QtGui.QGraphicsEllipseItem.__init__(self, 0, 0, radius*2, radius*2)
+        QtGui.QGraphicsEllipseItem.__init__(self, 0, 0, radius * 2, radius * 2)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
         self.radius = radius
@@ -275,6 +278,7 @@ class MyPoint(QtGui.QGraphicsEllipseItem):
     def set_radius(self, radius):
         self.radius = radius
         self.set_position(self.y, self.x)
+
 
 class MyRectangle(QtGui.QGraphicsRectItem):
     def __init__(self, x, y, width, height):

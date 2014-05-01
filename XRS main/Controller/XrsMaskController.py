@@ -1,3 +1,9 @@
+"""
+Is the basic controller for the XrsMaskView and XrsMaskData.
+Connects all the Gui elements with XrsMaskData...
+"""
+#TODO add the possibility to define an arc and mask around it
+
 __author__ = 'Clemens Prescher'
 
 import sys
@@ -14,7 +20,6 @@ from PyQt4 import QtGui, QtCore
 from Views.XrsMaskView import XrsMaskView
 from Data.XrsImgData import XrsImgData
 from Data.XrsMaskData import XrsMaskData
-from Data.XrsCalibrationData import XrsCalibrationData
 
 import numpy as np
 
@@ -64,7 +69,12 @@ class XrsMaskController(object):
         self.connect_click_function(self.view.save_mask_btn, self.save_mask_btn_click)
         self.connect_click_function(self.view.load_mask_btn, self.load_mask_btn_click)
         self.connect_click_function(self.view.add_mask_btn, self.add_mask_btn_click)
+        self.connect_click_function(self.view.mask_rb, self.mask_rb_click)
+        self.connect_click_function(self.view.unmask_rb, self.unmask_rb_click)
+        self.connect_click_function(self.view.fill_rb, self.fill_rb_click)
+        self.connect_click_function(self.view.transparent_rb, self.transparent_rb_click)
         self.view.connect(self.view.point_size_sb, QtCore.SIGNAL('valueChanged(int)'), self.set_point_size)
+
 
     def uncheck_all_btn(self, except_btn=None):
         btns = [self.view.circle_btn, self.view.rectangle_btn, self.view.polygon_btn, \
@@ -274,6 +284,20 @@ class XrsMaskController(object):
             else:
                 QtGui.QMessageBox.critical(self.view,'Error', 'Image data and mask data in selected file do not have '
                                                                'the same shape. Mask could not be added.')
+
+    def mask_rb_click(self):
+        self.mask_data.set_mode(True)
+
+    def unmask_rb_click(self):
+        self.mask_data.set_mode(False)
+
+    def fill_rb_click(self):
+        self.view.img_view.set_color([255,0,0,255])
+        self.view.img_view.plot_mask(self.mask_data.get_mask())
+
+    def transparent_rb_click(self):
+        self.view.img_view.set_color([255,0,0,100])
+        self.view.img_view.plot_mask(self.mask_data.get_mask())
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)

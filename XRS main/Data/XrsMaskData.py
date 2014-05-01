@@ -15,6 +15,7 @@ class XrsMaskData(object):
     def __init__(self, mask_dimension=None):
         self.mask_dimension = mask_dimension
         self.reset_dimension()
+        self.mode = True
 
     def set_dimension(self, mask_dimension):
         if not np.array_equal(mask_dimension, self.mask_dimension):
@@ -122,7 +123,7 @@ class XrsMaskData(object):
         if y_ind1 < 0:
             y_ind1 = 0
 
-        self._mask_data[x_ind1:x_ind2, y_ind1:y_ind2] = True
+        self._mask_data[x_ind1:x_ind2, y_ind1:y_ind2] = self.mode
 
     def mask_polygon(self, x, y):
         """
@@ -132,7 +133,7 @@ class XrsMaskData(object):
         """
         self.update_deque()
         rr, cc = skimage.draw.polygon(y, x, self._mask_data.shape)
-        self._mask_data[rr, cc] = True
+        self._mask_data[rr, cc] = self.mode
 
     def mask_ellipse(self, cx, cy, x_radius, y_radius):
         """
@@ -143,7 +144,7 @@ class XrsMaskData(object):
         self.update_deque()
         rr, cc = skimage.draw.ellipse(
             cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
-        self._mask_data[rr, cc] = True
+        self._mask_data[rr, cc] = self.mode
 
     def invert_mask(self):
         self.update_deque()
@@ -164,6 +165,8 @@ class XrsMaskData(object):
 
         print test.mask
 
+    def set_mode(self, mode):
+        self.mode = mode
 
     def set_mask(self, mask_data):
         self.update_deque()
