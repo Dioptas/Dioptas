@@ -27,15 +27,16 @@ class XrsMaskController(object):
 
         self.view.img_view.add_left_click_observer(self.process_click)
 
-        self.state = 'polygon'
+        self.state = None
         self.clicks = 0
-
+        self._working_dir = ''
         self.load_image()
         self.create_signals()
 
         self.rect = None
         self.circle = None
         self.polygon = None
+        self.point = None
 
         self.raise_window()
 
@@ -55,6 +56,14 @@ class XrsMaskController(object):
         self.connect_click_function(self.view.point_btn, self.activate_point_btn)
         self.connect_click_function(self.view.undo_btn, self.undo_btn_click)
         self.connect_click_function(self.view.redo_btn, self.redo_btn_click)
+        self.connect_click_function(self.view.below_thresh_btn, self.below_thresh_btn_click)
+        self.connect_click_function(self.view.above_thresh_btn, self.above_thresh_btn_click)
+        self.connect_click_function(self.view.cosmic_btn, self.cosmic_btn_click)
+        self.connect_click_function(self.view.invert_mask_btn, self.invert_mask_btn_click)
+        self.connect_click_function(self.view.clear_mask_btn, self.clear_mask_btn_click)
+        self.connect_click_function(self.view.save_mask_btn, self.save_mask_btn_click)
+        self.connect_click_function(self.view.load_mask_btn, self.load_mask_btn_click)
+        self.connect_click_function(self.view.add_mask_btn, self.add_mask_btn_click)
         self.view.connect(self.view.point_size_sb, QtCore.SIGNAL('valueChanged(int)'), self.set_point_size)
 
     def uncheck_all_btn(self, except_btn=None):
@@ -64,8 +73,8 @@ class XrsMaskController(object):
             if btn is not except_btn:
                 if btn.isChecked():
                     btn.toggle()
-        if not except_btn.isChecked() and except_btn is not None:
-            except_btn.toggle()
+        # if not except_btn.isChecked() and except_btn is not None:
+        #     except_btn.toggle()
 
         shapes = [self.rect, self.circle, self.polygon]
         for shape in shapes:
@@ -82,26 +91,44 @@ class XrsMaskController(object):
 
 
     def activate_circle_btn(self):
-        self.state = 'circle'
-        self.clicks = 0
-        self.uncheck_all_btn(except_btn=self.view.circle_btn)
+        if self.view.circle_btn.isChecked():
+            self.state = 'circle'
+            self.clicks = 0
+            self.uncheck_all_btn(except_btn=self.view.circle_btn)
+        else:
+            print 'hmm'
+            self.state = None
+            self.clicks = 0
+            self.uncheck_all_btn()
 
     def activate_rectangle_btn(self):
-        self.state = 'rectangle'
-        self.clicks = 0
-        self.uncheck_all_btn(except_btn=self.view.rectangle_btn)
+        if self.view.rectangle_btn.isChecked():
+            self.state = 'rectangle'
+            self.clicks = 0
+            self.uncheck_all_btn(except_btn=self.view.rectangle_btn)
+        else:
+            self.state = None
+            self.uncheck_all_btn()
 
     def activate_polygon_btn(self):
-        self.state = 'polygon'
-        self.clicks = 0
-        self.uncheck_all_btn(except_btn=self.view.polygon_btn)
+        if self.view.polygon_btn.isChecked():
+            self.state = 'polygon'
+            self.clicks = 0
+            self.uncheck_all_btn(except_btn=self.view.polygon_btn)
+        else:
+            self.state = None
+            self.uncheck_all_btn()
 
     def activate_point_btn(self):
-        self.state = 'point'
-        self.clicks = 0
-        self.uncheck_all_btn(except_btn=self.view.point_btn)
-        self.point = self.view.img_view.draw_point(self.view.point_size_sb.value())
-        self.view.img_view.add_mouse_move_observer(self.point.set_position)
+        if self.view.point_btn.isChecked():
+            self.state = 'point'
+            self.clicks = 0
+            self.uncheck_all_btn(except_btn=self.view.point_btn)
+            self.point = self.view.img_view.draw_point(self.view.point_size_sb.value())
+            self.view.img_view.add_mouse_move_observer(self.point.set_position)
+        else:
+            self.state = 'None'
+            self.uncheck_all_btn()
 
     def undo_btn_click(self):
         self.mask_data.undo()
@@ -112,10 +139,8 @@ class XrsMaskController(object):
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def load_image(self):
-        self.img_data.load_file('../ExampleData/LaB6_WOS_30keV_005.tif')
-
+        self.img_data.load_file('ExampleData/Mg2SiO4_076.tif')
         self.mask_data.set_dimension(self.img_data.get_img_data().shape)
-
         self.view.img_view.plot_image(self.img_data.get_img_data(), False)
         self.view.img_view.auto_range()
         self.view.img_view.plot_mask(self.mask_data.get_img())
@@ -188,6 +213,67 @@ class XrsMaskController(object):
         self.polygon = None
 
 
+    def below_thresh_btn_click(self):
+        thresh = np.float64(self.view.below_thresh_txt.text())
+        print thresh
+        self.mask_data.mask_below_threshold(self.img_data.get_img_data(), thresh)
+        self.view.img_view.plot_mask(self.mask_data.get_img())
+
+    def above_thresh_btn_click(self):
+        thresh = np.float64(self.view.above_thresh_txt.text())
+        self.mask_data.mask_above_threshold(self.img_data.get_img_data(), thresh)
+        self.view.img_view.plot_mask(self.mask_data.get_img())
+
+    def invert_mask_btn_click(self):
+        self.mask_data.invert_mask()
+        self.view.img_view.plot_mask(self.mask_data.get_img())
+
+    def clear_mask_btn_click(self):
+        self.mask_data.clear_mask()
+        self.view.img_view.plot_mask(self.mask_data.get_img())
+
+    def cosmic_btn_click(self):
+        self.mask_data.remove_cosmic(self.img_data.get_img_data())
+        self.view.img_view.plot_mask(self.mask_data.get_img())
+
+    def save_mask_btn_click(self, filename=None):
+        if filename is None:
+            filename = str(QtGui.QFileDialog.getSaveFileName(self.view, caption="Save mask data",
+                                                             directory=self._working_dir, filter='*.mask'))
+
+        if filename is not '':
+            self._working_dir = os.path.dirname(filename)
+            np.savetxt(filename, self.mask_data.get_mask(), fmt="%d")
+
+    def load_mask_btn_click(self, filename=None):
+        if filename is None:
+            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load mask data",
+                                                             directory=self._working_dir, filter='*.mask'))
+
+        if filename is not '':
+            self._working_dir = os.path.dirname(filename)
+            mask_data = np.loadtxt(filename)
+            if self.img_data.get_img_data().shape == mask_data.shape:
+                self.mask_data.set_mask(np.loadtxt(filename))
+                self.view.img_view.plot_mask(self.mask_data.get_mask())
+            else:
+                 QtGui.QMessageBox.critical(self.view,'Error', 'Image data and mask data in selected file do not have '
+                                                               'the same shape. Mask could not be loaded.')
+
+    def add_mask_btn_click(self, filename = None):
+        if filename is None:
+            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Add mask data",
+                                                             directory=self._working_dir, filter='*.mask'))
+
+        if filename is not '':
+            self._working_dir = os.path.dirname(filename)
+            mask_data = np.loadtxt(filename)
+            if self.mask_data.get_mask().shape == mask_data.shape:
+                self.mask_data.add_mask(np.loadtxt(filename))
+                self.view.img_view.plot_mask(self.mask_data.get_mask())
+            else:
+                QtGui.QMessageBox.critical(self.view,'Error', 'Image data and mask data in selected file do not have '
+                                                               'the same shape. Mask could not be added.')
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)

@@ -193,7 +193,6 @@ class MaskImgView(ImgView):
 
     def plot_mask(self, mask_data):
         self.mask_data = mask_data
-        #self.mask_img_item.setImage(mask_data.transpose((1,0,2)))
         self.mask_img_item.setImage(mask_data.T)
 
     def create_color_map(self):

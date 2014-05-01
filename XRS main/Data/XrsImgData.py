@@ -37,6 +37,7 @@ class XrsImgData(Observable):
     def load_next_file(self):
         self.img_data_fabio = self.img_data_fabio.next()
         self.img_data = self.img_data_fabio.data
+        self.filename = self.img_data_fabio.filename
         self.integrate_img()
         self.notify()
 

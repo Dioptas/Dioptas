@@ -58,8 +58,20 @@
        </size>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="spacing">
+        <number>7</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
        <item>
         <layout class="QGridLayout" name="gridLayout_2">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
          <property name="horizontalSpacing">
           <number>-1</number>
          </property>
@@ -95,6 +107,9 @@
          </item>
          <item row="1" column="1">
           <widget class="QSpinBox" name="point_size_sb">
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
            <property name="maximum">
             <number>4000</number>
            </property>
@@ -117,6 +132,9 @@
        </item>
        <item>
         <widget class="Line" name="line">
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
@@ -132,7 +150,11 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="above_thresh_txt"/>
+          <widget class="QLineEdit" name="above_thresh_txt">
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -146,7 +168,11 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="below_thresh_txt"/>
+          <widget class="QLineEdit" name="below_thresh_txt">
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -159,6 +185,9 @@
        </item>
        <item>
         <widget class="Line" name="line_2">
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
@@ -190,7 +219,7 @@
          <item row="2" column="1">
           <widget class="QPushButton" name="redo_btn">
            <property name="text">
-            <string>Redo</string>
+            <string>redo</string>
            </property>
           </widget>
          </item>
@@ -218,6 +247,9 @@
        </item>
        <item>
         <widget class="Line" name="line_4">
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
