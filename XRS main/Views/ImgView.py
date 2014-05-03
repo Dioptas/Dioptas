@@ -3,11 +3,13 @@ __author__ = 'Clemens Prescher'
 import pyqtgraph as pg
 import numpy as np
 from PyQt4 import QtCore, QtGui
+from HorHistogramLUTItem import HorHistogramLUTItem
 
 
 class ImgView(object):
-    def __init__(self, pg_layout):
+    def __init__(self, pg_layout, orientation = 'vertical'):
         self.pg_layout = pg_layout
+        self.orientation = orientation
 
         self.create_graphics()
         self.create_scatter_plot()
@@ -21,15 +23,26 @@ class ImgView(object):
 
     def create_graphics(self):
         #create basic image view
-        self.img_view_box = self.pg_layout.addViewBox()
 
-        #create the item handling the Data img
-        self.data_img_item = pg.ImageItem()
-        self.img_view_box.addItem(self.data_img_item)
 
-        self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
-        self.img_histogram_LUT.axis.hide()
-        self.pg_layout.addItem(self.img_histogram_LUT)
+        #self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
+        if self.orientation =='horizontal':
+
+            self.img_view_box = self.pg_layout.addViewBox(1,0)
+            #create the item handling the Data img
+            self.data_img_item = pg.ImageItem()
+            self.img_view_box.addItem(self.data_img_item)
+            self.img_histogram_LUT = HorHistogramLUTItem(self.data_img_item)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 0)
+
+        elif self.orientation == 'vertical':
+            self.img_view_box = self.pg_layout.addViewBox(0, 0)
+            #create the item handling the Data img
+            self.data_img_item = pg.ImageItem()
+            self.img_view_box.addItem(self.data_img_item)
+            self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
+            self.img_histogram_LUT.axis.hide()
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
 
         self.img_view_box.setAspectLocked()
 
@@ -185,8 +198,8 @@ class CalibrationCakeView(ImgView):
 
 
 class MaskImgView(ImgView):
-    def __init__(self, pg_layout):
-        super(MaskImgView, self).__init__(pg_layout)
+    def __init__(self, pg_layout, orientation = 'vertical'):
+        super(MaskImgView, self).__init__(pg_layout, orientation)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
         self.set_color()

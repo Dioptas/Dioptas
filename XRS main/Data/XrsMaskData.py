@@ -156,8 +156,8 @@ class XrsMaskData(object):
 
     def remove_cosmic(self, img):
         self.update_deque()
-        test = cosmicsimage(img, sigclip=2.5, objlim=2.5, satlevel=-1)
-        num = 4
+        test = cosmicsimage(img, sigclip=3.0, objlim=5.0, satlevel=-1)
+        num = 10
         for i in xrange(num):
             test.lacosmiciteration(True)
             test.clean()
@@ -166,6 +166,9 @@ class XrsMaskData(object):
         print test.mask
 
     def set_mode(self, mode):
+        """
+        sets the mode to unmask or mask which equals mode = False or True
+        """
         self.mode = mode
 
     def set_mask(self, mask_data):
@@ -174,6 +177,7 @@ class XrsMaskData(object):
 
     def add_mask(self, mask_data):
         self._mask_data += np.array(mask_data, dtype = 'bool')
+
 
 
 def test_mask_data():

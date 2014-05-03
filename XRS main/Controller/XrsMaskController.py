@@ -151,7 +151,7 @@ class XrsMaskController(object):
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def load_image(self):
-        self.img_data.load_file('ExampleData/Mg2SiO4_076.tif')
+        self.img_data.load_file('ExampleData/Mg2SiO4_091.tif')
         self.mask_data.set_dimension(self.img_data.get_img_data().shape)
         self.view.img_view.plot_image(self.img_data.get_img_data(), False)
         self.view.img_view.auto_range()
