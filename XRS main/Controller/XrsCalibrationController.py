@@ -178,7 +178,7 @@ class XrsCalibrationController(object):
         self.view.cake_view.load_image(self.calibration_data.cake_img, True)
         self.calibration_data.calibrant.setWavelength_change2th(pyFAI_parameter['wavelength'])
 
-        self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
+        self.view.spectrum_view.plot_img(self.calibration_data.tth, self.calibration_data.int)
         self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th())/np.pi*180)
 
     def load_calibration(self, filename=None):
@@ -194,7 +194,7 @@ class XrsCalibrationController(object):
             self.calibration_data.integrate_2d()
             self.view.cake_view.load_image(self.calibration_data.cake_img, True)
 
-            self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
+            self.view.spectrum_view.plot_img(self.calibration_data.tth, self.calibration_data.int)
             self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th())/np.pi*180)
 
             pyFAI_parameter, fit2d_parameter= self.calibration_data.get_calibration_parameter()
