@@ -3,16 +3,16 @@ __author__ = 'Clemens Prescher'
 import sys
 import os
 from PyQt4 import QtGui, QtCore
-from UiFiles.XrsCalibrationUI import Ui_XrsCalibrationWidget
+from UiFiles.CalibrationUI import Ui_XrsCalibrationWidget
 from ImgView import ImgView, CalibrationCakeView
 from SpectrumView import SpectrumView
 import numpy as np
 import pyqtgraph as pg
 
 
-class XrsCalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
+class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
     def __init__(self):
-        super(XrsCalibrationView, self).__init__(None)
+        super(CalibrationView, self).__init__(None)
         self.setupUi(self)
         self.splitter.setStretchFactor(0, 1)
 

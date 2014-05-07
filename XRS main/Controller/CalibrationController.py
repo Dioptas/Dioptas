@@ -10,20 +10,20 @@ pg.setConfigOption('background', 'k')
 pg.setConfigOption('foreground', 'w')
 pg.setConfigOption('antialias', True)
 from PyQt4 import QtGui, QtCore
-from Views.XrsCalibrationView import XrsCalibrationView
-from Data.XrsImgData import XrsImgData
-from Data.XrsCalibrationData import XrsCalibrationData
+from Views.CalibrationView import CalibrationView
+from Data.ImgData import ImgData
+from Data.CalibrationData import CalibrationData
 
 import numpy as np
 
 
-class XrsCalibrationController(object):
+class CalibrationController(object):
     def __init__(self):
-        self.view = XrsCalibrationView()
-        self.data = XrsImgData()
+        self.view = CalibrationView()
+        self.data = ImgData()
         self.data.subscribe(self.plot_image)
 
-        self.calibration_data = XrsCalibrationData(self.data)
+        self.calibration_data = CalibrationData(self.data)
         self.calibration_data.set_start_values(self.view.get_start_values())
 
         self._exp_working_dir = ''
@@ -213,5 +213,5 @@ class XrsCalibrationController(object):
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
-    controller = XrsCalibrationController()
+    controller = CalibrationController()
     app.exec_()

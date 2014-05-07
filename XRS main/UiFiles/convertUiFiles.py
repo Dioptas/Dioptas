@@ -10,6 +10,7 @@ def convert_ui_files(folder='/'):
     old_path = os.getcwd()
     new_path = os.getcwd() + folder
     os.chdir(new_path)
+    os.system('echo $PATH')
     for file in os.listdir('.'):
         if file.endswith(".ui"):
             file_name = str(file).split('.')[0]

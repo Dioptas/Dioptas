@@ -128,7 +128,7 @@ class SpectrumView(object):
 
 
 class PhaseLinesPlot(object):
-    def __init__(self, plot_item, positions = None, name = 'HAHAHA', pen = pg.mkPen(color=(120,120,120), style=QtCore.Qt.DashLine) ):
+    def __init__(self, plot_item, positions = None, name = 'Dummy', pen = pg.mkPen(color=(120,120,120), style=QtCore.Qt.DashLine) ):
         self.plot_item=plot_item
         self.peak_positions = []
         self.line_items = []

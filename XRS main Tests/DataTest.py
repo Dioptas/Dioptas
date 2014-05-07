@@ -1,12 +1,12 @@
 __author__ = 'Clemens Prescher'
 
-from Data.XrsImgData import *
+from Data.ImgData import *
 import unittest
 import numpy as np
 
 class XrsDataTest(unittest.TestCase):
     def setUp(self):
-        self.data = XrsImgData()
+        self.data = ImgData()
         self.data.load_file('Data/test_001.tif')
 
     def test_rotation(self):

@@ -2,15 +2,15 @@ __author__ = 'Clemens Prescher'
 
 import os
 from PyQt4 import QtGui, QtCore
-from UiFiles.XrsMaskUI import Ui_xrs_mask_widget
+from UiFiles.MaskUI import Ui_xrs_mask_widget
 from ImgView import MaskImgView
 import numpy as np
 import pyqtgraph as pg
 
 
-class XrsMaskView(QtGui.QWidget, Ui_xrs_mask_widget):
+class MaskView(QtGui.QWidget, Ui_xrs_mask_widget):
     def __init__(self):
-        super(XrsMaskView, self).__init__(None)
+        super(MaskView, self).__init__(None)
         self.setupUi(self)
         #self.splitter.setStretchFactor(0, 1)
         self.img_view = MaskImgView(self.img_pg_layout)
