@@ -5,15 +5,15 @@ import fabio
 import pyFAI
 import pyFAI.utils
 import matplotlib.pyplot as plt
-from XrsHelper import Observable, rotate_matrix_p90, rotate_matrix_m90
+from HelperClasses import Observable, rotate_matrix_p90, rotate_matrix_m90
 import os
 from stat import S_ISREG, ST_CTIME, ST_MODE
 import time
 
 
-class XrsImgData(Observable):
+class ImgData(Observable):
     def __init__(self):
-        super(XrsImgData, self).__init__()
+        super(ImgData, self).__init__()
 
         self.img_data = None
         self.integrator = None

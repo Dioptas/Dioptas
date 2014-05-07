@@ -1,13 +1,13 @@
 __author__ = 'Clemens Prescher'
 import sys
 from PyQt4 import QtGui
-from Controller.XrsIntegrationController import XrsIntegrationController
-from Controller.XrsCalibrationController import XrsCalibrationController
-from Controller.XrsMaskController import XrsMaskController
-from Controller.XrsIntegrationController import XrsIntegrationController
+from Controller.IntegrationController import IntegrationController
+from Controller.CalibrationController import CalibrationController
+from Controller.MaskController import MaskController
+from Controller.IntegrationController import IntegrationController
 
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
-    controller = XrsIntegrationController()
+    controller = IntegrationController()
     app.exec_()

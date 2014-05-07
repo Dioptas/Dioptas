@@ -2,16 +2,16 @@ __author__ = 'Clemens Prescher'
 
 import os
 from PyQt4 import QtGui, QtCore
-from UiFiles.XrsIntegrationUI import Ui_xrs_integration_widget
+from UiFiles.IntegrationUI import Ui_xrs_integration_widget
 from ImgView import MaskImgView
 from SpectrumView import SpectrumView
 import numpy as np
 import pyqtgraph as pg
 
 
-class XrsIntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
+class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def __init__(self):
-        super(XrsIntegrationView, self).__init__(None)
+        super(IntegrationView, self).__init__(None)
         self.setupUi(self)
         self.horizontal_splitter.setStretchFactor(0,1)
         self.horizontal_splitter.setStretchFactor(1,1)
@@ -27,10 +27,13 @@ class XrsIntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def show_img_mouse_position(self,x,y):
         try:
             if x > 0 and y > 0:
-                x_pos_string = 'X: %4.1f' % x
-                y_pos_string = 'Y: %4.1f' % y
+                x_pos_string = 'X:  %4d' % x
+                y_pos_string = 'Y:  %4d' % y
                 self.x_lbl.setText(x_pos_string)
                 self.y_lbl.setText(y_pos_string)
+
+                int_string = 'I:   %5d' % self.img_view.img_data[np.floor(x), np.floor(y)]
+                self.int_lbl.setText(int_string)
             else:
                 self.x_lbl.setText('')
                 self.y_lbl.setText('')

@@ -3,14 +3,14 @@ __author__ = 'Doomgoroth'
 import sys
 
 from PyQt4 import QtGui, QtCore
-from UiFiles.XrsMainUI import Ui_XRS_widget
+from UiFiles.Main import Ui_XRS_widget
 import pyqtgraph as pg
 import numpy as np
 
 
-class XrsMainView(QtGui.QWidget, Ui_XRS_widget):
+class MainView(QtGui.QWidget, Ui_XRS_widget):
     def __init__(self):
-        super(XrsMainView, self).__init__(None)
+        super(MainView, self).__init__(None)
         self.setupUi(self)
         self.create_img_view()
         self.plot_curve = self.plot.plot()

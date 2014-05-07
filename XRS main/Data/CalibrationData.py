@@ -9,8 +9,8 @@ import numpy as np
 import pyqtgraph as pg
 
 
-class XrsCalibrationData(object):
-    def __init__(self, img_data):
+class CalibrationData(object):
+    def __init__(self, img_data=None):
         self.img_data=img_data
         self.points = []
         self.points_index = []

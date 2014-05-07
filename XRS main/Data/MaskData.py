@@ -11,7 +11,7 @@ import time
 from sys import getsizeof
 
 
-class XrsMaskData(object):
+class MaskData(object):
     def __init__(self, mask_dimension=None):
         self.mask_dimension = mask_dimension
         self.reset_dimension()
@@ -192,7 +192,7 @@ def test_mask_data():
     intensity = 5000.0
     img_data = intensity * \
                np.exp(-((X - center_x) ** 2 + (Y - center_y) ** 2) / width)
-    mask_data = XrsMaskData(img_data.shape)
+    mask_data = MaskData(img_data.shape)
 
     # test the undo and redo commands
     mask_data.mask_above_threshold(img_data, 4000)

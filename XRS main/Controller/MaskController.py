@@ -17,18 +17,18 @@ pg.setConfigOption('background', 'k')
 pg.setConfigOption('foreground', 'w')
 pg.setConfigOption('antialias', True)
 from PyQt4 import QtGui, QtCore
-from Views.XrsMaskView import XrsMaskView
-from Data.XrsImgData import XrsImgData
-from Data.XrsMaskData import XrsMaskData
+from Views.MaskView import MaskView
+from Data.ImgData import ImgData
+from Data.MaskData import MaskData
 
 import numpy as np
 
 
-class XrsMaskController(object):
+class MaskController(object):
     def __init__(self):
-        self.view = XrsMaskView()
-        self.img_data = XrsImgData()
-        self.mask_data = XrsMaskData()
+        self.view = MaskView()
+        self.img_data = ImgData()
+        self.mask_data = MaskData()
 
         self.view.img_view.add_left_click_observer(self.process_click)
 
@@ -323,5 +323,5 @@ class XrsMaskController(object):
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
-    controller = XrsMaskController()
+    controller = MaskController()
     app.exec_()
