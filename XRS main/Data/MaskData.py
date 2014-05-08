@@ -161,7 +161,7 @@ class MaskData(object):
         for i in xrange(num):
             test.lacosmiciteration(True)
             test.clean()
-            self._mask_data += np.array(test.mask, dtype = 'bool')
+            self._mask_data += np.array(test.mask, dtype='bool')
 
         print test.mask
 
@@ -175,9 +175,14 @@ class MaskData(object):
         self.update_deque()
         self._mask_data = mask_data
 
-    def add_mask(self, mask_data):
-        self._mask_data += np.array(mask_data, dtype = 'bool')
+    def load_mask(self, filename):
+        data = np.loadtxt(filename)
+        self.mask_dimension = data.shape
+        self.reset_dimension()
+        self.set_mask(data)
 
+    def add_mask(self, mask_data):
+        self._mask_data += np.array(mask_data, dtype='bool')
 
 
 def test_mask_data():

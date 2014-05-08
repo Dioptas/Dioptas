@@ -81,11 +81,10 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.filename_lbl.setText(os.path.basename(filename))
 
     def get_start_values(self):
-        start_values={}
-        start_values['dist'] = float(self.sv_distance_txt.text())*1e-3
-        start_values['wavelength'] = float(self.sv_wavelength_txt.text())*1e-10
-        start_values['pixel_width'] = float(self.sv_pixel_width_txt.text())*1e-6
-        start_values['pixel_height'] = float(self.sv_pixel_height_txt.text())*1e-6
+        start_values = {'dist': float(self.sv_distance_txt.text()) * 1e-3,
+                        'wavelength': float(self.sv_wavelength_txt.text()) * 1e-10,
+                        'pixel_width': float(self.sv_pixel_width_txt.text()) * 1e-6,
+                        'pixel_height': float(self.sv_pixel_height_txt.text()) * 1e-6}
         return start_values
 
     def set_calibration_parameters(self, pyFAI_parameter, fit2d_parameter):
@@ -105,16 +104,12 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.pf_pixel_height_txt.setText('%.4f' % (pyFAI_parameter['pixel2'] * 1e6))
 
     def get_pyFAI_parameter(self):
-        pyFAI_parameter={}
-        pyFAI_parameter['dist']         = float(self.pf_distance_txt.text())/1000
-        pyFAI_parameter['poni1']        = float(self.pf_poni1_txt.text())
-        pyFAI_parameter['poni2']        = float(self.pf_poni2_txt.text())
-        pyFAI_parameter['rot1']         = float(self.pf_rotation1_txt.text())
-        pyFAI_parameter['rot2']         = float(self.pf_rotation2_txt.text())
-        pyFAI_parameter['rot3']         = float(self.pf_rotation3_txt.text())
-        pyFAI_parameter['wavelength']   = float(self.pf_wavelength_txt.text())/1e10
-        pyFAI_parameter['pixel1']       = float(self.pf_pixel_width_txt.text())/1e6
-        pyFAI_parameter['pixel2']       = float(self.pf_pixel_height_txt.text())/1e6
+        pyFAI_parameter = {'dist': float(self.pf_distance_txt.text()) / 1000, 'poni1': float(self.pf_poni1_txt.text()),
+                           'poni2': float(self.pf_poni2_txt.text()), 'rot1': float(self.pf_rotation1_txt.text()),
+                           'rot2': float(self.pf_rotation2_txt.text()), 'rot3': float(self.pf_rotation3_txt.text()),
+                           'wavelength': float(self.pf_wavelength_txt.text()) / 1e10,
+                           'pixel1': float(self.pf_pixel_width_txt.text()) / 1e6,
+                           'pixel2': float(self.pf_pixel_height_txt.text()) / 1e6}
         return pyFAI_parameter
 
 
@@ -129,13 +124,11 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.f2_pixel_height_txt.setText('%.4f' % (fit2d_parameter['pixelY']))
 
     def get_fit2d_parameter(self):
-        fit2d_parameter={}
-        fit2d_parameter['directDist']       =float(self.f2_distance_txt.text())
-        fit2d_parameter['centerX']          =float(self.f2_center_x_txt.text())
-        fit2d_parameter['centerY']          =float(self.f2_center_y_txt.text())
-        fit2d_parameter['tilt']             =float(self.f2_tilt_txt.text())
-        fit2d_parameter['tiltPlanRotation'] =float(self.f2_rotation_txt.text())
-        fit2d_parameter['wavelength']       =float(self.f2_wavelength_txt.text())/1e10
-        fit2d_parameter['pixelX']           =float(self.f2_pixel_width_txt.text())
-        fit2d_parameter['pixelY']           =float(self.f2_pixel_height_txt.text())
+        fit2d_parameter = {'directDist': float(self.f2_distance_txt.text()),
+                           'centerX': float(self.f2_center_x_txt.text()), 'centerY': float(self.f2_center_y_txt.text()),
+                           'tilt': float(self.f2_tilt_txt.text()),
+                           'tiltPlanRotation': float(self.f2_rotation_txt.text()),
+                           'wavelength': float(self.f2_wavelength_txt.text()) / 1e10,
+                           'pixelX': float(self.f2_pixel_width_txt.text()),
+                           'pixelY': float(self.f2_pixel_height_txt.text())}
         return fit2d_parameter

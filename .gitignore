@@ -7,8 +7,11 @@
 *.sln.docstates
 *.tif
 *.tiff
+*.jpg
+*.data
 *.pyc
 *.poni
+*.xy
 .ipynb_checkpoints/
 .idea
 
