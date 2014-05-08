@@ -76,8 +76,11 @@ class XrsIntegrationSpectrumController(object):
         self.connect_click_function(self.view.spec_load_btn, self.load)
         self.connect_click_function(self.view.spec_previous_btn, self.load_previous)
         self.connect_click_function(self.view.spec_next_btn, self.load_next)
+        self.connect_click_function(self.view.spec_directory_btn, self.spec_directory_btn_click)
         self.connect_click_function(self.view.spec_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.spec_browse_by_time_rb, self.set_iteration_mode_time)
+        self.view.connect(self.view.spec_directory_txt, QtCore.SIGNAL('editingFinished()'),
+                          self.spec_directory_txt_changed)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -122,14 +125,30 @@ class XrsIntegrationSpectrumController(object):
     def load_previous(self):
         self.spectrum_data.load_previous()
         self.view.spec_filename_lbl.setText(os.path.basename(self.spectrum_data.spectrum_filename))
+        self.view.spec_directory_txt.setText(os.path.dirname(self.spectrum_data.spectrum_filename))
 
     def load_next(self):
         self.spectrum_data.load_next()
         self.view.spec_filename_lbl.setText(os.path.basename(self.spectrum_data.spectrum_filename))
+        self.view.spec_directory_txt.setText(os.path.dirname(self.spectrum_data.spectrum_filename))
 
     def autocreate_cb_changed(self):
         self.autosave = self.view.spec_autocreate_cb.isChecked()
 
+    def spec_directory_btn_click(self):
+        directory_dialog = QtGui.QFileDialog()
+        directory_dialog.setDirectory(self.spectrum_working_dir)
+        directory_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
+        if (directory_dialog.exec_()):
+            folder = directory_dialog.selectedFiles()[0]
+            self.spectrum_working_dir = folder
+            self.view.spec_directory_txt.setText(folder)
+
+    def spec_directory_txt_changed(self):
+        if os.path.exists(self.view.spec_directory_txt.text()):
+            self.spectrum_working_dir = self.view.spec_directory_txt.text()
+        else:
+            self.view.spec_directory_txt.setText(self.spectrum_working_dir)
 
     def set_iteration_mode_number(self):
         self.spectrum_data.file_iteration_mode = 'number'
