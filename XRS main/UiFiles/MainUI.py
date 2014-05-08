@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Wed May  7 15:44:15 2014
+# Created: Thu May  8 10:22:14 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,11 +17,13 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
+
 
 class Ui_XRS_widget(object):
     def setupUi(self, XRS_widget):
@@ -94,5 +96,6 @@ class Ui_XRS_widget(object):
         self.previous_file_btn.setText(_translate("XRS_widget", "<", None))
         self.next_file_btn.setText(_translate("XRS_widget", ">", None))
         self.autoproces_cb.setText(_translate("XRS_widget", "autoprocess", None))
+
 
 from pyqtgraph import GraphicsLayoutWidget, PlotWidget

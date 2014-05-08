@@ -151,7 +151,7 @@ class MaskController(object):
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def load_image(self):
-        self.img_data.load_file('ExampleData/Mg2SiO4_091.tif')
+        self.img_data.load('ExampleData/test_001.tif')
         self.mask_data.set_dimension(self.img_data.get_img_data().shape)
         self.view.img_view.plot_image(self.img_data.get_img_data(), False)
         self.view.img_view.auto_range()
@@ -269,10 +269,10 @@ class MaskController(object):
                 self.mask_data.set_mask(np.loadtxt(filename))
                 self.view.img_view.plot_mask(self.mask_data.get_mask())
             else:
-                 QtGui.QMessageBox.critical(self.view,'Error', 'Image data and mask data in selected file do not have '
+                QtGui.QMessageBox.critical(self.view, 'Error', 'Image data and mask data in selected file do not have '
                                                                'the same shape. Mask could not be loaded.')
 
-    def add_mask_btn_click(self, filename = None):
+    def add_mask_btn_click(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Add mask data",
                                                              directory=self._working_dir, filter='*.mask'))
@@ -284,24 +284,24 @@ class MaskController(object):
                 self.mask_data.add_mask(np.loadtxt(filename))
                 self.view.img_view.plot_mask(self.mask_data.get_mask())
             else:
-                QtGui.QMessageBox.critical(self.view,'Error', 'Image data and mask data in selected file do not have '
+                QtGui.QMessageBox.critical(self.view, 'Error', 'Image data and mask data in selected file do not have '
                                                                'the same shape. Mask could not be added.')
 
     def key_press_event(self, ev):
         if self.state == "point":
             if ev.text() == 'q':
-                self.view.point_size_sb.setValue(self.view.point_size_sb.value()+1)
+                self.view.point_size_sb.setValue(self.view.point_size_sb.value() + 1)
             if ev.text() == 'w':
-                self.view.point_size_sb.setValue(self.view.point_size_sb.value()-1)
+                self.view.point_size_sb.setValue(self.view.point_size_sb.value() - 1)
 
         if ev.modifiers() == QtCore.Qt.ControlModifier:
-            if ev.key() == 90:#for pressing z
+            if ev.key() == 90:  #for pressing z
                 self.undo_btn_click()
-            elif ev.key() == 89:#for pressing y
+            elif ev.key() == 89:  #for pressing y
                 self.redo_btn_click()
-            elif ev.key() == 83: #for pressing s
+            elif ev.key() == 83:  #for pressing s
                 self.save_mask_btn_click()
-            elif ev.key == 79: #for pressing o
+            elif ev.key == 79:  #for pressing o
                 self.load_mask_btn_click()
             elif ev.key == 65:
                 self.add_mask_btn_click()
@@ -314,12 +314,14 @@ class MaskController(object):
         self.mask_data.set_mode(False)
 
     def fill_rb_click(self):
-        self.view.img_view.set_color([255,0,0,255])
+        self.view.img_view.set_color([255, 0, 0, 255])
         self.view.img_view.plot_mask(self.mask_data.get_mask())
 
+    #
     def transparent_rb_click(self):
-        self.view.img_view.set_color([255,0,0,100])
+        self.view.img_view.set_color([255, 0, 0, 100])
         self.view.img_view.plot_mask(self.mask_data.get_mask())
+
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)

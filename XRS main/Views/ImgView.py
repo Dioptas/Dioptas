@@ -4,10 +4,11 @@ import pyqtgraph as pg
 import numpy as np
 from PyQt4 import QtCore, QtGui
 from HorHistogramLUTItem import HorHistogramLUTItem
+import matplotlib.pyplot as plt
 
 
 class ImgView(object):
-    def __init__(self, pg_layout, orientation = 'vertical'):
+    def __init__(self, pg_layout, orientation='vertical'):
         self.pg_layout = pg_layout
         self.orientation = orientation
 
@@ -26,9 +27,9 @@ class ImgView(object):
 
 
         #self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
-        if self.orientation =='horizontal':
+        if self.orientation == 'horizontal':
 
-            self.img_view_box = self.pg_layout.addViewBox(1,0)
+            self.img_view_box = self.pg_layout.addViewBox(1, 0)
             #create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
@@ -144,7 +145,7 @@ class ImgView(object):
         pos = ev.pos()
         lastPos = ev.lastPos()
         dif = pos - lastPos
-        dif = dif * -1
+        dif *= -1
         ## Ignore axes if mouse is disabled
         mouseEnabled = np.array(self.img_view_box.state['mouseEnabled'], dtype=np.float)
         mask = mouseEnabled.copy()
@@ -198,15 +199,16 @@ class CalibrationCakeView(ImgView):
 
 
 class MaskImgView(ImgView):
-    def __init__(self, pg_layout, orientation = 'vertical'):
+    def __init__(self, pg_layout, orientation='vertical'):
         super(MaskImgView, self).__init__(pg_layout, orientation)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
         self.set_color()
 
     def plot_mask(self, mask_data):
-        self.mask_data = mask_data
-        self.mask_img_item.setImage(mask_data.T)
+        self.mask_data = np.int16(mask_data)
+        self.mask_img_item.setImage(self.mask_data.T, autoRange=True, autoHistogramRange=True,
+                                    autoLevels=True)
 
     def create_color_map(self, color):
         steps = np.array([0, 1])
@@ -214,7 +216,8 @@ class MaskImgView(ImgView):
         color_map = pg.ColorMap(steps, colors)
         return color_map.getLookupTable(0.0, 1.0, 256, True)
 
-    def set_color(self, color= [255, 0, 0, 255]):
+    def set_color(self, color=None):
+        if not color: color = [255, 0, 0, 255]
         self.mask_img_item.setLookupTable(self.create_color_map(color))
 
     def draw_circle(self, x=0, y=0):
@@ -297,7 +300,6 @@ class MyPoint(QtGui.QGraphicsEllipseItem):
         self.radius = self.radius + step
         self.set_position(self.y, self.x)
         return self.radius
-
 
 
 class MyRectangle(QtGui.QGraphicsRectItem):

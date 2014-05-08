@@ -16,6 +16,8 @@ import pyqtgraph.functions as fn
 import numpy as np
 import pyqtgraph.debug as debug
 
+import matplotlib.pyplot as plt
+
 
 __all__ = ['HistogramLUTItem']
 
@@ -181,14 +183,14 @@ class HorHistogramLUTItem(GraphicsWidget):
 
     def imageChanged(self, autoLevel=False, autoRange=False):
         prof = debug.Profiler('HistogramLUTItem.imageChanged', disabled=True)
-        h = np.array(self.imageItem.getHistogram())
+        h = list(self.imageItem.getHistogram())
+
         prof.mark('get histogram')
         if h[0] is None:
             return
-        h[1, :] = np.log(h[1, :])
+        h[1] = np.log(h[1])
         self.plot.setData(*h)
-
-        self.hist_x_range = np.max(h[0, :]) - np.min(h[0, :])
+        self.hist_x_range = np.max(h[0]) - np.min(h[0])
         if self.percentageLevel:
             if self.first_image:
                 self.region.setRegion([h[0, 0], h[0, -1]])
@@ -199,9 +201,9 @@ class HorHistogramLUTItem(GraphicsWidget):
                 self.region.setRegion(region_fraction * self.hist_x_range)
                 self.old_hist_x_range = self.hist_x_range
 
-        self.vb.setRange(yRange=[0, 1.1 * np.max(h[1, :])],
+        self.vb.setRange(yRange=[0, 1.2 * np.max(h[1])],
                          xRange=[0, np.max([self.region.getRegion()[1],
-                                           np.max(h[0, :])])])
+                                            np.max(h[0])])])
 
         prof.mark('set plot')
         if autoLevel:

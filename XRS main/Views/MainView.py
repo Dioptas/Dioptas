@@ -77,7 +77,7 @@ class MainView(QtGui.QWidget, Ui_XRS_widget):
             pos = ev.pos()
             lastPos = ev.lastPos()
             dif = pos - lastPos
-            dif = dif * -1
+            dif *= -1
             ## Ignore axes if mouse is disabled
             mouseEnabled = np.array(self.img_view_box.state['mouseEnabled'], dtype=np.float)
             mask = mouseEnabled.copy()
