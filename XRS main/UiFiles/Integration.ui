@@ -197,7 +197,7 @@
              <item row="0" column="0">
               <layout class="QHBoxLayout" name="horizontalLayout_2">
                <property name="spacing">
-                <number>30</number>
+                <number>5</number>
                </property>
                <item>
                 <widget class="QPushButton" name="load_img_btn">
@@ -209,7 +209,7 @@
                  </property>
                  <property name="minimumSize">
                   <size>
-                   <width>0</width>
+                   <width>179</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -377,6 +377,9 @@
             <spacer name="horizontalSpacer_5">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>

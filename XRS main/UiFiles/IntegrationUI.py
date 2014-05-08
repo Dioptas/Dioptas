@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu May  8 10:22:14 2014
+# Created: Thu May  8 10:40:04 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -116,7 +116,7 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout_3 = QtGui.QGridLayout()
         self.gridLayout_3.setObjectName(_fromUtf8("gridLayout_3"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
-        self.horizontalLayout_2.setSpacing(30)
+        self.horizontalLayout_2.setSpacing(5)
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
         self.load_img_btn = QtGui.QPushButton(self.image_tab)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
@@ -124,7 +124,7 @@ class Ui_xrs_integration_widget(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.load_img_btn.sizePolicy().hasHeightForWidth())
         self.load_img_btn.setSizePolicy(sizePolicy)
-        self.load_img_btn.setMinimumSize(QtCore.QSize(0, 0))
+        self.load_img_btn.setMinimumSize(QtCore.QSize(179, 0))
         self.load_img_btn.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.load_img_btn.setObjectName(_fromUtf8("load_img_btn"))
         self.horizontalLayout_2.addWidget(self.load_img_btn)
@@ -186,7 +186,7 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_15.addWidget(self.img_levels_percentage_rb)
         self.gridLayout_3.addWidget(self.groupBox_2, 2, 1, 1, 1)
         self.gridLayout_5.addLayout(self.gridLayout_3, 0, 0, 1, 1)
-        spacerItem1 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        spacerItem1 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Minimum)
         self.gridLayout_5.addItem(spacerItem1, 0, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout_5)
         spacerItem2 = QtGui.QSpacerItem(20, 55, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
