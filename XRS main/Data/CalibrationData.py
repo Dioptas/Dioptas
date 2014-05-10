@@ -21,6 +21,7 @@ class CalibrationData(object):
                              'pixel_width': 200e-6,
                              'pixel_height': 200e-6}
         self.fit_wavelength = False
+        self.is_calibrated = False
 
     def find_peaks(self, x, y, peak_ind):
         massif = Massif(self.img_data.img_data)
@@ -53,6 +54,7 @@ class CalibrationData(object):
             self.geometry.refine2_wavelength(fix=[])
         self.integrate_1d()
         self.integrate_2d()
+        self.is_calibrated = True
 
     def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None):
         self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='LUT', unit='2th_deg',

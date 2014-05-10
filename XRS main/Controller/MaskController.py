@@ -11,11 +11,6 @@ import os
 
 import pyqtgraph as pg
 
-pg.setConfigOption('useOpenGL', False)
-pg.setConfigOption('leftButtonPan', False)
-pg.setConfigOption('background', 'k')
-pg.setConfigOption('foreground', 'w')
-pg.setConfigOption('antialias', True)
 from PyQt4 import QtGui, QtCore
 from Views.MaskView import MaskView
 from Data.ImgData import ImgData
@@ -25,17 +20,27 @@ import numpy as np
 
 
 class MaskController(object):
-    def __init__(self):
-        self.view = MaskView()
-        self.img_data = ImgData()
-        self.mask_data = MaskData()
+    def __init__(self, view=None, imgData=None, maskData=None):
+        if view == None:
+            self.view = MaskView()
+        else:
+            self.view = view
+
+        if imgData == None:
+            self.img_data = ImgData()
+        else:
+            self.img_data = imgData
+
+        if maskData == None:
+            self.mask_data = MaskData()
+        else:
+            self.mask_data = maskData
 
         self.view.img_view.add_left_click_observer(self.process_click)
 
         self.state = None
         self.clicks = 0
         self._working_dir = ''
-        self.load_image()
         self.create_signals()
 
         self.rect = None
@@ -150,12 +155,9 @@ class MaskController(object):
         self.mask_data.redo()
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
-    def load_image(self):
-        self.img_data.load('ExampleData/test_001.tif')
-        self.mask_data.set_dimension(self.img_data.get_img_data().shape)
+    def plot_image(self):
         self.view.img_view.plot_image(self.img_data.get_img_data(), False)
         self.view.img_view.auto_range()
-        self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def process_click(self, x, y):
         if self.state == 'circle':
@@ -267,7 +269,7 @@ class MaskController(object):
             mask_data = np.loadtxt(filename)
             if self.img_data.get_img_data().shape == mask_data.shape:
                 self.mask_data.set_mask(np.loadtxt(filename))
-                self.view.img_view.plot_mask(self.mask_data.get_mask())
+                self.plot_mask()
             else:
                 QtGui.QMessageBox.critical(self.view, 'Error', 'Image data and mask data in selected file do not have '
                                                                'the same shape. Mask could not be loaded.')
@@ -282,10 +284,13 @@ class MaskController(object):
             mask_data = np.loadtxt(filename)
             if self.mask_data.get_mask().shape == mask_data.shape:
                 self.mask_data.add_mask(np.loadtxt(filename))
-                self.view.img_view.plot_mask(self.mask_data.get_mask())
+                self.plot_mask()
             else:
                 QtGui.QMessageBox.critical(self.view, 'Error', 'Image data and mask data in selected file do not have '
                                                                'the same shape. Mask could not be added.')
+
+    def plot_mask(self):
+        self.view.img_view.plot_mask(self.mask_data.get_mask())
 
     def key_press_event(self, ev):
         if self.state == "point":
@@ -315,12 +320,12 @@ class MaskController(object):
 
     def fill_rb_click(self):
         self.view.img_view.set_color([255, 0, 0, 255])
-        self.view.img_view.plot_mask(self.mask_data.get_mask())
+        self.plot_mask()
 
     #
     def transparent_rb_click(self):
         self.view.img_view.set_color([255, 0, 0, 100])
-        self.view.img_view.plot_mask(self.mask_data.get_mask())
+        self.plot_mask()
 
 
 if __name__ == "__main__":

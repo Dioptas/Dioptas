@@ -3,6 +3,9 @@ __author__ = 'Clemens Prescher'
 import numpy as np
 import os
 from stat import S_ISREG, ST_CTIME, ST_MODE
+from colorsys import hsv_to_rgb
+
+#distinguishable_colors = np.loadtxt('Data/distinguishable_colors.txt')[::-1]
 
 
 class Observable(object):
@@ -23,6 +26,7 @@ class Observable(object):
         if self.notification:
             for observer in self.observer:
                 observer()
+
     def turn_off_notification(self):
         self.notification = False
 
@@ -134,3 +138,20 @@ def rotate_matrix_p90(matrix):
 def get_base_name(filename):
     str = os.path.basename(filename)
     return str.split('.')[:-1][0]
+
+
+def calculate_color(ind):
+    # green=(0.15+0.3*ind)%1*255
+    # blue=(0.35*ind)%1*255
+    # red =(0.7+0.42*ind)%1*255
+    # if (red+green+blue)<(100*3):
+    #     red=(red+100)%255
+    #     green=(green+100)%255
+    #     blue=(blue+100)%255
+    # return (red, green, blue)
+
+    # return distinguishable_colors[ind]*255
+    s = 0.8
+    v = 0.8
+    h = (0.17 * ind) % 1
+    return np.array(hsv_to_rgb(h, s, v)) * 255

@@ -148,7 +148,7 @@ class MaskData(object):
 
     def invert_mask(self):
         self.update_deque()
-        self._mask_data = np.invert(self._mask_data)
+        self._mask_data = np.logical_not(self._mask_data)
 
     def clear_mask(self):
         self.update_deque()

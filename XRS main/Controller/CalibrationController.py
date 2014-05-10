@@ -5,11 +5,6 @@ import os
 
 import pyqtgraph as pg
 
-pg.setConfigOption('useOpenGL', False)
-pg.setConfigOption('leftButtonPan', False)
-pg.setConfigOption('background', 'k')
-pg.setConfigOption('foreground', 'w')
-pg.setConfigOption('antialias', True)
 from PyQt4 import QtGui, QtCore
 from Views.CalibrationView import CalibrationView
 from Data.ImgData import ImgData
@@ -19,12 +14,24 @@ import numpy as np
 
 
 class CalibrationController(object):
-    def __init__(self):
-        self.view = CalibrationView()
-        self.data = ImgData()
+    def __init__(self, view=None, img_data=None, calibration_data=None):
+        if view == None:
+            self.view = CalibrationView()
+        else:
+            self.view = view
+
+        if img_data == None:
+            self.data = ImgData()
+        else:
+            self.data = img_data
+
+        if calibration_data == None:
+            self.calibration_data = CalibrationData(self.data)
+        else:
+            self.calibration_data = calibration_data
+
         self.data.subscribe(self.plot_image)
 
-        self.calibration_data = CalibrationData(self.data)
         self.calibration_data.set_start_values(self.view.get_start_values())
 
         self._exp_working_dir = os.getcwd()

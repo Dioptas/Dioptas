@@ -2,8 +2,10 @@ __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
 import numpy as np
+from Data.HelperModule import calculate_color
 from PyQt4 import QtCore, QtGui
 
+#TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
 
 class SpectrumView(object):
     def __init__(self, pg_layout):
@@ -14,6 +16,8 @@ class SpectrumView(object):
         self.modify_mouse_behavior()
         self.phases = []
         self.overlays = []
+        self.overlay_names = []
+        self.overlay_show = []
         self.mouse_move_observer = []
         self.left_click_observer = []
 
@@ -30,8 +34,9 @@ class SpectrumView(object):
 
     def create_main_plot(self):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
-                                         pen=pg.mkPen(color=(255, 125, 0), width=1.5))
+                                         pen=pg.mkPen(color=(255, 255, 255), width=2))
         self.spectrum_plot.addItem(self.plot_item)
+        self.legend.addItem(self.plot_item, '')
         self.plot_name = ''
         self.legend.setParentItem(self.spectrum_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
@@ -39,23 +44,38 @@ class SpectrumView(object):
     def plot_data(self, x, y, name=None):
         self.plot_item.setData(x, y)
         if name is not None:
-            self.legend.removeItem(self.plot_item)
-            self.legend.addItem(self.plot_item, name)
+            self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
 
     def add_overlay(self, spectrum):
         x, y = spectrum.data
-        self.overlays.append(pg.PlotDataItem(x, y, pen=pg.mkPen(color=(0, 255, 0), width=1)))
+        color = calculate_color(len(self.overlays) + 1)
+        self.overlays.append(pg.PlotDataItem(x, y, pen=pg.mkPen(color=color, width=1.5)))
+        self.overlay_names.append(spectrum.name)
+        self.overlay_show.append(True)
         self.spectrum_plot.addItem(self.overlays[-1])
         self.legend.addItem(self.overlays[-1], spectrum.name)
+
+    def del_overlay(self, ind):
+        self.spectrum_plot.removeItem(self.overlays[ind])
+        self.legend.removeItem(self.overlays[ind])
+        self.overlays.remove(self.overlays[ind])
+        self.overlay_names.remove(self.overlay_names[ind])
+        self.overlay_show.remove(self.overlay_show[ind])
+
+    def hide_overlay(self, ind):
+        self.spectrum_plot.removeItem(self.overlays[ind])
+        self.legend.removeItem(self.overlays[ind])
+        self.overlay_show[ind] = False
+
+    def show_overlay(self, ind):
+        self.spectrum_plot.addItem(self.overlays[ind])
+        self.legend.addItem(self.overlays[ind], self.overlay_names[ind])
+        self.overlay_show[ind] = True
 
     def update_overlay(self, spectrum, ind):
         x, y = spectrum.data
         self.overlays[ind].setData(x, y)
-
-    def remove_overlay(self, ind):
-        self.spectrum_plot.removeItem(self.overlays[ind])
-        self.legend.removeItem(self.overlays[ind])
 
     def plot_vertical_lines(self, positions, phase_index=0, name=None):
         if len(self.phases) <= phase_index:

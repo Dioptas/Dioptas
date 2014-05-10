@@ -22,6 +22,13 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.img_view = MaskImgView(self.img_pg_layout, orientation='horizontal')
         self.img_view.add_mouse_move_observer(self.show_img_mouse_position)
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
+        self.set_validator()
+
+    def set_validator(self):
+        self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.overlay_scale_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.overlay_offset_step_txt.setValidator(QtGui.QDoubleValidator())
 
 
     def show_img_mouse_position(self, x, y):
