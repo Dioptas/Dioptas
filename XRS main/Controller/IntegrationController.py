@@ -10,6 +10,7 @@ from Data.ImgData import ImgData
 from Data.MaskData import MaskData
 from Data.CalibrationData import CalibrationData
 from Data.SpectrumData import SpectrumData
+from Data.HelperClasses import get_base_name
 import pyqtgraph as pg
 import time
 ## Switch to using white background and black foreground
@@ -55,11 +56,18 @@ class IntegrationOverlayController(object):
     def __init__(self, view, spectrum_data):
         self.view = view
         self.spectrum_data = spectrum_data
+        self.overlay_lw_items = []
         self.create_signals()
         self.add_overlay('ExampleData/spectra/Mg2SiO4_ambient_012.xy')
 
     def create_signals(self):
         self.connect_click_function(self.view.overlay_add_btn, self.add_overlay)
+        self.connect_click_function(self.view.overlay_del_btn, self.del_overlay)
+        self.view.overlay_lw.currentItemChanged.connect(self.overlay_item_changed)
+        self.view.overlay_scale_step_txt.editingFinished.connect(self.update_overlay_scale_step)
+        self.view.overlay_offset_step_txt.editingFinished.connect(self.update_overlay_offset_step)
+        self.view.overlay_scale_sb.valueChanged.connect(self.overlay_scale_sb_changed)
+        self.view.overlay_offset_sb.valueChanged.connect(self.overlay_offset_sb_changed)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -72,6 +80,39 @@ class IntegrationOverlayController(object):
         if filename is not '':
             self.spectrum_data.add_overlay_file(filename)
             self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+            self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
+            self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
+
+    def del_overlay(self):
+        cur_ind = self.view.overlay_lw.currentRow()
+        if cur_ind >= 0:
+            self.view.overlay_lw.takeItem(cur_ind)
+            self.view.overlay_lw.setCurrentRow(cur_ind - 1)
+            self.spectrum_data.overlays.remove(self.spectrum_data.overlays[cur_ind])
+
+    def update_overlay_scale_step(self):
+        value = np.double(self.view.overlay_scale_step_txt.text())
+        self.view.overlay_scale_sb.setSingleStep(value)
+
+    def update_overlay_offset_step(self):
+        value = np.double(self.view.overlay_offset_step_txt.text())
+        self.view.overlay_offset_sb.setSingleStep(value)
+
+    def overlay_item_changed(self):
+        cur_ind = self.view.overlay_lw.currentRow()
+        self.view.overlay_scale_sb.setValue(self.spectrum_data.overlays[cur_ind].scaling)
+        self.view.overlay_offset_sb.setValue(self.spectrum_data.overlays[cur_ind].offset)
+        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
+
+    def overlay_scale_sb_changed(self, value):
+        cur_ind = self.view.overlay_lw.currentRow()
+        self.spectrum_data.overlays[cur_ind].scaling = value
+        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
+
+    def overlay_offset_sb_changed(self, value):
+        cur_ind = self.view.overlay_lw.currentRow()
+        self.spectrum_data.overlays[cur_ind].offset = value
+        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
 
 
 class IntegrationSpectrumController(object):

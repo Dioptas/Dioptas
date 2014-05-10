@@ -2,7 +2,6 @@ __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
 import numpy as np
-from LegendItem import LegendItem
 from PyQt4 import QtCore, QtGui
 
 
@@ -15,8 +14,6 @@ class SpectrumView(object):
         self.modify_mouse_behavior()
         self.phases = []
         self.overlays = []
-        self.overlay = None
-        self.overlay_names = []
         self.mouse_move_observer = []
         self.left_click_observer = []
 
@@ -29,7 +26,7 @@ class SpectrumView(object):
     def create_graphics(self):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
         self.img_view_box = self.spectrum_plot.vb
-        self.legend = LegendItem(h_spacing=10, box=True)
+        self.legend = pg.LegendItem(horSpacing=20, box=False)
 
     def create_main_plot(self):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
@@ -48,15 +45,17 @@ class SpectrumView(object):
 
     def add_overlay(self, spectrum):
         x, y = spectrum.data
-        self.remove_overlay(1)
-        self.overlay = pg.PlotDataItem(x, y, pen=pg.mkPen(color=(0, 255, 0), width=1))
-        self.overlay_name = spectrum.name
-        self.spectrum_plot.addItem(self.overlay)
-        self.legend.addItem(self.overlay, spectrum.name)
+        self.overlays.append(pg.PlotDataItem(x, y, pen=pg.mkPen(color=(0, 255, 0), width=1)))
+        self.spectrum_plot.addItem(self.overlays[-1])
+        self.legend.addItem(self.overlays[-1], spectrum.name)
+
+    def update_overlay(self, spectrum, ind):
+        x, y = spectrum.data
+        self.overlays[ind].setData(x, y)
 
     def remove_overlay(self, ind):
-        self.spectrum_plot.removeItem(self.overlay)
-        self.legend.removeItem(self.overlay)
+        self.spectrum_plot.removeItem(self.overlays[ind])
+        self.legend.removeItem(self.overlays[ind])
 
     def plot_vertical_lines(self, positions, phase_index=0, name=None):
         if len(self.phases) <= phase_index:
