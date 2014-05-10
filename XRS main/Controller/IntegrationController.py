@@ -10,7 +10,7 @@ from Data.ImgData import ImgData
 from Data.MaskData import MaskData
 from Data.CalibrationData import CalibrationData
 from Data.SpectrumData import SpectrumData
-from Data.HelperClasses import get_base_name
+from Data.HelperModule import get_base_name
 import pyqtgraph as pg
 import time
 ## Switch to using white background and black foreground
@@ -24,26 +24,43 @@ import numpy as np
 
 
 class IntegrationController(object):
-    def __init__(self):
-        self.view = IntegrationView()
-        self.img_data = ImgData()
-        self.mask_data = MaskData()
-        self.calibration_data = CalibrationData(self.img_data)
-        self.spectrum_data = SpectrumData()
+    def __init__(self, view=None, img_data=None, mask_data=None, calibration_data=None, spectrum_data=None):
+
+        if view == None:
+            self.view = IntegrationView()
+        else:
+            self.view = view
+
+        if img_data == None:
+            self.img_data = ImgData()
+        else:
+            self.img_data = img_data
+
+        if mask_data == None:
+            self.mask_data = MaskData()
+        else:
+            self.mask_data = mask_data
+
+        if calibration_data == None:
+            self.calibration_data = CalibrationData(self.img_data)
+        else:
+            self.calibration_data = calibration_data
+
+        if spectrum_data == None:
+            self.spectrum_data = SpectrumData()
+        else:
+            self.spectrum_data = spectrum_data
+
         self.initialize()
         self.create_sub_controller()
-        self.img_data.notify()
 
         self.view.setWindowState(self.view.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.view.activateWindow()
         self.view.raise_()
 
     def initialize(self):
-        self.img_data.set_calibration_file('ExampleData/LaB6_p49_001.poni')
         self.img_data.load('ExampleData/Mg2SiO4_ambient_001.tif')
         self.mask_data.set_dimension(self.img_data.get_img_data().shape)
-        self.mask_data.set_mask(np.loadtxt('ExampleData/test.mask'))
-        self.calibration_data.load('ExampleData/calibration.poni')
 
     def create_sub_controller(self):
         self.spectrum_controller = IntegrationSpectrumController(self.view, self.img_data, self.mask_data,
@@ -58,26 +75,39 @@ class IntegrationOverlayController(object):
         self.spectrum_data = spectrum_data
         self.overlay_lw_items = []
         self.create_signals()
-        self.add_overlay('ExampleData/spectra/Mg2SiO4_ambient_012.xy')
 
     def create_signals(self):
         self.connect_click_function(self.view.overlay_add_btn, self.add_overlay)
         self.connect_click_function(self.view.overlay_del_btn, self.del_overlay)
+        self.view.overlay_clear_btn.clicked.connect(self.clear_overlays)
         self.view.overlay_lw.currentItemChanged.connect(self.overlay_item_changed)
         self.view.overlay_scale_step_txt.editingFinished.connect(self.update_overlay_scale_step)
         self.view.overlay_offset_step_txt.editingFinished.connect(self.update_overlay_offset_step)
         self.view.overlay_scale_sb.valueChanged.connect(self.overlay_scale_sb_changed)
         self.view.overlay_offset_sb.valueChanged.connect(self.overlay_offset_sb_changed)
 
+        self.view.overlay_set_as_bkg_btn.clicked.connect(self.overlay_set_as_bkg_btn_clicked)
+        self.view.overlay_show_cb.clicked.connect(self.overlay_show_cb_changed)
+
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def add_overlay(self, filename=None):
+        dialog = QtGui.QFileDialog()
+        dialog.setFileMode(QtGui.QFileDialog.ExistingFiles)
+        dialog.setWindowTitle("Load Overlay(s).")
+
         if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load Overlay",
-                                                             directory=os.path.dirname(
-                                                                 self.spectrum_data.spectrum_filename)))
-        if filename is not '':
+            if (dialog.exec_()):
+                filenames = dialog.selectedFiles()
+                for filename in filenames:
+                    filename = str(filename)
+                    self.spectrum_data.add_overlay_file(filename)
+                    self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+                    self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
+                    self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
+
+        else:
             self.spectrum_data.add_overlay_file(filename)
             self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
             self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
@@ -89,6 +119,17 @@ class IntegrationOverlayController(object):
             self.view.overlay_lw.takeItem(cur_ind)
             self.view.overlay_lw.setCurrentRow(cur_ind - 1)
             self.spectrum_data.overlays.remove(self.spectrum_data.overlays[cur_ind])
+            self.view.spectrum_view.del_overlay(cur_ind)
+            if self.spectrum_data.bkg_ind > cur_ind:
+                self.spectrum_data.bkg_ind -= 1
+            elif self.spectrum_data.bkg_ind == cur_ind:
+                self.spectrum_data.spectrum.reset_background()
+                self.spectrum_data.bkg_ind = -1
+                self.spectrum_data.notify()
+
+    def clear_overlays(self):
+        while self.view.overlay_lw.currentRow() > -1:
+            self.del_overlay()
 
     def update_overlay_scale_step(self):
         value = np.double(self.view.overlay_scale_step_txt.text())
@@ -102,17 +143,51 @@ class IntegrationOverlayController(object):
         cur_ind = self.view.overlay_lw.currentRow()
         self.view.overlay_scale_sb.setValue(self.spectrum_data.overlays[cur_ind].scaling)
         self.view.overlay_offset_sb.setValue(self.spectrum_data.overlays[cur_ind].offset)
-        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
+        # self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
+        self.view.overlay_show_cb.setChecked(self.view.spectrum_view.overlay_show[cur_ind])
+        if cur_ind == self.spectrum_data.bkg_ind:
+            self.view.overlay_set_as_bkg_btn.setChecked(True)
+        else:
+            self.view.overlay_set_as_bkg_btn.setChecked(False)
 
     def overlay_scale_sb_changed(self, value):
         cur_ind = self.view.overlay_lw.currentRow()
         self.spectrum_data.overlays[cur_ind].scaling = value
         self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
+        if self.view.overlay_set_as_bkg_btn.isChecked():
+            self.spectrum_data.notify()
 
     def overlay_offset_sb_changed(self, value):
         cur_ind = self.view.overlay_lw.currentRow()
         self.spectrum_data.overlays[cur_ind].offset = value
         self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
+        if self.view.overlay_set_as_bkg_btn.isChecked():
+            self.spectrum_data.notify()
+
+    def overlay_set_as_bkg_btn_clicked(self):
+        cur_ind = self.view.overlay_lw.currentRow()
+        if not self.view.overlay_set_as_bkg_btn.isChecked():
+            self.spectrum_data.bkg_ind = -1
+            self.spectrum_data.spectrum.reset_background()
+            self.view.spectrum_view.show_overlay(cur_ind)
+            self.view.overlay_show_cb.setChecked(True)
+            self.spectrum_data.notify()
+        else:
+            if self.spectrum_data.bkg_ind is not -1:
+                self.view.spectrum_view.show_overlay(self.spectrum_data.bkg_ind)  #show the old overlay again
+            self.spectrum_data.bkg_ind = cur_ind
+            self.spectrum_data.spectrum.set_background(self.spectrum_data.overlays[cur_ind])
+            self.view.spectrum_view.hide_overlay(cur_ind)
+            self.view.overlay_show_cb.setChecked(False)
+            self.spectrum_data.notify()
+
+    def overlay_show_cb_changed(self):
+        cur_ind = self.view.overlay_lw.currentRow()
+        state = self.view.overlay_show_cb.isChecked()
+        if state:
+            self.view.spectrum_view.show_overlay(cur_ind)
+        else:
+            self.view.spectrum_view.hide_overlay(cur_ind)
 
 
 class IntegrationSpectrumController(object):
@@ -152,23 +227,24 @@ class IntegrationSpectrumController(object):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def image_changed(self):
-        if self.autosave:
-            filename = os.path.join(self.spectrum_working_dir,
-                                    os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
-            self.view.spec_next_btn.setEnabled(True)
-            self.view.spec_previous_btn.setEnabled(True)
-            self.view.spec_filename_lbl.setText(os.path.basename(filename))
-            self.view.spec_directory_txt.setText(os.path.dirname(filename))
-        else:
-            self.view.spec_next_btn.setEnabled(False)
-            self.view.spec_previous_btn.setEnabled(False)
-            filename = None
-            self.view.spec_filename_lbl.setText('No File saved or selected')
+        if self.calibration_data.is_calibrated:
+            if self.autosave:
+                filename = os.path.join(self.spectrum_working_dir,
+                                        os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
+                self.view.spec_next_btn.setEnabled(True)
+                self.view.spec_previous_btn.setEnabled(True)
+                self.view.spec_filename_lbl.setText(os.path.basename(filename))
+                self.view.spec_directory_txt.setText(os.path.dirname(filename))
+            else:
+                self.view.spec_next_btn.setEnabled(False)
+                self.view.spec_previous_btn.setEnabled(False)
+                filename = None
+                self.view.spec_filename_lbl.setText('No File saved or selected')
 
-        tth, I = self.calibration_data.integrate_1d(filename=filename)
-        spectrum_filename = os.path.join(self.spectrum_working_dir,
-                                         os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
-        self.spectrum_data.set_spectrum(tth, I, spectrum_filename)
+            tth, I = self.calibration_data.integrate_1d(filename=filename)
+            spectrum_filename = os.path.join(self.spectrum_working_dir,
+                                             os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
+            self.spectrum_data.set_spectrum(tth, I, spectrum_filename)
 
 
     def plot_spectra(self):

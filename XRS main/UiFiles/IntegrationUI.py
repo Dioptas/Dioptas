@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Sat May 10 13:23:51 2014
+# Created: Sat May 10 22:41:06 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -300,6 +300,9 @@ class Ui_xrs_integration_widget(object):
         self.phase_pressure_sb.setMinimumSize(QtCore.QSize(110, 0))
         self.phase_pressure_sb.setSizeIncrement(QtCore.QSize(2, 0))
         self.phase_pressure_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.phase_pressure_sb.setMinimum(-999999999.0)
+        self.phase_pressure_sb.setMaximum(999999999.0)
+        self.phase_pressure_sb.setSingleStep(0.5)
         self.phase_pressure_sb.setObjectName(_fromUtf8("phase_pressure_sb"))
         self.gridLayout_2.addWidget(self.phase_pressure_sb, 1, 1, 1, 1)
         self.phase_pressure_step_txt = QtGui.QLineEdit(self.phase_tab)
@@ -318,19 +321,21 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout_2.addWidget(self.label_2, 2, 0, 1, 1)
         self.phase_temperature_sb = QtGui.QDoubleSpinBox(self.phase_tab)
         self.phase_temperature_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.phase_temperature_sb.setMaximum(999999999.0)
+        self.phase_temperature_sb.setSingleStep(100.0)
         self.phase_temperature_sb.setObjectName(_fromUtf8("phase_temperature_sb"))
         self.gridLayout_2.addWidget(self.phase_temperature_sb, 2, 1, 1, 1)
-        self.phase_temperature_step = QtGui.QLineEdit(self.phase_tab)
+        self.phase_temperature_step_txt = QtGui.QLineEdit(self.phase_tab)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.phase_temperature_step.sizePolicy().hasHeightForWidth())
-        self.phase_temperature_step.setSizePolicy(sizePolicy)
-        self.phase_temperature_step.setMaximumSize(QtCore.QSize(80, 16777215))
-        self.phase_temperature_step.setAlignment(
+        sizePolicy.setHeightForWidth(self.phase_temperature_step_txt.sizePolicy().hasHeightForWidth())
+        self.phase_temperature_step_txt.setSizePolicy(sizePolicy)
+        self.phase_temperature_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
+        self.phase_temperature_step_txt.setAlignment(
             QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.phase_temperature_step.setObjectName(_fromUtf8("phase_temperature_step"))
-        self.gridLayout_2.addWidget(self.phase_temperature_step, 2, 2, 1, 1)
+        self.phase_temperature_step_txt.setObjectName(_fromUtf8("phase_temperature_step_txt"))
+        self.gridLayout_2.addWidget(self.phase_temperature_step_txt, 2, 2, 1, 1)
         self.phase_apply_to_all_cb = QtGui.QCheckBox(self.phase_tab)
         self.phase_apply_to_all_cb.setChecked(True)
         self.phase_apply_to_all_cb.setObjectName(_fromUtf8("phase_apply_to_all_cb"))
@@ -396,15 +401,16 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout.addWidget(self.label_4, 2, 0, 1, 1)
         self.overlay_offset_sb = QtGui.QDoubleSpinBox(self.overlay_tab)
         self.overlay_offset_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.overlay_offset_sb.setMinimum(-999999999.0)
         self.overlay_offset_sb.setMaximum(999999999.0)
         self.overlay_offset_sb.setSingleStep(100.0)
         self.overlay_offset_sb.setProperty("value", 0.0)
         self.overlay_offset_sb.setObjectName(_fromUtf8("overlay_offset_sb"))
         self.gridLayout.addWidget(self.overlay_offset_sb, 2, 1, 1, 1)
-        self.overlay_apply_to_all_cb = QtGui.QCheckBox(self.overlay_tab)
-        self.overlay_apply_to_all_cb.setChecked(False)
-        self.overlay_apply_to_all_cb.setObjectName(_fromUtf8("overlay_apply_to_all_cb"))
-        self.gridLayout.addWidget(self.overlay_apply_to_all_cb, 3, 0, 1, 3)
+        self.overlay_show_cb = QtGui.QCheckBox(self.overlay_tab)
+        self.overlay_show_cb.setChecked(True)
+        self.overlay_show_cb.setObjectName(_fromUtf8("overlay_show_cb"))
+        self.gridLayout.addWidget(self.overlay_show_cb, 3, 0, 1, 3)
         self.overlay_scale_step_txt = QtGui.QLineEdit(self.overlay_tab)
         self.overlay_scale_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
         self.overlay_scale_step_txt.setAlignment(
@@ -436,6 +442,7 @@ class Ui_xrs_integration_widget(object):
         spacerItem8 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_5.addItem(spacerItem8)
         self.overlay_set_as_bkg_btn = QtGui.QPushButton(self.overlay_tab)
+        self.overlay_set_as_bkg_btn.setCheckable(True)
         self.overlay_set_as_bkg_btn.setObjectName(_fromUtf8("overlay_set_as_bkg_btn"))
         self.horizontalLayout_5.addWidget(self.overlay_set_as_bkg_btn)
         self.verticalLayout_6.addLayout(self.horizontalLayout_5)
@@ -455,7 +462,7 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_17.addWidget(self.horizontal_splitter)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
@@ -500,9 +507,9 @@ class Ui_xrs_integration_widget(object):
         self.phase_clear_btn.setText(_translate("xrs_integration_widget", "Clear", None))
         self.label_6.setText(_translate("xrs_integration_widget", "Step", None))
         self.label.setText(_translate("xrs_integration_widget", "P:", None))
-        self.phase_pressure_step_txt.setText(_translate("xrs_integration_widget", "1.0", None))
+        self.phase_pressure_step_txt.setText(_translate("xrs_integration_widget", "0.5", None))
         self.label_2.setText(_translate("xrs_integration_widget", "T:", None))
-        self.phase_temperature_step.setText(_translate("xrs_integration_widget", "100", None))
+        self.phase_temperature_step_txt.setText(_translate("xrs_integration_widget", "100", None))
         self.phase_apply_to_all_cb.setText(_translate("xrs_integration_widget", "Apply to all phases", None))
         self.phase_save_set_btn.setText(_translate("xrs_integration_widget", "Save Set", None))
         self.phase_load_set_btn.setText(_translate("xrs_integration_widget", "Load Set", None))
@@ -513,7 +520,7 @@ class Ui_xrs_integration_widget(object):
         self.overlay_clear_btn.setText(_translate("xrs_integration_widget", "Clear ", None))
         self.label_3.setText(_translate("xrs_integration_widget", "Scale:", None))
         self.label_4.setText(_translate("xrs_integration_widget", "Offset:", None))
-        self.overlay_apply_to_all_cb.setText(_translate("xrs_integration_widget", "Apply to all overlays", None))
+        self.overlay_show_cb.setText(_translate("xrs_integration_widget", "Show", None))
         self.overlay_scale_step_txt.setText(_translate("xrs_integration_widget", "0.01", None))
         self.overlay_offset_step_txt.setText(_translate("xrs_integration_widget", "100", None))
         self.label_5.setText(_translate("xrs_integration_widget", "Step", None))

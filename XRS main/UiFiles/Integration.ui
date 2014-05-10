@@ -177,7 +177,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>3</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -664,6 +664,15 @@
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                  </property>
+                 <property name="minimum">
+                  <double>-999999999.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>999999999.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.500000000000000</double>
+                 </property>
                 </widget>
                </item>
                <item row="1" column="2">
@@ -681,7 +690,7 @@
                   </size>
                  </property>
                  <property name="text">
-                  <string>1.0</string>
+                  <string>0.5</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -700,10 +709,16 @@
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                  </property>
+                 <property name="maximum">
+                  <double>999999999.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>100.000000000000000</double>
+                 </property>
                 </widget>
                </item>
                <item row="2" column="2">
-                <widget class="QLineEdit" name="phase_temperature_step">
+                <widget class="QLineEdit" name="phase_temperature_step_txt">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -875,6 +890,9 @@
                  <property name="alignment">
                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                  </property>
+                 <property name="minimum">
+                  <double>-999999999.000000000000000</double>
+                 </property>
                  <property name="maximum">
                   <double>999999999.000000000000000</double>
                  </property>
@@ -887,12 +905,12 @@
                 </widget>
                </item>
                <item row="3" column="0" colspan="3">
-                <widget class="QCheckBox" name="overlay_apply_to_all_cb">
+                <widget class="QCheckBox" name="overlay_show_cb">
                  <property name="text">
-                  <string>Apply to all overlays</string>
+                  <string>Show</string>
                  </property>
                  <property name="checked">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -987,6 +1005,9 @@
             <widget class="QPushButton" name="overlay_set_as_bkg_btn">
              <property name="text">
               <string>Set as Background</string>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
              </property>
             </widget>
            </item>

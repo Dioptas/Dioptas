@@ -5,7 +5,7 @@ import fabio
 import pyFAI
 import pyFAI.utils
 import matplotlib.pyplot as plt
-from HelperClasses import Observable, rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
+from HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 
 
 class ImgData(Observable):

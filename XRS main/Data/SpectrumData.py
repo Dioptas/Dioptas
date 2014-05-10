@@ -1,7 +1,7 @@
 __author__ = 'Clemens Prescher'
 import numpy as np
 import os
-from HelperClasses import Observable, FileNameIterator
+from HelperModule import Observable, FileNameIterator, get_base_name
 
 
 class SpectrumData(Observable):
@@ -12,10 +12,12 @@ class SpectrumData(Observable):
         self.phases = []
 
         self.file_iteration_mode = 'number'
+        self.bkg_ind = -1
 
     def set_spectrum(self, x, y, filename=''):
         self.spectrum_filename = filename
-        self.spectrum = Spectrum(x, y, name=os.path.basename(filename).split('.')[:-1][0])
+        self.spectrum.data = (x, y)
+        self.spectrum.name = get_base_name(filename)
         self.notify()
 
     def load_spectrum(self, filename):
@@ -76,6 +78,7 @@ class Spectrum(object):
         self.name = name
         self.offset = 0
         self._scaling = 1
+        self.bkg_spectrum = None
 
     def load(self, filename, skiprows=0):
         try:
@@ -92,9 +95,19 @@ class Spectrum(object):
         data = np.dstack((self._x, self._y))
         np.savetxt(filename, data[0], header=header)
 
+    def set_background(self, spectrum):
+        self.bkg_spectrum = spectrum
+
+    def reset_background(self):
+        self.bkg_spectrum = None
+
     @property
     def data(self):
-        return self._x, self._y * self._scaling + self.offset
+        if self.bkg_spectrum is not None:
+            _, y_bkg = self.bkg_spectrum.data
+            return self._x, self._y * self._scaling + self.offset - y_bkg
+        else:
+            return self._x, self._y * self._scaling + self.offset
 
     @data.setter
     def data(self, (x, y)):

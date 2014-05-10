@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Sat May 10 13:23:51 2014
+# Created: Sat May 10 22:41:06 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -25,77 +25,39 @@ except AttributeError:
         return QtGui.QApplication.translate(context, text, disambig)
 
 
-class Ui_XRS_widget(object):
-    def setupUi(self, XRS_widget):
-        XRS_widget.setObjectName(_fromUtf8("XRS_widget"))
-        XRS_widget.resize(739, 353)
-        self.horizontalLayout_3 = QtGui.QHBoxLayout(XRS_widget)
-        self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
-        self.splitter = QtGui.QSplitter(XRS_widget)
-        self.splitter.setOrientation(QtCore.Qt.Horizontal)
-        self.splitter.setHandleWidth(7)
-        self.splitter.setObjectName(_fromUtf8("splitter"))
-        self.layoutWidget = QtGui.QWidget(self.splitter)
-        self.layoutWidget.setObjectName(_fromUtf8("layoutWidget"))
-        self.verticalLayout = QtGui.QVBoxLayout(self.layoutWidget)
-        self.verticalLayout.setMargin(0)
-        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.img_pg_layout = GraphicsLayoutWidget(self.layoutWidget)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.img_pg_layout.sizePolicy().hasHeightForWidth())
-        self.img_pg_layout.setSizePolicy(sizePolicy)
-        self.img_pg_layout.setMinimumSize(QtCore.QSize(200, 0))
-        self.img_pg_layout.setBaseSize(QtCore.QSize(300, 0))
-        self.img_pg_layout.setFrameShape(QtGui.QFrame.StyledPanel)
-        self.img_pg_layout.setObjectName(_fromUtf8("img_pg_layout"))
-        self.verticalLayout.addWidget(self.img_pg_layout)
-        self.horizontalLayout = QtGui.QHBoxLayout()
+class Ui_mainView(object):
+    def setupUi(self, mainView):
+        mainView.setObjectName(_fromUtf8("mainView"))
+        mainView.resize(652, 521)
+        self.horizontalLayout = QtGui.QHBoxLayout(mainView)
+        self.horizontalLayout.setSpacing(5)
+        self.horizontalLayout.setMargin(5)
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        self.filename_lbl = QtGui.QLabel(self.layoutWidget)
-        self.filename_lbl.setObjectName(_fromUtf8("filename_lbl"))
-        self.horizontalLayout.addWidget(self.filename_lbl)
-        spacerItem = QtGui.QSpacerItem(10, 17, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
-        self.pos_lbl = QtGui.QLabel(self.layoutWidget)
-        self.pos_lbl.setObjectName(_fromUtf8("pos_lbl"))
-        self.horizontalLayout.addWidget(self.pos_lbl)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.horizontalLayout_2 = QtGui.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
-        self.load_file_btn = QtGui.QPushButton(self.layoutWidget)
-        self.load_file_btn.setObjectName(_fromUtf8("load_file_btn"))
-        self.horizontalLayout_2.addWidget(self.load_file_btn)
-        self.previous_file_btn = QtGui.QPushButton(self.layoutWidget)
-        self.previous_file_btn.setObjectName(_fromUtf8("previous_file_btn"))
-        self.horizontalLayout_2.addWidget(self.previous_file_btn)
-        self.next_file_btn = QtGui.QPushButton(self.layoutWidget)
-        self.next_file_btn.setObjectName(_fromUtf8("next_file_btn"))
-        self.horizontalLayout_2.addWidget(self.next_file_btn)
-        self.autoproces_cb = QtGui.QCheckBox(self.layoutWidget)
-        self.autoproces_cb.setObjectName(_fromUtf8("autoproces_cb"))
-        self.horizontalLayout_2.addWidget(self.autoproces_cb)
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-        self.plot = PlotWidget(self.splitter)
-        self.plot.setSizeIncrement(QtCore.QSize(1, 2))
-        self.plot.setBaseSize(QtCore.QSize(300, 300))
-        self.plot.setFrameShape(QtGui.QFrame.StyledPanel)
-        self.plot.setFrameShadow(QtGui.QFrame.Sunken)
-        self.plot.setObjectName(_fromUtf8("plot"))
-        self.horizontalLayout_3.addWidget(self.splitter)
+        self.tabWidget = QtGui.QTabWidget(mainView)
+        self.tabWidget.setTabPosition(QtGui.QTabWidget.West)
+        self.tabWidget.setTabShape(QtGui.QTabWidget.Rounded)
+        self.tabWidget.setElideMode(QtCore.Qt.ElideLeft)
+        self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
+        self.calibration_tab = QtGui.QWidget()
+        self.calibration_tab.setObjectName(_fromUtf8("calibration_tab"))
+        self.tabWidget.addTab(self.calibration_tab, _fromUtf8(""))
+        self.mask_tab = QtGui.QWidget()
+        self.mask_tab.setObjectName(_fromUtf8("mask_tab"))
+        self.tabWidget.addTab(self.mask_tab, _fromUtf8(""))
+        self.integration_tab = QtGui.QWidget()
+        self.integration_tab.setObjectName(_fromUtf8("integration_tab"))
+        self.tabWidget.addTab(self.integration_tab, _fromUtf8(""))
+        self.horizontalLayout.addWidget(self.tabWidget)
 
-        self.retranslateUi(XRS_widget)
-        QtCore.QMetaObject.connectSlotsByName(XRS_widget)
+        self.retranslateUi(mainView)
+        self.tabWidget.setCurrentIndex(2)
+        QtCore.QMetaObject.connectSlotsByName(mainView)
 
-    def retranslateUi(self, XRS_widget):
-        XRS_widget.setWindowTitle(_translate("XRS_widget", "Form", None))
-        self.filename_lbl.setText(_translate("XRS_widget", "filename", None))
-        self.pos_lbl.setText(_translate("XRS_widget", "Pos", None))
-        self.load_file_btn.setText(_translate("XRS_widget", "Load", None))
-        self.previous_file_btn.setText(_translate("XRS_widget", "<", None))
-        self.next_file_btn.setText(_translate("XRS_widget", ">", None))
-        self.autoproces_cb.setText(_translate("XRS_widget", "autoprocess", None))
+    def retranslateUi(self, mainView):
+        mainView.setWindowTitle(_translate("mainView", "Form", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.calibration_tab),
+                                  _translate("mainView", "Calibration", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.mask_tab), _translate("mainView", "Mask", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.integration_tab),
+                                  _translate("mainView", "Integration", None))
 
-
-from pyqtgraph import GraphicsLayoutWidget, PlotWidget
