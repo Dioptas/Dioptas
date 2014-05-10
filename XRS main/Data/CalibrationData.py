@@ -20,6 +20,7 @@ class CalibrationData(object):
                              'wavelength': 0.4133e-10,
                              'pixel_width': 200e-6,
                              'pixel_height': 200e-6}
+        self.fit_wavelength = False
 
     def find_peaks(self, x, y, peak_ind):
         massif = Massif(self.img_data.img_data)
@@ -31,6 +32,7 @@ class CalibrationData(object):
 
     def clear_peaks(self):
         self.points = []
+        self.points_index = []
 
     def set_calibrant(self, filename):
         self.calibrant = Calibrant()
@@ -46,7 +48,9 @@ class CalibrationData(object):
                                            pixel1=self.start_values['pixel_width'],
                                            pixel2=self.start_values['pixel_height'],
                                            calibrant=self.calibrant)
-        self.geometry.refine2()
+        self.geometry.refine2(fix=[])
+        if self.fit_wavelength:
+            self.geometry.refine2_wavelength(fix=[])
         self.integrate_1d()
         self.integrate_2d()
 

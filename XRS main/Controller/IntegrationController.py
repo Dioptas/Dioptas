@@ -42,14 +42,39 @@ class IntegrationController(object):
         self.img_data.load('ExampleData/Mg2SiO4_ambient_001.tif')
         self.mask_data.set_dimension(self.img_data.get_img_data().shape)
         self.mask_data.set_mask(np.loadtxt('ExampleData/test.mask'))
-        self.calibration_data.load('ExampleData/LaB6_p49_40keV_006.poni')
+        self.calibration_data.load('ExampleData/calibration.poni')
 
     def create_sub_controller(self):
-        self.spectrum_controller = XrsIntegrationSpectrumController(self.view, self.img_data, self.mask_data,
-                                                                    self.calibration_data, self.spectrum_data)
-        self.file_controller = XrsIntegrationFileController(self.view, self.img_data, self.mask_data)
+        self.spectrum_controller = IntegrationSpectrumController(self.view, self.img_data, self.mask_data,
+                                                                 self.calibration_data, self.spectrum_data)
+        self.file_controller = IntegrationFileController(self.view, self.img_data, self.mask_data)
+        self.overlay_controller = IntegrationOverlayController(self.view, self.spectrum_data)
 
-class XrsIntegrationSpectrumController(object):
+
+class IntegrationOverlayController(object):
+    def __init__(self, view, spectrum_data):
+        self.view = view
+        self.spectrum_data = spectrum_data
+        self.create_signals()
+        self.add_overlay('ExampleData/spectra/Mg2SiO4_ambient_012.xy')
+
+    def create_signals(self):
+        self.connect_click_function(self.view.overlay_add_btn, self.add_overlay)
+
+    def connect_click_function(self, emitter, function):
+        self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
+
+    def add_overlay(self, filename=None):
+        if filename is None:
+            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load Overlay",
+                                                             directory=os.path.dirname(
+                                                                 self.spectrum_data.spectrum_filename)))
+        if filename is not '':
+            self.spectrum_data.add_overlay_file(filename)
+            self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+
+
+class IntegrationSpectrumController(object):
     def __init__(self, view, img_data, mask_data, calibration_data, spectrum_data):
         self.view = view
         self.img_data = img_data
@@ -107,7 +132,7 @@ class XrsIntegrationSpectrumController(object):
 
     def plot_spectra(self):
         x, y = self.spectrum_data.spectrum.data
-        self.view.spectrum_view.plot_data(x, y)
+        self.view.spectrum_view.plot_data(x, y, self.spectrum_data.spectrum.name)
 
 
     def load(self, filename=None):
@@ -116,7 +141,6 @@ class XrsIntegrationSpectrumController(object):
                                                              directory=self.spectrum_working_dir))
         if filename is not '':
             self.spectrum_working_dir = os.path.dirname(filename)
-            self.view.spec_directory_txt.setText(self.spectrum_working_dir)
             self.view.spec_filename_lbl.setText(os.path.basename(filename))
             self.spectrum_data.load_spectrum(filename)
             self.view.spec_next_btn.setEnabled(True)
@@ -125,12 +149,10 @@ class XrsIntegrationSpectrumController(object):
     def load_previous(self):
         self.spectrum_data.load_previous()
         self.view.spec_filename_lbl.setText(os.path.basename(self.spectrum_data.spectrum_filename))
-        self.view.spec_directory_txt.setText(os.path.dirname(self.spectrum_data.spectrum_filename))
 
     def load_next(self):
         self.spectrum_data.load_next()
         self.view.spec_filename_lbl.setText(os.path.basename(self.spectrum_data.spectrum_filename))
-        self.view.spec_directory_txt.setText(os.path.dirname(self.spectrum_data.spectrum_filename))
 
     def autocreate_cb_changed(self):
         self.autosave = self.view.spec_autocreate_cb.isChecked()
@@ -139,6 +161,7 @@ class XrsIntegrationSpectrumController(object):
         directory_dialog = QtGui.QFileDialog()
         directory_dialog.setDirectory(self.spectrum_working_dir)
         directory_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
+        directory_dialog.setWindowTitle("Please choose the default directory for autosaved spectra.")
         if (directory_dialog.exec_()):
             folder = directory_dialog.selectedFiles()[0]
             self.spectrum_working_dir = folder
@@ -157,9 +180,9 @@ class XrsIntegrationSpectrumController(object):
         self.spectrum_data.file_iteration_mode = 'time'
 
 
-class XrsIntegrationFileController(object):
+class IntegrationFileController(object):
     def __init__(self, view, img_data, mask_data):
-        self.view= view
+        self.view = view
         self.img_data = img_data
         self.mask_data = mask_data
         self._working_dir = ''
@@ -176,7 +199,7 @@ class XrsIntegrationFileController(object):
 
     def plot_img(self, reset_img_levels=None):
         if reset_img_levels is None:
-            reset_img_levels=self._reset_img_levels
+            reset_img_levels = self._reset_img_levels
         self.view.img_view.plot_image(self.img_data.get_img_data(), reset_img_levels)
         if reset_img_levels:
             self.view.img_view.auto_range()
@@ -189,9 +212,9 @@ class XrsIntegrationFileController(object):
 
     def change_mask_colormap(self):
         if self.view.mask_transparent_cb.isChecked():
-            self.view.img_view.set_color([255,0,0,100])
+            self.view.img_view.set_color([255, 0, 0, 100])
         else:
-            self.view.img_view.set_color([255,0,0,255])
+            self.view.img_view.set_color([255, 0, 0, 255])
         self.plot_mask()
 
     def change_img_levels_mode(self):
@@ -213,7 +236,7 @@ class XrsIntegrationFileController(object):
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def load_file_btn_click(self, filename = None):
+    def load_file_btn_click(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load image data",
                                                              directory=self._working_dir))

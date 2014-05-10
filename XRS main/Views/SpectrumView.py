@@ -2,6 +2,7 @@ __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
 import numpy as np
+from LegendItem import LegendItem
 from PyQt4 import QtCore, QtGui
 
 
@@ -10,10 +11,12 @@ class SpectrumView(object):
         self.pg_layout = pg_layout
 
         self.create_graphics()
-        self.create_line_plot()
+        self.create_main_plot()
         self.modify_mouse_behavior()
         self.phases = []
-
+        self.overlays = []
+        self.overlay = None
+        self.overlay_names = []
         self.mouse_move_observer = []
         self.left_click_observer = []
 
@@ -26,14 +29,34 @@ class SpectrumView(object):
     def create_graphics(self):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
         self.img_view_box = self.spectrum_plot.vb
+        self.legend = LegendItem(h_spacing=10, box=True)
 
-    def create_line_plot(self):
+    def create_main_plot(self):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
                                          pen=pg.mkPen(color=(255, 125, 0), width=1.5))
         self.spectrum_plot.addItem(self.plot_item)
+        self.plot_name = ''
+        self.legend.setParentItem(self.spectrum_plot.vb)
+        self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
 
-    def plot_data(self, x, y):
+    def plot_data(self, x, y, name=None):
         self.plot_item.setData(x, y)
+        if name is not None:
+            self.legend.removeItem(self.plot_item)
+            self.legend.addItem(self.plot_item, name)
+            self.plot_name = name
+
+    def add_overlay(self, spectrum):
+        x, y = spectrum.data
+        self.remove_overlay(1)
+        self.overlay = pg.PlotDataItem(x, y, pen=pg.mkPen(color=(0, 255, 0), width=1))
+        self.overlay_name = spectrum.name
+        self.spectrum_plot.addItem(self.overlay)
+        self.legend.addItem(self.overlay, spectrum.name)
+
+    def remove_overlay(self, ind):
+        self.spectrum_plot.removeItem(self.overlay)
+        self.legend.removeItem(self.overlay)
 
     def plot_vertical_lines(self, positions, phase_index=0, name=None):
         if len(self.phases) <= phase_index:
@@ -68,6 +91,7 @@ class SpectrumView(object):
             if (view_range[0][1] - view_range[0][0]) > x_range and \
                             (view_range[1][1] - view_range[1][0]) > y_range:
                 self.img_view_box.autoRange()
+                self.img_view_box.enableAutoRange()
             else:
                 self.img_view_box.scaleBy(2)
         if ev.button() == QtCore.Qt.LeftButton:
@@ -82,6 +106,7 @@ class SpectrumView(object):
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
             self.img_view_box.autoRange()
+            self.img_view_box.enableAutoRange()
 
 
     def myMouseDragEvent(self, ev, axis=None):
