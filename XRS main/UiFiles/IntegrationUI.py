@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu May  8 10:40:04 2014
+# Created: Sat May 10 13:23:51 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -387,18 +387,22 @@ class Ui_xrs_integration_widget(object):
         self.overlay_scale_sb = QtGui.QDoubleSpinBox(self.overlay_tab)
         self.overlay_scale_sb.setMinimumSize(QtCore.QSize(90, 0))
         self.overlay_scale_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.overlay_scale_sb.setMaximum(103.99)
+        self.overlay_scale_sb.setMaximum(999999.0)
+        self.overlay_scale_sb.setSingleStep(0.01)
         self.overlay_scale_sb.setObjectName(_fromUtf8("overlay_scale_sb"))
         self.gridLayout.addWidget(self.overlay_scale_sb, 1, 1, 1, 1)
         self.label_4 = QtGui.QLabel(self.overlay_tab)
         self.label_4.setObjectName(_fromUtf8("label_4"))
         self.gridLayout.addWidget(self.label_4, 2, 0, 1, 1)
-        self.doubleSpinBox_2 = QtGui.QDoubleSpinBox(self.overlay_tab)
-        self.doubleSpinBox_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.doubleSpinBox_2.setObjectName(_fromUtf8("doubleSpinBox_2"))
-        self.gridLayout.addWidget(self.doubleSpinBox_2, 2, 1, 1, 1)
+        self.overlay_offset_sb = QtGui.QDoubleSpinBox(self.overlay_tab)
+        self.overlay_offset_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.overlay_offset_sb.setMaximum(999999999.0)
+        self.overlay_offset_sb.setSingleStep(100.0)
+        self.overlay_offset_sb.setProperty("value", 0.0)
+        self.overlay_offset_sb.setObjectName(_fromUtf8("overlay_offset_sb"))
+        self.gridLayout.addWidget(self.overlay_offset_sb, 2, 1, 1, 1)
         self.overlay_apply_to_all_cb = QtGui.QCheckBox(self.overlay_tab)
-        self.overlay_apply_to_all_cb.setChecked(True)
+        self.overlay_apply_to_all_cb.setChecked(False)
         self.overlay_apply_to_all_cb.setObjectName(_fromUtf8("overlay_apply_to_all_cb"))
         self.gridLayout.addWidget(self.overlay_apply_to_all_cb, 3, 0, 1, 3)
         self.overlay_scale_step_txt = QtGui.QLineEdit(self.overlay_tab)
@@ -451,7 +455,7 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_17.addWidget(self.horizontal_splitter)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):

@@ -129,3 +129,8 @@ def rotate_matrix_m90(matrix):
 
 def rotate_matrix_p90(matrix):
     return np.rot90(matrix)
+
+
+def get_base_name(filename):
+    str = os.path.basename(filename)
+    return str.split('.')[:-1][0]
