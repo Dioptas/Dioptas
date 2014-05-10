@@ -16,7 +16,7 @@ class CombinedDataTest(unittest.TestCase):
         self.img_data = ImgData()
         self.img_data.load('Data/Mg2SiO4_ambient_001.tif')
         self.calibration_data = CalibrationData(self.img_data)
-        self.calibration_data.load('Data/LaB6_p49_40keV_006.poni')
+        self.calibration_data.load('Data/calibration.poni')
         self.mask_data = MaskData()
         self.mask_data.load_mask('Data/test.mask')
         self.spectrum_data = SpectrumData()

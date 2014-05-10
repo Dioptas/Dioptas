@@ -68,6 +68,9 @@ class CalibrationController(object):
         self.connect_click_function(self.view.invert_vertical_btn, self.clear_peaks_btn_click)
         self.connect_click_function(self.view.reset_transformations_btn, self.data.reset_img_transformations)
         self.connect_click_function(self.view.reset_transformations_btn, self.clear_peaks_btn_click)
+        self.view.connect(self.view.f2_wavelength_cb, QtCore.SIGNAL('clicked()'), self.wavelength_cb_changed)
+        self.view.connect(self.view.pf_wavelength_cb, QtCore.SIGNAL('clicked()'), self.wavelength_cb_changed)
+
 
     def create_txt_box_signals(self):
         self.connect_click_function(self.view.f2_update_btn, self.update_f2_btn_click)
@@ -156,6 +159,7 @@ class CalibrationController(object):
 
     def search_peaks(self, x, y):
         peak_ind = self.view.peak_num_sb.value()
+        print peak_ind
         points = self.calibration_data.find_peaks(x, y, peak_ind - 1)
         if len(points):
             self.view.img_view.add_scatter_data(points[:, 0] + 0.5, points[:, 1] + 0.5)
@@ -166,6 +170,9 @@ class CalibrationController(object):
         self.calibration_data.clear_peaks()
         self.view.img_view.clear_scatter_plot()
         self.view.peak_num_sb.setValue(1)
+
+    def wavelength_cb_changed(self):
+        self.calibration_data.fit_wavelength = self.view.f2_wavelength_cb.isChecked()
 
     def calibrate(self):
         self.load_calibrant()  #load the right calibration file...
@@ -193,7 +200,7 @@ class CalibrationController(object):
     def update_all(self):
         self.calibration_data.integrate_1d()
         self.calibration_data.integrate_2d()
-        self.view.cake_view.load_image(self.calibration_data.cake_img, True)
+        self.view.cake_view.plot_image(self.calibration_data.cake_img, True)
 
         self.view.spectrum_view.plot_img(self.calibration_data.tth, self.calibration_data.int)
         self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th()) / np.pi * 180)

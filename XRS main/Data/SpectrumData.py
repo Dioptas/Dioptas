@@ -40,11 +40,9 @@ class SpectrumData(Observable):
     def add_overlay_file(self, filename):
         self.overlays.append(Spectrum())
         self.overlays[-1].load(filename)
-        self.notify()
 
     def del_overlay(self, ind):
         self.overlays.remove(self.overlays[ind])
-        self.notify()
 
     def set_file_iteration_mode(self, mode):
         """
