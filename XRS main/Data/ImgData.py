@@ -11,15 +11,9 @@ from HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, FileN
 class ImgData(Observable):
     def __init__(self):
         super(ImgData, self).__init__()
-
-        self.img_data = None
-        self.integrator = None
-
-        self.tth = None
-        self.I = None
-
+        self.img_data = np.zeros((2048, 2048))
+        self.filename = ''
         self.file_iteration_mode = 'number'
-
         self.img_transformations = []
 
     def load(self, filename):
@@ -32,7 +26,6 @@ class ImgData(Observable):
             if len(self.img_data.shape) > 2:
                 self.img_data = np.average(self.img_data, 2)
         self.perform_img_transformations()
-        self.integrate_img()
         self.notify()
 
     def load_next(self):
@@ -47,11 +40,6 @@ class ImgData(Observable):
 
     def set_calibration_file(self, filename):
         self.integrator = pyFAI.load(filename)
-
-    def integrate_img(self):
-        if self.integrator is not None:
-            self.tth, self.I = self.integrator.integrate1d(
-                self.img_data, 1000, unit='2th_deg', method="lut_ocl")
 
     def get_spectrum(self):
         return self.tth, self.I

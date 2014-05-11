@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
@@ -29,6 +31,7 @@ class SpectrumView(object):
 
     def create_graphics(self):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
+        self.spectrum_plot.setLabel('bottom', u'2θ', u'°')
         self.img_view_box = self.spectrum_plot.vb
         self.legend = pg.LegendItem(horSpacing=20, box=False)
 

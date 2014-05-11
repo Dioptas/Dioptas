@@ -1,5 +1,5 @@
 from StdSuites.Standard_Suite import _3c_
-
+# -*- coding: utf8 -*-
 __author__ = 'Clemens Prescher'
 import sys
 import os
@@ -51,16 +51,12 @@ class IntegrationController(object):
         else:
             self.spectrum_data = spectrum_data
 
-        self.initialize()
         self.create_sub_controller()
 
         self.view.setWindowState(self.view.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.view.activateWindow()
         self.view.raise_()
 
-    def initialize(self):
-        self.img_data.load('ExampleData/Mg2SiO4_ambient_001.tif')
-        self.mask_data.set_dimension(self.img_data.get_img_data().shape)
 
     def create_sub_controller(self):
         self.spectrum_controller = IntegrationSpectrumController(self.view, self.img_data, self.mask_data,
@@ -200,6 +196,7 @@ class IntegrationSpectrumController(object):
 
         self.create_subscriptions()
         self.spectrum_working_dir = 'ExampleData/spectra'
+        self.integration_unit = '2th_deg'
         self.set_status()
 
         self.create_signals()
@@ -209,7 +206,7 @@ class IntegrationSpectrumController(object):
         self.spectrum_data.subscribe(self.plot_spectra)
 
     def set_status(self):
-        self.autosave = True
+        self.autocreate = True
         self.unit = pyFAI.units.TTH_DEG
 
     def create_signals(self):
@@ -220,6 +217,8 @@ class IntegrationSpectrumController(object):
         self.connect_click_function(self.view.spec_directory_btn, self.spec_directory_btn_click)
         self.connect_click_function(self.view.spec_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.spec_browse_by_time_rb, self.set_iteration_mode_time)
+        self.connect_click_function(self.view.spec_unit_tth_rb, self.set_unit_tth)
+        self.connect_click_function(self.view.spec_unit_q_rb, self.set_unit_q)
         self.view.connect(self.view.spec_directory_txt, QtCore.SIGNAL('editingFinished()'),
                           self.spec_directory_txt_changed)
 
@@ -228,7 +227,8 @@ class IntegrationSpectrumController(object):
 
     def image_changed(self):
         if self.calibration_data.is_calibrated:
-            if self.autosave:
+            print self.spectrum_working_dir
+            if self.autocreate:
                 filename = os.path.join(self.spectrum_working_dir,
                                         os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
                 self.view.spec_next_btn.setEnabled(True)
@@ -241,7 +241,12 @@ class IntegrationSpectrumController(object):
                 filename = None
                 self.view.spec_filename_lbl.setText('No File saved or selected')
 
-            tth, I = self.calibration_data.integrate_1d(filename=filename)
+            if self.view.mask_use_cb.isChecked():
+                mask = self.mask_data.get_mask()
+            else:
+                mask = None
+
+            tth, I = self.calibration_data.integrate_1d(filename=filename, mask=mask, unit=self.integration_unit)
             spectrum_filename = os.path.join(self.spectrum_working_dir,
                                              os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
             self.spectrum_data.set_spectrum(tth, I, spectrum_filename)
@@ -250,6 +255,18 @@ class IntegrationSpectrumController(object):
     def plot_spectra(self):
         x, y = self.spectrum_data.spectrum.data
         self.view.spectrum_view.plot_data(x, y, self.spectrum_data.spectrum.name)
+
+        #save the background subtracted file:
+        if self.spectrum_data.bkg_ind is not -1:
+            if self.autocreate:
+                directory = os.path.join(self.spectrum_working_dir, 'bkg_subtracted')
+                if not os.path.exists(directory):
+                    os.mkdir(directory)
+                header = self.calibration_data.geometry.makeHeaders()
+                header += "\n# Background_File: " + self.spectrum_data.overlays[self.spectrum_data.bkg_ind].name
+                data = np.dstack((x, y))[0]
+                filename = os.path.join(directory, self.spectrum_data.spectrum.name + '_bkg_subtracted.xy')
+                np.savetxt(filename, data, header=header)
 
 
     def load(self, filename=None):
@@ -272,7 +289,7 @@ class IntegrationSpectrumController(object):
         self.view.spec_filename_lbl.setText(os.path.basename(self.spectrum_data.spectrum_filename))
 
     def autocreate_cb_changed(self):
-        self.autosave = self.view.spec_autocreate_cb.isChecked()
+        self.autocreate = self.view.spec_autocreate_cb.isChecked()
 
     def spec_directory_btn_click(self):
         directory_dialog = QtGui.QFileDialog()
@@ -280,7 +297,7 @@ class IntegrationSpectrumController(object):
         directory_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
         directory_dialog.setWindowTitle("Please choose the default directory for autosaved spectra.")
         if (directory_dialog.exec_()):
-            folder = directory_dialog.selectedFiles()[0]
+            folder = str(directory_dialog.selectedFiles()[0])
             self.spectrum_working_dir = folder
             self.view.spec_directory_txt.setText(folder)
 
@@ -295,6 +312,16 @@ class IntegrationSpectrumController(object):
 
     def set_iteration_mode_time(self):
         self.spectrum_data.file_iteration_mode = 'time'
+
+    def set_unit_tth(self):
+        self.integration_unit = '2th_deg'
+        self.image_changed()
+        self.view.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', u'°')
+
+    def set_unit_q(self):
+        self.integration_unit = "q_A^-1"
+        self.image_changed()
+        self.view.spectrum_view.spectrum_plot.setLabel('bottom', 'Q', 'A<sup>-1</sup>')
 
 
 class IntegrationFileController(object):
@@ -322,7 +349,7 @@ class IntegrationFileController(object):
             self.view.img_view.auto_range()
 
     def plot_mask(self):
-        if self.view.mask_show_cb.isChecked():
+        if self.view.mask_use_cb.isChecked():
             self.view.img_view.plot_mask(self.mask_data.get_img())
         else:
             self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
@@ -345,7 +372,7 @@ class IntegrationFileController(object):
         self.connect_click_function(self.view.load_img_btn, self.load_file_btn_click)
         self.connect_click_function(self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.img_browse_by_time_rb, self.set_iteration_mode_time)
-        self.connect_click_function(self.view.mask_show_cb, self.plot_mask)
+        self.connect_click_function(self.view.mask_use_cb, self.mask_use_cb_changed)
         self.connect_click_function(self.view.mask_transparent_cb, self.change_mask_colormap)
         self.connect_click_function(self.view.img_levels_absolute_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
@@ -362,6 +389,10 @@ class IntegrationFileController(object):
             self._working_dir = os.path.dirname(filename)
             self.img_data.load(filename)
             self.plot_img()
+
+    def mask_use_cb_changed(self):
+        self.plot_mask()
+        self.img_data.notify()
 
     def load_next_img(self):
         self.img_data.load_next()
@@ -383,4 +414,10 @@ class IntegrationFileController(object):
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     controller = IntegrationController()
+    controller.file_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
+    controller.spectrum_controller.spectrum_working_dir = '../ExampleData/spectra'
+    controller.mask_data.set_dimension(controller.img_data.get_img_data().shape)
+    controller.overlay_controller.add_overlay('../ExampleData/spectra/Mg2SiO4_ambient_005.xy')
+    controller.calibration_data.load('../ExampleData/calibration.poni')
+    controller.file_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
     app.exec_()

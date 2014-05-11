@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Sat May 10 22:41:06 2014
+# Created: Sun May 11 08:38:22 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -28,11 +28,10 @@ except AttributeError:
 class Ui_mainView(object):
     def setupUi(self, mainView):
         mainView.setObjectName(_fromUtf8("mainView"))
-        mainView.resize(652, 521)
-        self.horizontalLayout = QtGui.QHBoxLayout(mainView)
-        self.horizontalLayout.setSpacing(5)
-        self.horizontalLayout.setMargin(5)
-        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        mainView.resize(1063, 669)
+        self.gridLayout = QtGui.QGridLayout(mainView)
+        self.gridLayout.setMargin(5)
+        self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.tabWidget = QtGui.QTabWidget(mainView)
         self.tabWidget.setTabPosition(QtGui.QTabWidget.West)
         self.tabWidget.setTabShape(QtGui.QTabWidget.Rounded)
@@ -47,10 +46,10 @@ class Ui_mainView(object):
         self.integration_tab = QtGui.QWidget()
         self.integration_tab.setObjectName(_fromUtf8("integration_tab"))
         self.tabWidget.addTab(self.integration_tab, _fromUtf8(""))
-        self.horizontalLayout.addWidget(self.tabWidget)
+        self.gridLayout.addWidget(self.tabWidget, 0, 0, 1, 1)
 
         self.retranslateUi(mainView)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(mainView)
 
     def retranslateUi(self, mainView):
