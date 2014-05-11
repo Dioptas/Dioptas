@@ -229,7 +229,6 @@ class MaskController(object):
 
     def below_thresh_btn_click(self):
         thresh = np.float64(self.view.below_thresh_txt.text())
-        print thresh
         self.mask_data.mask_below_threshold(self.img_data.get_img_data(), thresh)
         self.view.img_view.plot_mask(self.mask_data.get_img())
 

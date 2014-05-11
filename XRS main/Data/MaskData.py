@@ -12,7 +12,7 @@ from sys import getsizeof
 
 
 class MaskData(object):
-    def __init__(self, mask_dimension=None):
+    def __init__(self, mask_dimension=(2048, 2048)):
         self.mask_dimension = mask_dimension
         self.reset_dimension()
         self.mode = True

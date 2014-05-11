@@ -56,7 +56,6 @@ class MainController(object):
         self.view.tabWidget.currentChanged.connect(self.tab_changed)
 
     def tab_changed(self, ind):
-        print ind
         if ind == 2:
             self.integration_controller.file_controller.plot_mask()
             self.img_data.notify()
