@@ -156,12 +156,12 @@ class MaskData(object):
 
     def remove_cosmic(self, img):
         self.update_deque()
-        test = cosmicsimage(img, sigclip=3.0, objlim=5.0, satlevel=-1)
-        num = 10
+        test = cosmicsimage(img, sigclip=3.0, objlim=3.0)
+        num = 2
         for i in xrange(num):
             test.lacosmiciteration(True)
             test.clean()
-            self._mask_data += np.array(test.mask, dtype='bool')
+            self._mask_data = np.logical_or(self._mask_data, np.array(test.mask, dtype='bool'))
 
         print test.mask
 

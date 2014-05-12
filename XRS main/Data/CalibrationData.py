@@ -5,6 +5,7 @@ from pyFAI.calibration import Calibration
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
+from Data.HelperModule import get_base_name
 import numpy as np
 import pyqtgraph as pg
 
@@ -23,14 +24,28 @@ class CalibrationData(object):
         self.fit_wavelength = False
         self.is_calibrated = False
         self.use_mask = False
+        self.calibration_name = None
 
-    def find_peaks(self, x, y, peak_ind):
+    def find_peaks_automatic(self, x, y, peak_ind):
         massif = Massif(self.img_data.img_data)
         cur_peak_points = massif.find_peaks([x, y])
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
         return np.array(cur_peak_points)
+
+    def find_peak(self, x, y, search_size, peak_ind):
+        left_ind = np.round(x - search_size * 0.5)
+        top_ind = np.round(y - search_size * 0.5)
+        x_ind, y_ind = np.where(self.img_data.img_data[left_ind:(left_ind + search_size),
+                                top_ind:(top_ind + search_size)] == \
+                                self.img_data.img_data[left_ind:(left_ind + search_size),
+                                top_ind:(top_ind + search_size)].max())
+        x_ind = x_ind[0] + left_ind
+        y_ind = y_ind[0] + top_ind
+        self.points.append(np.array([x_ind, y_ind]))
+        self.points_index.append(peak_ind)
+        return np.array([np.array((x_ind, y_ind))])
 
     def clear_peaks(self):
         self.points = []
@@ -50,28 +65,33 @@ class CalibrationData(object):
                                            pixel1=self.start_values['pixel_width'],
                                            pixel2=self.start_values['pixel_height'],
                                            calibrant=self.calibrant)
-        self.geometry.refine2(fix=[])
+        self.geometry.refine2()
         if self.fit_wavelength:
             self.geometry.refine2_wavelength(fix=[])
         self.integrate_1d()
         self.integrate_2d()
         self.is_calibrated = True
+        self.calibration_name = 'current'
 
     def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None, unit='2th_deg'):
-        self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='LUT', unit=unit,
+        self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut', unit=unit,
                                                        mask=mask, polarization_factor=polarization_factor,
                                                        filename=filename)
         return self.tth, self.int
 
-    def integrate_2d(self):
-        img = self.geometry.integrate2d(self.img_data.img_data, 1000, 1000, method='LUT')
+    def integrate_2d(self, mask=None):
+        img = self.geometry.integrate2d(self.img_data.img_data, 2048, 2048, method='lut', mask=None)
         self.cake_img = img[0]
+        return self.cake_img
 
     def create_point_array(self, points, points_ind):
         res = []
         for i, point_list in enumerate(points):
-            for point in point_list:
-                res.append([point[0], point[1], points_ind[i]])
+            if len(point_list) == 2:
+                res.append([point_list[0], point_list[1], points_ind[i]])
+            else:
+                for point in point_list:
+                    res.append([point[0], point[1], points_ind[i]])
         return np.array(res)
 
     def get_calibration_parameter(self):
@@ -89,8 +109,9 @@ class CalibrationData(object):
 
     def load(self, filename):
         self.geometry.load(filename)
+        self.calibration_name = get_base_name(filename)
         self.is_calibrated = True
 
     def save(self, filename):
         self.geometry.save(filename)
-
+        self.calibration_name = get_base_name(filename)
