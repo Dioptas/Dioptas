@@ -160,8 +160,12 @@ class CalibrationController(object):
 
     def search_peaks(self, x, y):
         peak_ind = self.view.peak_num_sb.value()
-        print peak_ind
-        points = self.calibration_data.find_peaks(x, y, peak_ind - 1)
+
+        if self.view.automatic_peak_search_rb.isChecked():
+            points = self.calibration_data.find_peaks_automatic(x, y, peak_ind - 1)
+        else:
+            search_size = np.int(self.view.search_size_sb.value())
+            points = self.calibration_data.find_peak(x, y, search_size, peak_ind - 1)
         if len(points):
             self.view.img_view.add_scatter_data(points[:, 0] + 0.5, points[:, 1] + 0.5)
             if self.view.automatic_peak_num_inc_cb.checkState():

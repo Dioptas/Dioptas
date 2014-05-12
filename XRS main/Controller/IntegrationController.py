@@ -61,7 +61,8 @@ class IntegrationController(object):
     def create_sub_controller(self):
         self.spectrum_controller = IntegrationSpectrumController(self.view, self.img_data, self.mask_data,
                                                                  self.calibration_data, self.spectrum_data)
-        self.file_controller = IntegrationFileController(self.view, self.img_data, self.mask_data)
+        self.file_controller = IntegrationFileController(self.view, self.img_data,
+                                                         self.mask_data, self.calibration_data)
         self.overlay_controller = IntegrationOverlayController(self.view, self.spectrum_data)
 
 
@@ -162,6 +163,10 @@ class IntegrationOverlayController(object):
 
     def overlay_set_as_bkg_btn_clicked(self):
         cur_ind = self.view.overlay_lw.currentRow()
+        if cur_ind is -1:
+            self.view.overlay_set_as_bkg_btn.setChecked(False)
+            return
+
         if not self.view.overlay_set_as_bkg_btn.isChecked():
             self.spectrum_data.bkg_ind = -1
             self.spectrum_data.spectrum.reset_background()
@@ -227,7 +232,6 @@ class IntegrationSpectrumController(object):
 
     def image_changed(self):
         if self.calibration_data.is_calibrated:
-            print self.spectrum_working_dir
             if self.autocreate:
                 filename = os.path.join(self.spectrum_working_dir,
                                         os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
@@ -325,10 +329,11 @@ class IntegrationSpectrumController(object):
 
 
 class IntegrationFileController(object):
-    def __init__(self, view, img_data, mask_data):
+    def __init__(self, view, img_data, mask_data, calibration_data):
         self.view = view
         self.img_data = img_data
         self.mask_data = mask_data
+        self.calibration_data = calibration_data
         self._working_dir = ''
         self._reset_img_levels = False
         self.view.show()
@@ -348,8 +353,16 @@ class IntegrationFileController(object):
         if reset_img_levels:
             self.view.img_view.auto_range()
 
+
+    def plot_cake(self, reset_img_levels=None):
+        if reset_img_levels is None:
+            reset_img_levels = self._reset_img_levels
+        self.view.img_view.plot_image(self.calibration_data.cake_img, reset_img_levels)
+        if reset_img_levels:
+            self.view.img_view.auto_range()
+
     def plot_mask(self):
-        if self.view.mask_use_cb.isChecked():
+        if self.view.mask_use_cb.isChecked() and self.view.image_rb.isChecked():
             self.view.img_view.plot_mask(self.mask_data.get_img())
         else:
             self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
@@ -376,6 +389,8 @@ class IntegrationFileController(object):
         self.connect_click_function(self.view.mask_transparent_cb, self.change_mask_colormap)
         self.connect_click_function(self.view.img_levels_absolute_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
+        self.connect_click_function(self.view.image_rb, self.update_img)
+        self.connect_click_function(self.view.cake_rb, self.update_img)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -401,8 +416,19 @@ class IntegrationFileController(object):
         self.img_data.load_previous_file()
 
     def update_img(self, reset_img_levels=False):
-        self.plot_img(reset_img_levels)
         self.view.img_filename_lbl.setText(os.path.basename(self.img_data.filename))
+        if self.view.cake_rb.isChecked() and self.calibration_data.is_calibrated:
+            if self.view.mask_use_cb.isChecked():
+                mask = self.mask_data.get_mask()
+            else:
+                mask = None
+            self.calibration_data.integrate_2d(mask)
+            self.plot_cake()
+            self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
+        else:
+            self.plot_img(reset_img_levels)
+            self.plot_mask()
+
 
     def set_iteration_mode_number(self):
         self.img_data.file_iteration_mode = 'number'

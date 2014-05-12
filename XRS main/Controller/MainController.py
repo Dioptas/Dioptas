@@ -58,6 +58,7 @@ class MainController(object):
     def tab_changed(self, ind):
         if ind == 2:
             self.integration_controller.file_controller.plot_mask()
+            self.integration_controller.view.calibration_lbl.setText(self.calibration_data.calibration_name)
             self.img_data.notify()
         elif ind == 1:
             self.mask_controller.plot_mask()
