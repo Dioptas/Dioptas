@@ -182,7 +182,7 @@ class MaskData(object):
         self.set_mask(data)
 
     def add_mask(self, mask_data):
-        self._mask_data += np.array(mask_data, dtype='bool')
+        self._mask_data = np.logical_or(np.array(mask_data, dtype='bool'))
 
 
 def test_mask_data():
