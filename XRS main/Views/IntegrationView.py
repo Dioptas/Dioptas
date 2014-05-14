@@ -4,7 +4,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 from UiFiles.IntegrationUI import Ui_xrs_integration_widget
-from ImgView import MaskImgView
+from ImgView import IntegrationImgView
 from SpectrumView import SpectrumView
 import numpy as np
 import pyqtgraph as pg
@@ -20,7 +20,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.vertical_splitter.setStretchFactor(0, 0)
         self.vertical_splitter.setStretchFactor(1, 1)
         self.vertical_splitter.setSizes([100, 700])
-        self.img_view = MaskImgView(self.img_pg_layout, orientation='horizontal')
+        self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
         self.img_view.add_mouse_move_observer(self.show_img_mouse_position)
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
         self.set_validator()
@@ -49,3 +49,11 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
         except (IndexError, AttributeError):
             pass
+
+    def switch_to_cake(self):
+        self.img_view.img_view_box.setAspectLocked(False)
+        self.img_view.activate_cross()
+
+    def switch_to_img(self):
+        self.img_view.img_view_box.setAspectLocked(True)
+        self.img_view.deactivate_cross()

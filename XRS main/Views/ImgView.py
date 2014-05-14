@@ -180,18 +180,29 @@ class ImgView(object):
 
 
 class CalibrationCakeView(ImgView):
-    def __init__(self, pg_layout):
-        super(CalibrationCakeView, self).__init__(pg_layout)
+    def __init__(self, pg_layout, orientation='vertical'):
+        super(CalibrationCakeView, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
+        self._cross_activated = True
         self.create_cross()
         self.add_left_click_observer(self.set_cross)
 
     def create_cross(self):
         self.vertical_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(255, 0, 0), width=2))
         self.horizontal_line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2))
+        self.activate_cross()
 
-        self.img_view_box.addItem(self.vertical_line)
-        self.img_view_box.addItem(self.horizontal_line)
+    def activate_cross(self):
+        if not self._cross_activated:
+            self.img_view_box.addItem(self.vertical_line)
+            self.img_view_box.addItem(self.horizontal_line)
+            self._cross_activated = True
+
+    def deactivate_cross(self):
+        if self._cross_activated:
+            self.img_view_box.removeItem(self.vertical_line)
+            self.img_view_box.removeItem(self.horizontal_line)
+            self._cross_activated = False
 
     def set_cross(self, x, y):
         self.vertical_line.setValue(x)
@@ -239,6 +250,13 @@ class MaskImgView(ImgView):
         polygon = MyPolygon(x, y)
         self.img_view_box.addItem(polygon)
         return polygon
+
+
+class IntegrationImgView(MaskImgView, CalibrationCakeView):
+    def __init__(self, pg_layout, orientation='vertical'):
+        super(IntegrationImgView, self).__init__(pg_layout, orientation)
+        self.deactivate_cross()
+        self.img_view_box.setAspectLocked(True)
 
 
 class MyPolygon(QtGui.QGraphicsPolygonItem):
