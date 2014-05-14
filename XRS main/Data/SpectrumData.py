@@ -80,7 +80,7 @@ class Spectrum(object):
         self._scaling = 1
         self.bkg_spectrum = None
 
-    def load(self, filename, skiprows=0):
+    def load(self, filename, skiprows=4):
         try:
             data = np.loadtxt(filename, skiprows=skiprows)
             self._x = data.T[0]

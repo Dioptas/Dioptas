@@ -383,6 +383,7 @@ class IntegrationFileController(object):
         self.connect_click_function(self.view.next_img_btn, self.load_next_img)
         self.connect_click_function(self.view.prev_img_btn, self.load_previous_img)
         self.connect_click_function(self.view.load_img_btn, self.load_file_btn_click)
+        self.connect_click_function(self.view.auto_img_btn, self.auto_img_btn_click)
         self.connect_click_function(self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.view.mask_use_cb, self.mask_use_cb_changed)
@@ -414,6 +415,23 @@ class IntegrationFileController(object):
 
     def load_previous_img(self):
         self.img_data.load_previous_file()
+
+    def auto_img_btn_click(self):
+        if self.calibration_data.is_calibrated:
+            cake_state = self.view.cake_rb.isChecked()
+            if cake_state:
+                self.view.image_rb.setChecked(True)
+                QtGui.QApplication.processEvents()
+
+            while self.img_data.load_next() == True:
+                print 'integrated ' + self.img_data.filename
+            print 'finished!'
+
+            if cake_state:
+                self.view.cake_rb.setChecked(True)
+                QtGui.QApplication.processEvents()
+                self.update_img()
+
 
     def update_img(self, reset_img_levels=False):
         self.view.img_filename_lbl.setText(os.path.basename(self.img_data.filename))

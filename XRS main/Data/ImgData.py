@@ -32,6 +32,8 @@ class ImgData(Observable):
         next_file_name = FileNameIterator.get_next_filename(self.filename, self.file_iteration_mode)
         if next_file_name is not None:
             self.load(next_file_name)
+            return True
+        return False
 
     def load_previous_file(self):
         previous_file_name = FileNameIterator.get_previous_filename(self.filename, self.file_iteration_mode)
