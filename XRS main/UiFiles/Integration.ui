@@ -262,6 +262,13 @@
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QPushButton" name="auto_img_btn">
+                 <property name="text">
+                  <string>&gt;&gt;</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </item>
              <item row="0" column="1" rowspan="2">

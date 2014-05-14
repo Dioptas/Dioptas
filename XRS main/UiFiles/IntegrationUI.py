@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Mon May 12 16:23:01 2014
+# Created: Wed May 14 11:35:32 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -138,6 +138,9 @@ class Ui_xrs_integration_widget(object):
         self.next_img_btn.setMaximumSize(QtCore.QSize(50, 16777215))
         self.next_img_btn.setObjectName(_fromUtf8("next_img_btn"))
         self.horizontalLayout_2.addWidget(self.next_img_btn)
+        self.auto_img_btn = QtGui.QPushButton(self.image_tab)
+        self.auto_img_btn.setObjectName(_fromUtf8("auto_img_btn"))
+        self.horizontalLayout_2.addWidget(self.auto_img_btn)
         self.gridLayout_3.addLayout(self.horizontalLayout_2, 0, 0, 1, 1)
         self.groupBox = QtGui.QGroupBox(self.image_tab)
         self.groupBox.setObjectName(_fromUtf8("groupBox"))
@@ -530,6 +533,7 @@ class Ui_xrs_integration_widget(object):
         self.load_img_btn.setText(_translate("xrs_integration_widget", "Load", None))
         self.prev_img_btn.setText(_translate("xrs_integration_widget", "<", None))
         self.next_img_btn.setText(_translate("xrs_integration_widget", ">", None))
+        self.auto_img_btn.setText(_translate("xrs_integration_widget", ">>", None))
         self.groupBox.setTitle(_translate("xrs_integration_widget", "Browse", None))
         self.img_browse_by_name_rb.setText(_translate("xrs_integration_widget", "By Name", None))
         self.img_browse_by_time_rb.setText(_translate("xrs_integration_widget", "By Time", None))
