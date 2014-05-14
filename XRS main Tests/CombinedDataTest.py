@@ -1,7 +1,5 @@
 __author__ = 'Clemens Prescher'
 
-__author__ = 'Clemens Prescher'
-
 from Data.SpectrumData import Spectrum, SpectrumData
 from Data.ImgData import ImgData
 from Data.CalibrationData import CalibrationData

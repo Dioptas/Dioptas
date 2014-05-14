@@ -24,7 +24,8 @@ class CalibrationData(object):
         self.fit_wavelength = False
         self.is_calibrated = False
         self.use_mask = False
-        self.calibration_name = None
+        self.calibration_name = 'None'
+        self._calibrants_working_dir = 'ExampleData/Calibrants'
 
     def find_peaks_automatic(self, x, y, peak_ind):
         massif = Massif(self.img_data.img_data)
