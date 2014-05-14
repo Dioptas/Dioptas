@@ -425,9 +425,13 @@ class IntegrationFileController(object):
             self.calibration_data.integrate_2d(mask)
             self.plot_cake()
             self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
+            self.view.img_view.activate_cross()
+            self.view.img_view.img_view_box.setAspectLocked(False)
         else:
             self.plot_img(reset_img_levels)
             self.plot_mask()
+            self.view.img_view.deactivate_cross()
+            self.view.img_view.img_view_box.setAspectLocked(True)
 
 
     def set_iteration_mode_number(self):
