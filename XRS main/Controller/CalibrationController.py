@@ -31,11 +31,9 @@ class CalibrationController(object):
             self.calibration_data = calibration_data
 
         self.data.subscribe(self.plot_image)
-
         self.calibration_data.set_start_values(self.view.get_start_values())
-
         self._exp_working_dir = os.getcwd()
-        self._calibrants_working_dir = 'ExampleData/Calibrants'
+        self._first_plot = True
         self.create_signals()
         self.load_calibrants_list()
 
@@ -122,7 +120,7 @@ class CalibrationController(object):
     def load_calibrants_list(self):
         self._calibrants_file_list = []
         self._calibrants_file_names_list = []
-        for file in os.listdir(self._calibrants_working_dir):
+        for file in os.listdir(self.calibration_data._calibrants_working_dir):
             if file.endswith('.D'):
                 self._calibrants_file_list.append(file)
                 self._calibrants_file_names_list.append(file.split('.')[:-1][0])
@@ -135,7 +133,7 @@ class CalibrationController(object):
 
     def load_calibrant(self):
         current_index = self.view.calibrant_cb.currentIndex()
-        filename = os.path.join(self._calibrants_working_dir,
+        filename = os.path.join(self.calibration_data._calibrants_working_dir,
                                 self._calibrants_file_list[current_index])
         self.calibration_data.set_calibrant(filename)
 
@@ -152,15 +150,20 @@ class CalibrationController(object):
 
 
     def plot_image(self):
-        self.view.img_view.plot_image(self.data.get_img_data(), False)
+        if self._first_plot:
+            self.view.img_view.plot_image(self.data.get_img_data(), True)
+            self.view.img_view.auto_range()
+            self._first_plot = False
+        else:
+            self.view.img_view.plot_image(self.data.get_img_data(), False)
         self.view.set_img_filename(self.data.filename)
+
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def search_peaks(self, x, y):
         peak_ind = self.view.peak_num_sb.value()
-
         if self.view.automatic_peak_search_rb.isChecked():
             points = self.calibration_data.find_peaks_automatic(x, y, peak_ind - 1)
         else:
@@ -187,7 +190,13 @@ class CalibrationController(object):
         pyFAI_parameter, fit2d_parameter = self.calibration_data.get_calibration_parameter()
         self.view.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
 
-        self.view.tab_widget.setCurrentIndex(1)
+        if self.view.tab_widget.currentIndex() == 0:
+            self.view.tab_widget.setCurrentIndex(1)
+
+        if self.view.ToolBox.currentIndex() is not 2 or \
+                        self.view.ToolBox.currentIndex() is not 3:
+            self.view.ToolBox.setCurrentIndex(2)
+
         self.view.cake_view.plot_image(self.calibration_data.cake_img, True)
         self.calibration_data.calibrant.setWavelength_change2th(pyFAI_parameter['wavelength'])
 
@@ -202,19 +211,26 @@ class CalibrationController(object):
             self.calibration_data.load(filename)
             self.update_all()
 
-    def update_all(self):
-        self.calibration_data.integrate_1d()
-        self.calibration_data.integrate_2d()
-        self.view.cake_view.plot_image(self.calibration_data.cake_img, True)
 
-        self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
-        self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th()) / np.pi * 180)
+    def update_all(self):
+        if not self._first_plot:
+            self.calibration_data.integrate_1d()
+            self.calibration_data.integrate_2d()
+            self.view.cake_view.plot_image(self.calibration_data.cake_img, True)
+
+            self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
+            self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th()) /
+                                                        np.pi * 180)
+            self.view.spectrum_view.img_view_box.autoRange()
+            if self.view.tab_widget.currentIndex() == 0:
+                self.view.tab_widget.setCurrentIndex(1)
+
+        if self.view.ToolBox.currentIndex() is not 2 or \
+                        self.view.ToolBox.currentIndex() is not 3:
+            self.view.ToolBox.setCurrentIndex(2)
 
         pyFAI_parameter, fit2d_parameter = self.calibration_data.get_calibration_parameter()
         self.view.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
-        self.view.spectrum_view.img_view_box.autoRange()
-        if self.view.tab_widget.currentIndex() == 0:
-            self.view.tab_widget.setCurrentIndex(1)
 
     def save_calibration(self, filename=None):
         if filename is None:
