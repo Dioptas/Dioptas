@@ -233,8 +233,11 @@ class IntegrationSpectrumController(object):
     def image_changed(self):
         if self.calibration_data.is_calibrated:
             if self.autocreate:
-                filename = os.path.join(self.spectrum_working_dir,
-                                        os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
+                filename = self.img_data.filename
+                if filename is not '':
+                    filename = os.path.join(self.spectrum_working_dir,
+                                            os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
+
                 self.view.spec_next_btn.setEnabled(True)
                 self.view.spec_previous_btn.setEnabled(True)
                 self.view.spec_filename_lbl.setText(os.path.basename(filename))
@@ -242,7 +245,7 @@ class IntegrationSpectrumController(object):
             else:
                 self.view.spec_next_btn.setEnabled(False)
                 self.view.spec_previous_btn.setEnabled(False)
-                filename = None
+                filename = 'current'
                 self.view.spec_filename_lbl.setText('No File saved or selected')
 
             if self.view.mask_use_cb.isChecked():
@@ -251,8 +254,7 @@ class IntegrationSpectrumController(object):
                 mask = None
 
             tth, I = self.calibration_data.integrate_1d(filename=filename, mask=mask, unit=self.integration_unit)
-            spectrum_filename = os.path.join(self.spectrum_working_dir,
-                                             os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
+            spectrum_filename = filename
             self.spectrum_data.set_spectrum(tth, I, spectrum_filename)
 
 
