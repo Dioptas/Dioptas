@@ -207,6 +207,7 @@ class IntegrationSpectrumController(object):
         self.create_signals()
 
     def create_subscriptions(self):
+        self.view.img_view.add_mouse_move_observer(self.show_img_mouse_position)
         self.img_data.subscribe(self.image_changed)
         self.spectrum_data.subscribe(self.plot_spectra)
 
@@ -273,6 +274,21 @@ class IntegrationSpectrumController(object):
                 data = np.dstack((x, y))[0]
                 filename = os.path.join(directory, self.spectrum_data.spectrum.name + '_bkg_subtracted.xy')
                 np.savetxt(filename, data, header=header)
+
+
+    def show_img_mouse_position(self, x, y):
+        try:
+            if x > 0 and y > 0:
+                x_pos_string = 'X:  %4d' % x
+                y_pos_string = 'Y:  %4d' % y
+                self.view.x_lbl.setText(x_pos_string)
+                self.view.y_lbl.setText(y_pos_string)
+
+                int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(x), np.floor(y)]
+                self.view.int_lbl.setText(int_string)
+
+        except (IndexError, AttributeError):
+            pass
 
 
     def load(self, filename=None):
