@@ -183,7 +183,7 @@ class CalibrationCakeView(ImgView):
     def __init__(self, pg_layout, orientation='vertical'):
         super(CalibrationCakeView, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
-        self._cross_activated = True
+        self._cross_activated = False
         self.create_cross()
         self.add_left_click_observer(self.set_cross)
 

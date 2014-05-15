@@ -137,7 +137,9 @@ def rotate_matrix_p90(matrix):
 
 def get_base_name(filename):
     str = os.path.basename(filename)
-    return str.split('.')[:-1][0]
+    if '.' in str:
+        str = str.split('.')[:-1][0]
+    return str
 
 
 def calculate_color(ind):
