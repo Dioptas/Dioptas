@@ -22,7 +22,7 @@ class MaskView(QtGui.QWidget, Ui_xrs_mask_widget):
         self.below_thresh_txt.setValidator(QtGui.QIntValidator())
 
 
-    def show_img_mouse_position(self,x,y):
+    def show_img_mouse_position(self, x, y):
         try:
             if x > 0 and y > 0:
                 str = "x: %8.1f   y: %8.1f   I: %6.f" % (x, y, self.img_view.img_data.T[np.floor(x), np.floor(y)])
