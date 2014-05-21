@@ -368,6 +368,8 @@ class IntegrationFileController(object):
         self.calibration_data = calibration_data
         self._working_dir = ''
         self._reset_img_levels = False
+        self._first_plot = True
+
         self.view.show()
         self.initialize()
         self.img_data.subscribe(self.update_img)
@@ -381,6 +383,11 @@ class IntegrationFileController(object):
     def plot_img(self, reset_img_levels=None):
         if reset_img_levels is None:
             reset_img_levels = self._reset_img_levels
+        if self._first_plot == True:
+            reset_img_levels = True
+            if self.img_data.get_img_data().sum() > 0:
+                self._first_plot = False
+
         self.view.img_view.plot_image(self.img_data.get_img_data(), reset_img_levels)
         if reset_img_levels:
             self.view.img_view.auto_range()
