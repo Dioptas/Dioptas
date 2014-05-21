@@ -39,6 +39,10 @@ class SpectrumData(Observable):
         self.overlays.append(Spectrum(x, y, name))
         self.notify()
 
+    def set_current_spectrum_as_overlay(self):
+        self.overlays.append(self.spectrum)
+        self.notify()
+
     def add_overlay_file(self, filename):
         self.overlays.append(Spectrum())
         self.overlays[-1].load(filename)

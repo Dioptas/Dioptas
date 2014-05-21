@@ -77,6 +77,7 @@ class IntegrationOverlayController(object):
     def create_signals(self):
         self.connect_click_function(self.view.overlay_add_btn, self.add_overlay)
         self.connect_click_function(self.view.overlay_del_btn, self.del_overlay)
+        self.connect_click_function(self.view.set_as_overlay_btn, self.set_as_overlay)
         self.view.overlay_clear_btn.clicked.connect(self.clear_overlays)
         self.view.overlay_lw.currentItemChanged.connect(self.overlay_item_changed)
         self.view.overlay_scale_step_txt.editingFinished.connect(self.update_overlay_scale_step)
@@ -128,6 +129,12 @@ class IntegrationOverlayController(object):
                 self.spectrum_data.spectrum.reset_background()
                 self.spectrum_data.bkg_ind = -1
                 self.spectrum_data.notify()
+
+    def set_as_overlay(self):
+        self.spectrum_data.set_current_spectrum_as_overlay()
+        self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+        self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(self.spectrum_data.overlays[-1].name)))
+        self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
 
     def clear_overlays(self):
         while self.view.overlay_lw.currentRow() > -1:
@@ -250,8 +257,8 @@ class IntegrationSpectrumController(object):
             else:
                 self.view.spec_next_btn.setEnabled(False)
                 self.view.spec_previous_btn.setEnabled(False)
-                filename = 'current'
                 self.view.spec_filename_lbl.setText('No File saved or selected')
+                filename = None
 
             if self.view.mask_use_cb.isChecked():
                 mask = self.mask_data.get_mask()
@@ -259,8 +266,11 @@ class IntegrationSpectrumController(object):
                 mask = None
 
             tth, I = self.calibration_data.integrate_1d(filename=filename, mask=mask, unit=self.integration_unit)
-            spectrum_filename = filename
-            self.spectrum_data.set_spectrum(tth, I, spectrum_filename)
+            if filename is not None:
+                spectrum_name = filename
+            else:
+                spectrum_name = self.img_data.filename
+            self.spectrum_data.set_spectrum(tth, I, spectrum_name)
 
 
     def plot_spectra(self):

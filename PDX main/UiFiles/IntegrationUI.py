@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Wed May 21 12:46:51 2014
+# Created: Wed May 21 14:22:39 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -316,6 +316,9 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_10.addWidget(self.label_9)
         spacerItem5 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_10.addItem(spacerItem5)
+        self.set_as_overlay_btn = QtGui.QPushButton(self.widget)
+        self.set_as_overlay_btn.setObjectName(_fromUtf8("set_as_overlay_btn"))
+        self.horizontalLayout_10.addWidget(self.set_as_overlay_btn)
         self.verticalLayout_2.addWidget(self.widget)
         spacerItem6 = QtGui.QSpacerItem(20, 136, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem6)
@@ -532,7 +535,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_9.addWidget(self.horizontal_splitter)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
@@ -581,6 +584,7 @@ class Ui_xrs_integration_widget(object):
         self.label_9.setText(_translate("xrs_integration_widget",
                                         "<html><head/><body><p>Q (A<span style=\" vertical-align:super;\">-1</span>)</p></body></html>",
                                         None))
+        self.set_as_overlay_btn.setText(_translate("xrs_integration_widget", "Set As Overlay", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.spectra_tab),
                                   _translate("xrs_integration_widget", "Spec", None))
         self.overlay_add_btn.setText(_translate("xrs_integration_widget", "Add", None))

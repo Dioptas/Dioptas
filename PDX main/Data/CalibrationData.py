@@ -87,7 +87,7 @@ class CalibrationData(object):
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg'):
         if polarization_factor == None:
             polarization_factor = self.polarization_factor
-        res = self.geometry.integrate2d(self.img_data.img_data, 2048, 2048, method='lut', mask=None, unit=unit,
+        res = self.geometry.integrate2d(self.img_data.img_data, 2024, 2024, method='lut', mask=None, unit=unit,
                                         polarization_factor=polarization_factor)
         self.cake_img = res[0]
         self.cake_tth = res[1]
