@@ -286,7 +286,21 @@ class IntegrationSpectrumController(object):
 
                 int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(x), np.floor(y)]
                 self.view.int_lbl.setText(int_string)
+            if self.calibration_data.is_calibrated:
+                x_temp = x
+                x = np.array([y])
+                y = np.array([x_temp])
+                tth = self.calibration_data.geometry.tth(x, y)[0]
+                print self.calibration_data.geometry.wavelength
+                d = self.calibration_data.geometry.wavelength / (2 * np.sin(tth * 0.5)) * 1e10
+                tth = tth / np.pi * 180.0
+                q_value = self.calibration_data.geometry.qFunction(x, y) / 10.0
+                azi = self.calibration_data.geometry.chi(x, y)[0] / np.pi * 180
 
+                tth_str = u'2θ:  %9.2f  ' % tth
+                self.view.two_theta_lbl.setText(tth_str)
+                self.view.d_lbl.setText(u'd:  %9.2f  ' % d)
+                self.view.q_lbl.setText(u'Q:  %9.2f  ' % q_value)
         except (IndexError, AttributeError):
             pass
 
