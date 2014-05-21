@@ -207,7 +207,6 @@ class IntegrationSpectrumController(object):
         self.create_signals()
 
     def create_subscriptions(self):
-        self.view.img_view.add_mouse_move_observer(self.show_img_mouse_position)
         self.img_data.subscribe(self.image_changed)
         self.spectrum_data.subscribe(self.plot_spectra)
 
@@ -274,35 +273,6 @@ class IntegrationSpectrumController(object):
                 data = np.dstack((x, y))[0]
                 filename = os.path.join(directory, self.spectrum_data.spectrum.name + '_bkg_subtracted.xy')
                 np.savetxt(filename, data, header=header)
-
-
-    def show_img_mouse_position(self, x, y):
-        try:
-            if x > 0 and y > 0:
-                x_pos_string = 'X:  %4d' % x
-                y_pos_string = 'Y:  %4d' % y
-                self.view.x_lbl.setText(x_pos_string)
-                self.view.y_lbl.setText(y_pos_string)
-
-                int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(x), np.floor(y)]
-                self.view.int_lbl.setText(int_string)
-            if self.calibration_data.is_calibrated:
-                x_temp = x
-                x = np.array([y])
-                y = np.array([x_temp])
-                tth = self.calibration_data.geometry.tth(x, y)[0]
-                print self.calibration_data.geometry.wavelength
-                d = self.calibration_data.geometry.wavelength / (2 * np.sin(tth * 0.5)) * 1e10
-                tth = tth / np.pi * 180.0
-                q_value = self.calibration_data.geometry.qFunction(x, y) / 10.0
-                azi = self.calibration_data.geometry.chi(x, y)[0] / np.pi * 180
-
-                tth_str = u'2θ:  %9.2f  ' % tth
-                self.view.two_theta_lbl.setText(tth_str)
-                self.view.d_lbl.setText(u'd:  %9.2f  ' % d)
-                self.view.q_lbl.setText(u'Q:  %9.2f  ' % q_value)
-        except (IndexError, AttributeError):
-            pass
 
 
     def load(self, filename=None):
@@ -373,6 +343,7 @@ class IntegrationFileController(object):
         self.view.show()
         self.initialize()
         self.img_data.subscribe(self.update_img)
+        self.view.img_view.add_mouse_move_observer(self.show_img_mouse_position)
         self.create_signals()
 
     def initialize(self):
@@ -489,6 +460,37 @@ class IntegrationFileController(object):
             self.plot_mask()
             self.view.img_view.deactivate_cross()
             self.view.img_view.img_view_box.setAspectLocked(True)
+
+
+    def show_img_mouse_position(self, x, y):
+        try:
+            if x > 0 and y > 0:
+                x_pos_string = 'X:  %4d' % x
+                y_pos_string = 'Y:  %4d' % y
+                self.view.x_lbl.setText(x_pos_string)
+                self.view.y_lbl.setText(y_pos_string)
+
+                int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(x), np.floor(y)]
+                self.view.int_lbl.setText(int_string)
+            if self.calibration_data.is_calibrated:
+                x_temp = x
+                x = np.array([y])
+                y = np.array([x_temp])
+                tth = self.calibration_data.geometry.tth(x, y)[0]
+                print self.calibration_data.geometry.wavelength
+                d = self.calibration_data.geometry.wavelength / (2 * np.sin(tth * 0.5)) * 1e10
+                tth = tth / np.pi * 180.0
+                q_value = self.calibration_data.geometry.qFunction(x, y) / 10.0
+                azi = self.calibration_data.geometry.chi(x, y)[0] / np.pi * 180
+                azi = azi + 360 if azi < 0 else azi
+
+                tth_str = u'2θ:%9.2f  ' % tth
+                self.view.two_theta_lbl.setText(tth_str)
+                self.view.d_lbl.setText(u'd:%9.2f  ' % d)
+                self.view.q_lbl.setText(u'Q:%9.2f  ' % q_value)
+                self.view.azi_lbl.setText(u'X:%9.2f  ' % azi)
+        except (IndexError, AttributeError):
+            pass
 
 
     def set_iteration_mode_number(self):

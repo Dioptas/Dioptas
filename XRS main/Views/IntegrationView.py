@@ -24,8 +24,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
         self.set_validator()
         self.set_correct_labels()
-        # mono_font = QtGui.
-        # self.q_lbl.setFont(QtGui.QFont.Monospace)
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
