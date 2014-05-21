@@ -70,6 +70,7 @@ class IntegrationOverlayController(object):
     def __init__(self, view, spectrum_data):
         self.view = view
         self.spectrum_data = spectrum_data
+        self._working_dir = ''
         self.overlay_lw_items = []
         self.create_signals()
 
@@ -93,6 +94,7 @@ class IntegrationOverlayController(object):
         dialog = QtGui.QFileDialog()
         dialog.setFileMode(QtGui.QFileDialog.ExistingFiles)
         dialog.setWindowTitle("Load Overlay(s).")
+        dialog.setDirectory(self._working_dir)
 
         if filename is None:
             if (dialog.exec_()):
@@ -103,12 +105,15 @@ class IntegrationOverlayController(object):
                     self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
                     self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
                     self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
+                self._working_dir = os.path.dirname(str(filenames[0]))
 
         else:
             self.spectrum_data.add_overlay_file(filename)
             self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
             self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
             self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
+            self._working_dir = os.path.dirname(str(filename))
+        print self._working_dir
 
     def del_overlay(self):
         cur_ind = self.view.overlay_lw.currentRow()
@@ -200,7 +205,7 @@ class IntegrationSpectrumController(object):
         self.spectrum_data = spectrum_data
 
         self.create_subscriptions()
-        self.spectrum_working_dir = 'ExampleData/spectra'
+        self._working_dir = ''
         self.integration_unit = '2th_deg'
         self.set_status()
 
@@ -235,7 +240,7 @@ class IntegrationSpectrumController(object):
             if self.autocreate:
                 filename = self.img_data.filename
                 if filename is not '':
-                    filename = os.path.join(self.spectrum_working_dir,
+                    filename = os.path.join(self._working_dir,
                                             os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
 
                 self.view.spec_next_btn.setEnabled(True)
@@ -265,7 +270,7 @@ class IntegrationSpectrumController(object):
         #save the background subtracted file:
         if self.spectrum_data.bkg_ind is not -1:
             if self.autocreate:
-                directory = os.path.join(self.spectrum_working_dir, 'bkg_subtracted')
+                directory = os.path.join(self._working_dir, 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
                 header = self.calibration_data.geometry.makeHeaders()
@@ -278,9 +283,9 @@ class IntegrationSpectrumController(object):
     def load(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load Spectrum",
-                                                             directory=self.spectrum_working_dir))
+                                                             directory=self._working_dir))
         if filename is not '':
-            self.spectrum_working_dir = os.path.dirname(filename)
+            self._working_dir = os.path.dirname(filename)
             self.view.spec_filename_lbl.setText(os.path.basename(filename))
             self.spectrum_data.load_spectrum(filename)
             self.view.spec_next_btn.setEnabled(True)
@@ -299,19 +304,19 @@ class IntegrationSpectrumController(object):
 
     def spec_directory_btn_click(self):
         directory_dialog = QtGui.QFileDialog()
-        directory_dialog.setDirectory(self.spectrum_working_dir)
+        directory_dialog.setDirectory(self._working_dir)
         directory_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
         directory_dialog.setWindowTitle("Please choose the default directory for autosaved spectra.")
         if (directory_dialog.exec_()):
             folder = str(directory_dialog.selectedFiles()[0])
-            self.spectrum_working_dir = folder
+            self._working_dir = folder
             self.view.spec_directory_txt.setText(folder)
 
     def spec_directory_txt_changed(self):
         if os.path.exists(self.view.spec_directory_txt.text()):
-            self.spectrum_working_dir = self.view.spec_directory_txt.text()
+            self._working_dir = self.view.spec_directory_txt.text()
         else:
-            self.view.spec_directory_txt.setText(self.spectrum_working_dir)
+            self.view.spec_directory_txt.setText(self._working_dir)
 
     def set_iteration_mode_number(self):
         self.spectrum_data.file_iteration_mode = 'number'
@@ -516,7 +521,7 @@ if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     controller = IntegrationController()
     controller.file_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
-    controller.spectrum_controller.spectrum_working_dir = '../ExampleData/spectra'
+    controller.spectrum_controller._working_dir = '../ExampleData/spectra'
     controller.mask_data.set_dimension(controller.img_data.get_img_data().shape)
     controller.overlay_controller.add_overlay('../ExampleData/spectra/Mg2SiO4_ambient_005.xy')
     controller.calibration_data.load('../ExampleData/calibration.poni')
