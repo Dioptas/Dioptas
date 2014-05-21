@@ -237,7 +237,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -748,6 +748,13 @@
                </size>
               </property>
              </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="set_as_overlay_btn">
+              <property name="text">
+               <string>Set As Overlay</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>

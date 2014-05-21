@@ -143,17 +143,7 @@ def get_base_name(filename):
 
 
 def calculate_color(ind):
-    # green=(0.15+0.3*ind)%1*255
-    # blue=(0.35*ind)%1*255
-    # red =(0.7+0.42*ind)%1*255
-    # if (red+green+blue)<(100*3):
-    #     red=(red+100)%255
-    #     green=(green+100)%255
-    #     blue=(blue+100)%255
-    # return (red, green, blue)
-
-    # return distinguishable_colors[ind]*255
     s = 0.8
     v = 0.8
-    h = (0.17 * ind) % 1
+    h = (0.19 * ind) % 1
     return np.array(hsv_to_rgb(h, s, v)) * 255
