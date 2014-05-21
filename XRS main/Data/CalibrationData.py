@@ -20,7 +20,8 @@ class CalibrationData(object):
         self.start_values = {'dist': 400e-3,
                              'wavelength': 0.4133e-10,
                              'pixel_width': 200e-6,
-                             'pixel_height': 200e-6}
+                             'pixel_height': 200e-6,
+                             'polarization_factor': 0.95}
         self.fit_wavelength = False
         self.is_calibrated = False
         self.use_mask = False
@@ -58,6 +59,7 @@ class CalibrationData(object):
 
     def set_start_values(self, start_values):
         self.start_values = start_values
+        self.polarization_factor = start_values['polarization_factor']
 
     def refine_geometry(self):
         self.geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
@@ -75,14 +77,21 @@ class CalibrationData(object):
         self.calibration_name = 'current'
 
     def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None, unit='2th_deg'):
+        if polarization_factor == None:
+            polarization_factor = self.polarization_factor
         self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut', unit=unit,
                                                        mask=mask, polarization_factor=polarization_factor,
                                                        filename=filename)
         return self.tth, self.int
 
-    def integrate_2d(self, mask=None):
-        img = self.geometry.integrate2d(self.img_data.img_data, 2048, 2048, method='lut', mask=None)
-        self.cake_img = img[0]
+    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg'):
+        if polarization_factor == None:
+            polarization_factor = self.polarization_factor
+        res = self.geometry.integrate2d(self.img_data.img_data, 2048, 2048, method='lut', mask=None, unit=unit,
+                                        polarization_factor=polarization_factor)
+        self.cake_img = res[0]
+        self.cake_tth = res[1]
+        self.cake_azi = res[2]
         return self.cake_img
 
     def create_point_array(self, points, points_ind):
@@ -97,8 +106,10 @@ class CalibrationData(object):
 
     def get_calibration_parameter(self):
         pyFAI_parameter = self.geometry.getPyFAI()
+        pyFAI_parameter['polarization_factor'] = self.polarization_factor
         try:
             fit2d_parameter = self.geometry.getFit2D()
+            fit2d_parameter['polarization_factor'] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
         try:
@@ -106,6 +117,7 @@ class CalibrationData(object):
             fit2d_parameter['wavelength'] = self.geometry.wavelength
         except RuntimeWarning:
             pyFAI_parameter['wavelength'] = 0
+
         return pyFAI_parameter, fit2d_parameter
 
     def load(self, filename):
