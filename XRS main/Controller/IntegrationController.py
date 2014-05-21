@@ -211,7 +211,7 @@ class IntegrationSpectrumController(object):
         self.spectrum_data.subscribe(self.plot_spectra)
 
     def set_status(self):
-        self.autocreate = True
+        self.autocreate = False
         self.unit = pyFAI.units.TTH_DEG
 
     def create_signals(self):
@@ -400,8 +400,8 @@ class IntegrationFileController(object):
         self.connect_click_function(self.view.mask_transparent_cb, self.change_mask_colormap)
         self.connect_click_function(self.view.img_levels_absolute_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
-        self.connect_click_function(self.view.image_rb, self.update_img)
-        self.connect_click_function(self.view.cake_rb, self.update_img)
+        self.connect_click_function(self.view.image_rb, self.change_view_mode)
+        self.connect_click_function(self.view.cake_rb, self.change_view_mode)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -461,6 +461,12 @@ class IntegrationFileController(object):
             self.view.img_view.deactivate_cross()
             self.view.img_view.img_view_box.setAspectLocked(True)
 
+    def change_view_mode(self):
+        if self.view.cake_rb.isChecked() and not self.calibration_data.is_calibrated:
+            self.view.image_rb.setChecked(True)
+        else:
+            self.update_img()
+
 
     def show_img_mouse_position(self, x, y):
         try:
@@ -472,23 +478,29 @@ class IntegrationFileController(object):
 
                 int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(x), np.floor(y)]
                 self.view.int_lbl.setText(int_string)
-            if self.calibration_data.is_calibrated:
-                x_temp = x
-                x = np.array([y])
-                y = np.array([x_temp])
-                tth = self.calibration_data.geometry.tth(x, y)[0]
-                print self.calibration_data.geometry.wavelength
-                d = self.calibration_data.geometry.wavelength / (2 * np.sin(tth * 0.5)) * 1e10
-                tth = tth / np.pi * 180.0
-                q_value = self.calibration_data.geometry.qFunction(x, y) / 10.0
-                azi = self.calibration_data.geometry.chi(x, y)[0] / np.pi * 180
-                azi = azi + 360 if azi < 0 else azi
+                if self.calibration_data.is_calibrated:
+                    x_temp = x
+                    x = np.array([y])
+                    y = np.array([x_temp])
+                    if self.view.cake_rb.isChecked():
+                        tth = self.calibration_data.cake_tth[np.round(y[0])]
+                        azi = self.calibration_data.cake_azi[np.round(x[0])]
+                        q_value = 4 * np.pi * np.sin(
+                            tth / 360.0 * np.pi) / self.calibration_data.geometry.wavelength / 1e10
 
-                tth_str = u'2θ:%9.2f  ' % tth
-                self.view.two_theta_lbl.setText(tth_str)
-                self.view.d_lbl.setText(u'd:%9.2f  ' % d)
-                self.view.q_lbl.setText(u'Q:%9.2f  ' % q_value)
-                self.view.azi_lbl.setText(u'X:%9.2f  ' % azi)
+                    else:
+                        tth = self.calibration_data.geometry.tth(x, y)[0]
+                        tth = tth / np.pi * 180.0
+                        q_value = self.calibration_data.geometry.qFunction(x, y) / 10.0
+                        azi = self.calibration_data.geometry.chi(x, y)[0] / np.pi * 180
+
+                    azi = azi + 360 if azi < 0 else azi
+                    d = self.calibration_data.geometry.wavelength / (2 * np.sin(tth / 180. * np.pi * 0.5)) * 1e10
+                    tth_str = u'2θ:%9.2f  ' % tth
+                    self.view.two_theta_lbl.setText(tth_str)
+                    self.view.d_lbl.setText(u'd:%9.2f  ' % d)
+                    self.view.q_lbl.setText(u'Q:%9.2f  ' % q_value)
+                    self.view.azi_lbl.setText(u'X:%9.2f  ' % azi)
         except (IndexError, AttributeError):
             pass
 

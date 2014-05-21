@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Wed May 21 10:47:00 2014
+# Created: Wed May 21 12:46:51 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -79,29 +79,29 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout_6 = QtGui.QGridLayout()
         self.gridLayout_6.setObjectName(_fromUtf8("gridLayout_6"))
         self.two_theta_lbl = QtGui.QLabel(self.layoutWidget)
-        self.two_theta_lbl.setMinimumSize(QtCore.QSize(130, 0))
-        self.two_theta_lbl.setMaximumSize(QtCore.QSize(130, 16777215))
+        self.two_theta_lbl.setMinimumSize(QtCore.QSize(115, 0))
+        self.two_theta_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.two_theta_lbl.setTextFormat(QtCore.Qt.AutoText)
         self.two_theta_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.two_theta_lbl.setObjectName(_fromUtf8("two_theta_lbl"))
         self.gridLayout_6.addWidget(self.two_theta_lbl, 0, 0, 1, 1)
         self.q_lbl = QtGui.QLabel(self.layoutWidget)
-        self.q_lbl.setMinimumSize(QtCore.QSize(130, 0))
-        self.q_lbl.setMaximumSize(QtCore.QSize(130, 16777215))
+        self.q_lbl.setMinimumSize(QtCore.QSize(115, 0))
+        self.q_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.q_lbl.setTextFormat(QtCore.Qt.AutoText)
         self.q_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.q_lbl.setObjectName(_fromUtf8("q_lbl"))
         self.gridLayout_6.addWidget(self.q_lbl, 0, 1, 1, 1)
         self.d_lbl = QtGui.QLabel(self.layoutWidget)
-        self.d_lbl.setMinimumSize(QtCore.QSize(130, 0))
-        self.d_lbl.setMaximumSize(QtCore.QSize(130, 16777215))
+        self.d_lbl.setMinimumSize(QtCore.QSize(115, 0))
+        self.d_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.d_lbl.setTextFormat(QtCore.Qt.AutoText)
         self.d_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.d_lbl.setObjectName(_fromUtf8("d_lbl"))
         self.gridLayout_6.addWidget(self.d_lbl, 1, 0, 1, 1)
         self.azi_lbl = QtGui.QLabel(self.layoutWidget)
-        self.azi_lbl.setMinimumSize(QtCore.QSize(130, 0))
-        self.azi_lbl.setMaximumSize(QtCore.QSize(130, 16777215))
+        self.azi_lbl.setMinimumSize(QtCore.QSize(115, 0))
+        self.azi_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.azi_lbl.setTextFormat(QtCore.Qt.AutoText)
         self.azi_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.azi_lbl.setObjectName(_fromUtf8("azi_lbl"))
@@ -278,7 +278,7 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_11 = QtGui.QHBoxLayout()
         self.horizontalLayout_11.setObjectName(_fromUtf8("horizontalLayout_11"))
         self.spec_autocreate_cb = QtGui.QCheckBox(self.spectra_tab)
-        self.spec_autocreate_cb.setChecked(True)
+        self.spec_autocreate_cb.setChecked(False)
         self.spec_autocreate_cb.setObjectName(_fromUtf8("spec_autocreate_cb"))
         self.horizontalLayout_11.addWidget(self.spec_autocreate_cb)
         spacerItem4 = QtGui.QSpacerItem(28, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
@@ -532,7 +532,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_9.addWidget(self.horizontal_splitter)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):

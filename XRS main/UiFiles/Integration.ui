@@ -123,13 +123,13 @@
             <widget class="QLabel" name="two_theta_lbl">
              <property name="minimumSize">
               <size>
-               <width>130</width>
+               <width>115</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>130</width>
+               <width>115</width>
                <height>16777215</height>
               </size>
              </property>
@@ -148,13 +148,13 @@
             <widget class="QLabel" name="q_lbl">
              <property name="minimumSize">
               <size>
-               <width>130</width>
+               <width>115</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>130</width>
+               <width>115</width>
                <height>16777215</height>
               </size>
              </property>
@@ -173,13 +173,13 @@
             <widget class="QLabel" name="d_lbl">
              <property name="minimumSize">
               <size>
-               <width>130</width>
+               <width>115</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>130</width>
+               <width>115</width>
                <height>16777215</height>
               </size>
              </property>
@@ -198,13 +198,13 @@
             <widget class="QLabel" name="azi_lbl">
              <property name="minimumSize">
               <size>
-               <width>130</width>
+               <width>115</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>130</width>
+               <width>115</width>
                <height>16777215</height>
               </size>
              </property>
@@ -237,7 +237,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -650,7 +650,7 @@
               <string>autocreate</string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>

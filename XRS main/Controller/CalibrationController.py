@@ -90,6 +90,7 @@ class CalibrationController(object):
                                                 pixelX=fit2d_parameter['pixelX'],
                                                 pixelY=fit2d_parameter['pixelY'])
         self.calibration_data.geometry.wavelength = fit2d_parameter['wavelength']
+        self.calibration_data.polarization_factor = fit2d_parameter['polarization_factor']
         self.update_all()
 
     def update_pyFAI_btn_click(self):
@@ -103,6 +104,7 @@ class CalibrationController(object):
                                                 pixel1=pyFAI_parameter['pixel1'],
                                                 pixel2=pyFAI_parameter['pixel2'])
         self.calibration_data.geometry.wavelength = pyFAI_parameter['wavelength']
+        self.calibration_data.polarization_factor = pyFAI_parameter['polarization_factor']
         self.update_all()
 
 
