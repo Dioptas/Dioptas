@@ -25,7 +25,7 @@
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="spacing">
         <number>0</number>
@@ -123,18 +123,21 @@
             <widget class="QLabel" name="two_theta_lbl">
              <property name="minimumSize">
               <size>
-               <width>100</width>
+               <width>130</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>100</width>
+               <width>130</width>
                <height>16777215</height>
               </size>
              </property>
              <property name="text">
               <string>2Th:</string>
+             </property>
+             <property name="textFormat">
+              <enum>Qt::AutoText</enum>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -145,18 +148,21 @@
             <widget class="QLabel" name="q_lbl">
              <property name="minimumSize">
               <size>
-               <width>100</width>
+               <width>130</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>100</width>
+               <width>130</width>
                <height>16777215</height>
               </size>
              </property>
              <property name="text">
               <string>Q:</string>
+             </property>
+             <property name="textFormat">
+              <enum>Qt::AutoText</enum>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -167,18 +173,21 @@
             <widget class="QLabel" name="d_lbl">
              <property name="minimumSize">
               <size>
-               <width>100</width>
+               <width>130</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>100</width>
+               <width>130</width>
                <height>16777215</height>
               </size>
              </property>
              <property name="text">
               <string>d:</string>
+             </property>
+             <property name="textFormat">
+              <enum>Qt::AutoText</enum>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -189,18 +198,21 @@
             <widget class="QLabel" name="azi_lbl">
              <property name="minimumSize">
               <size>
-               <width>100</width>
+               <width>130</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>100</width>
+               <width>130</width>
                <height>16777215</height>
               </size>
              </property>
              <property name="text">
-              <string>χ(°)</string>
+              <string>χ</string>
+             </property>
+             <property name="textFormat">
+              <enum>Qt::AutoText</enum>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
