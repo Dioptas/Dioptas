@@ -255,29 +255,29 @@ class MaskImgView(ImgView):
         return polygon
 
 
+from Tools import marchingsquares
+
+
 class IntegrationImgView(MaskImgView, CalibrationCakeView):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgView, self).__init__(pg_layout, orientation)
         self.deactivate_cross()
-        self.create_iso_curve_item()
+        self.create_circle_scatter_item()
         self.img_view_box.setAspectLocked(True)
 
-    def create_iso_curve_item(self):
-        self.iso_curve = pg.IsocurveItem(level=0.1, pen=pg.mkPen(color=(0, 255, 0), width=2))
-        self.img_view_box.addItem(self.iso_curve)
-        self.iso_curve.setParentItem(self.mask_img_item)
+    def create_circle_scatter_item(self):
+        self.circle_plot_item = pg.ScatterPlotItem(pen=pg.mkPen(color='g', width=2), size=0.5, brush=pg.mkBrush('g'))
+        self.img_view_box.addItem(self.circle_plot_item)
 
-    def set_iso_curve_level(self, level):
-        self.iso_curve.setLevel(level)
+    def set_circle_scatter_tth(self, tth, level):
+        data = marchingsquares.isocontour(tth, level)
+        self.circle_plot_item.setData(x=data[:, 0], y=data[:, 1])
 
-    def set_iso_curve_data(self, data):
-        self.iso_curve.setData(data)
+    def activate_circle_scatter(self):
+        self.img_view_box.addItem(self.circle_plot_item)
 
-    def activate_iso_curve(self):
-        self.img_view_box.addItem(self.iso_curve)
-
-    def deactivate_iso_curve(self):
-        self.img_view_box.removeItem(self.iso_curve)
+    def deactivate_circle_scatter(self):
+        self.img_view_box.removeItem(self.circle_plot_item)
 
 
 class MyPolygon(QtGui.QGraphicsPolygonItem):
