@@ -342,15 +342,38 @@ class IntegrationSpectrumController(object):
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', u'°')
 
+        cur_line_pos = self.view.spectrum_view.pos_line.getPos()[0]
+        new_line_pos = np.arcsin(cur_line_pos * 1e10 * self.calibration_data.geometry.wavelength / (4 * np.pi)) * 2
+        new_line_pos = new_line_pos / np.pi * 180
+        self.view.spectrum_view.set_pos_line(new_line_pos)
+
     def set_unit_q(self):
         self.integration_unit = "q_A^-1"
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel('bottom', 'Q', 'A<sup>-1</sup>')
 
+        cur_line_pos = self.view.spectrum_view.pos_line.getPos()[0]
+        new_line_pos = 4 * np.pi * np.sin(cur_line_pos / 360 * np.pi) / self.calibration_data.geometry.wavelength / 1e10
+        self.view.spectrum_view.set_pos_line(new_line_pos)
+
     def spectrum_left_click(self, x, y):
         self.view.spectrum_view.set_pos_line(x)
-        if self.calibration_data.is_calibrated:
-            self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, x / 180 * np.pi)
+        if self.view.spec_unit_q_rb.isChecked():
+            x = np.arcsin(x * 1e10 * self.calibration_data.geometry.wavelength / (4 * np.pi)) * 2
+            x = x / np.pi * 180
+
+        if self.view.cake_rb.isChecked():  #cake mode
+            upper_ind = np.where(self.calibration_data.cake_tth > x)
+            lower_ind = np.where(self.calibration_data.cake_tth < x)
+            spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
+                      self.calibration_data.cake_tth[lower_ind[-1][-1]]
+            new_pos = lower_ind[-1][-1] + \
+                      (x - self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
+
+            self.view.img_view.vertical_line.setValue(new_pos)
+        else:  #image mode
+            if self.calibration_data.is_calibrated:
+                self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, x / 180 * np.pi)
 
 
 class IntegrationImageController(object):
@@ -477,12 +500,12 @@ class IntegrationImageController(object):
             self.calibration_data.integrate_2d(mask)
             self.plot_cake()
             self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
-            self.view.img_view.activate_cross()
+            self.view.img_view.activate_vertical_line()
             self.view.img_view.img_view_box.setAspectLocked(False)
         else:
             self.plot_img(reset_img_levels)
             self.plot_mask()
-            self.view.img_view.deactivate_cross()
+            self.view.img_view.deactivate_vertical_line()
             self.view.img_view.img_view_box.setAspectLocked(True)
 
     def change_view_mode(self):
@@ -491,9 +514,26 @@ class IntegrationImageController(object):
         else:
             if self.view.cake_rb.isChecked():
                 self.view.img_view.deactivate_circle_scatter()
+                self._update_cake_line_pos()
+
             else:
                 self.view.img_view.activate_circle_scatter()
+                self._update_image_scatter_pos()
             self.update_img()
+
+    def _update_cake_line_pos(self):
+        cur_tth = self.view.spectrum_view.pos_line.getPos()[0]
+        upper_ind = np.where(self.calibration_data.cake_tth > cur_tth)
+        lower_ind = np.where(self.calibration_data.cake_tth < cur_tth)
+        spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
+                  self.calibration_data.cake_tth[lower_ind[-1][-1]]
+        new_pos = lower_ind[-1][-1] + \
+                  (cur_tth - self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
+        self.view.img_view.vertical_line.setValue(new_pos)
+
+    def _update_image_scatter_pos(self):
+        cur_tth = self.view.spectrum_view.pos_line.getPos()[0]
+        self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, cur_tth / 180 * np.pi)
 
 
     def show_img_mouse_position(self, x, y):
@@ -533,12 +573,26 @@ class IntegrationImageController(object):
             pass
 
     def img_mouse_click(self, x, y):
-        x = np.array([x])
-        y = np.array([y])
-        if self.calibration_data.is_calibrated:
-            tth = self.calibration_data.geometry.tth(x, y)[0]
-            self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, tth)
-            self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
+        if self.view.cake_rb.isChecked():  #cake mode
+            y = np.array([y])
+            tth = self.calibration_data.cake_tth[np.round(y[0])]
+            if self.view.spec_unit_q_rb.isChecked():
+                q = 4 * np.pi * np.sin(tth / 360.0 * np.pi) / self.calibration_data.geometry.wavelength / 1e10
+                self.view.spectrum_view.set_pos_line(q)
+            else:
+                self.view.spectrum_view.set_pos_line(tth)
+
+        else:  #image mode
+            x = np.array([x])
+            y = np.array([y])
+            if self.calibration_data.is_calibrated:
+                tth = self.calibration_data.geometry.tth(x, y)[0]
+                self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, tth)
+                if self.view.spec_unit_q_rb.isChecked():
+                    q = 4 * np.pi * np.sin(tth / 2) / self.calibration_data.geometry.wavelength / 1e10
+                    self.view.spectrum_view.set_pos_line(q)
+                else:
+                    self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
 
 
     def set_iteration_mode_number(self):

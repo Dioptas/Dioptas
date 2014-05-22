@@ -186,30 +186,26 @@ class CalibrationCakeView(ImgView):
     def __init__(self, pg_layout, orientation='vertical'):
         super(CalibrationCakeView, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
-        self._cross_activated = False
-        self.create_cross()
-        self.add_left_click_observer(self.set_cross)
+        self._vertical_line_activated = False
+        self.create_vertical_line()
+        self.add_left_click_observer(self.set_vertical_line_pos)
 
-    def create_cross(self):
-        self.vertical_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(255, 0, 0), width=2))
-        self.horizontal_line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2))
-        self.activate_cross()
+    def create_vertical_line(self):
+        self.vertical_line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=(0, 255, 0), width=2))
+        self.activate_vertical_line()
 
-    def activate_cross(self):
-        if not self._cross_activated:
+    def activate_vertical_line(self):
+        if not self._vertical_line_activated:
             self.img_view_box.addItem(self.vertical_line)
-            self.img_view_box.addItem(self.horizontal_line)
-            self._cross_activated = True
+            self._vertical_line_activated = True
 
-    def deactivate_cross(self):
-        if self._cross_activated:
+    def deactivate_vertical_line(self):
+        if self._vertical_line_activated:
             self.img_view_box.removeItem(self.vertical_line)
-            self.img_view_box.removeItem(self.horizontal_line)
-            self._cross_activated = False
+            self._vertical_line_activated = False
 
-    def set_cross(self, x, y):
-        self.vertical_line.setValue(x)
-        self.horizontal_line.setValue(y)
+    def set_vertical_line_pos(self, x, y):
+        self.vertical_line.setValue(y)
 
 
 class MaskImgView(ImgView):
@@ -257,16 +253,17 @@ class MaskImgView(ImgView):
 
 from Tools import marchingsquares
 
-
 class IntegrationImgView(MaskImgView, CalibrationCakeView):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgView, self).__init__(pg_layout, orientation)
-        self.deactivate_cross()
+        self.deactivate_vertical_line()
         self.create_circle_scatter_item()
+        self.deactivate_circle_scatter()
         self.img_view_box.setAspectLocked(True)
 
     def create_circle_scatter_item(self):
-        self.circle_plot_item = pg.ScatterPlotItem(pen=pg.mkPen(color='g', width=2), size=0.5, brush=pg.mkBrush('g'))
+        self.circle_plot_item = pg.ScatterPlotItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1), size=0.4,
+                                                   brush=pg.mkBrush('g'))
         self.img_view_box.addItem(self.circle_plot_item)
 
     def set_circle_scatter_tth(self, tth, level):
