@@ -31,7 +31,7 @@ class CombinedDataTest(unittest.TestCase):
         self.calibration_controller.view.sv_pixel_height_txt.setText('79')
         self.calibration_controller.view.calibrant_cb.setCurrentIndex(7)
         self.calibration_controller.calibrate()
-        self.calibration_controller.view.cake_view.set_cross(1419.8, 653.4)
+        self.calibration_controller.view.cake_view.set_vertical_line_pos(1419.8, 653.4)
 
     def test_automatic_calibration2(self):
         self.calibration_controller.load_file('Data/LaB6_WOS_30keV_005.tif')
@@ -43,7 +43,7 @@ class CombinedDataTest(unittest.TestCase):
         self.calibration_controller.view.sv_pixel_height_txt.setText('200')
         self.calibration_controller.view.calibrant_cb.setCurrentIndex(7)
         self.calibration_controller.calibrate()
-        self.calibration_controller.view.cake_view.set_cross(206.5, 171.6)
+        self.calibration_controller.view.cake_view.set_vertical_line_pos(206.5, 171.6)
 
     def tearDown(self):
         return

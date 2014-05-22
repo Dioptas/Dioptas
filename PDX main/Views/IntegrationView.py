@@ -36,8 +36,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
-        self.img_view.activate_cross()
+        self.img_view.activate_vertical_line()
 
     def switch_to_img(self):
         self.img_view.img_view_box.setAspectLocked(True)
-        self.img_view.deactivate_cross()
+        self.img_view.deactivate_vertical_line()
