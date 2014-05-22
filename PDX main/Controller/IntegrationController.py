@@ -349,7 +349,8 @@ class IntegrationSpectrumController(object):
 
     def spectrum_left_click(self, x, y):
         self.view.spectrum_view.set_pos_line(x)
-        self.view.img_view.set_iso_curve_level(x / 180 * np.pi)
+        if self.calibration_data.is_calibrated:
+            self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, x / 180 * np.pi)
 
 
 class IntegrationImageController(object):
@@ -484,20 +485,14 @@ class IntegrationImageController(object):
             self.view.img_view.deactivate_cross()
             self.view.img_view.img_view_box.setAspectLocked(True)
 
-            try:
-                tth_array = self.calibration_data.geometry.twoThetaArray(self.img_data.get_img_data().shape)
-                self.view.img_view.set_iso_curve_data(tth_array.T)
-            except TypeError:
-                pass
-
     def change_view_mode(self):
         if self.view.cake_rb.isChecked() and not self.calibration_data.is_calibrated:
             self.view.image_rb.setChecked(True)
         else:
             if self.view.cake_rb.isChecked():
-                self.view.img_view.deactivate_iso_curve()
+                self.view.img_view.deactivate_circle_scatter()
             else:
-                self.view.img_view.activate_iso_curve()
+                self.view.img_view.activate_circle_scatter()
             self.update_img()
 
 
@@ -540,9 +535,10 @@ class IntegrationImageController(object):
     def img_mouse_click(self, x, y):
         x = np.array([x])
         y = np.array([y])
-        tth = self.calibration_data.geometry.tth(x, y)[0]
-        self.view.img_view.set_iso_curve_level(tth)
-        self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
+        if self.calibration_data.is_calibrated:
+            tth = self.calibration_data.geometry.tth(x, y)[0]
+            self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, tth)
+            self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
 
 
     def set_iteration_mode_number(self):
