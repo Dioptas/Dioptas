@@ -1,6 +1,7 @@
 __author__ = 'Clemens Prescher'
 import numpy as np
 import os
+from copy import deepcopy
 from HelperModule import Observable, FileNameIterator, get_base_name
 
 
@@ -40,7 +41,7 @@ class SpectrumData(Observable):
         self.notify()
 
     def set_current_spectrum_as_overlay(self):
-        self.overlays.append(self.spectrum)
+        self.overlays.append(deepcopy(self.spectrum))
         self.notify()
 
     def add_overlay_file(self, filename):
