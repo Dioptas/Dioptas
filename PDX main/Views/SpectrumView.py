@@ -15,6 +15,7 @@ class SpectrumView(object):
 
         self.create_graphics()
         self.create_main_plot()
+        self.create_pos_line()
         self.modify_mouse_behavior()
         self.phases = []
         self.overlays = []
@@ -35,6 +36,7 @@ class SpectrumView(object):
         self.img_view_box = self.spectrum_plot.vb
         self.legend = pg.LegendItem(horSpacing=20, box=False)
 
+
     def create_main_plot(self):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
                                          pen=pg.mkPen(color=(255, 255, 255), width=2))
@@ -43,6 +45,13 @@ class SpectrumView(object):
         self.plot_name = ''
         self.legend.setParentItem(self.spectrum_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
+
+    def create_pos_line(self):
+        self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=2))
+        self.spectrum_plot.addItem(self.pos_line)
+
+    def set_pos_line(self, x):
+        self.pos_line.setPos(x)
 
     def plot_data(self, x, y, name=None):
         self.plot_item.setData(x, y)

@@ -22,6 +22,8 @@ pg.setConfigOption('antialias', True)
 import pyFAI.units
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 
 class IntegrationController(object):
     def __init__(self, view=None, img_data=None, mask_data=None, calibration_data=None, spectrum_data=None):
@@ -61,8 +63,8 @@ class IntegrationController(object):
     def create_sub_controller(self):
         self.spectrum_controller = IntegrationSpectrumController(self.view, self.img_data, self.mask_data,
                                                                  self.calibration_data, self.spectrum_data)
-        self.file_controller = IntegrationFileController(self.view, self.img_data,
-                                                         self.mask_data, self.calibration_data)
+        self.file_controller = IntegrationImageController(self.view, self.img_data,
+                                                          self.mask_data, self.calibration_data)
         self.overlay_controller = IntegrationOverlayController(self.view, self.spectrum_data)
 
 
@@ -221,6 +223,7 @@ class IntegrationSpectrumController(object):
     def create_subscriptions(self):
         self.img_data.subscribe(self.image_changed)
         self.spectrum_data.subscribe(self.plot_spectra)
+        self.view.spectrum_view.add_left_click_observer(self.spectrum_left_click)
 
     def set_status(self):
         self.autocreate = False
@@ -344,8 +347,12 @@ class IntegrationSpectrumController(object):
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel('bottom', 'Q', 'A<sup>-1</sup>')
 
+    def spectrum_left_click(self, x, y):
+        self.view.spectrum_view.set_pos_line(x)
+        self.view.img_view.set_iso_curve_level(x / 180 * np.pi)
 
-class IntegrationFileController(object):
+
+class IntegrationImageController(object):
     def __init__(self, view, img_data, mask_data, calibration_data):
         self.view = view
         self.img_data = img_data
@@ -359,6 +366,7 @@ class IntegrationFileController(object):
         self.initialize()
         self.img_data.subscribe(self.update_img)
         self.view.img_view.add_mouse_move_observer(self.show_img_mouse_position)
+        self.view.img_view.add_left_click_observer(self.img_mouse_click)
         self.create_signals()
 
     def initialize(self):
@@ -476,10 +484,20 @@ class IntegrationFileController(object):
             self.view.img_view.deactivate_cross()
             self.view.img_view.img_view_box.setAspectLocked(True)
 
+            try:
+                tth_array = self.calibration_data.geometry.twoThetaArray(self.img_data.get_img_data().shape)
+                self.view.img_view.set_iso_curve_data(tth_array.T)
+            except TypeError:
+                pass
+
     def change_view_mode(self):
         if self.view.cake_rb.isChecked() and not self.calibration_data.is_calibrated:
             self.view.image_rb.setChecked(True)
         else:
+            if self.view.cake_rb.isChecked():
+                self.view.img_view.deactivate_iso_curve()
+            else:
+                self.view.img_view.activate_iso_curve()
             self.update_img()
 
 
@@ -518,6 +536,13 @@ class IntegrationFileController(object):
                     self.view.azi_lbl.setText(u'X:%9.2f  ' % azi)
         except (IndexError, AttributeError):
             pass
+
+    def img_mouse_click(self, x, y):
+        x = np.array([x])
+        y = np.array([y])
+        tth = self.calibration_data.geometry.tth(x, y)[0]
+        self.view.img_view.set_iso_curve_level(tth)
+        self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
 
 
     def set_iteration_mode_number(self):

@@ -1,3 +1,5 @@
+from datetime import time
+
 __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
@@ -5,6 +7,7 @@ import numpy as np
 from PyQt4 import QtCore, QtGui
 from HorHistogramLUTItem import HorHistogramLUTItem
 import matplotlib.pyplot as plt
+import time
 
 
 class ImgView(object):
@@ -256,7 +259,25 @@ class IntegrationImgView(MaskImgView, CalibrationCakeView):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgView, self).__init__(pg_layout, orientation)
         self.deactivate_cross()
+        self.create_iso_curve_item()
         self.img_view_box.setAspectLocked(True)
+
+    def create_iso_curve_item(self):
+        self.iso_curve = pg.IsocurveItem(level=0.1, pen=pg.mkPen(color=(0, 255, 0), width=2))
+        self.img_view_box.addItem(self.iso_curve)
+        self.iso_curve.setParentItem(self.mask_img_item)
+
+    def set_iso_curve_level(self, level):
+        self.iso_curve.setLevel(level)
+
+    def set_iso_curve_data(self, data):
+        self.iso_curve.setData(data)
+
+    def activate_iso_curve(self):
+        self.img_view_box.addItem(self.iso_curve)
+
+    def deactivate_iso_curve(self):
+        self.img_view_box.removeItem(self.iso_curve)
 
 
 class MyPolygon(QtGui.QGraphicsPolygonItem):
