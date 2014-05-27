@@ -57,7 +57,8 @@ class CalibrationData(object):
         self.points = []
         self.points_index = []
 
-    def search_peaks_on_ring(self, peak_index, delta_tth=0.1, algorithm='Massif', upper_limit=55000):
+    def search_peaks_on_ring(self, peak_index, delta_tth=0.1, algorithm='Massif', min_mean_factor=1,
+                             upper_limit=55000):
         if self.is_calibrated == False:
             return
 
@@ -95,7 +96,7 @@ class CalibrationData(object):
         std = np.nanstd(sub_data)
 
         # set the threshold into the mask (don't detect very low intensity peaks)
-        threshold = mean + std
+        threshold = min_mean_factor * mean + std
         mask2 = np.logical_and(self.img_data.img_data > threshold, mask)
         mask2[np.where(self.img_data.img_data > upper_limit)] = False
         size2 = mask2.sum(dtype=int)
@@ -131,11 +132,6 @@ class CalibrationData(object):
         self.integrate()
         self.is_calibrated = True
         self.calibration_name = 'current'
-
-    def recalibrate(self, method='massif'):
-        self.automatic_peak_search(method)
-        self.refine()
-        self.integrate()
 
     def refine(self):
         self.geometry.data = self.create_point_array(self.points, self.points_index)

@@ -223,22 +223,28 @@ class CalibrationController(object):
         # get options
         algorithm = str(self.view.options_peaksearch_algorithm_cb.currentText())
         delta_tth = np.float(self.view.options_delta_tth_txt.text())
-        intensity_limit = np.float(self.view.options_intensity_limit_txt.text())
+        intensity_min_factor = np.float(self.view.options_intensity_mean_factor_sb.value())
+        intensity_max = np.float(self.view.options_intensity_limit_txt.text())
         num_rings = self.view.options_num_rings_sb.value()
 
-        self.calibration_data.search_peaks_on_ring(0, delta_tth, algorithm, intensity_limit)
-        self.calibration_data.search_peaks_on_ring(1, delta_tth, algorithm, intensity_limit)
+        self.calibration_data.search_peaks_on_ring(0, delta_tth, algorithm, intensity_min_factor, intensity_max)
+        self.calibration_data.search_peaks_on_ring(1, delta_tth, algorithm, intensity_min_factor, intensity_max)
         try:
             self.calibration_data.refine()
         except IndexError:
-            print 'Did not any Points with the specified parameters!'
+            print 'Did not find any Points with the specified parameters for the first two rings!'
         self.plot_points()
 
         for i in xrange(num_rings - 2):
-            points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, algorithm, intensity_limit)
+            points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, algorithm, intensity_min_factor,
+                                                                intensity_max)
             self.plot_points(points)
             QtGui.QApplication.processEvents()
-            self.calibration_data.refine()
+            QtGui.QApplication.processEvents()
+            try:
+                self.calibration_data.refine()
+            except IndexError:
+                print 'Did not find enough points with the specified parameters!'
         self.calibration_data.integrate()
         self.update_all()
 
