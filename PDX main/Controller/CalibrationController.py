@@ -56,6 +56,7 @@ class CalibrationController(object):
         self.connect_click_function(self.view.load_calibration_btn, self.load_calibration)
 
         self.connect_click_function(self.view.integrate_btn, self.calibrate)
+        self.connect_click_function(self.view.refine_btn, self.refine)
 
         self.view.img_view.add_left_click_observer(self.search_peaks)
         self.connect_click_function(self.view.clear_peaks_btn, self.clear_peaks_btn_click)
@@ -133,15 +134,23 @@ class CalibrationController(object):
         self.view.calibrant_cb.setCurrentIndex(0)
         self.load_calibrant()
 
-    def load_calibrant(self):
+    def load_calibrant(self, wavelength_from='start_values'):
         current_index = self.view.calibrant_cb.currentIndex()
         filename = os.path.join(self.calibration_data._calibrants_working_dir,
                                 self._calibrants_file_list[current_index])
         self.calibration_data.set_calibrant(filename)
 
-        pyFAI_parameter, _ = self.calibration_data.get_calibration_parameter()
-        if pyFAI_parameter['wavelength'] is not 0:
-            wavelength = pyFAI_parameter['wavelength']
+        wavelength = 0
+        if wavelength_from == 'start_values':
+            start_values = self.view.get_start_values()
+            wavelength = start_values['wavelength']
+        elif wavelength_from == 'pyFAI':
+            pyFAI_parameter, _ = self.calibration_data.get_calibration_parameter()
+            if pyFAI_parameter['wavelength'] is not 0:
+                wavelength = pyFAI_parameter['wavelength']
+            else:
+                start_values = self.view.get_start_values()
+                wavelength = start_values['wavelength']
         else:
             start_values = self.view.get_start_values()
             wavelength = start_values['wavelength']
@@ -149,6 +158,10 @@ class CalibrationController(object):
         self.calibration_data.calibrant.setWavelength_change2th(wavelength)
         self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th()) / np.pi * 180,
                                                     name=self._calibrants_file_names_list[current_index])
+
+    def set_calibrant(self, index):
+        self.view.calibrant_cb.setCurrentIndex(index)
+        self.load_calibrant()
 
 
     def plot_image(self):
@@ -172,9 +185,18 @@ class CalibrationController(object):
             search_size = np.int(self.view.search_size_sb.value())
             points = self.calibration_data.find_peak(x, y, search_size, peak_ind - 1)
         if len(points):
-            self.view.img_view.add_scatter_data(points[:, 0] + 0.5, points[:, 1] + 0.5)
+            self.plot_points(points)
             if self.view.automatic_peak_num_inc_cb.checkState():
                 self.view.peak_num_sb.setValue(peak_ind + 1)
+
+    def plot_points(self, points=None):
+        if points == None:
+            try:
+                points = self.calibration_data.get_point_array()
+            except IndexError:
+                points = []
+        if len(points):
+            self.view.img_view.add_scatter_data(points[:, 0] + 0.5, points[:, 1] + 0.5)
 
     def clear_peaks_btn_click(self):
         self.calibration_data.clear_peaks()
@@ -187,23 +209,38 @@ class CalibrationController(object):
     def calibrate(self):
         self.load_calibrant()  #load the right calibration file...
         self.calibration_data.set_start_values(self.view.get_start_values())
-        self.calibration_data.refine_geometry()
+        self.calibration_data.calibrate()
+        self.update_calibration_parameter()
 
-        pyFAI_parameter, fit2d_parameter = self.calibration_data.get_calibration_parameter()
-        self.view.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
+        if self.view.options_automatic_refinement_cb.isChecked():
+            self.refine()
+        self.update_all()
 
-        if self.view.tab_widget.currentIndex() == 0:
-            self.view.tab_widget.setCurrentIndex(1)
+    def refine(self):
+        self.clear_peaks_btn_click()
+        self.load_calibrant(wavelength_from='pyFAI')  #load right calibration file
 
-        if self.view.ToolBox.currentIndex() is not 2 or \
-                        self.view.ToolBox.currentIndex() is not 3:
-            self.view.ToolBox.setCurrentIndex(2)
+        # get options
+        algorithm = str(self.view.options_peaksearch_algorithm_cb.currentText())
+        delta_tth = np.float(self.view.options_delta_tth_txt.text())
+        intensity_limit = np.float(self.view.options_intensity_limit_txt.text())
+        num_rings = self.view.options_num_rings_sb.value()
 
-        self.view.cake_view.plot_image(self.calibration_data.cake_img, True)
-        self.calibration_data.calibrant.setWavelength_change2th(pyFAI_parameter['wavelength'])
+        self.calibration_data.search_peaks_on_ring(0, delta_tth, algorithm, intensity_limit)
+        self.calibration_data.search_peaks_on_ring(1, delta_tth, algorithm, intensity_limit)
+        try:
+            self.calibration_data.refine()
+        except IndexError:
+            print 'Did not any Points with the specified parameters!'
+        self.plot_points()
 
-        self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
-        self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th()) / np.pi * 180)
+        for i in xrange(num_rings - 2):
+            points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, algorithm, intensity_limit)
+            self.plot_points(points)
+            QtGui.QApplication.processEvents()
+            self.calibration_data.refine()
+        self.calibration_data.integrate()
+        self.update_all()
 
     def load_calibration(self, filename=None):
         if filename is None:
@@ -230,7 +267,9 @@ class CalibrationController(object):
         if self.view.ToolBox.currentIndex() is not 2 or \
                         self.view.ToolBox.currentIndex() is not 3:
             self.view.ToolBox.setCurrentIndex(2)
+        self.update_calibration_parameter()
 
+    def update_calibration_parameter(self):
         pyFAI_parameter, fit2d_parameter = self.calibration_data.get_calibration_parameter()
         self.view.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
 

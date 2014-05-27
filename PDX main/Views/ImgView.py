@@ -63,7 +63,10 @@ class ImgView(object):
     def auto_range(self):
         hist_x, hist_y = self.data_img_item.getHistogram()
         ind = np.where(np.cumsum(hist_y) < (0.995 * np.sum(hist_y)))
-        self.img_histogram_LUT.setLevels(np.min(np.min(self.img_data)), hist_x[ind[0][-1]])
+        if len(ind[0]):
+            self.img_histogram_LUT.setLevels(np.min(np.min(self.img_data)), hist_x[ind[0][-1]])
+        else:
+            self.img_histogram_LUT.setLevels(np.min(np.min(self.img_data)), 0.5 * np.max(hist_x))
 
     def add_scatter_data(self, x, y):
         self.img_scatter_plot_item.addPoints(x=y, y=x)
