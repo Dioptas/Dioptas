@@ -55,6 +55,9 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.sv_wavelength_txt.setValidator(QtGui.QDoubleValidator())
         self.sv_polarization_txt.setValidator(QtGui.QDoubleValidator())
 
+        self.options_delta_tth_txt.setValidator(QtGui.QDoubleValidator())
+        self.options_intensity_limit_txt.setValidator(QtGui.QDoubleValidator())
+
     def show_img_mouse_position(self, x, y):
         try:
             if x > 0 and y > 0:

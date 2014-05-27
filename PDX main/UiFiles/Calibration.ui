@@ -131,6 +131,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="refine_btn">
+           <property name="text">
+            <string>Refine</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -186,8 +193,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>339</width>
-            <height>438</height>
+            <width>305</width>
+            <height>407</height>
            </rect>
           </property>
           <attribute name="label">
@@ -411,17 +418,26 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>250</width>
-            <height>199</height>
+            <width>305</width>
+            <height>407</height>
            </rect>
           </property>
           <attribute name="label">
            <string>Peakpicker</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_3">
+           <property name="spacing">
+            <number>4</number>
+           </property>
+           <property name="margin">
+            <number>0</number>
+           </property>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_5">
-             <item>
+            <layout class="QGridLayout" name="gridLayout_2">
+             <property name="verticalSpacing">
+              <number>0</number>
+             </property>
+             <item row="0" column="0">
               <spacer name="horizontalSpacer_2">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -434,38 +450,34 @@
                </property>
               </spacer>
              </item>
-             <item>
+             <item row="0" column="1" colspan="2">
               <widget class="QLabel" name="label_10">
                <property name="text">
                 <string>Current peaknumber:</string>
                </property>
               </widget>
              </item>
-             <item>
+             <item row="0" column="3">
               <widget class="QSpinBox" name="peak_num_sb">
                <property name="minimum">
                 <number>1</number>
                </property>
               </widget>
              </item>
-            </layout>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_6">
-             <item>
+             <item row="1" column="0" colspan="2">
               <spacer name="horizontalSpacer_3">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
-                 <width>40</width>
+                 <width>78</width>
                  <height>20</height>
                 </size>
                </property>
               </spacer>
              </item>
-             <item>
+             <item row="1" column="2" colspan="2">
               <widget class="QCheckBox" name="automatic_peak_num_inc_cb">
                <property name="text">
                 <string>automatic increase</string>
@@ -478,32 +490,35 @@
             </layout>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_10">
-             <item>
-              <widget class="QRadioButton" name="automatic_peak_search_rb">
-               <property name="text">
-                <string>automatic search</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QRadioButton" name="select_peak_rb">
-               <property name="text">
-                <string>select peak</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
+            <widget class="Line" name="line">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="automatic_peak_search_rb">
+             <property name="text">
+              <string>automatic peak  search (APS)</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="select_peak_rb">
+             <property name="text">
+              <string>single peak search (SPS)</string>
+             </property>
+            </widget>
            </item>
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_9">
              <item>
               <widget class="QLabel" name="label_13">
                <property name="text">
-                <string>Searchsize:</string>
+                <string>SPS searchsize:</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -523,7 +538,27 @@
                </property>
               </widget>
              </item>
+             <item>
+              <spacer name="horizontalSpacer_4">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
             </layout>
+           </item>
+           <item>
+            <widget class="Line" name="line_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QPushButton" name="clear_peaks_btn">
@@ -552,8 +587,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>161</width>
-            <height>299</height>
+            <width>305</width>
+            <height>407</height>
            </rect>
           </property>
           <attribute name="label">
@@ -819,8 +854,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>339</width>
-            <height>438</height>
+            <width>305</width>
+            <height>407</height>
            </rect>
           </property>
           <attribute name="label">
@@ -1086,6 +1121,134 @@
             </widget>
            </item>
           </layout>
+         </widget>
+         <widget class="QWidget" name="page_2">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>305</width>
+            <height>407</height>
+           </rect>
+          </property>
+          <attribute name="label">
+           <string>Options</string>
+          </attribute>
+          <widget class="QCheckBox" name="options_automatic_refinement_cb">
+           <property name="geometry">
+            <rect>
+             <x>10</x>
+             <y>0</y>
+             <width>281</width>
+             <height>20</height>
+            </rect>
+           </property>
+           <property name="text">
+            <string>automatic refinement</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+          <widget class="QGroupBox" name="groupBox">
+           <property name="geometry">
+            <rect>
+             <x>10</x>
+             <y>30</y>
+             <width>295</width>
+             <height>163</height>
+            </rect>
+           </property>
+           <property name="title">
+            <string>Refine Options</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_5">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_17">
+              <property name="text">
+               <string>Peaksearch algorithm:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="options_peaksearch_algorithm_cb">
+              <item>
+               <property name="text">
+                <string>Massif</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Blob</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_18">
+              <property name="text">
+               <string>Delta 2Th:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="options_delta_tth_txt">
+              <property name="text">
+               <string>0.1</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_23">
+              <property name="text">
+               <string>Intensity Limit:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLineEdit" name="options_intensity_limit_txt">
+              <property name="text">
+               <string>55000</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_24">
+              <property name="text">
+               <string>Number of Rings:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QSpinBox" name="options_num_rings_sb">
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+              <property name="value">
+               <number>15</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </widget>
        </item>
