@@ -237,7 +237,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -1022,7 +1022,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="phase_delete_btn">
+            <widget class="QPushButton" name="phase_del_btn">
              <property name="text">
               <string>Delete</string>
              </property>

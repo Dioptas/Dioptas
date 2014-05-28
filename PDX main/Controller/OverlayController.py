@@ -3,6 +3,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
+from Data.HelperModule import get_base_name
 
 
 class IntegrationOverlayController(object):
@@ -53,7 +54,6 @@ class IntegrationOverlayController(object):
             self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
             self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
             self._working_dir = os.path.dirname(str(filename))
-        print self._working_dir
 
     def del_overlay(self):
         cur_ind = self.view.overlay_lw.currentRow()

@@ -30,6 +30,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
         self.overlay_scale_step_txt.setValidator(QtGui.QDoubleValidator())
         self.overlay_offset_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
 
     def set_correct_labels(self):
         self.spec_unit_tth_rb.setText(u'2θ (°)')

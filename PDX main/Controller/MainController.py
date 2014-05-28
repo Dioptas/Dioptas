@@ -12,6 +12,7 @@ from Data.ImgData import ImgData
 from Data.MaskData import MaskData
 from Data.SpectrumData import SpectrumData
 from Data.CalibrationData import CalibrationData
+from Data.PhaseData import PhaseData
 
 from Controller.CalibrationController import CalibrationController
 from Controller.IntegrationController import IntegrationController
@@ -29,6 +30,7 @@ class MainController(object):
         self.calibration_data = CalibrationData(self.img_data)
         self.mask_data = MaskData()
         self.spectrum_data = SpectrumData()
+        self.phase_data = PhaseData()
 
         #create controller
         self.calibration_controller = CalibrationController(self.view.calibration_widget,
@@ -41,7 +43,8 @@ class MainController(object):
                                                             self.img_data,
                                                             self.mask_data,
                                                             self.calibration_data,
-                                                            self.spectrum_data)
+                                                            self.spectrum_data,
+                                                            self.phase_data)
 
         self.create_signals()
         self.raise_window()
