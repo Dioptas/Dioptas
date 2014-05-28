@@ -73,11 +73,11 @@ class SpectrumData(Observable):
 class Spectrum(object):
     def __init__(self, x=None, y=None, name=''):
         if x is None:
-            self._x = np.linspace(0, 30, 100)
+            self._x = np.linspace(0, 15, 100)
         else:
             self._x = x
         if y is None:
-            self._y = np.zeros(self._x.shape)
+            self._y = np.log(self._x ** 2)
         else:
             self._y = y
         self.name = name

@@ -256,12 +256,12 @@ class MaskImgView(ImgView):
 
 from Tools import marchingsquares
 
+
 class IntegrationImgView(MaskImgView, CalibrationCakeView):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgView, self).__init__(pg_layout, orientation)
         self.deactivate_vertical_line()
         self.create_circle_scatter_item()
-        self.deactivate_circle_scatter()
         self.img_view_box.setAspectLocked(True)
 
     def create_circle_scatter_item(self):

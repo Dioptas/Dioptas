@@ -12,7 +12,6 @@ from PyQt4 import QtCore, QtGui
 class SpectrumView(object):
     def __init__(self, pg_layout):
         self.pg_layout = pg_layout
-
         self.create_graphics()
         self.create_main_plot()
         self.create_pos_line()
@@ -35,6 +34,7 @@ class SpectrumView(object):
         self.spectrum_plot.setLabel('bottom', u'2θ', u'°')
         self.img_view_box = self.spectrum_plot.vb
         self.legend = pg.LegendItem(horSpacing=20, box=False)
+        self.phases_legend = pg.LegendItem(horSpacing=20, box=False)
 
 
     def create_main_plot(self):
@@ -45,6 +45,8 @@ class SpectrumView(object):
         self.plot_name = ''
         self.legend.setParentItem(self.spectrum_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
+        self.phases_legend.setParentItem(self.spectrum_plot.vb)
+        self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
 
     def create_pos_line(self):
         self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=2))
@@ -88,6 +90,16 @@ class SpectrumView(object):
     def update_overlay(self, spectrum, ind):
         x, y = spectrum.data
         self.overlays[ind].setData(x, y)
+
+    def add_phase(self, name, positions, intensities):
+        self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name))
+
+    def update_phase(self, ind, positions, intensities, name=None):
+        self.phases[ind].update_plot(positions, intensities, name)
+
+    def del_phase(self, ind):
+        self.phases[ind].remove()
+        self.phases.remove(self.phases[ind])
 
     def plot_vertical_lines(self, positions, phase_index=0, name=None):
         if len(self.phases) <= phase_index:
@@ -227,6 +239,62 @@ class PhaseLinesPlot(object):
             if (position - self.search_range) < x < (position + self.search_range):
                 return True
         return False
+
+
+class PhasePlot(object):
+    num_phases = 0
+
+    def __init__(self, plot_item, legend_item, positions, intensities, name=None):
+        self.plot_item = plot_item
+        self.legend_item = legend_item
+        self.line_items = []
+        self.index = PhasePlot.num_phases
+        self.pen = pg.mkPen(color=calculate_color(self.index + 12), width=1.3, style=QtCore.Qt.DashLine)
+        self.ref_legend_line = pg.PlotDataItem(pen=self.pen)
+        self.name = ''
+        PhasePlot.num_phases += 1
+
+        self.update_plot(positions, intensities, name)
+
+    def update_plot(self, positions, intensities, name=None):
+        #remove old legend entries
+        if name is not None:
+            try:
+                self.legend_item.removeItem(self.ref_legend_line)
+            except IndexError:
+                pass
+
+        #remove all old lines
+        for item in self.line_items:
+            self.plot_item.removeItem(item)
+
+
+
+        #create new ones on each Position:
+        self.line_items = []
+
+        for ind, position in enumerate(positions):
+            self.line_items.append(pg.PlotDataItem(x=[position, position],
+                                                   y=[0, intensities[ind]],
+                                                   pen=self.pen))
+            self.plot_item.addItem(self.line_items[ind])
+
+        if name is not None:
+            try:
+                self.legend_item.addItem(self.ref_legend_line, name)
+                self.name = name
+            except IndexError:
+                pass
+
+    def remove(self):
+        try:
+            self.legend_item.removeItem(self.ref_legend_line)
+        except IndexError:
+            print 'this phase had now lines in the appropriate region'
+        for item in self.line_items:
+            self.plot_item.removeItem(item)
+
+
 
 
 

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Tue May 27 13:21:37 2014
+# Created: Wed May 28 15:17:08 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -429,9 +429,9 @@ class Ui_xrs_integration_widget(object):
         self.phase_edit_btn = QtGui.QPushButton(self.phase_tab)
         self.phase_edit_btn.setObjectName(_fromUtf8("phase_edit_btn"))
         self.horizontalLayout_7.addWidget(self.phase_edit_btn)
-        self.phase_delete_btn = QtGui.QPushButton(self.phase_tab)
-        self.phase_delete_btn.setObjectName(_fromUtf8("phase_delete_btn"))
-        self.horizontalLayout_7.addWidget(self.phase_delete_btn)
+        self.phase_del_btn = QtGui.QPushButton(self.phase_tab)
+        self.phase_del_btn.setObjectName(_fromUtf8("phase_del_btn"))
+        self.horizontalLayout_7.addWidget(self.phase_del_btn)
         self.phase_clear_btn = QtGui.QPushButton(self.phase_tab)
         self.phase_clear_btn.setObjectName(_fromUtf8("phase_clear_btn"))
         self.horizontalLayout_7.addWidget(self.phase_clear_btn)
@@ -535,7 +535,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_9.addWidget(self.horizontal_splitter)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
@@ -603,7 +603,7 @@ class Ui_xrs_integration_widget(object):
                                   _translate("xrs_integration_widget", "Overlay", None))
         self.phase_add_btn.setText(_translate("xrs_integration_widget", "Add", None))
         self.phase_edit_btn.setText(_translate("xrs_integration_widget", "Edit", None))
-        self.phase_delete_btn.setText(_translate("xrs_integration_widget", "Delete", None))
+        self.phase_del_btn.setText(_translate("xrs_integration_widget", "Delete", None))
         self.phase_clear_btn.setText(_translate("xrs_integration_widget", "Clear", None))
         self.label_6.setText(_translate("xrs_integration_widget", "Step", None))
         self.label.setText(_translate("xrs_integration_widget", "P:", None))
