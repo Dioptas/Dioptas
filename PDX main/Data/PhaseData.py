@@ -9,13 +9,16 @@ class PhaseData(Observable):
     def __init__(self):
         super(PhaseData, self).__init__()
         self.phases = []
+        self.reflections = []
 
     def add_phase(self, filename):
         self.phases.append(jcpds())
         self.phases[-1].read_file(filename)
+        self.reflections.append([])
 
     def del_phase(self, ind):
         self.phases.remove(self.phases[ind])
+        self.reflections.remove(self.reflections[ind])
 
     def set_pressure(self, ind, P):
         self.phases[ind].compute_d(pressure=P)
@@ -63,6 +66,10 @@ class PhaseData(Observable):
         x, y = spectrum.data
         reflections = self.get_lines_d(ind)
 
+
+        #search for reflections within spectrum range
+        reflections = reflections[np.where((reflections[:, 0] > np.min(x)) & (reflections[:, 0] < np.max(x)))]
+
         #calculate intensities
 
         reflections[:, 0] = 2 * np.arcsin(wavelength / (2 * reflections[:, 0])) * 180.0 / np.pi
@@ -70,9 +77,30 @@ class PhaseData(Observable):
             reflections[:, 0] = 4 * np.pi / wavelength * np.sin(reflections[:, 0] / 2)
 
         reflections[:, 1] = reflections[:, 1] / np.max(reflections[:, 1]) * np.max(y)
+        self.reflections[ind] = reflections
 
+        return self.reflections[ind]
+
+    def rescale_reflections(self, ind, spectrum, x_range, y_range):
+        x, y = spectrum.data
+        max_intensity = np.min([np.max(y[np.where((x > x_range[0]) & (x < x_range[1]))]), y_range[1]])
+        baseline = y_range[0] + 0.05 * (y_range[1] - y_range[0])
+        if baseline < 0:
+            baseline = 0
         #search for reflections within spectrum range
-        return reflections[np.where((reflections[:, 0] > np.min(x)) & (reflections[:, 0] < np.max(x)))]
+        intensities = self.reflections[ind][:, 1]
+        intensities_for_scaling = intensities[np.where((self.reflections[ind][:, 0] > x_range[0]) &
+                                                       (self.reflections[ind][:, 0] < x_range[1]))]
+
+        #rescale intensity
+        if len(intensities_for_scaling):
+            scale_factor = (max_intensity - baseline) / np.max(intensities_for_scaling)
+        else:
+            scale_factor = 1
+
+        intensities = scale_factor * self.reflections[ind][:, 1] + baseline
+        positions = self.reflections[ind][:, 0]
+        return positions, intensities, baseline
 
 
 def test_volume_calculation():

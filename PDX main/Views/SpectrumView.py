@@ -94,8 +94,12 @@ class SpectrumView(object):
     def add_phase(self, name, positions, intensities):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name))
 
-    def update_phase(self, ind, positions, intensities, name=None):
-        self.phases[ind].update_plot(positions, intensities, name)
+    def update_phase(self, ind, positions, intensities, name=None, baseline=0):
+        self.phases[ind].update_plot(positions, intensities, name, baseline)
+
+    def update_phase_intensities(self, ind, positions, intensities, baseline=0):
+        if len(self.phases):
+            self.phases[ind].update_intensities(positions, intensities, baseline)
 
     def del_phase(self, ind):
         self.phases[ind].remove()
@@ -256,7 +260,7 @@ class PhasePlot(object):
 
         self.update_plot(positions, intensities, name)
 
-    def update_plot(self, positions, intensities, name=None):
+    def update_plot(self, positions, intensities, name=None, baseline=0):
         #remove old legend entries
         if name is not None:
             try:
@@ -275,7 +279,7 @@ class PhasePlot(object):
 
         for ind, position in enumerate(positions):
             self.line_items.append(pg.PlotDataItem(x=[position, position],
-                                                   y=[0, intensities[ind]],
+                                                   y=[baseline, intensities[ind]],
                                                    pen=self.pen))
             self.plot_item.addItem(self.line_items[ind])
 
@@ -286,6 +290,15 @@ class PhasePlot(object):
             except IndexError:
                 pass
 
+    def update_intensities(self, positions, intensities, baseline=0):
+        for ind, intensity in enumerate(intensities):
+            try:
+                self.line_items[ind].setData(y=[baseline, intensity],
+                                             x=[positions[ind], positions[ind]])
+            except IndexError:  #needed due to a timing issue
+                print 'update intensity timing is wrong'
+                break
+
     def remove(self):
         try:
             self.legend_item.removeItem(self.ref_legend_line)
@@ -293,16 +306,3 @@ class PhasePlot(object):
             print 'this phase had now lines in the appropriate region'
         for item in self.line_items:
             self.plot_item.removeItem(item)
-
-
-
-
-
-
-
-
-
-
-
-
-
