@@ -237,7 +237,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>3</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -364,7 +364,7 @@
                  </widget>
                 </item>
                 <item row="1" column="0" colspan="2">
-                 <widget class="QCheckBox" name="autoproces_cb">
+                 <widget class="QCheckBox" name="autoprocess_cb">
                   <property name="text">
                    <string>autoprocess</string>
                   </property>

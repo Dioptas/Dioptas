@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Wed May 28 15:17:08 2014
+# Created: Thu May 29 09:51:21 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -169,9 +169,9 @@ class Ui_xrs_integration_widget(object):
         self.img_browse_by_time_rb = QtGui.QRadioButton(self.groupBox)
         self.img_browse_by_time_rb.setObjectName(_fromUtf8("img_browse_by_time_rb"))
         self.gridLayout_4.addWidget(self.img_browse_by_time_rb, 0, 1, 1, 1)
-        self.autoproces_cb = QtGui.QCheckBox(self.groupBox)
-        self.autoproces_cb.setObjectName(_fromUtf8("autoproces_cb"))
-        self.gridLayout_4.addWidget(self.autoproces_cb, 1, 0, 1, 2)
+        self.autoprocess_cb = QtGui.QCheckBox(self.groupBox)
+        self.autoprocess_cb.setObjectName(_fromUtf8("autoprocess_cb"))
+        self.gridLayout_4.addWidget(self.autoprocess_cb, 1, 0, 1, 2)
         self.gridLayout_3.addWidget(self.groupBox, 0, 1, 2, 1)
         self.img_filename_lbl = QtGui.QLabel(self.image_tab)
         self.img_filename_lbl.setObjectName(_fromUtf8("img_filename_lbl"))
@@ -535,7 +535,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_9.addWidget(self.horizontal_splitter)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
@@ -554,7 +554,7 @@ class Ui_xrs_integration_widget(object):
         self.groupBox.setTitle(_translate("xrs_integration_widget", "Browse", None))
         self.img_browse_by_name_rb.setText(_translate("xrs_integration_widget", "By Name", None))
         self.img_browse_by_time_rb.setText(_translate("xrs_integration_widget", "By Time", None))
-        self.autoproces_cb.setText(_translate("xrs_integration_widget", "autoprocess", None))
+        self.autoprocess_cb.setText(_translate("xrs_integration_widget", "autoprocess", None))
         self.img_filename_lbl.setText(_translate("xrs_integration_widget", "filename", None))
         self.groupBox1.setTitle(_translate("xrs_integration_widget", "Mask", None))
         self.mask_use_cb.setText(_translate("xrs_integration_widget", "Use", None))

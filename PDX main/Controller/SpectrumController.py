@@ -18,6 +18,7 @@ class IntegrationSpectrumController(object):
         self.create_subscriptions()
         self._working_dir = ''
         self.integration_unit = '2th_deg'
+        self.first_plot = True
         self.set_status()
 
         self.create_signals()
@@ -81,6 +82,10 @@ class IntegrationSpectrumController(object):
     def plot_spectra(self):
         x, y = self.spectrum_data.spectrum.data
         self.view.spectrum_view.plot_data(x, y, self.spectrum_data.spectrum.name)
+
+        if self.first_plot:
+            self.view.spectrum_view.spectrum_plot.enableAutoRange()
+            self.first_plot = False
 
         #save the background subtracted file:
         if self.spectrum_data.bkg_ind is not -1:

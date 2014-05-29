@@ -68,8 +68,8 @@ class IntegrationController(object):
     def create_sub_controller(self):
         self.spectrum_controller = IntegrationSpectrumController(self.view, self.img_data, self.mask_data,
                                                                  self.calibration_data, self.spectrum_data)
-        self.file_controller = IntegrationImageController(self.view, self.img_data,
-                                                          self.mask_data, self.calibration_data)
+        self.image_controller = IntegrationImageController(self.view, self.img_data,
+                                                           self.mask_data, self.calibration_data)
         self.overlay_controller = IntegrationOverlayController(self.view, self.spectrum_data)
 
         self.phase_controller = IntegrationPhaseController(self.view, self.calibration_data,
@@ -79,10 +79,10 @@ class IntegrationController(object):
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     controller = IntegrationController()
-    controller.file_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
+    controller.image_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
     controller.spectrum_controller._working_dir = '../ExampleData/spectra'
     controller.mask_data.set_dimension(controller.img_data.get_img_data().shape)
     controller.overlay_controller.add_overlay('../ExampleData/spectra/Mg2SiO4_ambient_005.xy')
     controller.calibration_data.load('../ExampleData/calibration.poni')
-    controller.file_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
+    controller.image_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
     app.exec_()

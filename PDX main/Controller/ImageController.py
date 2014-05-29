@@ -79,6 +79,7 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.image_rb, self.change_view_mode)
         self.connect_click_function(self.view.cake_rb, self.change_view_mode)
+        self.create_auto_process_signal()
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -230,3 +231,28 @@ class IntegrationImageController(object):
 
     def set_iteration_mode_time(self):
         self.img_data.file_iteration_mode = 'time'
+
+    def create_auto_process_signal(self):
+        self.view.autoprocess_cb.clicked.connect(self.auto_process_cb_click)
+        self.autoprocess_timer = QtCore.QTimer(self.view)
+        self.autoprocess_timer.setInterval(50)
+        self.view.connect(self.autoprocess_timer, QtCore.SIGNAL('timeout()'), self.check_files)
+
+    def auto_process_cb_click(self):
+        print self._working_dir
+        if self.view.autoprocess_cb.isChecked():
+            self._files_before = dict([(f, None) for f in os.listdir(self._working_dir)])
+            self.autoprocess_timer.start()
+        else:
+            self.autoprocess_timer.stop()
+
+    def check_files(self):
+        self._files_now = dict([(f, None) for f in os.listdir(self._working_dir)])
+        self._files_added = [f for f in self._files_now if not f in self._files_before]
+        self._files_removed = [f for f in self._files_before if not f in self._files_now]
+        if len(self._files_added) > 0:
+            new_file_str = self._files_added[-1]
+            path = os.path.join(self._working_dir, new_file_str)
+            print path
+            self.load_file_btn_click(path)
+            self._files_before = self._files_now

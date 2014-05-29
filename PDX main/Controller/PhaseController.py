@@ -31,6 +31,8 @@ class IntegrationPhaseController(object):
 
         self.spectrum_data.subscribe(self.update_all)
 
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities)
+
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
@@ -108,7 +110,6 @@ class IntegrationPhaseController(object):
                                                                self.calibration_data.geometry.wavelength * 1e10,
                                                                self.spectrum_data.spectrum)
             self.view.spectrum_view.update_phase(cur_ind, reflections[:, 0], reflections[:, 1])
-        print val
 
     def phase_temperature_sb_changed(self, val):
         if self.view.phase_apply_to_all_cb.isChecked():
@@ -126,8 +127,6 @@ class IntegrationPhaseController(object):
                                                                self.calibration_data.geometry.wavelength * 1e10,
                                                                self.spectrum_data.spectrum)
             self.view.spectrum_view.update_phase(cur_ind, reflections[:, 0], reflections[:, 1])
-
-        print val
 
     def phase_item_changed(self):
         cur_ind = self.view.phase_lw.currentRow()
@@ -147,3 +146,19 @@ class IntegrationPhaseController(object):
                                                                self.calibration_data.geometry.wavelength * 1e10,
                                                                self.spectrum_data.spectrum)
             self.view.spectrum_view.update_phase(ind, reflections[:, 0], reflections[:, 1])
+
+
+    def update_intensities(self, sender, axis_range):
+        self.view.spectrum_view.spectrum_plot.disableAutoRange()
+        x_range = axis_range[0]
+        y_range = axis_range[1]
+        for ind in xrange(self.view.phase_lw.count()):
+            positions, intensities, baseline = self.phase_data.rescale_reflections(ind,
+                                                                                   self.spectrum_data.spectrum,
+                                                                                   x_range,
+                                                                                   y_range)
+            self.view.spectrum_view.update_phase_intensities(ind, positions, intensities, baseline)
+
+        x, y = self.spectrum_data.spectrum.data
+        if x_range[0] < np.min(x) and x_range[1] > np.max(x):
+            self.view.spectrum_view.spectrum_plot.enableAutoRange()
