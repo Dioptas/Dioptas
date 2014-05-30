@@ -59,7 +59,7 @@ class CalibrationData(object):
 
     def search_peaks_on_ring(self, peak_index, delta_tth=0.1, algorithm='Massif', min_mean_factor=1,
                              upper_limit=55000):
-        if self.is_calibrated == False:
+        if not self.is_calibrated:
             return
 
         #transform delta from degree into radians
@@ -144,7 +144,7 @@ class CalibrationData(object):
         self.integrate_2d()
 
     def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None, unit='2th_deg'):
-        if polarization_factor == None:
+        if polarization_factor is None:
             polarization_factor = self.polarization_factor
         self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut', unit=unit,
                                                        mask=mask, polarization_factor=polarization_factor,
