@@ -40,6 +40,7 @@ class IntegrationImageController(object):
         if reset_img_levels:
             self.view.img_view.auto_range()
 
+
     def plot_cake(self, reset_img_levels=None):
         if reset_img_levels is None:
             reset_img_levels = self._reset_img_levels
@@ -89,8 +90,7 @@ class IntegrationImageController(object):
                                                              directory=self._working_dir))
 
         if filename is not '':
-            print filename
-            self._working_dir = os.path.realpath(os.path.dirname(filename))
+            self._working_dir = os.path.dirname(filename)
             self.img_data.load(filename)
             self.plot_img()
 
@@ -175,7 +175,7 @@ class IntegrationImageController(object):
                 self.view.x_lbl.setText(x_pos_string)
                 self.view.y_lbl.setText(y_pos_string)
 
-                int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(y), np.floor(x)]
+                int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(x), np.floor(y)]
                 self.view.int_lbl.setText(int_string)
                 if self.calibration_data.is_calibrated:
                     x_temp = x
@@ -204,7 +204,7 @@ class IntegrationImageController(object):
             pass
 
     def img_mouse_click(self, x, y):
-        if self.view.cake_rb.isChecked():  # cake mode
+        if self.view.cake_rb.isChecked():  #cake mode
             y = np.array([y])
             tth = self.calibration_data.cake_tth[np.round(y[0])]
             if self.view.spec_unit_q_rb.isChecked():
@@ -213,7 +213,7 @@ class IntegrationImageController(object):
             else:
                 self.view.spectrum_view.set_pos_line(tth)
 
-        else:  # image mode
+        else:  #image mode
             x = np.array([x])
             y = np.array([y])
             if self.calibration_data.is_calibrated:
