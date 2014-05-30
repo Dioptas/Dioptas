@@ -7,7 +7,7 @@ import numpy as np
 from Data.HelperModule import calculate_color
 from PyQt4 import QtCore, QtGui
 
-#TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
+# TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
 
 class SpectrumView(object):
     def __init__(self, pg_layout):
@@ -108,7 +108,6 @@ class SpectrumView(object):
     def plot_vertical_lines(self, positions, phase_index=0, name=None):
         if len(self.phases) <= phase_index:
             self.phases.append(PhaseLinesPlot(self.spectrum_plot, positions))
-            self.add_left_click_observer(self.phases[phase_index].onMouseClick)
         else:
             self.phases[phase_index].set_data(positions, name)
 
@@ -205,9 +204,6 @@ class PhaseLinesPlot(object):
         self.line_items = []
         self.pen = pen
         self.name = name
-        self.label = pg.TextItem(text=name, anchor=(1, 1))
-
-        self.search_range = 0.1
 
         if positions is not None:
             self.set_data(positions, name)
@@ -224,25 +220,6 @@ class PhaseLinesPlot(object):
             self.line_items.append(pg.InfiniteLine(pen=self.pen))
             self.line_items[ind].setValue(position)
             self.plot_item.addItem(self.line_items[ind])
-
-        if name is not None:
-            self.plot_item.removeItem(self.label)
-            self.label = pg.TextItem(text=name, anchor=(1, 1), color=self.pen.color())
-            self.plot_item.addItem(self.label)
-            self.label.hide()
-
-    def onMouseClick(self, x, y):
-        if self.atLine(x):
-            self.label.setPos(x, y)
-            self.label.show()
-        else:
-            self.label.hide()
-
-    def atLine(self, x):
-        for position in self.peak_positions:
-            if (position - self.search_range) < x < (position + self.search_range):
-                return True
-        return False
 
 
 class PhasePlot(object):

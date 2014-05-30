@@ -14,7 +14,9 @@
 *.xy
 .ipynb_checkpoints/
 .idea
-Tools
+PDX main/Tools
+marchingsquares_.*
+marchingsquares.py
 # Build results
 
 [Dd]ebug/

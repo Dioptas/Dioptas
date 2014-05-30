@@ -1,4 +1,3 @@
-from StdSuites.Standard_Suite import _3c_
 # -*- coding: utf8 -*-
 __author__ = 'Clemens Prescher'
 import sys
@@ -11,7 +10,7 @@ from Data.CalibrationData import CalibrationData
 from Data.SpectrumData import SpectrumData
 from Data.PhaseData import PhaseData
 import pyqtgraph as pg
-## Switch to using white background and black foreground
+# # Switch to using white background and black foreground
 pg.setConfigOption('useOpenGL', False)
 pg.setConfigOption('leftButtonPan', False)
 pg.setConfigOption('background', 'k')
