@@ -19,7 +19,9 @@ Requirements
     * pyqtgraph (http://www.pyqtgraph.org/)
     * pyfits
     * scikit-image
-optional:
+
+<b>optional:</b>
+
     * pyopencl
     * fftw3
 
@@ -28,14 +30,15 @@ It is known to run on Windows and Mac.
 Installation
 ------------
 
-# Windows #
+#### Windows ####
 
 The easiest way to obtain almost all required packages is to install Python(x,y) and check the appropiate packages during installation. After that only pyFAI, fabio and pyqtgraph need to be installed. Please refer to the links above for their respective installation instructions.
 
-# OS X #
+#### OS X ####
 
+Python and the other required packages can be installed by using a package manager like macports. For pyFAI, fabio, and pyqtgraph please refer to their installation instructions.
 
-# Linux #
+#### Linux ####
 
 to be filled
 
