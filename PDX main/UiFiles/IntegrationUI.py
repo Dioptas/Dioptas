@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu May 29 09:51:21 2014
-#      by: PyQt4 UI code generator 4.10.4
+# Created: Fri May 30 10:15:08 2014
+# by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -122,7 +122,7 @@ class Ui_xrs_integration_widget(object):
         self.image_tab.setObjectName(_fromUtf8("image_tab"))
         self.verticalLayout = QtGui.QVBoxLayout(self.image_tab)
         self.verticalLayout.setSpacing(5)
-        self.verticalLayout.setMargin(0)
+        self.verticalLayout.setContentsMargins(5, 5, 5, 0)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.gridLayout_5 = QtGui.QGridLayout()
         self.gridLayout_5.setObjectName(_fromUtf8("gridLayout_5"))
@@ -241,7 +241,7 @@ class Ui_xrs_integration_widget(object):
         self.spectra_tab.setObjectName(_fromUtf8("spectra_tab"))
         self.verticalLayout_2 = QtGui.QVBoxLayout(self.spectra_tab)
         self.verticalLayout_2.setSpacing(5)
-        self.verticalLayout_2.setMargin(0)
+        self.verticalLayout_2.setMargin(5)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))

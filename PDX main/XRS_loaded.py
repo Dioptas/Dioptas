@@ -35,8 +35,14 @@ def test_calibration():
 
 if __name__ == "__main__":
     import numpy as np
+    import os
 
     app = QtGui.QApplication(sys.argv)
+
+    if os.name is not 'posix':
+        app.setStyle('plastique')
+        # possible values:
+        # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
     controller = MainController()
     controller.calibration_controller.load_calibration('ExampleData/LaB6_p49_001.poni')
     controller.view.tabWidget.setCurrentIndex(2)
