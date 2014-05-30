@@ -3,7 +3,6 @@
 
 # Cython specific imports
 import numpy as np
-
 cimport numpy as np
 import cython
 
@@ -22,9 +21,9 @@ INT32 = np.float32
 INT8 = np.int8
 
 # Floor operator (deal with negative numbers)
-cdef inline int floor(double a): return <int> a if a >= 0.0 else (<int> a) - 1
+cdef inline int floor(double a): return <int>a if a>=0.0 else (<int>a)-1
 
-cdef inline double fabs(double a): return a if a >= 0 else -a
+cdef inline double fabs(double a): return a if a>=0 else -a
 
 
 # todo: include functionality to group line pieces that belong to the same contour.
@@ -33,9 +32,10 @@ cdef inline double fabs(double a): return a if a >= 0 else -a
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def marching_squares(im, isovalue,
-                     cellToEdge, edgeToRelativePosX, edgeToRelativePosY):
+                        cellToEdge, edgeToRelativePosX, edgeToRelativePosY):
+
     # Create array for result
-    edges = np.zeros((im.size, 2), 'float32')
+    edges = np.zeros((im.size,2), 'float32')
 
     # Define maps as array types
     cdef np.ndarray[INT8_T, ndim=2] edgeToRelativePosX_ = edgeToRelativePosX
@@ -56,18 +56,18 @@ def marching_squares(im, isovalue,
 
     cdef double edgeCount = 0
 
-    for y in range(im.shape[0] - 1):
-        for x in range(im.shape[1] - 1):
+    for y in range(im.shape[0]-1):
+        for x in range(im.shape[1]-1):
 
             # Calculate index.
             index = 0
             if im_[y, x] > isovalue_:
                 index += 1
-            if im_[y, x + 1] > isovalue_:
+            if im_[y, x+1] > isovalue_:
                 index += 2
-            if im_[y + 1, x + 1] > isovalue_:
+            if im_[y+1, x+1] > isovalue_:
                 index += 4
-            if im_[y + 1, x] > isovalue_:
+            if im_[y+1, x] > isovalue_:
                 index += 8
 
             # Resolve ambiguity
@@ -76,7 +76,7 @@ def marching_squares(im, isovalue,
                 tmpf = 0.0
                 for dy1 in range(2):
                     for dx1 in range(2):
-                        tmpf += im_[y + dy1, x + dx1]
+                        tmpf += im_[y+dy1,x+dx1]
                 tmpf /= 4
                 # If below isovalue, swap
                 if tmpf <= isovalue_:
@@ -86,32 +86,28 @@ def marching_squares(im, isovalue,
                         index = 5
 
             # For each edge ...
-            for i in range(cellToEdge_[index, 0]):
+            for i in range(cellToEdge_[index,0]):
                 # For both ends of the edge ...
                 for j in range(2):
                     # Get edge index
-                    k = cellToEdge_[index, 1 + i * 2 + j]
+                    k = cellToEdge_[index, 1+i*2+j]
                     # Use these to look up the relative positions of the pixels to interpolate
-                    dx1, dy1 = edgeToRelativePosX_[k, 0], edgeToRelativePosY_[k, 0]
-                    dx2, dy2 = edgeToRelativePosX_[k, 1], edgeToRelativePosY_[k, 1]
+                    dx1, dy1 = edgeToRelativePosX_[k,0], edgeToRelativePosY_[k,0]
+                    dx2, dy2 = edgeToRelativePosX_[k,1], edgeToRelativePosY_[k,1]
                     # Define "strength" of each corner of the cube that we need
-                    tmpf1 = 1.0 / (0.0001 + fabs(im_[y + dy1, x + dx1] - isovalue_))
-                    tmpf2 = 1.0 / (0.0001 + fabs(im_[y + dy2, x + dx2] - isovalue_))
+                    tmpf1 = 1.0 / (0.0001 + fabs( im_[y+dy1,x+dx1] - isovalue_))
+                    tmpf2 = 1.0 / (0.0001 + fabs( im_[y+dy2,x+dx2] - isovalue_))
                     # Apply a kind of center-of-mass method
                     fx, fy, ff = 0.0, 0.0, 0.0
-                    fx += <double> dx1 * tmpf1;
-                    fy += <double> dy1 * tmpf1;
-                    ff += tmpf1
-                    fx += <double> dx2 * tmpf2;
-                    fy += <double> dy2 * tmpf2;
-                    ff += tmpf2
+                    fx += <double>dx1 * tmpf1;  fy += <double>dy1 * tmpf1;  ff += tmpf1
+                    fx += <double>dx2 * tmpf2;  fy += <double>dy2 * tmpf2;  ff += tmpf2
                     #
                     fx /= ff
                     fy /= ff
                     # Append point
-                    edges_[edgeCount, 0] = <double> x + fx
-                    edges_[edgeCount, 1] = <double> y + fy
+                    edges_[edgeCount,0] = <double>x + fx
+                    edges_[edgeCount,1] = <double>y + fy
                     edgeCount += 1
 
     # Done
-    return edges[:edgeCount, :]
+    return edges[:edgeCount,:]
