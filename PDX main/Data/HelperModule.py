@@ -35,6 +35,9 @@ class Observable(object):
 
 
 class FileNameIterator(object):
+    # TODO create an File Index and then just get the next files according to this.
+    # Otherwise searching a network is always to slow...
+
     @staticmethod
     def get_next_filename(filepath, mode='number'):
         complete_path = os.path.abspath(filepath)

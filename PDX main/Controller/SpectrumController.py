@@ -78,7 +78,6 @@ class IntegrationSpectrumController(object):
                 spectrum_name = self.img_data.filename
             self.spectrum_data.set_spectrum(tth, I, spectrum_name)
 
-
     def plot_spectra(self):
         x, y = self.spectrum_data.spectrum.data
         self.view.spectrum_view.plot_data(x, y, self.spectrum_data.spectrum.name)
@@ -87,7 +86,7 @@ class IntegrationSpectrumController(object):
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
             self.first_plot = False
 
-        #save the background subtracted file:
+        # save the background subtracted file:
         if self.spectrum_data.bkg_ind is not -1:
             if self.autocreate:
                 directory = os.path.join(self._working_dir, 'bkg_subtracted')
@@ -169,7 +168,7 @@ class IntegrationSpectrumController(object):
             x = np.arcsin(x * 1e10 * self.calibration_data.geometry.wavelength / (4 * np.pi)) * 2
             x = x / np.pi * 180
 
-        if self.view.cake_rb.isChecked():  #cake mode
+        if self.view.cake_rb.isChecked():  # cake mode
             upper_ind = np.where(self.calibration_data.cake_tth > x)
             lower_ind = np.where(self.calibration_data.cake_tth < x)
             spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
@@ -178,6 +177,6 @@ class IntegrationSpectrumController(object):
                       (x - self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
 
             self.view.img_view.vertical_line.setValue(new_pos)
-        else:  #image mode
+        else:  # image mode
             if self.calibration_data.is_calibrated:
                 self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, x / 180 * np.pi)

@@ -72,7 +72,6 @@ class IntegrationPhaseController(object):
                                                            self.spectrum_data.spectrum)
         self.view.spectrum_view.add_phase(self.phase_data.phases[-1].name, reflections[:, 0], reflections[:, 1])
 
-
     def del_phase(self):
         cur_ind = self.view.phase_lw.currentRow()
         if cur_ind >= 0:
@@ -160,5 +159,6 @@ class IntegrationPhaseController(object):
             self.view.spectrum_view.update_phase_intensities(ind, positions, intensities, baseline)
 
         x, y = self.spectrum_data.spectrum.data
-        if x_range[0] < np.min(x) and x_range[1] > np.max(x):
+        if x_range[0] < np.min(x) and x_range[1] > np.max(x) and \
+                        y_range[0] < np.min(y) and y_range[1] > np.max(y):
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
