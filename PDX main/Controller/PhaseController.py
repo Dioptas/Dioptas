@@ -166,6 +166,7 @@ class IntegrationPhaseController(object):
 
 
     def update_intensities(self, sender, axis_range):
+        print 'yeha'
         self.view.spectrum_view.spectrum_plot.disableAutoRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
@@ -180,3 +181,11 @@ class IntegrationPhaseController(object):
         if x_range[0] < np.min(x) and x_range[1] > np.max(x) and \
                         y_range[0] < np.min(y) and y_range[1] > np.max(y):
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
+
+        # make sure that this update only happens every 24 hz frequency
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.disconnect(self.update_intensities)
+        QtCore.QTimer.singleShot(150, self.connect_spectrum)
+
+    def connect_spectrum(self):
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities)
+
