@@ -1,8 +1,8 @@
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# Py2DeX - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -35,7 +35,6 @@ class IntegrationOverlayController(object):
     def create_signals(self):
         self.connect_click_function(self.view.overlay_add_btn, self.add_overlay)
         self.connect_click_function(self.view.overlay_del_btn, self.del_overlay)
-        self.connect_click_function(self.view.set_as_overlay_btn, self.set_as_overlay)
         self.view.overlay_clear_btn.clicked.connect(self.clear_overlays)
         self.view.overlay_lw.currentItemChanged.connect(self.overlay_item_changed)
         self.view.overlay_scale_step_txt.editingFinished.connect(self.update_overlay_scale_step)
@@ -45,6 +44,14 @@ class IntegrationOverlayController(object):
 
         self.view.overlay_set_as_bkg_btn.clicked.connect(self.overlay_set_as_bkg_btn_clicked)
         self.view.overlay_show_cb.clicked.connect(self.overlay_show_cb_changed)
+
+        # creating the quickactions signals
+
+        self.connect_click_function(self.view.qa_image_set_as_overlay_btn, self.set_as_overlay)
+        self.connect_click_function(self.view.qa_spectrum_set_as_overlay_btn, self.set_as_overlay)
+
+        self.connect_click_function(self.view.qa_image_set_as_background_btn, self.qa_set_as_background_btn_click)
+        self.connect_click_function(self.view.qa_spectrum_set_as_background_btn, self.qa_set_as_background_btn_click)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -87,9 +94,9 @@ class IntegrationOverlayController(object):
                 self.spectrum_data.bkg_ind = -1
                 self.spectrum_data.notify()
 
-    def set_as_overlay(self):
+    def set_as_overlay(self, show=True):
         self.spectrum_data.set_current_spectrum_as_overlay()
-        self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+        self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1], show)
         self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(self.spectrum_data.overlays[-1].name)))
         self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
 
@@ -152,6 +159,11 @@ class IntegrationOverlayController(object):
                 self.view.spectrum_view.hide_overlay(cur_ind)
                 self.view.overlay_show_cb.setChecked(False)
             self.spectrum_data.notify()
+
+    def qa_set_as_background_btn_click(self):
+        self.set_as_overlay(False)
+        self.view.overlay_set_as_bkg_btn.setChecked(True)
+        self.overlay_set_as_bkg_btn_clicked()
 
     def overlay_show_cb_changed(self):
         cur_ind = self.view.overlay_lw.currentRow()

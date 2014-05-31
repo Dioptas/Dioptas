@@ -81,4 +81,6 @@ class MainController(object):
         elif ind == 1:
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
+        elif ind == 0:
+            self.calibration_controller.update_calibration_parameter()
 

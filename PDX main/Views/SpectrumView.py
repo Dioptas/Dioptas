@@ -77,14 +77,15 @@ class SpectrumView(object):
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
 
-    def add_overlay(self, spectrum):
+    def add_overlay(self, spectrum, show=True):
         x, y = spectrum.data
         color = calculate_color(len(self.overlays) + 1)
         self.overlays.append(pg.PlotDataItem(x, y, pen=pg.mkPen(color=color, width=1.5)))
         self.overlay_names.append(spectrum.name)
         self.overlay_show.append(True)
-        self.spectrum_plot.addItem(self.overlays[-1])
-        self.legend.addItem(self.overlays[-1], spectrum.name)
+        if show:
+            self.spectrum_plot.addItem(self.overlays[-1])
+            self.legend.addItem(self.overlays[-1], spectrum.name)
 
     def del_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
