@@ -94,6 +94,8 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.image_rb, self.change_view_mode)
         self.connect_click_function(self.view.cake_rb, self.change_view_mode)
+
+        self.connect_click_function(self.view.image_load_calibration_btn, self.load_calibration)
         self.create_auto_process_signal()
 
     def connect_click_function(self, emitter, function):
@@ -134,7 +136,6 @@ class IntegrationImageController(object):
                 self.view.cake_rb.setChecked(True)
                 QtGui.QApplication.processEvents()
                 self.update_img()
-
 
     def update_img(self, reset_img_levels=False):
         self.view.img_filename_lbl.setText(os.path.basename(self.img_data.filename))
@@ -180,7 +181,6 @@ class IntegrationImageController(object):
     def _update_image_scatter_pos(self):
         cur_tth = self.view.spectrum_view.pos_line.getPos()[0]
         self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, cur_tth / 180 * np.pi)
-
 
     def show_img_mouse_position(self, x, y):
         try:
@@ -247,6 +247,15 @@ class IntegrationImageController(object):
     def set_iteration_mode_time(self):
         self.img_data.file_iteration_mode = 'time'
 
+    def load_calibration(self, filename=None):
+        if filename is None:
+            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load calibration...",
+                                                             directory=self._working_dir, filter='*.poni'))
+        if filename is not '':
+            self.calibration_data.load(filename)
+            self.view.calibration_lbl.setText(self.calibration_data.calibration_name)
+            self.img_data.notify()
+
     def create_auto_process_signal(self):
         self.view.autoprocess_cb.clicked.connect(self.auto_process_cb_click)
         self.autoprocess_timer = QtCore.QTimer(self.view)
@@ -280,3 +289,5 @@ class IntegrationImageController(object):
                 if read_file:
                     self.load_file_btn_click(path)
                 self._files_before = self._files_now
+
+
