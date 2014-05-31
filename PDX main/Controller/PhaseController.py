@@ -25,12 +25,12 @@ from Data.HelperModule import get_base_name
 
 
 class IntegrationPhaseController(object):
-    def __init__(self, view, calibration_data, spectrum_data, phase_data):
+    def __init__(self, working_dir, view, calibration_data, spectrum_data, phase_data):
+        self.working_dir = working_dir
         self.view = view
         self.calibration_data = calibration_data
         self.spectrum_data = spectrum_data
         self.phase_data = phase_data
-        self._working_dir = ''
         self.phase_lw_items = []
         self.create_signals()
 
@@ -55,26 +55,20 @@ class IntegrationPhaseController(object):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def add_phase(self, filename=None):
-        dialog = QtGui.QFileDialog()
-        dialog.setFileMode(QtGui.QFileDialog.ExistingFiles)
-        dialog.setWindowTitle("Load Phase(s).")
-        dialog.setDirectory(self._working_dir)
         if filename is None:
-            if (dialog.exec_()):
-                filenames = dialog.selectedFiles()
+            filenames = QtGui.QFileDialog.getOpenFileNames(self.view, "Load Phase(s).", self.working_dir['phase'])
+            if len(filenames):
+                self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
                 for filename in filenames:
                     filename = str(filename)
                     self.phase_data.add_phase(filename)
                     self.phase_lw_items.append(self.view.phase_lw.addItem(get_base_name(filename)))
-
                     if self.view.phase_apply_to_all_cb.isChecked():
                         self.phase_data.phases[-1].compute_d(pressure=np.float(self.view.phase_pressure_sb.value()),
                                                              temperature=np.float(
                                                                  self.view.phase_temperature_sb.value()))
                     self.view.phase_lw.setCurrentRow(len(self.phase_data.phases) - 1)
                     self.add_phase_plot()
-                self._working_dir = os.path.dirname(str(filenames[0]))
-
         else:
             self.phase_data.add_phase(filename)
             self.phase_lw_items.append(self.view.phase_lw.addItem(get_base_name(filename)))
@@ -83,7 +77,7 @@ class IntegrationPhaseController(object):
                                                      temperature=np.float(self.view.phase_temperature_sb.value()))
             self.view.phase_lw.setCurrentRow(len(self.phase_data.phases) - 1)
             self.add_phase_plot()
-            self._working_dir = os.path.dirname(str(filename))
+            self.working_dir['phase'] = os.path.dirname(str(filename))
 
     def add_phase_plot(self):
         reflections = self.phase_data.get_reflections_data(-1, self.calibration_data.geometry.wavelength * 1e10,

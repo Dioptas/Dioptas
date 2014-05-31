@@ -12,6 +12,7 @@
 *.pyc
 *.poni
 *.xy
+*.csv
 .ipynb_checkpoints/
 .idea
 PDX main/Tools

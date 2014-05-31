@@ -37,7 +37,8 @@ import numpy as np
 
 
 class MaskController(object):
-    def __init__(self, view=None, imgData=None, maskData=None):
+    def __init__(self, working_dir, view=None, imgData=None, maskData=None):
+        self.working_dir = working_dir
         if view == None:
             self.view = MaskView()
         else:
@@ -57,7 +58,6 @@ class MaskController(object):
 
         self.state = None
         self.clicks = 0
-        self._working_dir = ''
         self.create_signals()
 
         self.rect = None
@@ -269,19 +269,19 @@ class MaskController(object):
     def save_mask_btn_click(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, caption="Save mask data",
-                                                             directory=self._working_dir, filter='*.mask'))
+                                                             directory=self.working_dir['mask'], filter='*.mask'))
 
         if filename is not '':
-            self._working_dir = os.path.dirname(filename)
+            self.working_dir['mask'] = os.path.dirname(filename)
             np.savetxt(filename, self.mask_data.get_mask(), fmt="%d")
 
     def load_mask_btn_click(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load mask data",
-                                                             directory=self._working_dir, filter='*.mask'))
+                                                             directory=self.working_dir['mask'], filter='*.mask'))
 
         if filename is not '':
-            self._working_dir = os.path.dirname(filename)
+            self.working_dir['mask'] = os.path.dirname(filename)
             mask_data = np.loadtxt(filename)
             if self.img_data.get_img_data().shape == mask_data.shape:
                 self.mask_data.set_mask(np.loadtxt(filename))
@@ -293,10 +293,10 @@ class MaskController(object):
     def add_mask_btn_click(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Add mask data",
-                                                             directory=self._working_dir, filter='*.mask'))
+                                                             directory=self.working_dir['mask'], filter='*.mask'))
 
         if filename is not '':
-            self._working_dir = os.path.dirname(filename)
+            self.working_dir['mask'] = os.path.dirname(filename)
             mask_data = np.loadtxt(filename)
             if self.mask_data.get_mask().shape == mask_data.shape:
                 self.mask_data.add_mask(np.loadtxt(filename))

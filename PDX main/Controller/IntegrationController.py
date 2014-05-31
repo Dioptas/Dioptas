@@ -40,9 +40,9 @@ from Controller.PhaseController import IntegrationPhaseController
 
 
 class IntegrationController(object):
-    def __init__(self, view=None, img_data=None, mask_data=None, calibration_data=None, spectrum_data=None,
+    def __init__(self, working_dir, view=None, img_data=None, mask_data=None, calibration_data=None, spectrum_data=None,
                  phase_data=None):
-
+        self.working_dir = working_dir
         if view == None:
             self.view = IntegrationView()
         else:
@@ -81,13 +81,14 @@ class IntegrationController(object):
 
 
     def create_sub_controller(self):
-        self.spectrum_controller = IntegrationSpectrumController(self.view, self.img_data, self.mask_data,
+        self.spectrum_controller = IntegrationSpectrumController(self.working_dir, self.view, self.img_data,
+                                                                 self.mask_data,
                                                                  self.calibration_data, self.spectrum_data)
-        self.image_controller = IntegrationImageController(self.view, self.img_data,
+        self.image_controller = IntegrationImageController(self.working_dir, self.view, self.img_data,
                                                            self.mask_data, self.calibration_data)
-        self.overlay_controller = IntegrationOverlayController(self.view, self.spectrum_data)
+        self.overlay_controller = IntegrationOverlayController(self.working_dir, self.view, self.spectrum_data)
 
-        self.phase_controller = IntegrationPhaseController(self.view, self.calibration_data,
+        self.phase_controller = IntegrationPhaseController(self.working_dir, self.view, self.calibration_data,
                                                            self.spectrum_data, self.phase_data)
 
 
