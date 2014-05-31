@@ -1,6 +1,6 @@
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# Py2DeX - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ class IntegrationPhaseController(object):
 
         self.spectrum_data.subscribe(self.update_all)
 
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities)
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities_slot)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -96,7 +96,7 @@ class IntegrationPhaseController(object):
             self.view.phase_lw.takeItem(cur_ind)
             self.phase_data.del_phase(cur_ind)
             self.view.spectrum_view.del_phase(cur_ind)
-            if cur_ind > 1:
+            if cur_ind == self.view.phase_lw.count():
                 self.view.phase_lw.setCurrentRow(cur_ind - 1)
 
     def clear_phases(self):
@@ -164,10 +164,25 @@ class IntegrationPhaseController(object):
                                                                self.spectrum_data.spectrum)
             self.view.spectrum_view.update_phase(ind, reflections[:, 0], reflections[:, 1])
 
-
-    def update_intensities(self, sender, axis_range):
-        print 'yeha'
+    def update_intensities_slot(self, sender, axis_range):
         self.view.spectrum_view.spectrum_plot.disableAutoRange()
+        self.update_intensities(axis_range)
+
+        x_range = axis_range[0]
+        y_range = axis_range[1]
+        x, y = self.spectrum_data.spectrum.data
+        if x_range[0] < np.min(x) and x_range[1] > np.max(x) and \
+                        y_range[0] < np.min(y) and y_range[1] > np.max(y):
+            self.view.spectrum_view.spectrum_plot.enableAutoRange()
+
+        # make sure that this update only happens every 24 hz frequency
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.disconnect(self.update_intensities_slot)
+        QtCore.QTimer.singleShot(30.1, self.connect_spectrum)
+        QtCore.QTimer.singleShot(30, self.update_intensities)
+
+    def update_intensities(self, axis_range=None):
+        if axis_range is None:
+            axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
         for ind in xrange(self.view.phase_lw.count()):
@@ -177,15 +192,7 @@ class IntegrationPhaseController(object):
                                                                                    y_range)
             self.view.spectrum_view.update_phase_intensities(ind, positions, intensities, baseline)
 
-        x, y = self.spectrum_data.spectrum.data
-        if x_range[0] < np.min(x) and x_range[1] > np.max(x) and \
-                        y_range[0] < np.min(y) and y_range[1] > np.max(y):
-            self.view.spectrum_view.spectrum_plot.enableAutoRange()
-
-        # make sure that this update only happens every 24 hz frequency
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.disconnect(self.update_intensities)
-        QtCore.QTimer.singleShot(150, self.connect_spectrum)
 
     def connect_spectrum(self):
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities)
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities_slot)
 

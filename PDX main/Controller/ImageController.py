@@ -190,7 +190,7 @@ class IntegrationImageController(object):
                 self.view.x_lbl.setText(x_pos_string)
                 self.view.y_lbl.setText(y_pos_string)
 
-                int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(x), np.floor(y)]
+                int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(y), np.floor(x)]
                 self.view.int_lbl.setText(int_string)
                 if self.calibration_data.is_calibrated:
                     x_temp = x

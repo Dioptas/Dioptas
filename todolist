@@ -1,0 +1,2 @@
+# TODO Phases should change their unit accordingly (now only supporting tth)
+# TODO Phase lines should be updated when loading new spectrum (right now they are deleted and recreated
