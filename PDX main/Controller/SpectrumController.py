@@ -24,7 +24,8 @@ import numpy as np
 
 
 class IntegrationSpectrumController(object):
-    def __init__(self, view, img_data, mask_data, calibration_data, spectrum_data):
+    def __init__(self, working_dir, view, img_data, mask_data, calibration_data, spectrum_data):
+        self.working_dir = working_dir
         self.view = view
         self.img_data = img_data
         self.mask_data = mask_data
@@ -32,7 +33,6 @@ class IntegrationSpectrumController(object):
         self.spectrum_data = spectrum_data
 
         self.create_subscriptions()
-        self._working_dir = ''
         self.integration_unit = '2th_deg'
         self.first_plot = True
         self.set_status()
@@ -69,7 +69,7 @@ class IntegrationSpectrumController(object):
             if self.autocreate:
                 filename = self.img_data.filename
                 if filename is not '':
-                    filename = os.path.join(self._working_dir,
+                    filename = os.path.join(self.working_dir['spectrum'],
                                             os.path.basename(self.img_data.filename).split('.')[:-1][0] + '.xy')
 
                 self.view.spec_next_btn.setEnabled(True)
@@ -105,7 +105,7 @@ class IntegrationSpectrumController(object):
         # save the background subtracted file:
         if self.spectrum_data.bkg_ind is not -1:
             if self.autocreate:
-                directory = os.path.join(self._working_dir, 'bkg_subtracted')
+                directory = os.path.join(self.working_dir['spectrum'], 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
                 header = self.calibration_data.geometry.makeHeaders()
@@ -114,13 +114,12 @@ class IntegrationSpectrumController(object):
                 filename = os.path.join(directory, self.spectrum_data.spectrum.name + '_bkg_subtracted.xy')
                 np.savetxt(filename, data, header=header)
 
-
     def load(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load Spectrum",
-                                                             directory=self._working_dir))
+                                                             directory=self.working_dir['spectrum']))
         if filename is not '':
-            self._working_dir = os.path.dirname(filename)
+            self.working_dir['spectrum'] = os.path.dirname(filename)
             self.view.spec_filename_lbl.setText(os.path.basename(filename))
             self.spectrum_data.load_spectrum(filename)
             self.view.spec_next_btn.setEnabled(True)
@@ -138,20 +137,18 @@ class IntegrationSpectrumController(object):
         self.autocreate = self.view.spec_autocreate_cb.isChecked()
 
     def spec_directory_btn_click(self):
-        directory_dialog = QtGui.QFileDialog()
-        directory_dialog.setDirectory(self._working_dir)
-        directory_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
-        directory_dialog.setWindowTitle("Please choose the default directory for autosaved spectra.")
-        if (directory_dialog.exec_()):
-            folder = str(directory_dialog.selectedFiles()[0])
-            self._working_dir = folder
-            self.view.spec_directory_txt.setText(folder)
+        directory = QtGui.QFileDialog.getExistingDirectory(self.view,
+                                                           "Please choose the default directory for autosaved spectra.",
+                                                           self.working_dir['spectrum'])
+        if directory is not '':
+            self.working_dir['spectrum'] = str(directory)
+            self.view.spec_directory_txt.setText(directory)
 
     def spec_directory_txt_changed(self):
         if os.path.exists(self.view.spec_directory_txt.text()):
-            self._working_dir = self.view.spec_directory_txt.text()
+            self.working_dir['spectrum'] = self.view.spec_directory_txt.text()
         else:
-            self.view.spec_directory_txt.setText(self._working_dir)
+            self.view.spec_directory_txt.setText(self.working_dir['spectrum'])
 
     def set_iteration_mode_number(self):
         self.spectrum_data.file_iteration_mode = 'number'

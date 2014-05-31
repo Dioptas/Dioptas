@@ -1,4 +1,4 @@
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -32,7 +32,8 @@ import numpy as np
 
 
 class CalibrationController(object):
-    def __init__(self, view=None, img_data=None, calibration_data=None):
+    def __init__(self, working_dir, view=None, img_data=None, calibration_data=None):
+        self.working_dir = working_dir
         if view == None:
             self.view = CalibrationView()
         else:
@@ -50,7 +51,6 @@ class CalibrationController(object):
 
         self.data.subscribe(self.plot_image)
         self.calibration_data.set_start_values(self.view.get_start_values())
-        self._exp_working_dir = os.getcwd()
         self._first_plot = True
         self.create_signals()
         self.load_calibrants_list()
@@ -130,12 +130,10 @@ class CalibrationController(object):
     def load_file(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load Calibration Image",
-                                                             directory=self._exp_working_dir))
+                                                             directory=self.working_dir['image']))
 
         if filename is not '':
-            self._exp_working_dir = '/'.join(str(filename).replace('\\', '/').split('/')[0:-1]) + '/'
-            self._files_before = dict(
-                [(f, None) for f in os.listdir(self._exp_working_dir)])  #reset for the autoprocessing
+            self.working_dir['image'] = os.path.dirname(filename)
             self.data.load(filename)
 
     def load_calibrants_list(self):
@@ -269,8 +267,10 @@ class CalibrationController(object):
     def load_calibration(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load calibration...",
-                                                             directory=self._exp_working_dir, filter='*.poni'))
+                                                             directory=self.working_dir['calibration'],
+                                                             filter='*.poni'))
         if filename is not '':
+            self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.load(filename)
             self.update_all()
 
@@ -300,9 +300,9 @@ class CalibrationController(object):
     def save_calibration(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save calibration...",
-                                                             self._exp_working_dir, '*.poni'
-            ))
+                                                             self.working_dir['calibration'], '*.poni'))
         if filename is not '':
+            self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.geometry.save(filename)
 
 

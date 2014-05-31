@@ -25,10 +25,10 @@ from Data.HelperModule import get_base_name
 
 
 class IntegrationOverlayController(object):
-    def __init__(self, view, spectrum_data):
+    def __init__(self, working_dir, view, spectrum_data):
+        self.working_dir = working_dir
         self.view = view
         self.spectrum_data = spectrum_data
-        self._working_dir = ''
         self.overlay_lw_items = []
         self.create_signals()
 
@@ -57,28 +57,23 @@ class IntegrationOverlayController(object):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def add_overlay(self, filename=None):
-        dialog = QtGui.QFileDialog()
-        dialog.setFileMode(QtGui.QFileDialog.ExistingFiles)
-        dialog.setWindowTitle("Load Overlay(s).")
-        dialog.setDirectory(self._working_dir)
-
         if filename is None:
-            if (dialog.exec_()):
-                filenames = dialog.selectedFiles()
+            filenames = QtGui.QFileDialog.getOpenFileNames(self.view, "Load Overlay(s).", self.working_dir['overlay'])
+            if len(filenames):
                 for filename in filenames:
                     filename = str(filename)
                     self.spectrum_data.add_overlay_file(filename)
                     self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
                     self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
                     self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
-                self._working_dir = os.path.dirname(str(filenames[0]))
+                self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
 
         else:
             self.spectrum_data.add_overlay_file(filename)
             self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
             self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
             self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
-            self._working_dir = os.path.dirname(str(filename))
+            self.working_dir['overlay'] = os.path.dirname(str(filename))
 
     def del_overlay(self):
         cur_ind = self.view.overlay_lw.currentRow()

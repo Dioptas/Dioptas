@@ -19,6 +19,7 @@ import sys
 import os
 
 import pyqtgraph as pg
+import csv
 
 from PyQt4 import QtGui, QtCore
 from Views.MainView import MainView
@@ -47,14 +48,18 @@ class MainController(object):
         self.spectrum_data = SpectrumData()
         self.phase_data = PhaseData()
 
+        self.load_directories()
         #create controller
-        self.calibration_controller = CalibrationController(self.view.calibration_widget,
+        self.calibration_controller = CalibrationController(self.working_dir,
+                                                            self.view.calibration_widget,
                                                             self.img_data,
                                                             self.calibration_data)
-        self.mask_controller = MaskController(self.view.mask_widget,
+        self.mask_controller = MaskController(self.working_dir,
+                                              self.view.mask_widget,
                                               self.img_data,
                                               self.mask_data)
-        self.integration_controller = IntegrationController(self.view.integration_widget,
+        self.integration_controller = IntegrationController(self.working_dir,
+                                                            self.view.integration_widget,
                                                             self.img_data,
                                                             self.mask_data,
                                                             self.calibration_data,
@@ -72,6 +77,7 @@ class MainController(object):
 
     def create_signals(self):
         self.view.tabWidget.currentChanged.connect(self.tab_changed)
+        self.view.closeEvent = self.close_event
 
     def tab_changed(self, ind):
         if ind == 2:
@@ -83,4 +89,21 @@ class MainController(object):
             self.mask_controller.plot_image()
         elif ind == 0:
             self.calibration_controller.update_calibration_parameter()
+
+    def load_directories(self):
+        if os.path.exists('working_directories.csv'):
+            reader = csv.reader(open('working_directories.csv', 'rb'))
+            self.working_dir = dict(x for x in reader)
+        else:
+            self.working_dir = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
+                                'phase': ''}
+
+    def save_directories(self):
+        writer = csv.writer(open('working_directories.csv', 'wb'))
+        for key, value in self.working_dir.items():
+            writer.writerow([key, value])
+
+    def close_event(self, _):
+        self.save_directories()
+
 

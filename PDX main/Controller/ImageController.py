@@ -22,12 +22,12 @@ import numpy as np
 
 
 class IntegrationImageController(object):
-    def __init__(self, view, img_data, mask_data, calibration_data):
+    def __init__(self, working_dir, view, img_data, mask_data, calibration_data):
+        self.working_dir = working_dir
         self.view = view
         self.img_data = img_data
         self.mask_data = mask_data
         self.calibration_data = calibration_data
-        self._working_dir = ''
         self._reset_img_levels = False
         self._first_plot = True
 
@@ -54,7 +54,6 @@ class IntegrationImageController(object):
         self.view.img_view.plot_image(self.img_data.get_img_data(), reset_img_levels)
         if reset_img_levels:
             self.view.img_view.auto_range()
-
 
     def plot_cake(self, reset_img_levels=None):
         if reset_img_levels is None:
@@ -103,11 +102,11 @@ class IntegrationImageController(object):
 
     def load_file_btn_click(self, filename=None):
         if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load image data",
-                                                             directory=self._working_dir))
+            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, "Load image data",
+                                                             self.working_dir['image']))
 
         if filename is not '':
-            self._working_dir = os.path.dirname(filename)
+            self.working_dir['image'] = os.path.dirname(filename)
             self.img_data.load(filename)
             self.plot_img()
 
@@ -128,7 +127,7 @@ class IntegrationImageController(object):
                 self.view.image_rb.setChecked(True)
                 QtGui.QApplication.processEvents()
 
-            while self.img_data.load_next() == True:
+            while self.img_data.load_next():
                 print 'integrated ' + self.img_data.filename
             print 'finished!'
 
@@ -250,8 +249,10 @@ class IntegrationImageController(object):
     def load_calibration(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load calibration...",
-                                                             directory=self._working_dir, filter='*.poni'))
+                                                             directory=self.working_dir['calibration'],
+                                                             filter='*.poni'))
         if filename is not '':
+            self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.load(filename)
             self.view.calibration_lbl.setText(self.calibration_data.calibration_name)
             self.img_data.notify()
@@ -263,20 +264,19 @@ class IntegrationImageController(object):
         self.view.connect(self.autoprocess_timer, QtCore.SIGNAL('timeout()'), self.check_files)
 
     def auto_process_cb_click(self):
-        print self._working_dir
         if self.view.autoprocess_cb.isChecked():
-            self._files_before = dict([(f, None) for f in os.listdir(self._working_dir)])
+            self._files_before = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
             self.autoprocess_timer.start()
         else:
             self.autoprocess_timer.stop()
 
     def check_files(self):
-        self._files_now = dict([(f, None) for f in os.listdir(self._working_dir)])
+        self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
         self._files_added = [f for f in self._files_now if not f in self._files_before]
         self._files_removed = [f for f in self._files_before if not f in self._files_now]
         if len(self._files_added) > 0:
             new_file_str = self._files_added[-1]
-            path = os.path.join(self._working_dir, new_file_str)
+            path = os.path.join(self.working_dir['image'], new_file_str)
             acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml', '.cbf', '.kccd',
                                        '.msk', '.spr', '.tif', '.mccd', '.mar3450', '.pnm']
             read_file = False
