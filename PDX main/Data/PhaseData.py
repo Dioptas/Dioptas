@@ -36,20 +36,21 @@ class PhaseData(Observable):
 
     def del_phase(self, ind):
         self.phases.remove(self.phases[ind])
-        print self.reflections[ind]
         self.reflections.remove(self.reflections[ind])
 
     def set_pressure(self, ind, P):
         self.phases[ind].compute_d(pressure=P)
+        self.get_lines_d(ind)
 
     def set_temperature(self, ind, T):
         self.phases[ind].compute_d(temperature=T)
+        self.get_lines_d(ind)
 
     def set_pressure_all(self, P):
         for phase in self.phases:
             phase.compute_d(pressure=P)
 
-    def get_lines_d(self, ind, max_intensity=None):
+    def get_lines_d(self, ind):
         reflections = self.phases[ind].get_reflections()
         res = np.zeros((len(reflections), 5))
         for i, reflection in enumerate(reflections):
@@ -58,49 +59,24 @@ class PhaseData(Observable):
             res[i, 2] = reflection.h
             res[i, 3] = reflection.k
             res[i, 4] = reflection.l
+        self.reflections[ind] = res
         return res
 
     def set_temperature_all(self, T):
         for phase in self.phases:
             phase.compute_d(temperature=T)
 
-    def get_reflections_data(self, ind, wavelength, spectrum, unit='tth'):
-        """
-        transforms the reflections data to fit to wavelength and spectrum data limits. It normalizes the Intensities
-        to the maximum of the spectrum and only returns reflection lines within the x range of the spectrum
-        Inputs:
-            ind         -   ind of the phase
-            wavelength  -   wavelength in nanometer
-            spectrum    -   spectrum class to which the reflections should be adjusted
-            unit        -   either 'tth' or 'Q' for obtaining positions in either unit
+    def update_all_phases(self):
+        for ind in range(len(self.phases)):
+            self.get_lines_d(ind)
 
-        output:
-            (n,5) array -   whereby the n is the number of reflections found
-                columns:
-                    1       -   position in specified unit
-                    2       -   intensity
-                    3,4,5   -   h,k,l
-        """
-        #get data
-        x, y = spectrum.data
-        reflections = self.get_lines_d(ind)
+    def rescale_reflections(self, ind, spectrum, x_range, y_range, wavelength, unit='tth'):
+        positions = self.reflections[ind][:, 0]
+        if unit is 'q' or unit is 'tth':
+            positions = 2 * np.arcsin(wavelength / (2 * positions)) * 180.0 / np.pi
+            if unit == 'Q':
+                positions = 4 * np.pi / wavelength * np.sin(positions / 2)
 
-
-        #search for reflections within spectrum range
-        reflections = reflections[np.where((reflections[:, 0] > np.min(x)) & (reflections[:, 0] < np.max(x)))]
-
-        #calculate intensities
-
-        reflections[:, 0] = 2 * np.arcsin(wavelength / (2 * reflections[:, 0])) * 180.0 / np.pi
-        if unit == 'Q':
-            reflections[:, 0] = 4 * np.pi / wavelength * np.sin(reflections[:, 0] / 2)
-
-        reflections[:, 1] = reflections[:, 1] / np.max(reflections[:, 1]) * np.max(y)
-        self.reflections[ind] = reflections
-
-        return self.reflections[ind]
-
-    def rescale_reflections(self, ind, spectrum, x_range, y_range):
         x, y = spectrum.data
         max_intensity = np.min([np.max(y[np.where((x > x_range[0]) & (x < x_range[1]))]), y_range[1]])
         baseline = y_range[0] + 0.05 * (y_range[1] - y_range[0])
@@ -108,9 +84,8 @@ class PhaseData(Observable):
             baseline = 0
         #search for reflections within spectrum range
         intensities = self.reflections[ind][:, 1]
-        intensities_for_scaling = intensities[np.where((self.reflections[ind][:, 0] > x_range[0]) &
-                                                       (self.reflections[ind][:, 0] < x_range[1]))]
-
+        intensities_for_scaling = intensities[np.where((positions > x_range[0]) &
+                                                       (positions < x_range[1]))]
         #rescale intensity
         if len(intensities_for_scaling):
             scale_factor = (max_intensity - baseline) / np.max(intensities_for_scaling)
@@ -118,7 +93,7 @@ class PhaseData(Observable):
             scale_factor = 1
 
         intensities = scale_factor * self.reflections[ind][:, 1] + baseline
-        positions = self.reflections[ind][:, 0]
+
         return positions, intensities, baseline
 
 

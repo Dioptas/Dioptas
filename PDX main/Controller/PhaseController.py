@@ -67,6 +67,7 @@ class IntegrationPhaseController(object):
                         self.phase_data.phases[-1].compute_d(pressure=np.float(self.view.phase_pressure_sb.value()),
                                                              temperature=np.float(
                                                                  self.view.phase_temperature_sb.value()))
+                    self.phase_data.get_lines_d(-1)
                     self.view.phase_lw.setCurrentRow(len(self.phase_data.phases) - 1)
                     self.add_phase_plot()
         else:
@@ -75,14 +76,24 @@ class IntegrationPhaseController(object):
             if self.view.phase_apply_to_all_cb.isChecked():
                 self.phase_data.phases[-1].compute_d(pressure=np.float(self.view.phase_pressure_sb.value()),
                                                      temperature=np.float(self.view.phase_temperature_sb.value()))
+            self.phase_data.get_lines_d(-1)
             self.view.phase_lw.setCurrentRow(len(self.phase_data.phases) - 1)
             self.add_phase_plot()
             self.working_dir['phase'] = os.path.dirname(str(filename))
 
     def add_phase_plot(self):
-        reflections = self.phase_data.get_reflections_data(-1, self.calibration_data.geometry.wavelength * 1e10,
-                                                           self.spectrum_data.spectrum)
-        self.view.spectrum_view.add_phase(self.phase_data.phases[-1].name, reflections[:, 0], reflections[:, 1])
+        axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
+        x_range = axis_range[0]
+        y_range = axis_range[1]
+        positions, intensities, baseline = self.phase_data.rescale_reflections(-1,
+                                                                               self.spectrum_data.spectrum,
+                                                                               x_range,
+                                                                               y_range,
+                                                                               self.calibration_data.geometry.wavelength * 1e10)
+        self.view.spectrum_view.add_phase(self.phase_data.phases[-1].name,
+                                          positions,
+                                          intensities,
+                                          baseline)
 
     def del_phase(self):
         cur_ind = self.view.phase_lw.currentRow()
@@ -109,35 +120,24 @@ class IntegrationPhaseController(object):
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in xrange(self.view.phase_lw.count()):
                 self.phase_data.set_pressure(ind, np.float(val))
-                reflections = self.phase_data.get_reflections_data(ind,
-                                                                   self.calibration_data.geometry.wavelength * 1e10,
-                                                                   self.spectrum_data.spectrum)
-                self.view.spectrum_view.update_phase(ind, reflections[:, 0], reflections[:, 1])
+            self.update_intensities()
 
         else:
             cur_ind = self.view.phase_lw.currentRow()
             self.phase_data.set_pressure(cur_ind, np.float(val))
-            reflections = self.phase_data.get_reflections_data(cur_ind,
-                                                               self.calibration_data.geometry.wavelength * 1e10,
-                                                               self.spectrum_data.spectrum)
-            self.view.spectrum_view.update_phase(cur_ind, reflections[:, 0], reflections[:, 1])
+            self.update_intensity(cur_ind)
+
 
     def phase_temperature_sb_changed(self, val):
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in xrange(self.view.phase_lw.count()):
                 self.phase_data.set_temperature(ind, np.float(val))
-                reflections = self.phase_data.get_reflections_data(ind,
-                                                                   self.calibration_data.geometry.wavelength * 1e10,
-                                                                   self.spectrum_data.spectrum)
-                self.view.spectrum_view.update_phase(ind, reflections[:, 0], reflections[:, 1])
+            self.update_intensities()
 
         else:
             cur_ind = self.view.phase_lw.currentRow()
             self.phase_data.set_temperature(cur_ind, np.float(val))
-            reflections = self.phase_data.get_reflections_data(cur_ind,
-                                                               self.calibration_data.geometry.wavelength * 1e10,
-                                                               self.spectrum_data.spectrum)
-            self.view.spectrum_view.update_phase(cur_ind, reflections[:, 0], reflections[:, 1])
+            self.update_intensity(cur_ind)
 
     def phase_item_changed(self):
         cur_ind = self.view.phase_lw.currentRow()
@@ -174,17 +174,22 @@ class IntegrationPhaseController(object):
         QtCore.QTimer.singleShot(30.1, self.connect_spectrum)
         QtCore.QTimer.singleShot(30, self.update_intensities)
 
-    def update_intensities(self, axis_range=None):
+
+    def update_intensity(self, ind, axis_range=None):
         if axis_range is None:
             axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
+        positions, intensities, baseline = self.phase_data.rescale_reflections(ind,
+                                                                               self.spectrum_data.spectrum,
+                                                                               x_range,
+                                                                               y_range,
+                                                                               self.calibration_data.geometry.wavelength * 1e10)
+        self.view.spectrum_view.update_phase_intensities(ind, positions, intensities, baseline)
+
+    def update_intensities(self, axis_range=None):
         for ind in xrange(self.view.phase_lw.count()):
-            positions, intensities, baseline = self.phase_data.rescale_reflections(ind,
-                                                                                   self.spectrum_data.spectrum,
-                                                                                   x_range,
-                                                                                   y_range)
-            self.view.spectrum_view.update_phase_intensities(ind, positions, intensities, baseline)
+            self.update_intensity(ind, axis_range)
 
 
     def connect_spectrum(self):

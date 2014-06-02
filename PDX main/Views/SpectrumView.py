@@ -108,11 +108,11 @@ class SpectrumView(object):
         x, y = spectrum.data
         self.overlays[ind].setData(x, y)
 
-    def add_phase(self, name, positions, intensities):
-        self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name))
+    def add_phase(self, name, positions, intensities, baseline):
+        self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
 
     def update_phase(self, ind, positions, intensities, name=None, baseline=0):
-        self.phases[ind].update_plot(positions, intensities, name, baseline)
+        self.phases[ind].create_items(positions, intensities, name, baseline)
 
     def update_phase_intensities(self, ind, positions, intensities, baseline=0):
         if len(self.phases):
@@ -242,7 +242,7 @@ class PhaseLinesPlot(object):
 class PhasePlot(object):
     num_phases = 0
 
-    def __init__(self, plot_item, legend_item, positions, intensities, name=None):
+    def __init__(self, plot_item, legend_item, positions, intensities, name=None, baseline=0):
         self.plot_item = plot_item
         self.legend_item = legend_item
         self.line_items = []
@@ -251,23 +251,9 @@ class PhasePlot(object):
         self.ref_legend_line = pg.PlotDataItem(pen=self.pen)
         self.name = ''
         PhasePlot.num_phases += 1
+        self.create_items(positions, intensities, name, baseline)
 
-        self.update_plot(positions, intensities, name)
-
-    def update_plot(self, positions, intensities, name=None, baseline=0):
-        #remove old legend entries
-        if name is not None:
-            try:
-                self.legend_item.removeItem(self.ref_legend_line)
-            except IndexError:
-                pass
-
-        #remove all old lines
-        for item in self.line_items:
-            self.plot_item.removeItem(item)
-
-
-
+    def create_items(self, positions, intensities, name=None, baseline=0):
         #create new ones on each Position:
         self.line_items = []
 
