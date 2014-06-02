@@ -47,7 +47,7 @@ class IntegrationPhaseController(object):
 
         self.view.phase_lw.currentItemChanged.connect(self.phase_item_changed)
 
-        self.spectrum_data.subscribe(self.update_all)
+        self.spectrum_data.subscribe(self.update_intensities)
 
         self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities_slot)
 
@@ -150,13 +150,6 @@ class IntegrationPhaseController(object):
         self.view.phase_temperature_sb.setValue(temperature)
         self.view.phase_pressure_sb.blockSignals(False)
         self.view.phase_temperature_sb.blockSignals(False)
-
-    def update_all(self):
-        for ind in xrange(self.view.phase_lw.count()):
-            reflections = self.phase_data.get_reflections_data(ind,
-                                                               self.calibration_data.geometry.wavelength * 1e10,
-                                                               self.spectrum_data.spectrum)
-            self.view.spectrum_view.update_phase(ind, reflections[:, 0], reflections[:, 1])
 
     def update_intensities_slot(self, sender, axis_range):
         self.view.spectrum_view.spectrum_plot.disableAutoRange()
