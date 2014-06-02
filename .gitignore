@@ -17,6 +17,7 @@
 .idea
 PDX main/Tools
 marchingsquares_.*
+marchingsquares_.c
 marchingsquares.py
 # Build results
 

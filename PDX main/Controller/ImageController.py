@@ -158,23 +158,26 @@ class IntegrationImageController(object):
         if self.view.cake_rb.isChecked() and not self.calibration_data.is_calibrated:
             self.view.image_rb.setChecked(True)
         else:
+            self.update_img()
             if self.view.cake_rb.isChecked():
                 self.view.img_view.deactivate_circle_scatter()
                 self._update_cake_line_pos()
-
             else:
                 self.view.img_view.activate_circle_scatter()
                 self._update_image_scatter_pos()
-            self.update_img()
 
     def _update_cake_line_pos(self):
         cur_tth = self.view.spectrum_view.pos_line.getPos()[0]
-        upper_ind = np.where(self.calibration_data.cake_tth > cur_tth)
-        lower_ind = np.where(self.calibration_data.cake_tth < cur_tth)
-        spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
-                  self.calibration_data.cake_tth[lower_ind[-1][-1]]
-        new_pos = lower_ind[-1][-1] + \
-                  (cur_tth - self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
+        if cur_tth < np.min(self.calibration_data.cake_tth):
+            new_pos = np.min(self.calibration_data.cake_tth)
+        else:
+            upper_ind = np.where(self.calibration_data.cake_tth > cur_tth)
+            lower_ind = np.where(self.calibration_data.cake_tth < cur_tth)
+
+            spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
+                      self.calibration_data.cake_tth[lower_ind[-1][-1]]
+            new_pos = lower_ind[-1][-1] + \
+                      (cur_tth - self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
         self.view.img_view.vertical_line.setValue(new_pos)
 
     def _update_image_scatter_pos(self):
