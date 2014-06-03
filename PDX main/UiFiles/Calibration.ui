@@ -1271,6 +1271,7 @@
  <tabstops>
   <tabstop>sv_distance_txt</tabstop>
   <tabstop>sv_wavelength_txt</tabstop>
+  <tabstop>sv_polarization_txt</tabstop>
   <tabstop>sv_pixel_width_txt</tabstop>
   <tabstop>sv_pixel_height_txt</tabstop>
   <tabstop>calibrant_cb</tabstop>
@@ -1278,23 +1279,51 @@
   <tabstop>rotate_m90_btn</tabstop>
   <tabstop>invert_horizontal_btn</tabstop>
   <tabstop>invert_vertical_btn</tabstop>
+  <tabstop>reset_transformations_btn</tabstop>
+  <tabstop>peak_num_sb</tabstop>
+  <tabstop>automatic_peak_num_inc_cb</tabstop>
+  <tabstop>automatic_peak_search_rb</tabstop>
+  <tabstop>select_peak_rb</tabstop>
+  <tabstop>search_size_sb</tabstop>
+  <tabstop>clear_peaks_btn</tabstop>
+  <tabstop>options_automatic_refinement_cb</tabstop>
+  <tabstop>options_peaksearch_algorithm_cb</tabstop>
+  <tabstop>options_delta_tth_txt</tabstop>
+  <tabstop>options_intensity_mean_factor_sb</tabstop>
+  <tabstop>options_intensity_limit_txt</tabstop>
+  <tabstop>options_num_rings_sb</tabstop>
   <tabstop>pf_distance_txt</tabstop>
   <tabstop>pf_wavelength_txt</tabstop>
-  <tabstop>pf_wavelength_cb</tabstop>
+  <tabstop>pf_polarization_txt</tabstop>
   <tabstop>pf_poni1_txt</tabstop>
   <tabstop>pf_poni2_txt</tabstop>
   <tabstop>pf_rotation1_txt</tabstop>
   <tabstop>pf_rotation2_txt</tabstop>
   <tabstop>pf_rotation3_txt</tabstop>
+  <tabstop>pf_pixel_width_txt</tabstop>
+  <tabstop>pf_pixel_height_txt</tabstop>
+  <tabstop>pf_wavelength_cb</tabstop>
+  <tabstop>pf_update_btn</tabstop>
   <tabstop>f2_distance_txt</tabstop>
   <tabstop>f2_wavelength_txt</tabstop>
-  <tabstop>f2_wavelength_cb</tabstop>
+  <tabstop>f2_polarization_txt</tabstop>
   <tabstop>f2_center_x_txt</tabstop>
   <tabstop>f2_center_y_txt</tabstop>
-  <tabstop>f2_tilt_txt</tabstop>
   <tabstop>f2_rotation_txt</tabstop>
+  <tabstop>f2_tilt_txt</tabstop>
+  <tabstop>f2_pixel_width_txt</tabstop>
+  <tabstop>f2_pixel_height_txt</tabstop>
+  <tabstop>f2_wavelength_cb</tabstop>
+  <tabstop>f2_update_btn</tabstop>
+  <tabstop>load_file_btn</tabstop>
   <tabstop>load_calibration_btn</tabstop>
   <tabstop>save_calibration_btn</tabstop>
+  <tabstop>refine_btn</tabstop>
+  <tabstop>tab_widget</tabstop>
+  <tabstop>img_pg_layout</tabstop>
+  <tabstop>cake_pg_layout</tabstop>
+  <tabstop>integrate_btn</tabstop>
+  <tabstop>spectrum_pg_layout</tabstop>
  </tabstops>
  <resources/>
  <connections>
