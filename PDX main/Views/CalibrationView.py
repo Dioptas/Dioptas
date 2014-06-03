@@ -157,7 +157,7 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
                            'tilt': float(self.f2_tilt_txt.text()),
                            'tiltPlanRotation': float(self.f2_rotation_txt.text()),
                            'wavelength': float(self.f2_wavelength_txt.text()) / 1e10,
-                           'polarization_factor': float(self.pf_polarization_txt.text()),
+                           'polarization_factor': float(self.f2_polarization_txt.text()),
                            'pixelX': float(self.f2_pixel_width_txt.text()),
                            'pixelY': float(self.f2_pixel_height_txt.text())}
         return fit2d_parameter
