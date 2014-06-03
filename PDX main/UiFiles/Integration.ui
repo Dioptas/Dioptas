@@ -237,7 +237,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -765,6 +765,13 @@
                <widget class="QLabel" name="label_9">
                 <property name="text">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Q (A&lt;span style=&quot; vertical-align:super;&quot;&gt;-1&lt;/span&gt;)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="spec_unit_d_rb">
+                <property name="text">
+                 <string>d (A)</string>
                 </property>
                </widget>
               </item>

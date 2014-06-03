@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -20,7 +20,6 @@ __author__ = 'Clemens Prescher'
 import sys
 from PyQt4 import QtGui
 from Controller.MainController import MainController
-
 
 if __name__ == "__main__":
     import os

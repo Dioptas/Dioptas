@@ -164,9 +164,18 @@ class CalibrationData(object):
     def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None, unit='2th_deg'):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
-        self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut', unit=unit,
-                                                       mask=mask, polarization_factor=polarization_factor,
-                                                       filename=filename)
+        if unit is 'd_A':
+            self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
+                                                           unit='2th_deg',
+                                                           mask=mask, polarization_factor=polarization_factor,
+                                                           filename=filename)
+            ind = np.where(self.tth > 0)
+            self.tth = self.geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
+            self.int = self.int[ind]
+        else:
+            self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut', unit=unit,
+                                                           mask=mask, polarization_factor=polarization_factor,
+                                                           filename=filename)
         return self.tth, self.int
 
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg'):

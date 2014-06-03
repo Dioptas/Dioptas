@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -22,7 +22,8 @@ import fabio
 import pyFAI
 import pyFAI.utils
 import matplotlib.pyplot as plt
-from HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
+from HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
+    FileNameIterator
 
 
 class ImgData(Observable):
@@ -46,14 +47,16 @@ class ImgData(Observable):
         self.notify()
 
     def load_next(self):
-        next_file_name = FileNameIterator.get_next_filename(self.filename, self.file_iteration_mode)
+        next_file_name = FileNameIterator.get_next_filename(
+            self.filename, self.file_iteration_mode)
         if next_file_name is not None:
             self.load(next_file_name)
             return True
         return False
 
     def load_previous_file(self):
-        previous_file_name = FileNameIterator.get_previous_filename(self.filename, self.file_iteration_mode)
+        previous_file_name = FileNameIterator.get_previous_filename(
+            self.filename, self.file_iteration_mode)
         if previous_file_name is not None:
             self.load(previous_file_name)
 
