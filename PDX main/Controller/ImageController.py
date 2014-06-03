@@ -1,6 +1,6 @@
 __author__ = 'Clemens Prescher'
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -22,7 +22,8 @@ import numpy as np
 
 
 class IntegrationImageController(object):
-    def __init__(self, working_dir, view, img_data, mask_data, calibration_data):
+    def __init__(self, working_dir, view, img_data, mask_data,
+                 calibration_data):
         self.working_dir = working_dir
         self.view = view
         self.img_data = img_data
@@ -34,7 +35,8 @@ class IntegrationImageController(object):
         self.view.show()
         self.initialize()
         self.img_data.subscribe(self.update_img)
-        self.view.img_view.add_mouse_move_observer(self.show_img_mouse_position)
+        self.view.img_view.add_mouse_move_observer(
+            self.show_img_mouse_position)
         self.view.img_view.add_left_click_observer(self.img_mouse_click)
         self.create_signals()
 
@@ -46,27 +48,31 @@ class IntegrationImageController(object):
     def plot_img(self, reset_img_levels=None):
         if reset_img_levels is None:
             reset_img_levels = self._reset_img_levels
-        if self._first_plot == True:
+        if self._first_plot is True:
             reset_img_levels = True
             if self.img_data.get_img_data().sum() > 0:
                 self._first_plot = False
 
-        self.view.img_view.plot_image(self.img_data.get_img_data(), reset_img_levels)
+        self.view.img_view.plot_image(self.img_data.get_img_data(),
+                                      reset_img_levels)
         if reset_img_levels:
             self.view.img_view.auto_range()
 
     def plot_cake(self, reset_img_levels=None):
         if reset_img_levels is None:
             reset_img_levels = self._reset_img_levels
-        self.view.img_view.plot_image(self.calibration_data.cake_img, reset_img_levels)
+        self.view.img_view.plot_image(
+            self.calibration_data.cake_img, reset_img_levels)
         if reset_img_levels:
             self.view.img_view.auto_range()
 
     def plot_mask(self):
-        if self.view.mask_use_cb.isChecked() and self.view.image_rb.isChecked():
+        if self.view.mask_use_cb.isChecked() and \
+                self.view.image_rb.isChecked():
             self.view.img_view.plot_mask(self.mask_data.get_img())
         else:
-            self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
+            self.view.img_view.plot_mask(
+                np.zeros(self.mask_data.get_img().shape))
 
     def change_mask_colormap(self):
         if self.view.mask_transparent_cb.isChecked():
@@ -76,25 +82,37 @@ class IntegrationImageController(object):
         self.plot_mask()
 
     def change_img_levels_mode(self):
-        self.view.img_view.img_histogram_LUT.percentageLevel = self.view.img_levels_percentage_rb.isChecked()
-        self.view.img_view.img_histogram_LUT.old_hist_x_range = self.view.img_view.img_histogram_LUT.hist_x_range
+        self.view.img_view.img_histogram_LUT.percentageLevel = \
+            self.view.img_levels_percentage_rb.isChecked()
+        self.view.img_view.img_histogram_LUT.old_hist_x_range = \
+            self.view.img_view.img_histogram_LUT.hist_x_range
         self.view.img_view.img_histogram_LUT.first_image = False
 
     def create_signals(self):
         self.connect_click_function(self.view.next_img_btn, self.load_next_img)
-        self.connect_click_function(self.view.prev_img_btn, self.load_previous_img)
-        self.connect_click_function(self.view.load_img_btn, self.load_file_btn_click)
-        self.connect_click_function(self.view.auto_img_btn, self.auto_img_btn_click)
-        self.connect_click_function(self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
-        self.connect_click_function(self.view.img_browse_by_time_rb, self.set_iteration_mode_time)
-        self.connect_click_function(self.view.mask_use_cb, self.mask_use_cb_changed)
-        self.connect_click_function(self.view.mask_transparent_cb, self.change_mask_colormap)
-        self.connect_click_function(self.view.img_levels_absolute_rb, self.change_img_levels_mode)
-        self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
+        self.connect_click_function(
+            self.view.prev_img_btn, self.load_previous_img)
+        self.connect_click_function(
+            self.view.load_img_btn, self.load_file_btn_click)
+        self.connect_click_function(
+            self.view.auto_img_btn, self.auto_img_btn_click)
+        self.connect_click_function(
+            self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
+        self.connect_click_function(
+            self.view.img_browse_by_time_rb, self.set_iteration_mode_time)
+        self.connect_click_function(
+            self.view.mask_use_cb, self.mask_use_cb_changed)
+        self.connect_click_function(
+            self.view.mask_transparent_cb, self.change_mask_colormap)
+        self.connect_click_function(
+            self.view.img_levels_absolute_rb, self.change_img_levels_mode)
+        self.connect_click_function(
+            self.view.img_levels_percentage_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.image_rb, self.change_view_mode)
         self.connect_click_function(self.view.cake_rb, self.change_view_mode)
 
-        self.connect_click_function(self.view.image_load_calibration_btn, self.load_calibration)
+        self.connect_click_function(
+            self.view.image_load_calibration_btn, self.load_calibration)
         self.create_auto_process_signal()
 
     def connect_click_function(self, emitter, function):
@@ -102,8 +120,9 @@ class IntegrationImageController(object):
 
     def load_file_btn_click(self, filename=None):
         if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, "Load image data",
-                                                             self.working_dir['image']))
+            filename = str(QtGui.QFileDialog.getOpenFileName(
+                self.view, "Load image data",
+                self.working_dir['image']))
 
         if filename is not '':
             self.working_dir['image'] = os.path.dirname(filename)
@@ -137,15 +156,18 @@ class IntegrationImageController(object):
                 self.update_img()
 
     def update_img(self, reset_img_levels=False):
-        self.view.img_filename_lbl.setText(os.path.basename(self.img_data.filename))
-        if self.view.cake_rb.isChecked() and self.calibration_data.is_calibrated:
+        self.view.img_filename_lbl.setText(
+            os.path.basename(self.img_data.filename))
+        if self.view.cake_rb.isChecked() and \
+                self.calibration_data.is_calibrated:
             if self.view.mask_use_cb.isChecked():
                 mask = self.mask_data.get_mask()
             else:
                 mask = None
             self.calibration_data.integrate_2d(mask)
             self.plot_cake()
-            self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
+            self.view.img_view.plot_mask(
+                np.zeros(self.mask_data.get_img().shape))
             self.view.img_view.activate_vertical_line()
             self.view.img_view.img_view_box.setAspectLocked(False)
         else:
@@ -155,7 +177,8 @@ class IntegrationImageController(object):
             self.view.img_view.img_view_box.setAspectLocked(True)
 
     def change_view_mode(self):
-        if self.view.cake_rb.isChecked() and not self.calibration_data.is_calibrated:
+        if self.view.cake_rb.isChecked() and \
+                not self.calibration_data.is_calibrated:
             self.view.image_rb.setChecked(True)
         else:
             self.update_img()
@@ -177,12 +200,14 @@ class IntegrationImageController(object):
             spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
                       self.calibration_data.cake_tth[lower_ind[-1][-1]]
             new_pos = lower_ind[-1][-1] + \
-                      (cur_tth - self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
+                      (cur_tth -
+                       self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
         self.view.img_view.vertical_line.setValue(new_pos)
 
     def _update_image_scatter_pos(self):
         cur_tth = self.view.spectrum_view.pos_line.getPos()[0]
-        self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, cur_tth / 180 * np.pi)
+        self.view.img_view.set_circle_scatter_tth(
+            self.calibration_data.geometry._ttha, cur_tth / 180 * np.pi)
 
     def show_img_mouse_position(self, x, y):
         try:
@@ -192,7 +217,8 @@ class IntegrationImageController(object):
                 self.view.x_lbl.setText(x_pos_string)
                 self.view.y_lbl.setText(y_pos_string)
 
-                int_string = 'I:   %5d' % self.view.img_view.img_data[np.floor(y), np.floor(x)]
+                int_string = 'I:   %5d' % self.view.img_view.img_data[
+                    np.floor(y), np.floor(x)]
                 self.view.int_lbl.setText(int_string)
                 if self.calibration_data.is_calibrated:
                     x_temp = x
@@ -202,16 +228,20 @@ class IntegrationImageController(object):
                         tth = self.calibration_data.cake_tth[np.round(y[0])]
                         azi = self.calibration_data.cake_azi[np.round(x[0])]
                         q_value = 4 * np.pi * np.sin(
-                            tth / 360.0 * np.pi) / self.calibration_data.geometry.wavelength / 1e10
+                            tth / 360.0 * np.pi) / \
+                                  self.calibration_data.geometry.wavelength / 1e10
 
                     else:
                         tth = self.calibration_data.geometry.tth(x, y)[0]
                         tth = tth / np.pi * 180.0
-                        q_value = self.calibration_data.geometry.qFunction(x, y) / 10.0
-                        azi = self.calibration_data.geometry.chi(x, y)[0] / np.pi * 180
+                        q_value = self.calibration_data.geometry.qFunction(
+                            x, y) / 10.0
+                        azi = self.calibration_data.geometry.chi(
+                            x, y)[0] / np.pi * 180
 
                     azi = azi + 360 if azi < 0 else azi
-                    d = self.calibration_data.geometry.wavelength / (2 * np.sin(tth / 180. * np.pi * 0.5)) * 1e10
+                    d = self.calibration_data.geometry.wavelength / \
+                        (2 * np.sin(tth / 180. * np.pi * 0.5)) * 1e10
                     tth_str = u'2θ:%9.2f  ' % tth
                     self.view.two_theta_lbl.setText(tth_str)
                     self.view.d_lbl.setText(u'd:%9.2f  ' % d)
@@ -221,27 +251,31 @@ class IntegrationImageController(object):
             pass
 
     def img_mouse_click(self, x, y):
-        if self.view.cake_rb.isChecked():  #cake mode
+        if self.view.cake_rb.isChecked():  # cake mode
             y = np.array([y])
             tth = self.calibration_data.cake_tth[np.round(y[0])]
             if self.view.spec_unit_q_rb.isChecked():
-                q = 4 * np.pi * np.sin(tth / 360.0 * np.pi) / self.calibration_data.geometry.wavelength / 1e10
+                q = 4 * np.pi * \
+                    np.sin(tth / 360.0 * np.pi) / \
+                    self.calibration_data.geometry.wavelength / 1e10
                 self.view.spectrum_view.set_pos_line(q)
             else:
                 self.view.spectrum_view.set_pos_line(tth)
 
-        else:  #image mode
+        else:  # image mode
             x = np.array([x])
             y = np.array([y])
             if self.calibration_data.is_calibrated:
                 tth = self.calibration_data.geometry.tth(x, y)[0]
-                self.view.img_view.set_circle_scatter_tth(self.calibration_data.geometry._ttha, tth)
+                self.view.img_view.set_circle_scatter_tth(
+                    self.calibration_data.geometry._ttha, tth)
                 if self.view.spec_unit_q_rb.isChecked():
-                    q = 4 * np.pi * np.sin(tth / 2) / self.calibration_data.geometry.wavelength / 1e10
+                    q = 4 * np.pi * \
+                        np.sin(tth / 2) / \
+                        self.calibration_data.geometry.wavelength / 1e10
                     self.view.spectrum_view.set_pos_line(q)
                 else:
                     self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
-
 
     def set_iteration_mode_number(self):
         self.img_data.file_iteration_mode = 'number'
@@ -251,37 +285,47 @@ class IntegrationImageController(object):
 
     def load_calibration(self, filename=None):
         if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self.view, caption="Load calibration...",
-                                                             directory=self.working_dir['calibration'],
-                                                             filter='*.poni'))
+            filename = str(QtGui.QFileDialog.getOpenFileName(
+                self.view, caption="Load calibration...",
+                directory=self.working_dir[
+                    'calibration'],
+                filter='*.poni'))
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.load(filename)
-            self.view.calibration_lbl.setText(self.calibration_data.calibration_name)
+            self.view.calibration_lbl.setText(
+                self.calibration_data.calibration_name)
             self.img_data.notify()
 
     def create_auto_process_signal(self):
         self.view.autoprocess_cb.clicked.connect(self.auto_process_cb_click)
         self.autoprocess_timer = QtCore.QTimer(self.view)
         self.autoprocess_timer.setInterval(50)
-        self.view.connect(self.autoprocess_timer, QtCore.SIGNAL('timeout()'), self.check_files)
+        self.view.connect(self.autoprocess_timer,
+                          QtCore.SIGNAL('timeout()'),
+                          self.check_files)
 
     def auto_process_cb_click(self):
         if self.view.autoprocess_cb.isChecked():
-            self._files_before = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
+            self._files_before = dict(
+                [(f, None) for f in os.listdir(self.working_dir['image'])])
             self.autoprocess_timer.start()
         else:
             self.autoprocess_timer.stop()
 
     def check_files(self):
-        self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
-        self._files_added = [f for f in self._files_now if not f in self._files_before]
-        self._files_removed = [f for f in self._files_before if not f in self._files_now]
+        self._files_now = dict(
+            [(f, None) for f in os.listdir(self.working_dir['image'])])
+        self._files_added = [
+            f for f in self._files_now if not f in self._files_before]
+        self._files_removed = [
+            f for f in self._files_before if not f in self._files_now]
         if len(self._files_added) > 0:
             new_file_str = self._files_added[-1]
             path = os.path.join(self.working_dir['image'], new_file_str)
-            acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml', '.cbf', '.kccd',
-                                       '.msk', '.spr', '.tif', '.mccd', '.mar3450', '.pnm']
+            acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                                       '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                                       '.mccd', '.mar3450', '.pnm']
             read_file = False
             for ending in acceptable_file_endings:
                 if path.endswith(ending):
@@ -292,5 +336,3 @@ class IntegrationImageController(object):
                 if read_file:
                     self.load_file_btn_click(path)
                 self._files_before = self._files_now
-
-

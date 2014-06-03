@@ -25,7 +25,8 @@ from Data.HelperModule import get_base_name
 
 
 class IntegrationPhaseController(object):
-    def __init__(self, working_dir, view, calibration_data, spectrum_data, phase_data):
+    def __init__(self, working_dir, view, calibration_data,
+                 spectrum_data, phase_data):
         self.working_dir = working_dir
         self.view = view
         self.calibration_data = calibration_data
@@ -37,45 +38,59 @@ class IntegrationPhaseController(object):
     def create_signals(self):
         self.connect_click_function(self.view.phase_add_btn, self.add_phase)
         self.connect_click_function(self.view.phase_del_btn, self.del_phase)
-        self.connect_click_function(self.view.phase_clear_btn, self.clear_phases)
+        self.connect_click_function(
+            self.view.phase_clear_btn, self.clear_phases)
 
-        self.view.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
-        self.view.phase_temperature_step_txt.editingFinished.connect(self.update_phase_pressure_step)
+        self.view.phase_pressure_step_txt.editingFinished.connect(
+            self.update_phase_pressure_step)
+        self.view.phase_temperature_step_txt.editingFinished.connect(
+            self.update_phase_pressure_step)
 
-        self.view.phase_pressure_sb.valueChanged.connect(self.phase_pressure_sb_changed)
-        self.view.phase_temperature_sb.valueChanged.connect(self.phase_temperature_sb_changed)
+        self.view.phase_pressure_sb.valueChanged.connect(
+            self.phase_pressure_sb_changed)
+        self.view.phase_temperature_sb.valueChanged.connect(
+            self.phase_temperature_sb_changed)
 
         self.view.phase_lw.currentItemChanged.connect(self.phase_item_changed)
 
         self.spectrum_data.subscribe(self.update_intensities)
 
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities_slot)
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(
+            self.update_intensities_slot)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def add_phase(self, filename=None):
         if filename is None:
-            filenames = QtGui.QFileDialog.getOpenFileNames(self.view, "Load Phase(s).", self.working_dir['phase'])
+            filenames = QtGui.QFileDialog.getOpenFileNames(
+                self.view, "Load Phase(s).", self.working_dir['phase'])
             if len(filenames):
                 self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
                 for filename in filenames:
                     filename = str(filename)
                     self.phase_data.add_phase(filename)
-                    self.phase_lw_items.append(self.view.phase_lw.addItem(get_base_name(filename)))
+                    self.phase_lw_items.append(
+                        self.view.phase_lw.addItem(get_base_name(filename)))
                     if self.view.phase_apply_to_all_cb.isChecked():
-                        self.phase_data.phases[-1].compute_d(pressure=np.float(self.view.phase_pressure_sb.value()),
-                                                             temperature=np.float(
-                                                                 self.view.phase_temperature_sb.value()))
+                        self.phase_data.phases[-1].compute_d(
+                            pressure=np.float(
+                                self.view.phase_pressure_sb.value()),
+                            temperature=np.float(
+                                self.view.phase_temperature_sb.value()))
                     self.phase_data.get_lines_d(-1)
-                    self.view.phase_lw.setCurrentRow(len(self.phase_data.phases) - 1)
+                    self.view.phase_lw.setCurrentRow(
+                        len(self.phase_data.phases) - 1)
                     self.add_phase_plot()
         else:
             self.phase_data.add_phase(filename)
-            self.phase_lw_items.append(self.view.phase_lw.addItem(get_base_name(filename)))
+            self.phase_lw_items.append(
+                self.view.phase_lw.addItem(get_base_name(filename)))
             if self.view.phase_apply_to_all_cb.isChecked():
-                self.phase_data.phases[-1].compute_d(pressure=np.float(self.view.phase_pressure_sb.value()),
-                                                     temperature=np.float(self.view.phase_temperature_sb.value()))
+                self.phase_data.phases[-1].compute_d(
+                    pressure=np.float(self.view.phase_pressure_sb.value()),
+                    temperature=np.float(
+                        self.view.phase_temperature_sb.value()))
             self.phase_data.get_lines_d(-1)
             self.view.phase_lw.setCurrentRow(len(self.phase_data.phases) - 1)
             self.add_phase_plot()
@@ -85,11 +100,12 @@ class IntegrationPhaseController(object):
         axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
-        positions, intensities, baseline = self.phase_data.rescale_reflections(-1,
-                                                                               self.spectrum_data.spectrum,
-                                                                               x_range,
-                                                                               y_range,
-                                                                               self.calibration_data.geometry.wavelength * 1e10)
+        positions, intensities, baseline = \
+            self.phase_data.rescale_reflections(
+                -1, self.spectrum_data.spectrum,
+                x_range, y_range,
+                self.calibration_data.geometry.wavelength * 1e10,
+                self.get_unit())
         self.view.spectrum_view.add_phase(self.phase_data.phases[-1].name,
                                           positions,
                                           intensities,
@@ -127,7 +143,6 @@ class IntegrationPhaseController(object):
             self.phase_data.set_pressure(cur_ind, np.float(val))
             self.update_intensity(cur_ind)
 
-
     def phase_temperature_sb_changed(self, val):
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in xrange(self.view.phase_lw.count()):
@@ -163,28 +178,37 @@ class IntegrationPhaseController(object):
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
 
         # make sure that this update only happens every 24 hz frequency
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.disconnect(self.update_intensities_slot)
-        QtCore.QTimer.singleShot(30.1, self.connect_spectrum)
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.disconnect(
+            self.update_intensities_slot)
+        QtCore.QTimer.singleShot(30, self.connect_spectrum)
         QtCore.QTimer.singleShot(30, self.update_intensities)
-
 
     def update_intensity(self, ind, axis_range=None):
         if axis_range is None:
             axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
-        positions, intensities, baseline = self.phase_data.rescale_reflections(ind,
-                                                                               self.spectrum_data.spectrum,
-                                                                               x_range,
-                                                                               y_range,
-                                                                               self.calibration_data.geometry.wavelength * 1e10)
-        self.view.spectrum_view.update_phase_intensities(ind, positions, intensities, baseline)
+        positions, intensities, baseline = \
+            self.phase_data.rescale_reflections(
+                ind, self.spectrum_data.spectrum,
+                x_range, y_range,
+                self.calibration_data.geometry.wavelength * 1e10,
+                self.get_unit())
+        self.view.spectrum_view.update_phase_intensities(
+            ind, positions, intensities, baseline)
 
     def update_intensities(self, axis_range=None):
         for ind in xrange(self.view.phase_lw.count()):
             self.update_intensity(ind, axis_range)
 
-
     def connect_spectrum(self):
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(self.update_intensities_slot)
+        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(
+            self.update_intensities_slot)
 
+    def get_unit(self):
+        if self.view.spec_unit_tth_rb.isChecked():
+            return 'tth'
+        elif self.view.spec_unit_q_rb.isChecked():
+            return 'q'
+        elif self.view.spec_unit_d_rb.isChecked():
+            return 'd'

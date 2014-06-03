@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Sat May 31 11:07:19 2014
-# by: PyQt4 UI code generator 4.9.6
+# Created: Tue Jun  3 01:29:35 2014
+# by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -333,6 +333,9 @@ class Ui_xrs_integration_widget(object):
         self.label_9 = QtGui.QLabel(self.groupBox_5)
         self.label_9.setObjectName(_fromUtf8("label_9"))
         self.horizontalLayout_20.addWidget(self.label_9)
+        self.spec_unit_d_rb = QtGui.QRadioButton(self.groupBox_5)
+        self.spec_unit_d_rb.setObjectName(_fromUtf8("spec_unit_d_rb"))
+        self.horizontalLayout_20.addWidget(self.spec_unit_d_rb)
         self.horizontalLayout_11.addWidget(self.groupBox_5)
         spacerItem5 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_11.addItem(spacerItem5)
@@ -570,7 +573,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_9.addWidget(self.horizontal_splitter)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
@@ -623,6 +626,7 @@ class Ui_xrs_integration_widget(object):
         self.label_9.setText(_translate("xrs_integration_widget",
                                         "<html><head/><body><p>Q (A<span style=\" vertical-align:super;\">-1</span>)</p></body></html>",
                                         None))
+        self.spec_unit_d_rb.setText(_translate("xrs_integration_widget", "d (A)", None))
         self.groupBox_6.setTitle(_translate("xrs_integration_widget", "Quick Actions", None))
         self.qa_spectrum_set_as_overlay_btn.setText(_translate("xrs_integration_widget", "Set as Overlay", None))
         self.qa_spectrum_set_as_background_btn.setText(_translate("xrs_integration_widget", "Set as Background", None))
