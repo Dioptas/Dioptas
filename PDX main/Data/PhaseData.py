@@ -91,9 +91,10 @@ class PhaseData(Observable):
             scale_factor = (max_intensity - baseline) / np.max(intensities_for_scaling)
         else:
             scale_factor = 1
+        if scale_factor <= 0:
+            scale_factor = 0.01
 
         intensities = scale_factor * self.reflections[ind][:, 1] + baseline
-
         return positions, intensities, baseline
 
 

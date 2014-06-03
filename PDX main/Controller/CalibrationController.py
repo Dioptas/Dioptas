@@ -15,6 +15,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# TODO unmask color for rectangle etc. should be green.
 
 __author__ = 'Clemens Prescher'
 
@@ -110,6 +111,7 @@ class CalibrationController(object):
                                                 pixelY=fit2d_parameter['pixelY'])
         self.calibration_data.geometry.wavelength = fit2d_parameter['wavelength']
         self.calibration_data.polarization_factor = fit2d_parameter['polarization_factor']
+        self.calibration_data.is_calibrated = True
         self.update_all()
 
     def update_pyFAI_btn_click(self):
@@ -124,6 +126,7 @@ class CalibrationController(object):
                                                 pixel2=pyFAI_parameter['pixel2'])
         self.calibration_data.geometry.wavelength = pyFAI_parameter['wavelength']
         self.calibration_data.polarization_factor = pyFAI_parameter['polarization_factor']
+        self.calibration_data.is_calibrated = True
         self.update_all()
 
 

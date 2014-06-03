@@ -83,6 +83,7 @@ class IntegrationSpectrumController(object):
                 filename = None
 
             if self.view.mask_use_cb.isChecked():
+                self.mask_data.set_dimension(self.img_data.img_data.shape)
                 mask = self.mask_data.get_mask()
             else:
                 mask = None
