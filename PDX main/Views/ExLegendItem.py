@@ -4,7 +4,7 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
@@ -107,7 +107,17 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         title           The title to display for this item. Simple HTML allowed.
         ==============  ========================================================
         """
-        label = LabelItem(name)
+
+        # get item color
+        pen = fn.mkPen(item.opts['pen'])
+        color = pen.color()
+        color_str = color.name()
+
+        #create label with same color
+        label = LabelItem()
+        label.setAttr('color', str(color_str[1:]))
+        label.setText(name)
+
         if isinstance(item, ItemSample):
             sample = item
         else:

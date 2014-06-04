@@ -47,10 +47,10 @@ if __name__ == "__main__":
         'ExampleData/LaB6_p49_001.poni')
     controller.view.tabWidget.setCurrentIndex(2)
     controller.integration_controller.spectrum_controller.view.spec_unit_tth_rb.setChecked(False)
-    controller.integration_controller.spectrum_controller.view.spec_unit_q_rb.setChecked(False)
+    controller.integration_controller.spectrum_controller.view.spec_unit_q_rb.setChecked(True)
 
-    controller.integration_controller.spectrum_controller.view.spec_unit_d_rb.setChecked(True)
-    controller.integration_controller.spectrum_controller.set_unit_d()
+    controller.integration_controller.spectrum_controller.view.spec_unit_d_rb.setChecked(False)
+    controller.integration_controller.spectrum_controller.set_unit_q()
     controller.calibration_controller.load_file('ExampleData/LaB6_p49_001.tif')
     # get phase
     controller.integration_controller.phase_controller.add_phase(
