@@ -19,9 +19,10 @@
 __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
+from Views.ExLegendItem import LegendItem
 import numpy as np
 from Data.HelperModule import calculate_color
-from PyQt4 import QtCore, QtGui
+from PyQt4 import QtCore
 
 # TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
 
@@ -49,8 +50,8 @@ class SpectrumView(object):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
         self.spectrum_plot.setLabel('bottom', u'2θ', u'°')
         self.img_view_box = self.spectrum_plot.vb
-        self.legend = pg.LegendItem(horSpacing=20, box=False)
-        self.phases_legend = pg.LegendItem(horSpacing=20, box=False)
+        self.legend = LegendItem(horSpacing=20, box=False)
+        self.phases_legend = LegendItem(horSpacing=20, box=False)
 
 
     def create_main_plot(self):
