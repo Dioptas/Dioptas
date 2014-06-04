@@ -218,6 +218,8 @@ class IntegrationSpectrumController(object):
                 cur_line_pos * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
         elif previous_unit == 'd_A':
             tth = 2 * np.arcsin(wavelength / (2 * cur_line_pos * 1e-10)) * 180 / np.pi
+        else:
+            tth = 0
 
         if new_unit == '2th_deg':
             new_line_pos = tth
@@ -226,6 +228,8 @@ class IntegrationSpectrumController(object):
                            np.sin(tth / 360 * np.pi) / \
                            wavelength / 1e10
         elif new_unit == 'd_A':
+            if tth == 0:
+                tth = 0.1  # preventing infinity scaling...
             new_line_pos = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
         else:
             new_line_pos = 0
