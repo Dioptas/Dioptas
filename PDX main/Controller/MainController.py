@@ -88,7 +88,10 @@ class MainController(object):
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
         elif ind == 0:
-            self.calibration_controller.update_calibration_parameter()
+            try:
+                self.calibration_controller.update_calibration_parameter()
+            except TypeError:
+                pass
 
     def load_directories(self):
         if os.path.exists('working_directories.csv'):

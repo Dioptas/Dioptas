@@ -21,6 +21,7 @@ import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
 import numpy as np
+from Data.HelperModule import SignalFrequencyLimiter
 
 
 class IntegrationSpectrumController(object):
@@ -45,6 +46,9 @@ class IntegrationSpectrumController(object):
         self.spectrum_data.subscribe(self.plot_spectra)
         self.view.spectrum_view.add_left_click_observer(
             self.spectrum_left_click)
+
+        self.mouse_move_timer = SignalFrequencyLimiter(self.view.spectrum_view.add_mouse_move_observer,
+                                                       self.show_spectrum_mouse_position)
 
     def set_status(self):
         self.autocreate = False
@@ -209,32 +213,32 @@ class IntegrationSpectrumController(object):
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.view.spectrum_view.pos_line.getPos()[0]
+        new_line_pos = self.convert_x_value(cur_line_pos, previous_unit, new_unit)
+        self.view.spectrum_view.set_pos_line(new_line_pos)
+
+    def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.calibration_data.geometry.wavelength
-        print wavelength
         if previous_unit == '2th_deg':
-            tth = cur_line_pos
+            tth = value
         elif previous_unit == 'q_A^-1':
             tth = np.arcsin(
-                cur_line_pos * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
+                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
         elif previous_unit == 'd_A':
-            tth = 2 * np.arcsin(wavelength / (2 * cur_line_pos * 1e-10)) * 180 / np.pi
+            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
         else:
             tth = 0
 
         if new_unit == '2th_deg':
-            new_line_pos = tth
+            res = tth
         elif new_unit == 'q_A^-1':
-            new_line_pos = 4 * np.pi * \
-                           np.sin(tth / 360 * np.pi) / \
-                           wavelength / 1e10
+            res = 4 * np.pi * \
+                  np.sin(tth / 360 * np.pi) / \
+                  wavelength / 1e10
         elif new_unit == 'd_A':
-            if tth == 0:
-                tth = 0.1  # preventing infinity scaling...
-            new_line_pos = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
         else:
-            new_line_pos = 0
-
-        self.view.spectrum_view.set_pos_line(new_line_pos)
+            res = 0
+        return res
 
     def spectrum_left_click(self, x, y):
         self.view.spectrum_view.set_pos_line(x)
@@ -258,3 +262,29 @@ class IntegrationSpectrumController(object):
             if self.calibration_data.is_calibrated:
                 self.view.img_view.set_circle_scatter_tth(
                     self.calibration_data.geometry._ttha, x / 180 * np.pi)
+
+        self.view.click_tth_lbl.setText(self.view.mouse_tth_lbl.text())
+        self.view.click_d_lbl.setText(self.view.mouse_d_lbl.text())
+        self.view.click_q_lbl.setText(self.view.mouse_q_lbl.text())
+        self.view.click_azi_lbl.setText(self.view.mouse_azi_lbl.text())
+
+    def show_spectrum_mouse_position(self, x, y):
+        if self.integration_unit == '2th_deg':
+            tth = x
+            q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
+            d_value = self.convert_x_value(tth, '2th_deg', 'd_A')
+        elif self.integration_unit == 'q_A^-1':
+            q_value = x
+            tth = self.convert_x_value(q_value, 'q_A^-1', '2th_deg')
+            d_value = self.convert_x_value(q_value, 'q_A^-1', 'd_A')
+
+        elif self.integration_unit == 'd_A':
+            d_value = x
+            q_value = self.convert_x_value(d_value, 'd_A', 'q_A^-1')
+            tth = self.convert_x_value(d_value, 'd_A', '2th_deg')
+
+        tth_str = u'2θ:%9.2f  ' % tth
+        self.view.mouse_tth_lbl.setText(tth_str)
+        self.view.mouse_d_lbl.setText(u'd:%9.2f  ' % d_value)
+        self.view.mouse_q_lbl.setText(u'Q:%9.2f  ' % q_value)
+        self.view.mouse_azi_lbl.setText(u'X: -')

@@ -148,7 +148,7 @@ class CalibrationController(object):
         self.view.calibrant_cb.clear()
         self.view.calibrant_cb.addItems(self._calibrants_file_names_list)
         self.view.calibrant_cb.blockSignals(False)
-        self.view.calibrant_cb.setCurrentIndex(0)
+        self.view.calibrant_cb.setCurrentIndex(7)  # to LaB6
         self.load_calibrant()
 
     def load_calibrant(self, wavelength_from='start_values'):
