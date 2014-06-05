@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu Jun 05 10:39:05 2014
-#      by: PyQt4 UI code generator 4.9.6
+# Created: Thu Jun  5 15:43:49 2014
+# by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -17,154 +17,19 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
+
 class Ui_xrs_integration_widget(object):
     def setupUi(self, xrs_integration_widget):
         xrs_integration_widget.setObjectName(_fromUtf8("xrs_integration_widget"))
         xrs_integration_widget.resize(1252, 960)
-        xrs_integration_widget.setStyleSheet(_fromUtf8("QTabWidget, QTabWidget::tab-bar,  QTabWidget::panel, QWidget{  \n"
-"     background: #3C3C3C;      \n"
-" }  \n"
-"\n"
-"QGraphicsView {\n"
-"    border-style: none;\n"
-"}\n"
-"\n"
-" QLabel , QCheckBox, QGroupBox, QRadioButton, QListWidget::item, QPushButton, QToolBox::tab, QSpinBox, QDoubleSpinBox , QComboBox{  \n"
-"     color: #F1F1F1; \n"
-"    font-size: 12px;\n"
-" }  \n"
-" QCheckBox{  \n"
-"     border-radius: 5px;  \n"
-" }  \n"
-" QRadioButton, QCheckBox {  \n"
-"     font-weight: normal;  \n"
-"    height: 15px;\n"
-" }  \n"
-"   \n"
-" QLineEdit  {  \n"
-"     border-radius: 2px;  \n"
-"     background: #F1F1F1;  \n"
-"     color: black;  \n"
-"    margin-left:3px;\n"
-" }  \n"
-"QSpinBox, QDoubleSpinBox {\n"
-"    background-color:  #F1F1F1;\n"
-"    color: black;\n"
-"}\n"
-"\n"
-"QComboBox {\n"
-"    margin-left: 1px;\n"
-"    padding-left: 10px;\n"
-"    height: 23px;\n"
-"}\n"
-"\n"
-" QComboBox QAbstractItemView {\n"
-"    color:  #F1F1F1;\n"
-" }\n"
-"\n"
-"  \n"
-"QPushButton{  \n"
-"     background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);\n"
-"     border: 1px solid #5B5B5B;\n"
-"     border-radius: 5px; \n"
-"     padding-left: 8px;\n"
-"height: 18px;\n"
-"    padding-right: 8px;  \n"
-"    padding-bottom: 4px; \n"
-"    padding-top: 4px;\n"
-" }  \n"
-"QPushButton:pressed{\n"
-"        margin-top: 2,px;\n"
-"    margin-left: 2px;\n"
-"}\n"
-"QPushButton::disabled{\n"
-"}\n"
-"\n"
-"QPushButton::hover{  \n"
-"     border:1px solid #ADADAD;  \n"
-"     padding: 5px;  \n"
-" }  \n"
-" \n"
-"\n"
-"\n"
-"   \n"
-"QPushButton::checked{\n"
-"    background: qlineargradient(spread:pad, x1:0, y1:1, x2:1, y2:1, stop:0 #3C3C3C,  stop:0.2 rgba(0,20,150,155), stop:0.8 rgba(0,20,150,155), stop:1 #3C3C3C);\n"
-"     border:1px solid #ADADAD;\n"
-"}\n"
-"QPushButton::focus {\n"
-"    outline: None;\n"
-"}\n"
-" QGroupBox {  \n"
-"     border: 1px solid #ADADAD;  \n"
-"     border-radius: 4px;  \n"
-"     margin-top: 7px;  \n"
-"     padding: 0px  \n"
-" }  \n"
-" QGroupBox::title {  \n"
-"      subcontrol-origin: margin;  \n"
-"      left: 20px  \n"
-"  }\n"
-"\n"
-"QSplitter::handle:hover {\n"
-"    background: #3C3C3C;\n"
-" }\n"
-"\n"
-"\n"
-"QGraphicsView{\n"
-"    border-style: none;\n"
-"}\n"
-"\n"
-"\n"
-"QTabWidget::tab-bar {\n"
-"    alignment: center;\n"
-"}\n"
-"\n"
-"QTabBar::tab {  \n"
-"     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
-"     border: 1px solid  #5B5B5B;  \n"
-"    border-right: 0px solid white;\n"
-"      color: #F1F1F1; \n"
-"    font-size: 13px;\n"
-"     border-radius:2px;\n"
-"     padding-right: 10px; \n"
-"     width: 80px;  \n"
-"    height: 15px;\n"
-"    padding: 3px;\n"
-"    padding-bottom: 4px;\n"
-"     margin-top: 1px ;\n"
-" }  \n"
-"   \n"
-" QTabBar::tab:hover {  \n"
-"     border: 1px solid #ADADAD;  \n"
-" }  \n"
-"   \n"
-" QTabBar::tab:selected {  \n"
-"     border:1px solid  #ADADAD;  \n"
-"}\n"
-"QTabBar::tab:last{\n"
-"    border-top-right-radius: 10px;\n"
-"    border-bottom-right-radius: 10px;\n"
-"}\n"
-"QTabBar::tab:first{\n"
-"    border-top-left-radius: 10px;\n"
-"    border-bottom-left-radius: 10px;\n"
-"}\n"
-" QTabBar::tab:!selected {  \n"
-"    margin-top: 1px;\n"
-"    padding-top:1px;\n"
-" }  \n"
-"\n"
-"#click_x_lbl, #click_y_lbl, #click_int_lbl, #click_azi_lbl, #click_d_lbl, #click_tth_lbl, #click_q_lbl {\n"
-"    color: #00DD00;\n"
-"}\n"
-""))
+        xrs_integration_widget.setStyleSheet(_fromUtf8(""))
         self.verticalLayout_9 = QtGui.QVBoxLayout(xrs_integration_widget)
         self.verticalLayout_9.setSpacing(0)
         self.verticalLayout_9.setMargin(8)
@@ -538,7 +403,7 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout.addWidget(self.label_3, 1, 0, 1, 1)
         self.overlay_scale_sb = QtGui.QDoubleSpinBox(self.overlay_tab)
         self.overlay_scale_sb.setMinimumSize(QtCore.QSize(90, 0))
-        self.overlay_scale_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overlay_scale_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.overlay_scale_sb.setDecimals(4)
         self.overlay_scale_sb.setMaximum(999999.0)
         self.overlay_scale_sb.setSingleStep(0.01)
@@ -548,7 +413,7 @@ class Ui_xrs_integration_widget(object):
         self.label_4.setObjectName(_fromUtf8("label_4"))
         self.gridLayout.addWidget(self.label_4, 2, 0, 1, 1)
         self.overlay_offset_sb = QtGui.QDoubleSpinBox(self.overlay_tab)
-        self.overlay_offset_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overlay_offset_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.overlay_offset_sb.setDecimals(3)
         self.overlay_offset_sb.setMinimum(-999999999.0)
         self.overlay_offset_sb.setMaximum(999999999.0)
@@ -562,12 +427,14 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout.addWidget(self.overlay_show_cb, 3, 0, 1, 3)
         self.overlay_scale_step_txt = QtGui.QLineEdit(self.overlay_tab)
         self.overlay_scale_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
-        self.overlay_scale_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overlay_scale_step_txt.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.overlay_scale_step_txt.setObjectName(_fromUtf8("overlay_scale_step_txt"))
         self.gridLayout.addWidget(self.overlay_scale_step_txt, 1, 2, 1, 1)
         self.overlay_offset_step_txt = QtGui.QLineEdit(self.overlay_tab)
         self.overlay_offset_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
-        self.overlay_offset_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overlay_offset_step_txt.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.overlay_offset_step_txt.setObjectName(_fromUtf8("overlay_offset_step_txt"))
         self.gridLayout.addWidget(self.overlay_offset_step_txt, 2, 2, 1, 1)
         self.label_5 = QtGui.QLabel(self.overlay_tab)
@@ -649,7 +516,7 @@ class Ui_xrs_integration_widget(object):
         self.phase_pressure_sb.setSizePolicy(sizePolicy)
         self.phase_pressure_sb.setMinimumSize(QtCore.QSize(110, 0))
         self.phase_pressure_sb.setSizeIncrement(QtCore.QSize(2, 0))
-        self.phase_pressure_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.phase_pressure_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.phase_pressure_sb.setMinimum(-999999999.0)
         self.phase_pressure_sb.setMaximum(999999999.0)
         self.phase_pressure_sb.setSingleStep(0.5)
@@ -662,14 +529,15 @@ class Ui_xrs_integration_widget(object):
         sizePolicy.setHeightForWidth(self.phase_pressure_step_txt.sizePolicy().hasHeightForWidth())
         self.phase_pressure_step_txt.setSizePolicy(sizePolicy)
         self.phase_pressure_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
-        self.phase_pressure_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.phase_pressure_step_txt.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.phase_pressure_step_txt.setObjectName(_fromUtf8("phase_pressure_step_txt"))
         self.gridLayout_2.addWidget(self.phase_pressure_step_txt, 1, 2, 1, 1)
         self.label_2 = QtGui.QLabel(self.phase_tab)
         self.label_2.setObjectName(_fromUtf8("label_2"))
         self.gridLayout_2.addWidget(self.label_2, 2, 0, 1, 1)
         self.phase_temperature_sb = QtGui.QDoubleSpinBox(self.phase_tab)
-        self.phase_temperature_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.phase_temperature_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.phase_temperature_sb.setMaximum(999999999.0)
         self.phase_temperature_sb.setSingleStep(100.0)
         self.phase_temperature_sb.setObjectName(_fromUtf8("phase_temperature_sb"))
@@ -681,7 +549,8 @@ class Ui_xrs_integration_widget(object):
         sizePolicy.setHeightForWidth(self.phase_temperature_step_txt.sizePolicy().hasHeightForWidth())
         self.phase_temperature_step_txt.setSizePolicy(sizePolicy)
         self.phase_temperature_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
-        self.phase_temperature_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.phase_temperature_step_txt.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.phase_temperature_step_txt.setObjectName(_fromUtf8("phase_temperature_step_txt"))
         self.gridLayout_2.addWidget(self.phase_temperature_step_txt, 2, 2, 1, 1)
         self.phase_apply_to_all_cb = QtGui.QCheckBox(self.phase_tab)
@@ -779,28 +648,28 @@ class Ui_xrs_integration_widget(object):
         self.mouse_tth_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.mouse_tth_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.mouse_tth_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.mouse_tth_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.mouse_tth_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.mouse_tth_lbl.setObjectName(_fromUtf8("mouse_tth_lbl"))
         self.horizontalLayout_28.addWidget(self.mouse_tth_lbl)
         self.mouse_q_lbl = QtGui.QLabel(self.widget)
         self.mouse_q_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.mouse_q_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.mouse_q_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.mouse_q_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.mouse_q_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.mouse_q_lbl.setObjectName(_fromUtf8("mouse_q_lbl"))
         self.horizontalLayout_28.addWidget(self.mouse_q_lbl)
         self.mouse_d_lbl = QtGui.QLabel(self.widget)
         self.mouse_d_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.mouse_d_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.mouse_d_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.mouse_d_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.mouse_d_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.mouse_d_lbl.setObjectName(_fromUtf8("mouse_d_lbl"))
         self.horizontalLayout_28.addWidget(self.mouse_d_lbl)
         self.mouse_azi_lbl = QtGui.QLabel(self.widget)
         self.mouse_azi_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.mouse_azi_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.mouse_azi_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.mouse_azi_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.mouse_azi_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.mouse_azi_lbl.setObjectName(_fromUtf8("mouse_azi_lbl"))
         self.horizontalLayout_28.addWidget(self.mouse_azi_lbl)
         self.verticalLayout_3.addLayout(self.horizontalLayout_28)
@@ -810,28 +679,28 @@ class Ui_xrs_integration_widget(object):
         self.click_tth_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.click_tth_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.click_tth_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.click_tth_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.click_tth_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.click_tth_lbl.setObjectName(_fromUtf8("click_tth_lbl"))
         self.horizontalLayout_29.addWidget(self.click_tth_lbl)
         self.click_q_lbl = QtGui.QLabel(self.widget)
         self.click_q_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.click_q_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.click_q_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.click_q_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.click_q_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.click_q_lbl.setObjectName(_fromUtf8("click_q_lbl"))
         self.horizontalLayout_29.addWidget(self.click_q_lbl)
         self.click_d_lbl = QtGui.QLabel(self.widget)
         self.click_d_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.click_d_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.click_d_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.click_d_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.click_d_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.click_d_lbl.setObjectName(_fromUtf8("click_d_lbl"))
         self.horizontalLayout_29.addWidget(self.click_d_lbl)
         self.click_azi_lbl = QtGui.QLabel(self.widget)
         self.click_azi_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.click_azi_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.click_azi_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.click_azi_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.click_azi_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.click_azi_lbl.setObjectName(_fromUtf8("click_azi_lbl"))
         self.horizontalLayout_29.addWidget(self.click_azi_lbl)
         self.verticalLayout_3.addLayout(self.horizontalLayout_29)
@@ -874,7 +743,8 @@ class Ui_xrs_integration_widget(object):
         self.groupBox_7.setTitle(_translate("xrs_integration_widget", "Calibration", None))
         self.image_load_calibration_btn.setText(_translate("xrs_integration_widget", "Load Calibration", None))
         self.calibration_lbl.setText(_translate("xrs_integration_widget", "None", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.image_tab), _translate("xrs_integration_widget", "Img", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.image_tab),
+                                  _translate("xrs_integration_widget", "Img", None))
         self.spec_load_btn.setText(_translate("xrs_integration_widget", "Load", None))
         self.spec_previous_btn.setText(_translate("xrs_integration_widget", "<", None))
         self.spec_next_btn.setText(_translate("xrs_integration_widget", ">", None))
@@ -887,12 +757,15 @@ class Ui_xrs_integration_widget(object):
         self.spec_browse_by_time_rb.setText(_translate("xrs_integration_widget", "By Time", None))
         self.groupBox_5.setTitle(_translate("xrs_integration_widget", "Unit", None))
         self.spec_unit_tth_rb.setText(_translate("xrs_integration_widget", " 2θ", None))
-        self.label_9.setText(_translate("xrs_integration_widget", "<html><head/><body><p>Q (Å<span style=\" vertical-align:super;\">-1</span>)</p></body></html>", None))
+        self.label_9.setText(_translate("xrs_integration_widget",
+                                        "<html><head/><body><p>Q (Å<span style=\" vertical-align:super;\">-1</span>)</p></body></html>",
+                                        None))
         self.spec_unit_d_rb.setText(_translate("xrs_integration_widget", "d (Å)", None))
         self.groupBox_6.setTitle(_translate("xrs_integration_widget", "Quick Actions", None))
         self.qa_spectrum_set_as_overlay_btn.setText(_translate("xrs_integration_widget", "Set as Overlay", None))
         self.qa_spectrum_set_as_background_btn.setText(_translate("xrs_integration_widget", "Set as Background", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.spectra_tab), _translate("xrs_integration_widget", "Spec", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.spectra_tab),
+                                  _translate("xrs_integration_widget", "Spec", None))
         self.overlay_add_btn.setText(_translate("xrs_integration_widget", "Add", None))
         self.overlay_del_btn.setText(_translate("xrs_integration_widget", "Delete", None))
         self.overlay_clear_btn.setText(_translate("xrs_integration_widget", "Clear ", None))
@@ -905,7 +778,8 @@ class Ui_xrs_integration_widget(object):
         self.overlay_save_set_btn.setText(_translate("xrs_integration_widget", "Save Set", None))
         self.overlay_load_set_btn.setText(_translate("xrs_integration_widget", "Load Set", None))
         self.overlay_set_as_bkg_btn.setText(_translate("xrs_integration_widget", "Set as Background", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.overlay_tab), _translate("xrs_integration_widget", "Overlay", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.overlay_tab),
+                                  _translate("xrs_integration_widget", "Overlay", None))
         self.phase_add_btn.setText(_translate("xrs_integration_widget", "Add", None))
         self.phase_edit_btn.setText(_translate("xrs_integration_widget", "Edit", None))
         self.phase_del_btn.setText(_translate("xrs_integration_widget", "Delete", None))
@@ -918,9 +792,11 @@ class Ui_xrs_integration_widget(object):
         self.phase_apply_to_all_cb.setText(_translate("xrs_integration_widget", "Apply to all phases", None))
         self.phase_save_set_btn.setText(_translate("xrs_integration_widget", "Save Set", None))
         self.phase_load_set_btn.setText(_translate("xrs_integration_widget", "Load Set", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.phase_tab), _translate("xrs_integration_widget", "Phase", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.phase_tab),
+                                  _translate("xrs_integration_widget", "Phase", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_5), _translate("xrs_integration_widget", "Bkg", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.special_tab), _translate("xrs_integration_widget", "X", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.special_tab),
+                                  _translate("xrs_integration_widget", "X", None))
         self.mouse_x_lbl.setText(_translate("xrs_integration_widget", "X:", None))
         self.mouse_y_lbl.setText(_translate("xrs_integration_widget", "Y:", None))
         self.mouse_int_lbl.setText(_translate("xrs_integration_widget", "I:", None))
@@ -936,5 +812,6 @@ class Ui_xrs_integration_widget(object):
         self.click_d_lbl.setText(_translate("xrs_integration_widget", "d:", None))
         self.click_azi_lbl.setText(_translate("xrs_integration_widget", "χ:", None))
         self.bkg_name_lbl.setText(_translate("xrs_integration_widget", "Bkg:", None))
+
 
 from pyqtgraph import GraphicsLayoutWidget

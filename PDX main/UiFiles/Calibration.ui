@@ -21,136 +21,7 @@
    <string>XRS Calibration</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">#XrsCalibrationWidget, #start_values, #page, #pyFAI, #fit2d, QTabWidget, QTabWidget::tab-bar,  QTabWidget::panel, QToolBox::panel, QWidget#XrsCalibrationWidget, QWidget{  
-     background: #3C3C3C;      
- }  
- QGraphicsView {
-	border-style: none;
-}
-
- QLabel , QCheckBox, QGroupBox, QRadioButton, QListWidget::item, QPushButton, QToolBox::tab, QSpinBox, QDoubleSpinBox , QComboBox{  
-     color: #F1F1F1; 
-    font-size: 12px;
- }  
- QCheckBox{  
-     border-radius: 5px;  
- }  
- QRadioButton {  
-     font-weight: normal;  
- }  
-   
- QLineEdit  {  
-     border-radius: 2px;  
-     background: #F1F1F1;  
-     color: black;  
-	margin-left:3px;
- }  
-QSpinBox, QDoubleSpinBox {
-	background-color:  #F1F1F1;
-	color: black;
-}
-
-QComboBox {
-	margin-left: 1px;
-	padding-left: 10px;
-	height: 23px;
-}
-
- QComboBox QAbstractItemView {
-	color:  #F1F1F1;
- }
-
-  
-QPushButton{  
-     background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);
-     border: 1px solid #5B5B5B;
-     border-radius: 5px; 
-	height: 18px;
-     padding-left: 8px;
-    padding-right: 8px;  
-    padding-bottom: 4px; 
-    padding-top: 4px;
- }  
-QPushButton:pressed{
-		margin-top: 2,px;
-	margin-left: 2px;
-}
-QPushButton::disabled{
-}
-
-QPushButton::hover{  
-     border:1px solid #ADADAD;  
-     padding: 5px;  
- }  
- 
-QPushButton::checked{
-    background-color: #111111;
-}
-QPushButton::focus {
-	outline: None;
-}
- QGroupBox {  
-     border: 1px solid #ADADAD;  
-     border-radius: 4px;  
-     margin-top: 7px;  
-     padding: 0px  
- }  
- QGroupBox::title {  
-      subcontrol-origin: margin;  
-      left: 20px  
-  }
-
-QSplitter::handle:hover {
-	background: #3C3C3C;
- }
-
-
-QGraphicsView{
-	border-style: none;
-}
-
-
-QTabWidget::tab-bar {
-	alignment: center;
-}
-
-QTabBar::tab, QToolBox::tab:QToolButton {  
-     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
-     border: 1px solid  #5B5B5B;  
-
-     border-radius:2px;
-     padding-right: 10px;  
-	
-	  color: #F1F1F1; 
-    font-size: 13px;
-     width: 80px;  
-    height: 15px;
-    padding: 3px;
-    padding-bottom: 4px;
-     margin-top: 1px ;
- }  
-   
- QTabBar::tab:hover, QToolBox::tab:QToolButton:hover {  
-     border: 1px solid #ADADAD;  
- }  
-   
- QTabBar::tab:selected,  QToolBox::tab:QToolButton:selected {  
-     border:1px solid  #ADADAD;  
-}
-QTabBar::tab:last{
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
-}
-QTabBar::tab:first{
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-}
- QTabBar::tab:!selected {  
-    margin-top: 1px;
-    padding-top:1px;
- }  
-
-</string>
+   <string notr="true"/>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_8">
    <property name="spacing">
@@ -166,6 +37,9 @@ QTabBar::tab:first{
      </property>
      <widget class="QWidget" name="layoutWidget">
       <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="spacing">
+        <number>4</number>
+       </property>
        <item>
         <widget class="QTabWidget" name="tab_widget">
          <property name="currentIndex">
@@ -355,8 +229,8 @@ QTabBar::tab:first{
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>376</width>
-            <height>450</height>
+            <width>321</width>
+            <height>424</height>
            </rect>
           </property>
           <attribute name="label">
@@ -427,12 +301,55 @@ QTabBar::tab:first{
              </item>
              <item row="6" column="1" colspan="2">
               <widget class="QComboBox" name="calibrant_cb">
+               <property name="focusPolicy">
+                <enum>Qt::NoFocus</enum>
+               </property>
                <property name="editable">
                 <bool>false</bool>
                </property>
                <property name="frame">
                 <bool>true</bool>
                </property>
+               <item>
+                <property name="text">
+                 <string>asd</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>aF</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>a</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>GGASDGDSFAHFD</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>adaD</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>af</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>AagGS</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>ag</string>
+                </property>
+               </item>
               </widget>
              </item>
              <item row="3" column="1">
@@ -595,8 +512,8 @@ QTabBar::tab:first{
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>376</width>
-            <height>450</height>
+            <width>306</width>
+            <height>447</height>
            </rect>
           </property>
           <attribute name="label">
@@ -913,8 +830,8 @@ QTabBar::tab:first{
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>376</width>
-            <height>450</height>
+            <width>321</width>
+            <height>424</height>
            </rect>
           </property>
           <attribute name="label">
@@ -1173,8 +1090,8 @@ QTabBar::tab:first{
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>376</width>
-            <height>442</height>
+            <width>321</width>
+            <height>424</height>
            </rect>
           </property>
           <attribute name="label">

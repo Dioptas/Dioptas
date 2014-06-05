@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Py2DeX - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -179,10 +179,8 @@ class SignalFrequencyLimiter(object):
         if self.update_function is not None:
             if self.disconnect_function is not None:
                 self.disconnect_function(self.update_vars)
-            t1 = time.time()
             self.update_function(*self.vars)
             self.update_function = None
-            print t1 - time.time()
             if self.disconnect_function is not None:
                 self.connect_function(self.update_vars)
 
