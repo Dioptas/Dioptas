@@ -274,12 +274,8 @@ class PhasePlot(object):
 
     def update_intensities(self, positions, intensities, baseline=0):
         for ind, intensity in enumerate(intensities):
-            try:
-                self.line_items[ind].setData(y=[baseline, intensity],
-                                             x=[positions[ind], positions[ind]])
-            except IndexError:  #needed due to a timing issue
-                print 'update intensity timing is wrong'
-                break
+            self.line_items[ind].setData(y=[baseline, intensity],
+                                         x=[positions[ind], positions[ind]])
 
     def remove(self):
         try:

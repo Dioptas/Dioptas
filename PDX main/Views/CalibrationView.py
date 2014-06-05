@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Py2DeX - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@ from PyQt4 import QtGui, QtCore
 from UiFiles.CalibrationUI import Ui_XrsCalibrationWidget
 from ImgView import ImgView, CalibrationCakeView
 from SpectrumView import SpectrumView
+from Data.HelperModule import SignalFrequencyLimiter
 import numpy as np
 import pyqtgraph as pg
 
@@ -35,13 +36,16 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.splitter.setStretchFactor(0, 2)
 
         self.img_view = ImgView(self.img_pg_layout)
-        self.img_view.add_mouse_move_observer(self.show_img_mouse_position)
+        self.img_view_mouse_timer = SignalFrequencyLimiter(self.img_view.add_mouse_move_observer,
+                                                           self.show_img_mouse_position)
 
         self.cake_view = CalibrationCakeView(self.cake_pg_layout)
-        self.cake_view.add_mouse_move_observer(self.show_cake_mouse_position)
+        self.cake_view_mouse_timer = SignalFrequencyLimiter(self.cake_view.add_mouse_move_observer,
+                                                            self.show_cake_mouse_position)
 
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
-        self.spectrum_view.add_mouse_move_observer(self.show_spectrum_mouse_position)
+        self.spectrum_view_mouse_timer = SignalFrequencyLimiter(self.spectrum_view.add_mouse_move_observer,
+                                                                self.show_spectrum_mouse_position)
 
         self.set_validator()
 
