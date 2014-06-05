@@ -1,0 +1,13 @@
+VERSION: 4
+COMMENT: Tungsten (4-0806 EOS from Hixson and Fritz)
+K0:       311.220
+K0P:       3.90000
+SYMMETRY: CUBIC
+A:      3.16480
+ALPHAT:      0.000000
+DIHKL:   2.2380    100.    1.00    1.00    0.00
+DIHKL:   1.5820     15.    2.00    0.00    0.00
+DIHKL:   1.2920     23.    2.00    1.00    1.00
+DIHKL:   1.1188      8.    2.00    2.00    0.00
+DIHKL:   1.0008     11.    3.00    1.00    0.00
+DIHKL:   0.8459     18.    3.00    2.00    1.00

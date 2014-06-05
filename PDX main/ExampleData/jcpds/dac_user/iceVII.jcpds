@@ -1,0 +1,13 @@
+VERSION: 4
+COMMENT: ice VII (bcc)  (EOS from Wolanin PRB 1997)
+K0:       14.9
+K0P:      5.4
+SYMMETRY: CUBIC
+A:      3.451
+ALPHAT:      0.000000
+DIHKL:   2.0415  100.    1.00    1.00    0.00
+DIHKL:   1.4435     19.    2.00    0.00    0.00
+DIHKL:   1.1786     30.    2.00    1.00    1.00
+DIHKL:   1.0207      9.    2.00    2.00    0.00
+DIHKL:   0.9130     12.    3.00    1.00    0.00
+DIHKL:   0.8334      6.    2.00    2.00    2.00

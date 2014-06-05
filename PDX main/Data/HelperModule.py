@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -176,19 +176,15 @@ class SignalFrequencyLimiter(object):
         self.update_function = self.callback_function
 
     def timer_function(self):
-
         if self.update_function is not None:
             if self.disconnect_function is not None:
                 self.disconnect_function(self.update_vars)
             t1 = time.time()
             self.update_function(*self.vars)
             self.update_function = None
-            QtGui.QApplication.processEvents()
             print t1 - time.time()
             if self.disconnect_function is not None:
                 self.connect_function(self.update_vars)
-
-
 
 
 def rotate_matrix_m90(matrix):

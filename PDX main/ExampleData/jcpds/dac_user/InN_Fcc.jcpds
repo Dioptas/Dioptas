@@ -1,0 +1,12 @@
+VERSION: 4
+COMMENT: InN  (High Pressure phase)
+K0:       200
+K0P:       4
+SYMMETRY: CUBIC
+A:      4.6600
+ALPHAT:      0.000000
+DIHKL:   2.6170    100.    1.00    1.00    1.00
+DIHKL:   2.2700     96.    2.00    0.00    0.00
+DIHKL:   1.6020     60.    2.00    2.00    0.00
+DIHKL:   1.3590     45.    3.00    1.00    1.00
+DIHKL:   1.3010     16.    2.00    2.00    2.00

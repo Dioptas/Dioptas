@@ -1,0 +1,24 @@
+VERSION: 4
+COMMENT: NaCl  B2 (GSAS calculation, EOS from Sata and Shen, "Sata cautioned the use of BM equation")
+K0:       47.435847
+K0P:       4.00000
+SYMMETRY: CUBIC
+A:      3.362
+ALPHAT:      4.26E-5
+DIHKL:   3.4669      6.    1.00    0.00    0.00
+DIHKL:   2.4515    100.    1.00    1.00    0.00
+DIHKL:   2.0016      1.    1.00    1.00    1.00
+DIHKL:   1.7335      8.    2.00    0.00    0.00
+DIHKL:   1.5504      1.    2.00    1.00    0.00
+DIHKL:   1.4154     21.    2.00    1.00    1.00
+DIHKL:   1.2257      4.    2.00    2.00    0.00
+DIHKL:   1.1556      1.    2.00    2.00    1.00
+DIHKL:   1.1556      1.    3.00    0.00    0.00
+DIHKL:   1.0963      7.    3.00    1.00    0.00
+DIHKL:   1.0453      1.    3.00    1.00    1.00
+DIHKL:   1.0008      1.    2.00    2.00    2.00
+DIHKL:   0.9615      1.    3.00    2.00    0.00
+DIHKL:   0.9266      3.    3.00    2.00    1.00
+DIHKL:   0.8667      1.    4.00    0.00    0.00
+DIHKL:   0.8408      1.    4.00    1.00    0.00
+DIHKL:   0.8408      1.    3.00    2.00    2.00

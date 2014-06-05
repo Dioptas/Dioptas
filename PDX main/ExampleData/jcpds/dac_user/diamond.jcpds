@@ -1,0 +1,12 @@
+VERSION: 4
+COMMENT: diamond (JCPDS 6-0675, dummy EOS)
+K0:       999.000
+K0P:       1.00000
+SYMMETRY: CUBIC
+A:      3.56670
+ALPHAT:      0.000000
+DIHKL:   2.0600    100.    1.00    1.00    1.00
+DIHKL:   1.2610     27.    2.00    2.00    0.00
+DIHKL:   1.0754     16.    3.00    1.00    1.00
+DIHKL:   0.8916      7.    4.00    0.00    0.00
+DIHKL:   0.8182     15.    3.00    3.00    1.00
