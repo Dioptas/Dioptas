@@ -35,10 +35,8 @@ class IntegrationImageController(object):
         self.view.show()
         self.initialize()
         self.img_data.subscribe(self.update_img)
-        self.view.img_view.add_mouse_move_observer(
-            self.show_img_mouse_position)
-        self.view.img_view.add_left_click_observer(self.img_mouse_click)
         self.create_signals()
+        self.create_mouse_behavior()
 
     def initialize(self):
         self.update_img(True)
@@ -114,6 +112,26 @@ class IntegrationImageController(object):
         self.connect_click_function(
             self.view.image_load_calibration_btn, self.load_calibration)
         self.create_auto_process_signal()
+
+    def create_mouse_behavior(self):
+
+        #the frequency of the mouse move events are very high, which causes the gui to be
+        #relatively slow while always printing the new position
+
+        #my best solution to limit the frequency was a timer, which only fires every 100 ms
+        #and only if the function was set before
+
+        #unfortunately this needs the mouse position to be saved as local variables...
+
+        self.view.img_view.add_mouse_move_observer(
+            self.update_img_mouse_position)
+        self.view.img_view.add_left_click_observer(self.img_mouse_click)
+        self._mouse_pos = (0,0)
+        self._mouse_update_function = None
+        self._mouse_update_timer = QtCore.QTimer(self.view)
+        self._mouse_update_timer.setInterval(200)
+        self._mouse_update_timer.timeout.connect(self.mouse_timer_function)
+        self._mouse_update_timer.start()
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -209,17 +227,21 @@ class IntegrationImageController(object):
         self.view.img_view.set_circle_scatter_tth(
             self.calibration_data.geometry._ttha, cur_tth / 180 * np.pi)
 
+    def update_img_mouse_position(self, x, y):
+        self._mouse_pos = (x,y)
+        self._mouse_update_function = self.show_img_mouse_position
+
     def show_img_mouse_position(self, x, y):
         try:
             if x > 0 and y > 0:
                 x_pos_string = 'X:  %4d' % x
                 y_pos_string = 'Y:  %4d' % y
-                self.view.x_lbl.setText(x_pos_string)
-                self.view.y_lbl.setText(y_pos_string)
+                self.view.mouse_x_lbl.setText(x_pos_string)
+                self.view.mouse_y_lbl.setText(y_pos_string)
 
                 int_string = 'I:   %5d' % self.view.img_view.img_data[
                     np.floor(y), np.floor(x)]
-                self.view.int_lbl.setText(int_string)
+                self.view.mouse_int_lbl.setText(int_string)
                 if self.calibration_data.is_calibrated:
                     x_temp = x
                     x = np.array([y])
@@ -243,14 +265,33 @@ class IntegrationImageController(object):
                     d = self.calibration_data.geometry.wavelength / \
                         (2 * np.sin(tth / 180. * np.pi * 0.5)) * 1e10
                     tth_str = u'2θ:%9.2f  ' % tth
-                    self.view.two_theta_lbl.setText(tth_str)
-                    self.view.d_lbl.setText(u'd:%9.2f  ' % d)
-                    self.view.q_lbl.setText(u'Q:%9.2f  ' % q_value)
-                    self.view.azi_lbl.setText(u'X:%9.2f  ' % azi)
+                    self.view.mouse_tth_lbl.setText(tth_str)
+                    self.view.mouse_d_lbl.setText(u'd:%9.2f  ' % d)
+                    self.view.mouse_q_lbl.setText(u'Q:%9.2f  ' % q_value)
+                    self.view.mouse_azi_lbl.setText(u'X:%9.2f  ' % azi)
         except (IndexError, AttributeError):
             pass
 
+    def mouse_timer_function(self):
+        if self._mouse_update_function is not None:
+            self._mouse_update_function(self._mouse_pos[0], self._mouse_pos[1])
+            self._mouse_update_function = None
+
     def img_mouse_click(self, x, y):
+        #update click position
+        self.mouse_timer_function() #update the mouse position fields
+        try:
+            x_pos_string = 'X:  %4d' % y
+            y_pos_string = 'Y:  %4d' % x
+            int_string = 'I:   %5d' % self.view.img_view.img_data[
+                np.floor(x), np.floor(y)]
+            self.view.click_x_lbl.setText(x_pos_string)
+            self.view.click_y_lbl.setText(y_pos_string)
+            self.view.click_int_lbl.setText(int_string)
+        except IndexError:
+            self.view.click_int_lbl.setText('I: ')
+
+
         if self.view.cake_rb.isChecked():  # cake mode
             y = np.array([y])
             tth = self.calibration_data.cake_tth[np.round(y[0])]
@@ -261,7 +302,6 @@ class IntegrationImageController(object):
                 self.view.spectrum_view.set_pos_line(q)
             else:
                 self.view.spectrum_view.set_pos_line(tth)
-
         else:  # image mode
             x = np.array([x])
             y = np.array([y])
@@ -276,6 +316,12 @@ class IntegrationImageController(object):
                     self.view.spectrum_view.set_pos_line(q)
                 else:
                     self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
+
+
+        self.view.click_tth_lbl.setText(self.view.mouse_tth_lbl.text())
+        self.view.click_d_lbl.setText(self.view.mouse_d_lbl.text())
+        self.view.click_q_lbl.setText(self.view.mouse_q_lbl.text())
+        self.view.click_azi_lbl.setText(self.view.mouse_azi_lbl.text())
 
     def set_iteration_mode_number(self):
         self.img_data.file_iteration_mode = 'number'

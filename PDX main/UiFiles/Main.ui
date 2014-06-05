@@ -13,12 +13,57 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">#mainView{  
+     background: #3C3C3C;      
+ }  
+   </string>
+  </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="margin">
     <number>5</number>
    </property>
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">
+     <property name="styleSheet">
+      <string notr="true">QTabWidget::tab-bar{ 
+}
+
+QTabBar::tab {  
+     background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
+     border: 1px solid  #5B5B5B;  
+
+     border-radius:2px;
+     padding-right: 10px;  
+     color: #FFF;  
+     width: 18px;  
+    height: 80px;
+    padding: 4px;
+ }  
+   
+ QTabBar::tab:hover {  
+     border-color: #ADADAD;  
+    border-left: 1px solid #ADADAD;
+ }  
+   
+ QTabBar::tab:selected {  
+     border:1px solid  #ADADAD; 
+     border-left: 1px solid #ADADAD;
+    margin-left: 1px;
+ }     
+QTabBar::tab:last{
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+QTabBar::tab:first{
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+ QTabBar::tab:!selected {  
+    margin-left: 1px;
+    padding-left: 2px;
+ }  </string>
+     </property>
      <property name="tabPosition">
       <enum>QTabWidget::West</enum>
      </property>

@@ -16,3 +16,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Doomgoroth'
+
+# TODO pressed buttons have to be shown differently (somehow the keyword does not work right now in the QT stylesheets)
+#TODO the scrollbar needs to be with correct background (just setting it will disable the current look)
+#TODO spinboxes should have rounded corners. This resets the original look --> need our own images etc.

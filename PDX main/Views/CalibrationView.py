@@ -32,7 +32,7 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
     def __init__(self):
         super(CalibrationView, self).__init__(None)
         self.setupUi(self)
-        self.splitter.setStretchFactor(0, 1)
+        self.splitter.setStretchFactor(0, 2)
 
         self.img_view = ImgView(self.img_pg_layout)
         self.img_view.add_mouse_move_observer(self.show_img_mouse_position)
