@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -49,7 +49,7 @@ class SpectrumView(object):
     def create_graphics(self):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
         self.spectrum_plot.setLabel('bottom', u'2θ', u'°')
-        self.img_view_box = self.spectrum_plot.vb
+        self.view_box = self.spectrum_plot.vb
         self.legend = LegendItem(horSpacing=20, box=False)
         self.phases_legend = LegendItem(horSpacing=20, box=False)
 
@@ -64,6 +64,7 @@ class SpectrumView(object):
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
         self.phases_legend.setParentItem(self.spectrum_plot.vb)
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
+
 
     def create_pos_line(self):
         self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=2))
@@ -137,29 +138,29 @@ class SpectrumView(object):
 
     def modify_mouse_behavior(self):
         #different mouse handlers
-        self.img_view_box.setMouseMode(self.img_view_box.RectMode)
+        self.view_box.setMouseMode(self.view_box.RectMode)
 
         self.pg_layout.scene().sigMouseMoved.connect(self.mouseMoved)
-        self.img_view_box.mouseClickEvent = self.myMouseClickEvent
-        self.img_view_box.mouseDragEvent = self.myMouseDragEvent
-        self.img_view_box.mouseDoubleClickEvent = self.myMouseDoubleClickEvent
-        self.img_view_box.wheelEvent = self.myWheelEvent
+        self.view_box.mouseClickEvent = self.myMouseClickEvent
+        self.view_box.mouseDragEvent = self.myMouseDragEvent
+        self.view_box.mouseDoubleClickEvent = self.myMouseDoubleClickEvent
+        self.view_box.wheelEvent = self.myWheelEvent
 
 
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
-            view_range = np.array(self.img_view_box.viewRange()) * 2
+            view_range = np.array(self.view_box.viewRange()) * 2
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
             y_range = np.max(curve_data[1]) - np.min(curve_data[1])
             if (view_range[0][1] - view_range[0][0]) > x_range and \
                             (view_range[1][1] - view_range[1][0]) > y_range:
-                self.img_view_box.autoRange()
-                self.img_view_box.enableAutoRange()
+                self.view_box.autoRange()
+                self.view_box.enableAutoRange()
             else:
-                self.img_view_box.scaleBy(2)
+                self.view_box.scaleBy(2)
         if ev.button() == QtCore.Qt.LeftButton:
-            pos = self.img_view_box.mapFromScene(ev.pos())
+            pos = self.view_box.mapFromScene(ev.pos())
             pos = self.plot_item.mapFromScene(2 * ev.pos() - pos)
             x = pos.x()
             y = pos.y()
@@ -169,8 +170,8 @@ class SpectrumView(object):
 
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
-            self.img_view_box.autoRange()
-            self.img_view_box.enableAutoRange()
+            self.view_box.autoRange()
+            self.view_box.enableAutoRange()
 
 
     def myMouseDragEvent(self, ev, axis=None):
@@ -181,7 +182,7 @@ class SpectrumView(object):
         dif = pos - lastPos
         dif *= -1
         ## Ignore axes if mouse is disabled
-        mouseEnabled = np.array(self.img_view_box.state['mouseEnabled'], dtype=np.float)
+        mouseEnabled = np.array(self.view_box.state['mouseEnabled'], dtype=np.float)
         mask = mouseEnabled.copy()
         if axis is not None:
             mask[1 - axis] = 0.0
@@ -189,29 +190,29 @@ class SpectrumView(object):
         if ev.button() == QtCore.Qt.RightButton:
             #determine the amount of translation
             tr = dif * mask
-            tr = self.img_view_box.mapToView(tr) - self.img_view_box.mapToView(pg.Point(0, 0))
+            tr = self.view_box.mapToView(tr) - self.view_box.mapToView(pg.Point(0, 0))
             x = tr.x()
             y = tr.y()
 
-            self.img_view_box.translateBy(x=x, y=y)
-            self.img_view_box.sigRangeChangedManually.emit(self.img_view_box.state['mouseEnabled'])
+            self.view_box.translateBy(x=x, y=y)
+            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
         else:
-            pg.ViewBox.mouseDragEvent(self.img_view_box, ev)
+            pg.ViewBox.mouseDragEvent(self.view_box, ev)
 
 
     def myWheelEvent(self, ev):
         if ev.delta() > 0:
-            pg.ViewBox.wheelEvent(self.img_view_box, ev)
+            pg.ViewBox.wheelEvent(self.view_box, ev)
         else:
-            view_range = np.array(self.img_view_box.viewRange())
+            view_range = np.array(self.view_box.viewRange())
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
             y_range = np.max(curve_data[1]) - np.min(curve_data[1])
             if (view_range[0][1] - view_range[0][0]) > x_range and \
                             (view_range[1][1] - view_range[1][0]) > y_range:
-                self.img_view_box.autoRange()
+                self.view_box.autoRange()
             else:
-                pg.ViewBox.wheelEvent(self.img_view_box, ev)
+                pg.ViewBox.wheelEvent(self.view_box, ev)
 
 
 class PhaseLinesPlot(object):

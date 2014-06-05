@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Mask.ui'
 #
-# Created: Tue Jun  3 02:16:13 2014
+# Created: Wed Jun  4 23:24:54 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -29,6 +29,102 @@ class Ui_xrs_mask_widget(object):
     def setupUi(self, xrs_mask_widget):
         xrs_mask_widget.setObjectName(_fromUtf8("xrs_mask_widget"))
         xrs_mask_widget.resize(712, 527)
+        xrs_mask_widget.setStyleSheet(_fromUtf8(
+            "#xrs_mask_widget, #start_values, #page, #pyFAI, #fit2d, QTabWidget, QTabWidget::tab-bar,  QTabWidget::panel, QToolBox::panel{  \n"
+            "     background: #3C3C3C;      \n"
+            " }  \n"
+            "   \n"
+            " QLabel , QCheckBox, QGroupBox, QRadioButton, QListWidget::item, QPushButton, QToolBox::tab, QSpinBox, QDoubleSpinBox  {  \n"
+            "     color: #F1F1F1;\n"
+            "    \n"
+            "    font-size: 12px;\n"
+            " }  \n"
+            " QCheckBox{  \n"
+            "     border-radius: 5px;  \n"
+            " }  \n"
+            " QRadioButton {  \n"
+            "     font-weight: normal;  \n"
+            " }  \n"
+            "   \n"
+            " QLineEdit  {  \n"
+            "     border-radius: 5px;  \n"
+            "     background: #F1F1F1;  \n"
+            "     color: black;  \n"
+            " }  \n"
+            "QSpinBox, QDoubleSpinBox {\n"
+            "    background-color:  #F1F1F1;\n"
+            "    color: black;\n"
+            "}\n"
+            "\n"
+            "  \n"
+            "QPushButton{  \n"
+            "     background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);\n"
+            "     border: 1px solid #5B5B5B;\n"
+            "     border-radius: 5px; \n"
+            "     padding-left: 8px;\n"
+            "    padding-right: 8px;  \n"
+            "    padding-bottom: 4px; \n"
+            "    padding-top: 4px;\n"
+            " }  \n"
+            "\n"
+            "QPushButton::disabled{\n"
+            "}\n"
+            "\n"
+            "QPushButton::hover{  \n"
+            "     border:1px solid #ADADAD;  \n"
+            "     padding: 5px;  \n"
+            " }  \n"
+            " \n"
+            "QPushButton::checked{\n"
+            "    background: qlineargradient(spread:pad, x1:0, y1:1, x2:1, y2:1, stop:0 #3C3C3C,  stop:0.2 rgba(0,20,150,155), stop:0.8 rgba(0,20,150,155), stop:1 #3C3C3C);\n"
+            "     border:1px solid #ADADAD;\n"
+            "}\n"
+            " QGroupBox {  \n"
+            "     border: 1px solid #ADADAD;  \n"
+            "     border-radius: 4px;  \n"
+            "     margin-top: 7px;  \n"
+            "     padding: 0px  \n"
+            " }  \n"
+            " QGroupBox::title {  \n"
+            "      subcontrol-origin: margin;  \n"
+            "      left: 20px  \n"
+            "  }\n"
+            "\n"
+            "\n"
+            "\n"
+            "QTabBar::tab {  \n"
+            "     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
+            "     border: 1px solid  #5B5B5B;  \n"
+            "\n"
+            "     border-radius:2px;\n"
+            "     padding-right: 10px;  \n"
+            "     color: #FFF;  \n"
+            "     width: 80px;  \n"
+            "    height: 13px;\n"
+            "    padding: 3px;\n"
+            "    padding-bottom: 5px;\n"
+            "     margin-top: 1px ;\n"
+            " }  \n"
+            "   \n"
+            " QTabBar::tab:hover {  \n"
+            "     border: 1px solid #ADADAD;  \n"
+            " }  \n"
+            "   \n"
+            " QTabBar::tab:selected {  \n"
+            "     border:1px solid  #ADADAD;  \n"
+            "}\n"
+            "QTabBar::tab:last{\n"
+            "    border-top-right-radius: 10px;\n"
+            "    border-bottom-right-radius: 10px;\n"
+            "}\n"
+            "QTabBar::tab:first{\n"
+            "    border-top-left-radius: 10px;\n"
+            "    border-bottom-left-radius: 10px;\n"
+            "}\n"
+            " QTabBar::tab:!selected {  \n"
+            "    margin-top: 1px;\n"
+            "    padding-top: 3px;\n"
+            " }  "))
         self.horizontalLayout_2 = QtGui.QHBoxLayout(xrs_mask_widget)
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
         self.splitter = QtGui.QSplitter(xrs_mask_widget)
@@ -54,7 +150,7 @@ class Ui_xrs_mask_widget(object):
         self.widget.setMaximumSize(QtCore.QSize(200, 16777215))
         self.widget.setObjectName(_fromUtf8("widget"))
         self.verticalLayout_2 = QtGui.QVBoxLayout(self.widget)
-        self.verticalLayout_2.setSpacing(5)
+        self.verticalLayout_2.setSpacing(8)
         self.verticalLayout_2.setMargin(0)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
@@ -75,17 +171,22 @@ class Ui_xrs_mask_widget(object):
         self.line_2.setObjectName(_fromUtf8("line_2"))
         self.verticalLayout_2.addWidget(self.line_2)
         self.gridLayout = QtGui.QGridLayout()
+        self.gridLayout.setSpacing(8)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.circle_btn = QtGui.QPushButton(self.widget)
         self.circle_btn.setCheckable(True)
+        self.circle_btn.setChecked(True)
+        self.circle_btn.setFlat(True)
         self.circle_btn.setObjectName(_fromUtf8("circle_btn"))
         self.gridLayout.addWidget(self.circle_btn, 0, 0, 1, 1)
         self.rectangle_btn = QtGui.QPushButton(self.widget)
         self.rectangle_btn.setCheckable(True)
+        self.rectangle_btn.setFlat(True)
         self.rectangle_btn.setObjectName(_fromUtf8("rectangle_btn"))
         self.gridLayout.addWidget(self.rectangle_btn, 0, 1, 1, 1)
         self.point_btn = QtGui.QPushButton(self.widget)
         self.point_btn.setCheckable(True)
+        self.point_btn.setFlat(True)
         self.point_btn.setObjectName(_fromUtf8("point_btn"))
         self.gridLayout.addWidget(self.point_btn, 1, 0, 1, 1)
         self.point_size_sb = QtGui.QSpinBox(self.widget)
@@ -96,6 +197,7 @@ class Ui_xrs_mask_widget(object):
         self.gridLayout.addWidget(self.point_size_sb, 1, 1, 1, 1)
         self.polygon_btn = QtGui.QPushButton(self.widget)
         self.polygon_btn.setCheckable(True)
+        self.polygon_btn.setFlat(True)
         self.polygon_btn.setObjectName(_fromUtf8("polygon_btn"))
         self.gridLayout.addWidget(self.polygon_btn, 2, 0, 1, 2)
         self.verticalLayout_2.addLayout(self.gridLayout)
@@ -106,15 +208,18 @@ class Ui_xrs_mask_widget(object):
         self.line.setObjectName(_fromUtf8("line"))
         self.verticalLayout_2.addWidget(self.line)
         self.gridLayout_2 = QtGui.QGridLayout()
+        self.gridLayout_2.setSpacing(8)
         self.gridLayout_2.setObjectName(_fromUtf8("gridLayout_2"))
         self.below_thresh_txt = QtGui.QLineEdit(self.widget)
         self.below_thresh_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.below_thresh_txt.setObjectName(_fromUtf8("below_thresh_txt"))
         self.gridLayout_2.addWidget(self.below_thresh_txt, 1, 1, 1, 1)
         self.below_thresh_btn = QtGui.QPushButton(self.widget)
+        self.below_thresh_btn.setFlat(True)
         self.below_thresh_btn.setObjectName(_fromUtf8("below_thresh_btn"))
         self.gridLayout_2.addWidget(self.below_thresh_btn, 1, 0, 1, 1)
         self.cosmic_btn = QtGui.QPushButton(self.widget)
+        self.cosmic_btn.setFlat(True)
         self.cosmic_btn.setObjectName(_fromUtf8("cosmic_btn"))
         self.gridLayout_2.addWidget(self.cosmic_btn, 2, 0, 1, 2)
         self.above_thresh_txt = QtGui.QLineEdit(self.widget)
@@ -122,6 +227,7 @@ class Ui_xrs_mask_widget(object):
         self.above_thresh_txt.setObjectName(_fromUtf8("above_thresh_txt"))
         self.gridLayout_2.addWidget(self.above_thresh_txt, 0, 1, 1, 1)
         self.above_thresh_btn = QtGui.QPushButton(self.widget)
+        self.above_thresh_btn.setFlat(True)
         self.above_thresh_btn.setObjectName(_fromUtf8("above_thresh_btn"))
         self.gridLayout_2.addWidget(self.above_thresh_btn, 0, 0, 1, 1)
         self.verticalLayout_2.addLayout(self.gridLayout_2)
@@ -131,17 +237,22 @@ class Ui_xrs_mask_widget(object):
         self.line_5.setObjectName(_fromUtf8("line_5"))
         self.verticalLayout_2.addWidget(self.line_5)
         self.gridLayout_4 = QtGui.QGridLayout()
+        self.gridLayout_4.setSpacing(8)
         self.gridLayout_4.setObjectName(_fromUtf8("gridLayout_4"))
         self.invert_mask_btn = QtGui.QPushButton(self.widget)
+        self.invert_mask_btn.setFlat(True)
         self.invert_mask_btn.setObjectName(_fromUtf8("invert_mask_btn"))
         self.gridLayout_4.addWidget(self.invert_mask_btn, 0, 0, 1, 1)
         self.clear_mask_btn = QtGui.QPushButton(self.widget)
+        self.clear_mask_btn.setFlat(True)
         self.clear_mask_btn.setObjectName(_fromUtf8("clear_mask_btn"))
         self.gridLayout_4.addWidget(self.clear_mask_btn, 0, 1, 1, 1)
         self.undo_btn = QtGui.QPushButton(self.widget)
+        self.undo_btn.setFlat(True)
         self.undo_btn.setObjectName(_fromUtf8("undo_btn"))
         self.gridLayout_4.addWidget(self.undo_btn, 1, 0, 1, 1)
         self.redo_btn = QtGui.QPushButton(self.widget)
+        self.redo_btn.setFlat(True)
         self.redo_btn.setObjectName(_fromUtf8("redo_btn"))
         self.gridLayout_4.addWidget(self.redo_btn, 1, 1, 1, 1)
         self.verticalLayout_2.addLayout(self.gridLayout_4)
@@ -166,14 +277,18 @@ class Ui_xrs_mask_widget(object):
         spacerItem1 = QtGui.QSpacerItem(228, 224, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem1)
         self.gridLayout_3 = QtGui.QGridLayout()
+        self.gridLayout_3.setVerticalSpacing(8)
         self.gridLayout_3.setObjectName(_fromUtf8("gridLayout_3"))
         self.save_mask_btn = QtGui.QPushButton(self.widget)
+        self.save_mask_btn.setFlat(True)
         self.save_mask_btn.setObjectName(_fromUtf8("save_mask_btn"))
         self.gridLayout_3.addWidget(self.save_mask_btn, 0, 0, 1, 2)
         self.load_mask_btn = QtGui.QPushButton(self.widget)
+        self.load_mask_btn.setFlat(True)
         self.load_mask_btn.setObjectName(_fromUtf8("load_mask_btn"))
         self.gridLayout_3.addWidget(self.load_mask_btn, 1, 0, 1, 1)
         self.add_mask_btn = QtGui.QPushButton(self.widget)
+        self.add_mask_btn.setFlat(True)
         self.add_mask_btn.setObjectName(_fromUtf8("add_mask_btn"))
         self.gridLayout_3.addWidget(self.add_mask_btn, 1, 1, 1, 1)
         self.verticalLayout_2.addLayout(self.gridLayout_3)

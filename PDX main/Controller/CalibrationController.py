@@ -285,7 +285,7 @@ class CalibrationController(object):
             self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
             self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th()) /
                                                         np.pi * 180)
-            self.view.spectrum_view.img_view_box.autoRange()
+            self.view.spectrum_view.view_box.autoRange()
             if self.view.tab_widget.currentIndex() == 0:
                 self.view.tab_widget.setCurrentIndex(1)
 
