@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -99,6 +99,6 @@ if __name__ == "__main__":
     controller.spectrum_controller._working_dir = '../ExampleData/spectra'
     controller.mask_data.set_dimension(controller.img_data.get_img_data().shape)
     controller.overlay_controller.add_overlay('../ExampleData/spectra/Mg2SiO4_ambient_005.xy')
-    controller.calibration_data.load('../ExampleData/calibration.poni')
+    controller.calibration_data.load('../ExampleData/test.poni')
     controller.image_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
     app.exec_()
