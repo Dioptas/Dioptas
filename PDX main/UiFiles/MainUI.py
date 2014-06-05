@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Wed Jun  4 23:24:54 2014
-# by: PyQt4 UI code generator 4.10.4
+# Created: Thu Jun 05 10:39:05 2014
+#      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -17,63 +17,67 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
-
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
-
 class Ui_mainView(object):
     def setupUi(self, mainView):
         mainView.setObjectName(_fromUtf8("mainView"))
         mainView.resize(1063, 669)
-        mainView.setStyleSheet(_fromUtf8("#mainView{  \n"
-                                         "     background: #3C3C3C;      \n"
-                                         " }  \n"
-                                         "   "))
+        mainView.setStyleSheet(_fromUtf8("#mainView, #calibration_tab, #mask_tab, #integration_tab {  \n"
+"     background: #3C3C3C;      \n"
+"    border: 5px solid #3C3C3C;\n"
+" }  \n"
+"\n"
+""))
         self.gridLayout = QtGui.QGridLayout(mainView)
         self.gridLayout.setMargin(5)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.tabWidget = QtGui.QTabWidget(mainView)
         self.tabWidget.setStyleSheet(_fromUtf8("QTabWidget::tab-bar{ \n"
-                                               "}\n"
-                                               "\n"
-                                               "QTabBar::tab {  \n"
-                                               "     background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
-                                               "     border: 1px solid  #5B5B5B;  \n"
-                                               "\n"
-                                               "     border-radius:2px;\n"
-                                               "     padding-right: 10px;  \n"
-                                               "     color: #FFF;  \n"
-                                               "     width: 18px;  \n"
-                                               "    height: 80px;\n"
-                                               "    padding: 4px;\n"
-                                               " }  \n"
-                                               "   \n"
-                                               " QTabBar::tab:hover {  \n"
-                                               "     border-color: #ADADAD;  \n"
-                                               "    border-left: 1px solid #ADADAD;\n"
-                                               " }  \n"
-                                               "   \n"
-                                               " QTabBar::tab:selected {  \n"
-                                               "     border:1px solid  #ADADAD; \n"
-                                               "     border-left: 1px solid #ADADAD;\n"
-                                               "    margin-left: 1px;\n"
-                                               " }     \n"
-                                               "QTabBar::tab:last{\n"
-                                               "    border-bottom-left-radius: 10px;\n"
-                                               "    border-bottom-right-radius: 10px;\n"
-                                               "}\n"
-                                               "QTabBar::tab:first{\n"
-                                               "    border-top-left-radius: 10px;\n"
-                                               "    border-top-right-radius: 10px;\n"
-                                               "}\n"
-                                               " QTabBar::tab:!selected {  \n"
-                                               "    margin-left: 1px;\n"
-                                               "    padding-left: 2px;\n"
-                                               " }  "))
+"    alignment: center;\n"
+"}\n"
+"\n"
+"QTabWidget::pane{    \n"
+"    border: 2px solid #505050;\n"
+"    border-style: inset;\n"
+"}\n"
+"\n"
+"QTabBar::tab {  \n"
+"     background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
+"     border: 1px solid  #5B5B5B;  \n"
+"    font: bold 14px;\n"
+"    color: #F1F1F1;\n"
+"     border-radius:2px;\n"
+"    padding-right: 4px;\n"
+"     width: 20px;  \n"
+"    height:130px;\n"
+" }  \n"
+"   \n"
+" QTabBar::tab:hover {  \n"
+"     border-color: #ADADAD;  \n"
+"    border: 1px solid #ADADAD;\n"
+" }  \n"
+"   \n"
+" QTabBar::tab:selected {  \n"
+"     border:1px solid  #ADADAD; \n"
+"    margin-right: -5px;\n"
+"    width: 25px;\n"
+"    \n"
+" }     \n"
+"QTabBar::tab:last{\n"
+"    border-bottom-left-radius: 10px;\n"
+"    border-bottom-right-radius: 10px;\n"
+"}\n"
+"QTabBar::tab:first{\n"
+"    border-top-left-radius: 10px;\n"
+"    border-top-right-radius: 10px;\n"
+"}\n"
+" QTabBar::tab:!selected {  \n"
+" }  "))
         self.tabWidget.setTabPosition(QtGui.QTabWidget.West)
         self.tabWidget.setTabShape(QtGui.QTabWidget.Rounded)
         self.tabWidget.setElideMode(QtCore.Qt.ElideLeft)
@@ -90,14 +94,12 @@ class Ui_mainView(object):
         self.gridLayout.addWidget(self.tabWidget, 0, 0, 1, 1)
 
         self.retranslateUi(mainView)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(mainView)
 
     def retranslateUi(self, mainView):
         mainView.setWindowTitle(_translate("mainView", "Form", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.calibration_tab),
-                                  _translate("mainView", "Calibration", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.calibration_tab), _translate("mainView", "Calibration", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.mask_tab), _translate("mainView", "Mask", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.integration_tab),
-                                  _translate("mainView", "Integration", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.integration_tab), _translate("mainView", "Integration", None))
 

@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Calibration.ui'
 #
-# Created: Wed Jun  4 23:24:54 2014
-# by: PyQt4 UI code generator 4.10.4
+# Created: Thu Jun 05 10:39:04 2014
+#      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -26,111 +26,141 @@ except AttributeError:
 class Ui_XrsCalibrationWidget(object):
     def setupUi(self, XrsCalibrationWidget):
         XrsCalibrationWidget.setObjectName(_fromUtf8("XrsCalibrationWidget"))
-        XrsCalibrationWidget.resize(895, 458)
+        XrsCalibrationWidget.resize(946, 677)
         XrsCalibrationWidget.setMinimumSize(QtCore.QSize(5, 5))
-        XrsCalibrationWidget.setStyleSheet(_fromUtf8(
-            "#XrsCalibrationWidget, #start_values, #page, #pyFAI, #fit2d, QTabWidget, QTabWidget::tab-bar,  QTabWidget::panel, QToolBox::panel{  \n"
-            "     background: #3C3C3C;      \n"
-            " }  \n"
-            "   \n"
-            " QLabel , QCheckBox, QGroupBox, QRadioButton, QListWidget::item, QPushButton, QToolBox::tab, QSpinBox, QDoubleSpinBox  {  \n"
-            "     color: #F1F1F1;\n"
-            "    \n"
-            "    font-size: 12px;\n"
-            " }  \n"
-            " QCheckBox{  \n"
-            "     border-radius: 5px;  \n"
-            " }  \n"
-            " QRadioButton {  \n"
-            "     font-weight: normal;  \n"
-            " }  \n"
-            "   \n"
-            " QLineEdit  {  \n"
-            "     border-radius: 2px;  \n"
-            "     background: #F1F1F1;  \n"
-            "     color: black;  \n"
-            "    margin-left:3px;\n"
-            " }  \n"
-            "QSpinBox, QDoubleSpinBox {\n"
-            "    background-color:  #F1F1F1;\n"
-            "    color: black;\n"
-            "}\n"
-            "\n"
-            "QComboBox {\n"
-            "    margin-left: 1px;\n"
-            "    padding-left: 10px;\n"
-            "    height: 23px;\n"
-            "}\n"
-            "\n"
-            "  \n"
-            "QPushButton{  \n"
-            "     background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);\n"
-            "     border: 1px solid #5B5B5B;\n"
-            "     border-radius: 5px; \n"
-            "     padding-left: 8px;\n"
-            "    padding-right: 8px;  \n"
-            "    padding-bottom: 4px; \n"
-            "    padding-top: 4px;\n"
-            " }  \n"
-            "\n"
-            "QPushButton::disabled{\n"
-            "}\n"
-            "\n"
-            "QPushButton::hover{  \n"
-            "     border:1px solid #ADADAD;  \n"
-            "     padding: 5px;  \n"
-            " }  \n"
-            " \n"
-            "QPushButton::checked{\n"
-            "    background-color: #111111;\n"
-            "}\n"
-            " QGroupBox {  \n"
-            "     border: 1px solid #ADADAD;  \n"
-            "     border-radius: 4px;  \n"
-            "     margin-top: 7px;  \n"
-            "     padding: 0px  \n"
-            " }  \n"
-            " QGroupBox::title {  \n"
-            "      subcontrol-origin: margin;  \n"
-            "      left: 20px  \n"
-            "  }\n"
-            "\n"
-            "\n"
-            "\n"
-            "QTabBar::tab {  \n"
-            "     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
-            "     border: 1px solid  #5B5B5B;  \n"
-            "\n"
-            "     border-radius:2px;\n"
-            "     padding-right: 10px;  \n"
-            "     color: #FFF;  \n"
-            "     width: 80px;  \n"
-            "    height: 13px;\n"
-            "    padding: 3px;\n"
-            "    padding-bottom: 5px;\n"
-            "     margin-top: 1px ;\n"
-            " }  \n"
-            "   \n"
-            " QTabBar::tab:hover {  \n"
-            "     border: 1px solid #ADADAD;  \n"
-            " }  \n"
-            "   \n"
-            " QTabBar::tab:selected {  \n"
-            "     border:1px solid  #ADADAD;  \n"
-            "}\n"
-            "QTabBar::tab:last{\n"
-            "    border-top-right-radius: 10px;\n"
-            "    border-bottom-right-radius: 10px;\n"
-            "}\n"
-            "QTabBar::tab:first{\n"
-            "    border-top-left-radius: 10px;\n"
-            "    border-bottom-left-radius: 10px;\n"
-            "}\n"
-            " QTabBar::tab:!selected {  \n"
-            "    margin-top: 1px;\n"
-            "    padding-top: 3px;\n"
-            " }  "))
+        XrsCalibrationWidget.setStyleSheet(_fromUtf8("#XrsCalibrationWidget, #start_values, #page, #pyFAI, #fit2d, QTabWidget, QTabWidget::tab-bar,  QTabWidget::panel, QToolBox::panel, QWidget#XrsCalibrationWidget, QWidget{  \n"
+"     background: #3C3C3C;      \n"
+" }  \n"
+" QGraphicsView {\n"
+"    border-style: none;\n"
+"}\n"
+"\n"
+" QLabel , QCheckBox, QGroupBox, QRadioButton, QListWidget::item, QPushButton, QToolBox::tab, QSpinBox, QDoubleSpinBox , QComboBox{  \n"
+"     color: #F1F1F1; \n"
+"    font-size: 12px;\n"
+" }  \n"
+" QCheckBox{  \n"
+"     border-radius: 5px;  \n"
+" }  \n"
+" QRadioButton {  \n"
+"     font-weight: normal;  \n"
+" }  \n"
+"   \n"
+" QLineEdit  {  \n"
+"     border-radius: 2px;  \n"
+"     background: #F1F1F1;  \n"
+"     color: black;  \n"
+"    margin-left:3px;\n"
+" }  \n"
+"QSpinBox, QDoubleSpinBox {\n"
+"    background-color:  #F1F1F1;\n"
+"    color: black;\n"
+"}\n"
+"\n"
+"QComboBox {\n"
+"    margin-left: 1px;\n"
+"    padding-left: 10px;\n"
+"    height: 23px;\n"
+"}\n"
+"\n"
+" QComboBox QAbstractItemView {\n"
+"    color:  #F1F1F1;\n"
+" }\n"
+"\n"
+"  \n"
+"QPushButton{  \n"
+"     background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);\n"
+"     border: 1px solid #5B5B5B;\n"
+"     border-radius: 5px; \n"
+"    height: 18px;\n"
+"     padding-left: 8px;\n"
+"    padding-right: 8px;  \n"
+"    padding-bottom: 4px; \n"
+"    padding-top: 4px;\n"
+" }  \n"
+"QPushButton:pressed{\n"
+"        margin-top: 2,px;\n"
+"    margin-left: 2px;\n"
+"}\n"
+"QPushButton::disabled{\n"
+"}\n"
+"\n"
+"QPushButton::hover{  \n"
+"     border:1px solid #ADADAD;  \n"
+"     padding: 5px;  \n"
+" }  \n"
+" \n"
+"QPushButton::checked{\n"
+"    background-color: #111111;\n"
+"}\n"
+"QPushButton::focus {\n"
+"    outline: None;\n"
+"}\n"
+" QGroupBox {  \n"
+"     border: 1px solid #ADADAD;  \n"
+"     border-radius: 4px;  \n"
+"     margin-top: 7px;  \n"
+"     padding: 0px  \n"
+" }  \n"
+" QGroupBox::title {  \n"
+"      subcontrol-origin: margin;  \n"
+"      left: 20px  \n"
+"  }\n"
+"\n"
+"QSplitter::handle:hover {\n"
+"    background: #3C3C3C;\n"
+" }\n"
+"\n"
+"\n"
+"QGraphicsView{\n"
+"    border-style: none;\n"
+"}\n"
+"\n"
+"\n"
+"QTabWidget::tab-bar {\n"
+"    alignment: center;\n"
+"}\n"
+"\n"
+"QTabBar::tab, QToolBox::tab:QToolButton {  \n"
+"     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
+"     border: 1px solid  #5B5B5B;  \n"
+"\n"
+"     border-radius:2px;\n"
+"     padding-right: 10px;  \n"
+"    \n"
+"      color: #F1F1F1; \n"
+"    font-size: 13px;\n"
+"     width: 80px;  \n"
+"    height: 15px;\n"
+"    padding: 3px;\n"
+"    padding-bottom: 4px;\n"
+"     margin-top: 1px ;\n"
+" }  \n"
+"   \n"
+" QTabBar::tab:hover, QToolBox::tab:QToolButton:hover {  \n"
+"     border: 1px solid #ADADAD;  \n"
+" }  \n"
+"   \n"
+" QTabBar::tab:selected,  QToolBox::tab:QToolButton:selected {  \n"
+"     border:1px solid  #ADADAD;  \n"
+"}\n"
+"QTabBar::tab:last{\n"
+"    border-top-right-radius: 10px;\n"
+"    border-bottom-right-radius: 10px;\n"
+"}\n"
+"QTabBar::tab:first{\n"
+"    border-top-left-radius: 10px;\n"
+"    border-bottom-left-radius: 10px;\n"
+"}\n"
+" QTabBar::tab:!selected {  \n"
+"    margin-top: 1px;\n"
+"    padding-top:1px;\n"
+" }  \n"
+"\n"
+""))
         self.horizontalLayout_8 = QtGui.QHBoxLayout(XrsCalibrationWidget)
+        self.horizontalLayout_8.setSpacing(8)
+        self.horizontalLayout_8.setMargin(8)
         self.horizontalLayout_8.setObjectName(_fromUtf8("horizontalLayout_8"))
         self.splitter = QtGui.QSplitter(XrsCalibrationWidget)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
@@ -179,21 +209,22 @@ class Ui_XrsCalibrationWidget(object):
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
         self.integrate_btn = QtGui.QPushButton(self.layoutWidget)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Fixed)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.integrate_btn.sizePolicy().hasHeightForWidth())
         self.integrate_btn.setSizePolicy(sizePolicy)
-        self.integrate_btn.setMinimumSize(QtCore.QSize(120, 0))
+        self.integrate_btn.setMinimumSize(QtCore.QSize(140, 0))
         self.integrate_btn.setFlat(True)
         self.integrate_btn.setObjectName(_fromUtf8("integrate_btn"))
         self.horizontalLayout_4.addWidget(self.integrate_btn)
         self.refine_btn = QtGui.QPushButton(self.layoutWidget)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.refine_btn.sizePolicy().hasHeightForWidth())
         self.refine_btn.setSizePolicy(sizePolicy)
+        self.refine_btn.setMinimumSize(QtCore.QSize(140, 0))
         self.refine_btn.setFlat(True)
         self.refine_btn.setObjectName(_fromUtf8("refine_btn"))
         self.horizontalLayout_4.addWidget(self.refine_btn)
@@ -214,14 +245,14 @@ class Ui_XrsCalibrationWidget(object):
         self.load_file_btn.setObjectName(_fromUtf8("load_file_btn"))
         self.verticalLayout_4.addWidget(self.load_file_btn)
         self.filename_lbl = QtGui.QLabel(self.layoutWidget1)
-        self.filename_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.filename_lbl.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.filename_lbl.setObjectName(_fromUtf8("filename_lbl"))
         self.verticalLayout_4.addWidget(self.filename_lbl)
         self.ToolBox = QtGui.QToolBox(self.layoutWidget1)
         self.ToolBox.setMinimumSize(QtCore.QSize(280, 0))
         self.ToolBox.setObjectName(_fromUtf8("ToolBox"))
         self.start_values = QtGui.QWidget()
-        self.start_values.setGeometry(QtCore.QRect(0, 0, 311, 304))
+        self.start_values.setGeometry(QtCore.QRect(0, 0, 376, 450))
         self.start_values.setObjectName(_fromUtf8("start_values"))
         self.verticalLayout = QtGui.QVBoxLayout(self.start_values)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
@@ -230,25 +261,25 @@ class Ui_XrsCalibrationWidget(object):
         self.gridLayout.setVerticalSpacing(12)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.label_3 = QtGui.QLabel(self.start_values)
-        self.label_3.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_3.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_3.setObjectName(_fromUtf8("label_3"))
         self.gridLayout.addWidget(self.label_3, 3, 0, 1, 1)
         self.label_8 = QtGui.QLabel(self.start_values)
         self.label_8.setObjectName(_fromUtf8("label_8"))
         self.gridLayout.addWidget(self.label_8, 3, 2, 1, 1)
         self.label_4 = QtGui.QLabel(self.start_values)
-        self.label_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_4.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_4.setObjectName(_fromUtf8("label_4"))
         self.gridLayout.addWidget(self.label_4, 4, 0, 1, 1)
         self.sv_pixel_height_txt = QtGui.QLineEdit(self.start_values)
-        self.sv_pixel_height_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.sv_pixel_height_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.sv_pixel_height_txt.setObjectName(_fromUtf8("sv_pixel_height_txt"))
         self.gridLayout.addWidget(self.sv_pixel_height_txt, 4, 1, 1, 1)
         self.label_9 = QtGui.QLabel(self.start_values)
         self.label_9.setObjectName(_fromUtf8("label_9"))
         self.gridLayout.addWidget(self.label_9, 4, 2, 1, 1)
         self.label_5 = QtGui.QLabel(self.start_values)
-        self.label_5.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_5.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_5.setObjectName(_fromUtf8("label_5"))
         self.gridLayout.addWidget(self.label_5, 6, 0, 1, 1)
         self.calibrant_cb = QtGui.QComboBox(self.start_values)
@@ -257,37 +288,37 @@ class Ui_XrsCalibrationWidget(object):
         self.calibrant_cb.setObjectName(_fromUtf8("calibrant_cb"))
         self.gridLayout.addWidget(self.calibrant_cb, 6, 1, 1, 2)
         self.sv_pixel_width_txt = QtGui.QLineEdit(self.start_values)
-        self.sv_pixel_width_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.sv_pixel_width_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.sv_pixel_width_txt.setObjectName(_fromUtf8("sv_pixel_width_txt"))
         self.gridLayout.addWidget(self.sv_pixel_width_txt, 3, 1, 1, 1)
         self.label = QtGui.QLabel(self.start_values)
-        self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label.setObjectName(_fromUtf8("label"))
         self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
         self.sv_distance_txt = QtGui.QLineEdit(self.start_values)
-        self.sv_distance_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.sv_distance_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.sv_distance_txt.setObjectName(_fromUtf8("sv_distance_txt"))
         self.gridLayout.addWidget(self.sv_distance_txt, 0, 1, 1, 1)
         self.label_6 = QtGui.QLabel(self.start_values)
         self.label_6.setObjectName(_fromUtf8("label_6"))
         self.gridLayout.addWidget(self.label_6, 0, 2, 1, 1)
         self.label_2 = QtGui.QLabel(self.start_values)
-        self.label_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_2.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_2.setObjectName(_fromUtf8("label_2"))
         self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
         self.sv_wavelength_txt = QtGui.QLineEdit(self.start_values)
-        self.sv_wavelength_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.sv_wavelength_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.sv_wavelength_txt.setObjectName(_fromUtf8("sv_wavelength_txt"))
         self.gridLayout.addWidget(self.sv_wavelength_txt, 1, 1, 1, 1)
         self.label_7 = QtGui.QLabel(self.start_values)
         self.label_7.setObjectName(_fromUtf8("label_7"))
         self.gridLayout.addWidget(self.label_7, 1, 2, 1, 1)
         self.sv_polarization_txt = QtGui.QLineEdit(self.start_values)
-        self.sv_polarization_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.sv_polarization_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.sv_polarization_txt.setObjectName(_fromUtf8("sv_polarization_txt"))
         self.gridLayout.addWidget(self.sv_polarization_txt, 2, 1, 1, 1)
         self.label_14 = QtGui.QLabel(self.start_values)
-        self.label_14.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_14.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_14.setObjectName(_fromUtf8("label_14"))
         self.gridLayout.addWidget(self.label_14, 2, 0, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
@@ -318,7 +349,7 @@ class Ui_XrsCalibrationWidget(object):
         self.verticalLayout.addItem(spacerItem1)
         self.ToolBox.addItem(self.start_values, _fromUtf8(""))
         self.page = QtGui.QWidget()
-        self.page.setGeometry(QtCore.QRect(0, 0, 311, 412))
+        self.page.setGeometry(QtCore.QRect(0, 0, 376, 450))
         self.page.setObjectName(_fromUtf8("page"))
         self.verticalLayout_5 = QtGui.QVBoxLayout(self.page)
         self.verticalLayout_5.setSpacing(8)
@@ -333,7 +364,7 @@ class Ui_XrsCalibrationWidget(object):
         self.label_10.setObjectName(_fromUtf8("label_10"))
         self.gridLayout_2.addWidget(self.label_10, 0, 1, 1, 2)
         self.peak_num_sb = QtGui.QSpinBox(self.page)
-        self.peak_num_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.peak_num_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.peak_num_sb.setMinimum(1)
         self.peak_num_sb.setObjectName(_fromUtf8("peak_num_sb"))
         self.gridLayout_2.addWidget(self.peak_num_sb, 0, 3, 1, 1)
@@ -359,11 +390,11 @@ class Ui_XrsCalibrationWidget(object):
         self.horizontalLayout_9 = QtGui.QHBoxLayout()
         self.horizontalLayout_9.setObjectName(_fromUtf8("horizontalLayout_9"))
         self.label_13 = QtGui.QLabel(self.page)
-        self.label_13.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_13.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_13.setObjectName(_fromUtf8("label_13"))
         self.horizontalLayout_9.addWidget(self.label_13)
         self.search_size_sb = QtGui.QSpinBox(self.page)
-        self.search_size_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.search_size_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.search_size_sb.setMaximum(9000)
         self.search_size_sb.setProperty("value", 10)
         self.search_size_sb.setObjectName(_fromUtf8("search_size_sb"))
@@ -403,44 +434,42 @@ class Ui_XrsCalibrationWidget(object):
         self.options_peaksearch_algorithm_cb.addItem(_fromUtf8(""))
         self.gridLayout_5.addWidget(self.options_peaksearch_algorithm_cb, 0, 1, 1, 1)
         self.label_25 = QtGui.QLabel(self.groupBox)
-        self.label_25.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_25.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_25.setObjectName(_fromUtf8("label_25"))
         self.gridLayout_5.addWidget(self.label_25, 2, 0, 1, 1)
         self.options_num_rings_sb = QtGui.QSpinBox(self.groupBox)
-        self.options_num_rings_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.options_num_rings_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.options_num_rings_sb.setProperty("value", 15)
         self.options_num_rings_sb.setObjectName(_fromUtf8("options_num_rings_sb"))
         self.gridLayout_5.addWidget(self.options_num_rings_sb, 4, 1, 1, 1)
         self.options_intensity_limit_txt = QtGui.QLineEdit(self.groupBox)
-        self.options_intensity_limit_txt.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.options_intensity_limit_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.options_intensity_limit_txt.setObjectName(_fromUtf8("options_intensity_limit_txt"))
         self.gridLayout_5.addWidget(self.options_intensity_limit_txt, 3, 1, 1, 1)
         self.label_18 = QtGui.QLabel(self.groupBox)
-        self.label_18.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_18.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_18.setObjectName(_fromUtf8("label_18"))
         self.gridLayout_5.addWidget(self.label_18, 1, 0, 1, 1)
         self.label_23 = QtGui.QLabel(self.groupBox)
-        self.label_23.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_23.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_23.setObjectName(_fromUtf8("label_23"))
         self.gridLayout_5.addWidget(self.label_23, 3, 0, 1, 1)
         self.options_delta_tth_txt = QtGui.QLineEdit(self.groupBox)
-        self.options_delta_tth_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.options_delta_tth_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.options_delta_tth_txt.setObjectName(_fromUtf8("options_delta_tth_txt"))
         self.gridLayout_5.addWidget(self.options_delta_tth_txt, 1, 1, 1, 1)
         self.options_intensity_mean_factor_sb = QtGui.QDoubleSpinBox(self.groupBox)
-        self.options_intensity_mean_factor_sb.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.options_intensity_mean_factor_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.options_intensity_mean_factor_sb.setSingleStep(1.0)
         self.options_intensity_mean_factor_sb.setProperty("value", 3.0)
         self.options_intensity_mean_factor_sb.setObjectName(_fromUtf8("options_intensity_mean_factor_sb"))
         self.gridLayout_5.addWidget(self.options_intensity_mean_factor_sb, 2, 1, 1, 1)
         self.label_17 = QtGui.QLabel(self.groupBox)
-        self.label_17.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_17.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_17.setObjectName(_fromUtf8("label_17"))
         self.gridLayout_5.addWidget(self.label_17, 0, 0, 1, 1)
         self.label_24 = QtGui.QLabel(self.groupBox)
-        self.label_24.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_24.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_24.setObjectName(_fromUtf8("label_24"))
         self.gridLayout_5.addWidget(self.label_24, 4, 0, 1, 1)
         self.verticalLayout_3.addWidget(self.groupBox)
@@ -449,7 +478,7 @@ class Ui_XrsCalibrationWidget(object):
         self.verticalLayout_5.addItem(spacerItem5)
         self.ToolBox.addItem(self.page, _fromUtf8(""))
         self.pyFAI = QtGui.QWidget()
-        self.pyFAI.setGeometry(QtCore.QRect(0, 0, 311, 330))
+        self.pyFAI.setGeometry(QtCore.QRect(0, 0, 376, 450))
         self.pyFAI.setObjectName(_fromUtf8("pyFAI"))
         self.gridLayout_3 = QtGui.QGridLayout(self.pyFAI)
         self.gridLayout_3.setMargin(8)
@@ -464,23 +493,23 @@ class Ui_XrsCalibrationWidget(object):
         self.gridLayout_3.addWidget(self.label_20, 0, 2, 1, 1)
         self.pf_distance_txt = QtGui.QLineEdit(self.pyFAI)
         self.pf_distance_txt.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.pf_distance_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_distance_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_distance_txt.setObjectName(_fromUtf8("pf_distance_txt"))
         self.gridLayout_3.addWidget(self.pf_distance_txt, 0, 1, 1, 1)
         self.pf_wavelength_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_wavelength_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_wavelength_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_wavelength_txt.setObjectName(_fromUtf8("pf_wavelength_txt"))
         self.gridLayout_3.addWidget(self.pf_wavelength_txt, 1, 1, 1, 1)
         self.label_22 = QtGui.QLabel(self.pyFAI)
-        self.label_22.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_22.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_22.setObjectName(_fromUtf8("label_22"))
         self.gridLayout_3.addWidget(self.label_22, 1, 0, 1, 1)
         self.label_21 = QtGui.QLabel(self.pyFAI)
-        self.label_21.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_21.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_21.setObjectName(_fromUtf8("label_21"))
         self.gridLayout_3.addWidget(self.label_21, 0, 0, 1, 1)
         self.label_27 = QtGui.QLabel(self.pyFAI)
-        self.label_27.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_27.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_27.setObjectName(_fromUtf8("label_27"))
         self.gridLayout_3.addWidget(self.label_27, 3, 0, 1, 1)
         self.pf_wavelength_cb = QtGui.QCheckBox(self.pyFAI)
@@ -488,61 +517,61 @@ class Ui_XrsCalibrationWidget(object):
         self.pf_wavelength_cb.setObjectName(_fromUtf8("pf_wavelength_cb"))
         self.gridLayout_3.addWidget(self.pf_wavelength_cb, 1, 3, 1, 1)
         self.pf_poni1_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_poni1_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_poni1_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_poni1_txt.setObjectName(_fromUtf8("pf_poni1_txt"))
         self.gridLayout_3.addWidget(self.pf_poni1_txt, 3, 1, 1, 1)
         self.label_29 = QtGui.QLabel(self.pyFAI)
         self.label_29.setObjectName(_fromUtf8("label_29"))
         self.gridLayout_3.addWidget(self.label_29, 3, 2, 1, 1)
         self.pf_poni2_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_poni2_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_poni2_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_poni2_txt.setObjectName(_fromUtf8("pf_poni2_txt"))
         self.gridLayout_3.addWidget(self.pf_poni2_txt, 4, 1, 1, 1)
         self.label_30 = QtGui.QLabel(self.pyFAI)
         self.label_30.setObjectName(_fromUtf8("label_30"))
         self.gridLayout_3.addWidget(self.label_30, 4, 2, 1, 1)
         self.label_28 = QtGui.QLabel(self.pyFAI)
-        self.label_28.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_28.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_28.setObjectName(_fromUtf8("label_28"))
         self.gridLayout_3.addWidget(self.label_28, 5, 0, 1, 1)
         self.pf_rotation1_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_rotation1_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_rotation1_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_rotation1_txt.setObjectName(_fromUtf8("pf_rotation1_txt"))
         self.gridLayout_3.addWidget(self.pf_rotation1_txt, 5, 1, 1, 1)
         self.label_31 = QtGui.QLabel(self.pyFAI)
         self.label_31.setObjectName(_fromUtf8("label_31"))
         self.gridLayout_3.addWidget(self.label_31, 5, 2, 1, 1)
         self.pf_rotation2_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_rotation2_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_rotation2_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_rotation2_txt.setObjectName(_fromUtf8("pf_rotation2_txt"))
         self.gridLayout_3.addWidget(self.pf_rotation2_txt, 6, 1, 1, 1)
         self.label_32 = QtGui.QLabel(self.pyFAI)
         self.label_32.setObjectName(_fromUtf8("label_32"))
         self.gridLayout_3.addWidget(self.label_32, 6, 2, 1, 1)
         self.pf_rotation3_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_rotation3_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_rotation3_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_rotation3_txt.setObjectName(_fromUtf8("pf_rotation3_txt"))
         self.gridLayout_3.addWidget(self.pf_rotation3_txt, 7, 1, 1, 1)
         self.label_33 = QtGui.QLabel(self.pyFAI)
         self.label_33.setObjectName(_fromUtf8("label_33"))
         self.gridLayout_3.addWidget(self.label_33, 7, 2, 1, 1)
         self.label_46 = QtGui.QLabel(self.pyFAI)
-        self.label_46.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_46.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_46.setObjectName(_fromUtf8("label_46"))
         self.gridLayout_3.addWidget(self.label_46, 8, 0, 1, 1)
         self.pf_pixel_width_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_pixel_width_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_pixel_width_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_pixel_width_txt.setObjectName(_fromUtf8("pf_pixel_width_txt"))
         self.gridLayout_3.addWidget(self.pf_pixel_width_txt, 8, 1, 1, 1)
         self.label_11 = QtGui.QLabel(self.pyFAI)
         self.label_11.setObjectName(_fromUtf8("label_11"))
         self.gridLayout_3.addWidget(self.label_11, 8, 2, 1, 1)
         self.label_47 = QtGui.QLabel(self.pyFAI)
-        self.label_47.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_47.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_47.setObjectName(_fromUtf8("label_47"))
         self.gridLayout_3.addWidget(self.label_47, 9, 0, 1, 1)
         self.pf_pixel_height_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_pixel_height_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_pixel_height_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_pixel_height_txt.setObjectName(_fromUtf8("pf_pixel_height_txt"))
         self.gridLayout_3.addWidget(self.pf_pixel_height_txt, 9, 1, 1, 1)
         self.label_12 = QtGui.QLabel(self.pyFAI)
@@ -555,16 +584,16 @@ class Ui_XrsCalibrationWidget(object):
         spacerItem6 = QtGui.QSpacerItem(20, 94, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.gridLayout_3.addItem(spacerItem6, 11, 1, 1, 1)
         self.pf_polarization_txt = QtGui.QLineEdit(self.pyFAI)
-        self.pf_polarization_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.pf_polarization_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.pf_polarization_txt.setObjectName(_fromUtf8("pf_polarization_txt"))
         self.gridLayout_3.addWidget(self.pf_polarization_txt, 2, 1, 1, 1)
         self.label_15 = QtGui.QLabel(self.pyFAI)
-        self.label_15.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_15.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_15.setObjectName(_fromUtf8("label_15"))
         self.gridLayout_3.addWidget(self.label_15, 2, 0, 1, 1)
         self.ToolBox.addItem(self.pyFAI, _fromUtf8(""))
         self.fit2d = QtGui.QWidget()
-        self.fit2d.setGeometry(QtCore.QRect(0, 0, 311, 302))
+        self.fit2d.setGeometry(QtCore.QRect(0, 0, 376, 442))
         self.fit2d.setObjectName(_fromUtf8("fit2d"))
         self.gridLayout_7 = QtGui.QGridLayout(self.fit2d)
         self.gridLayout_7.setMargin(8)
@@ -575,7 +604,7 @@ class Ui_XrsCalibrationWidget(object):
         self.label_35.setObjectName(_fromUtf8("label_35"))
         self.gridLayout_7.addWidget(self.label_35, 3, 3, 1, 1)
         self.f2_pixel_width_txt = QtGui.QLineEdit(self.fit2d)
-        self.f2_pixel_width_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_pixel_width_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_pixel_width_txt.setObjectName(_fromUtf8("f2_pixel_width_txt"))
         self.gridLayout_7.addWidget(self.f2_pixel_width_txt, 7, 1, 1, 1)
         self.label_76 = QtGui.QLabel(self.fit2d)
@@ -585,15 +614,15 @@ class Ui_XrsCalibrationWidget(object):
         self.label_77.setObjectName(_fromUtf8("label_77"))
         self.gridLayout_7.addWidget(self.label_77, 7, 3, 1, 1)
         self.label_75 = QtGui.QLabel(self.fit2d)
-        self.label_75.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_75.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_75.setObjectName(_fromUtf8("label_75"))
         self.gridLayout_7.addWidget(self.label_75, 8, 0, 1, 1)
         self.f2_pixel_height_txt = QtGui.QLineEdit(self.fit2d)
-        self.f2_pixel_height_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_pixel_height_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_pixel_height_txt.setObjectName(_fromUtf8("f2_pixel_height_txt"))
         self.gridLayout_7.addWidget(self.f2_pixel_height_txt, 8, 1, 1, 1)
         self.label_34 = QtGui.QLabel(self.fit2d)
-        self.label_34.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_34.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_34.setObjectName(_fromUtf8("label_34"))
         self.gridLayout_7.addWidget(self.label_34, 1, 0, 1, 1)
         self.label_36 = QtGui.QLabel(self.fit2d)
@@ -601,11 +630,11 @@ class Ui_XrsCalibrationWidget(object):
         self.gridLayout_7.addWidget(self.label_36, 0, 3, 1, 1)
         self.f2_distance_txt = QtGui.QLineEdit(self.fit2d)
         self.f2_distance_txt.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.f2_distance_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_distance_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_distance_txt.setObjectName(_fromUtf8("f2_distance_txt"))
         self.gridLayout_7.addWidget(self.f2_distance_txt, 0, 1, 1, 1)
         self.label_37 = QtGui.QLabel(self.fit2d)
-        self.label_37.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_37.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_37.setObjectName(_fromUtf8("label_37"))
         self.gridLayout_7.addWidget(self.label_37, 0, 0, 1, 1)
         self.f2_update_btn = QtGui.QPushButton(self.fit2d)
@@ -619,34 +648,34 @@ class Ui_XrsCalibrationWidget(object):
         self.f2_wavelength_cb.setObjectName(_fromUtf8("f2_wavelength_cb"))
         self.gridLayout_7.addWidget(self.f2_wavelength_cb, 1, 4, 1, 1)
         self.label_39 = QtGui.QLabel(self.fit2d)
-        self.label_39.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_39.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_39.setObjectName(_fromUtf8("label_39"))
         self.gridLayout_7.addWidget(self.label_39, 3, 0, 1, 1)
         self.f2_center_x_txt = QtGui.QLineEdit(self.fit2d)
-        self.f2_center_x_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_center_x_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_center_x_txt.setObjectName(_fromUtf8("f2_center_x_txt"))
         self.gridLayout_7.addWidget(self.f2_center_x_txt, 3, 1, 1, 1)
         self.label_41 = QtGui.QLabel(self.fit2d)
-        self.label_41.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_41.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_41.setObjectName(_fromUtf8("label_41"))
         self.gridLayout_7.addWidget(self.label_41, 4, 0, 1, 1)
         self.f2_center_y_txt = QtGui.QLineEdit(self.fit2d)
-        self.f2_center_y_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_center_y_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_center_y_txt.setObjectName(_fromUtf8("f2_center_y_txt"))
         self.gridLayout_7.addWidget(self.f2_center_y_txt, 4, 1, 1, 1)
         self.label_40 = QtGui.QLabel(self.fit2d)
         self.label_40.setObjectName(_fromUtf8("label_40"))
         self.gridLayout_7.addWidget(self.label_40, 4, 3, 1, 1)
         self.label_45 = QtGui.QLabel(self.fit2d)
-        self.label_45.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_45.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_45.setObjectName(_fromUtf8("label_45"))
         self.gridLayout_7.addWidget(self.label_45, 5, 0, 1, 1)
         self.f2_rotation_txt = QtGui.QLineEdit(self.fit2d)
-        self.f2_rotation_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_rotation_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_rotation_txt.setObjectName(_fromUtf8("f2_rotation_txt"))
         self.gridLayout_7.addWidget(self.f2_rotation_txt, 5, 1, 1, 1)
         self.f2_wavelength_txt = QtGui.QLineEdit(self.fit2d)
-        self.f2_wavelength_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_wavelength_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_wavelength_txt.setObjectName(_fromUtf8("f2_wavelength_txt"))
         self.gridLayout_7.addWidget(self.f2_wavelength_txt, 1, 1, 1, 1)
         self.label_38 = QtGui.QLabel(self.fit2d)
@@ -656,26 +685,26 @@ class Ui_XrsCalibrationWidget(object):
         self.label_44.setObjectName(_fromUtf8("label_44"))
         self.gridLayout_7.addWidget(self.label_44, 5, 3, 1, 1)
         self.label_42 = QtGui.QLabel(self.fit2d)
-        self.label_42.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_42.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_42.setObjectName(_fromUtf8("label_42"))
         self.gridLayout_7.addWidget(self.label_42, 6, 0, 1, 1)
         self.f2_tilt_txt = QtGui.QLineEdit(self.fit2d)
-        self.f2_tilt_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_tilt_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_tilt_txt.setObjectName(_fromUtf8("f2_tilt_txt"))
         self.gridLayout_7.addWidget(self.f2_tilt_txt, 6, 1, 1, 1)
         self.label_43 = QtGui.QLabel(self.fit2d)
         self.label_43.setObjectName(_fromUtf8("label_43"))
         self.gridLayout_7.addWidget(self.label_43, 6, 3, 1, 1)
         self.label_78 = QtGui.QLabel(self.fit2d)
-        self.label_78.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_78.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_78.setObjectName(_fromUtf8("label_78"))
         self.gridLayout_7.addWidget(self.label_78, 7, 0, 1, 1)
         self.f2_polarization_txt = QtGui.QLineEdit(self.fit2d)
-        self.f2_polarization_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.f2_polarization_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.f2_polarization_txt.setObjectName(_fromUtf8("f2_polarization_txt"))
         self.gridLayout_7.addWidget(self.f2_polarization_txt, 2, 1, 1, 1)
         self.label_16 = QtGui.QLabel(self.fit2d)
-        self.label_16.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_16.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_16.setObjectName(_fromUtf8("label_16"))
         self.gridLayout_7.addWidget(self.label_16, 2, 0, 1, 1)
         self.ToolBox.addItem(self.fit2d, _fromUtf8(""))
@@ -695,10 +724,8 @@ class Ui_XrsCalibrationWidget(object):
 
         self.retranslateUi(XrsCalibrationWidget)
         self.tab_widget.setCurrentIndex(0)
-        QtCore.QObject.connect(self.f2_wavelength_cb, QtCore.SIGNAL(_fromUtf8("clicked()")),
-                               self.pf_wavelength_cb.toggle)
-        QtCore.QObject.connect(self.pf_wavelength_cb, QtCore.SIGNAL(_fromUtf8("clicked()")),
-                               self.f2_wavelength_cb.toggle)
+        QtCore.QObject.connect(self.f2_wavelength_cb, QtCore.SIGNAL(_fromUtf8("clicked()")), self.pf_wavelength_cb.toggle)
+        QtCore.QObject.connect(self.pf_wavelength_cb, QtCore.SIGNAL(_fromUtf8("clicked()")), self.f2_wavelength_cb.toggle)
         QtCore.QMetaObject.connectSlotsByName(XrsCalibrationWidget)
         XrsCalibrationWidget.setTabOrder(self.sv_distance_txt, self.sv_wavelength_txt)
         XrsCalibrationWidget.setTabOrder(self.sv_wavelength_txt, self.sv_polarization_txt)
@@ -758,10 +785,8 @@ class Ui_XrsCalibrationWidget(object):
     def retranslateUi(self, XrsCalibrationWidget):
         XrsCalibrationWidget.setWindowTitle(_translate("XrsCalibrationWidget", "XRS Calibration", None))
         self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab), _translate("XrsCalibrationWidget", "Image", None))
-        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_2),
-                                   _translate("XrsCalibrationWidget", "Cake", None))
-        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_3),
-                                   _translate("XrsCalibrationWidget", "Spectrum", None))
+        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_2), _translate("XrsCalibrationWidget", "Cake", None))
+        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_3), _translate("XrsCalibrationWidget", "Spectrum", None))
         self.integrate_btn.setText(_translate("XrsCalibrationWidget", "Calibrate", None))
         self.refine_btn.setText(_translate("XrsCalibrationWidget", "Refine", None))
         self.pos_lbl.setText(_translate("XrsCalibrationWidget", "Position", None))
@@ -787,8 +812,7 @@ class Ui_XrsCalibrationWidget(object):
         self.invert_horizontal_btn.setText(_translate("XrsCalibrationWidget", "Flip horizontal", None))
         self.invert_vertical_btn.setText(_translate("XrsCalibrationWidget", "Flip vertical", None))
         self.reset_transformations_btn.setText(_translate("XrsCalibrationWidget", "Reset Transformations", None))
-        self.ToolBox.setItemText(self.ToolBox.indexOf(self.start_values),
-                                 _translate("XrsCalibrationWidget", "Start Values", None))
+        self.ToolBox.setItemText(self.ToolBox.indexOf(self.start_values), _translate("XrsCalibrationWidget", "Start Values", None))
         self.label_10.setText(_translate("XrsCalibrationWidget", "Current peaknumber:", None))
         self.automatic_peak_num_inc_cb.setText(_translate("XrsCalibrationWidget", "automatic increase", None))
         self.automatic_peak_search_rb.setText(_translate("XrsCalibrationWidget", "automatic peak  search (APS)", None))
@@ -806,8 +830,7 @@ class Ui_XrsCalibrationWidget(object):
         self.options_delta_tth_txt.setText(_translate("XrsCalibrationWidget", "0.1", None))
         self.label_17.setText(_translate("XrsCalibrationWidget", "Peaksearch algorithm:", None))
         self.label_24.setText(_translate("XrsCalibrationWidget", "Number of Rings:", None))
-        self.ToolBox.setItemText(self.ToolBox.indexOf(self.page),
-                                 _translate("XrsCalibrationWidget", "Calibration Options", None))
+        self.ToolBox.setItemText(self.ToolBox.indexOf(self.page), _translate("XrsCalibrationWidget", "Calibration Options", None))
         self.label_19.setText(_translate("XrsCalibrationWidget", "Å", None))
         self.label_20.setText(_translate("XrsCalibrationWidget", "mm", None))
         self.label_22.setText(_translate("XrsCalibrationWidget", "Wavelength:", None))
@@ -825,8 +848,7 @@ class Ui_XrsCalibrationWidget(object):
         self.label_12.setText(_translate("XrsCalibrationWidget", "μm", None))
         self.pf_update_btn.setText(_translate("XrsCalibrationWidget", "Update", None))
         self.label_15.setText(_translate("XrsCalibrationWidget", "Polarization:", None))
-        self.ToolBox.setItemText(self.ToolBox.indexOf(self.pyFAI),
-                                 _translate("XrsCalibrationWidget", "pyFAI Parameter", None))
+        self.ToolBox.setItemText(self.ToolBox.indexOf(self.pyFAI), _translate("XrsCalibrationWidget", "pyFAI Parameter", None))
         self.label_35.setText(_translate("XrsCalibrationWidget", "px", None))
         self.label_76.setText(_translate("XrsCalibrationWidget", "μm", None))
         self.label_77.setText(_translate("XrsCalibrationWidget", "μm", None))
@@ -845,8 +867,7 @@ class Ui_XrsCalibrationWidget(object):
         self.label_43.setText(_translate("XrsCalibrationWidget", "deg", None))
         self.label_78.setText(_translate("XrsCalibrationWidget", "Pixelwidth:", None))
         self.label_16.setText(_translate("XrsCalibrationWidget", "Polarization:", None))
-        self.ToolBox.setItemText(self.ToolBox.indexOf(self.fit2d),
-                                 _translate("XrsCalibrationWidget", "Fit2D Parameter", None))
+        self.ToolBox.setItemText(self.ToolBox.indexOf(self.fit2d), _translate("XrsCalibrationWidget", "Fit2D Parameter", None))
         self.load_calibration_btn.setText(_translate("XrsCalibrationWidget", "Load Calibration", None))
         self.save_calibration_btn.setText(_translate("XrsCalibrationWidget", "Save Calibration", None))
 
