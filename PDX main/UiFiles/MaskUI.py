@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Mask.ui'
 #
-# Created: Thu Jun 05 15:50:11 2014
-#      by: PyQt4 UI code generator 4.9.6
+# Created: Thu Jun  5 18:24:46 2014
+# by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -17,16 +17,18 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
+
 class Ui_xrs_mask_widget(object):
     def setupUi(self, xrs_mask_widget):
         xrs_mask_widget.setObjectName(_fromUtf8("xrs_mask_widget"))
-        xrs_mask_widget.resize(712, 527)
+        xrs_mask_widget.resize(712, 530)
         xrs_mask_widget.setStyleSheet(_fromUtf8(""))
         self.horizontalLayout_2 = QtGui.QHBoxLayout(xrs_mask_widget)
         self.horizontalLayout_2.setSpacing(0)
@@ -95,7 +97,7 @@ class Ui_xrs_mask_widget(object):
         self.point_btn.setObjectName(_fromUtf8("point_btn"))
         self.gridLayout.addWidget(self.point_btn, 1, 0, 1, 1)
         self.point_size_sb = QtGui.QSpinBox(self.widget)
-        self.point_size_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.point_size_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.point_size_sb.setMaximum(4000)
         self.point_size_sb.setProperty("value", 20)
         self.point_size_sb.setObjectName(_fromUtf8("point_size_sb"))
@@ -116,7 +118,7 @@ class Ui_xrs_mask_widget(object):
         self.gridLayout_2.setSpacing(8)
         self.gridLayout_2.setObjectName(_fromUtf8("gridLayout_2"))
         self.below_thresh_txt = QtGui.QLineEdit(self.widget)
-        self.below_thresh_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.below_thresh_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.below_thresh_txt.setObjectName(_fromUtf8("below_thresh_txt"))
         self.gridLayout_2.addWidget(self.below_thresh_txt, 1, 1, 1, 1)
         self.below_thresh_btn = QtGui.QPushButton(self.widget)
@@ -128,7 +130,7 @@ class Ui_xrs_mask_widget(object):
         self.cosmic_btn.setObjectName(_fromUtf8("cosmic_btn"))
         self.gridLayout_2.addWidget(self.cosmic_btn, 2, 0, 1, 2)
         self.above_thresh_txt = QtGui.QLineEdit(self.widget)
-        self.above_thresh_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.above_thresh_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.above_thresh_txt.setObjectName(_fromUtf8("above_thresh_txt"))
         self.gridLayout_2.addWidget(self.above_thresh_txt, 0, 1, 1, 1)
         self.above_thresh_btn = QtGui.QPushButton(self.widget)
@@ -223,5 +225,6 @@ class Ui_xrs_mask_widget(object):
         self.save_mask_btn.setText(_translate("xrs_mask_widget", "Save Mask", None))
         self.load_mask_btn.setText(_translate("xrs_mask_widget", "Load Mask", None))
         self.add_mask_btn.setText(_translate("xrs_mask_widget", "Add Mask", None))
+
 
 from pyqtgraph import GraphicsLayoutWidget

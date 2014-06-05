@@ -153,6 +153,13 @@ QComboBox::item::selected {
  QComboBox QAbstractItemView {
     color:  #F1F1F1;
  }
+/* Indicator will shine through the label text if you don't make it hidden. */
+QComboBox::indicator{
+    background-color:transparent;
+    selection-background-color:transparent;
+    color:transparent;
+    selection-color:transparent;
+}
 QToolBox::tab:QToolButton{
     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
      border: 1px solid  #5B5B5B;  
@@ -241,7 +248,7 @@ QGraphicsView{
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="elideMode">
       <enum>Qt::ElideLeft</enum>
