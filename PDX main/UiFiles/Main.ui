@@ -14,10 +14,12 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">#mainView{  
+   <string notr="true">#mainView, #calibration_tab, #mask_tab, #integration_tab {  
      background: #3C3C3C;      
+	border: 5px solid #3C3C3C;
  }  
-   </string>
+
+</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="margin">
@@ -27,29 +29,35 @@
     <widget class="QTabWidget" name="tabWidget">
      <property name="styleSheet">
       <string notr="true">QTabWidget::tab-bar{ 
+	alignment: center;
+}
+
+QTabWidget::pane{	
+	border: 2px solid #505050;
+	border-style: inset;
 }
 
 QTabBar::tab {  
      background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
      border: 1px solid  #5B5B5B;  
-
+	font: bold 14px;
+	color: #F1F1F1;
      border-radius:2px;
-     padding-right: 10px;  
-     color: #FFF;  
-     width: 18px;  
-    height: 80px;
-    padding: 4px;
+	padding-right: 4px;
+     width: 20px;  
+    height:130px;
  }  
    
  QTabBar::tab:hover {  
      border-color: #ADADAD;  
-    border-left: 1px solid #ADADAD;
+    border: 1px solid #ADADAD;
  }  
    
  QTabBar::tab:selected {  
      border:1px solid  #ADADAD; 
-     border-left: 1px solid #ADADAD;
-    margin-left: 1px;
+	margin-right: -5px;
+	width: 25px;
+    
  }     
 QTabBar::tab:last{
     border-bottom-left-radius: 10px;
@@ -60,8 +68,6 @@ QTabBar::tab:first{
     border-top-right-radius: 10px;
 }
  QTabBar::tab:!selected {  
-    margin-left: 1px;
-    padding-left: 2px;
  }  </string>
      </property>
      <property name="tabPosition">
@@ -71,7 +77,7 @@ QTabBar::tab:first{
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <property name="elideMode">
       <enum>Qt::ElideLeft</enum>
