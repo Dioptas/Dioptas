@@ -21,7 +21,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
-from Data.HelperModule import get_base_name
+from Data.HelperModule import get_base_name, SignalFrequencyLimiter
 
 
 class IntegrationPhaseController(object):
@@ -55,8 +55,9 @@ class IntegrationPhaseController(object):
 
         self.spectrum_data.subscribe(self.update_intensities)
 
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(
-            self.update_intensities_slot)
+        self.update_phase_intensity_timer = SignalFrequencyLimiter(
+            self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect,
+            self.update_intensities_slot, 100)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -176,12 +177,6 @@ class IntegrationPhaseController(object):
         if x_range[0] < np.min(x) and x_range[1] > np.max(x) and \
                         y_range[0] < np.min(y) and y_range[1] > np.max(y):
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
-
-        # make sure that this update only happens every 24 hz frequency
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.disconnect(
-            self.update_intensities_slot)
-        QtCore.QTimer.singleShot(30, self.connect_spectrum)
-        QtCore.QTimer.singleShot(30, self.update_intensities)
 
     def update_intensity(self, ind, axis_range=None):
         if axis_range is None:

@@ -19,8 +19,10 @@ __author__ = 'Clemens Prescher'
 
 import numpy as np
 import os
+from PyQt4 import QtCore, QtGui
 from stat import S_ISREG, ST_CTIME, ST_MODE
 from colorsys import hsv_to_rgb
+import time
 
 #distinguishable_colors = np.loadtxt('Data/distinguishable_colors.txt')[::-1]
 
@@ -145,6 +147,48 @@ class FileNameIterator(object):
                 res += char
             else:
                 return res[::-1]
+
+
+class SignalFrequencyLimiter(object):
+    def __init__(self, connect_function, callback_function, time=100, disconnect_function=None):
+        """
+        Limits the frequency of callback_function calls.
+
+        :param connect_function:
+            function which connects the callback to the signal. For qt signal it would be "signal.connect"
+        :param callback_function:
+            callback function responding to the signal
+        :param time:
+            time in milliseconds between each new callback_function call
+        """
+        self.connect_function = connect_function
+        self.disconnect_function = disconnect_function
+        self.callback_function = callback_function
+        self.update_timer = QtCore.QTimer()
+        self.update_timer.setInterval(time)
+        self.update_timer.timeout.connect(self.timer_function)
+        self.connect_function(self.update_vars)
+        self.update_function = None
+        self.update_timer.start(time)
+
+    def update_vars(self, *args):
+        self.vars = args
+        self.update_function = self.callback_function
+
+    def timer_function(self):
+
+        if self.update_function is not None:
+            if self.disconnect_function is not None:
+                self.disconnect_function(self.update_vars)
+            t1 = time.time()
+            self.update_function(*self.vars)
+            self.update_function = None
+            QtGui.QApplication.processEvents()
+            print t1 - time.time()
+            if self.disconnect_function is not None:
+                self.connect_function(self.update_vars)
+
+
 
 
 def rotate_matrix_m90(matrix):

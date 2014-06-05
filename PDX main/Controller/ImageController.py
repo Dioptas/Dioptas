@@ -1,8 +1,8 @@
 __author__ = 'Clemens Prescher'
 # -*- coding: utf8 -*-
 # Py2DeX - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@ __author__ = 'Clemens Prescher'
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 from PyQt4 import QtGui, QtCore
+from Data.HelperModule import SignalFrequencyLimiter
 import numpy as np
 
 
@@ -114,24 +115,9 @@ class IntegrationImageController(object):
         self.create_auto_process_signal()
 
     def create_mouse_behavior(self):
-
-        #the frequency of the mouse move events are very high, which causes the gui to be
-        #relatively slow while always printing the new position
-
-        #my best solution to limit the frequency was a timer, which only fires every 100 ms
-        #and only if the function was set before
-
-        #unfortunately this needs the mouse position to be saved as local variables...
-
-        self.view.img_view.add_mouse_move_observer(
-            self.update_img_mouse_position)
         self.view.img_view.add_left_click_observer(self.img_mouse_click)
-        self._mouse_pos = (0,0)
-        self._mouse_update_function = None
-        self._mouse_update_timer = QtCore.QTimer(self.view)
-        self._mouse_update_timer.setInterval(200)
-        self._mouse_update_timer.timeout.connect(self.mouse_timer_function)
-        self._mouse_update_timer.start()
+        self.mouse_pos_limiter = SignalFrequencyLimiter(self.view.img_view.add_mouse_move_observer,
+                                                        self.show_img_mouse_position, 150)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -227,10 +213,6 @@ class IntegrationImageController(object):
         self.view.img_view.set_circle_scatter_tth(
             self.calibration_data.geometry._ttha, cur_tth / 180 * np.pi)
 
-    def update_img_mouse_position(self, x, y):
-        self._mouse_pos = (x,y)
-        self._mouse_update_function = self.show_img_mouse_position
-
     def show_img_mouse_position(self, x, y):
         try:
             if x > 0 and y > 0:
@@ -272,14 +254,10 @@ class IntegrationImageController(object):
         except (IndexError, AttributeError):
             pass
 
-    def mouse_timer_function(self):
-        if self._mouse_update_function is not None:
-            self._mouse_update_function(self._mouse_pos[0], self._mouse_pos[1])
-            self._mouse_update_function = None
 
     def img_mouse_click(self, x, y):
         #update click position
-        self.mouse_timer_function() #update the mouse position fields
+        # self.mouse_timer_function() #update the mouse position fields
         try:
             x_pos_string = 'X:  %4d' % y
             y_pos_string = 'Y:  %4d' % x
@@ -290,7 +268,6 @@ class IntegrationImageController(object):
             self.view.click_int_lbl.setText(int_string)
         except IndexError:
             self.view.click_int_lbl.setText('I: ')
-
 
         if self.view.cake_rb.isChecked():  # cake mode
             y = np.array([y])
@@ -316,7 +293,6 @@ class IntegrationImageController(object):
                     self.view.spectrum_view.set_pos_line(q)
                 else:
                     self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
-
 
         self.view.click_tth_lbl.setText(self.view.mouse_tth_lbl.text())
         self.view.click_d_lbl.setText(self.view.mouse_d_lbl.text())
