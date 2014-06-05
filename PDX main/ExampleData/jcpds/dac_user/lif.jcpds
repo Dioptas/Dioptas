@@ -1,0 +1,12 @@
+VERSION: 4
+COMMENT: LiF (JCPDS 40857, EOS need to be added, NaCl values used)
+K0:       23.8800
+K0P:       5.20000
+SYMMETRY: CUBIC
+A:      4.0270
+ALPHAT:      4.26E-5
+DIHKL:   2.3250     95.    1.00    1.00    1.00
+DIHKL:   2.0130    100.    2.00    0.00    0.00
+DIHKL:   1.4240     48.    2.00    2.00    0.00
+DIHKL:   1.2140     10.    3.00    1.00    1.00
+DIHKL:   1.1625     11.    2.00    2.00    2.00

@@ -1,0 +1,15 @@
+VERSION: 4
+COMMENT: ReO2 orthorhombic (EOS assumed)
+K0:       200.000
+K0P:       4.00000
+SYMMETRY: ORTHORHOMBIC
+A:       4.80940
+B:       5.64330
+C:       4.60070
+ALPHAT:      0.000000
+DIHKL:   3.6590    100.    1.00    1.00    0.00
+DIHKL:   2.8640    100.    1.00    1.00    1.00
+DIHKL:   2.8240     10.    0.00    2.00    0.00
+DIHKL:   2.4050     80.    2.00    0.00    0.00
+DIHKL:   2.2990     80.    0.00    0.00    2.00
+DIHKL:   2.1500     10.    1.00    2.00    1.00

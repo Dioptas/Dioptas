@@ -1,0 +1,17 @@
+VERSION: 4
+COMMENT: MgO (JCPDS 4-0829, EOS from Jackson & Niesler, HP reserch in Geophy, p27, 1982)
+K0:       160.200
+K0P:       3.99000
+SYMMETRY: CUBIC
+A:      4.21300
+ALPHAT:      1.35E-5
+DIHKL:   2.4310     10.    1.00    1.00    1.00
+DIHKL:   2.1060    100.    2.00    0.00    0.00
+DIHKL:   1.4890     52.    2.00    2.00    0.00
+DIHKL:   1.2700      4.    3.00    1.00    1.00
+DIHKL:   1.2160     12.    2.00    2.00    2.00
+DIHKL:   1.0533      5.    4.00    0.00    0.00
+DIHKL:   0.9665      2.    3.00    3.00    1.00
+DIHKL:   0.9419     17.    4.00    2.00    0.00
+DIHKL:   0.8600     15.    4.00    2.00    2.00
+DIHKL:   0.8109      3.    5.00    1.00    1.00

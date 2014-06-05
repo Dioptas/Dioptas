@@ -1,0 +1,29 @@
+VERSION: 4
+COMMENT: Iron tHCP (Shen's calculation, EOS from hcp-Fe)
+K0:       165.000
+K0P:       5.33000
+SYMMETRY: HEXAGONAL
+A:       2.51600
+C:       12.768
+ALPHAT:      0.000000
+DIHKL:   2.1479       28.0      0   0   6 
+DIHKL:   2.1280      66.56     -1   0   2 
+DIHKL:   2.0621      80.12     -1   0   3 
+DIHKL:   1.9395     100.00      1   0   4 
+DIHKL:   1.7996      60.82      1   0   5 
+DIHKL:   1.6575      15.00      1   0   7 
+DIHKL:   1.3986      12.34      1   0   8 
+DIHKL:   1.2876      18.92      1   1   0 
+DIHKL:   1.2580      30.65      1   0   9 
+DIHKL:   1.1889      18.81      1   0  10 
+DIHKL:   1.1016      11.52      2   0   1 
+DIHKL:   1.0855       2.48      1   1   6 
+DIHKL:   1.0829      29.66     -2   0   2 
+DIHKL:   1.0739      10.36      0   0  12 
+DIHKL:   1.0640       5.23      2   0   3 
+DIHKL:   1.0554      10.68      2   0   4 
+DIHKL:   1.0311       5.14      1   0  11 
+DIHKL:   1.0244       2.37      2   0   5 
+DIHKL:   1.0021       2.33      2   0   7 
+DIHKL:   .9353       2.24       2   0   8 
+DIHKL:   .8998       3.60       1   0  13.

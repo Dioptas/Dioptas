@@ -1,0 +1,12 @@
+VERSION: 4
+COMMENT: ReO3 hexagonal (EOS assumed)
+K0:       200.000
+K0P:       4.00000
+SYMMETRY: HEXAGONAL
+A:       4.84800
+C:       4.48000
+ALPHAT:      0.000000
+DIHKL:   4.2000     35.    1.00    0.00    0.00
+DIHKL:   3.0630    100.    1.00    0.00    1.00
+DIHKL:   2.4240     38.    1.00    1.00    0.00
+DIHKL:   2.2410      6.    0.00    0.00    2.00

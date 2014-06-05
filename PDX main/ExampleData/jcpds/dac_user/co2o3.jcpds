@@ -1,0 +1,10 @@
+VERSION: 4
+COMMENT: Co2O3 (JCPDS 02-0770, EOS from CoO, 66)
+K0:       190.500
+K0P:       3.90000
+SYMMETRY: CUBIC
+A:      4.64000
+ALPHAT:      0.000000
+DIHKL:   2.8700    100.    0.00    0.00    2.00
+DIHKL:   2.3300    100.    1.00    0.00    2.00
+DIHKL:   1.3900     90.    2.00    0.00    3.00

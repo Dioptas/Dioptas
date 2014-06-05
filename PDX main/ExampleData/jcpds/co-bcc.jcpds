@@ -1,0 +1,13 @@
+VERSION: 4
+COMMENT: Co (bcc)  (based on Fe, EOS from hcp)
+K0:       194.000
+K0P:       5.00000
+SYMMETRY: CUBIC
+A:      3.30980
+ALPHAT:      0.000000
+DIHKL:   2.3404    100.    1.00    1.00    0.00
+DIHKL:   1.6549     19.    2.00    0.00    0.00
+DIHKL:   1.3512     30.    2.00    1.00    1.00
+DIHKL:   1.1702      9.    2.00    2.00    0.00
+DIHKL:   1.0467     12.    3.00    1.00    0.00
+DIHKL:   0.9555      6.    2.00    2.00    2.00

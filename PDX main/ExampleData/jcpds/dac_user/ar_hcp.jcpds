@@ -1,0 +1,17 @@
+VERSION: 4
+COMMENT: Argon HCP (EOS data from Wittlinger et al Acta Cryst. B53 745, 1997)
+K0:       6.5000
+K0P:      4.0000
+SYMMETRY: HEXAGONAL
+A:      3.8065
+C:      6.216
+ALPHAT:      0.000000
+DIHKL:   2.1200     20.    1.00    0.00    0.00
+DIHKL:   1.9700     80.    0.00    0.00    2.00
+DIHKL:   1.8400    100.    1.00    0.00    1.00
+DIHKL:   1.4400     10.    1.00    0.00    2.00
+DIHKL:   1.2340     10.    1.00    1.00    0.00
+DIHKL:   1.1130     10.    1.00    0.00    3.00
+DIHKL:   1.0941	  10.	   2.00    0.00    0.00
+DIHKL:   1.0561     10.    2.00    0.00    1.00
+DIHKL:   1.0713     10.    1.00    1.00    2.00
