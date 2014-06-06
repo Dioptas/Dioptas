@@ -32,6 +32,8 @@ class IntegrationImageController(object):
         self.calibration_data = calibration_data
         self._reset_img_levels = False
         self._first_plot = True
+        self.img_mode = 'Image'
+        self.use_mask = False
 
         self.view.show()
         self.initialize()
@@ -66,8 +68,8 @@ class IntegrationImageController(object):
             self.view.img_view.auto_range()
 
     def plot_mask(self):
-        if self.view.mask_use_cb.isChecked() and \
-                self.view.image_rb.isChecked():
+        if self.use_mask and \
+                        self.img_mode == 'Image':
             self.view.img_view.plot_mask(self.mask_data.get_img())
         else:
             self.view.img_view.plot_mask(
@@ -89,26 +91,17 @@ class IntegrationImageController(object):
 
     def create_signals(self):
         self.connect_click_function(self.view.next_img_btn, self.load_next_img)
-        self.connect_click_function(
-            self.view.prev_img_btn, self.load_previous_img)
-        self.connect_click_function(
-            self.view.load_img_btn, self.load_file_btn_click)
-        self.connect_click_function(
-            self.view.auto_img_btn, self.auto_img_btn_click)
-        self.connect_click_function(
-            self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
-        self.connect_click_function(
-            self.view.img_browse_by_time_rb, self.set_iteration_mode_time)
-        self.connect_click_function(
-            self.view.mask_use_cb, self.mask_use_cb_changed)
-        self.connect_click_function(
-            self.view.mask_transparent_cb, self.change_mask_colormap)
-        self.connect_click_function(
-            self.view.img_levels_absolute_rb, self.change_img_levels_mode)
-        self.connect_click_function(
-            self.view.img_levels_percentage_rb, self.change_img_levels_mode)
-        self.connect_click_function(self.view.image_rb, self.change_view_mode)
-        self.connect_click_function(self.view.cake_rb, self.change_view_mode)
+        self.connect_click_function(self.view.prev_img_btn, self.load_previous_img)
+        self.connect_click_function(self.view.load_img_btn, self.load_file_btn_click)
+        self.connect_click_function(self.view.auto_img_btn, self.auto_img_btn_click)
+        self.connect_click_function(self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
+        self.connect_click_function(self.view.img_browse_by_time_rb, self.set_iteration_mode_time)
+        self.connect_click_function(self.view.mask_transparent_cb, self.change_mask_colormap)
+        self.connect_click_function(self.view.img_levels_absolute_rb, self.change_img_levels_mode)
+        self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
+
+        self.connect_click_function(self.view.img_mask_btn, self.change_mask_mode)
+        self.connect_click_function(self.view.img_mode_btn, self.change_view_mode)
 
         self.connect_click_function(
             self.view.image_load_calibration_btn, self.load_calibration)
@@ -133,7 +126,8 @@ class IntegrationImageController(object):
             self.img_data.load(filename)
             self.plot_img()
 
-    def mask_use_cb_changed(self):
+    def change_mask_mode(self):
+        self.use_mask = not self.use_mask
         self.plot_mask()
         self.img_data.notify()
 
@@ -162,9 +156,9 @@ class IntegrationImageController(object):
     def update_img(self, reset_img_levels=False):
         self.view.img_filename_lbl.setText(
             os.path.basename(self.img_data.filename))
-        if self.view.cake_rb.isChecked() and \
+        if self.img_mode == 'Cake' and \
                 self.calibration_data.is_calibrated:
-            if self.view.mask_use_cb.isChecked():
+            if self.use_mask:
                 mask = self.mask_data.get_mask()
             else:
                 mask = None
@@ -174,27 +168,29 @@ class IntegrationImageController(object):
                 np.zeros(self.mask_data.get_img().shape))
             self.view.img_view.activate_vertical_line()
             self.view.img_view.img_view_box.setAspectLocked(False)
-        else:
+        elif self.img_mode == 'Image':
             self.plot_img(reset_img_levels)
             self.plot_mask()
             self.view.img_view.deactivate_vertical_line()
             self.view.img_view.img_view_box.setAspectLocked(True)
 
     def change_view_mode(self):
-        if self.view.cake_rb.isChecked() and \
-                not self.calibration_data.is_calibrated:
-            self.view.image_rb.setChecked(True)
+        self.img_mode = self.view.img_mode_btn.text()
+        if not self.calibration_data.is_calibrated:
+            return
         else:
             self.update_img()
-            if self.view.cake_rb.isChecked():
+            if self.img_mode == 'Cake':
                 self.view.img_view.deactivate_circle_scatter()
                 self._update_cake_line_pos()
-            else:
+                self.view.img_mode_btn.setText('Image')
+            elif self.img_mode == 'Image':
                 self.view.img_view.activate_circle_scatter()
                 self._update_image_scatter_pos()
+                self.view.img_mode_btn.setText('Cake')
 
     def _update_cake_line_pos(self):
-        cur_tth = self.view.spectrum_view.pos_line.getPos()[0]
+        cur_tth = self.get_current_spectrum_tth()
         if cur_tth < np.min(self.calibration_data.cake_tth):
             new_pos = np.min(self.calibration_data.cake_tth)
         else:
@@ -209,57 +205,61 @@ class IntegrationImageController(object):
         self.view.img_view.vertical_line.setValue(new_pos)
 
     def _update_image_scatter_pos(self):
-        cur_tth = self.view.spectrum_view.pos_line.getPos()[0]
+        cur_tth = self.get_current_spectrum_tth()
         self.view.img_view.set_circle_scatter_tth(
             self.calibration_data.geometry._ttha, cur_tth / 180 * np.pi)
 
+    def get_current_spectrum_tth(self):
+        cur_pos = self.view.spectrum_view.pos_line.getPos()[0]
+        if self.view.spec_q_btn.isChecked():
+            cur_tth = self.convert_x_value(cur_pos, 'q_A^-1', '2th_deg')
+        elif self.view.spec_tth_btn.isChecked():
+            cur_tth = cur_pos
+        elif self.view.spec_d_btn.isChecked():
+            cur_tth = self.convert_x_value(cur_pos, 'd_A', '2th_deg')
+        else:
+            cur_tth = None
+        return cur_tth
+
     def show_img_mouse_position(self, x, y):
-        try:
-            if x > 0 and y > 0:
-                x_pos_string = 'X:  %4d' % x
-                y_pos_string = 'Y:  %4d' % y
-                self.view.mouse_x_lbl.setText(x_pos_string)
-                self.view.mouse_y_lbl.setText(y_pos_string)
+        img_shape = self.img_data.get_img_data().shape
+        if x > 0 and y > 0 and x < img_shape[0] and y < img_shape[1]:
+            x_pos_string = 'X:  %4d' % x
+            y_pos_string = 'Y:  %4d' % y
+            self.view.mouse_x_lbl.setText(x_pos_string)
+            self.view.mouse_y_lbl.setText(y_pos_string)
 
-                int_string = 'I:   %5d' % self.view.img_view.img_data[
-                    np.floor(y), np.floor(x)]
-                self.view.mouse_int_lbl.setText(int_string)
-                if self.calibration_data.is_calibrated:
-                    x_temp = x
-                    x = np.array([y])
-                    y = np.array([x_temp])
-                    if self.view.cake_rb.isChecked():
-                        tth = self.calibration_data.cake_tth[np.round(y[0])]
-                        azi = self.calibration_data.cake_azi[np.round(x[0])]
-                        q_value = 4 * np.pi * np.sin(
-                            tth / 360.0 * np.pi) / \
-                                  self.calibration_data.geometry.wavelength / 1e10
+            int_string = 'I:   %5d' % self.view.img_view.img_data[
+                np.floor(y), np.floor(x)]
+            self.view.mouse_int_lbl.setText(int_string)
+            if self.calibration_data.is_calibrated:
+                x_temp = x
+                x = np.array([y])
+                y = np.array([x_temp])
+                if self.img_mode == 'Cake':
+                    tth = self.calibration_data.cake_tth[np.round(y[0])]
+                    azi = self.calibration_data.cake_azi[np.round(x[0])]
+                    q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
-                    else:
-                        tth = self.calibration_data.geometry.tth(x, y)[0]
-                        tth = tth / np.pi * 180.0
-                        q_value = self.calibration_data.geometry.qFunction(
-                            x, y) / 10.0
-                        azi = self.calibration_data.geometry.chi(
-                            x, y)[0] / np.pi * 180
-
-                    azi = azi + 360 if azi < 0 else azi
-                    d = self.calibration_data.geometry.wavelength / \
-                        (2 * np.sin(tth / 180. * np.pi * 0.5)) * 1e10
-                    tth_str = u'2θ:%9.2f  ' % tth
-                    self.view.mouse_tth_lbl.setText(tth_str)
-                    self.view.mouse_d_lbl.setText(u'd:%9.2f  ' % d)
-                    self.view.mouse_q_lbl.setText(u'Q:%9.2f  ' % q_value)
-                    self.view.mouse_azi_lbl.setText(u'X:%9.2f  ' % azi)
                 else:
-                    self.view.mouse_tth_lbl.setText(u'2θ: -')
-                    self.view.mouse_d_lbl.setText(u'd: -')
-                    self.view.mouse_q_lbl.setText(u'Q: -')
-                    self.view.mouse_azi_lbl.setText(u'X: -')
+                    tth = self.calibration_data.geometry.tth(x, y)[0]
+                    tth = tth / np.pi * 180.0
+                    q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
+                    azi = self.calibration_data.geometry.chi(
+                        x, y)[0] / np.pi * 180
 
-        except (IndexError, AttributeError):
-            pass
-
+                azi = azi + 360 if azi < 0 else azi
+                d = self.convert_x_value(tth, '2th_deg', 'd_A')
+                tth_str = u'2θ:%9.2f  ' % tth
+                self.view.mouse_tth_lbl.setText(tth_str)
+                self.view.mouse_d_lbl.setText(u'd:%9.2f  ' % d)
+                self.view.mouse_q_lbl.setText(u'Q:%9.2f  ' % q_value)
+                self.view.mouse_azi_lbl.setText(u'X:%9.2f  ' % azi)
+            else:
+                self.view.mouse_tth_lbl.setText(u'2θ: -')
+                self.view.mouse_d_lbl.setText(u'd: -')
+                self.view.mouse_q_lbl.setText(u'Q: -')
+                self.view.mouse_azi_lbl.setText(u'X: -')
 
     def img_mouse_click(self, x, y):
         #update click position
@@ -275,36 +275,32 @@ class IntegrationImageController(object):
         except IndexError:
             self.view.click_int_lbl.setText('I: ')
 
-        if self.view.cake_rb.isChecked():  # cake mode
-            y = np.array([y])
-            tth = self.calibration_data.cake_tth[np.round(y[0])]
-            if self.view.spec_unit_q_rb.isChecked():
-                q = 4 * np.pi * \
-                    np.sin(tth / 360.0 * np.pi) / \
-                    self.calibration_data.geometry.wavelength / 1e10
-                self.view.spectrum_view.set_pos_line(q)
-            else:
-                self.view.spectrum_view.set_pos_line(tth)
-        else:  # image mode
-            x = np.array([x])
-            y = np.array([y])
-            if self.calibration_data.is_calibrated:
+        if self.calibration_data.is_calibrated:
+            if self.img_mode == 'Cake':  # cake mode
+                y = np.array([y])
+                tth = self.calibration_data.cake_tth[np.round(y[0])] / 180 * np.pi
+            elif self.img_mode == 'Image':  # image mode
+                x = np.array([x])
+                y = np.array([y])
                 tth = self.calibration_data.geometry.tth(x, y)[0]
                 self.view.img_view.set_circle_scatter_tth(
                     self.calibration_data.geometry._ttha, tth)
-                if self.view.spec_q_btn.isChecked():
-                    pos = 4 * np.pi * \
-                          np.sin(tth / 2) / \
-                          self.calibration_data.geometry.get_wavelength() / 1e10
-                elif self.view.spec_tth_btn.isChecked():
-                    pos = tth / np.pi * 180
-                elif self.view.spec_d_btn.isChecked():
-                    pos = self.calibration_data.geometry.get_wavelength() / \
-                          (2 * np.sin(tth / 2)) * 1e10
-                else:
-                    pos = 0
+            else:  # in the cas of whatever
+                tth = 0
 
-                self.view.spectrum_view.set_pos_line(pos)
+            # calculate right unit
+            if self.view.spec_q_btn.isChecked():
+                pos = 4 * np.pi * \
+                      np.sin(tth / 2) / \
+                      self.calibration_data.geometry.get_wavelength() / 1e10
+            elif self.view.spec_tth_btn.isChecked():
+                pos = tth / np.pi * 180
+            elif self.view.spec_d_btn.isChecked():
+                pos = self.calibration_data.geometry.get_wavelength() / \
+                      (2 * np.sin(tth / 2)) * 1e10
+            else:
+                pos = 0
+            self.view.spectrum_view.set_pos_line(pos)
         self.view.click_tth_lbl.setText(self.view.mouse_tth_lbl.text())
         self.view.click_d_lbl.setText(self.view.mouse_d_lbl.text())
         self.view.click_q_lbl.setText(self.view.mouse_q_lbl.text())
@@ -315,6 +311,30 @@ class IntegrationImageController(object):
 
     def set_iteration_mode_time(self):
         self.img_data.file_iteration_mode = 'time'
+
+    def convert_x_value(self, value, previous_unit, new_unit):
+        wavelength = self.calibration_data.geometry.wavelength
+        if previous_unit == '2th_deg':
+            tth = value
+        elif previous_unit == 'q_A^-1':
+            tth = np.arcsin(
+                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
+        elif previous_unit == 'd_A':
+            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
+        else:
+            tth = 0
+
+        if new_unit == '2th_deg':
+            res = tth
+        elif new_unit == 'q_A^-1':
+            res = 4 * np.pi * \
+                  np.sin(tth / 360 * np.pi) / \
+                  wavelength / 1e10
+        elif new_unit == 'd_A':
+            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+        else:
+            res = 0
+        return res
 
     def load_calibration(self, filename=None):
         if filename is None:
