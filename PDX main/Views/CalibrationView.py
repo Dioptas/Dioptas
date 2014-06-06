@@ -48,6 +48,7 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
                                                                 self.show_spectrum_mouse_position)
 
         self.set_validator()
+        self.set_cb_style()
 
     def set_validator(self):
         self.f2_center_x_txt.setValidator(QtGui.QDoubleValidator())
@@ -79,6 +80,11 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
 
         self.options_delta_tth_txt.setValidator(QtGui.QDoubleValidator())
         self.options_intensity_limit_txt.setValidator(QtGui.QDoubleValidator())
+
+    def set_cb_style(self):
+        cleanlooks = QtGui.QStyleFactory.create('cleanlooks')
+        self.calibrant_cb.setStyle(cleanlooks)
+        self.options_peaksearch_algorithm_cb.setStyle(cleanlooks)
 
     def show_img_mouse_position(self, x, y):
         try:

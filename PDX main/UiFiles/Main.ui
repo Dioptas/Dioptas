@@ -140,6 +140,14 @@ QSpinBox, QDoubleSpinBox {
 	height: 30px;
 }
 
+QComboBox QAbstractItemView{
+	background: #2D2D30;
+	color: #F1F1F1;
+	selection-background-color: rgba(221, 124, 40, 120);
+	border-radius: 5px;
+
+}
+
 QComboBox:!editable {
     margin-left: 1px;
     padding-left: 10px;
@@ -154,16 +162,16 @@ QComboBox::item{
 QComboBox::item::selected {
     background-color: #505050;
 }
+QToolBox::tab:QToolButton{
+    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
+     border: 1px solid  #5B5B5B;  
 
- QComboBox QAbstractItemView {
-    color:  #F1F1F1;
- }
-/* Indicator will shine through the label text if you don't make it hidden. */
-QComboBox::indicator{
-    background-color:transparent;
-    selection-background-color:transparent;
-    color:transparent;
-    selection-color:transparent;
+     border-radius:2px;
+     padding-right: 10px;  
+    
+      color: #F1F1F1; 
+    font-size: 12px;
+    padding: 3px;
 }
 QToolBox::tab:QToolButton{
     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);

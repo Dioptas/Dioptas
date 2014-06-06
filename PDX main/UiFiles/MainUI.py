@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Thu Jun  5 23:17:22 2014
+# Created: Fri Jun  6 12:02:32 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -155,6 +155,14 @@ class Ui_mainView(object):
                                          "    height: 30px;\n"
                                          "}\n"
                                          "\n"
+                                         "QComboBox QAbstractItemView{\n"
+                                         "    background: #2D2D30;\n"
+                                         "    color: #F1F1F1;\n"
+                                         "    selection-background-color: rgba(221, 124, 40, 120);\n"
+                                         "    border-radius: 5px;\n"
+                                         "\n"
+                                         "}\n"
+                                         "\n"
                                          "QComboBox:!editable {\n"
                                          "    margin-left: 1px;\n"
                                          "    padding-left: 10px;\n"
@@ -169,16 +177,16 @@ class Ui_mainView(object):
                                          "QComboBox::item::selected {\n"
                                          "    background-color: #505050;\n"
                                          "}\n"
+                                         "QToolBox::tab:QToolButton{\n"
+                                         "    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
+                                         "     border: 1px solid  #5B5B5B;  \n"
                                          "\n"
-                                         " QComboBox QAbstractItemView {\n"
-                                         "    color:  #F1F1F1;\n"
-                                         " }\n"
-                                         "/* Indicator will shine through the label text if you don\'t make it hidden. */\n"
-                                         "QComboBox::indicator{\n"
-                                         "    background-color:transparent;\n"
-                                         "    selection-background-color:transparent;\n"
-                                         "    color:transparent;\n"
-                                         "    selection-color:transparent;\n"
+                                         "     border-radius:2px;\n"
+                                         "     padding-right: 10px;  \n"
+                                         "    \n"
+                                         "      color: #F1F1F1; \n"
+                                         "    font-size: 12px;\n"
+                                         "    padding: 3px;\n"
                                          "}\n"
                                          "QToolBox::tab:QToolButton{\n"
                                          "    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
