@@ -27,10 +27,14 @@ from PyQt4 import QtGui
 from Controller.MainController import MainController
 
 if __name__ == "__main__":
-    import os
 
     app = QtGui.QApplication(sys.argv)
-    if os.name is not 'posix':
+
+    from sys import platform as _platform
+
+    if _platform == "linux" or _platform == "linux2":
+        app.setStyle('plastique')
+    elif _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
         # possible values:
         # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
