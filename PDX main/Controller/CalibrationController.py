@@ -49,11 +49,10 @@ class CalibrationController(object):
             self.calibration_data = calibration_data
 
         self.data.subscribe(self.plot_image)
-        self.calibration_data.set_start_values(self.view.get_start_values())
+        self.view.set_start_values(self.calibration_data.start_values)
         self._first_plot = True
         self.create_signals()
         self.load_calibrants_list()
-
         self.raise_window()
 
     def raise_window(self):

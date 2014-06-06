@@ -37,11 +37,12 @@ class CalibrationData(object):
         self.points = []
         self.points_index = []
         self.geometry = AzimuthalIntegrator()
+        self.geometry.set_wavelength(0.3344e-10)
         self.calibrant = Calibrant()
-        self.start_values = {'dist': 400e-3,
-                             'wavelength': 0.4133e-10,
-                             'pixel_width': 200e-6,
-                             'pixel_height': 200e-6,
+        self.start_values = {'dist': 200e-3,
+                             'wavelength': 0.3344e-10,
+                             'pixel_width': 79e-6,
+                             'pixel_height': 79e-6,
                              'polarization_factor': 0.95}
         self.fit_wavelength = False
         self.is_calibrated = False
