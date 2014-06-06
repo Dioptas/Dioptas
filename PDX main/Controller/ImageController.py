@@ -251,6 +251,12 @@ class IntegrationImageController(object):
                     self.view.mouse_d_lbl.setText(u'd:%9.2f  ' % d)
                     self.view.mouse_q_lbl.setText(u'Q:%9.2f  ' % q_value)
                     self.view.mouse_azi_lbl.setText(u'X:%9.2f  ' % azi)
+                else:
+                    self.view.mouse_tth_lbl.setText(u'2θ: -')
+                    self.view.mouse_d_lbl.setText(u'd: -')
+                    self.view.mouse_q_lbl.setText(u'Q: -')
+                    self.view.mouse_azi_lbl.setText(u'X: -')
+
         except (IndexError, AttributeError):
             pass
 
