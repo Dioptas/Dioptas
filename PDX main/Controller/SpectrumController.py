@@ -100,7 +100,7 @@ class IntegrationSpectrumController(object):
                     'No File saved or selected')
                 filename = None
 
-            if self.view.mask_use_cb.isChecked():
+            if self.view.img_mask_btn.isChecked():
                 self.mask_data.set_dimension(self.img_data.img_data.shape)
                 mask = self.mask_data.get_mask()
             else:
@@ -267,7 +267,7 @@ class IntegrationSpectrumController(object):
             elif self.integration_unit == 'd_A':
                 x = self.convert_x_value(x, 'd_A', '2th_deg')
 
-            if self.view.cake_rb.isChecked():  # cake mode
+            if self.view.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
                 upper_ind = np.where(self.calibration_data.cake_tth > x)
                 lower_ind = np.where(self.calibration_data.cake_tth < x)
                 spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
