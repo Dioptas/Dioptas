@@ -124,6 +124,7 @@ class IntegrationSpectrumController(object):
 
         # save the background subtracted file:
         if self.spectrum_data.bkg_ind is not -1:
+            # create background subtracted spectrum
             if self.autocreate:
                 directory = os.path.join(
                     self.working_dir['spectrum'], 'bkg_subtracted')
@@ -138,6 +139,11 @@ class IntegrationSpectrumController(object):
                     directory,
                     self.spectrum_data.spectrum.name + '_bkg_subtracted.xy')
                 np.savetxt(filename, data, header=header)
+            # update the bkg_name
+            self.view.bkg_name_lbl.setText('Bkg: ' + self.spectrum_data.overlays[self.spectrum_data.bkg_ind].name)
+        else:
+            self.view.bkg_name_lbl.setText('')
+
 
     def load(self, filename=None):
         if filename is None:
