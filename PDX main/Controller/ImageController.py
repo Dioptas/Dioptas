@@ -292,14 +292,19 @@ class IntegrationImageController(object):
                 tth = self.calibration_data.geometry.tth(x, y)[0]
                 self.view.img_view.set_circle_scatter_tth(
                     self.calibration_data.geometry._ttha, tth)
-                if self.view.spec_unit_q_rb.isChecked():
-                    q = 4 * np.pi * \
-                        np.sin(tth / 2) / \
-                        self.calibration_data.geometry.wavelength / 1e10
-                    self.view.spectrum_view.set_pos_line(q)
+                if self.view.spec_q_btn.isChecked():
+                    pos = 4 * np.pi * \
+                          np.sin(tth / 2) / \
+                          self.calibration_data.geometry.get_wavelength() / 1e10
+                elif self.view.spec_tth_btn.isChecked():
+                    pos = tth / np.pi * 180
+                elif self.view.spec_d_btn.isChecked():
+                    pos = self.calibration_data.geometry.get_wavelength() / \
+                          (2 * np.sin(tth / 2)) * 1e10
                 else:
-                    self.view.spectrum_view.set_pos_line(tth / np.pi * 180)
+                    pos = 0
 
+                self.view.spectrum_view.set_pos_line(pos)
         self.view.click_tth_lbl.setText(self.view.mouse_tth_lbl.text())
         self.view.click_d_lbl.setText(self.view.mouse_d_lbl.text())
         self.view.click_q_lbl.setText(self.view.mouse_q_lbl.text())

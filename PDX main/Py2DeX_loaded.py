@@ -4,7 +4,7 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     controller.calibration_controller.load_calibration(
         'ExampleData/LaB6_p49_001.poni')
     controller.view.tabWidget.setCurrentIndex(2)
-    controller.integration_controller.spectrum_controller.view.spec_unit_q_rb.setChecked(True)
+    controller.integration_controller.spectrum_controller.view.spec_q_btn.setChecked(True)
     controller.integration_controller.spectrum_controller.set_unit_q()
     controller.calibration_controller.load_file('ExampleData/LaB6_p49_001.tif')
     # get phase

@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -39,7 +39,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
         self.set_validator()
-        self.set_correct_labels()
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -48,9 +47,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_offset_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
-
-    def set_correct_labels(self):
-        self.spec_unit_tth_rb.setText(u'2θ (°)')
 
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
