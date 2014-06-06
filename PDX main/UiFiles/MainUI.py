@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Thu Jun  5 18:24:46 2014
+# Created: Thu Jun  5 23:17:22 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -38,6 +38,10 @@ class Ui_mainView(object):
                                          "    alignment: center;\n"
                                          "}\n"
                                          "\n"
+                                         "QWidget{\n"
+                                         "    color: #F1F1F1;\n"
+                                         "}\n"
+                                         "\n"
                                          "\n"
                                          "QTabBar::tab:left, QTabBar::tab:right {  \n"
                                          "     background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
@@ -45,9 +49,10 @@ class Ui_mainView(object):
                                          "    font: normal 14px;\n"
                                          "    color: #F1F1F1;\n"
                                          "     border-radius:2px;\n"
-                                         "    padding-right: 4px;\n"
+                                         "    \n"
+                                         "    padding: 0px;\n"
                                          "     width: 20px;  \n"
-                                         "    height:130px;\n"
+                                         "    min-height:140px;\n"
                                          " }  \n"
                                          "\n"
                                          "\n"
@@ -58,9 +63,9 @@ class Ui_mainView(object):
                                          "      color: #F1F1F1; \n"
                                          "    font: normal 11px;\n"
                                          "     border-radius:2px;\n"
-                                         "     width: 80px;  \n"
+                                         "     min-width: 80px;  \n"
                                          "    height: 19px;\n"
-                                         "    padding-bottom: 0px;\n"
+                                         "    padding: 0px;\n"
                                          "     margin-top: 1px ;\n"
                                          "    margin-right: 1px;\n"
                                          " }  \n"
