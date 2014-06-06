@@ -19,6 +19,7 @@ PDX\ main/Tools
 marchingsquares_.*
 marchingsquares_.c
 marchingsquares.py
+marchingsquares.so
 # Build results
 
 [Dd]ebug/
