@@ -213,7 +213,10 @@ class IntegrationSpectrumController(object):
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.view.spectrum_view.pos_line.getPos()[0]
-        new_line_pos = self.convert_x_value(cur_line_pos, previous_unit, new_unit)
+        try:
+            new_line_pos = self.convert_x_value(cur_line_pos, previous_unit, new_unit)
+        except RuntimeWarning:  # no calibration available
+            new_line_pos = cur_line_pos
         self.view.spectrum_view.set_pos_line(new_line_pos)
 
     def convert_x_value(self, value, previous_unit, new_unit):
@@ -242,26 +245,27 @@ class IntegrationSpectrumController(object):
 
     def spectrum_left_click(self, x, y):
         self.view.spectrum_view.set_pos_line(x)
-        if self.view.spec_unit_q_rb.isChecked():
-            x = np.arcsin(
-                x * 1e10 * self.calibration_data.geometry.wavelength
-                / (4 * np.pi)) * 2
-            x = x / np.pi * 180
+        if self.calibration_data.is_calibrated:
+            if self.view.spec_unit_q_rb.isChecked():
+                x = np.arcsin(
+                    x * 1e10 * self.calibration_data.geometry.wavelength
+                    / (4 * np.pi)) * 2
+                x = x / np.pi * 180
 
-        if self.view.cake_rb.isChecked():  # cake mode
-            upper_ind = np.where(self.calibration_data.cake_tth > x)
-            lower_ind = np.where(self.calibration_data.cake_tth < x)
-            spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
-                      self.calibration_data.cake_tth[lower_ind[-1][-1]]
-            new_pos = lower_ind[-1][-1] + \
-                      (x -
-                       self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
+            if self.view.cake_rb.isChecked():  # cake mode
+                upper_ind = np.where(self.calibration_data.cake_tth > x)
+                lower_ind = np.where(self.calibration_data.cake_tth < x)
+                spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
+                          self.calibration_data.cake_tth[lower_ind[-1][-1]]
+                new_pos = lower_ind[-1][-1] + \
+                          (x -
+                           self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
 
-            self.view.img_view.vertical_line.setValue(new_pos)
-        else:  # image mode
-            if self.calibration_data.is_calibrated:
-                self.view.img_view.set_circle_scatter_tth(
-                    self.calibration_data.geometry._ttha, x / 180 * np.pi)
+                self.view.img_view.vertical_line.setValue(new_pos)
+            else:  # image mode
+                if self.calibration_data.is_calibrated:
+                    self.view.img_view.set_circle_scatter_tth(
+                        self.calibration_data.geometry._ttha, x / 180 * np.pi)
 
         self.view.click_tth_lbl.setText(self.view.mouse_tth_lbl.text())
         self.view.click_d_lbl.setText(self.view.mouse_d_lbl.text())
@@ -269,22 +273,34 @@ class IntegrationSpectrumController(object):
         self.view.click_azi_lbl.setText(self.view.mouse_azi_lbl.text())
 
     def show_spectrum_mouse_position(self, x, y):
-        if self.integration_unit == '2th_deg':
-            tth = x
-            q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
-            d_value = self.convert_x_value(tth, '2th_deg', 'd_A')
-        elif self.integration_unit == 'q_A^-1':
-            q_value = x
-            tth = self.convert_x_value(q_value, 'q_A^-1', '2th_deg')
-            d_value = self.convert_x_value(q_value, 'q_A^-1', 'd_A')
+        if self.calibration_data.is_calibrated:
+            if self.integration_unit == '2th_deg':
+                tth = x
+                q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
+                d_value = self.convert_x_value(tth, '2th_deg', 'd_A')
+            elif self.integration_unit == 'q_A^-1':
+                q_value = x
+                tth = self.convert_x_value(q_value, 'q_A^-1', '2th_deg')
+                d_value = self.convert_x_value(q_value, 'q_A^-1', 'd_A')
+            elif self.integration_unit == 'd_A':
+                d_value = x
+                q_value = self.convert_x_value(d_value, 'd_A', 'q_A^-1')
+                tth = self.convert_x_value(d_value, 'd_A', '2th_deg')
 
-        elif self.integration_unit == 'd_A':
-            d_value = x
-            q_value = self.convert_x_value(d_value, 'd_A', 'q_A^-1')
-            tth = self.convert_x_value(d_value, 'd_A', '2th_deg')
-
-        tth_str = u'2θ:%9.2f  ' % tth
+            tth_str = u'2θ:%9.2f  ' % tth
+            d_str = u'd:%9.2f  ' % d_value
+            q_str = u'Q:%9.2f  ' % q_value
+        else:
+            tth_str = u'2θ: -'
+            d_str = u'd: -'
+            q_str = u'Q: -'
+            if self.integration_unit == '2th_deg':
+                tth_str = u'2θ:%9.2f  ' % x
+            elif self.integration_unit == 'q_A^-1':
+                q_str = u'Q:%9.2f  ' % x
+            elif self.integration_unit == 'd_A':
+                d_str = u'd:%9.2f  ' % x
         self.view.mouse_tth_lbl.setText(tth_str)
-        self.view.mouse_d_lbl.setText(u'd:%9.2f  ' % d_value)
-        self.view.mouse_q_lbl.setText(u'Q:%9.2f  ' % q_value)
+        self.view.mouse_d_lbl.setText(d_str)
+        self.view.mouse_q_lbl.setText(q_str)
         self.view.mouse_azi_lbl.setText(u'X: -')

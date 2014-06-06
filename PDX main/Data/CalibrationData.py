@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -37,7 +37,6 @@ class CalibrationData(object):
         self.points = []
         self.points_index = []
         self.geometry = AzimuthalIntegrator()
-        self.geometry.set_wavelength(0.3344e-10)
         self.calibrant = Calibrant()
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,

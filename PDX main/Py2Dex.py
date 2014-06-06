@@ -16,10 +16,12 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO Browsing in the calibration window
+# TODO Browsing images in the calibration window
 #TODO quick actions to save spectrum
-#TODO export fit2d parameters
+# TODO having an export fit2d parameters btn
 #TODO fix this issue with the calibrant not updating etc. (it should update itself everytime you calibrate etc.)
+# TODO if there is no wavelength yet defined in the calibration, it should not use an arbitrary wavelength for showing
+# x values in the integration view (it should be just - instead)
 
 __author__ = 'Clemens Prescher'
 import sys
