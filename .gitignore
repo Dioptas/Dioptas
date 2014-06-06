@@ -15,11 +15,10 @@
 *.csv
 .ipynb_checkpoints/
 .idea
-PDX main/Tools
+PDX\ main/Tools
 marchingsquares_.*
 marchingsquares_.c
 marchingsquares.py
-Py2DeX_loaded.py
 # Build results
 
 [Dd]ebug/

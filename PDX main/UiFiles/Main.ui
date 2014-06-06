@@ -23,6 +23,10 @@ QTabWidget::tab-bar{
 	alignment: center;
 }
 
+QWidget{
+	color: #F1F1F1;
+}
+
 
 QTabBar::tab:left, QTabBar::tab:right {  
      background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
@@ -30,9 +34,10 @@ QTabBar::tab:left, QTabBar::tab:right {
 	font: normal 14px;
 	color: #F1F1F1;
      border-radius:2px;
-	padding-right: 4px;
+	
+    padding: 0px;
      width: 20px;  
-    height:130px;
+    min-height:140px;
  }  
 
 
@@ -43,9 +48,9 @@ QTabBar::tab::top, QTabBar::tab::bottom {
 	  color: #F1F1F1; 
     font: normal 11px;
      border-radius:2px;
-     width: 80px;  
+     min-width: 80px;  
     height: 19px;
-    padding-bottom: 0px;
+    padding: 0px;
      margin-top: 1px ;
 	margin-right: 1px;
  }  
