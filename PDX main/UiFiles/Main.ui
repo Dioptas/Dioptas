@@ -243,6 +243,7 @@ QGraphicsView{
 #click_x_lbl, #click_y_lbl, #click_int_lbl, #click_azi_lbl, #click_d_lbl, #click_tth_lbl, #click_q_lbl {
     color: #00DD00;
 }
+
 </string>
   </property>
   <layout class="QGridLayout" name="gridLayout">

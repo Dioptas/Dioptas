@@ -201,9 +201,9 @@ class IntegrationPhaseController(object):
             self.update_intensities_slot)
 
     def get_unit(self):
-        if self.view.spec_unit_tth_rb.isChecked():
+        if self.view.spec_tth_btn.isChecked():
             return 'tth'
-        elif self.view.spec_unit_q_rb.isChecked():
+        elif self.view.spec_q_btn.isChecked():
             return 'q'
-        elif self.view.spec_unit_d_rb.isChecked():
+        elif self.view.spec_d_btn.isChecked():
             return 'd'

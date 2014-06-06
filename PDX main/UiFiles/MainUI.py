@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Fri Jun  6 12:02:32 2014
+# Created: Fri Jun  6 15:59:23 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -258,6 +258,7 @@ class Ui_mainView(object):
                                          "#click_x_lbl, #click_y_lbl, #click_int_lbl, #click_azi_lbl, #click_d_lbl, #click_tth_lbl, #click_q_lbl {\n"
                                          "    color: #00DD00;\n"
                                          "}\n"
+                                         "\n"
                                          ""))
         self.gridLayout = QtGui.QGridLayout(mainView)
         self.gridLayout.setMargin(5)
