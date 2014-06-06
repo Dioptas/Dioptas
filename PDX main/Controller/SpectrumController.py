@@ -67,10 +67,11 @@ class IntegrationSpectrumController(object):
             self.view.spec_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(
             self.view.spec_browse_by_time_rb, self.set_iteration_mode_time)
-        self.connect_click_function(
-            self.view.spec_unit_tth_rb, self.set_unit_tth)
-        self.connect_click_function(self.view.spec_unit_q_rb, self.set_unit_q)
-        self.connect_click_function(self.view.spec_unit_d_rb, self.set_unit_d)
+
+        self.connect_click_function(self.view.spec_tth_btn, self.set_unit_tth)
+        self.connect_click_function(self.view.spec_q_btn, self.set_unit_q)
+        self.connect_click_function(self.view.spec_d_btn, self.set_unit_d)
+
         self.view.connect(self.view.spec_directory_txt,
                           QtCore.SIGNAL('editingFinished()'),
                           self.spec_directory_txt_changed)
@@ -196,8 +197,9 @@ class IntegrationSpectrumController(object):
         self.integration_unit = '2th_deg'
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', u'°')
-
         self.update_line_position(previous_unit, self.integration_unit)
+        self.view.spec_q_btn.setChecked(False)
+        self.view.spec_d_btn.setChecked(False)
 
     def set_unit_q(self):
         previous_unit = self.integration_unit
@@ -208,6 +210,9 @@ class IntegrationSpectrumController(object):
 
         self.update_line_position(previous_unit, self.integration_unit)
 
+        self.view.spec_tth_btn.setChecked(False)
+        self.view.spec_d_btn.setChecked(False)
+
     def set_unit_d(self):
         previous_unit = self.integration_unit
         self.integration_unit = 'd_A'
@@ -217,8 +222,13 @@ class IntegrationSpectrumController(object):
         )
         self.update_line_position(previous_unit, self.integration_unit)
 
+        self.view.spec_tth_btn.setChecked(False)
+        self.view.spec_q_btn.setChecked(False)
+
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.view.spectrum_view.pos_line.getPos()[0]
+        if cur_line_pos == 0 and new_unit == 'd_A':
+            cur_line_pos = 0.01
         try:
             new_line_pos = self.convert_x_value(cur_line_pos, previous_unit, new_unit)
         except RuntimeWarning:  # no calibration available
@@ -252,11 +262,10 @@ class IntegrationSpectrumController(object):
     def spectrum_left_click(self, x, y):
         self.view.spectrum_view.set_pos_line(x)
         if self.calibration_data.is_calibrated:
-            if self.view.spec_unit_q_rb.isChecked():
-                x = np.arcsin(
-                    x * 1e10 * self.calibration_data.geometry.wavelength
-                    / (4 * np.pi)) * 2
-                x = x / np.pi * 180
+            if self.integration_unit == 'q_A^-1':
+                x = self.convert_x_value(x, 'q_A^-1', '2th_deg')
+            elif self.integration_unit == 'd_A':
+                x = self.convert_x_value(x, 'd_A^-1', '2th_deg')
 
             if self.view.cake_rb.isChecked():  # cake mode
                 upper_ind = np.where(self.calibration_data.cake_tth > x)
