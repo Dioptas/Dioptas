@@ -29,6 +29,7 @@ from PyQt4 import QtCore, QtGui
 class SpectrumView(QtCore.QObject):
     mouse_moved = QtCore.pyqtSignal(float, float)
     mouse_left_clicked = QtCore.pyqtSignal(float, float)
+    range_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, pg_layout):
         super(SpectrumView, self).__init__()
@@ -153,6 +154,7 @@ class SpectrumView(QtCore.QObject):
                 self.view_box.enableAutoRange()
             else:
                 self.view_box.scaleBy(2)
+            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
         if ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())
             pos = self.plot_item.mapFromScene(2 * ev.pos() - pos)
@@ -165,6 +167,7 @@ class SpectrumView(QtCore.QObject):
         if ev.button() == QtCore.Qt.RightButton:
             self.view_box.autoRange()
             self.view_box.enableAutoRange()
+            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
 
     def myMouseDragEvent(self, ev, axis=None):
@@ -174,28 +177,27 @@ class SpectrumView(QtCore.QObject):
         lastPos = ev.lastPos()
         dif = pos - lastPos
         dif *= -1
-        ## Ignore axes if mouse is disabled
-        mouseEnabled = np.array(self.view_box.state['mouseEnabled'], dtype=np.float)
-        mask = mouseEnabled.copy()
-        if axis is not None:
-            mask[1 - axis] = 0.0
 
         if ev.button() == QtCore.Qt.RightButton:
             #determine the amount of translation
-            tr = dif * mask
+            tr = dif
             tr = self.view_box.mapToView(tr) - self.view_box.mapToView(pg.Point(0, 0))
             x = tr.x()
             y = tr.y()
 
             self.view_box.translateBy(x=x, y=y)
-            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
         else:
             pg.ViewBox.mouseDragEvent(self.view_box, ev)
+
+        self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
 
     def myWheelEvent(self, ev):
         if ev.delta() > 0:
             pg.ViewBox.wheelEvent(self.view_box, ev)
+            axis_range = self.spectrum_plot.viewRange()
+            QtGui.QApplication.processEvents()
+            self.range_changed.emit(axis_range)
         else:
             view_range = np.array(self.view_box.viewRange())
             curve_data = self.plot_item.getData()
@@ -206,6 +208,7 @@ class SpectrumView(QtCore.QObject):
                 self.view_box.autoRange()
             else:
                 pg.ViewBox.wheelEvent(self.view_box, ev)
+        self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
 
 class PhaseLinesPlot(object):

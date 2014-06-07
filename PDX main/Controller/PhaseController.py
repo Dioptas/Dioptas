@@ -22,6 +22,7 @@ import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
 from Data.HelperModule import get_base_name, SignalFrequencyLimiter
+import pyqtgraph as pg
 
 
 class IntegrationPhaseController(object):
@@ -53,11 +54,8 @@ class IntegrationPhaseController(object):
 
         self.view.phase_lw.currentItemChanged.connect(self.phase_item_changed)
 
-        self.spectrum_data.subscribe(self.update_intensities)
-
-        self.update_phase_intensity_timer = SignalFrequencyLimiter(
-            self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect,
-            self.update_intensities_slot, 100)
+        self.spectrum_data.subscribe(self.spectrum_data_changed)
+        self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_intensities_slot)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -167,7 +165,12 @@ class IntegrationPhaseController(object):
         self.view.phase_pressure_sb.blockSignals(False)
         self.view.phase_temperature_sb.blockSignals(False)
 
-    def update_intensities_slot(self, sender, axis_range):
+    def spectrum_data_changed(self):
+        QtGui.QApplication.processEvents()
+        self.update_intensities()
+
+    def update_intensities_slot(self, *args):
+        axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         self.view.spectrum_view.spectrum_plot.disableAutoRange()
         self.update_intensities(axis_range)
 
@@ -207,3 +210,7 @@ class IntegrationPhaseController(object):
             return 'q'
         elif self.view.spec_d_btn.isChecked():
             return 'd'
+
+
+def test_function(var1):
+    print var1

@@ -192,16 +192,24 @@ class IntegrationSpectrumController(object):
         self.spectrum_data.file_iteration_mode = 'time'
 
     def set_unit_tth(self):
+        self.view.spec_tth_btn.setChecked(True)
+        self.view.spec_q_btn.setChecked(False)
+        self.view.spec_d_btn.setChecked(False)
         previous_unit = self.integration_unit
+        if previous_unit == '2th_deg':
+            return
         self.integration_unit = '2th_deg'
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', u'°')
         self.update_line_position(previous_unit, self.integration_unit)
-        self.view.spec_q_btn.setChecked(False)
-        self.view.spec_d_btn.setChecked(False)
 
     def set_unit_q(self):
+        self.view.spec_tth_btn.setChecked(False)
+        self.view.spec_q_btn.setChecked(True)
+        self.view.spec_d_btn.setChecked(False)
         previous_unit = self.integration_unit
+        if previous_unit == 'q_A^-1':
+            return
         self.integration_unit = "q_A^-1"
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel(
@@ -209,20 +217,19 @@ class IntegrationSpectrumController(object):
 
         self.update_line_position(previous_unit, self.integration_unit)
 
-        self.view.spec_tth_btn.setChecked(False)
-        self.view.spec_d_btn.setChecked(False)
-
     def set_unit_d(self):
+        self.view.spec_tth_btn.setChecked(False)
+        self.view.spec_q_btn.setChecked(False)
+        self.view.spec_d_btn.setChecked(True)
         previous_unit = self.integration_unit
+        if previous_unit == 'd_A':
+            return
         self.integration_unit = 'd_A'
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel(
             'bottom', 'd', 'A'
         )
         self.update_line_position(previous_unit, self.integration_unit)
-
-        self.view.spec_tth_btn.setChecked(False)
-        self.view.spec_q_btn.setChecked(False)
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.view.spectrum_view.pos_line.getPos()[0]
