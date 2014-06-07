@@ -28,7 +28,7 @@ import pyqtgraph as pg
 
 class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def __init__(self):
-        super(IntegrationView, self).__init__(None)
+        super(IntegrationView, self).__init__()
         self.setupUi(self)
         self.horizontal_splitter.setStretchFactor(0, 1)
         self.horizontal_splitter.setStretchFactor(1, 1)
@@ -37,7 +37,10 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.vertical_splitter.setStretchFactor(1, 1)
         self.vertical_splitter.setSizes([100, 700])
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
+        self.img_pg_layout.ci.layout.setContentsMargins(10, 10, 10, 5)
+        self.img_pg_layout.ci.layout.setSpacing(5)
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
+        self.spectrum_pg_layout.ci.layout.setContentsMargins(10, 10, 0, 10)
         self.set_validator()
 
     def set_validator(self):
