@@ -62,7 +62,7 @@ class IntegrationImageController(object):
     def plot_cake(self, reset_img_levels=None):
         if reset_img_levels is None:
             reset_img_levels = self._reset_img_levels
-        self.view.img_view.plot_image(self.calibration_data.cake_img, reset_img_levels)
+        self.view.img_view.plot_image(self.calibration_data.cake_img)
         if reset_img_levels:
             self.view.img_view.auto_range()
 
