@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Fri Jun  6 17:48:25 2014
+# Created: Fri Jun  6 20:25:03 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -570,8 +570,12 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_15.setSpacing(8)
         self.horizontalLayout_15.setMargin(8)
         self.horizontalLayout_15.setObjectName(_fromUtf8("horizontalLayout_15"))
+        self.img_levels_autoscale_rb = QtGui.QRadioButton(self.groupBox_2)
+        self.img_levels_autoscale_rb.setChecked(True)
+        self.img_levels_autoscale_rb.setObjectName(_fromUtf8("img_levels_autoscale_rb"))
+        self.horizontalLayout_15.addWidget(self.img_levels_autoscale_rb)
         self.img_levels_absolute_rb = QtGui.QRadioButton(self.groupBox_2)
-        self.img_levels_absolute_rb.setChecked(True)
+        self.img_levels_absolute_rb.setChecked(False)
         self.img_levels_absolute_rb.setObjectName(_fromUtf8("img_levels_absolute_rb"))
         self.horizontalLayout_15.addWidget(self.img_levels_absolute_rb)
         self.img_levels_percentage_rb = QtGui.QRadioButton(self.groupBox_2)
@@ -825,6 +829,7 @@ class Ui_xrs_integration_widget(object):
         self.groupBox.setTitle(_translate("xrs_integration_widget", "Mask", None))
         self.mask_transparent_cb.setText(_translate("xrs_integration_widget", "Transparent", None))
         self.groupBox_2.setTitle(_translate("xrs_integration_widget", "Levels", None))
+        self.img_levels_autoscale_rb.setText(_translate("xrs_integration_widget", "AutoScale", None))
         self.img_levels_absolute_rb.setText(_translate("xrs_integration_widget", "Absolute", None))
         self.img_levels_percentage_rb.setText(_translate("xrs_integration_widget", "Percentage", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.special_tab),
