@@ -79,6 +79,7 @@ class HorHistogramLUTItem(GraphicsWidget):
         self.region = LinearRegionItem([0, 1], LinearRegionItem.Vertical)
         self.region.setZValue(1000)
         self.vb.addItem(self.region)
+        self.vb.setMenuEnabled(False)
         self.layout.addItem(self.vb, 1, 0)
         self.layout.addItem(self.gradient, 0, 0)
         self.range = None
@@ -101,6 +102,11 @@ class HorHistogramLUTItem(GraphicsWidget):
         if image is not None:
             self.setImageItem(image)
             #self.setSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
+
+        self.vb.mouseClickEvent = self.empty_function
+        self.vb.mouseDragEvent = self.empty_function
+        self.vb.mouseDoubleClickEvent = self.empty_function
+        self.vb.wheelEvent = self.empty_function
 
     def fillHistogram(self, fill=True, level=0.0, color=(100, 100, 200)):
         if fill:
@@ -140,7 +146,7 @@ class HorHistogramLUTItem(GraphicsWidget):
 
     def autoHistogramRange(self):
         """Enable auto-scaling on the histogram plot."""
-        self.vb.enableAutoRange(self.vb.XYAxes)
+        self.vb.enableAutoRange(self.vb.XAxis)
         #self.range = None
         #self.updateRange()
         #self.vb.setMouseEnabled(False, False)
@@ -159,7 +165,7 @@ class HorHistogramLUTItem(GraphicsWidget):
         img.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
         #self.gradientChanged()
         self.regionChanged()
-        self.imageChanged(autoLevel=True)
+        self.imageChanged()
         #self.vb.autoRange()
 
     def viewRangeChanged(self):
@@ -199,7 +205,7 @@ class HorHistogramLUTItem(GraphicsWidget):
         self.sigLevelsChanged.emit(self)
         self.update()
 
-    def imageChanged(self, autoLevel=False, autoRange=False):
+    def imageChanged(self, autoRange=False):
         prof = debug.Profiler('HistogramLUTItem.imageChanged', disabled=True)
         h = list(self.imageItem.getHistogram())
 
@@ -207,7 +213,7 @@ class HorHistogramLUTItem(GraphicsWidget):
         if h[0] is None:
             return
         h[1] = np.log(h[1])
-        self.plot.setData(*h)
+        self.plot.setData(h[0], h[1])
         self.hist_x_range = np.max(h[0]) - np.min(h[0])
         if self.percentageLevel:
             if self.first_image:
@@ -219,20 +225,13 @@ class HorHistogramLUTItem(GraphicsWidget):
                 self.region.setRegion(region_fraction * self.hist_x_range)
                 self.old_hist_x_range = self.hist_x_range
 
-        self.vb.setRange(yRange=[0, 1.2 * np.max(h[1])],
-                         xRange=[0, np.max([self.region.getRegion()[1],
-                                            np.max(h[0])])])
-
-        prof.mark('set plot')
-        if autoLevel:
-            mn = h[0][0]
-            mx = h[-1][0]
-            self.region.setRegion([mn, mx])
-            prof.mark('set region')
-        prof.finish()
+        self.vb.setRange(yRange=[0, 1.2 * np.max(h[1])])
 
     def getLevels(self):
         return self.region.getRegion()
 
     def setLevels(self, mn, mx):
         self.region.setRegion([mn, mx])
+
+    def empty_function(self, *args):
+        pass
