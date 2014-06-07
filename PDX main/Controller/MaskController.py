@@ -54,7 +54,7 @@ class MaskController(object):
         else:
             self.mask_data = maskData
 
-        self.view.img_view.add_left_click_observer(self.process_click)
+        self.view.img_view.mouse_left_clicked.connect(self.process_click)
 
         self.state = None
         self.clicks = 0
@@ -114,10 +114,10 @@ class MaskController(object):
         for shape in shapes:
             if shape is not None:
                 self.view.img_view.img_view_box.removeItem(shape)
-                self.view.img_view.del_mouse_move_observer(shape.set_size)
+                self.view.img_view.mouse_moved.disconnect(shape.set_size)
 
         try:
-            self.view.img_view.del_mouse_move_observer(self.point.set_position)
+            self.view.img_view.mouse_moved.disconnect(self.point.set_position)
             self.view.img_view.img_view_box.removeItem(self.point)
             self.point = None
         except AttributeError:
@@ -159,7 +159,7 @@ class MaskController(object):
             self.clicks = 0
             self.uncheck_all_btn(except_btn=self.view.point_btn)
             self.point = self.view.img_view.draw_point(self.view.point_size_sb.value())
-            self.view.img_view.add_mouse_move_observer(self.point.set_position)
+            self.view.img_view.mouse_moved.connect(self.point.set_position)
         else:
             self.state = 'None'
             self.uncheck_all_btn()
@@ -190,26 +190,26 @@ class MaskController(object):
         if self.clicks == 0:
             self.clicks += 1
             self.circle = self.view.img_view.draw_circle(x, y)
-            self.view.img_view.add_mouse_move_observer(self.circle.set_size)
+            self.view.img_view.mouse_moved.connect(self.circle.set_size)
         elif self.clicks == 1:
             self.clicks = 0
             self.mask_data.mask_QGraphicsEllipseItem(self.circle)
             self.view.img_view.img_view_box.removeItem(self.circle)
             self.view.img_view.plot_mask(self.mask_data.get_img())
-            self.view.img_view.del_mouse_move_observer(self.circle.set_size)
+            self.view.img_view.mouse_moved.disconnect(self.circle.set_size)
             self.circle = None
 
     def draw_rectangle(self, x, y):
         if self.clicks == 0:
             self.clicks += 1
             self.rect = self.view.img_view.draw_rectangle(x, y)
-            self.view.img_view.add_mouse_move_observer(self.rect.set_size)
+            self.view.img_view.mouse_moved.connect(self.rect.set_size)
         elif self.clicks == 1:
             self.clicks = 0
             self.mask_data.mask_QGraphicsRectItem(self.rect)
             self.view.img_view.img_view_box.removeItem(self.rect)
             self.view.img_view.plot_mask(self.mask_data.get_img())
-            self.view.img_view.del_mouse_move_observer(self.rect.set_size)
+            self.view.img_view.mouse_moved.disconnect(self.rect.set_size)
             self.rect = None
 
     def draw_point(self, x, y):
@@ -227,15 +227,15 @@ class MaskController(object):
         if self.clicks == 0:
             self.clicks += 1
             self.polygon = self.view.img_view.draw_polygon(x, y)
-            self.view.img_view.add_mouse_move_observer(self.polygon.set_size)
-            self.view.img_view.add_left_double_click_observer(self.finish_polygon)
+            self.view.img_view.mouse_moved.connect(self.polygon.set_size)
+            self.view.img_view.mouse_left_double_clicked.connect(self.finish_polygon)
         elif self.clicks == 1:
             self.polygon.set_size(x, y)
             self.polygon.add_point(x, y)
 
     def finish_polygon(self, x, y):
-        self.view.img_view.del_mouse_move_observer(self.polygon.set_size)
-        self.view.img_view.del_left_double_click_observer(self.finish_polygon)
+        self.view.img_view.mouse_moved.disconnect(self.polygon.set_size)
+        self.view.img_view.mouse_left_double_clicked.disconnect(self.finish_polygon)
         self.polygon.add_point(y, x)
         self.clicks = 0
         self.mask_data.mask_QGraphicsPolygonItem(self.polygon)

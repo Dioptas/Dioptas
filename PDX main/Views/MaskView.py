@@ -32,7 +32,7 @@ class MaskView(QtGui.QWidget, Ui_xrs_mask_widget):
         self.setupUi(self)
         #self.splitter.setStretchFactor(0, 1)
         self.img_view = MaskImgView(self.img_pg_layout)
-        self.img_view.add_mouse_move_observer(self.show_img_mouse_position)
+        self.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.set_validator()
 
     def set_validator(self):

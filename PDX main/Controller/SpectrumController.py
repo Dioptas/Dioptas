@@ -3,7 +3,7 @@
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -44,10 +44,9 @@ class IntegrationSpectrumController(object):
     def create_subscriptions(self):
         self.img_data.subscribe(self.image_changed)
         self.spectrum_data.subscribe(self.plot_spectra)
-        self.view.spectrum_view.add_left_click_observer(
-            self.spectrum_left_click)
+        self.view.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
 
-        self.mouse_move_timer = SignalFrequencyLimiter(self.view.spectrum_view.add_mouse_move_observer,
+        self.mouse_move_timer = SignalFrequencyLimiter(self.view.spectrum_view.mouse_moved.connect,
                                                        self.show_spectrum_mouse_position)
 
     def set_status(self):

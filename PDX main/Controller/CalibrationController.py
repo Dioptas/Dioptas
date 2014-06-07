@@ -74,7 +74,7 @@ class CalibrationController(object):
         self.connect_click_function(self.view.integrate_btn, self.calibrate)
         self.connect_click_function(self.view.refine_btn, self.refine)
 
-        self.view.img_view.add_left_click_observer(self.search_peaks)
+        self.view.img_view.mouse_left_clicked.connect(self.search_peaks)
         self.connect_click_function(self.view.clear_peaks_btn, self.clear_peaks_btn_click)
 
 

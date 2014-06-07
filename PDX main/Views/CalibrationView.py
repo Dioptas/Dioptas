@@ -36,15 +36,15 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.splitter.setStretchFactor(0, 2)
 
         self.img_view = ImgView(self.img_pg_layout)
-        self.img_view_mouse_timer = SignalFrequencyLimiter(self.img_view.add_mouse_move_observer,
+        self.img_view_mouse_timer = SignalFrequencyLimiter(self.img_view.mouse_moved.connect,
                                                            self.show_img_mouse_position)
 
         self.cake_view = CalibrationCakeView(self.cake_pg_layout)
-        self.cake_view_mouse_timer = SignalFrequencyLimiter(self.cake_view.add_mouse_move_observer,
+        self.cake_view_mouse_timer = SignalFrequencyLimiter(self.cake_view.mouse_moved.connect,
                                                             self.show_cake_mouse_position)
 
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
-        self.spectrum_view_mouse_timer = SignalFrequencyLimiter(self.spectrum_view.add_mouse_move_observer,
+        self.spectrum_view_mouse_timer = SignalFrequencyLimiter(self.spectrum_view.mouse_moved.connect,
                                                                 self.show_spectrum_mouse_position)
 
         self.set_validator()

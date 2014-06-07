@@ -22,12 +22,16 @@ import pyqtgraph as pg
 from Views.ExLegendItem import LegendItem
 import numpy as np
 from Data.HelperModule import calculate_color
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtGui
 
 # TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
 
-class SpectrumView(object):
+class SpectrumView(QtCore.QObject):
+    mouse_moved = QtCore.pyqtSignal(float, float)
+    mouse_left_clicked = QtCore.pyqtSignal(float, float)
+
     def __init__(self, pg_layout):
+        super(SpectrumView, self).__init__()
         self.pg_layout = pg_layout
         self.create_graphics()
         self.create_main_plot()
@@ -37,14 +41,6 @@ class SpectrumView(object):
         self.overlays = []
         self.overlay_names = []
         self.overlay_show = []
-        self.mouse_move_observer = []
-        self.left_click_observer = []
-
-    def add_left_click_observer(self, function):
-        self.left_click_observer.append(function)
-
-    def add_mouse_move_observer(self, function):
-        self.mouse_move_observer.append(function)
 
     def create_graphics(self):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
@@ -66,7 +62,7 @@ class SpectrumView(object):
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
 
     def create_pos_line(self):
-        self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=2))
+        self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5))
         self.spectrum_plot.addItem(self.pos_line)
 
     def set_pos_line(self, x):
@@ -131,8 +127,7 @@ class SpectrumView(object):
 
     def mouseMoved(self, pos):
         pos = self.plot_item.mapFromScene(pos)
-        for function in self.mouse_move_observer:
-            function(pos.x(), pos.y())
+        self.mouse_moved.emit(pos.x(), pos.y())
 
 
     def modify_mouse_behavior(self):
@@ -163,8 +158,7 @@ class SpectrumView(object):
             pos = self.plot_item.mapFromScene(2 * ev.pos() - pos)
             x = pos.x()
             y = pos.y()
-            for function in self.left_click_observer:
-                function(x, y)
+            self.mouse_left_clicked.emit(x, y)
 
 
     def myMouseDoubleClickEvent(self, ev):
