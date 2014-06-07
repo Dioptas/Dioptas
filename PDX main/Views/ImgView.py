@@ -24,8 +24,13 @@ from PyQt4 import QtCore, QtGui
 from HorHistogramLUTItem import HorHistogramLUTItem
 
 
-class ImgView(object):
+class ImgView(QtCore.QObject):
+    mouse_moved = QtCore.pyqtSignal(float, float)
+    mouse_left_clicked = QtCore.pyqtSignal(float, float)
+    mouse_left_double_clicked = QtCore.pyqtSignal(float, float)
+
     def __init__(self, pg_layout, orientation='vertical'):
+        super(ImgView, self).__init__()
         self.pg_layout = pg_layout
         self.orientation = orientation
 
@@ -33,16 +38,10 @@ class ImgView(object):
         self.create_scatter_plot()
         self.modify_mouse_behavior()
 
-        self.mouse_move_observer = []
-        self.left_click_observer = []
-        self.left_double_click_observer = []
         self.img_data = None
         self.mask_data = None
 
     def create_graphics(self):
-        #create basic image view
-
-
         #self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         if self.orientation == 'horizontal':
 
@@ -88,38 +87,9 @@ class ImgView(object):
     def clear_scatter_plot(self):
         self.img_scatter_plot_item.setData(x=None, y=None)
 
-    def add_left_click_observer(self, function):
-        self.left_click_observer.append(function)
-
-    def del_left_click_observer(self, function):
-        try:
-            self.left_click_observer.remove(function)
-        except ValueError:
-            pass
-
-    def add_left_double_click_observer(self, function):
-        self.left_double_click_observer.append(function)
-
-    def del_left_double_click_observer(self, function):
-        try:
-            self.left_double_click_observer.remove(function)
-        except ValueError:
-            pass
-
-
-    def add_mouse_move_observer(self, function):
-        self.mouse_move_observer.append(function)
-
-    def del_mouse_move_observer(self, function):
-        try:
-            self.mouse_move_observer.remove(function)
-        except ValueError:
-            pass
-
     def mouseMoved(self, pos):
         pos = self.data_img_item.mapFromScene(pos)
-        for function in self.mouse_move_observer:
-            function(pos.x(), pos.y())
+        self.mouse_moved.emit(pos.x(), pos.y())
 
     def modify_mouse_behavior(self):
         #different mouse handlers
@@ -147,8 +117,7 @@ class ImgView(object):
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
             y = pos.x()
             x = pos.y()
-            for function in self.left_click_observer:
-                function(x, y)
+            self.mouse_left_clicked.emit(x, y)
 
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
@@ -156,8 +125,7 @@ class ImgView(object):
         if ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
-            for function in self.left_double_click_observer:
-                function(pos.x(), pos.y())
+            self.mouse_left_double_clicked.emit(pos.x(), pos.y())
 
     def myMouseDragEvent(self, ev, axis=None):
         #most of this code is copied behavior of left click mouse drag from the original code
@@ -205,7 +173,7 @@ class CalibrationCakeView(ImgView):
         self.img_view_box.setAspectLocked(False)
         self._vertical_line_activated = False
         self.create_vertical_line()
-        self.add_left_click_observer(self.set_vertical_line_pos)
+        self.mouse_moved.connect(self.set_vertical_line_pos)
 
     def create_vertical_line(self):
         self.vertical_line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=(0, 255, 0), width=2))

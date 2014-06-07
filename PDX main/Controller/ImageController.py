@@ -111,8 +111,8 @@ class IntegrationImageController(object):
         self.create_auto_process_signal()
 
     def create_mouse_behavior(self):
-        self.view.img_view.add_left_click_observer(self.img_mouse_click)
-        self.mouse_pos_limiter = SignalFrequencyLimiter(self.view.img_view.add_mouse_move_observer,
+        self.view.img_view.mouse_left_clicked.connect(self.img_mouse_click)
+        self.mouse_pos_limiter = SignalFrequencyLimiter(self.view.img_view.mouse_moved.connect,
                                                         self.show_img_mouse_position, 150)
 
     def connect_click_function(self, emitter, function):
