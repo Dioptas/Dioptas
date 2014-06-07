@@ -173,7 +173,7 @@ class CalibrationCakeView(ImgView):
         self.img_view_box.setAspectLocked(False)
         self._vertical_line_activated = False
         self.create_vertical_line()
-        self.mouse_moved.connect(self.set_vertical_line_pos)
+        self.mouse_left_clicked.connect(self.set_vertical_line_pos)
 
     def create_vertical_line(self):
         self.vertical_line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=(0, 255, 0), width=2))

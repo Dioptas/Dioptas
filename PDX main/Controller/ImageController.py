@@ -56,7 +56,8 @@ class IntegrationImageController(object):
                 self._first_plot = False
 
         self.view.img_view.plot_image(self.img_data.get_img_data(),
-                                      reset_img_levels)
+                                      False)
+
         if reset_img_levels:
             self.view.img_view.auto_range()
 
@@ -131,7 +132,7 @@ class IntegrationImageController(object):
     def change_mask_mode(self):
         self.use_mask = not self.use_mask
         self.plot_mask()
-        self.img_data.notify()
+        self.update_img(True)
 
     def load_next_img(self):
         self.img_data.load_next()
@@ -171,8 +172,8 @@ class IntegrationImageController(object):
             self.view.img_view.activate_vertical_line()
             self.view.img_view.img_view_box.setAspectLocked(False)
         elif self.img_mode == 'Image':
-            self.plot_img(reset_img_levels)
             self.plot_mask()
+            self.plot_img(reset_img_levels)
             self.view.img_view.deactivate_vertical_line()
             self.view.img_view.img_view_box.setAspectLocked(True)
 
