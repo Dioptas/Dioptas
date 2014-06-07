@@ -1300,12 +1300,22 @@
                <number>8</number>
               </property>
               <item>
+               <widget class="QRadioButton" name="img_levels_autoscale_rb">
+                <property name="text">
+                 <string>AutoScale</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
                <widget class="QRadioButton" name="img_levels_absolute_rb">
                 <property name="text">
                  <string>Absolute</string>
                 </property>
                 <property name="checked">
-                 <bool>true</bool>
+                 <bool>false</bool>
                 </property>
                </widget>
               </item>

@@ -30,7 +30,7 @@ class IntegrationImageController(object):
         self.img_data = img_data
         self.mask_data = mask_data
         self.calibration_data = calibration_data
-        self._reset_img_levels = False
+        self._reset_img_levels = True
         self._first_plot = True
         self.img_mode = 'Image'
         self.use_mask = False
@@ -44,7 +44,7 @@ class IntegrationImageController(object):
     def initialize(self):
         self.update_img(True)
         self.plot_mask()
-        self.view.img_view.img_view_box.autoRange()
+        self.view.img_view.auto_range()
 
     def plot_img(self, reset_img_levels=None):
         if reset_img_levels is None:
@@ -62,8 +62,7 @@ class IntegrationImageController(object):
     def plot_cake(self, reset_img_levels=None):
         if reset_img_levels is None:
             reset_img_levels = self._reset_img_levels
-        self.view.img_view.plot_image(
-            self.calibration_data.cake_img, reset_img_levels)
+        self.view.img_view.plot_image(self.calibration_data.cake_img, reset_img_levels)
         if reset_img_levels:
             self.view.img_view.auto_range()
 
@@ -83,10 +82,12 @@ class IntegrationImageController(object):
         self.plot_mask()
 
     def change_img_levels_mode(self):
-        self.view.img_view.img_histogram_LUT.percentageLevel = \
-            self.view.img_levels_percentage_rb.isChecked()
-        self.view.img_view.img_histogram_LUT.old_hist_x_range = \
-            self.view.img_view.img_histogram_LUT.hist_x_range
+        self.view.img_view.img_histogram_LUT.percentageLevel = self.view.img_levels_percentage_rb.isChecked()
+        self.view.img_view.img_histogram_LUT.old_hist_x_range = self.view.img_view.img_histogram_LUT.hist_x_range
+        if self.view.img_levels_autoscale_rb.isChecked():
+            self._reset_img_levels = True
+        else:
+            self._reset_img_levels = False
         self.view.img_view.img_histogram_LUT.first_image = False
 
     def create_signals(self):
@@ -97,14 +98,15 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.view.mask_transparent_cb, self.change_mask_colormap)
+        self.connect_click_function(self.view.img_levels_autoscale_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.img_levels_absolute_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
 
         self.connect_click_function(self.view.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.view.img_mode_btn, self.change_view_mode)
+        self.connect_click_function(self.view.img_autoscale_btn, self.view.img_view.auto_range)
 
-        self.connect_click_function(
-            self.view.image_load_calibration_btn, self.load_calibration)
+        self.connect_click_function(self.view.image_load_calibration_btn, self.load_calibration)
         self.create_auto_process_signal()
 
     def create_mouse_behavior(self):
@@ -153,7 +155,7 @@ class IntegrationImageController(object):
                 QtGui.QApplication.processEvents()
                 self.update_img()
 
-    def update_img(self, reset_img_levels=False):
+    def update_img(self, reset_img_levels=None):
         self.view.img_filename_lbl.setText(
             os.path.basename(self.img_data.filename))
         if self.img_mode == 'Cake' and \
