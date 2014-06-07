@@ -49,6 +49,7 @@ class IntegrationImageController(object):
     def plot_img(self, reset_img_levels=None):
         if reset_img_levels is None:
             reset_img_levels = self._reset_img_levels
+
         if self._first_plot is True:
             reset_img_levels = True
             if self.img_data.get_img_data().sum() > 0:
@@ -126,7 +127,6 @@ class IntegrationImageController(object):
         if filename is not '':
             self.working_dir['image'] = os.path.dirname(filename)
             self.img_data.load(filename)
-            self.plot_img()
 
     def change_mask_mode(self):
         self.use_mask = not self.use_mask
