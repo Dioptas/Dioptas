@@ -132,7 +132,8 @@ class IntegrationImageController(object):
     def change_mask_mode(self):
         self.use_mask = not self.use_mask
         self.plot_mask()
-        self.update_img(True)
+        self.img_data.notify()
+        # self.update_img(True)
 
     def load_next_img(self):
         self.img_data.load_next()
@@ -255,9 +256,9 @@ class IntegrationImageController(object):
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
                 tth_str = u'2θ:%9.2f  ' % tth
                 self.view.mouse_tth_lbl.setText(tth_str)
-                self.view.mouse_d_lbl.setText(u'd:%9.2f  ' % d)
-                self.view.mouse_q_lbl.setText(u'Q:%9.2f  ' % q_value)
-                self.view.mouse_azi_lbl.setText(u'X:%9.2f  ' % azi)
+                self.view.mouse_d_lbl.setText(u'd:%9.3f  ' % d)
+                self.view.mouse_q_lbl.setText(u'Q:%9.3f  ' % q_value)
+                self.view.mouse_azi_lbl.setText(u'X:%9.3f  ' % azi)
             else:
                 self.view.mouse_tth_lbl.setText(u'2θ: -')
                 self.view.mouse_d_lbl.setText(u'd: -')

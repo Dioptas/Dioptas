@@ -69,6 +69,9 @@ class SpectrumView(QtCore.QObject):
     def set_pos_line(self, x):
         self.pos_line.setPos(x)
 
+    def get_pos_line(self):
+        return self.pos_line.value()
+
     def plot_data(self, x, y, name=None):
         self.plot_item.setData(x, y)
         if name is not None:
