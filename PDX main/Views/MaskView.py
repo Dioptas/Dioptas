@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -32,20 +32,8 @@ class MaskView(QtGui.QWidget, Ui_xrs_mask_widget):
         self.setupUi(self)
         #self.splitter.setStretchFactor(0, 1)
         self.img_view = MaskImgView(self.img_pg_layout)
-        self.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.set_validator()
 
     def set_validator(self):
         self.above_thresh_txt.setValidator(QtGui.QIntValidator())
         self.below_thresh_txt.setValidator(QtGui.QIntValidator())
-
-
-    def show_img_mouse_position(self, x, y):
-        try:
-            if x > 0 and y > 0:
-                str = "x: %8.1f   y: %8.1f   I: %6.f" % (x, y, self.img_view.img_data.T[np.floor(x), np.floor(y)])
-            else:
-                str = "x: %.1f y: %.1f" % (x, y)
-        except (IndexError, AttributeError):
-            str = "x: %.1f y: %.1f" % (x, y)
-        self.pos_lbl.setText(str)

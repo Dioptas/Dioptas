@@ -196,7 +196,6 @@ class SpectrumView(QtCore.QObject):
         if ev.delta() > 0:
             pg.ViewBox.wheelEvent(self.view_box, ev)
             axis_range = self.spectrum_plot.viewRange()
-            QtGui.QApplication.processEvents()
             self.range_changed.emit(axis_range)
         else:
             view_range = np.array(self.view_box.viewRange())

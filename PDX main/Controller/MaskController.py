@@ -32,6 +32,7 @@ from PyQt4 import QtGui, QtCore
 from Views.MaskView import MaskView
 from Data.ImgData import ImgData
 from Data.MaskData import MaskData
+from Data.HelperModule import SignalFrequencyLimiter
 
 import numpy as np
 
@@ -96,6 +97,9 @@ class MaskController(object):
         self.connect_click_function(self.view.fill_rb, self.fill_rb_click)
         self.connect_click_function(self.view.transparent_rb, self.transparent_rb_click)
         self.view.connect(self.view.point_size_sb, QtCore.SIGNAL('valueChanged(int)'), self.set_point_size)
+
+        self.mouse_move_limiter = SignalFrequencyLimiter(self.view.img_view.mouse_moved.connect,
+                                                         self.show_img_mouse_position)
 
         self.view.keyPressEvent = self.key_press_event
 
@@ -342,6 +346,17 @@ class MaskController(object):
     def transparent_rb_click(self):
         self.view.img_view.set_color([255, 0, 0, 100])
         self.plot_mask()
+
+
+    def show_img_mouse_position(self, x, y):
+        try:
+            if x > 0 and y > 0:
+                str = "x: %8.1f   y: %8.1f   I: %6.f" % (x, y, self.view.img_view.img_data.T[np.floor(x), np.floor(y)])
+            else:
+                str = "x: %.1f y: %.1f" % (x, y)
+        except (IndexError, AttributeError):
+            str = "x: %.1f y: %.1f" % (x, y)
+        self.view.pos_lbl.setText(str)
 
 
 if __name__ == "__main__":
