@@ -75,6 +75,8 @@ class IntegrationSpectrumController(object):
                           QtCore.SIGNAL('editingFinished()'),
                           self.spec_directory_txt_changed)
 
+        self.view.keyPressEvent = self.key_press_event
+
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
@@ -266,34 +268,56 @@ class IntegrationSpectrumController(object):
         return res
 
     def spectrum_left_click(self, x, y):
-        self.view.spectrum_view.set_pos_line(x)
-        if self.calibration_data.is_calibrated:
-            if self.integration_unit == 'q_A^-1':
-                x = self.convert_x_value(x, 'q_A^-1', '2th_deg')
-            elif self.integration_unit == 'd_A':
-                x = self.convert_x_value(x, 'd_A', '2th_deg')
-
-            if self.view.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
-                upper_ind = np.where(self.calibration_data.cake_tth > x)
-                lower_ind = np.where(self.calibration_data.cake_tth < x)
-                spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
-                          self.calibration_data.cake_tth[lower_ind[-1][-1]]
-                new_pos = lower_ind[-1][-1] + \
-                          (x -
-                           self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
-
-                self.view.img_view.vertical_line.setValue(new_pos)
-            else:  # image mode
-                if self.calibration_data.is_calibrated:
-                    self.view.img_view.set_circle_scatter_tth(
-                        self.calibration_data.geometry._ttha, x / 180 * np.pi)
+        self.set_line_position(x)
 
         self.view.click_tth_lbl.setText(self.view.mouse_tth_lbl.text())
         self.view.click_d_lbl.setText(self.view.mouse_d_lbl.text())
         self.view.click_q_lbl.setText(self.view.mouse_q_lbl.text())
         self.view.click_azi_lbl.setText(self.view.mouse_azi_lbl.text())
 
+    def set_line_position(self, x):
+        self.view.spectrum_view.set_pos_line(x)
+        if self.calibration_data.is_calibrated:
+            self.update_image_view_line_position()
+
+    def get_line_tth(self):
+        x = self.view.spectrum_view.get_pos_line()
+        if self.integration_unit == 'q_A^-1':
+            x = self.convert_x_value(x, 'q_A^-1', '2th_deg')
+        elif self.integration_unit == 'd_A':
+            x = self.convert_x_value(x, 'd_A', '2th_deg')
+        return x
+
+    def update_image_view_line_position(self):
+        tth = self.get_line_tth()
+        if self.view.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
+            self.set_cake_line_position(tth)
+        else:  # image mode
+            self.set_image_line_position(tth)
+
+    def set_cake_line_position(self, tth):
+        upper_ind = np.where(self.calibration_data.cake_tth > tth)
+        lower_ind = np.where(self.calibration_data.cake_tth < tth)
+        spacing = self.calibration_data.cake_tth[upper_ind[0][0]] - \
+                  self.calibration_data.cake_tth[lower_ind[-1][-1]]
+        new_pos = lower_ind[-1][-1] + \
+                  (tth -
+                   self.calibration_data.cake_tth[lower_ind[-1][-1]]) / spacing
+        self.view.img_view.vertical_line.setValue(new_pos)
+
+    def set_image_line_position(self, tth):
+        if self.calibration_data.is_calibrated:
+            self.view.img_view.set_circle_scatter_tth(
+                self.calibration_data.geometry._ttha, tth / 180 * np.pi)
+
     def show_spectrum_mouse_position(self, x, y):
+        tth_str, d_str, q_str, azi_str = self.get_position_strings(x)
+        self.view.mouse_tth_lbl.setText(tth_str)
+        self.view.mouse_d_lbl.setText(d_str)
+        self.view.mouse_q_lbl.setText(q_str)
+        self.view.mouse_azi_lbl.setText(azi_str)
+
+    def get_position_strings(self, x):
         if self.calibration_data.is_calibrated:
             if self.integration_unit == '2th_deg':
                 tth = x
@@ -308,20 +332,42 @@ class IntegrationSpectrumController(object):
                 q_value = self.convert_x_value(d_value, 'd_A', 'q_A^-1')
                 tth = self.convert_x_value(d_value, 'd_A', '2th_deg')
 
-            tth_str = u'2θ:%9.2f  ' % tth
-            d_str = u'd:%9.2f  ' % d_value
-            q_str = u'Q:%9.2f  ' % q_value
+            tth_str = u'2θ:%9.3f  ' % tth
+            d_str = u'd:%9.3f  ' % d_value
+            q_str = u'Q:%9.3f  ' % q_value
         else:
             tth_str = u'2θ: -'
             d_str = u'd: -'
             q_str = u'Q: -'
             if self.integration_unit == '2th_deg':
-                tth_str = u'2θ:%9.2f  ' % x
+                tth_str = u'2θ:%9.3f  ' % x
             elif self.integration_unit == 'q_A^-1':
-                q_str = u'Q:%9.2f  ' % x
+                q_str = u'Q:%9.3f  ' % x
             elif self.integration_unit == 'd_A':
-                d_str = u'd:%9.2f  ' % x
-        self.view.mouse_tth_lbl.setText(tth_str)
-        self.view.mouse_d_lbl.setText(d_str)
-        self.view.mouse_q_lbl.setText(q_str)
-        self.view.mouse_azi_lbl.setText(u'X: -')
+                d_str = u'd:%9.3f  ' % x
+        azi_str = u'X: -'
+        return tth_str, d_str, q_str, azi_str
+
+    def key_press_event(self, ev):
+        if (ev.key() == QtCore.Qt.Key_Left) or (ev.key() == QtCore.Qt.Key_Right):
+            pos = self.view.spectrum_view.get_pos_line()
+            step = np.mean(np.diff(self.spectrum_data.spectrum.data[0]))
+            if ev.modifiers() & QtCore.Qt.ControlModifier:
+                step /= 20.
+            elif ev.modifiers() & QtCore.Qt.ShiftModifier:
+                step *= 10
+            if self.integration_unit == 'd_A':
+                step *= -1
+            if ev.key() == QtCore.Qt.Key_Left:
+                new_pos = pos - step
+            elif ev.key() == QtCore.Qt.Key_Right:
+                new_pos = pos + step
+            self.set_line_position(new_pos)
+            self.update_image_view_line_position()
+
+            tth_str, d_str, q_str, azi_str = self.get_position_strings(new_pos)
+            self.view.click_tth_lbl.setText(tth_str)
+            self.view.click_d_lbl.setText(d_str)
+            self.view.click_q_lbl.setText(q_str)
+            self.view.click_azi_lbl.setText(azi_str)
+
