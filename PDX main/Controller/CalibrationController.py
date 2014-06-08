@@ -26,6 +26,7 @@ from PyQt4 import QtGui, QtCore
 from Views.CalibrationView import CalibrationView
 from Data.ImgData import ImgData
 from Data.CalibrationData import CalibrationData
+from Data.HelperModule import SignalFrequencyLimiter
 
 import numpy as np
 
@@ -76,6 +77,13 @@ class CalibrationController(object):
 
         self.view.img_view.mouse_left_clicked.connect(self.search_peaks)
         self.connect_click_function(self.view.clear_peaks_btn, self.clear_peaks_btn_click)
+
+        self.img_view_mouse_timer = SignalFrequencyLimiter(self.view.img_view.mouse_moved.connect,
+                                                           self.show_img_mouse_position)
+        self.cake_view_mouse_timer = SignalFrequencyLimiter(self.view.cake_view.mouse_moved.connect,
+                                                            self.show_cake_mouse_position)
+        self.spectrum_view_mouse_timer = SignalFrequencyLimiter(self.view.spectrum_view.mouse_moved.connect,
+                                                                self.show_spectrum_mouse_position)
 
 
     def create_transformation_signals(self):
@@ -304,6 +312,31 @@ class CalibrationController(object):
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.geometry.save(filename)
+
+
+    def show_img_mouse_position(self, x, y):
+        try:
+            if x > 0 and y > 0:
+                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.view.img_view.img_data.T[np.round(x), np.round(y)])
+            else:
+                str = "x: %.1f y: %.1f" % (x, y)
+        except (IndexError, AttributeError):
+            str = "x: %.1f y: %.1f" % (x, y)
+        self.view.pos_lbl.setText(str)
+
+    def show_cake_mouse_position(self, x, y):
+        try:
+            if x > 0 and y > 0:
+                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.view.cake_view.img_data.T[np.round(x), np.round(y)])
+            else:
+                str = "x: %.1f y: %.1f" % (x, y)
+        except (IndexError, AttributeError):
+            str = "x: %.1f y: %.1f" % (x, y)
+        self.view.pos_lbl.setText(str)
+
+    def show_spectrum_mouse_position(self, x, y):
+        str = "x: %.1f y: %.1f" % (x, y)
+        self.view.pos_lbl.setText(str)
 
 
 if __name__ == "__main__":
