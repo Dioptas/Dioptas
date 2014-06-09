@@ -56,6 +56,7 @@ class IntegrationPhaseController(object):
 
         self.spectrum_data.subscribe(self.spectrum_data_changed)
         self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_intensities_slot)
+        self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -212,5 +213,11 @@ class IntegrationPhaseController(object):
             return 'd'
 
 
-def test_function(var1):
-    print var1
+    def spectrum_auto_btn_clicked(self):
+        """
+        Runs self.update_intensities_slot after 50 ms.
+        This is needed because the graph scaling is to slow, to call update_intensities immediately after the autoscale-btn
+        was clicked
+        """
+        QtCore.QTimer.singleShot(50, self.update_intensities_slot)
+
