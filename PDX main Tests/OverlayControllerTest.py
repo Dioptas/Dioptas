@@ -4,7 +4,7 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
@@ -34,7 +34,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.controller.calibration_controller.load_calibration(
             'Data/LaB6_p49_40keV_006.poni')
         self.controller.view.tabWidget.setCurrentIndex(2)
-        self.controller.calibration_controller.load_file('Data/Mg2SiO4_ambient_001.tif')
+        self.controller.calibration_controller.load_img('Data/Mg2SiO4_ambient_001.tif')
 
         self.overlay_controller = self.controller.integration_controller.overlay_controller
         self.spectrum_data = self.controller.spectrum_data
