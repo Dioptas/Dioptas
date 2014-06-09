@@ -239,7 +239,30 @@ QGraphicsView{
 	border-style: none;
 }
 
+ QScrollBar:vertical {
+      border: 2px solid #3C3C3C;
+      background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #323232, stop:1 #505050);
+      width: 12px;
+      margin: 0px 0px 0px 0px;
+  }
+  QScrollBar::handle:vertical {
+      background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #969696, stop:1 #CACACA);
+	 border-radius: 3px;
+      min-height: 20px;
+	padding: 15px;
+  }
+  QScrollBar::add-line:vertical {
+      border: 0px solid grey;
+      height: 0px;
+  }
 
+  QScrollBar::sub-line:vertical {
+      border: 0px solid grey;
+      height: 0px;
+  }
+  QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+      background: none;
+  }
 
 #click_x_lbl, #click_y_lbl, #click_int_lbl, #click_azi_lbl, #click_d_lbl, #click_tth_lbl, #click_q_lbl {
     color: #00DD00;

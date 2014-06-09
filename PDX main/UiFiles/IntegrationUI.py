@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Sun Jun  8 23:27:59 2014
+# Created: Mon Jun  9 13:43:03 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -47,7 +47,9 @@ class Ui_xrs_integration_widget(object):
                                                        "\n"
                                                        "#spec_btn_widget QPushButton::pressed, #image_frame QPushButton::pressed{\n"
                                                        "    margin: 0px;\n"
-                                                       "}"))
+                                                       "}\n"
+                                                       "\n"
+                                                       ""))
         self.verticalLayout_16 = QtGui.QVBoxLayout(xrs_integration_widget)
         self.verticalLayout_16.setSpacing(3)
         self.verticalLayout_16.setMargin(8)
