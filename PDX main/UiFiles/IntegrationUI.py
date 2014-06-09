@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Fri Jun  6 20:25:03 2014
+# Created: Sun Jun  8 23:27:59 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,35 +17,37 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
+
 class Ui_xrs_integration_widget(object):
     def setupUi(self, xrs_integration_widget):
         xrs_integration_widget.setObjectName(_fromUtf8("xrs_integration_widget"))
         xrs_integration_widget.resize(1307, 823)
         xrs_integration_widget.setStyleSheet(_fromUtf8("\n"
-"\n"
-"#image_frame, #spec_container_widget, #spec_btn_widget {\n"
-"    background: black;\n"
-"}\n"
-"#spec_btn_widget QPushButton{\n"
-"    padding: 0px;\n"
-"    padding-right: 1px;\n"
-"    border-radius: 3px;\n"
-"}\n"
-"\n"
-"#image_frame QPushButton{\n"
-"    padding-left: 4px;\n"
-"    padding-right: 4px;\n"
-"}\n"
-"\n"
-"#spec_btn_widget QPushButton::pressed, #image_frame QPushButton::pressed{\n"
-"    margin: 0px;\n"
-"}"))
+                                                       "\n"
+                                                       "#image_frame, #spec_container_widget, #spec_btn_widget {\n"
+                                                       "    background: black;\n"
+                                                       "}\n"
+                                                       "#spec_btn_widget QPushButton{\n"
+                                                       "    padding: 0px;\n"
+                                                       "    padding-right: 1px;\n"
+                                                       "    border-radius: 3px;\n"
+                                                       "}\n"
+                                                       "\n"
+                                                       "#image_frame QPushButton{\n"
+                                                       "    padding-left: 4px;\n"
+                                                       "    padding-right: 4px;\n"
+                                                       "}\n"
+                                                       "\n"
+                                                       "#spec_btn_widget QPushButton::pressed, #image_frame QPushButton::pressed{\n"
+                                                       "    margin: 0px;\n"
+                                                       "}"))
         self.verticalLayout_16 = QtGui.QVBoxLayout(xrs_integration_widget)
         self.verticalLayout_16.setSpacing(3)
         self.verticalLayout_16.setMargin(8)
@@ -852,5 +854,6 @@ class Ui_xrs_integration_widget(object):
         self.click_d_lbl.setText(_translate("xrs_integration_widget", "d:", None))
         self.click_azi_lbl.setText(_translate("xrs_integration_widget", "χ:", None))
         self.bkg_name_lbl.setText(_translate("xrs_integration_widget", "Bkg:", None))
+
 
 from pyqtgraph import GraphicsLayoutWidget

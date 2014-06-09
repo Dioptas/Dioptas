@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Fri Jun  6 20:25:03 2014
+# Created: Sun Jun  8 23:27:59 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -98,7 +98,7 @@ class Ui_mainView(object):
                                          "        stop: 0 #727272, \n"
                                          "        stop: 1 #444444\n"
                                          "    );\n"
-                                         "     border:1px solid  #ADADAD;  \n"
+                                         "     border:1px solid  rgb(255, 120,00);/*#ADADAD; */ \n"
                                          "}\n"
                                          "\n"
                                          "QTabBar::tab:bottom:last, QTabBar::tab:top:last{\n"
@@ -201,6 +201,7 @@ class Ui_mainView(object):
                                          "}\n"
                                          "  \n"
                                          "QPushButton{  \n"
+                                         "     color: #F1F1F1;\n"
                                          "     background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);\n"
                                          "     border: 1px solid #5B5B5B;\n"
                                          "     border-radius: 5px; \n"
@@ -210,13 +211,13 @@ class Ui_mainView(object):
                                          " }  \n"
                                          "QPushButton:pressed{\n"
                                          "        margin-top: 2,px;\n"
-                                         "        margin-left: 2px;\n"
+                                         "        margin-left: 2px;    \n"
                                          "}\n"
                                          "QPushButton::disabled{\n"
                                          "}\n"
                                          "\n"
                                          "QPushButton::hover{  \n"
-                                         "     border:1px solid #ADADAD;  \n"
+                                         "     border:1px solid #ADADAD; \n"
                                          " }  \n"
                                          " \n"
                                          "\n"
@@ -227,7 +228,7 @@ class Ui_mainView(object):
                                          "        stop: 0 #727272, \n"
                                          "        stop: 1 #444444\n"
                                          "    );\n"
-                                         "     border:1px solid #ADADAD;\n"
+                                         "     border:1px solid  rgb(255, 120,00);\n"
                                          "}\n"
                                          "\n"
                                          "QPushButton::focus {\n"
@@ -281,7 +282,7 @@ class Ui_mainView(object):
         self.gridLayout.addWidget(self.tabWidget, 0, 0, 1, 1)
 
         self.retranslateUi(mainView)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(mainView)
 
     def retranslateUi(self, mainView):

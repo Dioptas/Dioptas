@@ -83,7 +83,7 @@ QTabWidget::tab-bar {
         stop: 0 #727272, 
         stop: 1 #444444
     );
-     border:1px solid  #ADADAD;  
+     border:1px solid  rgb(255, 120,00);/*#ADADAD; */ 
 }
 
 QTabBar::tab:bottom:last, QTabBar::tab:top:last{
@@ -186,6 +186,7 @@ QToolBox::tab:QToolButton{
 }
   
 QPushButton{  
+	 color: #F1F1F1;
      background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);
      border: 1px solid #5B5B5B;
      border-radius: 5px; 
@@ -195,13 +196,13 @@ height: 18px;
  }  
 QPushButton:pressed{
 		margin-top: 2,px;
-		margin-left: 2px;
+		margin-left: 2px;	
 }
 QPushButton::disabled{
 }
 
 QPushButton::hover{  
-     border:1px solid #ADADAD;  
+     border:1px solid #ADADAD; 
  }  
  
 
@@ -212,7 +213,7 @@ QPushButton::checked{
         stop: 0 #727272, 
         stop: 1 #444444
     );
-     border:1px solid #ADADAD;
+     border:1px solid  rgb(255, 120,00);
 }
 
 QPushButton::focus {
@@ -262,7 +263,7 @@ QGraphicsView{
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <property name="elideMode">
       <enum>Qt::ElideLeft</enum>
