@@ -67,7 +67,7 @@ class SpectrumData(Observable):
         self.overlays[-1].load(filename)
 
     def del_overlay(self, ind):
-        self.overlays.remove(self.overlays[ind])
+        del self.overlays[ind]
 
     def set_file_iteration_mode(self, mode):
         """
@@ -80,12 +80,6 @@ class SpectrumData(Observable):
             return -1
         else:
             self.mode = mode
-
-    def add_phase(self):
-        pass
-
-    def del_phase(self, ind):
-        pass
 
 
 class Spectrum(object):

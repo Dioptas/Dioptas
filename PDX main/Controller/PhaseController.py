@@ -2,7 +2,7 @@
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -117,8 +117,6 @@ class IntegrationPhaseController(object):
             self.view.phase_lw.takeItem(cur_ind)
             self.phase_data.del_phase(cur_ind)
             self.view.spectrum_view.del_phase(cur_ind)
-            if cur_ind == self.view.phase_lw.count():
-                self.view.phase_lw.setCurrentRow(cur_ind - 1)
 
     def clear_phases(self):
         while self.view.phase_lw.count() > 0:
