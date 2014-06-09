@@ -201,8 +201,10 @@ class IntegrationSpectrumController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
+        self.update_x_range(previous_unit, self.integration_unit)
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', u'°')
+        self.view.spectrum_view.spectrum_plot.invertX(False)
         self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_q(self):
@@ -213,10 +215,12 @@ class IntegrationSpectrumController(object):
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
+        self.update_x_range(previous_unit, self.integration_unit)
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel(
             'bottom', 'Q', 'A<sup>-1</sup>')
 
+        self.view.spectrum_view.spectrum_plot.invertX(False)
         self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_d(self):
@@ -227,11 +231,20 @@ class IntegrationSpectrumController(object):
         if previous_unit == 'd_A':
             return
         self.integration_unit = 'd_A'
+        self.update_x_range(previous_unit, self.integration_unit)
         self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel(
             'bottom', 'd', 'A'
         )
+        self.view.spectrum_view.spectrum_plot.invertX(True)
         self.update_line_position(previous_unit, self.integration_unit)
+
+    def update_x_range(self, previous_unit, new_unit):
+        old_x_axis_range = self.view.spectrum_view.spectrum_plot.viewRange()[0]
+        spectrum_x = self.spectrum_data.spectrum.data[0]
+        if np.min(spectrum_x) < old_x_axis_range[0] or np.max(spectrum_x) > old_x_axis_range[1]:
+            new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
+            self.view.spectrum_view.spectrum_plot.setRange(xRange=new_x_axis_range, padding=0)
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.view.spectrum_view.pos_line.getPos()[0]
