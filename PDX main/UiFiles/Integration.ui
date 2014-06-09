@@ -32,7 +32,9 @@
 
 #spec_btn_widget QPushButton::pressed, #image_frame QPushButton::pressed{
 	margin: 0px;
-}</string>
+}
+
+</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_16">
    <property name="spacing">

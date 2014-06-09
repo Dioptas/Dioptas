@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Sun Jun  8 23:27:59 2014
+# Created: Mon Jun  9 13:43:03 2014
 # by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -254,7 +254,30 @@ class Ui_mainView(object):
                                          "    border-style: none;\n"
                                          "}\n"
                                          "\n"
+                                         " QScrollBar:vertical {\n"
+                                         "      border: 2px solid #3C3C3C;\n"
+                                         "      background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #323232, stop:1 #505050);\n"
+                                         "      width: 12px;\n"
+                                         "      margin: 0px 0px 0px 0px;\n"
+                                         "  }\n"
+                                         "  QScrollBar::handle:vertical {\n"
+                                         "      background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #969696, stop:1 #CACACA);\n"
+                                         "     border-radius: 3px;\n"
+                                         "      min-height: 20px;\n"
+                                         "    padding: 15px;\n"
+                                         "  }\n"
+                                         "  QScrollBar::add-line:vertical {\n"
+                                         "      border: 0px solid grey;\n"
+                                         "      height: 0px;\n"
+                                         "  }\n"
                                          "\n"
+                                         "  QScrollBar::sub-line:vertical {\n"
+                                         "      border: 0px solid grey;\n"
+                                         "      height: 0px;\n"
+                                         "  }\n"
+                                         "  QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {\n"
+                                         "      background: none;\n"
+                                         "  }\n"
                                          "\n"
                                          "#click_x_lbl, #click_y_lbl, #click_int_lbl, #click_azi_lbl, #click_d_lbl, #click_tth_lbl, #click_q_lbl {\n"
                                          "    color: #00DD00;\n"

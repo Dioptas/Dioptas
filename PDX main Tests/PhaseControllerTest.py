@@ -46,38 +46,54 @@ class phaseControllerTest(unittest.TestCase):
         QtGui.QApplication.processEvents()
 
         self.assertEqual(self.phase_lw.count(), 6)
+        self.assertEqual(len(self.phase_data.phases), 6)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 6)
         self.assertEqual(self.phase_lw.currentRow(), 5)
 
         self.phase_controller.del_phase()
         self.assertEqual(self.phase_lw.count(), 5)
+        self.assertEqual(len(self.phase_data.phases), 5)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 5)
         self.assertEqual(self.phase_lw.currentRow(), 4)
 
         self.phase_lw.setCurrentRow(1)
         self.phase_controller.del_phase()
         self.assertEqual(self.phase_lw.count(), 4)
+        self.assertEqual(len(self.phase_data.phases), 4)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 4)
         self.assertEqual(self.phase_lw.currentRow(), 1)
 
         self.phase_lw.setCurrentRow(0)
         self.phase_controller.del_phase()
         self.assertEqual(self.phase_lw.count(), 3)
+        self.assertEqual(len(self.phase_data.phases), 3)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 3)
         self.assertEqual(self.phase_lw.currentRow(), 0)
 
         self.phase_controller.del_phase()
         self.phase_controller.del_phase()
         self.phase_controller.del_phase()
         self.assertEqual(self.phase_lw.count(), 0)
+        self.assertEqual(len(self.phase_data.phases), 0)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_lw.currentRow(), -1)
 
         self.phase_controller.del_phase()
         self.assertEqual(self.phase_lw.count(), 0)
+        self.assertEqual(len(self.phase_data.phases), 0)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_lw.currentRow(), -1)
 
     def test_automatic_deleting_phases(self):
         self.load_phases()
         self.load_phases()
         self.assertEqual(self.phase_lw.count(), 12)
+        self.assertEqual(len(self.phase_data.phases), 12)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 12)
         self.phase_controller.clear_phases()
         self.assertEqual(self.phase_lw.count(), 0)
+        self.assertEqual(len(self.phase_data.phases), 0)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_lw.currentRow(), -1)
 
         multiplier = 10
@@ -87,6 +103,8 @@ class phaseControllerTest(unittest.TestCase):
         self.assertEqual(self.phase_lw.count(), multiplier * 6)
         self.phase_controller.clear_phases()
         self.assertEqual(self.phase_lw.count(), 0)
+        self.assertEqual(len(self.phase_data.phases), 0)
+        self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_lw.currentRow(), -1)
 
     def load_phases(self):
