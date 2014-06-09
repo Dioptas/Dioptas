@@ -103,7 +103,9 @@ class ImgView(QtCore.QObject):
 
 
     def myMouseClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton:
+        if ev.button() == QtCore.Qt.RightButton or \
+                (ev.button() == QtCore.Qt.LeftButton and \
+                             ev.modifiers() & QtCore.Qt.ControlModifier):
             view_range = np.array(self.img_view_box.viewRange()) * 2
             if self.img_data is not None:
                 if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
@@ -112,7 +114,7 @@ class ImgView(QtCore.QObject):
                 else:
                     self.img_view_box.scaleBy(2)
 
-        if ev.button() == QtCore.Qt.LeftButton:
+        elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
             y = pos.x()
@@ -140,7 +142,9 @@ class ImgView(QtCore.QObject):
         if axis is not None:
             mask[1 - axis] = 0.0
 
-        if ev.button() == QtCore.Qt.RightButton:
+        if ev.button() == QtCore.Qt.RightButton or \
+                (ev.button() == QtCore.Qt.LeftButton and \
+                             ev.modifiers() & QtCore.Qt.ControlModifier):
             #determine the amount of translation
             tr = dif * mask
             tr = self.img_view_box.mapToView(tr) - self.img_view_box.mapToView(pg.Point(0, 0))
