@@ -326,8 +326,9 @@ class CalibrationController(object):
         intensity_max = np.float(self.view.options_intensity_limit_txt.text())
         num_rings = self.view.options_num_rings_sb.value()
 
-        self.calibration_data.search_peaks_on_ring(0, delta_tth, algorithm, intensity_min_factor, intensity_max)
-        self.calibration_data.search_peaks_on_ring(1, delta_tth, algorithm, intensity_min_factor, intensity_max)
+        self.calibration_data.setup_peak_search_algorithm(algorithm)
+        self.calibration_data.search_peaks_on_ring(0, delta_tth, intensity_min_factor, intensity_max)
+        self.calibration_data.search_peaks_on_ring(1, delta_tth, intensity_min_factor, intensity_max)
         try:
             self.calibration_data.refine()
         except IndexError:
@@ -335,10 +336,9 @@ class CalibrationController(object):
         self.plot_points()
 
         for i in xrange(num_rings - 2):
-            points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, algorithm, intensity_min_factor,
+            points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
                                                                 intensity_max)
             self.plot_points(points)
-            QtGui.QApplication.processEvents()
             QtGui.QApplication.processEvents()
             try:
                 self.calibration_data.refine()
