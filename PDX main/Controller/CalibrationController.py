@@ -78,7 +78,7 @@ class CalibrationController(object):
         self.create_mouse_signals()
 
         self.view.calibrant_cb.currentIndexChanged.connect(self.load_calibrant)
-        self.connect_click_function(self.view.load_file_btn, self.load_file)
+        self.connect_click_function(self.view.load_img_btn, self.load_img)
         self.connect_click_function(self.view.save_calibration_btn, self.save_calibration)
         self.connect_click_function(self.view.load_calibration_btn, self.load_calibration)
         self.connect_click_function(self.view.integrate_btn, self.calibrate)
@@ -162,7 +162,7 @@ class CalibrationController(object):
         self.update_all()
 
 
-    def load_file(self, filename=None):
+    def load_img(self, filename=None):
         """
         Loads an image file.
         :param filename:

@@ -22,7 +22,7 @@ class CombinedDataTest(unittest.TestCase):
                                                             calibration_data=self.calibration_data)
 
     def test_automatic_calibration1(self):
-        self.calibration_controller.load_file('Data/LaB6_p49_40keV_006.tif')
+        self.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
         self.calibration_controller.search_peaks(1179.6, 1129.4)
         self.calibration_controller.search_peaks(1268.5, 1119.8)
         self.calibration_controller.view.sv_wavelength_txt.setText('0.31')
@@ -34,7 +34,7 @@ class CombinedDataTest(unittest.TestCase):
         self.calibration_controller.view.cake_view.set_vertical_line_pos(1419.8, 653.4)
 
     def test_automatic_calibration2(self):
-        self.calibration_controller.load_file('Data/LaB6_WOS_30keV_005.tif')
+        self.calibration_controller.load_img('Data/LaB6_WOS_30keV_005.tif')
         self.calibration_controller.search_peaks(1245.2, 1919.3)
         self.calibration_controller.search_peaks(1334.0, 1823.7)
         self.calibration_controller.view.sv_wavelength_txt.setText('0.3344')
