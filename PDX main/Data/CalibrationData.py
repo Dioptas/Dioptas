@@ -75,7 +75,20 @@ class CalibrationData(object):
         self.points = []
         self.points_index = []
 
-    def search_peaks_on_ring(self, peak_index, delta_tth=0.1, algorithm='Massif', min_mean_factor=1,
+    def setup_peak_search_algorithm(self, algorithm, mask=None):
+        # init the peak search algorithm
+        if algorithm == 'Massif':
+            self.peak_search_algorithm = Massif(self.img_data.img_data)
+        elif algorithm == 'Blob':
+            if mask is not None:
+                self.peak_search_algorithm = BlobDetection(self.img_data.img_data * mask)
+            else:
+                self.peak_search_algorithm = BlobDetection(self.img_data.img_data)
+            self.peak_search_algorithm.process()
+        else:
+            return
+
+    def search_peaks_on_ring(self, peak_index, delta_tth=0.1, min_mean_factor=1,
                              upper_limit=55000):
         if not self.is_calibrated:
             return
@@ -86,7 +99,6 @@ class CalibrationData(object):
         # get appropiate two theta value for the ring number
         tth_calibrant_list = self.calibrant.get_2th()
         tth_calibrant = np.float(tth_calibrant_list[peak_index])
-        print tth_calibrant
 
         # get the calculated two theta values for the whole image
         if self.geometry._ttha is None:
@@ -97,15 +109,6 @@ class CalibrationData(object):
         # create mask based on two_theta position
         mask = abs(tth_array - tth_calibrant) <= delta_tth
 
-
-        # init the peak search algorithm
-        if algorithm == 'Massif':
-            peak_search_algorithm = Massif(self.img_data.img_data)
-        elif algorithm == 'Blob':
-            peak_search_algorithm = BlobDetection(self.img_data.img_data * mask)
-            peak_search_algorithm.process()
-        else:
-            return
 
         # calculate the mean and standard deviation of this area
         sub_data = np.array(self.img_data.img_data.ravel()[np.where(mask.ravel())], dtype=np.float64)
@@ -121,7 +124,7 @@ class CalibrationData(object):
 
         keep = int(np.ceil(np.sqrt(size2)))
         try:
-            res = peak_search_algorithm.peaks_from_area(mask2, Imin=mean - std, keep=keep)
+            res = self.peak_search_algorithm.peaks_from_area(mask2, Imin=mean - std, keep=keep)
         except IndexError:
             res = []
 
