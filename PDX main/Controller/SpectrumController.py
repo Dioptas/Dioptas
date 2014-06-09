@@ -351,7 +351,7 @@ class IntegrationSpectrumController(object):
     def key_press_event(self, ev):
         if (ev.key() == QtCore.Qt.Key_Left) or (ev.key() == QtCore.Qt.Key_Right):
             pos = self.view.spectrum_view.get_pos_line()
-            step = np.mean(np.diff(self.spectrum_data.spectrum.data[0]))
+            step = np.min(np.diff(self.spectrum_data.spectrum.data[0]))
             if ev.modifiers() & QtCore.Qt.ControlModifier:
                 step /= 20.
             elif ev.modifiers() & QtCore.Qt.ShiftModifier:
