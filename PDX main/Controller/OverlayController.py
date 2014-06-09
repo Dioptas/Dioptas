@@ -79,7 +79,6 @@ class IntegrationOverlayController(object):
         cur_ind = self.view.overlay_lw.currentRow()
         if cur_ind >= 0:
             self.view.overlay_lw.takeItem(cur_ind)
-            self.view.overlay_lw.setCurrentRow(cur_ind - 1)
             self.spectrum_data.overlays.remove(self.spectrum_data.overlays[cur_ind])
             self.view.spectrum_view.del_overlay(cur_ind)
             if self.spectrum_data.bkg_ind > cur_ind:
@@ -100,11 +99,11 @@ class IntegrationOverlayController(object):
             self.del_overlay()
 
     def update_overlay_scale_step(self):
-        value = np.double(self.view.overlay_scale_step_txt.text())
+        value = np.float(self.view.overlay_scale_step_txt.text())
         self.view.overlay_scale_sb.setSingleStep(value)
 
     def update_overlay_offset_step(self):
-        value = np.double(self.view.overlay_offset_step_txt.text())
+        value = np.float(self.view.overlay_offset_step_txt.text())
         self.view.overlay_offset_sb.setSingleStep(value)
 
     def overlay_item_changed(self):

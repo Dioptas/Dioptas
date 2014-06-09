@@ -35,8 +35,8 @@ class PhaseData(Observable):
         self.reflections.append([])
 
     def del_phase(self, ind):
-        self.phases.remove(self.phases[ind])
-        self.reflections.remove(self.reflections[ind])
+        del self.phases[ind]
+        del self.reflections[ind]
 
     def set_pressure(self, ind, P):
         self.phases[ind].compute_d(pressure=P)
