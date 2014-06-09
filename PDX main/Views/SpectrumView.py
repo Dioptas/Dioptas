@@ -146,7 +146,9 @@ class SpectrumView(QtCore.QObject):
 
 
     def myMouseClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton:
+        if ev.button() == QtCore.Qt.RightButton or \
+                (ev.button() == QtCore.Qt.LeftButton and \
+                             ev.modifiers() & QtCore.Qt.ControlModifier):
             view_range = np.array(self.view_box.viewRange()) * 2
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
@@ -158,7 +160,7 @@ class SpectrumView(QtCore.QObject):
             else:
                 self.view_box.scaleBy(2)
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
-        if ev.button() == QtCore.Qt.LeftButton:
+        elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())
             pos = self.plot_item.mapFromScene(2 * ev.pos() - pos)
             x = pos.x()
@@ -181,7 +183,9 @@ class SpectrumView(QtCore.QObject):
         dif = pos - lastPos
         dif *= -1
 
-        if ev.button() == QtCore.Qt.RightButton:
+        if ev.button() == QtCore.Qt.RightButton or \
+                (ev.button() == QtCore.Qt.LeftButton and \
+                             ev.modifiers() & QtCore.Qt.ControlModifier):
             #determine the amount of translation
             tr = dif
             tr = self.view_box.mapToView(tr) - self.view_box.mapToView(pg.Point(0, 0))
