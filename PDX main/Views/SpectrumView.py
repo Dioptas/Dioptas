@@ -195,9 +195,9 @@ class SpectrumView(QtCore.QObject):
         self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
 
-    def myWheelEvent(self, ev):
+    def myWheelEvent(self, ev, axis=None, *args):
         if ev.delta() > 0:
-            pg.ViewBox.wheelEvent(self.view_box, ev)
+            pg.ViewBox.wheelEvent(self.view_box, ev, axis)
             axis_range = self.spectrum_plot.viewRange()
             self.range_changed.emit(axis_range)
         else:
