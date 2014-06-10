@@ -22,6 +22,11 @@ import numpy as np
 
 
 class IntegrationImageController(object):
+    """
+    The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
+    well as interaction with the image_view.
+    """
+
     def __init__(self, working_dir, view, img_data, mask_data,
                  calibration_data):
         self.working_dir = working_dir
@@ -29,8 +34,7 @@ class IntegrationImageController(object):
         self.img_data = img_data
         self.mask_data = mask_data
         self.calibration_data = calibration_data
-        self._reset_img_levels = True
-        self._first_plot = True
+        self._auto_scale = True
         self.img_mode = 'Image'
         self.use_mask = False
 
@@ -45,29 +49,39 @@ class IntegrationImageController(object):
         self.plot_mask()
         self.view.img_view.auto_range()
 
-    def plot_img(self, reset_img_levels=None):
-        if reset_img_levels is None:
-            reset_img_levels = self._reset_img_levels
-
-        if self._first_plot is True:
-            reset_img_levels = True
-            if self.img_data.get_img_data().sum() > 0:
-                self._first_plot = False
+    def plot_img(self, auto_scale=None):
+        """
+        Plots the current image loaded in self.img_data.
+        :param auto_scale:
+            Determines if intensities should be auto-scaled. If value is None it will use the parameter saved in the
+            Object (self._auto_scale)
+        """
+        if auto_scale is None:
+            auto_scale = self._auto_scale
 
         self.view.img_view.plot_image(self.img_data.get_img_data(),
                                       False)
 
-        if reset_img_levels:
+        if auto_scale:
             self.view.img_view.auto_range()
 
-    def plot_cake(self, reset_img_levels=None):
-        if reset_img_levels is None:
-            reset_img_levels = self._reset_img_levels
+    def plot_cake(self, auto_scale=None):
+        """
+        Plots the cake saved in the calibration data
+        :param auto_scale:
+            Determines if the intensity should be auto-scaled. If value is None it will use the parameter saved in the
+            object (self._auto_scale)
+        """
+        if auto_scale is None:
+            auto_scale = self._auto_scale
         self.view.img_view.plot_image(self.calibration_data.cake_img)
-        if reset_img_levels:
+        if auto_scale:
             self.view.img_view.auto_range()
 
     def plot_mask(self):
+        """
+        Plots the mask data.
+        """
         if self.use_mask and \
                         self.img_mode == 'Image':
             self.view.img_view.plot_mask(self.mask_data.get_img())
@@ -76,6 +90,10 @@ class IntegrationImageController(object):
                 np.zeros(self.mask_data.get_img().shape))
 
     def change_mask_colormap(self):
+        """
+        Changes the colormap of the mask according to the transparency option selection in the GUI. Resulting Mask will
+        be either transparent or solid.
+        """
         if self.view.mask_transparent_cb.isChecked():
             self.view.img_view.set_color([255, 0, 0, 100])
         else:
@@ -83,15 +101,20 @@ class IntegrationImageController(object):
         self.plot_mask()
 
     def change_img_levels_mode(self):
+        """
+        Sets the img intensity scaling mode according to the option selection in the GUI.
+        """
         self.view.img_view.img_histogram_LUT.percentageLevel = self.view.img_levels_percentage_rb.isChecked()
         self.view.img_view.img_histogram_LUT.old_hist_x_range = self.view.img_view.img_histogram_LUT.hist_x_range
         if self.view.img_levels_autoscale_rb.isChecked():
-            self._reset_img_levels = True
+            self._auto_scale = True
         else:
-            self._reset_img_levels = False
-        self.view.img_view.img_histogram_LUT.first_image = False
+            self._auto_scale = False
 
     def create_signals(self):
+        """
+        Creates all the connections of the GUI elements.
+        """
         self.connect_click_function(self.view.next_img_btn, self.load_next_img)
         self.connect_click_function(self.view.prev_img_btn, self.load_previous_img)
         self.connect_click_function(self.view.load_img_btn, self.load_file_btn_click)
@@ -110,12 +133,18 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.image_load_calibration_btn, self.load_calibration)
         self.create_auto_process_signal()
 
+    def connect_click_function(self, emitter, function):
+        """
+        Small helper function for the button-click connection.
+        """
+        self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
+
     def create_mouse_behavior(self):
+        """
+        Creates the signal connections of mouse interactions
+        """
         self.view.img_view.mouse_left_clicked.connect(self.img_mouse_click)
         self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
-
-    def connect_click_function(self, emitter, function):
-        self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def load_file_btn_click(self, filename=None):
         if filename is None:
@@ -131,7 +160,6 @@ class IntegrationImageController(object):
         self.use_mask = not self.use_mask
         self.plot_mask()
         self.img_data.notify()
-        # self.update_img(True)
 
     def load_next_img(self):
         self.img_data.load_next()
