@@ -341,8 +341,8 @@ class CalibrationController(object):
             points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
                                                                 intensity_max)
             self.plot_points(points)
-            # QtGui.QApplication.processEvents()
-            # QtGui.QApplication.processEvents()
+            QtGui.QApplication.processEvents()
+            QtGui.QApplication.processEvents()
             try:
                 self.calibration_data.refine()
             except IndexError:
