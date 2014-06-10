@@ -26,7 +26,6 @@ from PyQt4 import QtGui, QtCore
 from Views.CalibrationView import CalibrationView
 from Data.ImgData import ImgData
 from Data.CalibrationData import CalibrationData
-from Data.HelperModule import SignalFrequencyLimiter
 import time
 
 import numpy as np
@@ -118,12 +117,9 @@ class CalibrationController(object):
         """
         Creates the mouse_move connections to show the current position of the mouse pointer.
         """
-        self.img_view_mouse_timer = SignalFrequencyLimiter(self.view.img_view.mouse_moved.connect,
-                                                           self.show_img_mouse_position)
-        self.cake_view_mouse_timer = SignalFrequencyLimiter(self.view.cake_view.mouse_moved.connect,
-                                                            self.show_cake_mouse_position)
-        self.spectrum_view_mouse_timer = SignalFrequencyLimiter(self.view.spectrum_view.mouse_moved.connect,
-                                                                self.show_spectrum_mouse_position)
+        self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
+        self.view.cake_view.mouse_moved.connect(self.show_cake_mouse_position)
+        self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)

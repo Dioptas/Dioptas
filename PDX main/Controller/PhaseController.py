@@ -21,7 +21,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
-from Data.HelperModule import get_base_name, SignalFrequencyLimiter
+from Data.HelperModule import get_base_name
 import pyqtgraph as pg
 
 
