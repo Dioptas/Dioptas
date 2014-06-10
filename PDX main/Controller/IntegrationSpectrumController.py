@@ -215,6 +215,7 @@ class IntegrationSpectrumController(object):
         self.integration_unit = "q_A^-1"
         self.update_x_range(previous_unit, self.integration_unit)
         self.image_changed()
+        self.view.spectrum_view.spectrum_plot.invertX(False)
         self.view.spectrum_view.spectrum_plot.setLabel(
             'bottom', 'Q', 'A<sup>-1</sup>')
 
