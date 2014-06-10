@@ -3,11 +3,11 @@
 # Form implementation generated from reading ui file 'widget.ui'
 #
 # Created: Thu Apr 24 11:30:09 2014
-#      by: PyQt4 UI code generator 4.10.4
+# by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide import QtCore, QtGui
+from PyQt4 import QtCore, QtGui
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -17,11 +17,13 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
+
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -55,5 +57,6 @@ class Ui_Form(object):
         Form.setWindowTitle(_translate("Form", "Form", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("Form", "Tab 1", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Form", "Tab 2", None))
+
 
 from pyqtgraph import GraphicsLayoutWidget

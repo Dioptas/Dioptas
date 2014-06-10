@@ -1,7 +1,7 @@
 __author__ = 'Doomgoroth'
 import sys
 
-from PySide import QtGui, QtCore
+from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 
 from PyQtGraphTestView import PyQtGraphView

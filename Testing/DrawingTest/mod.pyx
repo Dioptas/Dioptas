@@ -1,4 +1,4 @@
-from PySide import QtCore
+from PyQt4 import QtCore
 import numpy as np
 import time
 

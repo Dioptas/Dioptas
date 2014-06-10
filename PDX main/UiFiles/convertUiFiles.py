@@ -14,8 +14,8 @@ def convert_ui_files(folder='/'):
     for file in os.listdir('.'):
         if file.endswith(".ui"):
             file_name = str(file).split('.')[0]
-            command = 'pyside-uic-2.7'
-            pyqt_command = 'pyuic4'
+            pyside_command = 'PyQt4-uic-2.7'
+            command = 'pyuic4'
             cmd = command + ' ' + file + ' > ' + file_name + 'UI.py'  # PyQT Version
             print cmd
             os.system(cmd)

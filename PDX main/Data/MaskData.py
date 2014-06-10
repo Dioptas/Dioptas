@@ -19,7 +19,7 @@
 __author__ = 'Clemens Prescher'
 import numpy as np
 import pyqtgraph as pg
-from PySide import QtGui
+from PyQt4 import QtGui
 from collections import deque
 import skimage.draw
 import scipy.signal

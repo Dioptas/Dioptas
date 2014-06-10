@@ -18,7 +18,7 @@
 __author__ = 'Clemens Prescher'
 
 import os
-from PySide import QtGui, QtCore
+from PyQt4 import QtGui, QtCore
 from UiFiles.IntegrationUI import Ui_xrs_integration_widget
 from ImgView import IntegrationImgView
 from SpectrumView import SpectrumView

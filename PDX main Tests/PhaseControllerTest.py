@@ -4,7 +4,7 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
@@ -19,7 +19,7 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 
-from PySide import QtGui
+from PyQt4 import QtGui
 from Data.ImgData import ImgData
 from Controller.MainController import MainController
 

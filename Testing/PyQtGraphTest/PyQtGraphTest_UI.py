@@ -3,11 +3,11 @@
 # Form implementation generated from reading ui file 'PyQtGraphTest.ui'
 #
 # Created: Sat Apr  5 11:52:18 2014
-# by: PySide UI code generator 4.10.4
+# by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
 
-from PySide import QtCore, QtGui
+from PyQt4 import QtCore, QtGui
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8

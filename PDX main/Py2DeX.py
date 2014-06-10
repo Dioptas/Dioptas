@@ -9,7 +9,7 @@
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
 #
@@ -23,7 +23,7 @@
 
 __author__ = 'Clemens Prescher'
 import sys
-from PySide import QtGui
+from PyQt4 import QtGui
 from Controller.MainController import MainController
 
 if __name__ == "__main__":

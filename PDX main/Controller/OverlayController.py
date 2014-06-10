@@ -4,7 +4,7 @@
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
 #     This program is distributed in the hope that it will be useful,
@@ -19,7 +19,7 @@
 __author__ = 'Clemens Prescher'
 
 import os
-from PySide import QtGui, QtCore
+from PyQt4 import QtGui, QtCore
 import numpy as np
 from Data.HelperModule import get_base_name
 

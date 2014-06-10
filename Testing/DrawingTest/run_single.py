@@ -1,7 +1,7 @@
 import mod
 import matplotlib.pyplot as plt
 import numpy as np
-from PySide import QtGui
+from PyQt4 import QtGui
 
 
 size = 300

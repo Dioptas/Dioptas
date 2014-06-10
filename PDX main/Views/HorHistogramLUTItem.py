@@ -50,9 +50,9 @@ class HorHistogramLUTItem(GraphicsWidget):
     - Gradient editor to define color lookup table for single-channel images
     """
 
-    sigLookupTableChanged = QtCore.Signal(object)
-    sigLevelsChanged = QtCore.Signal(object)
-    sigLevelChangeFinished = QtCore.Signal(object)
+    sigLookupTableChanged = QtCore.pyqtSignal(object)
+    sigLevelsChanged = QtCore.pyqtSignal(object)
+    sigLevelChangeFinished = QtCore.pyqtSignal(object)
 
     def __init__(self, image=None, fillHistogram=True):
         """
