@@ -5,7 +5,7 @@
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
 #     This program is distributed in the hope that it will be useful,
@@ -19,12 +19,11 @@
 __author__ = 'Clemens Prescher'
 
 import sys
-from PyQt4 import QtGui
+from PySide import QtGui
 from Controller.MainController import MainController
 
 
-def test_calibration():
-    controller = MainController()
+def test_calibration(controller):
     controller.calibration_controller.load_calibration(
         'ExampleData/LaB6_p49_001.poni')
     controller.calibration_controller.set_calibrant(7)
@@ -32,8 +31,7 @@ def test_calibration():
     controller.calibration_controller.refine()
 
 
-def test_integration():
-    controller = MainController()
+def test_integration(controller):
     controller.calibration_controller.load_calibration(
         'ExampleData/LaB6_p49_001.poni')
     controller.view.tabWidget.setCurrentIndex(2)
@@ -55,5 +53,6 @@ if __name__ == "__main__":
         # possible values:
         # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
 
-    test_calibration()
+    controller = MainController()
+    test_integration(controller)
     app.exec_()

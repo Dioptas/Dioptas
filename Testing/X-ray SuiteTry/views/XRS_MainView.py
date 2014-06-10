@@ -1,5 +1,5 @@
 import sys
-from PyQt4 import QtGui
+from PySide import QtGui
 from UiFiles.XRS_Main import Ui_XRS_Main
 
 import matplotlib as mpl

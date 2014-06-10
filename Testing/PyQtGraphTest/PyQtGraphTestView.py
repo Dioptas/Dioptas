@@ -1,6 +1,6 @@
 __author__ = 'Doomgoroth'
 
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
 

@@ -22,14 +22,14 @@ import pyqtgraph as pg
 from Views.ExLegendItem import LegendItem
 import numpy as np
 from Data.HelperModule import calculate_color
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 
 # TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
 
 class SpectrumView(QtCore.QObject):
-    mouse_moved = QtCore.pyqtSignal(float, float)
-    mouse_left_clicked = QtCore.pyqtSignal(float, float)
-    range_changed = QtCore.pyqtSignal(list)
+    mouse_moved = QtCore.Signal(float, float)
+    mouse_left_clicked = QtCore.Signal(float, float)
+    range_changed = QtCore.Signal(list)
 
     def __init__(self, pg_layout):
         super(SpectrumView, self).__init__()

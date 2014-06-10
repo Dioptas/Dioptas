@@ -1,6 +1,6 @@
 import sys
 
-from PyQt4 import QtGui
+from PySide import QtGui
 import pyqtgraph as pg
 import numpy as np
 

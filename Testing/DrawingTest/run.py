@@ -17,7 +17,7 @@ Tested possibilits:
 import mod
 import matplotlib.pyplot as plt
 import numpy as np
-from PyQt4 import QtGui
+from PySide import QtGui
 from sklearn_implementation import fill_polygon, fill_circle
 import time
 
@@ -35,12 +35,12 @@ for n in xrange(num):
     mask_data = np.zeros((size, size))
     t1 = time.time()
     my_object = QtGui.QGraphicsEllipseItem(
-        size / 2, size / 2, size / 4., size / 4,)
+        size / 2, size / 2, size / 4., size / 4, )
     mask_data = mod.test_qt_graphics_object(mask_data, my_object)
     t_run.append(time.time() - t1)
     sizes.append(size * size / 4)
     print "Size %s took %s" % (size, t_run[n])
-    
+
 plt.plot(sizes, t_run, 'r--', label="QGraphObject.contains()")
 
 t_run = []
@@ -55,12 +55,11 @@ for n in xrange(num):
     mask_data = np.zeros((size, size))
     t1 = time.time()
     my_object = QtGui.QGraphicsEllipseItem(
-        size / 2, size / 2, size / 4., size / 4,)
+        size / 2, size / 2, size / 4., size / 4, )
     mask_data = mod.test_qt_graphics_object2(mask_data, my_object)
     t_run.append(time.time() - t1)
     sizes.append(size * size / 4)
     print "Size %s took %s" % (size, t_run[n])
-
 
 plt.plot(sizes, t_run, 'm-', label="cython distance method")
 
@@ -78,18 +77,17 @@ for n in xrange(num):
     mask_data = np.zeros((size, size))
     t1 = time.time()
     my_object = QtGui.QGraphicsRectItem(
-        size / 2, size / 2, size / 4., size / 4,)
+        size / 2, size / 2, size / 4., size / 4, )
     mask_data = mod.test_qt_graphics_object3(mask_data, my_object)
     t_run.append(time.time() - t1)
     sizes.append(size * size / 4)
     print "Size %s took %s" % (size, t_run[n])
 
-
 plt.plot(sizes, t_run, 'b-', label="Pnp algorithm")
 
 
 # ------------------------------------------------------------------------
-#  4
+# 4
 t_run = []
 sizes = []
 
@@ -102,7 +100,7 @@ for n in xrange(num):
     mask_data = np.zeros((size, size))
     t1 = time.time()
     my_object = QtGui.QGraphicsEllipseItem(
-        size / 2, size / 2, size / 4., size / 4,)
+        size / 2, size / 2, size / 4., size / 4, )
     mask_data = fill_polygon(mask_data, my_object)
     t_run.append(time.time() - t1)
     sizes.append(size * size / 4)
@@ -124,7 +122,7 @@ for n in xrange(num):
     mask_data = np.zeros((size, size))
     t1 = time.time()
     my_object = QtGui.QGraphicsEllipseItem(
-        size / 2, size / 2, size / 4., size / 4,)
+        size / 2, size / 2, size / 4., size / 4, )
     mask_data = fill_circle(mask_data, my_object)
     t_run.append(time.time() - t1)
     sizes.append(size * size / 4)

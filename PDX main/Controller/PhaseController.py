@@ -3,7 +3,7 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
@@ -19,7 +19,7 @@
 __author__ = 'Clemens Prescher'
 
 import os
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 import numpy as np
 from Data.HelperModule import get_base_name, SignalFrequencyLimiter
 import pyqtgraph as pg

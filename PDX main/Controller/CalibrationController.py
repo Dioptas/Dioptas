@@ -1,6 +1,6 @@
 # Py2DeX - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -22,11 +22,12 @@ __author__ = 'Clemens Prescher'
 import sys
 import os
 
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from Views.CalibrationView import CalibrationView
 from Data.ImgData import ImgData
 from Data.CalibrationData import CalibrationData
 from Data.HelperModule import SignalFrequencyLimiter
+import time
 
 import numpy as np
 
@@ -35,6 +36,7 @@ class CalibrationController(object):
     """
     CalibrationController handles all the interaction between the CalibrationView and the CalibrationData class
     """
+
     def __init__(self, working_dir, view=None, img_data=None, calibration_data=None):
         self.working_dir = working_dir
         if view == None:
@@ -339,7 +341,8 @@ class CalibrationController(object):
             points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
                                                                 intensity_max)
             self.plot_points(points)
-            QtGui.QApplication.processEvents()
+            # QtGui.QApplication.processEvents()
+            # QtGui.QApplication.processEvents()
             try:
                 self.calibration_data.refine()
             except IndexError:

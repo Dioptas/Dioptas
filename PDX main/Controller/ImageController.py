@@ -4,7 +4,7 @@ __author__ = 'Clemens Prescher'
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -17,7 +17,7 @@ __author__ = 'Clemens Prescher'
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from Data.HelperModule import SignalFrequencyLimiter
 import numpy as np
 
