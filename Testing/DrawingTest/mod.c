@@ -1323,7 +1323,7 @@ static char __pyx_k_rect[] = "rect";
 static char __pyx_k_test[] = "test";
 static char __pyx_k_time[] = "time";
 static char __pyx_k_vert[] = "vert";
-static char __pyx_k_PyQt4[] = "PyQt4";
+static char __pyx_k_PyQt4[] = "PySide";
 static char __pyx_k_array[] = "array";
 static char __pyx_k_int32[] = "int32";
 static char __pyx_k_numpy[] = "numpy";
@@ -7490,7 +7490,7 @@ PyMODINIT_FUNC PyInit_mod(void)
   /*--- Execution code ---*/
 
   /* "mod.pyx":1
- * from PyQt4 import QtCore             # <<<<<<<<<<<<<<
+ * from PySide import QtCore             # <<<<<<<<<<<<<<
  * import numpy as np
  * import time
  */
@@ -7509,7 +7509,7 @@ PyMODINIT_FUNC PyInit_mod(void)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "mod.pyx":2
- * from PyQt4 import QtCore
+ * from PySide import QtCore
  * import numpy as np             # <<<<<<<<<<<<<<
  * import time
  * 

@@ -4,7 +4,7 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
@@ -18,7 +18,7 @@
 __author__ = 'Clemens Prescher'
 
 import os
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 import pyFAI
 import numpy as np
 from Data.HelperModule import SignalFrequencyLimiter
@@ -220,7 +220,7 @@ class IntegrationSpectrumController(object):
         self.view.spectrum_view.spectrum_plot.setLabel(
             'bottom', 'Q', 'A<sup>-1</sup>')
 
-        self.view.spectrum_view.spectrum_plot.invertX(False)
+        # self.view.spectrum_view.spectrum_plot.invertX(False)
         self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_d(self):

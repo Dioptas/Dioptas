@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Py2DeX - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ __author__ = 'Clemens Prescher'
 
 import numpy as np
 import os
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 from stat import S_ISREG, ST_CTIME, ST_MODE
 from colorsys import hsv_to_rgb
 import time

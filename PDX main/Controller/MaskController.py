@@ -1,4 +1,4 @@
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -28,7 +28,7 @@ import os
 
 import pyqtgraph as pg
 
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from Views.MaskView import MaskView
 from Data.ImgData import ImgData
 from Data.MaskData import MaskData

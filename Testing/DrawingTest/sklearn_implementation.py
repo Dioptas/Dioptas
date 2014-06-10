@@ -1,6 +1,6 @@
 import numpy as np
 from skimage.draw import polygon, circle
-from PyQt4 import QtGui
+from PySide import QtGui
 import matplotlib.pyplot as plt
 import time
 
@@ -35,7 +35,7 @@ def run():
     size = 20000
     mask_data = np.zeros((size, size))
     my_object = QtGui.QGraphicsRectItem(
-        size / 2, size / 2, size / 4., size / 4,)
+        size / 2, size / 2, size / 4., size / 4, )
     mask_data = fill_polygon(mask_data, my_object)
 
     plt.imshow(mask_data)
