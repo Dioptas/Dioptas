@@ -18,7 +18,6 @@ __author__ = 'Clemens Prescher'
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 from PyQt4 import QtGui, QtCore
-from Data.HelperModule import SignalFrequencyLimiter
 import numpy as np
 
 
@@ -113,8 +112,7 @@ class IntegrationImageController(object):
 
     def create_mouse_behavior(self):
         self.view.img_view.mouse_left_clicked.connect(self.img_mouse_click)
-        self.mouse_pos_limiter = SignalFrequencyLimiter(self.view.img_view.mouse_moved.connect,
-                                                        self.show_img_mouse_position, 150)
+        self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)

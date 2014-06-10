@@ -21,8 +21,6 @@ import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
 import numpy as np
-from Data.HelperModule import SignalFrequencyLimiter
-
 
 class IntegrationSpectrumController(object):
     def __init__(self, working_dir, view, img_data,
@@ -46,8 +44,7 @@ class IntegrationSpectrumController(object):
         self.spectrum_data.subscribe(self.plot_spectra)
         self.view.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
 
-        self.mouse_move_timer = SignalFrequencyLimiter(self.view.spectrum_view.mouse_moved.connect,
-                                                       self.show_spectrum_mouse_position)
+        self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
 
     def set_status(self):
         self.autocreate = False
