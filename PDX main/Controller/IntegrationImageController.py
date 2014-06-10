@@ -130,7 +130,9 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.img_mode_btn, self.change_view_mode)
         self.connect_click_function(self.view.img_autoscale_btn, self.view.img_view.auto_range)
 
-        self.connect_click_function(self.view.image_load_calibration_btn, self.load_calibration)
+        self.connect_click_function(self.view.qa_img_save_img_btn, self.save_img)
+
+        self.connect_click_function(self.view.img_load_calibration_btn, self.load_calibration)
         self.create_auto_process_signal()
 
     def connect_click_function(self, emitter, function):
@@ -419,3 +421,22 @@ class IntegrationImageController(object):
                 if read_file:
                     self.load_file_btn_click(path)
                 self._files_before = self._files_now
+
+    def save_img(self, filename=None):
+        if filename is None:
+            filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Image.",
+                                                             self.working_dir['image'], '*.png'))
+        if filename is not '':
+            if self.img_mode == 'Cake':
+                self.view.img_view.deactivate_vertical_line()
+            elif self.img_mode == 'Image':
+                self.view.img_view.deactivate_circle_scatter()
+
+            QtGui.QApplication.processEvents()
+            self.view.img_view.save_img(filename)
+
+            if self.img_mode == 'Cake':
+                self.view.img_view.activate_vertical_line()
+            elif self.img_mode == 'Image':
+                self.view.img_view.activate_circle_scatter()
+

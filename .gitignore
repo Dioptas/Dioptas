@@ -8,6 +8,7 @@
 *.tif
 *.tiff
 *.jpg
+*.png
 *.data
 *.pyc
 *.poni
