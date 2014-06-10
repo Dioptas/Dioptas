@@ -4,7 +4,7 @@ from Data.ImgData import ImgData
 from Data.CalibrationData import CalibrationData
 from Controller.CalibrationController import CalibrationController
 import unittest
-from PySide import QtGui
+from PyQt4 import QtGui
 import sys
 import numpy as np
 import matplotlib.pyplot as plt

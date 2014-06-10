@@ -1,6 +1,6 @@
 import numpy as np
 from skimage.draw import polygon, circle
-from PySide import QtGui
+from PyQt4 import QtGui
 import matplotlib.pyplot as plt
 import time
 

@@ -3,7 +3,7 @@
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -19,7 +19,7 @@ __author__ = 'Clemens Prescher'
 
 import numpy as np
 import os
-from PySide import QtCore, QtGui
+from PyQt4 import QtCore, QtGui
 from stat import S_ISREG, ST_CTIME, ST_MODE
 from colorsys import hsv_to_rgb
 import time

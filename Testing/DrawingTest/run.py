@@ -17,7 +17,7 @@ Tested possibilits:
 import mod
 import matplotlib.pyplot as plt
 import numpy as np
-from PySide import QtGui
+from PyQt4 import QtGui
 from sklearn_implementation import fill_polygon, fill_circle
 import time
 
@@ -109,7 +109,7 @@ for n in xrange(num):
 plt.plot(sizes, t_run, 'g-.', label="skimage.polygon()")
 
 # ------------------------------------------------------------------------
-#  5
+# 5
 t_run = []
 sizes = []
 

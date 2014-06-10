@@ -20,14 +20,14 @@ __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
 import numpy as np
-from PySide import QtCore, QtGui
+from PyQt4 import QtCore, QtGui
 from HorHistogramLUTItem import HorHistogramLUTItem
 
 
 class ImgView(QtCore.QObject):
-    mouse_moved = QtCore.Signal(float, float)
-    mouse_left_clicked = QtCore.Signal(float, float)
-    mouse_left_double_clicked = QtCore.Signal(float, float)
+    mouse_moved = QtCore.pyqtSignal(float, float)
+    mouse_left_clicked = QtCore.pyqtSignal(float, float)
+    mouse_left_double_clicked = QtCore.pyqtSignal(float, float)
 
     def __init__(self, pg_layout, orientation='vertical'):
         super(ImgView, self).__init__()

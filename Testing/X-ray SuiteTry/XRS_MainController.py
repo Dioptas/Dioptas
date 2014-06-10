@@ -1,6 +1,6 @@
 import sys
 
-from PySide import QtGui, QtCore
+from PyQt4 import QtGui, QtCore
 
 from Views.XRS_MainView import XRS_MainView
 from XRS_Data import XRS_ImageData
