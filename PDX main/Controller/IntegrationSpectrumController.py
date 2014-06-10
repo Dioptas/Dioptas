@@ -43,6 +43,7 @@ class IntegrationSpectrumController(object):
     def create_subscriptions(self):
         self.img_data.subscribe(self.image_changed)
         self.spectrum_data.subscribe(self.plot_spectra)
+        self.spectrum_data.subscribe(self.autocreate_spectrum)
         self.view.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
 
         self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
@@ -52,18 +53,13 @@ class IntegrationSpectrumController(object):
         self.unit = pyFAI.units.TTH_DEG
 
     def create_signals(self):
-        self.connect_click_function(
-            self.view.spec_autocreate_cb, self.autocreate_cb_changed)
+        self.connect_click_function(self.view.spec_autocreate_cb, self.autocreate_cb_changed)
         self.connect_click_function(self.view.spec_load_btn, self.load)
-        self.connect_click_function(
-            self.view.spec_previous_btn, self.load_previous)
+        self.connect_click_function(self.view.spec_previous_btn, self.load_previous)
         self.connect_click_function(self.view.spec_next_btn, self.load_next)
-        self.connect_click_function(
-            self.view.spec_directory_btn, self.spec_directory_btn_click)
-        self.connect_click_function(
-            self.view.spec_browse_by_name_rb, self.set_iteration_mode_number)
-        self.connect_click_function(
-            self.view.spec_browse_by_time_rb, self.set_iteration_mode_time)
+        self.connect_click_function(self.view.spec_directory_btn, self.spec_directory_btn_click)
+        self.connect_click_function(self.view.spec_browse_by_name_rb, self.set_iteration_mode_number)
+        self.connect_click_function(self.view.spec_browse_by_time_rb, self.set_iteration_mode_time)
 
         self.connect_click_function(self.view.spec_tth_btn, self.set_unit_tth)
         self.connect_click_function(self.view.spec_q_btn, self.set_unit_q)
@@ -73,6 +69,8 @@ class IntegrationSpectrumController(object):
                           QtCore.SIGNAL('editingFinished()'),
                           self.spec_directory_txt_changed)
 
+        self.connect_click_function(self.view.qa_image_save_spectrum_btn, self.save_spectrum)
+        self.connect_click_function(self.view.qa_spectrum_save_spectrum_btn, self.save_spectrum)
         self.view.keyPressEvent = self.key_press_event
 
     def connect_click_function(self, emitter, function):
@@ -122,27 +120,38 @@ class IntegrationSpectrumController(object):
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
             self.first_plot = False
 
-        # save the background subtracted file:
+        # update the bkg_name
         if self.spectrum_data.bkg_ind is not -1:
-            # create background subtracted spectrum
-            if self.autocreate:
+            self.view.bkg_name_lbl.setText('Bkg: ' + self.spectrum_data.overlays[self.spectrum_data.bkg_ind].name)
+        else:
+            self.view.bkg_name_lbl.setText('')
+
+    def autocreate_spectrum(self):
+        if self.spectrum_data.bkg_ind is not -1:
+            if self.autocreate is True:
                 directory = os.path.join(
                     self.working_dir['spectrum'], 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
-                header = self.calibration_data.geometry.makeHeaders()
-                header += "\n# Background_File: " + \
-                          self.spectrum_data.overlays[
-                              self.spectrum_data.bkg_ind].name
-                data = np.dstack((x, y))[0]
                 filename = os.path.join(
                     directory,
                     self.spectrum_data.spectrum.name + '_bkg_subtracted.xy')
-                np.savetxt(filename, data, header=header)
-            # update the bkg_name
-            self.view.bkg_name_lbl.setText('Bkg: ' + self.spectrum_data.overlays[self.spectrum_data.bkg_ind].name)
-        else:
-            self.view.bkg_name_lbl.setText('')
+                self.save_spectrum(filename)
+
+    def save_spectrum(self, filename=None):
+        if filename is None:
+            filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Spectrum...",
+                                                             self.working_dir['spectrum'], '*.xy'))
+
+        if filename is not '':
+            header = self.calibration_data.geometry.makeHeaders()
+            if self.spectrum_data.bkg_ind is not -1:
+                header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
+                    self.spectrum_data.bkg_ind].name
+            header = header.replace('# ', '')
+            x, y = self.spectrum_data.spectrum.data
+            data = np.dstack((x, y))[0]
+            np.savetxt(filename, data, header=header)
 
 
     def load(self, filename=None):
