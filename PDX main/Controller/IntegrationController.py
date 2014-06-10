@@ -33,10 +33,10 @@ pg.setConfigOption('background', 'k')
 pg.setConfigOption('foreground', 'w')
 pg.setConfigOption('antialias', True)
 
-from Controller.OverlayController import IntegrationOverlayController
-from Controller.ImageController import IntegrationImageController
-from Controller.SpectrumController import IntegrationSpectrumController
-from Controller.PhaseController import IntegrationPhaseController
+from Controller.IntegrationOverlayController import IntegrationOverlayController
+from Controller.IntegrationImageController import IntegrationImageController
+from Controller.IntegrationSpectrumController import IntegrationSpectrumController
+from Controller.IntegrationPhaseController import IntegrationPhaseController
 
 
 class IntegrationController(object):
