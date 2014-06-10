@@ -65,7 +65,10 @@ class FileNameIterator(object):
 
         if mode == 'number':
             file_number_str = FileNameIterator._get_ending_number(filename)
-            file_number = int(file_number_str)
+            try:
+                file_number = int(file_number_str)
+            except ValueError:
+                return None
             file_base_str = filename[:-len(file_number_str)]
 
             format_str = '0' + str(len(file_number_str)) + 'd'
@@ -74,6 +77,7 @@ class FileNameIterator(object):
             new_complete_path = os.path.join(directory, new_file_name)
             if os.path.exists(new_complete_path):
                 return new_complete_path
+            return None
         elif mode == 'time':
             files_list = os.listdir(directory)
             files = []
@@ -93,6 +97,7 @@ class FileNameIterator(object):
                         return entries[ind + 1][1]
                     except IndexError:
                         return None
+            return None
 
 
     @staticmethod
@@ -101,11 +106,13 @@ class FileNameIterator(object):
         directory, file_str = os.path.split(complete_path)
         filename, file_type_str = file_str.split('.')
 
-        file_number_str = FileNameIterator._get_ending_number(filename)
-        file_number = int(file_number_str)
-        file_base_str = filename[:-len(file_number_str)]
-
         if mode == 'number':
+            file_number_str = FileNameIterator._get_ending_number(filename)
+            try:
+                file_number = int(file_number_str)
+            except ValueError:
+                return None
+            file_base_str = filename[:-len(file_number_str)]
             format_str = '0' + str(len(file_number_str)) + 'd'
             number_str = ("{0:" + format_str + '}').format(file_number - 1)
             new_file_name = file_base_str + number_str + '.' + file_type_str
@@ -121,6 +128,7 @@ class FileNameIterator(object):
             new_complete_path = os.path.join(directory, new_file_name)
             if os.path.exists(new_complete_path):
                 return new_complete_path
+            return None
 
         elif mode == 'time':
             files_list = os.listdir(directory)
@@ -138,6 +146,7 @@ class FileNameIterator(object):
             for ind, entry in enumerate(entries):
                 if entry[1] == complete_path and ind is not 0:
                     return entries[ind - 1][1]
+            return None
 
     @staticmethod
     def _get_ending_number(basename):
