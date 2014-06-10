@@ -40,6 +40,10 @@ from Controller.IntegrationPhaseController import IntegrationPhaseController
 
 
 class IntegrationController(object):
+    """
+    This controller hosts all the Subcontroller of the integration tab.
+    """
+
     def __init__(self, working_dir, view=None, img_data=None, mask_data=None, calibration_data=None, spectrum_data=None,
                  phase_data=None):
         self.working_dir = working_dir
@@ -81,6 +85,9 @@ class IntegrationController(object):
 
 
     def create_sub_controller(self):
+        """
+        Creates the sub controller with the appropriate data.
+        """
         self.spectrum_controller = IntegrationSpectrumController(self.working_dir, self.view, self.img_data,
                                                                  self.mask_data,
                                                                  self.calibration_data, self.spectrum_data)
