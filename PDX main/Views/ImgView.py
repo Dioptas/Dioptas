@@ -19,6 +19,7 @@
 __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
+from  pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from PyQt4 import QtCore, QtGui
 from HorHistogramLUTItem import HorHistogramLUTItem
@@ -73,6 +74,10 @@ class ImgView(QtCore.QObject):
         if autoRange:
             self.auto_range()
 
+    def save_img(self, filename):
+        exporter = ImageExporter(self.img_view_box)
+        exporter.export(filename)
+
     def auto_range(self):
         hist_x, hist_y = self.data_img_item.getHistogram()
         ind = np.where(np.cumsum(hist_y) < (0.995 * np.sum(hist_y)))
@@ -86,6 +91,12 @@ class ImgView(QtCore.QObject):
 
     def clear_scatter_plot(self):
         self.img_scatter_plot_item.setData(x=None, y=None)
+
+    def hide_scatter_plot(self):
+        self.img_scatter_plot_item.hide()
+
+    def show_scatter_plot(self):
+        self.img_scatter_plot_item.show()
 
     def mouseMoved(self, pos):
         pos = self.data_img_item.mapFromScene(pos)

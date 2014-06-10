@@ -47,10 +47,10 @@ class IntegrationOverlayController(object):
 
         # creating the quickactions signals
 
-        self.connect_click_function(self.view.qa_image_set_as_overlay_btn, self.set_as_overlay)
+        self.connect_click_function(self.view.qa_img_set_as_overlay_btn, self.set_as_overlay)
         self.connect_click_function(self.view.qa_spectrum_set_as_overlay_btn, self.set_as_overlay)
 
-        self.connect_click_function(self.view.qa_image_set_as_background_btn, self.qa_set_as_background_btn_click)
+        self.connect_click_function(self.view.qa_img_set_as_background_btn, self.qa_set_as_background_btn_click)
         self.connect_click_function(self.view.qa_spectrum_set_as_background_btn, self.qa_set_as_background_btn_click)
 
     def connect_click_function(self, emitter, function):

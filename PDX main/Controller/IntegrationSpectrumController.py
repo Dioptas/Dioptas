@@ -69,7 +69,7 @@ class IntegrationSpectrumController(object):
                           QtCore.SIGNAL('editingFinished()'),
                           self.spec_directory_txt_changed)
 
-        self.connect_click_function(self.view.qa_image_save_spectrum_btn, self.save_spectrum)
+        self.connect_click_function(self.view.qa_img_save_spectrum_btn, self.save_spectrum)
         self.connect_click_function(self.view.qa_spectrum_save_spectrum_btn, self.save_spectrum)
         self.view.keyPressEvent = self.key_press_event
 
@@ -140,7 +140,7 @@ class IntegrationSpectrumController(object):
 
     def save_spectrum(self, filename=None):
         if filename is None:
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Spectrum...",
+            filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Spectrum Data.",
                                                              self.working_dir['spectrum'], '*.xy'))
 
         if filename is not '':

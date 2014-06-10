@@ -406,7 +406,7 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QPushButton" name="qa_image_save_img_btn">
+             <widget class="QPushButton" name="qa_img_save_img_btn">
               <property name="text">
                <string>Save Image</string>
               </property>
@@ -416,7 +416,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="qa_image_save_spectrum_btn">
+             <widget class="QPushButton" name="qa_img_save_spectrum_btn">
               <property name="text">
                <string>Save Spectrum</string>
               </property>
@@ -426,7 +426,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="qa_image_set_as_overlay_btn">
+             <widget class="QPushButton" name="qa_img_set_as_overlay_btn">
               <property name="text">
                <string>As Overlay</string>
               </property>
@@ -436,7 +436,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="qa_image_set_as_background_btn">
+             <widget class="QPushButton" name="qa_img_set_as_background_btn">
               <property name="text">
                <string>As Bkg</string>
               </property>
@@ -459,7 +459,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QPushButton" name="image_load_calibration_btn">
+             <widget class="QPushButton" name="img_load_calibration_btn">
               <property name="text">
                <string>Load Calibration</string>
               </property>
