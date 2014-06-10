@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -124,7 +124,8 @@ class Spectrum(object):
             _, y_bkg = self.bkg_spectrum.data
             return self._x, self._y * self._scaling + self.offset - y_bkg
         else:
-            return self._x, self._y * self._scaling + self.offset
+            return self.original_data
+
 
     @data.setter
     def data(self, (x, y)):
@@ -132,6 +133,10 @@ class Spectrum(object):
         self._y = y
         self.scaling = 1
         self.offset = 0
+
+    @property
+    def original_data(self):
+        return self._x, self._y * self._scaling + self.offset
 
     @property
     def scaling(self):
