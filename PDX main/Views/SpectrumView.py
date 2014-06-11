@@ -23,6 +23,8 @@ from Views.ExLegendItem import LegendItem
 import numpy as np
 from Data.HelperModule import calculate_color
 from PyQt4 import QtCore, QtGui
+from  pyqtgraph.exporters.ImageExporter import ImageExporter
+from pyqtgraph.exporters.SVGExporter import SVGExporter
 
 # TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
 
@@ -128,6 +130,30 @@ class SpectrumView(QtCore.QObject):
             self.phases.append(PhaseLinesPlot(self.spectrum_plot, positions))
         else:
             self.phases[phase_index].set_data(positions, name)
+
+    def save_png(self, filename):
+        exporter = ImageExporter(self.spectrum_plot)
+        exporter.export(filename)
+
+    def save_svg(self, filename):
+        self.invert_color()
+        exporter = SVGExporter(self.spectrum_plot)
+        exporter.export(filename)
+        self.norm_color()
+
+    def _invert_color(self):
+        self.spectrum_plot.getAxis('bottom').setPen('k')
+        self.spectrum_plot.getAxis('left').setPen('k')
+        self.plot_item.setPen('k')
+        self.legend.legendItems[0][1].setAttr('color', '000')
+        self.legend.legendItems[0][1].setText(self.legend.legendItems[0][1].text)
+
+    def _norm_color(self):
+        self.spectrum_plot.getAxis('bottom').setPen('w')
+        self.spectrum_plot.getAxis('left').setPen('w')
+        self.plot_item.setPen('w')
+        self.legend.legendItems[0][1].setAttr('color', 'FFF')
+        self.legend.legendItems[0][1].setText(self.legend.legendItems[0][1].text)
 
     def mouseMoved(self, pos):
         pos = self.plot_item.mapFromScene(pos)

@@ -76,6 +76,7 @@ class ImgView(QtCore.QObject):
 
     def save_img(self, filename):
         exporter = ImageExporter(self.img_view_box)
+        exporter.parameters()['width'] = 2048
         exporter.export(filename)
 
     def auto_range(self):

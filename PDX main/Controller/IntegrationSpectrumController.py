@@ -141,17 +141,25 @@ class IntegrationSpectrumController(object):
     def save_spectrum(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Spectrum Data.",
-                                                             self.working_dir['spectrum'], '*.xy'))
+                                                             self.working_dir['spectrum'],
+                                                             ('Data (*.xy);;png (*.png);; svg (*.svg)')))
 
         if filename is not '':
-            header = self.calibration_data.geometry.makeHeaders()
-            if self.spectrum_data.bkg_ind is not -1:
-                header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
-                    self.spectrum_data.bkg_ind].name
-            header = header.replace('# ', '')
-            x, y = self.spectrum_data.spectrum.data
-            data = np.dstack((x, y))[0]
-            np.savetxt(filename, data, header=header)
+            print filename
+            if filename.endswith('.xy'):
+                header = self.calibration_data.geometry.makeHeaders()
+                if self.spectrum_data.bkg_ind is not -1:
+                    header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
+                        self.spectrum_data.bkg_ind].name
+                header = header.replace('# ', '')
+                x, y = self.spectrum_data.spectrum.data
+                data = np.dstack((x, y))[0]
+                np.savetxt(filename, data, header=header)
+            elif filename.endswith('.png'):
+                self.view.spectrum_view.save_png(filename)
+            elif filename.endswith('.svg'):
+                print 'inside'
+                self.view.spectrum_view.save_svg(filename)
 
 
     def load(self, filename=None):
