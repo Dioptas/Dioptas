@@ -172,8 +172,8 @@ class IntegrationPhaseController(object):
         x_range = axis_range[0]
         y_range = axis_range[1]
         x, y = self.spectrum_data.spectrum.data
-        if x_range[0] < np.min(x) and x_range[1] > np.max(x) and \
-                        y_range[0] < np.min(y) and y_range[1] > np.max(y):
+        if x_range[0] <= np.min(x) and x_range[1] >= np.max(x) and \
+                        y_range[0] <= np.min(y) and y_range[1] >= np.max(y):
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
 
     def update_intensity(self, ind, axis_range=None):
