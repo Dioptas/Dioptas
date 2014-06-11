@@ -102,6 +102,19 @@
           <number>8</number>
          </property>
          <item>
+          <widget class="QPushButton" name="img_roi_btn">
+           <property name="text">
+            <string>ROI</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="img_mode_btn">
            <property name="minimumSize">
             <size>
