@@ -32,6 +32,7 @@ class SpectrumData(Observable):
 
         self.file_iteration_mode = 'number'
         self.bkg_ind = -1
+        self.spectrum_filename = ''
 
     def set_spectrum(self, x, y, filename=''):
         self.spectrum_filename = filename

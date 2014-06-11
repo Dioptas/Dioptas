@@ -286,12 +286,16 @@ class IntegrationImgView(MaskImgView, CalibrationCakeView):
         self.roi.addScaleHandle([1, 0], [0, 1])
         self.roi.addScaleHandle([0, 0], [1, 1])
 
+        self.roi_shade = RoiShade(self.img_view_box, self.roi)
+
     def activate_roi(self):
         self.img_view_box.addItem(self.roi)
+        self.roi_shade.activate_rects()
         self.roi.blockSignals(False)
 
     def deactivate_roi(self):
         self.img_view_box.removeItem(self.roi)
+        self.roi_shade.deactivate_rects()
         self.roi.blockSignals(True)
 
 
@@ -372,8 +376,12 @@ class MyRectangle(QtGui.QGraphicsRectItem):
 
 
 class MyROI(pg.ROI):
-    def __init__(self, pos, size, pen):
+    def __init__(self, pos, size, pen, img_shape = (2048,2048)):
         super(MyROI, self).__init__(pos, size, pen=pen)
+        self.img_shape = img_shape
+        self.base_mask = np.ones(img_shape)
+        self.roi_mask = np.copy(self.base_mask)
+        self.last_state = None
 
     def setMouseHover(self, hover):
         ## Inform the ROI that the mouse is(not) hovering over it
@@ -400,8 +408,65 @@ class MyROI(pg.ROI):
         y2 = np.round(rect.left() + rect.width())
         if y2 > img_shape[1]:
             y2 = img_shape[1]
-
         return x1, x2, y1, y2
+
+    def getRoiMask(self, img_shape):
+        if not np.array_equal(np.array(img_shape), np.array(self.img_shape)):
+            self.base_mask = np.ones(img_shape)
+        if self.getState() == self.last_state:
+            return self.roi_mask
+        else:
+            x1, x2, y1, y2 = self.getIndexLimits(img_shape)
+            self.roi_mask = np.copy(self.base_mask)
+            self.roi_mask[x1:x2, y1:y2] = 0
+            self.last_state = self.getState()
+            return self.roi_mask
+
+class RoiShade(object):
+    def __init__(self, view_box, roi, img_shape=(2048, 2048)):
+        self.view_box = view_box
+        self.img_shape = img_shape
+        self.roi = roi
+        self.create_rect()
+
+
+    def create_rect(self):
+        color = QtGui.QColor(0,0,0,100)
+        self.left_rect = QtGui.QGraphicsRectItem()
+        self.left_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0,0)))
+        self.left_rect.setBrush(QtGui.QBrush(color))
+        self.right_rect = QtGui.QGraphicsRectItem()
+        self.right_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0,0)))
+        self.right_rect.setBrush(QtGui.QBrush(color))
+
+        self.top_rect = QtGui.QGraphicsRectItem()
+        self.top_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0,0)))
+        self.top_rect.setBrush(QtGui.QBrush(color))
+        self.bottom_rect = QtGui.QGraphicsRectItem()
+        self.bottom_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0,0)))
+        self.bottom_rect.setBrush(QtGui.QBrush(color))
+
+
+    def update_rects(self):
+        roi_rect = self.roi.parentBounds()
+        self.left_rect.setRect(0,0,roi_rect.left(), self.img_shape[0])
+        self.right_rect.setRect(roi_rect.right(),0,self.img_shape[1]-roi_rect.right(), self.img_shape[0])
+        self.top_rect.setRect(roi_rect.left(),roi_rect.bottom(),roi_rect.width(), self.img_shape[0]-roi_rect.bottom())
+        self.bottom_rect.setRect(roi_rect.left(), 0, roi_rect.width(), roi_rect.top())
+
+    def activate_rects(self):
+        self.roi.sigRegionChanged.connect(self.update_rects)
+        self.view_box.addItem(self.left_rect)
+        self.view_box.addItem(self.right_rect)
+        self.view_box.addItem(self.top_rect)
+        self.view_box.addItem(self.bottom_rect)
+
+    def deactivate_rects(self):
+        self.roi.sigRegionChanged.disconnect(self.update_rects)
+        self.view_box.removeItem(self.left_rect)
+        self.view_box.removeItem(self.right_rect)
+        self.view_box.removeItem(self.top_rect)
+        self.view_box.removeItem(self.bottom_rect)
 
 
 

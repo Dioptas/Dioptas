@@ -246,7 +246,8 @@ class IntegrationImageController(object):
                 self.view.img_mode_btn.setText('Image')
             elif self.img_mode == 'Image':
                 self.view.img_view.activate_circle_scatter()
-                self.view.img_view.activate_roi()
+                if self.roi_active:
+                    self.view.img_view.activate_roi()
                 self._update_image_scatter_pos()
                 self.view.img_mode_btn.setText('Cake')
 

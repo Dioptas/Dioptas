@@ -63,6 +63,7 @@ class MainController(object):
                                                             self.spectrum_data,
                                                             self.phase_data)
         self.create_signals()
+        self.set_title()
         self.raise_window()
 
     def raise_window(self):
