@@ -15,10 +15,8 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.__author__ = 'Clemens Prescher'
 
-import sys
 import os
 
-import pyqtgraph as pg
 import csv
 
 from PyQt4 import QtGui, QtCore
@@ -34,8 +32,7 @@ from Controller.CalibrationController import CalibrationController
 from Controller.IntegrationController import IntegrationController
 from Controller.MaskController import MaskController
 
-import numpy as np
-
+__VERSION__ = '0.1'
 
 class MainController(object):
     def __init__(self):
@@ -65,7 +62,6 @@ class MainController(object):
                                                             self.calibration_data,
                                                             self.spectrum_data,
                                                             self.phase_data)
-
         self.create_signals()
         self.raise_window()
 
@@ -78,6 +74,8 @@ class MainController(object):
     def create_signals(self):
         self.view.tabWidget.currentChanged.connect(self.tab_changed)
         self.view.closeEvent = self.close_event
+        self.img_data.subscribe(self.set_title)
+        self.spectrum_data.subscribe(self.set_title)
 
     def tab_changed(self, ind):
         if ind == 2:
@@ -93,6 +91,28 @@ class MainController(object):
             except TypeError:
                 pass
 
+    def set_title(self):
+        img_filename = os.path.basename(self.img_data.filename)
+        spec_filename = os.path.basename(self.spectrum_data.spectrum_filename)
+        calibration_name = self.calibration_data.calibration_name
+        str = 'Dioptas v'+__VERSION__
+        if img_filename is '' and spec_filename is '':
+            self.view.setWindowTitle(str)
+            return
+
+        if img_filename is not '' or spec_filename is not '':
+            str+=' - ['
+        if img_filename is not '':
+            str+=img_filename
+        elif img_filename is '' and spec_filename is not '':
+            str+=spec_filename
+        if not img_filename == spec_filename:
+            str+=', '+spec_filename
+        if calibration_name is not None:
+            str+=', calibration: '+ calibration_name
+        str+=']'
+        self.view.setWindowTitle(str)
+
     def load_directories(self):
         if os.path.exists('working_directories.csv'):
             reader = csv.reader(open('working_directories.csv', 'rb'))
@@ -105,6 +125,7 @@ class MainController(object):
         writer = csv.writer(open('working_directories.csv', 'wb'))
         for key, value in self.working_dir.items():
             writer.writerow([key, value])
+
 
     def close_event(self, _):
         self.save_directories()

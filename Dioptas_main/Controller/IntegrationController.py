@@ -101,7 +101,8 @@ class IntegrationController(object):
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
-    controller = IntegrationController()
+    controller = IntegrationController({'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
+                                'phase': ''})
     controller.image_controller.load_file_btn_click('../ExampleData/Mg2SiO4_ambient_001.tif')
     controller.spectrum_controller._working_dir = '../ExampleData/spectra'
     controller.mask_data.set_dimension(controller.img_data.get_img_data().shape)
