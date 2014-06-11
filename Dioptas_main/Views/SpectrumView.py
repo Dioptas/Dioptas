@@ -85,10 +85,6 @@ class SpectrumView(QtCore.QObject):
         self.update_x_limits()
         self.update_phase_line_visibilities()
 
-        if self._auto_range:
-            self.view_box.autoRange()
-            self.view_box.enableAutoRange()
-
     def update_x_limits(self):
         x_range = list(self.plot_item.dataBounds(0))
         for ind, overlay in enumerate(self.overlays):
@@ -98,6 +94,10 @@ class SpectrumView(QtCore.QObject):
                     x_range[0] = x_range_overlay[0]
                 if x_range_overlay[1]> x_range[1]:
                     x_range[1] = x_range_overlay[1]
+
+        diff = x_range[1] - x_range[0]
+        x_range = [x_range[0] - 0.02 * diff,
+                   x_range[1] + 0.02 * diff]
 
         self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
                                 minXRange=x_range[0], maxXRange=x_range[1])
@@ -112,10 +112,6 @@ class SpectrumView(QtCore.QObject):
             self.spectrum_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], spectrum.name)
             self.update_x_limits()
-
-        if self._auto_range:
-            self.view_box.autoRange()
-            self.view_box.enableAutoRange()
 
     def del_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
@@ -234,9 +230,9 @@ class SpectrumView(QtCore.QObject):
 
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
-            self._auto_range = True
             self.view_box.autoRange()
             self.view_box.enableAutoRange()
+            self._auto_range = True
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
 
