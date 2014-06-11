@@ -81,7 +81,10 @@ class MainController(object):
         if ind == 2:
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.view.calibration_lbl.setText(self.calibration_data.calibration_name)
+            auto_scale_previous =  self.integration_controller.image_controller._auto_scale
+            self.integration_controller.image_controller._auto_scale = False
             self.img_data.notify()
+            self.integration_controller.image_controller._auto_scale = auto_scale_previous
         elif ind == 1:
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()

@@ -42,10 +42,10 @@ class IntegrationSpectrumController(object):
 
     def create_subscriptions(self):
         self.img_data.subscribe(self.image_changed)
+        self.view.img_view.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.spectrum_data.subscribe(self.plot_spectra)
         self.spectrum_data.subscribe(self.autocreate_spectrum)
         self.view.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
-
         self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
 
     def set_status(self):
@@ -77,6 +77,7 @@ class IntegrationSpectrumController(object):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def image_changed(self):
+        self.view.img_view.roi.blockSignals(True)
         if self.calibration_data.is_calibrated:
             if self.autocreate:
                 filename = self.img_data.filename
@@ -101,8 +102,16 @@ class IntegrationSpectrumController(object):
                 self.mask_data.set_dimension(self.img_data.img_data.shape)
                 mask = self.mask_data.get_mask()
             else:
-                mask = None
+                mask = np.zeros(self.img_data.img_data.shape)
 
+            if self.view.img_roi_btn.isChecked():
+                roi_mask = np.ones(self.img_data.img_data.shape)
+                x1, x2, y1, y2 = self.view.img_view.roi.getIndexLimits(self.img_data.img_data.shape)
+                roi_mask[x1:x2, y1:y2] = 0
+            else:
+                roi_mask = np.zeros(self.img_data.img_data.shape)
+
+            mask = np.logical_or(mask, roi_mask)
             tth, I = self.calibration_data.integrate_1d(
                 filename=filename, mask=mask, unit=self.integration_unit)
             if filename is not None:
@@ -110,6 +119,7 @@ class IntegrationSpectrumController(object):
             else:
                 spectrum_name = self.img_data.filename
             self.spectrum_data.set_spectrum(tth, I, spectrum_name)
+        self.view.img_view.roi.blockSignals(False)
 
     def plot_spectra(self):
         x, y = self.spectrum_data.spectrum.data

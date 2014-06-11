@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Py2DeX - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -176,9 +176,13 @@ class CalibrationData(object):
             self.tth = self.geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
             self.int = self.int[ind]
         else:
-            self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut', unit=unit,
-                                                           mask=mask, polarization_factor=polarization_factor,
-                                                           filename=filename)
+            self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut_ocl', unit=unit,
+                                                 mask=mask, polarization_factor=polarization_factor,
+                                                 filename=filename)
+        if self.int.max() > 0:
+            ind = np.where(self.int > 0)
+            self.tth = self.tth[ind]
+            self.int = self.int[ind]
         return self.tth, self.int
 
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg'):

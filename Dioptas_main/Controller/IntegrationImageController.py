@@ -37,6 +37,7 @@ class IntegrationImageController(object):
         self._auto_scale = True
         self.img_mode = 'Image'
         self.use_mask = False
+        self.roi_active = False
 
         self.view.show()
         self.initialize()
@@ -126,9 +127,11 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.img_levels_absolute_rb, self.change_img_levels_mode)
         self.connect_click_function(self.view.img_levels_percentage_rb, self.change_img_levels_mode)
 
+        self.connect_click_function(self.view.img_roi_btn, self.change_roi_mode)
         self.connect_click_function(self.view.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.view.img_mode_btn, self.change_view_mode)
         self.connect_click_function(self.view.img_autoscale_btn, self.view.img_view.auto_range)
+
 
         self.connect_click_function(self.view.qa_img_save_img_btn, self.save_img)
 
@@ -161,7 +164,10 @@ class IntegrationImageController(object):
     def change_mask_mode(self):
         self.use_mask = not self.use_mask
         self.plot_mask()
+        auto_scale_save = self._auto_scale
+        self._auto_scale = False
         self.img_data.notify()
+        self._auto_scale = auto_scale_save
 
     def load_next_img(self):
         self.img_data.load_next()
@@ -193,7 +199,15 @@ class IntegrationImageController(object):
             if self.use_mask:
                 mask = self.mask_data.get_mask()
             else:
-                mask = None
+                mask = np.zeros(self.img_data.img_data.shape)
+
+            if self.roi_active:
+                roi_mask = np.ones(self.img_data.img_data.shape)
+                x1, x2, y1, y2 = self.view.img_view.roi.getIndexLimits(self.img_data.img_data.shape)
+                roi_mask[x1:x2, y1:y2] = 0
+            else:
+                roi_mask = np.zeros(self.img_data.img_data.shape)
+            mask = np.logical_or(mask, roi_mask)
             self.calibration_data.integrate_2d(mask)
             self.plot_cake()
             self.view.img_view.plot_mask(
@@ -206,6 +220,19 @@ class IntegrationImageController(object):
             self.view.img_view.deactivate_vertical_line()
             self.view.img_view.img_view_box.setAspectLocked(True)
 
+    def change_roi_mode(self):
+        self.roi_active = not self.roi_active
+        if self.img_mode == 'Image':
+            if self.roi_active:
+                self.view.img_view.activate_roi()
+            else:
+                self.view.img_view.deactivate_roi()
+
+        auto_scale_save = self._auto_scale
+        self._auto_scale = False
+        self.img_data.notify()
+        self._auto_scale = auto_scale_save
+
     def change_view_mode(self):
         self.img_mode = self.view.img_mode_btn.text()
         if not self.calibration_data.is_calibrated:
@@ -214,10 +241,12 @@ class IntegrationImageController(object):
             self.update_img()
             if self.img_mode == 'Cake':
                 self.view.img_view.deactivate_circle_scatter()
+                self.view.img_view.deactivate_roi()
                 self._update_cake_line_pos()
                 self.view.img_mode_btn.setText('Image')
             elif self.img_mode == 'Image':
                 self.view.img_view.activate_circle_scatter()
+                self.view.img_view.activate_roi()
                 self._update_image_scatter_pos()
                 self.view.img_mode_btn.setText('Cake')
 
@@ -431,6 +460,7 @@ class IntegrationImageController(object):
                 self.view.img_view.deactivate_vertical_line()
             elif self.img_mode == 'Image':
                 self.view.img_view.deactivate_circle_scatter()
+                self.view.img_view.deactivate_roi()
 
             QtGui.QApplication.processEvents()
             self.view.img_view.save_img(filename)
@@ -439,4 +469,5 @@ class IntegrationImageController(object):
                 self.view.img_view.activate_vertical_line()
             elif self.img_mode == 'Image':
                 self.view.img_view.activate_circle_scatter()
+                self.view.img_view.activate_roi()
 

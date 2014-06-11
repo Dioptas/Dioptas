@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -260,6 +260,7 @@ class IntegrationImgView(MaskImgView, CalibrationCakeView):
         super(IntegrationImgView, self).__init__(pg_layout, orientation)
         self.deactivate_vertical_line()
         self.create_circle_scatter_item()
+        self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
 
     def create_circle_scatter_item(self):
@@ -276,6 +277,22 @@ class IntegrationImgView(MaskImgView, CalibrationCakeView):
 
     def deactivate_circle_scatter(self):
         self.img_view_box.removeItem(self.circle_plot_item)
+
+    def create_roi_item(self):
+        self.roi = MyROI([20, 20], [500, 500], pen=pg.mkPen(color=(0, 255, 0), size=2))
+        self.roi.handlePen = QtGui.QPen(QtGui.QColor(0, 255, 0))
+        self.roi.addScaleHandle([1, 1], [0, 0])
+        self.roi.addScaleHandle([0, 1], [1, 0])
+        self.roi.addScaleHandle([1, 0], [0, 1])
+        self.roi.addScaleHandle([0, 0], [1, 1])
+
+    def activate_roi(self):
+        self.img_view_box.addItem(self.roi)
+        self.roi.blockSignals(False)
+
+    def deactivate_roi(self):
+        self.img_view_box.removeItem(self.roi)
+        self.roi.blockSignals(True)
 
 
 class MyPolygon(QtGui.QGraphicsPolygonItem):
@@ -353,6 +370,38 @@ class MyRectangle(QtGui.QGraphicsRectItem):
         width = y - self.initial_y
         self.setRect(self.initial_y, self.initial_x + height, width, -height)
 
+
+class MyROI(pg.ROI):
+    def __init__(self, pos, size, pen):
+        super(MyROI, self).__init__(pos, size, pen=pen)
+
+    def setMouseHover(self, hover):
+        ## Inform the ROI that the mouse is(not) hovering over it
+        if self.mouseHovering == hover:
+            return
+        self.mouseHovering = hover
+        if hover:
+            self.currentPen = pg.mkPen(255, 120, 0)
+        else:
+            self.currentPen = self.pen
+        self.update()
+
+    def getIndexLimits(self, img_shape):
+        rect = self.parentBounds()
+        x1 = np.round(rect.top())
+        if x1 < 0:
+            x1 = 0
+        x2 = np.round(rect.top() + rect.height())
+        if x2 > img_shape[0]:
+            x2 = img_shape[0]
+        y1 = np.round(rect.left())
+        if y1 < 0:
+            y1 = 0
+        y2 = np.round(rect.left() + rect.width())
+        if y2 > img_shape[1]:
+            y2 = img_shape[1]
+
+        return x1, x2, y1, y2
 
 
 
