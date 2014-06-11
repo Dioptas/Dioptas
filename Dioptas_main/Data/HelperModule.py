@@ -212,5 +212,5 @@ def get_base_name(filename):
 def calculate_color(ind):
     s = 0.8
     v = 0.8
-    h = (0.19 * ind) % 1
+    h = (0.19 * (ind+2)) % 1
     return np.array(hsv_to_rgb(h, s, v)) * 255
