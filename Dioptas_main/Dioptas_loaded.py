@@ -42,7 +42,7 @@ def test_integration(controller):
     controller.integration_controller.phase_controller.add_phase(
         'ExampleData/jcpds/dac_user/au_Anderson.jcpds')
     QtGui.QApplication.processEvents()
-    controller.integration_controller.phase_controller.spectrum_data_changed()
+    controller.integration_controller.phase_controller.update_intensities()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Py2DeX - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -40,7 +40,9 @@ class SpectrumView(QtCore.QObject):
         self.create_main_plot()
         self.create_pos_line()
         self.modify_mouse_behavior()
+        self._auto_range = True
         self.phases = []
+        self.phases_vlines = []
         self.overlays = []
         self.overlay_names = []
         self.overlay_show = []
@@ -49,8 +51,8 @@ class SpectrumView(QtCore.QObject):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
         self.spectrum_plot.setLabel('bottom', u'2θ', u'°')
         self.view_box = self.spectrum_plot.vb
-        self.legend = LegendItem(horSpacing=20, box=False)
-        self.phases_legend = LegendItem(horSpacing=20, box=False)
+        self.legend = LegendItem(horSpacing=20, box=False, verSpacing=-3)
+        self.phases_legend = LegendItem(horSpacing=20, box=False, verSpacing=-3)
 
 
     def create_main_plot(self):
@@ -80,6 +82,26 @@ class SpectrumView(QtCore.QObject):
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
 
+        self.update_x_limits()
+        self.update_phase_line_visibilities()
+
+        if self._auto_range:
+            self.view_box.autoRange()
+            self.view_box.enableAutoRange()
+
+    def update_x_limits(self):
+        x_range = list(self.plot_item.dataBounds(0))
+        for ind, overlay in enumerate(self.overlays):
+            if self.overlay_show[ind]:
+                x_range_overlay = overlay.dataBounds(0)
+                if x_range_overlay[0]< x_range[0]:
+                    x_range[0] = x_range_overlay[0]
+                if x_range_overlay[1]> x_range[1]:
+                    x_range[1] = x_range_overlay[1]
+
+        self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
+                                minXRange=x_range[0], maxXRange=x_range[1])
+
     def add_overlay(self, spectrum, show=True):
         x, y = spectrum.data
         color = calculate_color(len(self.overlays) + 1)
@@ -89,6 +111,11 @@ class SpectrumView(QtCore.QObject):
         if show:
             self.spectrum_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], spectrum.name)
+            self.update_x_limits()
+
+        if self._auto_range:
+            self.view_box.autoRange()
+            self.view_box.enableAutoRange()
 
     def del_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
@@ -96,20 +123,26 @@ class SpectrumView(QtCore.QObject):
         self.overlays.remove(self.overlays[ind])
         self.overlay_names.remove(self.overlay_names[ind])
         self.overlay_show.remove(self.overlay_show[ind])
+        self.update_x_limits()
 
     def hide_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
         self.legend.removeItem(self.overlays[ind])
         self.overlay_show[ind] = False
+        self.update_x_limits()
 
     def show_overlay(self, ind):
         self.spectrum_plot.addItem(self.overlays[ind])
         self.legend.addItem(self.overlays[ind], self.overlay_names[ind])
         self.overlay_show[ind] = True
+        self.update_x_limits()
 
     def update_overlay(self, spectrum, ind):
         x, y = spectrum.data
         self.overlays[ind].setData(x, y)
+        if self._auto_range:
+            self.view_box.autoRange()
+            self.view_box.enableAutoRange()
 
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
@@ -121,15 +154,20 @@ class SpectrumView(QtCore.QObject):
         if len(self.phases):
             self.phases[ind].update_intensities(positions, intensities, baseline)
 
+    def update_phase_line_visibilities(self):
+        x_range = self.plot_item.dataBounds(0)
+        for phase in self.phases:
+            phase.update_visibilities(x_range)
+
     def del_phase(self, ind):
         self.phases[ind].remove()
         self.phases.remove(self.phases[ind])
 
     def plot_vertical_lines(self, positions, phase_index=0, name=None):
         if len(self.phases) <= phase_index:
-            self.phases.append(PhaseLinesPlot(self.spectrum_plot, positions))
+            self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions))
         else:
-            self.phases[phase_index].set_data(positions, name)
+            self.phases_vlines[phase_index].set_data(positions, name)
 
     def save_png(self, filename):
         exporter = ImageExporter(self.spectrum_plot)
@@ -178,14 +216,14 @@ class SpectrumView(QtCore.QObject):
             view_range = np.array(self.view_box.viewRange()) * 2
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
-            y_range = np.max(curve_data[1]) - np.min(curve_data[1])
-            if (view_range[0][1] - view_range[0][0]) > x_range and \
-                            (view_range[1][1] - view_range[1][0]) > y_range:
+            if (view_range[0][1] - view_range[0][0]) > x_range:
+                self._auto_range = True
                 self.view_box.autoRange()
                 self.view_box.enableAutoRange()
             else:
+                self._auto_range = False
                 self.view_box.scaleBy(2)
-            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
+                self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())
             pos = self.plot_item.mapFromScene(2 * ev.pos() - pos)
@@ -196,6 +234,7 @@ class SpectrumView(QtCore.QObject):
 
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
+            self._auto_range = True
             self.view_box.autoRange()
             self.view_box.enableAutoRange()
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
@@ -220,6 +259,7 @@ class SpectrumView(QtCore.QObject):
 
             self.view_box.translateBy(x=x, y=y)
         else:
+            self._auto_range = False
             pg.ViewBox.mouseDragEvent(self.view_box, ev)
 
         self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
@@ -228,8 +268,10 @@ class SpectrumView(QtCore.QObject):
     def myWheelEvent(self, ev, axis=None, *args):
         if ev.delta() > 0:
             pg.ViewBox.wheelEvent(self.view_box, ev, axis)
-            axis_range = self.spectrum_plot.viewRange()
-            self.range_changed.emit(axis_range)
+
+            self._auto_range = False
+            # axis_range = self.spectrum_plot.viewRange()
+            # self.range_changed.emit(axis_range)
         else:
             view_range = np.array(self.view_box.viewRange())
             curve_data = self.plot_item.getData()
@@ -238,7 +280,10 @@ class SpectrumView(QtCore.QObject):
             if (view_range[0][1] - view_range[0][0]) > x_range and \
                             (view_range[1][1] - view_range[1][0]) > y_range:
                 self.view_box.autoRange()
+                self.view_box.enableAutoRange()
+                self._auto_range = True
             else:
+                self._auto_range = False
                 pg.ViewBox.wheelEvent(self.view_box, ev)
         self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
@@ -271,13 +316,13 @@ class PhaseLinesPlot(object):
 
 class PhasePlot(object):
     num_phases = 0
-
     def __init__(self, plot_item, legend_item, positions, intensities, name=None, baseline=0):
         self.plot_item = plot_item
         self.legend_item = legend_item
         self.line_items = []
+        self.line_visible = []
         self.index = PhasePlot.num_phases
-        self.pen = pg.mkPen(color=calculate_color(self.index + 12), width=1.3, style=QtCore.Qt.DashLine)
+        self.pen = pg.mkPen(color=calculate_color(self.index + 9), width=1.3, style=QtCore.Qt.DashLine)
         self.ref_legend_line = pg.PlotDataItem(pen=self.pen)
         self.name = ''
         PhasePlot.num_phases += 1
@@ -291,6 +336,7 @@ class PhasePlot(object):
             self.line_items.append(pg.PlotDataItem(x=[position, position],
                                                    y=[baseline, intensities[ind]],
                                                    pen=self.pen))
+            self.line_visible.append(True)
             self.plot_item.addItem(self.line_items[ind])
 
         if name is not None:
@@ -304,6 +350,19 @@ class PhasePlot(object):
         for ind, intensity in enumerate(intensities):
             self.line_items[ind].setData(y=[baseline, intensity],
                                          x=[positions[ind], positions[ind]])
+
+    def update_visibilities(self, spectrum_range):
+        for ind, line_item in enumerate(self.line_items):
+            data = line_item.getData()
+            position = data[0][0]
+            if position>=spectrum_range[0] and position<=spectrum_range[1]:
+                if not self.line_visible[ind]:
+                    self.plot_item.addItem(line_item)
+                    self.line_visible[ind]=True
+            else:
+                if self.line_visible[ind]:
+                    self.plot_item.removeItem(line_item)
+                    self.line_visible[ind]=False
 
     def remove(self):
         try:

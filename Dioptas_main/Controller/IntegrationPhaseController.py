@@ -54,7 +54,7 @@ class IntegrationPhaseController(object):
 
         self.view.phase_lw.currentItemChanged.connect(self.phase_item_changed)
 
-        self.spectrum_data.subscribe(self.spectrum_data_changed)
+        self.spectrum_data.subscribe(self.update_intensities)
         self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_intensities_slot)
         self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
 
@@ -164,9 +164,6 @@ class IntegrationPhaseController(object):
         self.view.phase_pressure_sb.blockSignals(False)
         self.view.phase_temperature_sb.blockSignals(False)
 
-    def spectrum_data_changed(self):
-        self.update_intensities()
-
     def update_intensities_slot(self, *args):
         axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         self.view.spectrum_view.spectrum_plot.disableAutoRange()
@@ -194,8 +191,10 @@ class IntegrationPhaseController(object):
             ind, positions, intensities, baseline)
 
     def update_intensities(self, axis_range=None):
+        self.view.spectrum_view.view_box.blockSignals(True)
         for ind in xrange(self.view.phase_lw.count()):
             self.update_intensity(ind, axis_range)
+        self.view.spectrum_view.view_box.blockSignals(False)
 
     def connect_spectrum(self):
         self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(

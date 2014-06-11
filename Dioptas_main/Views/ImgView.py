@@ -427,6 +427,7 @@ class RoiShade(object):
         self.view_box = view_box
         self.img_shape = img_shape
         self.roi = roi
+        self.active = False
         self.create_rect()
 
 
@@ -455,18 +456,22 @@ class RoiShade(object):
         self.bottom_rect.setRect(roi_rect.left(), 0, roi_rect.width(), roi_rect.top())
 
     def activate_rects(self):
-        self.roi.sigRegionChanged.connect(self.update_rects)
-        self.view_box.addItem(self.left_rect)
-        self.view_box.addItem(self.right_rect)
-        self.view_box.addItem(self.top_rect)
-        self.view_box.addItem(self.bottom_rect)
+        if not self.active:
+            self.roi.sigRegionChanged.connect(self.update_rects)
+            self.view_box.addItem(self.left_rect)
+            self.view_box.addItem(self.right_rect)
+            self.view_box.addItem(self.top_rect)
+            self.view_box.addItem(self.bottom_rect)
+            self.active=True
 
     def deactivate_rects(self):
-        self.roi.sigRegionChanged.disconnect(self.update_rects)
-        self.view_box.removeItem(self.left_rect)
-        self.view_box.removeItem(self.right_rect)
-        self.view_box.removeItem(self.top_rect)
-        self.view_box.removeItem(self.bottom_rect)
+        if self.active:
+            self.roi.sigRegionChanged.disconnect(self.update_rects)
+            self.view_box.removeItem(self.left_rect)
+            self.view_box.removeItem(self.right_rect)
+            self.view_box.removeItem(self.top_rect)
+            self.view_box.removeItem(self.bottom_rect)
+            self.active = False
 
 
 
