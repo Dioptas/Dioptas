@@ -165,7 +165,6 @@ class IntegrationPhaseController(object):
         self.view.phase_temperature_sb.blockSignals(False)
 
     def spectrum_data_changed(self):
-        QtGui.QApplication.processEvents()
         self.update_intensities()
 
     def update_intensities_slot(self, *args):

@@ -165,6 +165,9 @@ class CalibrationData(object):
         self.integrate_2d()
 
     def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None, unit='2th_deg'):
+        if np.sum(mask) == self.img_data.img_data.shape[0]*self.img_data.img_data.shape[1]:
+            #do not perform integration if the image is completelye masked...
+            return self.tth, self.int
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
         if unit is 'd_A':
@@ -176,7 +179,7 @@ class CalibrationData(object):
             self.tth = self.geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
             self.int = self.int[ind]
         else:
-            self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut_ocl', unit=unit,
+            self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut', unit=unit,
                                                  mask=mask, polarization_factor=polarization_factor,
                                                  filename=filename)
         if self.int.max() > 0:
@@ -188,7 +191,7 @@ class CalibrationData(object):
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg'):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
-        res = self.geometry.integrate2d(self.img_data.img_data, 2024, 2024, method='lut', mask=mask, unit=unit,
+        res = self.geometry.integrate2d(self.img_data.img_data, 2048, 2048, method='lut', mask=mask, unit=unit,
                                         polarization_factor=polarization_factor)
         self.cake_img = res[0]
         self.cake_tth = res[1]

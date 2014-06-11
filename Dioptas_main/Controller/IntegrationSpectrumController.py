@@ -21,6 +21,7 @@ import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
 import numpy as np
+import time
 
 
 class IntegrationSpectrumController(object):
@@ -102,16 +103,22 @@ class IntegrationSpectrumController(object):
                 self.mask_data.set_dimension(self.img_data.img_data.shape)
                 mask = self.mask_data.get_mask()
             else:
-                mask = np.zeros(self.img_data.img_data.shape)
+                mask = None
 
             if self.view.img_roi_btn.isChecked():
-                roi_mask = np.ones(self.img_data.img_data.shape)
-                x1, x2, y1, y2 = self.view.img_view.roi.getIndexLimits(self.img_data.img_data.shape)
-                roi_mask[x1:x2, y1:y2] = 0
+                roi_mask = self.view.img_view.roi.getRoiMask(self.img_data.img_data.shape)
             else:
-                roi_mask = np.zeros(self.img_data.img_data.shape)
+                roi_mask = None
 
-            mask = np.logical_or(mask, roi_mask)
+            if roi_mask is None and mask is None:
+                mask = None
+            elif roi_mask is None and mask is not None:
+                mask = mask
+            elif roi_mask is not None and mask is None:
+                mask = roi_mask
+            elif roi_mask is not None and mask is not None:
+                mask = np.logical_or(mask, roi_mask)
+
             tth, I = self.calibration_data.integrate_1d(
                 filename=filename, mask=mask, unit=self.integration_unit)
             if filename is not None:
@@ -226,11 +233,12 @@ class IntegrationSpectrumController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
-        self.update_x_range(previous_unit, self.integration_unit)
-        self.image_changed()
         self.view.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', u'°')
         self.view.spectrum_view.spectrum_plot.invertX(False)
-        self.update_line_position(previous_unit, self.integration_unit)
+        if self.calibration_data.is_calibrated:
+            self.update_x_range(previous_unit, self.integration_unit)
+            self.image_changed()
+            self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_q(self):
         self.view.spec_tth_btn.setChecked(False)
@@ -240,14 +248,14 @@ class IntegrationSpectrumController(object):
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
-        self.update_x_range(previous_unit, self.integration_unit)
-        self.image_changed()
+
         self.view.spectrum_view.spectrum_plot.invertX(False)
         self.view.spectrum_view.spectrum_plot.setLabel(
             'bottom', 'Q', 'A<sup>-1</sup>')
-
-        # self.view.spectrum_view.spectrum_plot.invertX(False)
-        self.update_line_position(previous_unit, self.integration_unit)
+        if self.calibration_data.is_calibrated:
+            self.update_x_range(previous_unit, self.integration_unit)
+            self.image_changed()
+            self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_d(self):
         self.view.spec_tth_btn.setChecked(False)
@@ -256,14 +264,16 @@ class IntegrationSpectrumController(object):
         previous_unit = self.integration_unit
         if previous_unit == 'd_A':
             return
-        self.integration_unit = 'd_A'
-        self.update_x_range(previous_unit, self.integration_unit)
-        self.image_changed()
+
         self.view.spectrum_view.spectrum_plot.setLabel(
             'bottom', 'd', 'A'
         )
         self.view.spectrum_view.spectrum_plot.invertX(True)
-        self.update_line_position(previous_unit, self.integration_unit)
+        self.integration_unit = 'd_A'
+        if self.calibration_data.is_calibrated:
+            self.update_x_range(previous_unit, self.integration_unit)
+            self.image_changed()
+            self.update_line_position(previous_unit, self.integration_unit)
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.view.spectrum_view.spectrum_plot.viewRange()[0]
