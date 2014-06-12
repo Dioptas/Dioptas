@@ -195,6 +195,7 @@ class IntegrationPhaseController(object):
         for ind in xrange(self.view.phase_lw.count()):
             self.update_intensity(ind, axis_range)
         self.view.spectrum_view.view_box.blockSignals(False)
+        self.view.spectrum_view.update_phase_line_visibilities()
 
     def connect_spectrum(self):
         self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(
