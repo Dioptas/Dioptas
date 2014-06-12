@@ -3,7 +3,7 @@
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -81,18 +81,16 @@ class SpectrumView(QtCore.QObject):
         if name is not None:
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
-
         self.update_x_limits()
-        self.update_phase_line_visibilities()
 
     def update_x_limits(self):
         x_range = list(self.plot_item.dataBounds(0))
         for ind, overlay in enumerate(self.overlays):
             if self.overlay_show[ind]:
                 x_range_overlay = overlay.dataBounds(0)
-                if x_range_overlay[0]< x_range[0]:
+                if x_range_overlay[0] < x_range[0]:
                     x_range[0] = x_range_overlay[0]
-                if x_range_overlay[1]> x_range[1]:
+                if x_range_overlay[1] > x_range[1]:
                     x_range[1] = x_range_overlay[1]
 
         diff = x_range[1] - x_range[0]
@@ -312,6 +310,7 @@ class PhaseLinesPlot(object):
 
 class PhasePlot(object):
     num_phases = 0
+
     def __init__(self, plot_item, legend_item, positions, intensities, name=None, baseline=0):
         self.plot_item = plot_item
         self.legend_item = legend_item
@@ -351,14 +350,14 @@ class PhasePlot(object):
         for ind, line_item in enumerate(self.line_items):
             data = line_item.getData()
             position = data[0][0]
-            if position>=spectrum_range[0] and position<=spectrum_range[1]:
+            if position >= spectrum_range[0] and position <= spectrum_range[1]:
                 if not self.line_visible[ind]:
                     self.plot_item.addItem(line_item)
-                    self.line_visible[ind]=True
+                    self.line_visible[ind] = True
             else:
                 if self.line_visible[ind]:
                     self.plot_item.removeItem(line_item)
-                    self.line_visible[ind]=False
+                    self.line_visible[ind] = False
 
     def remove(self):
         try:
