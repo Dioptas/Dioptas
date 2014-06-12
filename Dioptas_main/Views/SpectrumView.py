@@ -157,11 +157,12 @@ class SpectrumView(QtCore.QObject):
         self.phases[ind].remove()
         self.phases.remove(self.phases[ind])
 
-    def plot_vertical_lines(self, positions, phase_index=0, name=None):
-        if len(self.phases) <= phase_index:
-            self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions))
+    def plot_vertical_lines(self, positions, name=None):
+        if len(self.phases_vlines) > 0:
+            self.phases_vlines[0].set_data(positions, name)
         else:
-            self.phases_vlines[phase_index].set_data(positions, name)
+            self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions))
+
 
     def save_png(self, filename):
         exporter = ImageExporter(self.spectrum_plot)
