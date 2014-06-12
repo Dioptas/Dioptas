@@ -19,6 +19,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
+import Image
 
 
 class IntegrationImageController(object):
@@ -455,20 +456,31 @@ class IntegrationImageController(object):
     def save_img(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Image.",
-                                                             self.working_dir['image'], '*.png'))
+                                                             self.working_dir['image'],
+                                                             ('Image (*.png);;Data (*.tif)')))
         if filename is not '':
-            if self.img_mode == 'Cake':
-                self.view.img_view.deactivate_vertical_line()
-            elif self.img_mode == 'Image':
-                self.view.img_view.deactivate_circle_scatter()
-                self.view.img_view.deactivate_roi()
+            if filename.endswith('.png'):
+                if self.img_mode == 'Cake':
+                    self.view.img_view.deactivate_vertical_line()
+                elif self.img_mode == 'Image':
+                    self.view.img_view.deactivate_circle_scatter()
+                    self.view.img_view.deactivate_roi()
 
-            QtGui.QApplication.processEvents()
-            self.view.img_view.save_img(filename)
+                QtGui.QApplication.processEvents()
+                self.view.img_view.save_img(filename)
 
-            if self.img_mode == 'Cake':
-                self.view.img_view.activate_vertical_line()
-            elif self.img_mode == 'Image':
-                self.view.img_view.activate_circle_scatter()
-                self.view.img_view.activate_roi()
+                if self.img_mode == 'Cake':
+                    self.view.img_view.activate_vertical_line()
+                elif self.img_mode == 'Image':
+                    self.view.img_view.activate_circle_scatter()
+                    if self.roi_active:
+                        self.view.img_view.activate_roi()
+            elif filename.endswith('.tif'):
+                if self.img_mode == 'Image':
+                    im_array = np.int32(self.img_data.img_data)
+                elif self.img_mode == 'Cake':
+                    im_array = np.int32(self.calibration_data.cake_img)
+                im_array = np.flipud(im_array)
+                im = Image.fromarray(im_array)
+                im.save(filename)
 
