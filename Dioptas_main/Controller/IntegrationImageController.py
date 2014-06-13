@@ -457,7 +457,7 @@ class IntegrationImageController(object):
         if filename is None:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Image.",
                                                              self.working_dir['image'],
-                                                             ('Image (*.png);;Data (*.tif)')))
+                                                             ('Image (*.png);;Data (*.tiff)')))
         if filename is not '':
             if filename.endswith('.png'):
                 if self.img_mode == 'Cake':
@@ -475,7 +475,7 @@ class IntegrationImageController(object):
                     self.view.img_view.activate_circle_scatter()
                     if self.roi_active:
                         self.view.img_view.activate_roi()
-            elif filename.endswith('.tif'):
+            elif filename.endswith('.tiff'):
                 if self.img_mode == 'Image':
                     im_array = np.int32(self.img_data.img_data)
                 elif self.img_mode == 'Cake':
