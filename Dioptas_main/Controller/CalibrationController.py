@@ -194,6 +194,7 @@ class CalibrationController(object):
     def load_calibrant(self, wavelength_from='start_values'):
         """
         Loads the selected calibrant in the calibrant combobox into the calibration data.
+        :param wavelength_from: determines which wavelength to use possible values: "start_values", "pyFAI"
         """
         current_index = self.view.calibrant_cb.currentIndex()
         filename = os.path.join(self.calibration_data._calibrants_working_dir,
@@ -383,6 +384,7 @@ class CalibrationController(object):
                         self.view.ToolBox.currentIndex() is not 3:
             self.view.ToolBox.setCurrentIndex(2)
         self.update_calibration_parameter()
+        self.load_calibrant('pyFAI')
 
     def update_calibration_parameter(self):
         """

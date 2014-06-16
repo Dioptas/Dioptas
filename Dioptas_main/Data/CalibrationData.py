@@ -229,8 +229,7 @@ class CalibrationData(object):
                                            dist=self.start_values['dist'],
                                            wavelength=self.start_values['wavelength'],
                                            pixel1=self.start_values['pixel_width'],
-                                           pixel2=self.start_values['pixel_height'],
-                                           calibrant=self.calibrant)
+                                           pixel2=self.start_values['pixel_height'])
         self.geometry.load(filename)
         self.calibration_name = get_base_name(filename)
         self.is_calibrated = True
