@@ -153,4 +153,5 @@ def test_d_spacing_calculation():
 
 
 if __name__ == '__main__':
-    test_d_spacing_calculation()
+    pass
+    # test_d_spacing_calculation()

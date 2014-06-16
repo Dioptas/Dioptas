@@ -21,6 +21,7 @@ marchingsquares_.*
 marchingsquares_.c
 marchingsquares.py
 marchingsquares.so
+build_output.txt
 # Build results
 
 [Dd]ebug/
