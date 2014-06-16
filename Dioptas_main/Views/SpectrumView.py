@@ -82,6 +82,7 @@ class SpectrumView(QtCore.QObject):
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
         self.update_x_limits()
+        self.legend.updateSize()
 
     def update_x_limits(self):
         x_range = list(self.plot_item.dataBounds(0))
@@ -218,7 +219,7 @@ class SpectrumView(QtCore.QObject):
             else:
                 self._auto_range = False
                 self.view_box.scaleBy(2)
-                self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
+            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())
             pos = self.plot_item.mapFromScene(2 * ev.pos() - pos)
@@ -228,7 +229,8 @@ class SpectrumView(QtCore.QObject):
 
 
     def myMouseDoubleClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton:
+        if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and \
+                                                                  ev.modifiers() & QtCore.Qt.ControlModifier):
             self.view_box.autoRange()
             self.view_box.enableAutoRange()
             self._auto_range = True

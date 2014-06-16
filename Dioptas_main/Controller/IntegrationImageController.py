@@ -7,7 +7,7 @@ __author__ = 'Clemens Prescher'
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
+# (at your option) any later version.
 #
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,7 +19,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
-import Image
+from PIL import Image
 
 
 class IntegrationImageController(object):
@@ -132,7 +132,6 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.view.img_mode_btn, self.change_view_mode)
         self.connect_click_function(self.view.img_autoscale_btn, self.view.img_view.auto_range)
-
 
         self.connect_click_function(self.view.qa_img_save_img_btn, self.save_img)
 

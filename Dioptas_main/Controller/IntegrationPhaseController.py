@@ -39,29 +39,29 @@ class IntegrationPhaseController(object):
     def create_signals(self):
         self.connect_click_function(self.view.phase_add_btn, self.add_phase)
         self.connect_click_function(self.view.phase_del_btn, self.del_phase)
-        self.connect_click_function(
-            self.view.phase_clear_btn, self.clear_phases)
+        self.connect_click_function(self.view.phase_clear_btn, self.clear_phases)
 
-        self.view.phase_pressure_step_txt.editingFinished.connect(
-            self.update_phase_pressure_step)
-        self.view.phase_temperature_step_txt.editingFinished.connect(
-            self.update_phase_pressure_step)
+        self.view.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
+        self.view.phase_temperature_step_txt.editingFinished.connect(self.update_phase_pressure_step)
 
-        self.view.phase_pressure_sb.valueChanged.connect(
-            self.phase_pressure_sb_changed)
-        self.view.phase_temperature_sb.valueChanged.connect(
-            self.phase_temperature_sb_changed)
+        self.view.phase_pressure_sb.valueChanged.connect(self.phase_pressure_sb_changed)
+        self.view.phase_temperature_sb.valueChanged.connect(self.phase_temperature_sb_changed)
 
         self.view.phase_lw.currentItemChanged.connect(self.phase_item_changed)
 
-        self.spectrum_data.subscribe(self.update_intensities)
         self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_intensities_slot)
         self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
+        self.spectrum_data.subscribe(self.spectrum_data_changed)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def add_phase(self, filename=None):
+        """
+        Loads a new phase from jcpds file.
+        :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
+        :return:
+        """
         if filename is None:
             filenames = QtGui.QFileDialog.getOpenFileNames(
                 self.view, "Load Phase(s).", self.working_dir['phase'])
@@ -97,6 +97,10 @@ class IntegrationPhaseController(object):
             self.working_dir['phase'] = os.path.dirname(str(filename))
 
     def add_phase_plot(self):
+        """
+        Adds a phase to the Spectrum view.
+        :return:
+        """
         axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
@@ -112,6 +116,9 @@ class IntegrationPhaseController(object):
                                           baseline)
 
     def del_phase(self):
+        """
+        Deletes the currently selected Phase
+        """
         cur_ind = self.view.phase_lw.currentRow()
         if cur_ind >= 0:
             self.view.phase_lw.takeItem(cur_ind)
@@ -119,6 +126,9 @@ class IntegrationPhaseController(object):
             self.view.spectrum_view.del_phase(cur_ind)
 
     def clear_phases(self):
+        """
+        Delets all phases from the GUI and phase data
+        """
         while self.view.phase_lw.count() > 0:
             self.del_phase()
 
@@ -131,6 +141,10 @@ class IntegrationPhaseController(object):
         self.view.phase_temperature_sb.setSingleStep(value)
 
     def phase_pressure_sb_changed(self, val):
+        """
+        Called when pressure spinbox emits a new value. Calculates the appropriate EOS values and updates line
+        positions and intensities.
+        """
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in xrange(self.view.phase_lw.count()):
                 self.phase_data.set_pressure(ind, np.float(val))
@@ -142,6 +156,10 @@ class IntegrationPhaseController(object):
             self.update_intensity(cur_ind)
 
     def phase_temperature_sb_changed(self, val):
+        """
+        Called when temperature spinbox emits a new value. Calculates the appropriate EOS values and updates line
+        positions and intensities.
+        """
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in xrange(self.view.phase_lw.count()):
                 self.phase_data.set_temperature(ind, np.float(val))
@@ -153,6 +171,10 @@ class IntegrationPhaseController(object):
             self.update_intensity(cur_ind)
 
     def phase_item_changed(self):
+        """
+        updates the pressures and temperatures values in the GUI, which are corresponding the the selected phase.
+        :return:
+        """
         cur_ind = self.view.phase_lw.currentRow()
         pressure = self.phase_data.phases[cur_ind].pressure
         temperature = self.phase_data.phases[cur_ind].temperature
@@ -165,6 +187,10 @@ class IntegrationPhaseController(object):
         self.view.phase_temperature_sb.blockSignals(False)
 
     def update_intensities_slot(self, *args):
+        """
+        Used as a slot when autoRange of the view is. Tries to prevent a call on autorange while updating intensities of
+        phases.
+        """
         axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         self.view.spectrum_view.spectrum_plot.disableAutoRange()
         self.update_intensities(axis_range)
@@ -177,6 +203,11 @@ class IntegrationPhaseController(object):
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
 
     def update_intensity(self, ind, axis_range=None):
+        """
+        Updates the intensities of a specific phase with index ind.
+        :param ind: Index of the phase
+        :param axis_range: list/tuple of visible x_range and y_range -- ((x_min, x_max), (y_min, y_max))
+        """
         if axis_range is None:
             axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
         x_range = axis_range[0]
@@ -191,17 +222,22 @@ class IntegrationPhaseController(object):
             ind, positions, intensities, baseline)
 
     def update_intensities(self, axis_range=None):
+        """
+        Updates all intensities of all phases in the spectrum view. Also checks if phase lines are still visible.
+        (within range of spectrum and/or overlays
+        :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
+        """
         self.view.spectrum_view.view_box.blockSignals(True)
         for ind in xrange(self.view.phase_lw.count()):
             self.update_intensity(ind, axis_range)
         self.view.spectrum_view.view_box.blockSignals(False)
         self.view.spectrum_view.update_phase_line_visibilities()
 
-    def connect_spectrum(self):
-        self.view.spectrum_view.spectrum_plot.sigRangeChanged.connect(
-            self.update_intensities_slot)
-
     def get_unit(self):
+        """
+        returns the unit currently selected in the GUI
+                possible values: 'tth', 'q', 'd'
+        """
         if self.view.spec_tth_btn.isChecked():
             return 'tth'
         elif self.view.spec_q_btn.isChecked():
@@ -217,4 +253,22 @@ class IntegrationPhaseController(object):
         was clicked
         """
         QtCore.QTimer.singleShot(50, self.update_intensities_slot)
+
+    def spectrum_data_changed(self):
+        """
+        Function is called after the specturm data has changed.
+        """
+        QtCore.QTimer.singleShot(10, self.update_intensities_slot)
+        self.view.spectrum_view.view_box.sigRangeChanged.connect(self.update_intensities_spectrum_slot)
+
+    def update_intensities_spectrum_slot(self, *args):
+        """
+        function will be executed after a sigRangeChange event after a spectrum changed. It will disconnect the first
+        handler afterwards. This is needed because of some timing issues.
+        """
+        self.update_intensities()
+        try:
+            self.view.spectrum_view.view_box.sigRangeChanged.disconnect(self.update_intensities_spectrum_slot)
+        except TypeError:
+            pass
 

@@ -71,6 +71,8 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         self.layout = QtGui.QGraphicsGridLayout()
         self.layout.setVerticalSpacing(verSpacing)
         self.layout.setHorizontalSpacing(horSpacing)
+        self._horSpacing = horSpacing
+        self._verSpacing = verSpacing
         self.setLayout(self.layout)
         self.legendItems = []
         self.plotItems = []

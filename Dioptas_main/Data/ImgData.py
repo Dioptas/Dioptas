@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Py2DeX - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@ import numpy as np
 import fabio
 import pyFAI
 import pyFAI.utils
-import matplotlib.pyplot as plt
+from PIL import Image
 from HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
 
@@ -39,10 +39,8 @@ class ImgData(Observable):
         try:
             self.img_data_fabio = fabio.open(filename)
             self.img_data = self.img_data_fabio.data[::-1]
-        except TypeError:
-            self.img_data = plt.imread(filename)
-            if len(self.img_data.shape) > 2:
-                self.img_data = np.average(self.img_data, 2)
+        except AttributeError:
+            self.img_data = np.array(Image.open(filename))
         self.perform_img_transformations()
         self.notify()
 

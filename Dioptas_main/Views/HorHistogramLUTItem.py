@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-#     Py2DeX - GUI program for fast processing of 2D X-ray data
+# Py2DeX - GUI program for fast processing of 2D X-ray data
 #     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
@@ -33,8 +33,6 @@ from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
 import numpy as np
 import pyqtgraph.debug as debug
-
-import matplotlib.pyplot as plt
 
 
 __all__ = ['HistogramLUTItem']
