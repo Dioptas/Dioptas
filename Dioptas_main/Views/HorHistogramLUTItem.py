@@ -74,7 +74,7 @@ class HorHistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.setOrientation('top')
         self.gradient.loadPreset('grey')
-        self.region = LinearRegionItem([0, 1], LinearRegionItem.Vertical)
+        self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
         self.region.setZValue(1000)
         self.vb.addItem(self.region)
         self.vb.setMenuEnabled(False)
@@ -92,6 +92,8 @@ class HorHistogramLUTItem(GraphicsWidget):
         self.region.sigRegionChangeFinished.connect(self.regionChanged)
         self.vb.sigRangeChanged.connect(self.viewRangeChanged)
         self.plot = PlotDataItem()
+        self.plot.setLogMode(yMode=True, xMode=False)
+        self.vb.autoRange()
         self.fillHistogram(fillHistogram)
 
         self.vb.addItem(self.plot)
@@ -144,7 +146,7 @@ class HorHistogramLUTItem(GraphicsWidget):
 
     def autoHistogramRange(self):
         """Enable auto-scaling on the histogram plot."""
-        self.vb.enableAutoRange(self.vb.XAxis)
+        self.vb.enableAutoRange(self.vb.XAxis, self.vb.YAxis)
         #self.range = None
         #self.updateRange()
         #self.vb.setMouseEnabled(False, False)
@@ -199,18 +201,22 @@ class HorHistogramLUTItem(GraphicsWidget):
 
     def regionChanging(self):
         if self.imageItem is not None:
-            self.imageItem.setLevels(self.region.getRegion())
+            self.imageItem.setLevels(np.exp(self.region.getRegion()))
         self.sigLevelsChanged.emit(self)
         self.update()
 
     def imageChanged(self, autoRange=False):
         prof = debug.Profiler('HistogramLUTItem.imageChanged', disabled=True)
-        h = list(self.imageItem.getHistogram())
+        h = list(self.imageItem.getHistogram(bins=1000))
 
         prof.mark('get histogram')
         if h[0] is None:
             return
-        h[1] = np.log(h[1])
+        # h[1] = np.log(h[1])
+        h[1][1:] = np.log(h[1][1:])
+        h[0][1:] = np.log(h[0][1:])
+        h[0][0] = 0
+        h[1][0] = h[1][0]
         self.plot.setData(h[0], h[1])
         self.hist_x_range = np.max(h[0]) - np.min(h[0])
         if self.percentageLevel:
@@ -223,7 +229,7 @@ class HorHistogramLUTItem(GraphicsWidget):
                 self.region.setRegion(region_fraction * self.hist_x_range)
                 self.old_hist_x_range = self.hist_x_range
 
-        self.vb.setRange(yRange=[0, 1.2 * np.max(h[1])])
+                #self.vb.setRange(yRange=[0, 1.2 * np.max(h[1])])
 
     def getLevels(self):
         return self.region.getRegion()
@@ -233,3 +239,41 @@ class HorHistogramLUTItem(GraphicsWidget):
 
     def empty_function(self, *args):
         pass
+
+
+class LogarithmRegionItem(LinearRegionItem):
+    def __contains__(self, values=[0, 1], orientation=None, brush=None, movable=True, bounds=None):
+        super(LogarithmRegionItem, self).__init__(values, orientation, brush, movable, bounds)
+
+    def getRegion(self):
+        """Return the values at the edges of the region."""
+        # if self.orientation[0] == 'h':
+        #r = (self.bounds.top(), self.bounds.bottom())
+        #else:
+        #r = (self.bounds.left(), self.bounds.right())
+        r = [(self.lines[0].value()), (self.lines[1].value())]
+        return (min(r), max(r))
+
+    def setRegion(self, rgn):
+        """Set the values for the edges of the region.
+
+        ==============   ==============================================
+        **Arguments:**
+        rgn              A list or tuple of the lower and upper values.
+        ==============   ==============================================
+        """
+
+        if rgn[0] <= 0:
+            rgn[0] = 1
+        if rgn[1] <= 0:
+            rgn[1] = 1
+        rgn = np.log(np.array(rgn))
+        if self.lines[0].value() == rgn[0] and self.lines[1].value() == rgn[1]:
+            return
+        self.blockLineSignal = True
+        self.lines[0].setValue(rgn[0])
+        self.blockLineSignal = False
+        self.lines[1].setValue(rgn[1])
+        # self.blockLineSignal = False
+        self.lineMoved()
+        self.lineMoveFinished()
