@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Py2DeX - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -31,6 +31,7 @@ from pyqtgraph.graphicsItems.AxisItem import *
 from pyqtgraph.graphicsItems.GridItem import *
 from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
+import pyqtgraph as pg
 import numpy as np
 import pyqtgraph.debug as debug
 
@@ -52,7 +53,7 @@ class HorHistogramLUTItem(GraphicsWidget):
     sigLevelsChanged = QtCore.pyqtSignal(object)
     sigLevelChangeFinished = QtCore.pyqtSignal(object)
 
-    def __init__(self, image=None, fillHistogram=True, orientation='horizontal'):
+    def __init__(self, image=None, fillHistogram=False, orientation='horizontal'):
         """
         If *image* (ImageItem) is provided, then the control will be automatically linked to the image and changes to the control will be immediately reflected in the image's appearance.
         By default, the histogram is rendered with a fill. For performance, set *fillHistogram* = False.
@@ -117,6 +118,7 @@ class HorHistogramLUTItem(GraphicsWidget):
             self.vb.invertX(True)
         self.vb.autoRange()
         self.fillHistogram(fillHistogram)
+        self.plot.setPen(pg.mkPen(color=(50, 150, 50), size=3))
 
         self.vb.addItem(self.plot)
         self.autoHistogramRange()
@@ -173,12 +175,12 @@ class HorHistogramLUTItem(GraphicsWidget):
             self.vb.setXRange(mn, mx, padding)
         elif self.orientation == 'vertical':
             self.vb.setYrange(mn, mx, padding)
-        #mn -= d*padding
-        #mx += d*padding
-        #self.range = [mn,mx]
-        #self.updateRange()
-        #self.vb.setMouseEnabled(False, True)
-        #self.region.setBounds([mn,mx])
+            #mn -= d*padding
+            #mx += d*padding
+            #self.range = [mn,mx]
+            #self.updateRange()
+            #self.vb.setMouseEnabled(False, True)
+            #self.region.setBounds([mn,mx])
 
     def autoHistogramRange(self):
         """Enable auto-scaling on the histogram plot."""
