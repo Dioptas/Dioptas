@@ -52,7 +52,7 @@ class HorHistogramLUTItem(GraphicsWidget):
     sigLevelsChanged = QtCore.pyqtSignal(object)
     sigLevelChangeFinished = QtCore.pyqtSignal(object)
 
-    def __init__(self, image=None, fillHistogram=True, orientation='horizontal'):
+    def __init__(self, image=None, fillHistogram=False, orientation='horizontal'):
         """
         If *image* (ImageItem) is provided, then the control will be automatically linked to the image and changes to the control will be immediately reflected in the image's appearance.
         By default, the histogram is rendered with a fill. For performance, set *fillHistogram* = False.
