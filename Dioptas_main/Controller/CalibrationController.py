@@ -371,7 +371,8 @@ class CalibrationController(object):
         """
         self.calibration_data.integrate_1d()
         self.calibration_data.integrate_2d()
-        self.view.cake_view.plot_image(self.calibration_data.cake_img, True)
+        self.view.cake_view.plot_image(self.calibration_data.cake_img, False)
+        self.view.cake_view.auto_range()
 
         self.view.spectrum_view.plot_data(self.calibration_data.tth, self.calibration_data.int)
         self.view.spectrum_view.plot_vertical_lines(np.array(self.calibration_data.calibrant.get_2th()) /
