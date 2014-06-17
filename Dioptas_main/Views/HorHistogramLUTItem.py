@@ -249,27 +249,29 @@ class HorHistogramLUTItem(GraphicsWidget):
         prof.mark('get histogram')
         if h[0] is None:
             return
-        # h[1] = np.log(h[1])
+
         h[1][1:] = np.log(h[1][1:])
         h[0][1:] = np.log(h[0][1:])
+
         h[0][0] = 0
-        h[1][0] = h[1][0]
+        h[1][0] = h[1][1]
         if self.orientation == 'horizontal':
             self.plot.setData(h[0], h[1])
         elif self.orientation == 'vertical':
             self.plot.setData(h[1], h[0])
-        self.hist_x_range = np.max(h[0]) - np.min(h[0])
-        if self.percentageLevel:
-            if self.first_image:
-                self.region.setRegion([h[0, 0], h[0, -1]])
-                self.old_hist_x_range = self.hist_x_range
-                self.first_image = False
-            else:
-                region_fraction = np.array(self.region.getRegion()) / self.old_hist_x_range
-                self.region.setRegion(region_fraction * self.hist_x_range)
-                self.old_hist_x_range = self.hist_x_range
 
-                #self.vb.setRange(yRange=[0, 1.2 * np.max(h[1])])
+        self.hist_x_range = np.max(h[0]) - np.min(h[0])
+        # if self.percentageLevel:
+        # if self.first_image:
+        #         self.region.setRegion([h[0, 0], h[0, -1]])
+        #         self.old_hist_x_range = self.hist_x_range
+        #         self.first_image = False
+        #     else:
+        #         region_fraction = np.array(self.region.getRegion()) / self.old_hist_x_range
+        #         self.region.setRegion(region_fraction * self.hist_x_range)
+        #         self.old_hist_x_range = self.hist_x_range
+        #
+        #         #self.vb.setRange(yRange=[0, 1.2 * np.max(h[1])])
 
     def getLevels(self):
         return self.region.getRegion()
