@@ -58,8 +58,8 @@ class ImgView(QtCore.QObject):
             #create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
-            self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
-            self.img_histogram_LUT.axis.hide()
+            self.img_histogram_LUT = HorHistogramLUTItem(self.data_img_item, orientation='vertical')
+            # self.img_histogram_LUT.axis.hide()
             self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
 
         self.img_view_box.setAspectLocked()
