@@ -52,7 +52,7 @@ class HorHistogramLUTItem(GraphicsWidget):
     sigLevelsChanged = QtCore.pyqtSignal(object)
     sigLevelChangeFinished = QtCore.pyqtSignal(object)
 
-    def __init__(self, image=None, fillHistogram=True):
+    def __init__(self, image=None, fillHistogram=True, orientation='horizontal'):
         """
         If *image* (ImageItem) is provided, then the control will be automatically linked to the image and changes to the control will be immediately reflected in the image's appearance.
         By default, the histogram is rendered with a fill. For performance, set *fillHistogram* = False.
@@ -62,27 +62,44 @@ class HorHistogramLUTItem(GraphicsWidget):
         self.imageItem = None
         self.first_image = True
         self.percentageLevel = False
+        self.orientation = orientation
+        self.range = None
 
         self.layout = QtGui.QGraphicsGridLayout()
         self.setLayout(self.layout)
         self.layout.setContentsMargins(1, 1, 1, 1)
         self.layout.setSpacing(0)
+
         self.vb = ViewBox()
-        self.vb.setMaximumHeight(30)
-        self.vb.setMinimumHeight(45)
-        self.vb.setMouseEnabled(x=True, y=False)
+
         self.gradient = GradientEditorItem()
-        self.gradient.setOrientation('top')
         self.gradient.loadPreset('grey')
-        self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
+
+        if orientation == 'horizontal':
+            self.vb.setMouseEnabled(x=True, y=False)
+            self.vb.setMaximumHeight(30)
+            self.vb.setMinimumHeight(45)
+            self.gradient.setOrientation('top')
+            self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
+            self.layout.addItem(self.vb, 1, 0)
+            self.layout.addItem(self.gradient, 0, 0)
+            self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
+            self.vb.setFlag(self.gradient.ItemStacksBehindParent)
+        elif orientation == 'vertical':
+            self.vb.setMouseEnabled(x=False, y=True)
+            self.vb.setMaximumWidth(30)
+            self.vb.setMinimumWidth(45)
+            self.gradient.setOrientation('right')
+            self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
+            self.layout.addItem(self.vb, 0, 0)
+            self.layout.addItem(self.gradient, 0, 1)
+
+        self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
+        self.vb.setFlag(self.gradient.ItemStacksBehindParent)
         self.region.setZValue(1000)
         self.vb.addItem(self.region)
         self.vb.setMenuEnabled(False)
-        self.layout.addItem(self.vb, 1, 0)
-        self.layout.addItem(self.gradient, 0, 0)
-        self.range = None
-        self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
-        self.vb.setFlag(self.gradient.ItemStacksBehindParent)
+
 
         #self.grid = GridItem()
         #self.vb.addItem(self.grid)
@@ -90,9 +107,14 @@ class HorHistogramLUTItem(GraphicsWidget):
         self.gradient.sigGradientChanged.connect(self.gradientChanged)
         self.region.sigRegionChanged.connect(self.regionChanging)
         self.region.sigRegionChangeFinished.connect(self.regionChanged)
+
         self.vb.sigRangeChanged.connect(self.viewRangeChanged)
         self.plot = PlotDataItem()
-        self.plot.setLogMode(yMode=True, xMode=False)
+        if self.orientation == 'horizontal':
+            self.plot.setLogMode(yMode=True, xMode=False)
+        elif self.orientation == 'vertical':
+            self.plot.setLogMode(yMode=False, xMode=True)
+            self.vb.invertX(True)
         self.vb.autoRange()
         self.fillHistogram(fillHistogram)
 
@@ -121,22 +143,36 @@ class HorHistogramLUTItem(GraphicsWidget):
     def paint(self, p, *args):
         pen = self.region.lines[0].pen
         rgn = self.getLevels()
-        p1 = self.vb.mapFromViewToItem(self, Point(rgn[0], self.vb.viewRect().center().y()))
-        p2 = self.vb.mapFromViewToItem(self, Point(rgn[1], self.vb.viewRect().center().y()))
-        gradRect = self.gradient.mapRectToParent(self.gradient.gradRect.rect())
-        for pen in [fn.mkPen('k', width=3), pen]:
-            p.setPen(pen)
-            p.drawLine(p1, gradRect.bottomLeft())
-            p.drawLine(p2, gradRect.bottomRight())
-            p.drawLine(gradRect.bottomLeft(), gradRect.topLeft())
-            p.drawLine(gradRect.bottomRight(), gradRect.topRight())
-            #p.drawRect(self.boundingRect())
+        if self.orientation == 'horizontal':
+            p1 = self.vb.mapFromViewToItem(self, Point(rgn[0], self.vb.viewRect().center().y()))
+            p2 = self.vb.mapFromViewToItem(self, Point(rgn[1], self.vb.viewRect().center().y()))
+            gradRect = self.gradient.mapRectToParent(self.gradient.gradRect.rect())
+            for pen in [fn.mkPen('k', width=3), pen]:
+                p.setPen(pen)
+                p.drawLine(p1, gradRect.bottomLeft())
+                p.drawLine(p2, gradRect.bottomRight())
+                p.drawLine(gradRect.bottomLeft(), gradRect.topLeft())
+                p.drawLine(gradRect.bottomRight(), gradRect.topRight())
+
+        elif self.orientation == 'vertical':
+            p1 = self.vb.mapFromViewToItem(self, Point(self.vb.viewRect().center().x(), rgn[0]))
+            p2 = self.vb.mapFromViewToItem(self, Point(self.vb.viewRect().center().x(), rgn[1]))
+            gradRect = self.gradient.mapRectToParent(self.gradient.gradRect.rect())
+            for pen in [fn.mkPen('k', width=3), pen]:
+                p.setPen(pen)
+                p.drawLine(p1, gradRect.bottomLeft())
+                p.drawLine(p2, gradRect.topLeft())
+                p.drawLine(gradRect.topLeft(), gradRect.topRight())
+                p.drawLine(gradRect.bottomLeft(), gradRect.bottomRight())
 
 
     def setHistogramRange(self, mn, mx, padding=0.1):
         """Set the Y range on the histogram plot. This disables auto-scaling."""
         self.vb.enableAutoRange(self.vb.YAxis, False)
-        self.vb.setXRange(mn, mx, padding)
+        if self.orientation == 'horizontal':
+            self.vb.setXRange(mn, mx, padding)
+        elif self.orientation == 'vertical':
+            self.vb.setYrange(mn, mx, padding)
         #mn -= d*padding
         #mx += d*padding
         #self.range = [mn,mx]
@@ -146,7 +182,8 @@ class HorHistogramLUTItem(GraphicsWidget):
 
     def autoHistogramRange(self):
         """Enable auto-scaling on the histogram plot."""
-        self.vb.enableAutoRange(self.vb.XAxis, self.vb.YAxis)
+        self.vb.enableAutoRange(self.vb.XAxis, True)
+        self.vb.enableAutoRange(self.vb.YAxis, True)
         #self.range = None
         #self.updateRange()
         #self.vb.setMouseEnabled(False, False)
@@ -217,7 +254,10 @@ class HorHistogramLUTItem(GraphicsWidget):
         h[0][1:] = np.log(h[0][1:])
         h[0][0] = 0
         h[1][0] = h[1][0]
-        self.plot.setData(h[0], h[1])
+        if self.orientation == 'horizontal':
+            self.plot.setData(h[0], h[1])
+        elif self.orientation == 'vertical':
+            self.plot.setData(h[1], h[0])
         self.hist_x_range = np.max(h[0]) - np.min(h[0])
         if self.percentageLevel:
             if self.first_image:
