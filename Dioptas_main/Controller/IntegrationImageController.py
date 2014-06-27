@@ -9,7 +9,7 @@ __author__ = 'Clemens Prescher'
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
@@ -151,15 +151,80 @@ class IntegrationImageController(object):
         self.view.img_view.mouse_left_clicked.connect(self.img_mouse_click)
         self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
 
-    def load_file_btn_click(self, filename=None):
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(
-                self.view, "Load image data",
+    def load_file_btn_click(self, filenames=None):
+        if filenames is None:
+            filenames = list(QtGui.QFileDialog.getOpenFileNames(
+                self.view, "Load image data file(s)",
                 self.working_dir['image']))
 
-        if filename is not '':
-            self.working_dir['image'] = os.path.dirname(filename)
-            self.img_data.load(filename)
+        else:
+            if isinstance(filenames, basestring):
+                filenames = [filenames]
+
+        if filenames is not None and len(filenames) is not 0:
+            if len(filenames) == 1:
+                self.working_dir['image'] = os.path.dirname(str(filenames[0]))
+                self.img_data.load(str(filenames[0]))
+            else:
+                if self.view.spec_autocreate_cb.isChecked():
+                    working_directory = self.working_dir['spectrum']
+                else:
+                    working_directory = str(QtGui.QFileDialog.getExistingDirectory(self.view,
+                                                                                   "Please choose the output directory for the integrated spectra.",
+                                                                                   self.working_dir['spectrum']))
+                if working_directory is '':
+                    return
+
+                progress_dialog = QtGui.QProgressDialog("testing the world", "Abort Integration", 0, len(filenames),
+                                                        self.view)
+                progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+                for ind in xrange(len(filenames)):
+                    filename = str(filenames[ind])
+                    base_filename = os.path.basename(filename)
+                    progress_dialog.setValue(ind)
+                    progress_dialog.setLabelText("Integrating: " + base_filename)
+                    self.img_data.turn_off_notification()
+                    self.img_data.load(filename)
+                    self.integrate_spectrum(
+                        os.path.join(working_directory, os.path.splitext(base_filename)[0] + '.chi'))
+                    if progress_dialog.wasCanceled():
+                        break
+                self.img_data.turn_on_notification()
+                self.img_data.notify()
+                progress_dialog.close()
+
+    def integrate_spectrum(self, filename):
+        if self.view.img_mask_btn.isChecked():
+            self.mask_data.set_dimension(self.img_data.img_data.shape)
+            mask = self.mask_data.get_mask()
+        else:
+            mask = None
+
+        if self.view.img_roi_btn.isChecked():
+            roi_mask = self.view.img_view.roi.getRoiMask(self.img_data.img_data.shape)
+        else:
+            roi_mask = None
+
+        if roi_mask is None and mask is None:
+            mask = None
+        elif roi_mask is None and mask is not None:
+            mask = mask
+        elif roi_mask is not None and mask is None:
+            mask = roi_mask
+        elif roi_mask is not None and mask is not None:
+            mask = np.logical_or(mask, roi_mask)
+
+        if self.view.spec_tth_btn.isChecked():
+            integration_unit = '2th_deg'
+        elif self.view.spec_q_btn.isChecked():
+            integration_unit = 'q_A^-1'
+        elif self.view.spec_d_btn.isChecked():
+            integration_unit = 'd_A'
+        else:
+            # in case something weird happened
+            print 'No correct integration unit selected'
+            return
+        self.calibration_data.integrate_1d(filename=filename, mask=mask, unit=integration_unit)
 
     def change_mask_mode(self):
         self.use_mask = not self.use_mask
@@ -176,20 +241,7 @@ class IntegrationImageController(object):
         self.img_data.load_previous_file()
 
     def auto_img_btn_click(self):
-        if self.calibration_data.is_calibrated:
-            cake_state = self.view.cake_rb.isChecked()
-            if cake_state:
-                self.view.image_rb.setChecked(True)
-                QtGui.QApplication.processEvents()
-
-            while self.img_data.load_next():
-                print 'integrated ' + self.img_data.filename
-            print 'finished!'
-
-            if cake_state:
-                self.view.cake_rb.setChecked(True)
-                QtGui.QApplication.processEvents()
-                self.update_img()
+        pass
 
     def update_img(self, reset_img_levels=None):
         self.view.img_filename_lbl.setText(
