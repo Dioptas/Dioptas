@@ -22,6 +22,7 @@ import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
 from Data.HelperModule import get_base_name
+from copy import copy
 import pyqtgraph as pg
 
 
@@ -192,14 +193,12 @@ class IntegrationPhaseController(object):
         phases.
         """
         axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
+        auto_range = copy(self.view.spectrum_view.spectrum_plot.vb.state['autoRange'])
+
         self.view.spectrum_view.spectrum_plot.disableAutoRange()
         self.update_intensities(axis_range)
 
-        x_range = axis_range[0]
-        y_range = axis_range[1]
-        x, y = self.spectrum_data.spectrum.data
-        if x_range[0] <= np.min(x) and x_range[1] >= np.max(x) and \
-                        y_range[0] <= np.min(y) and y_range[1] >= np.max(y):
+        if auto_range[0] and auto_range[1]:
             self.view.spectrum_view.spectrum_plot.enableAutoRange()
 
     def update_intensity(self, ind, axis_range=None):

@@ -252,7 +252,7 @@ class MaskImgView(ImgView):
         return polygon
 
 
-from Tools import marchingsquares
+from pyFAI import marchingsquares
 
 
 class IntegrationImgView(MaskImgView, CalibrationCakeView):
