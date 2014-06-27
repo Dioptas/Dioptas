@@ -23,7 +23,7 @@ from Views.ExLegendItem import LegendItem
 import numpy as np
 from Data.HelperModule import calculate_color
 from PyQt4 import QtCore, QtGui
-from  pyqtgraph.exporters.ImageExporter import ImageExporter
+from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
 
 # TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
