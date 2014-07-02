@@ -38,5 +38,5 @@ if __name__ == "__main__":
         app.setStyle('plastique')
         # possible values:
         # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
-    controller = MainController()
+    controller = MainController(app)
     app.exec_()
