@@ -8,6 +8,7 @@
 *.tif
 *.tiff
 *.jpg
+*.png
 *.data
 *.pyc
 *.poni
@@ -20,12 +21,14 @@ marchingsquares_.*
 marchingsquares_.c
 marchingsquares.py
 marchingsquares.so
+build_output.txt
 # Build results
 
 [Dd]ebug/
 [Rr]elease/
 x64/
 build/
+dist/
 [Bb]in/
 [Oo]bj/
 
