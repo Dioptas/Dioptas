@@ -1,6 +1,6 @@
 __author__ = 'Clemens Prescher'
 # -*- coding: utf8 -*-
-# Py2DeX - GUI program for fast processing of 2D X-ray data
+# Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
