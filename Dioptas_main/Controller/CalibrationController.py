@@ -59,6 +59,8 @@ class CalibrationController(object):
 
         self.view.calibrant_cb.currentIndexChanged.connect(self.load_calibrant)
         self.connect_click_function(self.view.load_img_btn, self.load_img)
+        self.connect_click_function(self.view.load_next_img_btn, self.load_next_img)
+        self.connect_click_function(self.view.load_previous_img_btn, self. load_previous_img)
         self.connect_click_function(self.view.save_calibration_btn, self.save_calibration)
         self.connect_click_function(self.view.load_calibration_btn, self.load_calibration)
         self.connect_click_function(self.view.integrate_btn, self.calibrate)
@@ -162,6 +164,12 @@ class CalibrationController(object):
         if filename is not '':
             self.working_dir['image'] = os.path.dirname(filename)
             self.img_data.load(filename)
+
+    def load_next_img(self):
+        self.img_data.load_next()
+
+    def load_previous_img(self):
+        self.img_data.load_previous_file()
 
     def load_calibrants_list(self):
         """
