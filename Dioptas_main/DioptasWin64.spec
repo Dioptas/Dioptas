@@ -43,4 +43,4 @@ coll = COLLECT(exe,
                a.datas,
                strip=None,
                upx=True,
-               name='Dioptas_64')
+               name='Dioptas_Windows_64')

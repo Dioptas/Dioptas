@@ -6,8 +6,8 @@ import numpy as np
 import pylab
 
 img_data = ImgData()
-# img_data.load('/Users/Doomgoroth/Programming/Large Projects/Py2DeX/Testing/pyFAITest/17_LaB6_dc300-00000.tif')
-img_data.load('/Users/Doomgoroth/Programming/Large Projects/Py2DeX/Testing/pyFAITest/LaB6_WOS_30keV_005.tif')
+# img_data.load('/Users/Doomgoroth/Programming/Large Projects/Dioptas/Testing/pyFAITest/17_LaB6_dc300-00000.tif')
+img_data.load('/Users/Doomgoroth/Programming/Large Projects/Dioptas/Testing/pyFAITest/LaB6_WOS_30keV_005.tif')
 bd = BlobDetection(np.log1p(img_data.get_img_data()))
 
 bd.process()

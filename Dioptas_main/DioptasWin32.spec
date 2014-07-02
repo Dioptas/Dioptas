@@ -5,6 +5,7 @@ a = Analysis(['Dioptas.py'],
              hookspath=None,
              runtime_hooks=None)
 
+
 ##### include mydir in distribution #######
 def extra_datas(mydir):
     def rec_glob(p, files):
@@ -25,6 +26,7 @@ def extra_datas(mydir):
 
 a.datas += extra_datas('Calibrants')
 
+
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
           a.scripts,
@@ -33,11 +35,12 @@ exe = EXE(pyz,
           debug=False,
           strip=None,
           upx=True,
-          console=False)
+          console=False )
+
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
                a.datas,
                strip=None,
                upx=True,
-               name='Dioptas_32')
+               name='Dioptas_Windows_32')
