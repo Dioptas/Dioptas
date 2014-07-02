@@ -24,9 +24,9 @@ from cx_Freeze import setup, Executable
 options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopencl",
                         "cvxopt", "_gtkagg", "_tkagg", "bsddb", "curses", "email", "pywin.debugger",
                         "pywin.debugger.dbgcon", "pywin.dialogs", "tcl", "tables",
-                        "Tkconstants", "Tkinter", "zmq", "PySide", "pysideuic"],
-           "includes": ["scipy.sparse.csgraph._validation", "scipy.special._ufuncs_cxx", "scipy.integrate.vode",
-                        "scipy.integrate.lsoda",
+                        "Tkconstants", "Tkinter", "zmq", "PySide", "pysideuic", "PyQt4.uic.port_v3"],
+           "includes": ["scipy.sparse.csgraph._validation", "scipy.integrate.vode", "scipy.special",
+                        "scipy.special._ufuncs", "scipy.special._ufuncs_cxx",
                         "skimage._shared.geometry", "matplotlib.backends.backend_macosx"],
            "include_files": ("Calibrants"),
            "create_shared_zip": True
