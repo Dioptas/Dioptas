@@ -28,6 +28,7 @@ build_output.txt
 [Rr]elease/
 x64/
 build/
+dist/
 [Bb]in/
 [Oo]bj/
 

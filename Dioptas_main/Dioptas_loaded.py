@@ -9,7 +9,7 @@
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
 #
@@ -32,9 +32,9 @@ def test_calibration(controller):
 
 
 def test_integration(controller):
-    # controller.calibration_controller.load_calibration(
-    # 'ExampleData/LaB6_p49_001.poni')
-    # controller.view.tabWidget.setCurrentIndex(0)
+    controller.calibration_controller.load_calibration(
+        'ExampleData/LaB6_p49_001.poni')
+    # controller.view.tabWidget.setCurrentIndex(2)
     # controller.integration_controller.spectrum_controller.view.spec_q_btn.setChecked(True)
     # controller.integration_controller.spectrum_controller.set_unit_q()
     controller.calibration_controller.load_img('ExampleData/LaB6_p49_001.tif')
@@ -55,6 +55,6 @@ if __name__ == "__main__":
         # possible values:
         # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
 
-    controller = MainController()
+    controller = MainController(app)
     test_integration(controller)
     app.exec_()

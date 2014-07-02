@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Py2DeX - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopencl",
            "includes": ["scipy.sparse.csgraph._validation", "scipy.special._ufuncs_cxx", "scipy.integrate.vode",
                         "scipy.integrate.lsoda",
                         "skimage._shared.geometry", "matplotlib.backends.backend_macosx"],
-           "include_files": ("ExampleData/Calibrants", "ExampleData/Calibrants"),
+           "include_files": ("Calibrants"),
            "create_shared_zip": True
 }
 # GUI applications require a different base on Windows (the default is for a
