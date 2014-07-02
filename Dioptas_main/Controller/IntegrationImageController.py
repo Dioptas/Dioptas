@@ -10,7 +10,7 @@ __author__ = 'Clemens Prescher'
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
 #
@@ -100,7 +100,6 @@ class IntegrationImageController(object):
             self.view.img_view.set_color([255, 0, 0, 100])
         else:
             self.view.img_view.set_color([255, 0, 0, 255])
-        self.plot_mask()
 
     def change_img_levels_mode(self):
         """

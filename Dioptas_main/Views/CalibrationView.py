@@ -21,7 +21,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 from UiFiles.CalibrationUI import Ui_XrsCalibrationWidget
-from ImgView import ImgView, CalibrationCakeView
+from ImgView import MaskImgView, CalibrationCakeView
 from SpectrumView import SpectrumView
 from Data.HelperModule import SignalFrequencyLimiter
 import numpy as np
@@ -34,7 +34,7 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.setupUi(self)
         self.splitter.setStretchFactor(0, 2)
 
-        self.img_view = ImgView(self.img_pg_layout)
+        self.img_view = MaskImgView(self.img_pg_layout)
         self.cake_view = CalibrationCakeView(self.cake_pg_layout)
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
 

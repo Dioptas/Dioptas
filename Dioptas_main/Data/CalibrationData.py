@@ -25,8 +25,9 @@ from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
 from Data.HelperModule import get_base_name
+import Calibrants
+import os
 import numpy as np
-
 
 class CalibrationData(object):
     def __init__(self, img_data=None):
@@ -45,7 +46,8 @@ class CalibrationData(object):
         self.use_mask = False
         self.calibration_name = 'None'
         self.polarization_factor = 0.95
-        self._calibrants_working_dir = 'ExampleData/Calibrants'
+        self._calibrants_working_dir = os.path.dirname(Calibrants.__file__)
+        print self._calibrants_working_dir
 
     def find_peaks_automatic(self, x, y, peak_ind):
         massif = Massif(self.img_data.img_data)
@@ -86,7 +88,7 @@ class CalibrationData(object):
             return
 
     def search_peaks_on_ring(self, peak_index, delta_tth=0.1, min_mean_factor=1,
-                             upper_limit=55000):
+                             upper_limit=55000, mask=None):
         if not self.is_calibrated:
             return
 
@@ -104,8 +106,12 @@ class CalibrationData(object):
             tth_array = self.geometry._ttha
 
         # create mask based on two_theta position
-        mask = abs(tth_array - tth_calibrant) <= delta_tth
+        ring_mask = abs(tth_array - tth_calibrant) <= delta_tth
 
+        if mask is not None:
+            mask = np.logical_and(ring_mask, np.logical_not(mask))
+        else:
+            mask = ring_mask
 
         # calculate the mean and standard deviation of this area
         sub_data = np.array(self.img_data.img_data.ravel()[np.where(mask.ravel())], dtype=np.float64)
