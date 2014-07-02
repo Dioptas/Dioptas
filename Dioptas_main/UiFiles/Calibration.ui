@@ -261,7 +261,7 @@
         </layout>
        </item>
        <item>
-        <widget class="QLabel" name="filename_lbl">
+        <widget class="QLineEdit" name="filename_txt">
          <property name="text">
           <string>Filename</string>
          </property>
@@ -288,7 +288,7 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-417</y>
+            <y>0</y>
             <width>415</width>
             <height>919</height>
            </rect>
@@ -840,8 +840,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>192</width>
-            <height>390</height>
+            <width>430</width>
+            <height>476</height>
            </rect>
           </property>
           <attribute name="label">
@@ -1100,8 +1100,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>184</width>
-            <height>357</height>
+            <width>430</width>
+            <height>476</height>
            </rect>
           </property>
           <attribute name="label">

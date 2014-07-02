@@ -61,6 +61,8 @@ class CalibrationController(object):
         self.connect_click_function(self.view.load_img_btn, self.load_img)
         self.connect_click_function(self.view.load_next_img_btn, self.load_next_img)
         self.connect_click_function(self.view.load_previous_img_btn, self. load_previous_img)
+        self.view.filename_txt.editingFinished.connect(self.filename_txt_changed)
+
         self.connect_click_function(self.view.save_calibration_btn, self.save_calibration)
         self.connect_click_function(self.view.load_calibration_btn, self.load_calibration)
         self.connect_click_function(self.view.integrate_btn, self.calibrate)
@@ -170,6 +172,18 @@ class CalibrationController(object):
 
     def load_previous_img(self):
         self.img_data.load_previous_file()
+
+    def filename_txt_changed(self):
+        current_filename = os.path.basename(self.img_data.filename)
+        current_directory = os.path.dirname(self.img_data.filename)
+        new_filename = str(self.view.filename_txt.text())
+        if os.path.exists(os.path.join(current_directory, new_filename)):
+            try:
+                self.load_img(os.path.join(current_directory, new_filename))
+            except TypeError:
+                self.view.filename_txt.setText(current_filename)
+        else:
+            self.view.filename_txt.setText(current_filename)
 
     def load_calibrants_list(self):
         """

@@ -119,7 +119,9 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.next_img_btn, self.load_next_img)
         self.connect_click_function(self.view.prev_img_btn, self.load_previous_img)
         self.connect_click_function(self.view.load_img_btn, self.load_file_btn_click)
-        self.connect_click_function(self.view.auto_img_btn, self.auto_img_btn_click)
+        self.view.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
+        self.connect_click_function(self.view.img_directory_btn, self.img_directory_btn_click)
+
         self.connect_click_function(self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.view.mask_transparent_cb, self.change_mask_colormap)
@@ -239,12 +241,30 @@ class IntegrationImageController(object):
     def load_previous_img(self):
         self.img_data.load_previous_file()
 
-    def auto_img_btn_click(self):
-        pass
+    def filename_txt_changed(self):
+        current_filename = os.path.basename(self.img_data.filename)
+        current_directory = str(self.view.img_directory_txt.text())
+        new_filename = str(self.view.img_filename_txt.text())
+        if os.path.exists(os.path.join(current_directory, new_filename)):
+            try:
+                self.load_file_btn_click(os.path.join(current_directory, new_filename))
+            except TypeError:
+                self.view.img_filename_txt.setText(current_filename)
+        else:
+            self.view.img_filename_txt.setText(current_filename)
+
+    def img_directory_btn_click(self):
+        directory = QtGui.QFileDialog.getExistingDirectory(
+            self.view,
+            "Please choose the image working directory.",
+            self.working_dir['image'])
+        if directory is not '':
+            self.working_dir['image'] = str(directory)
+            self.view.img_directory_txt.setText(directory)
 
     def update_img(self, reset_img_levels=None):
-        self.view.img_filename_lbl.setText(
-            os.path.basename(self.img_data.filename))
+        self.view.img_filename_txt.setText(os.path.basename(self.img_data.filename))
+        self.view.img_directory_txt.setText(os.path.dirname(self.img_data.filename))
         if self.img_mode == 'Cake' and \
                 self.calibration_data.is_calibrated:
             if self.use_mask:

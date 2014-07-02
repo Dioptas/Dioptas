@@ -292,22 +292,6 @@
                   </property>
                  </widget>
                 </item>
-                <item>
-                 <widget class="QPushButton" name="auto_img_btn">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="text">
-                   <string>&gt;&gt;</string>
-                  </property>
-                  <property name="flat">
-                   <bool>true</bool>
-                  </property>
-                 </widget>
-                </item>
                </layout>
               </item>
               <item>
@@ -350,11 +334,7 @@
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_10">
              <item>
-              <widget class="QLabel" name="img_filename_lbl">
-               <property name="text">
-                <string>filename</string>
-               </property>
-              </widget>
+              <widget class="QLineEdit" name="img_filename_txt"/>
              </item>
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_26">
@@ -371,7 +351,7 @@
                 <number>0</number>
                </property>
                <item>
-                <widget class="QLineEdit" name="spec_directory_txt_2">
+                <widget class="QLineEdit" name="img_directory_txt">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -381,7 +361,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="spec_directory_btn_2">
+                <widget class="QPushButton" name="img_directory_btn">
                  <property name="text">
                   <string>...</string>
                  </property>
@@ -628,11 +608,7 @@
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_12">
              <item>
-              <widget class="QLabel" name="spec_filename_lbl">
-               <property name="text">
-                <string>filename</string>
-               </property>
-              </widget>
+              <widget class="QLineEdit" name="spec_filename_txt"/>
              </item>
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_10">
