@@ -118,7 +118,7 @@ class IntegrationImageController(object):
         """
         self.connect_click_function(self.view.next_img_btn, self.load_next_img)
         self.connect_click_function(self.view.prev_img_btn, self.load_previous_img)
-        self.connect_click_function(self.view.load_img_btn, self.load_file_btn_click)
+        self.connect_click_function(self.view.load_img_btn, self.load_file)
         self.view.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.connect_click_function(self.view.img_directory_btn, self.img_directory_btn_click)
 
@@ -152,7 +152,7 @@ class IntegrationImageController(object):
         self.view.img_view.mouse_left_clicked.connect(self.img_mouse_click)
         self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
 
-    def load_file_btn_click(self, filenames=None):
+    def load_file(self, filenames=None):
         if filenames is None:
             filenames = list(QtGui.QFileDialog.getOpenFileNames(
                 self.view, "Load image data file(s)",
@@ -176,14 +176,16 @@ class IntegrationImageController(object):
                 if working_directory is '':
                     return
 
-                progress_dialog = QtGui.QProgressDialog("testing the world", "Abort Integration", 0, len(filenames),
+                progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0, len(filenames),
                                                         self.view)
                 progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+                progress_dialog.show()
                 for ind in xrange(len(filenames)):
                     filename = str(filenames[ind])
                     base_filename = os.path.basename(filename)
                     progress_dialog.setValue(ind)
                     progress_dialog.setLabelText("Integrating: " + base_filename)
+                    QtGui.QApplication.processEvents()
                     self.img_data.turn_off_notification()
                     self.img_data.load(filename)
                     self.integrate_spectrum(
@@ -247,7 +249,7 @@ class IntegrationImageController(object):
         new_filename = str(self.view.img_filename_txt.text())
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
-                self.load_file_btn_click(os.path.join(current_directory, new_filename))
+                self.load_file(os.path.join(current_directory, new_filename))
             except TypeError:
                 self.view.img_filename_txt.setText(current_filename)
         else:
@@ -520,7 +522,7 @@ class IntegrationImageController(object):
             file_info = os.stat(path)
             if file_info.st_size > 100:
                 if read_file:
-                    self.load_file_btn_click(path)
+                    self.load_file(path)
                 self._files_before = self._files_now
 
     def save_img(self, filename=None):

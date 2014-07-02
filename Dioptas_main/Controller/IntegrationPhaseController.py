@@ -68,8 +68,16 @@ class IntegrationPhaseController(object):
                 self.view, "Load Phase(s).", self.working_dir['phase'])
             if len(filenames):
                 self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
-                for filename in filenames:
+                progress_dialog = QtGui.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
+                                                        self.view)
+                progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+                progress_dialog.show()
+                QtGui.QApplication.processEvents()
+                for ind, filename in enumerate(filenames):
                     filename = str(filename)
+                    progress_dialog.setValue(ind)
+                    progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
+                    QtGui.QApplication.processEvents()
                     self.phase_data.add_phase(filename)
                     self.phase_lw_items.append(
                         self.view.phase_lw.addItem(get_base_name(filename)))
@@ -83,6 +91,10 @@ class IntegrationPhaseController(object):
                     self.view.phase_lw.setCurrentRow(
                         len(self.phase_data.phases) - 1)
                     self.add_phase_plot()
+                    if progress_dialog.wasCanceled():
+                        break
+                progress_dialog.close()
+                QtGui.QApplication.processEvents()
         else:
             self.phase_data.add_phase(filename)
             self.phase_lw_items.append(
