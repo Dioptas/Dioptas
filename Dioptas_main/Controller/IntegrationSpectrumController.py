@@ -58,6 +58,7 @@ class IntegrationSpectrumController(object):
         self.connect_click_function(self.view.spec_load_btn, self.load)
         self.connect_click_function(self.view.spec_previous_btn, self.load_previous)
         self.connect_click_function(self.view.spec_next_btn, self.load_next)
+
         self.connect_click_function(self.view.spec_directory_btn, self.spec_directory_btn_click)
         self.connect_click_function(self.view.spec_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.spec_browse_by_time_rb, self.set_iteration_mode_time)
@@ -90,12 +91,12 @@ class IntegrationSpectrumController(object):
 
                 self.view.spec_next_btn.setEnabled(True)
                 self.view.spec_previous_btn.setEnabled(True)
-                self.view.spec_filename_lbl.setText(os.path.basename(filename))
+                self.view.spec_filename_txt.setText(os.path.basename(filename))
                 self.view.spec_directory_txt.setText(os.path.dirname(filename))
             else:
                 self.view.spec_next_btn.setEnabled(False)
                 self.view.spec_previous_btn.setEnabled(False)
-                self.view.spec_filename_lbl.setText(
+                self.view.spec_filename_txt.setText(
                     'No File saved or selected')
                 filename = None
 
@@ -186,19 +187,19 @@ class IntegrationSpectrumController(object):
                 directory=self.working_dir['spectrum']))
         if filename is not '':
             self.working_dir['spectrum'] = os.path.dirname(filename)
-            self.view.spec_filename_lbl.setText(os.path.basename(filename))
+            self.view.spec_filename_txt.setText(os.path.basename(filename))
             self.spectrum_data.load_spectrum(filename)
             self.view.spec_next_btn.setEnabled(True)
             self.view.spec_previous_btn.setEnabled(True)
 
     def load_previous(self):
         self.spectrum_data.load_previous()
-        self.view.spec_filename_lbl.setText(
+        self.view.spec_filename_txt.setText(
             os.path.basename(self.spectrum_data.spectrum_filename))
 
     def load_next(self):
         self.spectrum_data.load_next()
-        self.view.spec_filename_lbl.setText(
+        self.view.spec_filename_txt.setText(
             os.path.basename(self.spectrum_data.spectrum_filename))
 
     def autocreate_cb_changed(self):

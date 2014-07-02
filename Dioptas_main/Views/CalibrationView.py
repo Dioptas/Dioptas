@@ -78,7 +78,7 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.options_peaksearch_algorithm_cb.setStyle(cleanlooks)
 
     def set_img_filename(self, filename):
-        self.filename_lbl.setText(os.path.basename(filename))
+        self.filename_txt.setText(os.path.basename(filename))
 
     def set_start_values(self, start_values):
         self.sv_distance_txt.setText('%.3f' % (start_values['dist'] * 1000))
