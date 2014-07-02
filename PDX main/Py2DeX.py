@@ -29,6 +29,7 @@ from Controller.MainController import MainController
 if __name__ == "__main__":
 
     app = QtGui.QApplication(sys.argv)
+    app.aboutQt()
 
     from sys import platform as _platform
 
