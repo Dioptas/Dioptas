@@ -1,10 +1,9 @@
 # -*- mode: python -*-
-a = Analysis(['..\\Dioptas.py'],
+a = Analysis(['Dioptas.py'],
              pathex=['C:\\Github\\Dioptas\\Dioptas_main'],
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
              hookspath=None,
              runtime_hooks=None)
-
 
 ##### include mydir in distribution #######
 def extra_datas(mydir):
@@ -26,7 +25,6 @@ def extra_datas(mydir):
 
 a.datas += extra_datas('Calibrants')
 
-
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
           a.scripts,
@@ -35,11 +33,11 @@ exe = EXE(pyz,
           debug=False,
           strip=None,
           upx=True,
-          console=False )
+          console=False)
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
                a.datas,
                strip=None,
                upx=True,
-               name='Dioptas_64')
+               name='Dioptas_32')
