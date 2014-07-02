@@ -1,6 +1,6 @@
 # Py2DeX - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -34,10 +34,19 @@ from Controller.MaskController import MaskController
 
 __VERSION__ = '0.1'
 
-class MainController(object):
-    def __init__(self):
-        self.view = MainView()
+import time
 
+
+class MainController(object):
+    def __init__(self, app):
+        self.splash_img = QtGui.QPixmap("UiFiles/splash.png")
+        self.splash_screen = QtGui.QSplashScreen(self.splash_img, QtCore.Qt.WindowStaysOnTopHint)
+        self.splash_screen.show()
+        app.processEvents()
+        time.sleep(1)
+        app.processEvents()
+
+        self.view = MainView()
         #create data
         self.img_data = ImgData()
         self.calibration_data = CalibrationData(self.img_data)
@@ -50,6 +59,7 @@ class MainController(object):
         self.calibration_controller = CalibrationController(self.working_dir,
                                                             self.view.calibration_widget,
                                                             self.img_data,
+                                                            self.mask_data,
                                                             self.calibration_data)
         self.mask_controller = MaskController(self.working_dir,
                                               self.view.mask_widget,
@@ -65,6 +75,7 @@ class MainController(object):
         self.create_signals()
         self.set_title()
         self.raise_window()
+        self.splash_screen.finish(self.view)
 
     def raise_window(self):
         self.view.show()
@@ -82,7 +93,7 @@ class MainController(object):
         if ind == 2:
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.view.calibration_lbl.setText(self.calibration_data.calibration_name)
-            auto_scale_previous =  self.integration_controller.image_controller._auto_scale
+            auto_scale_previous = self.integration_controller.image_controller._auto_scale
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()
             self.integration_controller.image_controller._auto_scale = auto_scale_previous
@@ -90,6 +101,7 @@ class MainController(object):
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
         elif ind == 0:
+            self.calibration_controller.plot_mask()
             try:
                 self.calibration_controller.update_calibration_parameter()
             except TypeError:
@@ -99,22 +111,22 @@ class MainController(object):
         img_filename = os.path.basename(self.img_data.filename)
         spec_filename = os.path.basename(self.spectrum_data.spectrum_filename)
         calibration_name = self.calibration_data.calibration_name
-        str = 'Dioptas v'+__VERSION__
+        str = 'Dioptas v' + __VERSION__
         if img_filename is '' and spec_filename is '':
             self.view.setWindowTitle(str)
             return
 
         if img_filename is not '' or spec_filename is not '':
-            str+=' - ['
+            str += ' - ['
         if img_filename is not '':
-            str+=img_filename
+            str += img_filename
         elif img_filename is '' and spec_filename is not '':
-            str+=spec_filename
+            str += spec_filename
         if not img_filename == spec_filename:
-            str+=', '+spec_filename
+            str += ', ' + spec_filename
         if calibration_name is not None:
-            str+=', calibration: '+ calibration_name
-        str+=']'
+            str += ', calibration: ' + calibration_name
+        str += ']'
         self.view.setWindowTitle(str)
 
     def load_directories(self):

@@ -19,14 +19,13 @@
 
 __author__ = 'Clemens Prescher'
 
-import sys
 import os
 
 from PyQt4 import QtGui, QtCore
-from Views.CalibrationView import CalibrationView
-from Data.ImgData import ImgData
-from Data.CalibrationData import CalibrationData
+import pyqtgraph as pg
+
 import time
+from Data.HelperModule import SignalFrequencyLimiter
 
 import numpy as np
 
@@ -36,46 +35,26 @@ class CalibrationController(object):
     CalibrationController handles all the interaction between the CalibrationView and the CalibrationData class
     """
 
-    def __init__(self, working_dir, view=None, img_data=None, calibration_data=None):
+    def __init__(self, working_dir, view, img_data, mask_data, calibration_data):
         self.working_dir = working_dir
-        if view == None:
-            self.view = CalibrationView()
-        else:
-            self.view = view
-
-        if img_data == None:
-            self.img_data = ImgData()
-        else:
-            self.img_data = img_data
-
-        if calibration_data == None:
-            self.calibration_data = CalibrationData(self.img_data)
-        else:
-            self.calibration_data = calibration_data
+        self.view = view
+        self.img_data = img_data
+        self.mask_data = mask_data
+        self.calibration_data = calibration_data
 
         self.img_data.subscribe(self.plot_image)
         self.view.set_start_values(self.calibration_data.start_values)
         self._first_plot = True
         self.create_signals()
         self.load_calibrants_list()
-        self.raise_window()
 
-    def raise_window(self):
-        """
-        Brings the Window to the front.
-        """
-        # is those calls are needed especially for Mac OS X.
-        self.view.show()
-        self.view.setWindowState(self.view.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        self.view.activateWindow()
-        self.view.raise_()
 
     def create_signals(self):
         """
         Connects the GUI signals to the appropriate Controller methods.
         """
         self.create_transformation_signals()
-        self.create_txt_box_signals()
+        self.create_update_signals()
         self.create_mouse_signals()
 
         self.view.calibrant_cb.currentIndexChanged.connect(self.load_calibrant)
@@ -90,6 +69,10 @@ class CalibrationController(object):
 
         self.connect_click_function(self.view.f2_wavelength_cb, self.wavelength_cb_changed)
         self.connect_click_function(self.view.pf_wavelength_cb, self.wavelength_cb_changed)
+
+        self.view.use_mask_cb.stateChanged.connect(self.use_mask_status_changed)
+        self.view.mask_transparent_cb.stateChanged.connect(self.mask_transparent_status_changed)
+
 
     def create_transformation_signals(self):
         """
@@ -106,7 +89,7 @@ class CalibrationController(object):
         self.connect_click_function(self.view.reset_transformations_btn, self.img_data.reset_img_transformations)
         self.connect_click_function(self.view.reset_transformations_btn, self.clear_peaks_btn_click)
 
-    def create_txt_box_signals(self):
+    def create_update_signals(self):
         """
         Connects all the txt box signals. Which specifically are the update buttons here.
         """
@@ -117,6 +100,12 @@ class CalibrationController(object):
         """
         Creates the mouse_move connections to show the current position of the mouse pointer.
         """
+        # self.img_view_mouse_proxy = SignalFrequencyLimiter(self.view.img_view.mouse_moved.connect, self.show_img_mouse_position)
+        # self.cake_view_mouse_prox = SignalFrequencyLimiter(self.view.cake_view.mouse_moved.connect, self.show_cake_mouse_position)
+        # self.spectrum_view_mouse_proxy = SignalFrequencyLimiter(self.view.spectrum_view.mouse_moved.connect, self.show_spectrum_mouse_position)
+        # self.img_view_mouse_proxy=pg.SignalProxy         (self.view.img_view.mouse_moved, 0.02, slot=self.show_img_mouse_position)
+        # self.cake_view_mouse_proxy=pg.SignalProxy        (self.view.cake_view.mouse_moved, 0.02,slot=self.show_cake_mouse_position)
+        # self.spectrum_view_mouse_proxy=pg.SignalProxy(self.view.spectrum_view.mouse_moved, 0.02,  slot=self.show_spectrum_mouse_position)
         self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.view.cake_view.mouse_moved.connect(self.show_cake_mouse_position)
         self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
@@ -280,7 +269,6 @@ class CalibrationController(object):
         """
         self.calibration_data.clear_peaks()
         self.view.img_view.clear_scatter_plot()
-        self.view.peak_num_sb.setValue(1)
 
     def wavelength_cb_changed(self):
         """
@@ -326,23 +314,29 @@ class CalibrationController(object):
         num_rings = self.view.options_num_rings_sb.value()
 
         self.calibration_data.setup_peak_search_algorithm(algorithm)
-        self.calibration_data.search_peaks_on_ring(0, delta_tth, intensity_min_factor, intensity_max)
-        self.calibration_data.search_peaks_on_ring(1, delta_tth, intensity_min_factor, intensity_max)
-        try:
+
+        if self.view.use_mask_cb.isChecked():
+            mask = self.mask_data.get_img()
+        else:
+            mask = None
+
+        self.calibration_data.search_peaks_on_ring(0, delta_tth, intensity_min_factor, intensity_max, mask)
+        self.calibration_data.search_peaks_on_ring(1, delta_tth, intensity_min_factor, intensity_max, mask)
+        if len(self.calibration_data.points):
             self.calibration_data.refine()
-        except IndexError:
+            self.plot_points()
+        else:
             print 'Did not find any Points with the specified parameters for the first two rings!'
-        self.plot_points()
 
         for i in xrange(num_rings - 2):
             points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
-                                                                intensity_max)
-            self.plot_points(points)
-            QtGui.QApplication.processEvents()
-            QtGui.QApplication.processEvents()
-            try:
+                                                                intensity_max, mask)
+            if len(self.calibration_data.points):
+                self.plot_points(points)
+                QtGui.QApplication.processEvents()
+                QtGui.QApplication.processEvents()
                 self.calibration_data.refine()
-            except IndexError:
+            else:
                 print 'Did not find enough points with the specified parameters!'
         self.calibration_data.integrate()
         self.update_all()
@@ -361,6 +355,23 @@ class CalibrationController(object):
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.load(filename)
             self.update_all()
+
+
+    def use_mask_status_changed(self):
+        self.plot_mask()
+
+    def plot_mask(self):
+        state = self.view.use_mask_cb.isChecked()
+        if state:
+            self.view.img_view.plot_mask(self.mask_data.get_img())
+        else:
+            self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
+
+    def mask_transparent_status_changed(self, state):
+        if state:
+            self.view.img_view.set_color([255, 0, 0, 100])
+        else:
+            self.view.img_view.set_color([255, 0, 0, 255])
 
 
     def update_all(self):
@@ -415,6 +426,7 @@ class CalibrationController(object):
         """
         Displays the values of x, y (usually mouse -position) and their image intensity in the GUI.
         """
+        # x, y = pos
         try:
             if x > 0 and y > 0:
                 str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.view.img_view.img_data.T[np.round(x), np.round(y)])
@@ -428,6 +440,7 @@ class CalibrationController(object):
         """
         Displays the values of x, y (usually mouse -position) and their cake intensity in the GUI.
         """
+        # x, y = pos
         try:
             if x > 0 and y > 0:
                 str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.view.cake_view.img_data.T[np.round(x), np.round(y)])
@@ -441,5 +454,6 @@ class CalibrationController(object):
         """
         Displays the values of x, y (spectrum mouse-position) in the GUI.
         """
+        # x, y = pos
         str = "x: %.1f y: %.1f" % (x, y)
         self.view.pos_lbl.setText(str)
