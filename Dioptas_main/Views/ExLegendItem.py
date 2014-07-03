@@ -76,6 +76,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         self.setLayout(self.layout)
         self.legendItems = []
         self.plotItems = []
+        self.hiddenFlag = []
         self.size = size
         self.offset = offset
         self.box = box
@@ -126,6 +127,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
             sample = ItemSample(item)
 
         self.legendItems.append((sample, label))
+        self.hiddenFlag.append(False)
         self.plotItems.append(item)
         self.layout.addItem(sample, self.numItems, 0)
         self.layout.addItem(label, self.numItems, 1)
@@ -144,41 +146,52 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         """
         # Thanks, Ulrich!
         # cycle for a match
+        ind = 0
         for sample, label in self.legendItems:
             if label.text == name:  # hit
                 self.legendItems.remove((sample, label))  # remove from itemlist
-                self.layout.removeItem(sample)  # remove from layout
+                if not self.hiddenFlag[ind]:
+                    self.layout.removeItem(sample)  # remove from layout
+                    self.layout.removeItem(label)
                 sample.close()  # remove from drawing
-                self.layout.removeItem(label)
                 label.close()
                 self.updateSize()  # redraq box
+                del self.hiddenFlag[ind]
                 return
+            ind+=1
 
         for ind, item in enumerate(self.plotItems):
             if item == name:
                 sample, label = self.legendItems[ind]
                 self.plotItems.remove(item)
-                self.layout.removeItem(sample)
+
+                if not self.hiddenFlag[ind]:
+                    self.layout.removeItem(sample)
+                    self.layout.removeItem(label)
                 sample.close()
-                self.layout.removeItem(label)
                 label.close()
                 self.legendItems.remove((sample, label))
                 self.updateSize()
+                del self.hiddenFlag[ind]
 
     def hideItem(self,ind):
         sample_item, label_item = self.legendItems[ind]
-        self.layout.removeItem(sample_item)
-        self.layout.removeItem(label_item)
-        sample_item.hide()
-        label_item.hide()
+        if not self.hiddenFlag[ind]:
+            self.layout.removeItem(sample_item)
+            self.layout.removeItem(label_item)
+            sample_item.hide()
+            label_item.hide()
+        self.hiddenFlag[ind] = True
         self.updateSize()
 
     def showItem(self, ind):
         sample_item, label_item = self.legendItems[ind]
-        self.layout.addItem(sample_item, ind, 0)
-        self.layout.addItem(label_item, ind, 1)
-        sample_item.show()
-        label_item.show()
+        if self.hiddenFlag[ind]:
+            self.layout.addItem(sample_item, ind, 0)
+            self.layout.addItem(label_item, ind, 1)
+            sample_item.show()
+            label_item.show()
+        self.hiddenFlag[ind] = False
         self.updateSize()
 
     def setItemColor(self, ind, color):

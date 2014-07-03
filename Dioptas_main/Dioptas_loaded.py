@@ -48,14 +48,10 @@ def test_overlay_colors(controller):
     load_overlays(controller)
     controller.view.tabWidget.setCurrentIndex(2)
     controller.view.integration_widget.tabWidget.setCurrentIndex(2)
+    controller.integration_controller.spectrum_controller.load('ExampleData/Spectra/FoG_D3_003.xy')
 
 def load_overlays(controller):
     load_overlay(controller, 'FoG_D3_001.xy')
-    load_overlay(controller, 'FoG_D3_002.xy')
-    load_overlay(controller, 'FoG_D3_003.xy')
-    load_overlay(controller, 'FoG_D3_004.xy')
-    load_overlay(controller, 'FoG_D3_005.xy')
-    load_overlay(controller, 'FoG_D3_006.xy')
 
 def load_overlay(controller, filename):
     controller.integration_controller.overlay_controller.add_overlay(
