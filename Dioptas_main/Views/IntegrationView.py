@@ -117,7 +117,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_tw.blockSignals(False)
         del self.overlay_show_cbs[ind]
         del self.overlay_color_btns[ind]
-        
+
         if self.overlay_tw.rowCount()>ind:
             self.select_overlay(ind)
         else:
