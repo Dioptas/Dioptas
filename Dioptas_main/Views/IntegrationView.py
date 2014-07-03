@@ -49,6 +49,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.set_validator()
 
         self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)
+        self.overlay_show_cbs = []
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -76,6 +77,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, current_rows, show_cb))
         show_cb.setStyleSheet("background-color: transparent")
         self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
+        self.overlay_show_cbs.append(show_cb)
 
         color_button = QtGui.QPushButton()
         color_button.setStyleSheet("background-color: " +color)
@@ -109,6 +111,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
     def del_overlay(self, ind):
         self.overlay_tw.removeRow(ind)
+        del self.overlay_show_cbs[ind]
         if self.overlay_tw.rowCount()>ind:
             self.select_overlay(ind)
         else:
@@ -120,8 +123,16 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def overlay_show_cb_changed(self, ind, checkbox):
         self.overlay_show_cb_state_changed.emit(ind, checkbox.isChecked())
 
+    def overlay_show_cb_set_checked(self, ind, state):
+        checkbox = self.overlay_show_cbs[ind]
+        checkbox.setChecked(state)
+
+    def overlay_show_cb_is_checked(self, ind):
+        checkbox = self.overlay_show_cbs[ind]
+        return checkbox.isChecked()
+
     def overlay_label_editingFinished(self, row, col):
-        label = self.overlay_tw.item(row, col)
-        self.overlay_name_changed.emit(row, str(label.text()))
+        label_item = self.overlay_tw.item(row, col)
+        self.overlay_name_changed.emit(row, str(label_item.text()))
 
 

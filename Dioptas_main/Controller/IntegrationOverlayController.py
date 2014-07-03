@@ -114,10 +114,9 @@ class IntegrationOverlayController(object):
         self.view.overlay_scale_sb.setValue(self.spectrum_data.overlays[cur_ind].scaling)
         self.view.overlay_offset_sb.setValue(self.spectrum_data.overlays[cur_ind].offset)
         # self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
-        self.view.overlay_show_cb.setChecked(self.view.spectrum_view.overlay_show[cur_ind])
         self.view.overlay_scale_sb.blockSignals(False)
         self.view.overlay_offset_sb.blockSignals(False)
-        if cur_ind == self.spectrum_data.bkg_ind:
+        if cur_ind == self.spectrum_data.bkg_ind and not cur_ind == -1:
             self.view.overlay_set_as_bkg_btn.setChecked(True)
         else:
             self.view.overlay_set_as_bkg_btn.setChecked(False)
@@ -155,22 +154,23 @@ class IntegrationOverlayController(object):
         if not self.view.overlay_set_as_bkg_btn.isChecked():
             self.spectrum_data.bkg_ind = -1
             self.spectrum_data.spectrum.reset_background()
-            if not self.view.overlay_show_cb.isChecked():
-                self.view.spectrum_view.show_overlay(cur_ind)
-                self.view.overlay_show_cb.setChecked(True)
+            self.view.overlay_show_cb_set_checked(cur_ind, True)
             self.spectrum_data.notify()
         else:
             if self.spectrum_data.bkg_ind is not -1:
-                self.view.spectrum_view.show_overlay(self.spectrum_data.bkg_ind)  #show the old overlay again
+                self.view.overlay_show_cb_set_checked(self.spectrum_data.bkg_ind, True)  #show the old overlay again
             self.spectrum_data.bkg_ind = cur_ind
             self.spectrum_data.spectrum.set_background(self.spectrum_data.overlays[cur_ind])
-            if self.view.overlay_show_cb.isChecked():
+            if self.view.overlay_show_cb_is_checked(cur_ind):
                 self.view.spectrum_view.hide_overlay(cur_ind)
-                self.view.overlay_show_cb.setChecked(False)
+
+                self.view.blockSignals(True)
+                self.view.overlay_show_cb_set_checked(cur_ind, False)
+                self.view.blockSignals(False)
             self.spectrum_data.notify()
 
     def qa_set_as_background_btn_click(self):
-        self.set_as_overlay(False)
+        self.set_as_overlay(True)
         self.view.overlay_set_as_bkg_btn.setChecked(True)
         self.overlay_set_as_bkg_btn_clicked()
 
