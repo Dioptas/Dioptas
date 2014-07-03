@@ -148,6 +148,9 @@ class SpectrumView(QtCore.QObject):
         self.overlays[ind].setPen(pg.mkPen(color=color, width=1.5))
         self.legend.setItemColor(ind+1, color)
 
+    def rename_overlay(self, ind, name):
+        self.legend.renameItem(ind+1, name)
+
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
 

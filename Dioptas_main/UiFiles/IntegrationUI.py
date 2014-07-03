@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu Jul  3 10:41:50 2014
+# Created: Thu Jul  3 13:08:27 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -353,7 +353,7 @@ class Ui_xrs_integration_widget(object):
         self.overlay_tw.setTextElideMode(QtCore.Qt.ElideLeft)
         self.overlay_tw.setShowGrid(False)
         self.overlay_tw.setRowCount(0)
-        self.overlay_tw.setColumnCount(2)
+        self.overlay_tw.setColumnCount(3)
         self.overlay_tw.setObjectName(_fromUtf8("overlay_tw"))
         self.overlay_tw.horizontalHeader().setVisible(False)
         self.overlay_tw.horizontalHeader().setCascadingSectionResizes(True)
