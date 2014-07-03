@@ -123,7 +123,6 @@ class SpectrumView(QtCore.QObject):
 
     def hide_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
-        # self.legend.removeItem(self.overlays[ind])
         self.legend.hideItem(ind+1)
         self.overlay_show[ind] = False
         self.update_x_limits()

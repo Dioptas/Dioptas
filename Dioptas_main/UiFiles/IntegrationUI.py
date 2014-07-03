@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu Jul  3 13:08:27 2014
+# Created: Thu Jul  3 13:58:15 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -368,6 +368,15 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout = QtGui.QGridLayout()
         self.gridLayout.setSpacing(8)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
+        self.overlay_offset_sb = QtGui.QDoubleSpinBox(self.overlay_tab)
+        self.overlay_offset_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overlay_offset_sb.setDecimals(3)
+        self.overlay_offset_sb.setMinimum(-999999999.0)
+        self.overlay_offset_sb.setMaximum(999999999.0)
+        self.overlay_offset_sb.setSingleStep(100.0)
+        self.overlay_offset_sb.setProperty("value", 0.0)
+        self.overlay_offset_sb.setObjectName(_fromUtf8("overlay_offset_sb"))
+        self.gridLayout.addWidget(self.overlay_offset_sb, 2, 1, 1, 1)
         self.label_3 = QtGui.QLabel(self.overlay_tab)
         self.label_3.setObjectName(_fromUtf8("label_3"))
         self.gridLayout.addWidget(self.label_3, 1, 0, 1, 1)
@@ -382,19 +391,6 @@ class Ui_xrs_integration_widget(object):
         self.label_4 = QtGui.QLabel(self.overlay_tab)
         self.label_4.setObjectName(_fromUtf8("label_4"))
         self.gridLayout.addWidget(self.label_4, 2, 0, 1, 1)
-        self.overlay_offset_sb = QtGui.QDoubleSpinBox(self.overlay_tab)
-        self.overlay_offset_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.overlay_offset_sb.setDecimals(3)
-        self.overlay_offset_sb.setMinimum(-999999999.0)
-        self.overlay_offset_sb.setMaximum(999999999.0)
-        self.overlay_offset_sb.setSingleStep(100.0)
-        self.overlay_offset_sb.setProperty("value", 0.0)
-        self.overlay_offset_sb.setObjectName(_fromUtf8("overlay_offset_sb"))
-        self.gridLayout.addWidget(self.overlay_offset_sb, 2, 1, 1, 1)
-        self.overlay_show_cb = QtGui.QCheckBox(self.overlay_tab)
-        self.overlay_show_cb.setChecked(True)
-        self.overlay_show_cb.setObjectName(_fromUtf8("overlay_show_cb"))
-        self.gridLayout.addWidget(self.overlay_show_cb, 3, 0, 1, 3)
         self.overlay_scale_step_txt = QtGui.QLineEdit(self.overlay_tab)
         self.overlay_scale_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
         self.overlay_scale_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
@@ -792,7 +788,6 @@ class Ui_xrs_integration_widget(object):
         self.overlay_clear_btn.setText(_translate("xrs_integration_widget", "Clear ", None))
         self.label_3.setText(_translate("xrs_integration_widget", "Scale:", None))
         self.label_4.setText(_translate("xrs_integration_widget", "Offset:", None))
-        self.overlay_show_cb.setText(_translate("xrs_integration_widget", "Show", None))
         self.overlay_scale_step_txt.setText(_translate("xrs_integration_widget", "0.01", None))
         self.overlay_offset_step_txt.setText(_translate("xrs_integration_widget", "100", None))
         self.label_5.setText(_translate("xrs_integration_widget", "Step", None))
