@@ -28,7 +28,9 @@ import pyqtgraph as pg
 
 
 class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
-    overlay_color_btn_clicked = QtCore.pyqtSignal(int, basestring, QtGui.QWidget)
+    overlay_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
+    overlay_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
+    overlay_name_changed = QtCore.pyqtSignal(int, basestring)
 
     def __init__(self):
         super(IntegrationView, self).__init__()
@@ -45,6 +47,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
         self.spectrum_pg_layout.ci.layout.setContentsMargins(10, 10, 0, 10)
         self.set_validator()
+
+        self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -65,17 +69,29 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()
         self.overlay_tw.setRowCount(current_rows+1)
-        name_item = QtGui.QTableWidgetItem(name)
-        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.overlay_tw.setItem(current_rows,1, QtGui.QTableWidgetItem(name))
+        self.overlay_tw.blockSignals(True)
+
+        show_cb = QtGui.QCheckBox()
+        show_cb.setChecked(True)
+        show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, current_rows, show_cb))
+        show_cb.setStyleSheet("background-color: transparent")
+        self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
 
         color_button = QtGui.QPushButton()
         color_button.setStyleSheet("background-color: " +color)
-        color_button.clicked.connect(partial(self.overlay_color_btn_click, current_rows, color, color_button))
-        self.overlay_tw.setCellWidget(current_rows,0, color_button)
-        self.overlay_tw.setColumnWidth(0, 25)
+        color_button.clicked.connect(partial(self.overlay_color_btn_click, current_rows, color_button))
+        self.overlay_tw.setCellWidget(current_rows,1, color_button)
+
+        name_item = QtGui.QTableWidgetItem(name)
+        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.overlay_tw.setItem(current_rows,2, QtGui.QTableWidgetItem(name))
+
+
+        self.overlay_tw.setColumnWidth(0, 20)
+        self.overlay_tw.setColumnWidth(1, 25)
         self.overlay_tw.setRowHeight(current_rows, 25)
         self.select_overlay(current_rows)
+        self.overlay_tw.blockSignals(False)
 
     def select_overlay(self, ind):
         self.overlay_tw.selectRow(ind)
@@ -98,6 +114,14 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         else:
             self.select_overlay(self.overlay_tw.rowCount()-1)
 
-    def overlay_color_btn_click(self, ind, current_color, button):
-        self.overlay_color_btn_clicked.emit(ind, current_color, button)
+    def overlay_color_btn_click(self, ind, button):
+        self.overlay_color_btn_clicked.emit(ind, button)
+
+    def overlay_show_cb_changed(self, ind, checkbox):
+        self.overlay_show_cb_state_changed.emit(ind, checkbox.isChecked())
+
+    def overlay_label_editingFinished(self, row, col):
+        label = self.overlay_tw.item(row, col)
+        self.overlay_name_changed.emit(row, str(label.text()))
+
 

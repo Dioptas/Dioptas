@@ -186,6 +186,11 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         label_item.setAttr('color', color)
         label_item.setText(label_item.text)
 
+    def renameItem(self, ind, name):
+        sample_item, label_item = self.legendItems[ind]
+        label_item.setText(name)
+        self.updateSize()
+
 
     def updateSize(self):
         if self.size is not None:

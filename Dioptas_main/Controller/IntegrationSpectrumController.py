@@ -212,7 +212,7 @@ class IntegrationSpectrumController(object):
         current_filename = os.path.basename(self.spectrum_data.spectrum_filename)
         current_directory = str(self.view.spec_directory_txt.text())
         new_filename = str(self.view.spec_filename_txt.text())
-        if os.path.exists(os.path.join(current_directory, new_filename)):
+        if os.path.isfile(os.path.join(current_directory, new_filename)):
             try:
                 self.load(os.path.join(current_directory, new_filename))
             except TypeError:

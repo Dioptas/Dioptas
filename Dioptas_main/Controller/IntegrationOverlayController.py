@@ -7,7 +7,7 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
@@ -39,6 +39,8 @@ class IntegrationOverlayController(object):
 
         self.view.overlay_tw.currentCellChanged.connect(self.overlay_selection_changed)
         self.view.overlay_color_btn_clicked.connect(self.overlay_color_btn_clicked)
+        self.view.overlay_show_cb_state_changed.connect(self.overlay_show_cb_state_changed)
+        self.view.overlay_name_changed.connect(self.rename_overlay)
 
         self.view.overlay_scale_step_txt.editingFinished.connect(self.update_overlay_scale_step)
         self.view.overlay_offset_step_txt.editingFinished.connect(self.update_overlay_offset_step)
@@ -46,7 +48,6 @@ class IntegrationOverlayController(object):
         self.view.overlay_offset_sb.valueChanged.connect(self.overlay_offset_sb_changed)
 
         self.view.overlay_set_as_bkg_btn.clicked.connect(self.overlay_set_as_bkg_btn_clicked)
-        self.view.overlay_show_cb.clicked.connect(self.overlay_show_cb_changed)
 
         # creating the quickactions signals
 
@@ -67,12 +68,12 @@ class IntegrationOverlayController(object):
                     filename = str(filename)
                     self.spectrum_data.add_overlay_file(filename)
                     color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
-                    self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' %(color[0], color[1], color[2]))
+                    self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
                 self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
         else:
             self.spectrum_data.add_overlay_file(filename)
             color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
-            self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' %(color[0], color[1], color[2]))
+            self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
             self.working_dir['overlay'] = os.path.dirname(str(filename))
 
     def del_overlay(self):
@@ -90,9 +91,9 @@ class IntegrationOverlayController(object):
 
     def set_as_overlay(self, show=True):
         self.spectrum_data.set_current_spectrum_as_overlay()
-        self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1], show)
-        self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(self.spectrum_data.overlays[-1].name)))
-        self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
+        color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1], show)
+        self.view.add_overlay(get_base_name(self.spectrum_data.overlays[-1].name),
+                              '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
     def clear_overlays(self):
         while self.view.overlay_tw.rowCount() > 0:
@@ -121,14 +122,15 @@ class IntegrationOverlayController(object):
         else:
             self.view.overlay_set_as_bkg_btn.setChecked(False)
 
-    def overlay_color_btn_clicked(self, ind, current_color, button):
-        new_color = QtGui.QColorDialog.getColor(QtGui.QColor(current_color), self.view)
+    def overlay_color_btn_clicked(self, ind, button):
+        previous_color = button.palette().color(1)
+        new_color = QtGui.QColorDialog.getColor(previous_color, self.view)
         if new_color.isValid():
             color = str(new_color.name())
         else:
-            color = current_color
+            color = str(previous_color.name())
         self.view.spectrum_view.set_overlay_color(ind, color)
-        button.setStyleSheet('background-color:' +color)
+        button.setStyleSheet('background-color:' + color)
 
     def overlay_scale_sb_changed(self, value):
         cur_ind = self.view.get_selected_overlay_row()
@@ -172,10 +174,12 @@ class IntegrationOverlayController(object):
         self.view.overlay_set_as_bkg_btn.setChecked(True)
         self.overlay_set_as_bkg_btn_clicked()
 
-    def overlay_show_cb_changed(self):
-        cur_ind = self.view.get_selected_overlay_row()
-        state = self.view.overlay_show_cb.isChecked()
+
+    def overlay_show_cb_state_changed(self, ind, state):
         if state:
-            self.view.spectrum_view.show_overlay(cur_ind)
+            self.view.spectrum_view.show_overlay(ind)
         else:
-            self.view.spectrum_view.hide_overlay(cur_ind)
+            self.view.spectrum_view.hide_overlay(ind)
+
+    def rename_overlay(self, ind, name):
+        self.view.spectrum_view.rename_overlay(ind, name)
