@@ -36,7 +36,10 @@ class IntegrationOverlayController(object):
         self.connect_click_function(self.view.overlay_add_btn, self.add_overlay)
         self.connect_click_function(self.view.overlay_del_btn, self.del_overlay)
         self.view.overlay_clear_btn.clicked.connect(self.clear_overlays)
-        self.view.overlay_lw.currentItemChanged.connect(self.overlay_item_changed)
+
+        self.view.overlay_tw.currentCellChanged.connect(self.overlay_selection_changed)
+        self.view.overlay_color_btn_clicked.connect(self.overlay_color_btn_clicked)
+
         self.view.overlay_scale_step_txt.editingFinished.connect(self.update_overlay_scale_step)
         self.view.overlay_offset_step_txt.editingFinished.connect(self.update_overlay_offset_step)
         self.view.overlay_scale_sb.valueChanged.connect(self.overlay_scale_sb_changed)
@@ -63,22 +66,19 @@ class IntegrationOverlayController(object):
                 for filename in filenames:
                     filename = str(filename)
                     self.spectrum_data.add_overlay_file(filename)
-                    self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
-                    self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
-                    self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
+                    color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+                    self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' %(color[0], color[1], color[2]))
                 self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
-
         else:
             self.spectrum_data.add_overlay_file(filename)
-            self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
-            self.overlay_lw_items.append(self.view.overlay_lw.addItem(get_base_name(filename)))
-            self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
+            color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+            self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' %(color[0], color[1], color[2]))
             self.working_dir['overlay'] = os.path.dirname(str(filename))
 
     def del_overlay(self):
-        cur_ind = self.view.overlay_lw.currentRow()
+        cur_ind = self.view.get_selected_overlay_row()
         if cur_ind >= 0:
-            self.view.overlay_lw.takeItem(cur_ind)
+            self.view.del_overlay(cur_ind)
             self.spectrum_data.overlays.remove(self.spectrum_data.overlays[cur_ind])
             self.view.spectrum_view.del_overlay(cur_ind)
             if self.spectrum_data.bkg_ind > cur_ind:
@@ -95,7 +95,7 @@ class IntegrationOverlayController(object):
         self.view.overlay_lw.setCurrentRow(len(self.spectrum_data.overlays) - 1)
 
     def clear_overlays(self):
-        while self.view.overlay_lw.currentRow() > -1:
+        while self.view.overlay_tw.rowCount() > 0:
             self.del_overlay()
 
     def update_overlay_scale_step(self):
@@ -106,33 +106,46 @@ class IntegrationOverlayController(object):
         value = np.float(self.view.overlay_offset_step_txt.text())
         self.view.overlay_offset_sb.setSingleStep(value)
 
-    def overlay_item_changed(self):
-        cur_ind = self.view.overlay_lw.currentRow()
+    def overlay_selection_changed(self, row, col, prev_row, prev_col):
+        cur_ind = row
+        self.view.overlay_scale_sb.blockSignals(True)
+        self.view.overlay_offset_sb.blockSignals(True)
         self.view.overlay_scale_sb.setValue(self.spectrum_data.overlays[cur_ind].scaling)
         self.view.overlay_offset_sb.setValue(self.spectrum_data.overlays[cur_ind].offset)
         # self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
         self.view.overlay_show_cb.setChecked(self.view.spectrum_view.overlay_show[cur_ind])
+        self.view.overlay_scale_sb.blockSignals(False)
+        self.view.overlay_offset_sb.blockSignals(False)
         if cur_ind == self.spectrum_data.bkg_ind:
             self.view.overlay_set_as_bkg_btn.setChecked(True)
         else:
             self.view.overlay_set_as_bkg_btn.setChecked(False)
 
+    def overlay_color_btn_clicked(self, ind, current_color, button):
+        new_color = QtGui.QColorDialog.getColor(QtGui.QColor(current_color), self.view)
+        if new_color.isValid():
+            color = str(new_color.name())
+        else:
+            color = current_color
+        self.view.spectrum_view.set_overlay_color(ind, color)
+        button.setStyleSheet('background-color:' +color)
+
     def overlay_scale_sb_changed(self, value):
-        cur_ind = self.view.overlay_lw.currentRow()
+        cur_ind = self.view.get_selected_overlay_row()
         self.spectrum_data.overlays[cur_ind].scaling = value
         self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
         if self.view.overlay_set_as_bkg_btn.isChecked():
             self.spectrum_data.notify()
 
     def overlay_offset_sb_changed(self, value):
-        cur_ind = self.view.overlay_lw.currentRow()
+        cur_ind = self.view.get_selected_overlay_row()
         self.spectrum_data.overlays[cur_ind].offset = value
         self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
         if self.view.overlay_set_as_bkg_btn.isChecked():
             self.spectrum_data.notify()
 
     def overlay_set_as_bkg_btn_clicked(self):
-        cur_ind = self.view.overlay_lw.currentRow()
+        cur_ind = self.view.get_selected_overlay_row()
         if cur_ind is -1:
             self.view.overlay_set_as_bkg_btn.setChecked(False)
             return
@@ -160,7 +173,7 @@ class IntegrationOverlayController(object):
         self.overlay_set_as_bkg_btn_clicked()
 
     def overlay_show_cb_changed(self):
-        cur_ind = self.view.overlay_lw.currentRow()
+        cur_ind = self.view.get_selected_overlay_row()
         state = self.view.overlay_show_cb.isChecked()
         if state:
             self.view.spectrum_view.show_overlay(cur_ind)
