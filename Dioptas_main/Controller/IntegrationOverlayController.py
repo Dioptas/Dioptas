@@ -109,7 +109,6 @@ class IntegrationOverlayController(object):
 
     def overlay_selection_changed(self, row, col, prev_row, prev_col):
         cur_ind = row
-        print cur_ind, self.spectrum_data.bkg_ind
         self.view.overlay_scale_sb.blockSignals(True)
         self.view.overlay_offset_sb.blockSignals(True)
         self.view.overlay_scale_sb.setValue(self.spectrum_data.overlays[cur_ind].scaling)
