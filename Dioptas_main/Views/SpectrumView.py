@@ -111,6 +111,7 @@ class SpectrumView(QtCore.QObject):
             self.spectrum_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], spectrum.name)
             self.update_x_limits()
+        return color
 
     def del_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
@@ -122,13 +123,14 @@ class SpectrumView(QtCore.QObject):
 
     def hide_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
-        self.legend.removeItem(self.overlays[ind])
+        # self.legend.removeItem(self.overlays[ind])
+        self.legend.hideItem(ind+1)
         self.overlay_show[ind] = False
         self.update_x_limits()
 
     def show_overlay(self, ind):
         self.spectrum_plot.addItem(self.overlays[ind])
-        self.legend.addItem(self.overlays[ind], self.overlay_names[ind])
+        self.legend.showItem(ind+1)
         self.overlay_show[ind] = True
         self.update_x_limits()
 
@@ -138,6 +140,13 @@ class SpectrumView(QtCore.QObject):
         if self._auto_range:
             self.view_box.autoRange()
             self.view_box.enableAutoRange()
+
+    def get_overlay_color(self, ind):
+        pass
+
+    def set_overlay_color(self, ind, color):
+        self.overlays[ind].setPen(pg.mkPen(color=color, width=1.5))
+        self.legend.setItemColor(ind+1, color)
 
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))

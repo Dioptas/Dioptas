@@ -165,6 +165,28 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
                 self.legendItems.remove((sample, label))
                 self.updateSize()
 
+    def hideItem(self,ind):
+        sample_item, label_item = self.legendItems[ind]
+        self.layout.removeItem(sample_item)
+        self.layout.removeItem(label_item)
+        sample_item.hide()
+        label_item.hide()
+        self.updateSize()
+
+    def showItem(self, ind):
+        sample_item, label_item = self.legendItems[ind]
+        self.layout.addItem(sample_item, ind, 0)
+        self.layout.addItem(label_item, ind, 1)
+        sample_item.show()
+        label_item.show()
+        self.updateSize()
+
+    def setItemColor(self, ind, color):
+        sample_item, label_item = self.legendItems[ind]
+        label_item.setAttr('color', color)
+        label_item.setText(label_item.text)
+
+
     def updateSize(self):
         if self.size is not None:
             return

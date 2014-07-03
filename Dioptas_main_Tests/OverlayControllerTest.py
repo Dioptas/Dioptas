@@ -30,7 +30,7 @@ class OverlayControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.image_data = ImgData()
-        self.controller = MainController()
+        self.controller = MainController(self.app)
         self.controller.calibration_controller.load_calibration(
             'Data/LaB6_p49_40keV_006.poni')
         self.controller.view.tabWidget.setCurrentIndex(2)
@@ -39,71 +39,71 @@ class OverlayControllerTest(unittest.TestCase):
         self.overlay_controller = self.controller.integration_controller.overlay_controller
         self.spectrum_data = self.controller.spectrum_data
         self.spectrum_view = self.controller.view.integration_widget
-        self.overlay_lw = self.spectrum_view.overlay_lw
+        self.overlay_tw = self.spectrum_view.overlay_tw
 
     def test_manual_deleting_overlays(self):
         self.load_overlays()
 
-        self.assertEqual(self.overlay_lw.count(), 6)
+        self.assertEqual(self.overlay_tw.rowCount(), 6)
         self.assertEqual(len(self.spectrum_data.overlays), 6)
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 6)
-        self.assertEqual(self.overlay_lw.currentRow(), 5)
+        self.assertEqual(self.overlay_tw.currentRow(), 5)
 
         self.overlay_controller.del_overlay()
-        self.assertEqual(self.overlay_lw.count(), 5)
+        self.assertEqual(self.overlay_tw.rowCount(), 5)
         self.assertEqual(len(self.spectrum_data.overlays), 5)
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 5)
-        self.assertEqual(self.overlay_lw.currentRow(), 4)
+        self.assertEqual(self.overlay_tw.currentRow(), 4)
 
-        self.overlay_lw.setCurrentRow(1)
+        self.spectrum_view.select_overlay(1)
         self.overlay_controller.del_overlay()
-        self.assertEqual(self.overlay_lw.count(), 4)
+        self.assertEqual(self.overlay_tw.rowCount(), 4)
         self.assertEqual(len(self.spectrum_data.overlays), 4)
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 4)
-        self.assertEqual(self.overlay_lw.currentRow(), 1)
+        self.assertEqual(self.overlay_tw.currentRow(), 1)
 
-        self.overlay_lw.setCurrentRow(0)
+        self.spectrum_view.select_overlay(0)
         self.overlay_controller.del_overlay()
-        self.assertEqual(self.overlay_lw.count(), 3)
+        self.assertEqual(self.overlay_tw.rowCount(), 3)
         self.assertEqual(len(self.spectrum_data.overlays), 3)
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 3)
-        self.assertEqual(self.overlay_lw.currentRow(), 0)
+        self.assertEqual(self.overlay_tw.currentRow(), 0)
 
         self.overlay_controller.del_overlay()
         self.overlay_controller.del_overlay()
         self.overlay_controller.del_overlay()
-        self.assertEqual(self.overlay_lw.count(), 0)
+        self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_data.overlays), 0)
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 0)
-        self.assertEqual(self.overlay_lw.currentRow(), -1)
+        self.assertEqual(self.overlay_tw.currentRow(), -1)
 
         self.overlay_controller.del_overlay()
-        self.assertEqual(self.overlay_lw.count(), 0)
-        self.assertEqual(self.overlay_lw.currentRow(), -1)
+        self.assertEqual(self.overlay_tw.rowCount(), 0)
+        self.assertEqual(self.overlay_tw.currentRow(), -1)
 
     def test_automatic_deleting_overlays(self):
         self.load_overlays()
         self.load_overlays()
-        self.assertEqual(self.overlay_lw.count(), 12)
+        self.assertEqual(self.overlay_tw.rowCount(), 12)
         self.assertEqual(len(self.spectrum_data.overlays), 12)
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 12)
 
         self.overlay_controller.clear_overlays()
-        self.assertEqual(self.overlay_lw.count(), 0)
+        self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_data.overlays), 0)
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 0)
-        self.assertEqual(self.overlay_lw.currentRow(), -1)
+        self.assertEqual(self.overlay_tw.currentRow(), -1)
 
         multiplier = 40
         for dummy_index in range(multiplier):
             self.load_overlays()
 
-        self.assertEqual(self.overlay_lw.count(), multiplier * 6)
+        self.assertEqual(self.overlay_tw.rowCount(), multiplier * 6)
         self.overlay_controller.clear_overlays()
-        self.assertEqual(self.overlay_lw.count(), 0)
+        self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_data.overlays), 0)
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 0)
-        self.assertEqual(self.overlay_lw.currentRow(), -1)
+        self.assertEqual(self.overlay_tw.currentRow(), -1)
 
     def load_overlays(self):
         self.load_overlay('FoG_D3_001.xy')

@@ -22,11 +22,14 @@ from PyQt4 import QtGui, QtCore
 from UiFiles.IntegrationUI import Ui_xrs_integration_widget
 from ImgView import IntegrationImgView
 from SpectrumView import SpectrumView
+from functools import partial
 import numpy as np
 import pyqtgraph as pg
 
 
 class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
+    overlay_color_btn_clicked = QtCore.pyqtSignal(int, basestring, QtGui.QWidget)
+
     def __init__(self):
         super(IntegrationView, self).__init__()
         self.setupUi(self)
@@ -58,3 +61,43 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def switch_to_img(self):
         self.img_view.img_view_box.setAspectLocked(True)
         self.img_view.deactivate_vertical_line()
+
+    def add_overlay(self, name, color):
+        current_rows = self.overlay_tw.rowCount()
+        self.overlay_tw.setRowCount(current_rows+1)
+        name_item = QtGui.QTableWidgetItem(name)
+        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.overlay_tw.setItem(current_rows,1, QtGui.QTableWidgetItem(name))
+
+        color_button = QtGui.QPushButton()
+        color_button.setStyleSheet("background-color: " +color)
+        color_button.clicked.connect(partial(self.overlay_color_btn_click, current_rows, color, color_button))
+        self.overlay_tw.setCellWidget(current_rows,0, color_button)
+        self.overlay_tw.setColumnWidth(0, 25)
+        self.overlay_tw.setRowHeight(current_rows, 25)
+        self.select_overlay(current_rows)
+
+    def select_overlay(self, ind):
+        self.overlay_tw.selectRow(ind)
+
+    def get_selected_overlay_row(self):
+        selected = self.overlay_tw.selectionModel().selectedRows()
+        try:
+            row = selected[0].row()
+        except IndexError:
+            row = -1
+        return row
+
+    def get_overlay(self):
+        pass
+
+    def del_overlay(self, ind):
+        self.overlay_tw.removeRow(ind)
+        if self.overlay_tw.rowCount()>ind:
+            self.select_overlay(ind)
+        else:
+            self.select_overlay(self.overlay_tw.rowCount()-1)
+
+    def overlay_color_btn_click(self, ind, current_color, button):
+        self.overlay_color_btn_clicked.emit(ind, current_color, button)
+

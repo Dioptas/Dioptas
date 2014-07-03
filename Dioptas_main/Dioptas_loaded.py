@@ -44,6 +44,22 @@ def test_integration(controller):
     # QtGui.QApplication.processEvents()
     # controller.integration_controller.phase_controller.update_intensities()
 
+def test_overlay_colors(controller):
+    load_overlays(controller)
+    controller.view.tabWidget.setCurrentIndex(2)
+    controller.view.integration_widget.tabWidget.setCurrentIndex(2)
+
+def load_overlays(controller):
+    load_overlay(controller, 'FoG_D3_001.xy')
+    load_overlay(controller, 'FoG_D3_002.xy')
+    load_overlay(controller, 'FoG_D3_003.xy')
+    load_overlay(controller, 'FoG_D3_004.xy')
+    load_overlay(controller, 'FoG_D3_005.xy')
+    load_overlay(controller, 'FoG_D3_006.xy')
+
+def load_overlay(controller, filename):
+    controller.integration_controller.overlay_controller.add_overlay(
+        'ExampleData/Spectra/' + filename)
 
 if __name__ == "__main__":
     import os
@@ -56,5 +72,5 @@ if __name__ == "__main__":
         # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
 
     controller = MainController(app)
-    test_integration(controller)
+    test_overlay_colors(controller)
     app.exec_()
