@@ -49,6 +49,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.set_validator()
 
         self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)
+        self.overlay_show_cbs = []
+        self.overlay_color_btns = []
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -73,14 +75,16 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
         show_cb = QtGui.QCheckBox()
         show_cb.setChecked(True)
-        show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, current_rows, show_cb))
+        show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, show_cb))
         show_cb.setStyleSheet("background-color: transparent")
         self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
+        self.overlay_show_cbs.append(show_cb)
 
         color_button = QtGui.QPushButton()
         color_button.setStyleSheet("background-color: " +color)
-        color_button.clicked.connect(partial(self.overlay_color_btn_click, current_rows, color_button))
+        color_button.clicked.connect(partial(self.overlay_color_btn_click, color_button))
         self.overlay_tw.setCellWidget(current_rows,1, color_button)
+        self.overlay_color_btns.append(color_button)
 
         name_item = QtGui.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
@@ -108,20 +112,32 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         pass
 
     def del_overlay(self, ind):
+        self.overlay_tw.blockSignals(True)
         self.overlay_tw.removeRow(ind)
+        self.overlay_tw.blockSignals(False)
+        del self.overlay_show_cbs[ind]
+        del self.overlay_color_btns[ind]
+        
         if self.overlay_tw.rowCount()>ind:
             self.select_overlay(ind)
         else:
             self.select_overlay(self.overlay_tw.rowCount()-1)
 
-    def overlay_color_btn_click(self, ind, button):
-        self.overlay_color_btn_clicked.emit(ind, button)
+    def overlay_color_btn_click(self, button):
+        self.overlay_color_btn_clicked.emit(self.overlay_color_btns.index(button), button)
 
-    def overlay_show_cb_changed(self, ind, checkbox):
-        self.overlay_show_cb_state_changed.emit(ind, checkbox.isChecked())
+    def overlay_show_cb_changed(self, checkbox):
+        self.overlay_show_cb_state_changed.emit(self.overlay_show_cbs.index(checkbox), checkbox.isChecked())
+
+    def overlay_show_cb_set_checked(self, ind, state):
+        checkbox = self.overlay_show_cbs[ind]
+        checkbox.setChecked(state)
+
+    def overlay_show_cb_is_checked(self, ind):
+        checkbox = self.overlay_show_cbs[ind]
+        return checkbox.isChecked()
 
     def overlay_label_editingFinished(self, row, col):
-        label = self.overlay_tw.item(row, col)
-        self.overlay_name_changed.emit(row, str(label.text()))
-
+        label_item = self.overlay_tw.item(row, col)
+        self.overlay_name_changed.emit(row, str(label_item.text()))
 
