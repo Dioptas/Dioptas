@@ -7,12 +7,12 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#     You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -47,8 +47,12 @@ class IntegrationPhaseController(object):
 
         self.view.phase_pressure_sb.valueChanged.connect(self.phase_pressure_sb_changed)
         self.view.phase_temperature_sb.valueChanged.connect(self.phase_temperature_sb_changed)
-
-        self.view.phase_lw.currentItemChanged.connect(self.phase_item_changed)
+        #
+        # self.view.phase_lw.currentItemChanged.connect(self.phase_item_changed)
+        self.view.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
+        self.view.phase_color_btn_clicked.connect(self.phase_color_btn_clicked)
+        self.view.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
+        self.view.phase_name_changed.connect(self.rename_phase)
 
         self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_intensities_slot)
         self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
@@ -79,34 +83,26 @@ class IntegrationPhaseController(object):
                     progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
                     QtGui.QApplication.processEvents()
                     self.phase_data.add_phase(filename)
-                    self.phase_lw_items.append(
-                        self.view.phase_lw.addItem(get_base_name(filename)))
-                    if self.view.phase_apply_to_all_cb.isChecked():
-                        self.phase_data.phases[-1].compute_d(
-                            pressure=np.float(
-                                self.view.phase_pressure_sb.value()),
-                            temperature=np.float(
-                                self.view.phase_temperature_sb.value()))
                     self.phase_data.get_lines_d(-1)
-                    self.view.phase_lw.setCurrentRow(
-                        len(self.phase_data.phases) - 1)
-                    self.add_phase_plot()
+
+                    color = self.add_phase_plot()
+                    self.view.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
+                    if self.view.phase_apply_to_all_cb.isChecked():
+                        self.phase_data.phases[-1].compute_d(pressure=np.float(self.view.phase_pressure_sb.value()),
+                                                             temperature=np.float(
+                                                                 self.view.phase_temperature_sb.value()))
                     if progress_dialog.wasCanceled():
                         break
                 progress_dialog.close()
                 QtGui.QApplication.processEvents()
         else:
             self.phase_data.add_phase(filename)
-            self.phase_lw_items.append(
-                self.view.phase_lw.addItem(get_base_name(filename)))
             if self.view.phase_apply_to_all_cb.isChecked():
-                self.phase_data.phases[-1].compute_d(
-                    pressure=np.float(self.view.phase_pressure_sb.value()),
-                    temperature=np.float(
-                        self.view.phase_temperature_sb.value()))
+                self.phase_data.phases[-1].compute_d(pressure=np.float(self.view.phase_pressure_sb.value()),
+                                                     temperature=np.float(self.view.phase_temperature_sb.value()))
             self.phase_data.get_lines_d(-1)
-            self.view.phase_lw.setCurrentRow(len(self.phase_data.phases) - 1)
-            self.add_phase_plot()
+            color = self.add_phase_plot()
+            self.view.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
             self.working_dir['phase'] = os.path.dirname(str(filename))
 
     def add_phase_plot(self):
@@ -123,18 +119,19 @@ class IntegrationPhaseController(object):
                 x_range, y_range,
                 self.calibration_data.geometry.wavelength * 1e10,
                 self.get_unit())
-        self.view.spectrum_view.add_phase(self.phase_data.phases[-1].name,
-                                          positions,
-                                          intensities,
-                                          baseline)
+        color = self.view.spectrum_view.add_phase(self.phase_data.phases[-1].name,
+                                                  positions,
+                                                  intensities,
+                                                  baseline)
+        return color
 
     def del_phase(self):
         """
         Deletes the currently selected Phase
         """
-        cur_ind = self.view.phase_lw.currentRow()
+        cur_ind = self.view.get_selected_phase_row()
         if cur_ind >= 0:
-            self.view.phase_lw.takeItem(cur_ind)
+            self.view.del_phase(cur_ind)
             self.phase_data.del_phase(cur_ind)
             self.view.spectrum_view.del_phase(cur_ind)
 
@@ -159,12 +156,12 @@ class IntegrationPhaseController(object):
         positions and intensities.
         """
         if self.view.phase_apply_to_all_cb.isChecked():
-            for ind in xrange(self.view.phase_lw.count()):
+            for ind in xrange(len(self.phase_data.phases)):
                 self.phase_data.set_pressure(ind, np.float(val))
             self.update_intensities()
 
         else:
-            cur_ind = self.view.phase_lw.currentRow()
+            cur_ind = self.view.get_selected_phase_row()
             self.phase_data.set_pressure(cur_ind, np.float(val))
             self.update_intensity(cur_ind)
 
@@ -174,21 +171,17 @@ class IntegrationPhaseController(object):
         positions and intensities.
         """
         if self.view.phase_apply_to_all_cb.isChecked():
-            for ind in xrange(self.view.phase_lw.count()):
+            for ind in xrange(len(self.phase_data.phases)):
                 self.phase_data.set_temperature(ind, np.float(val))
             self.update_intensities()
 
         else:
-            cur_ind = self.view.phase_lw.currentRow()
+            cur_ind = self.view.get_selected_phase_row()
             self.phase_data.set_temperature(cur_ind, np.float(val))
             self.update_intensity(cur_ind)
 
-    def phase_item_changed(self):
-        """
-        updates the pressures and temperatures values in the GUI, which are corresponding the the selected phase.
-        :return:
-        """
-        cur_ind = self.view.phase_lw.currentRow()
+    def phase_selection_changed(self, row, col, prev_row, prev_col):
+        cur_ind = row
         pressure = self.phase_data.phases[cur_ind].pressure
         temperature = self.phase_data.phases[cur_ind].temperature
 
@@ -198,6 +191,26 @@ class IntegrationPhaseController(object):
         self.view.phase_temperature_sb.setValue(temperature)
         self.view.phase_pressure_sb.blockSignals(False)
         self.view.phase_temperature_sb.blockSignals(False)
+
+    def phase_color_btn_clicked(self, ind, button):
+        previous_color = button.palette().color(1)
+        new_color = QtGui.QColorDialog.getColor(previous_color, self.view)
+        if new_color.isValid():
+            color = str(new_color.name())
+        else:
+            color = str(previous_color.name())
+        self.view.spectrum_view.set_phase_color(ind, color)
+        button.setStyleSheet('background-color:' + color)
+
+
+    def phase_show_cb_state_changed(self, ind, state):
+        if state:
+            self.view.spectrum_view.show_phase(ind)
+        else:
+            self.view.spectrum_view.hide_phase(ind)
+
+    def rename_phase(self, ind, name):
+        self.view.spectrum_view.rename_phase(ind, name)
 
     def update_intensities_slot(self, *args):
         """
@@ -239,7 +252,7 @@ class IntegrationPhaseController(object):
         :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
         self.view.spectrum_view.view_box.blockSignals(True)
-        for ind in xrange(self.view.phase_lw.count()):
+        for ind in xrange(len(self.phase_data.phases)):
             self.update_intensity(ind, axis_range)
         self.view.spectrum_view.view_box.blockSignals(False)
         self.view.spectrum_view.update_phase_line_visibilities()

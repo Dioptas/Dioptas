@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu Jul  3 13:58:15 2014
+# Created: Thu Jul  3 16:57:22 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -45,6 +45,15 @@ class Ui_xrs_integration_widget(object):
 "\n"
 "#spec_btn_widget QPushButton::pressed, #image_frame QPushButton::pressed{\n"
 "    margin: 0px;\n"
+"}\n"
+"\n"
+"QTableWidget QPushButton {\n"
+"    margin: 5px;\n"
+"}\n"
+"\n"
+"QTableWidget QPushButton::pressed{\n"
+"    margin-top: 7px;\n"
+"    margin-left: 7px;\n"
 "}\n"
 "\n"
 ""))
@@ -338,14 +347,9 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
         self.overlay_tw = QtGui.QTableWidget(self.overlay_tab)
-        self.overlay_tw.setStyleSheet(_fromUtf8("QPushButton {\n"
-"    margin: 5px;\n"
-"}\n"
-"\n"
-"QPushButton::pressed{\n"
-"    margin-top: 7px;\n"
-"    margin-left: 7px;\n"
-"}"))
+        self.overlay_tw.setStyleSheet(_fromUtf8(""))
+        self.overlay_tw.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.overlay_tw.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked|QtGui.QAbstractItemView.EditKeyPressed)
         self.overlay_tw.setTabKeyNavigation(False)
         self.overlay_tw.setAlternatingRowColors(False)
         self.overlay_tw.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
@@ -453,9 +457,18 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_9 = QtGui.QHBoxLayout()
         self.horizontalLayout_9.setSpacing(5)
         self.horizontalLayout_9.setObjectName(_fromUtf8("horizontalLayout_9"))
-        self.phase_lw = QtGui.QListWidget(self.phase_tab)
-        self.phase_lw.setObjectName(_fromUtf8("phase_lw"))
-        self.horizontalLayout_9.addWidget(self.phase_lw)
+        self.phase_tw = QtGui.QTableWidget(self.phase_tab)
+        self.phase_tw.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked|QtGui.QAbstractItemView.EditKeyPressed)
+        self.phase_tw.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.phase_tw.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self.phase_tw.setShowGrid(False)
+        self.phase_tw.setColumnCount(3)
+        self.phase_tw.setObjectName(_fromUtf8("phase_tw"))
+        self.phase_tw.setRowCount(0)
+        self.phase_tw.horizontalHeader().setVisible(False)
+        self.phase_tw.horizontalHeader().setStretchLastSection(True)
+        self.phase_tw.verticalHeader().setVisible(False)
+        self.horizontalLayout_9.addWidget(self.phase_tw)
         self.verticalLayout_7 = QtGui.QVBoxLayout()
         self.verticalLayout_7.setObjectName(_fromUtf8("verticalLayout_7"))
         self.gridLayout_2 = QtGui.QGridLayout()
@@ -749,7 +762,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_16.addWidget(self.widget)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):

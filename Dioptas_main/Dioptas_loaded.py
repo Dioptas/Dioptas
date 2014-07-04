@@ -23,6 +23,19 @@ from PyQt4 import QtGui
 from Controller.MainController import MainController
 
 
+def test_phases(controller):
+    controller.calibration_controller.load_calibration(
+        'ExampleData/LaB6_p49_001.poni')
+    controller.calibration_controller.set_calibrant(7)
+    controller.calibration_controller.load_img('ExampleData/LaB6_p49_001.tif')
+    controller.view.tabWidget.setCurrentIndex(2)
+    controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+    controller.integration_controller.phase_controller.add_phase('ExampleData/jcpds/dac_user/au_Anderson.jcpds')
+    controller.integration_controller.phase_controller.add_phase('ExampleData/jcpds/dac_user/au_Jamieson.jcpds')
+    controller.integration_controller.phase_controller.add_phase('ExampleData/jcpds/dac_user/ar.jcpds')
+    controller.integration_controller.phase_controller.add_phase('ExampleData/jcpds/dac_user/fe-hcp.jcpds')
+
+
 def test_calibration(controller):
     controller.calibration_controller.load_calibration(
         'ExampleData/LaB6_p49_001.poni')
@@ -68,5 +81,5 @@ if __name__ == "__main__":
         # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
 
     controller = MainController(app)
-    test_overlay_colors(controller)
+    test_phases(controller)
     app.exec_()

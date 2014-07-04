@@ -152,9 +152,25 @@ class SpectrumView(QtCore.QObject):
 
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
+        return self.phases[-1].color
 
-    def update_phase(self, ind, positions, intensities, name=None, baseline=0):
-        self.phases[ind].create_items(positions, intensities, name, baseline)
+    # def update_phase(self, ind, positions, intensities, name=None, baseline=0):
+    #     self.phases[ind].create_items(positions, intensities, name, baseline)
+
+    def set_phase_color(self, ind, color):
+        self.phases[ind].set_color(color)
+        self.phases_legend.setItemColor(ind, color)
+
+    def hide_phase(self, ind):
+        self.phases[ind].hide()
+        self.phases_legend.hideItem(ind)
+
+    def show_phase(self, ind):
+        self.phases[ind].show()
+        self.phases_legend.showItem(ind)
+
+    def rename_phase(self, ind, name):
+        self.phases_legend.renameItem(ind, name)
 
     def update_phase_intensities(self, ind, positions, intensities, baseline=0):
         if len(self.phases):
@@ -331,7 +347,8 @@ class PhasePlot(object):
         self.line_items = []
         self.line_visible = []
         self.index = PhasePlot.num_phases
-        self.pen = pg.mkPen(color=calculate_color(self.index + 9), width=1.3, style=QtCore.Qt.DashLine)
+        self.color = calculate_color(self.index + 9)
+        self.pen = pg.mkPen(color=self.color, width=1.3, style=QtCore.Qt.DashLine)
         self.ref_legend_line = pg.PlotDataItem(pen=self.pen)
         self.name = ''
         PhasePlot.num_phases += 1
@@ -372,6 +389,19 @@ class PhasePlot(object):
                 if self.line_visible[ind]:
                     self.plot_item.removeItem(line_item)
                     self.line_visible[ind] = False
+
+    def set_color(self, color):
+        for line_item in self.line_items:
+            line_item.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.DashLine))
+
+    def hide(self):
+        for line_item in self.line_items:
+            line_item.hide()
+
+    def show(self):
+        for line_item in self.line_items:
+            line_item.show()
+
 
     def remove(self):
         try:
