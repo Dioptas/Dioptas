@@ -31,6 +31,9 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     overlay_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
     overlay_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
     overlay_name_changed = QtCore.pyqtSignal(int, basestring)
+    phase_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
+    phase_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
+    phase_name_changed = QtCore.pyqtSignal(int, basestring)
 
     def __init__(self):
         super(IntegrationView, self).__init__()
@@ -51,6 +54,10 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)
         self.overlay_show_cbs = []
         self.overlay_color_btns = []
+
+        self.phase_tw.cellChanged.connect(self.phase_label_editingFinished)
+        self.phase_show_cbs = []
+        self.phase_color_btns = []
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -140,4 +147,78 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def overlay_label_editingFinished(self, row, col):
         label_item = self.overlay_tw.item(row, col)
         self.overlay_name_changed.emit(row, str(label_item.text()))
+
+
+    def add_phase(self, name, color):
+        current_rows = self.phase_tw.rowCount()
+        self.phase_tw.setRowCount(current_rows+1)
+        self.phase_tw.blockSignals(True)
+
+        show_cb = QtGui.QCheckBox()
+        show_cb.setChecked(True)
+        show_cb.stateChanged.connect(partial(self.phase_show_cb_changed, show_cb))
+        show_cb.setStyleSheet("background-color: transparent")
+        self.phase_tw.setCellWidget(current_rows, 0, show_cb)
+        self.phase_show_cbs.append(show_cb)
+
+        color_button = QtGui.QPushButton()
+        color_button.setStyleSheet("background-color: " +color)
+        color_button.clicked.connect(partial(self.phase_color_btn_click, color_button))
+        self.phase_tw.setCellWidget(current_rows,1, color_button)
+        self.phase_color_btns.append(color_button)
+
+        name_item = QtGui.QTableWidgetItem(name)
+        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.phase_tw.setItem(current_rows,2, QtGui.QTableWidgetItem(name))
+
+
+        self.phase_tw.setColumnWidth(0, 20)
+        self.phase_tw.setColumnWidth(1, 25)
+        self.phase_tw.setRowHeight(current_rows, 25)
+        self.select_phase(current_rows)
+        self.phase_tw.blockSignals(False)
+
+    def select_phase(self, ind):
+        self.phase_tw.selectRow(ind)
+
+    def get_selected_phase_row(self):
+        selected = self.phase_tw.selectionModel().selectedRows()
+        try:
+            row = selected[0].row()
+        except IndexError:
+            row = -1
+        return row
+
+    def get_phase(self):
+        pass
+
+    def del_phase(self, ind):
+        self.phase_tw.blockSignals(True)
+        self.phase_tw.removeRow(ind)
+        self.phase_tw.blockSignals(False)
+        del self.phase_show_cbs[ind]
+        del self.phase_color_btns[ind]
+
+        if self.phase_tw.rowCount()>ind:
+            self.select_phase(ind)
+        else:
+            self.select_phase(self.phase_tw.rowCount()-1)
+
+    def phase_color_btn_click(self, button):
+        self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
+
+    def phase_show_cb_changed(self, checkbox):
+        self.phase_show_cb_state_changed.emit(self.phase_show_cbs.index(checkbox), checkbox.isChecked())
+
+    def phase_show_cb_set_checked(self, ind, state):
+        checkbox = self.phase_show_cbs[ind]
+        checkbox.setChecked(state)
+
+    def phase_show_cb_is_checked(self, ind):
+        checkbox = self.phase_show_cbs[ind]
+        return checkbox.isChecked()
+
+    def phase_label_editingFinished(self, row, col):
+        label_item = self.phase_tw.item(row, col)
+        self.phase_name_changed.emit(row, str(label_item.text()))
 

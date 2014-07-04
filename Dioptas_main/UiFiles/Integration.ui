@@ -34,6 +34,15 @@
 	margin: 0px;
 }
 
+QTableWidget QPushButton {
+	margin: 5px;
+}
+
+QTableWidget QPushButton::pressed{
+	margin-top: 7px;
+	margin-left: 7px;
+}
+
 </string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_16">
@@ -185,7 +194,7 @@
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -734,14 +743,13 @@
            <item>
             <widget class="QTableWidget" name="overlay_tw">
              <property name="styleSheet">
-              <string notr="true">QPushButton {
-	margin: 5px;
-}
-
-QPushButton::pressed{
-	margin-top: 7px;
-	margin-left: 7px;
-}</string>
+              <string notr="true"/>
+             </property>
+             <property name="horizontalScrollBarPolicy">
+              <enum>Qt::ScrollBarAlwaysOff</enum>
+             </property>
+             <property name="editTriggers">
+              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
              </property>
              <property name="tabKeyNavigation">
               <bool>false</bool>
@@ -1027,7 +1035,35 @@ QPushButton::pressed{
             <number>5</number>
            </property>
            <item>
-            <widget class="QListWidget" name="phase_lw"/>
+            <widget class="QTableWidget" name="phase_tw">
+             <property name="editTriggers">
+              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+             </property>
+             <property name="selectionMode">
+              <enum>QAbstractItemView::SingleSelection</enum>
+             </property>
+             <property name="selectionBehavior">
+              <enum>QAbstractItemView::SelectRows</enum>
+             </property>
+             <property name="showGrid">
+              <bool>false</bool>
+             </property>
+             <property name="columnCount">
+              <number>3</number>
+             </property>
+             <attribute name="horizontalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+             <attribute name="horizontalHeaderStretchLastSection">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="verticalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+             <column/>
+             <column/>
+             <column/>
+            </widget>
            </item>
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_7">
