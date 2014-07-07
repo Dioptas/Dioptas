@@ -132,6 +132,10 @@ QLineEdit::focus{
      background: #F1F1F1;  
      color: black;  
 }
+
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled{
+	color:rgb(148, 148, 148)
+}
 QSpinBox, QDoubleSpinBox {
 	background-color:  #F1F1F1;	
 	color: black;

@@ -22,6 +22,7 @@ import unittest
 from PyQt4 import QtGui
 from Data.ImgData import ImgData
 from Controller.MainController import MainController
+import numpy as np
 
 import sys
 
@@ -114,17 +115,21 @@ class phaseControllerTest(unittest.TestCase):
         self.phase_view.phase_pressure_sb.setValue(200)
         for ind, phase in enumerate(self.phase_data.phases):
             self.assertEqual(phase.pressure, pressure)
-            self.assertEqual(self.phase_view.get_phase_tw_P(ind), pressure)
+            self.assertEqual(self.phase_view.get_phase_tw_pressure(ind), pressure)
 
     def test_temperature_change(self):
         self.load_phases()
         temperature = 1500
         self.phase_view.phase_temperature_sb.setValue(temperature)
         for ind, phase in enumerate(self.phase_data.phases):
-            self.assertEqual(phase.temperature, temperature)
-            self.assertEqual(self.phase_view.get_phase_tw_T(ind), temperature)
+            if phase.has_thermal_expansion():
+                self.assertEqual(phase.temperature, temperature)
+                self.assertEqual(self.phase_view.get_phase_tw_temperature(ind), temperature)
+            else:
+                self.assertEqual(phase.temperature, 300)
+                self.assertTrue(np.isnan(self.phase_view.get_phase_tw_temperature(ind)))
 
-    def test_apply_to_all_for_new_added_phase(self):
+    def test_apply_to_all_for_new_added_phase_in_table_widget(self):
         temperature = 1500
         pressure = 200
         self.phase_view.phase_temperature_sb.setValue(temperature)
@@ -132,9 +137,23 @@ class phaseControllerTest(unittest.TestCase):
         self.load_phases()
         for ind, phase in enumerate(self.phase_data.phases):
             self.assertEqual(phase.pressure, pressure)
-            self.assertEqual(self.phase_view.get_phase_tw_P(ind), pressure)
-            self.assertEqual(phase.temperature, temperature)
-            self.assertEqual(self.phase_view.get_phase_tw_T(ind), temperature)
+            self.assertEqual(self.phase_view.get_phase_tw_pressure(ind), pressure)
+            if phase.has_thermal_expansion():
+                self.assertEqual(phase.temperature, temperature)
+                self.assertEqual(self.phase_view.get_phase_tw_temperature(ind), temperature)
+            else:
+                self.assertEqual(phase.temperature, 300)
+                self.assertTrue(np.isnan(self.phase_view.get_phase_tw_temperature(ind)))
+
+    def test_apply_to_all_for_new_added_phase_d_positions(self):
+        pressure = 50
+        self.load_phase('au_Anderson.jcpds')
+        self.phase_view.phase_pressure_sb.setValue(pressure)
+        self.load_phase('au_Anderson.jcpds')
+
+        reflections1 = self.phase_data.get_lines_d(0)
+        reflections2 = self.phase_data.get_lines_d(1)
+        self.assertTrue(np.array_equal(reflections1, reflections2))
 
 
 

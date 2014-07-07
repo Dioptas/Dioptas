@@ -577,6 +577,9 @@ class jcpds:
         """
         return self.reflections
 
+    def has_thermal_expansion(self):
+        return (self.alpha_t0!=0) or (self.d_alpha_dt!=0)
+
 
 def lookup_jcpds_line(in_string,
                       pressure=0.,
