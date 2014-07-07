@@ -47,7 +47,6 @@ class CalibrationData(object):
         self.calibration_name = 'None'
         self.polarization_factor = 0.95
         self._calibrants_working_dir = os.path.dirname(Calibrants.__file__)
-        print self._calibrants_working_dir
 
     def find_peaks_automatic(self, x, y, peak_ind):
         massif = Massif(self.img_data.img_data)

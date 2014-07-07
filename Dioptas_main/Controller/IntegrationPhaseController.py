@@ -150,7 +150,7 @@ class IntegrationPhaseController(object):
         """
         Delets all phases from the GUI and phase data
         """
-        while self.view.phase_lw.count() > 0:
+        while self.view.phase_tw.rowCount() > 0:
             self.del_phase()
 
     def update_phase_pressure_step(self):
