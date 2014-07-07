@@ -226,9 +226,19 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         temperature_item = self.phase_tw.item(ind, 4)
         temperature_item.setText("{0} K".format(T))
 
+    def get_phase_tw_T(self, ind):
+        temperature_item = self.phase_tw.item(ind, 4)
+        temperature = float(str(temperature_item.text()).split()[0])
+        return temperature
+
     def set_phase_tw_P(self, ind, P):
         pressure_item = self.phase_tw.item(ind, 3)
         pressure_item.setText("{0} GPa".format(P))
+
+    def get_phase_tw_P(self, ind):
+        pressure_item = self.phase_tw.item(ind, 3)
+        pressure = float(str(pressure_item.text()).split()[0])
+        return pressure
 
     def phase_color_btn_click(self, button):
         self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
