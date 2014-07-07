@@ -38,9 +38,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def __init__(self):
         super(IntegrationView, self).__init__()
         self.setupUi(self)
-        self.horizontal_splitter.setStretchFactor(0, 1)
-        self.horizontal_splitter.setStretchFactor(1, 1)
-        self.horizontal_splitter.setSizes([300, 200])
+        self.horizontal_splitter.setStretchFactor(5, 0)
+        self.horizontal_splitter.setSizes([500, 200])
         self.vertical_splitter.setStretchFactor(0, 0)
         self.vertical_splitter.setStretchFactor(1, 1)
         self.vertical_splitter.setSizes([100, 700])
@@ -58,6 +57,13 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.phase_tw.cellChanged.connect(self.phase_label_editingFinished)
         self.phase_show_cbs = []
         self.phase_color_btns = []
+        header_view = QtGui.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
+        self.phase_tw.setHorizontalHeader(header_view)
+        header_view.setResizeMode(2, QtGui.QHeaderView.Stretch)
+        header_view.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
+        header_view.setResizeMode(4, QtGui.QHeaderView.ResizeToContents)
+        header_view.hide()
+
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -148,6 +154,9 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         label_item = self.overlay_tw.item(row, col)
         self.overlay_name_changed.emit(row, str(label_item.text()))
 
+    ################################################################################################
+    # Now comes all the phase tw stuff
+    ################################################################################################
 
     def add_phase(self, name, color):
         current_rows = self.phase_tw.rowCount()
@@ -167,13 +176,22 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.phase_tw.setCellWidget(current_rows,1, color_button)
         self.phase_color_btns.append(color_button)
 
-        name_item = QtGui.QTableWidgetItem(name)
-        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         self.phase_tw.setItem(current_rows,2, QtGui.QTableWidgetItem(name))
 
+        pressure_item = QtGui.QTableWidgetItem('0 GPa')
+        pressure_item.setFlags(pressure_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        pressure_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.phase_tw.setItem(current_rows,3, pressure_item)
+
+        temperature_item = QtGui.QTableWidgetItem('300 K')
+        temperature_item.setFlags(temperature_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        temperature_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.phase_tw.setItem(current_rows,4, temperature_item)
 
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
+        # self.phase_tw.setColumnWidth(3, 85)
+        # self.phase_tw.setColumnWidth(4, 85)
         self.phase_tw.setRowHeight(current_rows, 25)
         self.select_phase(current_rows)
         self.phase_tw.blockSignals(False)
@@ -204,6 +222,14 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         else:
             self.select_phase(self.phase_tw.rowCount()-1)
 
+    def set_phase_tw_T(self, ind, T):
+        temperature_item = self.phase_tw.item(ind, 4)
+        temperature_item.setText("{0} K".format(T))
+
+    def set_phase_tw_P(self, ind, P):
+        pressure_item = self.phase_tw.item(ind, 3)
+        pressure_item.setText("{0} GPa".format(P))
+
     def phase_color_btn_click(self, button):
         self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
 
@@ -219,6 +245,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         return checkbox.isChecked()
 
     def phase_label_editingFinished(self, row, col):
-        label_item = self.phase_tw.item(row, col)
-        self.phase_name_changed.emit(row, str(label_item.text()))
+        if col == 2:
+            label_item = self.phase_tw.item(row, col)
+            self.phase_name_changed.emit(row, str(label_item.text()))
 
