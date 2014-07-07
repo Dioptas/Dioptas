@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Mon Jul  7 07:10:42 2014
+# Created: Mon Jul  7 10:02:43 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -144,6 +144,10 @@ class Ui_mainView(object):
 "     border-radius: 2px;  \n"
 "     background: #F1F1F1;  \n"
 "     color: black;  \n"
+"}\n"
+"\n"
+"QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled{\n"
+"    color:rgb(148, 148, 148)\n"
 "}\n"
 "QSpinBox, QDoubleSpinBox {\n"
 "    background-color:  #F1F1F1;    \n"

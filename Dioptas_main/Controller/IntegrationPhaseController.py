@@ -83,38 +83,52 @@ class IntegrationPhaseController(object):
                     progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
                     QtGui.QApplication.processEvents()
                     self.phase_data.add_phase(filename)
-                    self.phase_data.get_lines_d(-1)
 
-                    color = self.add_phase_plot()
-                    self.view.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
+
                     if self.view.phase_apply_to_all_cb.isChecked():
                         pressure = np.float(self.view.phase_pressure_sb.value())
                         temperature = np.float(self.view.phase_temperature_sb.value())
                         self.phase_data.phases[-1].compute_d(pressure=pressure,
                                                              temperature=temperature)
+                    else:
+                        pressure = 0
+                        temperature = 300
 
-                        self.view.set_phase_tw_P(len(self.phase_data.phases)-1, pressure)
-                        self.view.set_phase_tw_T(len(self.phase_data.phases)-1, temperature)
+
+                    self.phase_data.get_lines_d(-1)
+                    color = self.add_phase_plot()
+                    self.view.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
+
+                    self.view.set_phase_tw_pressure(len(self.phase_data.phases)-1, pressure)
+                    self.update_phase_temperature(len(self.phase_data.phases)-1, temperature)
+
                     if progress_dialog.wasCanceled():
                         break
                 progress_dialog.close()
                 QtGui.QApplication.processEvents()
+                self.update_temperature_control_visibility()
         else:
             self.phase_data.add_phase(filename)
-
-            self.phase_data.get_lines_d(-1)
-            color = self.add_phase_plot()
-            self.view.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
             if self.view.phase_apply_to_all_cb.isChecked():
                 pressure = np.float(self.view.phase_pressure_sb.value())
                 temperature = np.float(self.view.phase_temperature_sb.value())
                 self.phase_data.phases[-1].compute_d(pressure=pressure,
                                                      temperature=temperature)
-                self.view.set_phase_tw_P(len(self.phase_data.phases)-1, pressure)
-                self.view.set_phase_tw_T(len(self.phase_data.phases)-1, temperature)
+            else:
+                pressure = 0
+                temperature = 300
+
+
+            self.phase_data.get_lines_d(-1)
+            color = self.add_phase_plot()
+            self.view.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
+
+            self.view.set_phase_tw_pressure(len(self.phase_data.phases)-1, pressure)
+            self.update_phase_temperature(len(self.phase_data.phases)-1, temperature)
 
             self.working_dir['phase'] = os.path.dirname(str(filename))
+            self.update_temperature_control_visibility()
 
     def add_phase_plot(self):
         """
@@ -145,6 +159,7 @@ class IntegrationPhaseController(object):
             self.view.del_phase(cur_ind)
             self.phase_data.del_phase(cur_ind)
             self.view.spectrum_view.del_phase(cur_ind)
+        self.update_temperature_control_visibility()
 
     def clear_phases(self):
         """
@@ -169,13 +184,13 @@ class IntegrationPhaseController(object):
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in xrange(len(self.phase_data.phases)):
                 self.phase_data.set_pressure(ind, np.float(val))
-                self.view.set_phase_tw_P(ind, val)
+                self.view.set_phase_tw_pressure(ind, val)
             self.update_intensities()
 
         else:
             cur_ind = self.view.get_selected_phase_row()
             self.phase_data.set_pressure(cur_ind, np.float(val))
-            self.view.set_phase_tw_P(cur_ind, val)
+            self.view.set_phase_tw_pressure(cur_ind, val)
             self.update_intensity(cur_ind)
 
     def phase_temperature_sb_changed(self, val):
@@ -185,15 +200,21 @@ class IntegrationPhaseController(object):
         """
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in xrange(len(self.phase_data.phases)):
-                self.phase_data.set_temperature(ind, np.float(val))
-                self.view.set_phase_tw_T(ind, val)
+                self.update_phase_temperature(ind, val)
             self.update_intensities()
 
         else:
             cur_ind = self.view.get_selected_phase_row()
-            self.phase_data.set_temperature(cur_ind, np.float(val))
-            self.view.set_phase_tw_T(cur_ind, val)
+            self.update_phase_temperature(cur_ind, val)
             self.update_intensity(cur_ind)
+
+    def update_phase_temperature(self, ind, val):
+        if self.phase_data.phases[ind].has_thermal_expansion():
+            self.phase_data.set_temperature(ind, np.float(val))
+            self.view.set_phase_tw_temperature(ind, val)
+        else:
+            self.phase_data.set_temperature(ind, 300)
+            self.view.set_phase_tw_temperature(ind, '-')
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
         cur_ind = row
@@ -201,11 +222,23 @@ class IntegrationPhaseController(object):
         temperature = self.phase_data.phases[cur_ind].temperature
 
         self.view.phase_pressure_sb.blockSignals(True)
-        self.view.phase_temperature_sb.blockSignals(True)
         self.view.phase_pressure_sb.setValue(pressure)
-        self.view.phase_temperature_sb.setValue(temperature)
         self.view.phase_pressure_sb.blockSignals(False)
+
+        self.view.phase_temperature_sb.blockSignals(True)
+        self.view.phase_temperature_sb.setValue(temperature)
         self.view.phase_temperature_sb.blockSignals(False)
+        self.update_temperature_control_visibility(row)
+
+    def update_temperature_control_visibility(self, row_ind = None):
+        if row_ind is None:
+            row_ind = self.view.get_selected_phase_row()
+        if self.phase_data.phases[row_ind].has_thermal_expansion():
+            self.view.phase_temperature_sb.setEnabled(True)
+            self.view.phase_temperature_step_txt.setEnabled(True)
+        else:
+            self.view.phase_temperature_sb.setDisabled(True)
+            self.view.phase_temperature_step_txt.setDisabled(True)
 
     def phase_color_btn_clicked(self, ind, button):
         previous_color = button.palette().color(1)
