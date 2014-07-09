@@ -111,6 +111,7 @@ class SpectrumView(QtCore.QObject):
             self.spectrum_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], spectrum.name)
             self.update_x_limits()
+
         return color
 
     def del_overlay(self, ind):
@@ -119,6 +120,9 @@ class SpectrumView(QtCore.QObject):
         self.overlays.remove(self.overlays[ind])
         self.overlay_names.remove(self.overlay_names[ind])
         self.overlay_show.remove(self.overlay_show[ind])
+
+        self.update_overlay_visibility()
+        self.update_phase_visibility()
         self.update_x_limits()
 
     def hide_overlay(self, ind):
@@ -149,6 +153,7 @@ class SpectrumView(QtCore.QObject):
 
     def rename_overlay(self, ind, name):
         self.legend.renameItem(ind+1, name)
+
 
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
@@ -183,7 +188,16 @@ class SpectrumView(QtCore.QObject):
 
     def del_phase(self, ind):
         self.phases[ind].remove()
-        self.phases.remove(self.phases[ind])
+        del self.phases[ind]
+        self.update_overlay_visibility()
+        self.update_phase_visibility()
+
+    def update_phase_visibility(self):
+        for phase in self.phases:
+            if phase.visible:
+                phase.show()
+            else:
+                phase.hide()
 
     def plot_vertical_lines(self, positions, name=None):
         if len(self.phases_vlines) > 0:
@@ -344,6 +358,7 @@ class PhasePlot(object):
     def __init__(self, plot_item, legend_item, positions, intensities, name=None, baseline=0):
         self.plot_item = plot_item
         self.legend_item = legend_item
+        self.visible = True
         self.line_items = []
         self.line_visible = []
         self.index = PhasePlot.num_phases
@@ -373,34 +388,38 @@ class PhasePlot(object):
                 pass
 
     def update_intensities(self, positions, intensities, baseline=0):
-        for ind, intensity in enumerate(intensities):
-            self.line_items[ind].setData(y=[baseline, intensity],
-                                         x=[positions[ind], positions[ind]])
+        if self.visible:
+            for ind, intensity in enumerate(intensities):
+                self.line_items[ind].setData(y=[baseline, intensity],
+                                             x=[positions[ind], positions[ind]])
 
     def update_visibilities(self, spectrum_range):
-        for ind, line_item in enumerate(self.line_items):
-            data = line_item.getData()
-            position = data[0][0]
-            if position >= spectrum_range[0] and position <= spectrum_range[1]:
-                if not self.line_visible[ind]:
-                    self.plot_item.addItem(line_item)
-                    self.line_visible[ind] = True
-            else:
-                if self.line_visible[ind]:
-                    self.plot_item.removeItem(line_item)
-                    self.line_visible[ind] = False
+        if self.visible:
+            for ind, line_item in enumerate(self.line_items):
+                data = line_item.getData()
+                position = data[0][0]
+                if position >= spectrum_range[0] and position <= spectrum_range[1]:
+                    if not self.line_visible[ind]:
+                        self.plot_item.addItem(line_item)
+                        self.line_visible[ind] = True
+                else:
+                    if self.line_visible[ind]:
+                        self.plot_item.removeItem(line_item)
+                        self.line_visible[ind] = False
 
     def set_color(self, color):
         for line_item in self.line_items:
             line_item.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.DashLine))
 
     def hide(self):
+        self.visible = False
         for line_item in self.line_items:
-            line_item.hide()
+            self.plot_item.removeItem(line_item)
 
     def show(self):
+        self.visible = True
         for line_item in self.line_items:
-            line_item.show()
+            self.plot_item.addItem(line_item)
 
 
     def remove(self):
