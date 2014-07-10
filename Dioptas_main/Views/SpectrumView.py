@@ -21,7 +21,7 @@ from __future__ import absolute_import
 __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
-from Views.ExLegendItem import LegendItem
+from .ExLegendItem import LegendItem
 import numpy as np
 from Data.HelperModule import calculate_color
 from PyQt4 import QtCore, QtGui
@@ -191,8 +191,6 @@ class SpectrumView(QtCore.QObject):
     def del_phase(self, ind):
         self.phases[ind].remove()
         del self.phases[ind]
-        self.update_overlay_visibility()
-        self.update_phase_visibility()
 
     def update_phase_visibility(self):
         for phase in self.phases:
@@ -412,6 +410,8 @@ class PhasePlot(object):
     def set_color(self, color):
         for line_item in self.line_items:
             line_item.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.DashLine))
+        self.ref_legend_line.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.DashLine))
+
 
     def hide(self):
         self.visible = False
