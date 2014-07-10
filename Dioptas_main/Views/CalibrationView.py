@@ -15,17 +15,17 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 
 import os
-from PyQt4 import QtGui, QtCore
-from UiFiles.CalibrationUI import Ui_XrsCalibrationWidget
-from ImgView import MaskImgView, CalibrationCakeView
-from SpectrumView import SpectrumView
-from Data.HelperModule import SignalFrequencyLimiter
-import numpy as np
-import pyqtgraph as pg
+from PyQt4 import QtGui
+
+from .UiFiles.CalibrationUI import Ui_XrsCalibrationWidget
+from .ImgView import MaskImgView, CalibrationCakeView
+from .SpectrumView import SpectrumView
 
 
 class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):

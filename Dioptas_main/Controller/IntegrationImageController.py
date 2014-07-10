@@ -1,4 +1,3 @@
-__author__ = 'Clemens Prescher'
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
@@ -16,6 +15,9 @@ __author__ = 'Clemens Prescher'
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import absolute_import
+
+__author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import numpy as np

@@ -15,6 +15,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.__author__ = 'Clemens Prescher'
 
+from __future__ import absolute_import
 import os
 
 import csv
@@ -28,9 +29,9 @@ from Data.SpectrumData import SpectrumData
 from Data.CalibrationData import CalibrationData
 from Data.PhaseData import PhaseData
 
-from Controller.CalibrationController import CalibrationController
-from Controller.IntegrationController import IntegrationController
-from Controller.MaskController import MaskController
+from .CalibrationController import CalibrationController
+from .IntegrationController import IntegrationController
+from .MaskController import MaskController
 
 __VERSION__ = '0.1'
 

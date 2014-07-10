@@ -15,16 +15,18 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import absolute_import
+
 __author__ = 'Clemens Prescher'
 
-import os
 from PyQt4 import QtGui, QtCore
-from UiFiles.IntegrationUI import Ui_xrs_integration_widget
-from ImgView import IntegrationImgView
-from SpectrumView import SpectrumView
 from functools import partial
 import numpy as np
-import pyqtgraph as pg
+
+
+from .UiFiles.IntegrationUI import Ui_xrs_integration_widget
+from .ImgView import IntegrationImgView
+from .SpectrumView import SpectrumView
 
 
 class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
