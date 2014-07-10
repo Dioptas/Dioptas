@@ -15,6 +15,8 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import absolute_import
+
 __author__ = 'Clemens Prescher'
 
 import numpy as np
@@ -22,7 +24,7 @@ import fabio
 import pyFAI
 import pyFAI.utils
 from PIL import Image
-from HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
+from .HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
 
 

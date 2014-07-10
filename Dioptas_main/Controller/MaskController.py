@@ -21,6 +21,8 @@ Connects all the Gui elements with XrsMaskData...
 """
 #TODO add the possibility to define an arc and mask around it
 #TODO Dialog showing all the hidden possibilities, like mouse behavior and also shortcuts
+
+from __future__ import absolute_import
 __author__ = 'Clemens Prescher'
 
 import sys

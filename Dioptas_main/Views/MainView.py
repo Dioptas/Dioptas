@@ -15,16 +15,20 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 
 import sys
 from PyQt4 import QtGui
-from UiFiles.MainUI import Ui_mainView
 
-from Views.MaskView import MaskView
-from Views.IntegrationView import IntegrationView
-from Views.CalibrationView import CalibrationView
+
+from .UiFiles.MainUI import Ui_mainView
+
+from .MaskView import MaskView
+from .IntegrationView import IntegrationView
+from .CalibrationView import CalibrationView
 
 
 class MainView(QtGui.QWidget, Ui_mainView):

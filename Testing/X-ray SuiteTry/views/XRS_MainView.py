@@ -1,8 +1,10 @@
 import sys
+
 from PyQt4 import QtGui
+import matplotlib as mpl
+
 from UiFiles.XRS_Main import Ui_XRS_Main
 
-import matplotlib as mpl
 
 mpl.rcParams['font.size'] = 10
 mpl.rcParams['lines.linewidth'] = 0.5

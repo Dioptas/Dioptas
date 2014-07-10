@@ -15,6 +15,8 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 
@@ -22,7 +24,8 @@ import pyqtgraph as pg
 from  pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from PyQt4 import QtCore, QtGui
-from HorHistogramLUTItem import HorHistogramLUTItem
+
+from .HorHistogramLUTItem import HorHistogramLUTItem
 
 
 class ImgView(QtCore.QObject):

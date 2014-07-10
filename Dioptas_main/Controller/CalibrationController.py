@@ -17,15 +17,12 @@
 
 # TODO unmask color for rectangle etc. should be green.
 
-__author__ = 'Clemens Prescher'
+from __future__ import absolute_import
 
+__author__ = 'Clemens Prescher'
 import os
 
 from PyQt4 import QtGui, QtCore
-import pyqtgraph as pg
-
-import time
-from Data.HelperModule import SignalFrequencyLimiter
 
 import numpy as np
 

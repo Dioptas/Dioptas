@@ -15,13 +15,14 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import absolute_import
+
 __author__ = 'Clemens Prescher'
 
 import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
 import numpy as np
-import time
 
 
 class IntegrationSpectrumController(object):

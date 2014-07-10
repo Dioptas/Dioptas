@@ -16,8 +16,9 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-__author__ = 'Clemens Prescher'
+from __future__ import absolute_import
 
+__author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
