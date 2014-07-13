@@ -87,7 +87,7 @@ class SpectrumData(Observable):
 class Spectrum(object):
     def __init__(self, x=None, y=None, name=''):
         if x is None:
-            self._x = np.linspace(0, 15, 100)
+            self._x = np.linspace(0.1, 15, 100)
         else:
             self._x = x
         if y is None:

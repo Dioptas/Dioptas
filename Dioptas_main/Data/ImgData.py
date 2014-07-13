@@ -25,16 +25,20 @@ import pyFAI
 import pyFAI.utils
 from PIL import Image
 from .HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
-    FileNameIterator
+    FileNameIterator, gauss_function
 
 
 class ImgData(Observable):
     def __init__(self):
         super(ImgData, self).__init__()
-        self.img_data = np.zeros((2048, 2048))
         self.filename = ''
         self.file_iteration_mode = 'number'
         self.img_transformations = []
+
+        x = np.arange(2048)
+        y = np.arange(2048)
+        X, Y = np.meshgrid(x, y)
+        self.img_data = gauss_function(X,20000, 300, 1023.5)*gauss_function(Y,15000, 800, 950)
 
     def load(self, filename):
         self.filename = filename
