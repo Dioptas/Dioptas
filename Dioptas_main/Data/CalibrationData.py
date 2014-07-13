@@ -3,7 +3,7 @@
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -21,6 +21,9 @@
 
 __author__ = 'Clemens Prescher'
 
+import os
+import numpy as np
+import time
 
 from pyFAI.massif import Massif
 from pyFAI.blob_detection import BlobDetection
@@ -29,8 +32,7 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
 from .HelperModule import get_base_name
 import Calibrants
-import os
-import numpy as np
+
 
 class CalibrationData(object):
     def __init__(self, img_data=None):
@@ -169,14 +171,23 @@ class CalibrationData(object):
         self.integrate_1d()
         self.integrate_2d()
 
-    def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None, unit='2th_deg'):
+    def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None,
+                     unit='2th_deg', method='ocl_csr_cpu'):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
             #do not perform integration if the image is completelye masked...
             return self.tth, self.int
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
+
+        t1 = time.time()
         if unit is 'd_A':
-            self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
+            try:
+                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
+                                                           unit='2th_deg',
+                                                           mask=mask, polarization_factor=polarization_factor,
+                                                           filename=filename)
+            except NameError:
+                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
                                                            unit='2th_deg',
                                                            mask=mask, polarization_factor=polarization_factor,
                                                            filename=filename)
@@ -184,20 +195,30 @@ class CalibrationData(object):
             self.tth = self.geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
             self.int = self.int[ind]
         else:
-            self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut', unit=unit,
-                                                           mask=mask, polarization_factor=polarization_factor,
-                                                           filename=filename)
+            try:
+                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
+                                                               unit=unit,
+                                                               mask=mask, polarization_factor=polarization_factor,
+                                                               filename=filename)
+            except NameError:
+                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
+                                                               unit=unit,
+                                                               mask=mask, polarization_factor=polarization_factor,
+                                                               filename=filename)
+        print('1d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         if self.int.max() > 0:
             ind = np.where(self.int > 0)
             self.tth = self.tth[ind]
             self.int = self.int[ind]
         return self.tth, self.int
 
-    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg'):
+    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='lut', dimensions=(2048, 2048)):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
-        res = self.geometry.integrate2d(self.img_data.img_data, 2048, 2048, method='lut', mask=mask, unit=unit,
-                                        polarization_factor=polarization_factor)
+        t1 = time.time()
+        res = self.geometry.integrate2d(self.img_data.img_data, dimensions[0], dimensions[1], method=method, mask=mask,
+                                        unit=unit, polarization_factor=polarization_factor)
+        print('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         self.cake_img = res[0]
         self.cake_tth = res[1]
         self.cake_azi = res[2]
