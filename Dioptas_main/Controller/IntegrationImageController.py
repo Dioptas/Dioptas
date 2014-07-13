@@ -15,7 +15,7 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 import os
@@ -161,7 +161,7 @@ class IntegrationImageController(object):
                 self.working_dir['image']))
 
         else:
-            if isinstance(filenames, basestring):
+            if isinstance(filenames, str):
                 filenames = [filenames]
 
         if filenames is not None and len(filenames) is not 0:
@@ -182,7 +182,7 @@ class IntegrationImageController(object):
                                                         self.view)
                 progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
                 progress_dialog.show()
-                for ind in xrange(len(filenames)):
+                for ind in range(len(filenames)):
                     filename = str(filenames[ind])
                     base_filename = os.path.basename(filename)
                     progress_dialog.setValue(ind)
@@ -227,7 +227,7 @@ class IntegrationImageController(object):
             integration_unit = 'd_A'
         else:
             # in case something weird happened
-            print 'No correct integration unit selected'
+            print('No correct integration unit selected')
             return
         self.calibration_data.integrate_1d(filename=filename, mask=mask, unit=integration_unit)
 
@@ -379,7 +379,7 @@ class IntegrationImageController(object):
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
-                    tth = self.calibration_data.geometry.tth(x, y)[0]
+                    tth = self.calibration_data.geometry.tth(np.array([x]), np.array([y]))[0]
                     tth = tth / np.pi * 180.0
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
                     azi = self.calibration_data.geometry.chi(
@@ -387,16 +387,16 @@ class IntegrationImageController(object):
 
                 azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
-                tth_str = u'2θ:%9.2f  ' % tth
+                tth_str = '2θ:%9.2f  ' % tth
                 self.view.mouse_tth_lbl.setText(tth_str)
-                self.view.mouse_d_lbl.setText(u'd:%9.3f  ' % d)
-                self.view.mouse_q_lbl.setText(u'Q:%9.3f  ' % q_value)
-                self.view.mouse_azi_lbl.setText(u'X:%9.3f  ' % azi)
+                self.view.mouse_d_lbl.setText('d:%9.3f  ' % d)
+                self.view.mouse_q_lbl.setText('Q:%9.3f  ' % q_value)
+                self.view.mouse_azi_lbl.setText('X:%9.3f  ' % azi)
             else:
-                self.view.mouse_tth_lbl.setText(u'2θ: -')
-                self.view.mouse_d_lbl.setText(u'd: -')
-                self.view.mouse_q_lbl.setText(u'Q: -')
-                self.view.mouse_azi_lbl.setText(u'X: -')
+                self.view.mouse_tth_lbl.setText('2θ: -')
+                self.view.mouse_d_lbl.setText('d: -')
+                self.view.mouse_q_lbl.setText('Q: -')
+                self.view.mouse_azi_lbl.setText('X: -')
 
     def img_mouse_click(self, x, y):
         #update click position
@@ -419,7 +419,7 @@ class IntegrationImageController(object):
             elif self.img_mode == 'Image':  # image mode
                 x = np.array([x])
                 y = np.array([y])
-                tth = self.calibration_data.geometry.tth(x, y)[0]
+                tth = self.calibration_data.geometry.tth(np.array([x]), np.array([y]))[0]
                 self.view.img_view.set_circle_scatter_tth(
                     self.calibration_data.geometry._ttha, tth)
             else:  # in the cas of whatever

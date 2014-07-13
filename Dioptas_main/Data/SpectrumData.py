@@ -20,7 +20,7 @@ __author__ = 'Clemens Prescher'
 import numpy as np
 import os
 from copy import deepcopy
-from HelperModule import Observable, FileNameIterator, get_base_name
+from .HelperModule import Observable, FileNameIterator, get_base_name
 
 
 class SpectrumData(Observable):
@@ -107,7 +107,7 @@ class Spectrum(object):
             self.name = os.path.basename(filename).split('.')[:-1][0]
 
         except ValueError:
-            print 'Wrong data format for spectrum file!'
+            print('Wrong data format for spectrum file!')
             return -1
 
     def save(self, filename, header=''):
@@ -130,7 +130,8 @@ class Spectrum(object):
 
 
     @data.setter
-    def data(self, (x, y)):
+    def data(self, xxx_todo_changeme):
+        (x, y) = xxx_todo_changeme
         self._x = x
         self._y = y
         self.scaling = 1

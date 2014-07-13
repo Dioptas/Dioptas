@@ -22,7 +22,7 @@ Connects all the Gui elements with XrsMaskData...
 #TODO add the possibility to define an arc and mask around it
 #TODO Dialog showing all the hidden possibilities, like mouse behavior and also shortcuts
 
-from __future__ import absolute_import
+
 __author__ = 'Clemens Prescher'
 
 import sys
@@ -134,7 +134,7 @@ class MaskController(object):
             self.clicks = 0
             self.uncheck_all_btn(except_btn=self.view.circle_btn)
         else:
-            print 'hmm'
+            print('hmm')
             self.state = None
             self.clicks = 0
             self.uncheck_all_btn()
