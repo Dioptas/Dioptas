@@ -15,7 +15,7 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 
 __author__ = 'Clemens Prescher'
@@ -428,6 +428,6 @@ class PhasePlot(object):
         try:
             self.legend_item.removeItem(self.ref_legend_line)
         except IndexError:
-            print 'this phase had now lines in the appropriate region'
+            print('this phase had now lines in the appropriate region')
         for item in self.line_items:
             self.plot_item.removeItem(item)

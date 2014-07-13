@@ -15,7 +15,7 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 
@@ -107,13 +107,13 @@ class ImgData(Observable):
 
 def test():
     filename = '../ExampleData/test_999.tif'
-    print FileNameIterator.get_next_filename(filename)
+    print((FileNameIterator.get_next_filename(filename)))
 
     filename = '../ExampleData/test_002.tif'
-    print FileNameIterator.get_previous_filename(filename)
+    print((FileNameIterator.get_previous_filename(filename)))
 
     filename = '../ExampleData/test_008.tif'
-    print FileNameIterator.get_next_filename(filename, 'date')
+    print((FileNameIterator.get_next_filename(filename, 'date')))
 
 
 if __name__ == '__main__':

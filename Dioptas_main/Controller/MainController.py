@@ -15,7 +15,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.__author__ = 'Clemens Prescher'
 
-from __future__ import absolute_import
+
 import os
 
 import csv
@@ -132,15 +132,15 @@ class MainController(object):
 
     def load_directories(self):
         if os.path.exists('working_directories.csv'):
-            reader = csv.reader(open('working_directories.csv', 'rb'))
+            reader = csv.reader(open('working_directories.csv', 'r'))
             self.working_dir = dict(x for x in reader)
         else:
             self.working_dir = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
                                 'phase': ''}
 
     def save_directories(self):
-        writer = csv.writer(open('working_directories.csv', 'wb'))
-        for key, value in self.working_dir.items():
+        writer = csv.writer(open('working_directories.csv', 'w'))
+        for key, value in list(self.working_dir.items()):
             writer.writerow([key, value])
 
 

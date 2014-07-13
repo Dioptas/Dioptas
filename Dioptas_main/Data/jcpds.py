@@ -212,7 +212,7 @@ class jcpds:
                     self.d_alpha_dt = float(value)
                 elif (tag == 'DIHKL:'):
                     dtemp = value.split()
-                    dtemp = map(float, dtemp)
+                    dtemp = list(map(float, dtemp))
                     reflection = jcpds_reflection()
                     reflection.d0 = dtemp[0]
                     reflection.intensity = dtemp[1]
@@ -228,7 +228,7 @@ class jcpds:
             line = fp.readline()
             # Replace any commas with blanks, split at blanks
             temp = string.split(line.replace(',', ' '))
-            temp = map(float, temp[0:5])
+            temp = list(map(float, temp[0:5]))
             # The symmetry codes are as follows:
             #   1 -- cubic
             #   2 -- hexagonal
@@ -247,7 +247,7 @@ class jcpds:
                 line = fp.readline()
                 if (line == ''): break
                 dtemp = line.split()
-                dtemp = map(float, dtemp)
+                dtemp = list(map(float, dtemp))
                 reflection = jcpds_reflection()
                 reflection.d0 = dtemp[0]
                 reflection.intensity = dtemp[1]
@@ -272,9 +272,9 @@ class jcpds:
         for r in reflections:
             diff = abs(r.d0 - r.d) / r.d0
             if (diff > .001):
-                print 'Reflection ', r.h, r.k, r.l, \
+                print(('Reflection ', r.h, r.k, r.l, \
                     ': calculated D ', r.d, \
-                    ') differs by more than 0.1% from input D (', r.d0, ')'
+                    ') differs by more than 0.1% from input D (', r.d0, ')'))
 
 
     def write_file(self, file):
@@ -434,7 +434,7 @@ class jcpds:
             self.v = self.v0 * (1 + self.alpha_t * (temperature - 298.))
         else:
             if (self.k0 <= 0.):
-                print 'K0 is zero, computing zero pressure volume'
+                print('K0 is zero, computing zero pressure volume')
                 self.v = self.v0
             else:
                 self.mod_pressure = pressure - \
@@ -567,7 +567,7 @@ class jcpds:
                 d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
                          2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
             else:
-                print 'Unknown crystal symmetry = ' + self.symmetry
+                print(('Unknown crystal symmetry = ' + self.symmetry))
             r.d = np.sqrt(1. / d2inv)
 
     def get_reflections(self):
@@ -654,7 +654,7 @@ def lookup_jcpds_line(in_string,
         else:
             return None
     elif (n == 3):
-        hkl = map(int, nums)
+        hkl = list(map(int, nums))
     else:
         return None
 

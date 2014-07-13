@@ -16,7 +16,7 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 
@@ -161,7 +161,8 @@ class IntegrationPhaseController(object):
             self.view.del_phase(cur_ind)
             self.phase_data.del_phase(cur_ind)
             self.view.spectrum_view.del_phase(cur_ind)
-        self.update_temperature_control_visibility()
+        if len(self.phase_data.phases)>0:
+            self.update_temperature_control_visibility()
 
     def clear_phases(self):
         """
@@ -184,7 +185,7 @@ class IntegrationPhaseController(object):
         positions and intensities.
         """
         if self.view.phase_apply_to_all_cb.isChecked():
-            for ind in xrange(len(self.phase_data.phases)):
+            for ind in range(len(self.phase_data.phases)):
                 self.phase_data.set_pressure(ind, np.float(val))
                 self.view.set_phase_tw_pressure(ind, val)
             self.update_intensities()
@@ -201,7 +202,7 @@ class IntegrationPhaseController(object):
         positions and intensities.
         """
         if self.view.phase_apply_to_all_cb.isChecked():
-            for ind in xrange(len(self.phase_data.phases)):
+            for ind in range(len(self.phase_data.phases)):
                 self.update_phase_temperature(ind, val)
             self.update_intensities()
 
@@ -302,7 +303,7 @@ class IntegrationPhaseController(object):
         :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
         self.view.spectrum_view.view_box.blockSignals(True)
-        for ind in xrange(len(self.phase_data.phases)):
+        for ind in range(len(self.phase_data.phases)):
             self.update_intensity(ind, axis_range)
         self.view.spectrum_view.view_box.blockSignals(False)
         self.view.spectrum_view.update_phase_line_visibilities()

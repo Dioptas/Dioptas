@@ -17,12 +17,12 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 
 
-from pyFAI.peakPicker import Massif
+from pyFAI.massif import Massif
 from pyFAI.blob_detection import BlobDetection
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator

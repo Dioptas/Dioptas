@@ -15,7 +15,7 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 
@@ -165,7 +165,7 @@ class IntegrationSpectrumController(object):
                                                              ('Data (*.xy);;png (*.png);; svg (*.svg)')))
 
         if filename is not '':
-            print filename
+            print(filename)
             if filename.endswith('.xy'):
                 header = self.calibration_data.geometry.makeHeaders()
                 if self.spectrum_data.bkg_ind is not -1:
@@ -178,7 +178,7 @@ class IntegrationSpectrumController(object):
             elif filename.endswith('.png'):
                 self.view.spectrum_view.save_png(filename)
             elif filename.endswith('.svg'):
-                print 'inside'
+                print('inside')
                 self.view.spectrum_view.save_svg(filename)
 
 
@@ -250,7 +250,7 @@ class IntegrationSpectrumController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
-        self.view.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', u'°')
+        self.view.spectrum_view.spectrum_plot.setLabel('bottom', '2θ', '°')
         self.view.spectrum_view.spectrum_plot.invertX(False)
         if self.calibration_data.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
@@ -398,20 +398,20 @@ class IntegrationSpectrumController(object):
                 q_value = self.convert_x_value(d_value, 'd_A', 'q_A^-1')
                 tth = self.convert_x_value(d_value, 'd_A', '2th_deg')
 
-            tth_str = u'2θ:%9.3f  ' % tth
-            d_str = u'd:%9.3f  ' % d_value
-            q_str = u'Q:%9.3f  ' % q_value
+            tth_str = '2θ:%9.3f  ' % tth
+            d_str = 'd:%9.3f  ' % d_value
+            q_str = 'Q:%9.3f  ' % q_value
         else:
-            tth_str = u'2θ: -'
-            d_str = u'd: -'
-            q_str = u'Q: -'
+            tth_str = '2θ: -'
+            d_str = 'd: -'
+            q_str = 'Q: -'
             if self.integration_unit == '2th_deg':
-                tth_str = u'2θ:%9.3f  ' % x
+                tth_str = '2θ:%9.3f  ' % x
             elif self.integration_unit == 'q_A^-1':
-                q_str = u'Q:%9.3f  ' % x
+                q_str = 'Q:%9.3f  ' % x
             elif self.integration_unit == 'd_A':
-                d_str = u'd:%9.3f  ' % x
-        azi_str = u'X: -'
+                d_str = 'd:%9.3f  ' % x
+        azi_str = 'X: -'
         return tth_str, d_str, q_str, azi_str
 
     def key_press_event(self, ev):

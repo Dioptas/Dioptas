@@ -23,7 +23,7 @@ from PyQt4 import QtGui
 from collections import deque
 import skimage.draw
 import scipy.signal
-from cosmics import cosmicsimage
+from .cosmics import cosmicsimage
 
 import time
 from sys import getsizeof
@@ -176,12 +176,10 @@ class MaskData(object):
         self.update_deque()
         test = cosmicsimage(img, sigclip=3.0, objlim=3.0)
         num = 2
-        for i in xrange(num):
+        for i in range(num):
             test.lacosmiciteration(True)
             test.clean()
             self._mask_data = np.logical_or(self._mask_data, np.array(test.mask, dtype='bool'))
-
-        print test.mask
 
     def set_mode(self, mode):
         """
@@ -241,6 +239,6 @@ def test_mask_data():
 
 
 if __name__ == "__main__":
-    print 'testing mask data'
+    print('testing mask data')
     test_mask_data()
     pg.QtGui.QApplication.exec_()

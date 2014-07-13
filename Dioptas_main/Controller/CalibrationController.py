@@ -17,7 +17,7 @@
 
 # TODO unmask color for rectangle etc. should be green.
 
-from __future__ import absolute_import
+
 
 __author__ = 'Clemens Prescher'
 import os
@@ -345,9 +345,9 @@ class CalibrationController(object):
             self.calibration_data.refine()
             self.plot_points()
         else:
-            print 'Did not find any Points with the specified parameters for the first two rings!'
+            print('Did not find any Points with the specified parameters for the first two rings!')
 
-        for i in xrange(num_rings - 2):
+        for i in range(num_rings - 2):
             points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
                                                                 intensity_max, mask)
             if len(self.calibration_data.points):
@@ -356,7 +356,7 @@ class CalibrationController(object):
                 QtGui.QApplication.processEvents()
                 self.calibration_data.refine()
             else:
-                print 'Did not find enough points with the specified parameters!'
+                print('Did not find enough points with the specified parameters!')
         self.calibration_data.integrate()
         self.update_all()
 

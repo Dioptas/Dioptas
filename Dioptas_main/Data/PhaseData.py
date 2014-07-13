@@ -18,7 +18,7 @@
 
 __author__ = 'Clemens Prescher'
 
-from HelperModule import Observable
+from .HelperModule import Observable
 from Data.jcpds import jcpds
 import numpy as np
 
@@ -118,7 +118,7 @@ def test_volume_calculation():
         phase_data.set_pressure_all(P)
         v.append(phase_data.phases[0].v)
         try:
-            print phase_data.phases[0].mod_pressure
+            print((phase_data.phases[0].mod_pressure))
         except AttributeError:
             pass
     v = np.array(v)
