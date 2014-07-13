@@ -216,3 +216,6 @@ def calculate_color(ind):
     v = 0.8
     h = (0.19 * (ind+2)) % 1
     return np.array(hsv_to_rgb(h, s, v)) * 255
+
+def gauss_function(x,int,hwhm,center):
+    return int*np.exp(-(x-float(center))**2/(2*hwhm**2))
