@@ -43,6 +43,7 @@ class CalibrationController(object):
         self.view.set_start_values(self.calibration_data.start_values)
         self._first_plot = True
         self.create_signals()
+        self.plot_image()
         self.load_calibrants_list()
 
 

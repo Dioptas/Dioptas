@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 __author__ = 'Clemens Prescher'
 
 import numpy as np
+import random
 import fabio
 import pyFAI
 import pyFAI.utils
@@ -38,7 +39,15 @@ class ImgData(Observable):
         x = np.arange(2048)
         y = np.arange(2048)
         X, Y = np.meshgrid(x, y)
-        self.img_data = gauss_function(X,20000, 300, 1023.5)*gauss_function(Y,15000, 800, 950)
+        self.img_data = 2000 * np.ones((2048, 2048))
+        line_pos = np.linspace(0, 2047, 10)
+        for pos in line_pos:
+            self.img_data += gauss_function(X, 10000 * random.random(), 50 * random.random(), pos)
+            self.img_data += gauss_function(Y, 10000 * random.random(), 50 * random.random(), pos)
+        self.img_data += gauss_function(X, 200 + 200 * random.random(), 500 + 500 * random.random(),
+                                        800 + 400 * random.random()) * \
+                         gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
+                                        800 + 400 * random.random())
 
     def load(self, filename):
         self.filename = filename
