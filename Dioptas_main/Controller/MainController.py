@@ -43,8 +43,8 @@ class MainController(object):
         self.splash_img = QtGui.QPixmap("UiFiles/splash.png")
         self.splash_screen = QtGui.QSplashScreen(self.splash_img, QtCore.Qt.WindowStaysOnTopHint)
         self.splash_screen.show()
+        self.app = app
         app.processEvents()
-        time.sleep(1)
         app.processEvents()
 
         self.view = MainView()
@@ -146,5 +146,7 @@ class MainController(object):
 
     def close_event(self, _):
         self.save_directories()
+        self.view.close()
+        del self.app
 
 
