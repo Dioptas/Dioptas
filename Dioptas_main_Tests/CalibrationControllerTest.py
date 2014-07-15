@@ -1,24 +1,37 @@
 __author__ = 'Clemens Prescher'
 
+import unittest
+import sys
+import os
+import numpy as np
+import time
+
+from PyQt4 import QtGui
+import matplotlib.pyplot as plt
+
+
 from Data.ImgData import ImgData
+from Data.MaskData import MaskData
 from Data.CalibrationData import CalibrationData
 from Controller.CalibrationController import CalibrationController
-import unittest
-from PyQt4 import QtGui
-import sys
-import numpy as np
-import matplotlib.pyplot as plt
-import time
+from Views.CalibrationView import CalibrationView
 
 
 class CombinedDataTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.image_data = ImgData()
+        self.mask_data = MaskData()
         self.calibration_data = CalibrationData(self.image_data)
         self.calibration_data._calibrants_working_dir = 'Data/Calibrants'
+        self.calibration_view = CalibrationView()
 
-        self.calibration_controller = CalibrationController(img_data=self.image_data, \
+        self.working_dir = {}
+
+        self.calibration_controller = CalibrationController(working_dir=self.working_dir,
+                                                            img_data=self.image_data,
+                                                            mask_data=self.mask_data,
+                                                            view=self.calibration_view,
                                                             calibration_data=self.calibration_data)
 
     def test_automatic_calibration1(self):
