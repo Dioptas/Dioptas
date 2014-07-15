@@ -24,6 +24,9 @@
 __author__ = 'Clemens Prescher'
 import sys
 from PyQt4 import QtGui
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from Controller.MainController import MainController
 
 if __name__ == "__main__":

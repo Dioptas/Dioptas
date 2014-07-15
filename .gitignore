@@ -14,6 +14,7 @@
 *.poni
 *.xy
 *.csv
+log.txt
 .ipynb_checkpoints/
 .idea
 PDX\ main/Tools

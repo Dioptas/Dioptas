@@ -4,7 +4,7 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
@@ -24,6 +24,9 @@ __author__ = 'Clemens Prescher'
 import os
 import numpy as np
 import time
+
+import logging
+logger = logging.getLogger(__name__)
 
 from pyFAI.massif import Massif
 from pyFAI.blob_detection import BlobDetection
@@ -53,7 +56,7 @@ class CalibrationData(object):
         self.polarization_factor = 0.95
         self._calibrants_working_dir = os.path.dirname(Calibrants.__file__)
 
-        self.cake_img = np.zeros((2048,2048))
+        self.cake_img = np.zeros((2048, 2048))
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
 
@@ -187,14 +190,14 @@ class CalibrationData(object):
         if unit is 'd_A':
             try:
                 self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
-                                                           unit='2th_deg',
-                                                           mask=mask, polarization_factor=polarization_factor,
-                                                           filename=filename)
+                                                               unit='2th_deg',
+                                                               mask=mask, polarization_factor=polarization_factor,
+                                                               filename=filename)
             except NameError:
                 self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
-                                                           unit='2th_deg',
-                                                           mask=mask, polarization_factor=polarization_factor,
-                                                           filename=filename)
+                                                               unit='2th_deg',
+                                                               mask=mask, polarization_factor=polarization_factor,
+                                                               filename=filename)
             ind = np.where(self.tth > 0)
             self.tth = self.geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
             self.int = self.int[ind]
@@ -209,7 +212,7 @@ class CalibrationData(object):
                                                                unit=unit,
                                                                mask=mask, polarization_factor=polarization_factor,
                                                                filename=filename)
-        print('1d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
+        logger.info('1d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         if self.int.max() > 0:
             ind = np.where(self.int > 0)
             self.tth = self.tth[ind]
@@ -222,7 +225,7 @@ class CalibrationData(object):
         t1 = time.time()
         res = self.geometry.integrate2d(self.img_data.img_data, dimensions[0], dimensions[1], method=method, mask=mask,
                                         unit=unit, polarization_factor=polarization_factor)
-        print('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
+        logger.info('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         self.cake_img = res[0]
         self.cake_tth = res[1]
         self.cake_azi = res[2]

@@ -18,6 +18,9 @@ Modifications:
         - fixed a bug which was causing a gamma0 to be 0 for cubic unit cell
 
 """
+import logging
+logger = logging.getLogger(__name__)
+
 import string
 import numpy as np
 from scipy.optimize import minimize
@@ -272,7 +275,7 @@ class jcpds:
         for r in reflections:
             diff = abs(r.d0 - r.d) / r.d0
             if (diff > .001):
-                print(('Reflection ', r.h, r.k, r.l, \
+                logger.info(('Reflection ', r.h, r.k, r.l, \
                     ': calculated D ', r.d, \
                     ') differs by more than 0.1% from input D (', r.d0, ')'))
 
@@ -434,7 +437,7 @@ class jcpds:
             self.v = self.v0 * (1 + self.alpha_t * (temperature - 298.))
         else:
             if (self.k0 <= 0.):
-                print('K0 is zero, computing zero pressure volume')
+                logger.info('K0 is zero, computing zero pressure volume')
                 self.v = self.v0
             else:
                 self.mod_pressure = pressure - \
@@ -567,7 +570,7 @@ class jcpds:
                 d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
                          2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
             else:
-                print(('Unknown crystal symmetry = ' + self.symmetry))
+                logger.error(('Unknown crystal symmetry = ' + self.symmetry))
             r.d = np.sqrt(1. / d2inv)
 
     def get_reflections(self):
