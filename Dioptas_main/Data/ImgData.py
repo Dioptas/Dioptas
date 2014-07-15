@@ -19,6 +19,9 @@
 
 __author__ = 'Clemens Prescher'
 
+import logging
+logger = logging.getLogger(__name__)
+
 import numpy as np
 import random
 import fabio
@@ -33,10 +36,10 @@ class ImgData(Observable):
     def __init__(self):
         super(ImgData, self).__init__()
         self.filename = ''
-        self.file_iteration_mode = 'number'
         self.img_transformations = []
 
-        self.autoprocess = False
+
+        self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 
         x = np.arange(2048)
@@ -53,6 +56,7 @@ class ImgData(Observable):
                                         800 + 400 * random.random())
 
     def load(self, filename):
+        logger.info("Loading {}.".format(filename))
         self.filename = filename
         try:
             self.img_data_fabio = fabio.open(filename)
@@ -60,8 +64,8 @@ class ImgData(Observable):
         except AttributeError:
             self.img_data = np.array(Image.open(filename))
         self.perform_img_transformations()
-        self.file_name_iterator.update_filename(filename)
         self.notify()
+        self.file_name_iterator.update_filename(filename)
 
     def load_next_file(self):
         next_file_name = self.file_name_iterator.get_next_filename(self.file_iteration_mode)
@@ -120,6 +124,7 @@ class ImgData(Observable):
     def perform_img_transformations(self):
         for transformation in self.img_transformations:
             self.img_data = transformation(self.img_data)
+
 
 
 def test():

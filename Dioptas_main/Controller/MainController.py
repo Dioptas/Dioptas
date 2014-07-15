@@ -92,7 +92,6 @@ class MainController(object):
         self.spectrum_data.subscribe(self.set_title)
 
     def tab_changed(self, ind):
-        print('tab changed')
         if ind == 2:
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.view.calibration_lbl.setText(self.calibration_data.calibration_name)

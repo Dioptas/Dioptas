@@ -24,11 +24,9 @@ import sys
 #setup the logger:
 import logging
 FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-logging.basicConfig(filename='log.txt', format=FORMAT, level=logging.INFO)
+logging.basicConfig(format=FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from PyQt4 import QtGui
-from Controller.MainController import MainController
 
 
 def test_phases(controller):
@@ -79,8 +77,14 @@ def load_overlay(controller, filename):
         'ExampleData/Spectra/' + filename)
 
 if __name__ == "__main__":
+    logger.info('')
+    logger.info('STARTING A NEW INSTANCE OF DIOPTAS.')
+    logger.info('')
+
+
     import os
-    logger.info('Starting a new instance of Dioptas \n ######################.')
+    from PyQt4 import QtGui
+    from Controller.MainController import MainController
 
     app = QtGui.QApplication(sys.argv)
 
