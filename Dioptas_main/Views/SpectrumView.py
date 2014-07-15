@@ -130,12 +130,16 @@ class SpectrumView(QtCore.QObject):
         self.spectrum_plot.removeItem(self.overlays[ind])
         self.legend.hideItem(ind+1)
         self.overlay_show[ind] = False
+
+        self.update_phase_visibility()
         self.update_x_limits()
 
     def show_overlay(self, ind):
         self.spectrum_plot.addItem(self.overlays[ind])
         self.legend.showItem(ind+1)
         self.overlay_show[ind] = True
+
+        self.update_phase_visibility()
         self.update_x_limits()
 
     def update_overlay(self, spectrum, ind):
@@ -413,14 +417,16 @@ class PhasePlot(object):
 
 
     def hide(self):
-        self.visible = False
-        for line_item in self.line_items:
-            self.plot_item.removeItem(line_item)
+        if self.visible:
+            self.visible = False
+            for line_item in self.line_items:
+                self.plot_item.removeItem(line_item)
 
     def show(self):
-        self.visible = True
-        for line_item in self.line_items:
-            self.plot_item.addItem(line_item)
+        if not self.visible:
+            self.visible = True
+            for line_item in self.line_items:
+                self.plot_item.addItem(line_item)
 
 
     def remove(self):
