@@ -170,6 +170,8 @@ class CalibrationController(object):
         current_filename = os.path.basename(self.img_data.filename)
         current_directory = os.path.dirname(self.img_data.filename)
         new_filename = str(self.view.filename_txt.text())
+        if current_filename == new_filename:
+            return
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
                 self.load_img(os.path.join(current_directory, new_filename))
