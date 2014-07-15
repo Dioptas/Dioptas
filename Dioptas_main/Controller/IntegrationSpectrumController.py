@@ -196,7 +196,7 @@ class IntegrationSpectrumController(object):
             self.view.spec_previous_btn.setEnabled(True)
 
     def load_previous(self):
-        self.spectrum_data.load_previous()
+        self.spectrum_data.load_previous_file()
         self.view.spec_filename_txt.setText(
             os.path.basename(self.spectrum_data.spectrum_filename))
 

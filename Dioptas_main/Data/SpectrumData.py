@@ -17,6 +17,10 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Clemens Prescher'
+
+import logging
+logger = logging.getLogger(__name__)
+
 import numpy as np
 import os
 from copy import deepcopy
@@ -31,6 +35,8 @@ class SpectrumData(Observable):
         self.phases = []
 
         self.file_iteration_mode = 'number'
+        self.file_name_iterator = FileNameIterator()
+
         self.bkg_ind = -1
         self.spectrum_filename = ''
 
@@ -41,19 +47,26 @@ class SpectrumData(Observable):
         self.notify()
 
     def load_spectrum(self, filename):
+        logger.info("Load spectrum: {}".format(filename))
         self.spectrum_filename = filename
         self.spectrum.load(filename)
+        print(filename)
+        self.file_name_iterator.update_filename(filename)
         self.notify()
 
-    def load_next(self):
-        next_file_name = FileNameIterator.get_next_filename(self.spectrum_filename, self.file_iteration_mode)
+    def load_next_file(self):
+        next_file_name = self.file_name_iterator.get_next_filename(self.file_iteration_mode)
         if next_file_name is not None:
             self.load_spectrum(next_file_name)
+            return True
+        return False
 
-    def load_previous(self):
-        previous_file_name = FileNameIterator.get_previous_filename(self.spectrum_filename, self.file_iteration_mode)
-        if previous_file_name is not None:
-            self.load_spectrum(previous_file_name)
+    def load_previous_file(self):
+        next_file_name = self.file_name_iterator.get_previous_filename(self.file_iteration_mode)
+        if next_file_name is not None:
+            self.load_spectrum(next_file_name)
+            return True
+        return False
 
     def add_overlay(self, x, y, name=''):
         self.overlays.append(Spectrum(x, y, name))

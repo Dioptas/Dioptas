@@ -44,6 +44,8 @@ class IntegrationImageController(object):
         self.use_mask = False
         self.roi_active = False
 
+        self.autoprocess_timer = QtCore.QTimer(self.view)
+
         self.view.show()
         self.initialize()
         self.img_data.subscribe(self.update_img)
@@ -141,6 +143,7 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.qa_img_save_img_btn, self.save_img)
 
         self.connect_click_function(self.view.img_load_calibration_btn, self.load_calibration)
+        self.create_auto_process_signal()
 
 
     def connect_click_function(self, emitter, function):
@@ -491,9 +494,42 @@ class IntegrationImageController(object):
 
     def create_auto_process_signal(self):
         self.view.autoprocess_cb.clicked.connect(self.auto_process_cb_click)
+        self.autoprocess_timer.setInterval(50)
+        self.view.connect(self.autoprocess_timer,
+                          QtCore.SIGNAL('timeout()'),
+                          self.check_files)
 
-    def auto_process_cb_click(self, value):
-        self.img_data.autoprocess = True
+    def auto_process_cb_click(self):
+        if self.view.autoprocess_cb.isChecked():
+            self._files_before = dict(
+                [(f, None) for f in os.listdir(self.working_dir['image'])])
+            self.autoprocess_timer.start()
+        else:
+            self.autoprocess_timer.stop()
+
+    def check_files(self):
+        self._files_now = dict(
+            [(f, None) for f in os.listdir(self.working_dir['image'])])
+        self._files_added = [
+            f for f in self._files_now if not f in self._files_before]
+        self._files_removed = [
+            f for f in self._files_before if not f in self._files_now]
+        if len(self._files_added) > 0:
+            new_file_str = self._files_added[-1]
+            path = os.path.join(self.working_dir['image'], new_file_str)
+            acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                                       '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                                       '.mccd', '.mar3450', '.pnm']
+            read_file = False
+            for ending in acceptable_file_endings:
+                if path.endswith(ending):
+                    read_file = True
+                    break
+            file_info = os.stat(path)
+            if file_info.st_size > 100:
+                if read_file:
+                    self.load_file(path)
+                self._files_before = self._files_now
 
 
     def save_img(self, filename=None):

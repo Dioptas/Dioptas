@@ -4,8 +4,8 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
 #     This program is distributed in the hope that it will be useful,
@@ -25,6 +25,8 @@ import os
 from PyQt4 import QtCore, QtGui
 from stat import S_ISREG, ST_CTIME, ST_MODE
 from colorsys import hsv_to_rgb
+
+import time
 
 #distinguishable_colors = np.loadtxt('Data/distinguishable_colors.txt')[::-1]
 
@@ -58,32 +60,25 @@ class Observable(object):
 class FileNameIterator(QtCore.QObject):
     # TODO create an File Index and then just get the next files according to this.
     # Otherwise searching a network is always to slow...
-    file_added = QtCore.pyqtSignal(str)
 
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, acceptable_file_endings=None):
         super(FileNameIterator, self).__init__()
-        self.acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml',
-                                       '.cbf', '.kccd', '.msk', '.spr', '.tif',
-                                       '.mccd', '.mar3450', '.pnm']
+        self.acceptable_file_endings = []
 
-        self.directory_watcher = QtCore.QFileSystemWatcher()
-        self.directory_watcher.directoryChanged.connect(self.directory_changed)
-        if  filename is None:
+        if filename is None:
             self.complete_path = None
             self.directory = None
             self.filename = None
         else:
             self.complete_path = os.path.abspath(filename)
             self.directory, self.filename = os.path.split(self.complete_path)
-            self.directory_watcher.addPath(self.directory)
-            self._files_before = dict(
-                [(f, None) for f in os.listdir(self.directory)])
+            self.acceptable_file_endings.append(self.filename.split('.')[-1])
             self._get_files_list()
             self._order_file_list()
 
     def _order_file_list(self):
         self.ordered_file_list = list(sorted(((stat[ST_CTIME], path)
-                               for stat, path in self.file_list if S_ISREG(stat[ST_MODE]))))
+                                              for stat, path in self.file_list if S_ISREG(stat[ST_MODE]))))
 
     def _get_files_list(self):
         file_list = os.listdir(self.directory)
@@ -100,7 +95,7 @@ class FileNameIterator(QtCore.QObject):
         self.file_list = ((os.stat(path), path) for path in paths)
         return self.file_list
 
-    def get_next_filename(self,  mode='number'):
+    def get_next_filename(self, mode='number'):
         if self.complete_path is None:
             return None
         if mode == 'time':
@@ -131,7 +126,7 @@ class FileNameIterator(QtCore.QObject):
             return None
 
 
-    def get_previous_filename(self,  mode='number'):
+    def get_previous_filename(self, mode='number'):
         """
         Tries to get the previous filename.
 
@@ -146,11 +141,12 @@ class FileNameIterator(QtCore.QObject):
         if mode == 'time':
             time_stat = os.stat(self.complete_path)[ST_CTIME]
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
-            try:
-                self.complete_path = self.ordered_file_list[cur_ind - 1][1]
-                return self.complete_path
-            except IndexError:
-                return None
+            if cur_ind > 0:
+                try:
+                    self.complete_path = self.ordered_file_list[cur_ind - 1][1]
+                    return self.complete_path
+                except IndexError:
+                    return None
         elif mode == 'number':
             directory, file_str = os.path.split(self.complete_path)
             filename, file_type_str = file_str.split('.')
@@ -183,47 +179,13 @@ class FileNameIterator(QtCore.QObject):
 
         self.complete_path = os.path.abspath(new_filename)
         new_directory, file_str = os.path.split(self.complete_path)
-
-        if self.directory is not None:
-            self.directory_watcher.removePath(self.directory)
-            if self.directory == new_directory:
-                return
-
+        try:
+            self.acceptable_file_endings.append(file_str.split('.')[-1])
+        except AttributeError:
+            pass
         self.directory = new_directory
-        self._files_before = dict(
-            [(f, None) for f in os.listdir(self.directory)])
-        self.directory_watcher.addPath(self.directory)
         self._get_files_list()
         self._order_file_list()
-
-
-    def directory_changed(self, path):
-        if self.complete_path is None:
-            return
-        self._get_files_list()
-        self._order_file_list()
-
-        self._files_now = dict(
-            [(f, None) for f in os.listdir(self.working_dir['image'])])
-        self._files_added = [
-            f for f in self._files_now if not f in self._files_before]
-        self._files_removed = [
-            f for f in self._files_before if not f in self._files_now]
-        if len(self._files_added) > 0:
-            new_file_str = self._files_added[-1]
-            path = os.path.join(self.working_dir['image'], new_file_str)
-
-            read_file = False
-            for ending in self.acceptable_file_endings:
-                if path.endswith(ending):
-                    read_file = True
-                    break
-            file_info = os.stat(path)
-            if file_info.st_size > 100:
-                if read_file:
-                    self.file_added.emit(path)
-                self._files_before = self._files_now
-
 
 
     @staticmethod
@@ -234,7 +196,6 @@ class FileNameIterator(QtCore.QObject):
                 res += char
             else:
                 return res[::-1]
-
 
 
 class SignalFrequencyLimiter(object):
@@ -293,8 +254,9 @@ def get_base_name(filename):
 def calculate_color(ind):
     s = 0.8
     v = 0.8
-    h = (0.19 * (ind+2)) % 1
+    h = (0.19 * (ind + 2)) % 1
     return np.array(hsv_to_rgb(h, s, v)) * 255
 
-def gauss_function(x,int,hwhm,center):
-    return int*np.exp(-(x-float(center))**2/(2*hwhm**2))
+
+def gauss_function(x, int, hwhm, center):
+    return int * np.exp(-(x - float(center)) ** 2 / (2 * hwhm ** 2))
