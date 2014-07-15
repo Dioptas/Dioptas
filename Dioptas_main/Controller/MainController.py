@@ -147,8 +147,7 @@ class MainController(object):
 
     def close_event(self, _):
         self.save_directories()
-        self.view.close()
-        self.view.destroy(True, True)
-        del self.view
+        QtGui.QApplication.closeAllWindows()
+        QtGui.QApplication.quit()
 
 

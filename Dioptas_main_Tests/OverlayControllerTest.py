@@ -118,4 +118,4 @@ class OverlayControllerTest(unittest.TestCase):
             'Data/' + filename)
 
     def tearDown(self):
-        QtGui.QApplication.processEvents()
+        pass

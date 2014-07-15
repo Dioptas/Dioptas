@@ -28,26 +28,26 @@ class CombinedDataTest(unittest.TestCase):
         plt.figure(1)
         plt.plot(tth1, int1)
         plt.plot(tth2, int2)
-        plt.savefig('Results/dependencies1.jpg')
+        plt.savefig('Results/dependencies1.png')
 
         tth3, int3 = self.calibration_data.integrate_1d(mask=self.mask_data.get_mask())
         self.assertFalse(np.array_equal(int2, int3))
         plt.figure(2)
         plt.plot(tth2, int2)
         plt.plot(tth3, int3)
-        plt.savefig('Results/dependencies2.jpg')
+        plt.savefig('Results/dependencies2.png')
 
         tth4, int4 = self.calibration_data.integrate_1d(polarization_factor=0.90, mask=None)
         plt.figure(3)
         plt.plot(tth2, int2)
         plt.plot(tth4, int4)
-        plt.savefig('Results/dependencies3.jpg')
+        plt.savefig('Results/dependencies3.png')
 
         tth5, int5 = self.calibration_data.integrate_1d(polarization_factor=.5, mask=None)
         plt.figure(4)
         plt.plot(tth4, int4)
         plt.plot(tth5, int5)
-        plt.savefig('Results/dependencies4.jpg')
+        plt.savefig('Results/dependencies4.png')
 
     def test_automatism(self):
         def integrate_and_set_spectrum():

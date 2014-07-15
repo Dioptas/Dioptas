@@ -123,7 +123,6 @@ class SpectrumView(QtCore.QObject):
         self.overlay_names.remove(self.overlay_names[ind])
         self.overlay_show.remove(self.overlay_show[ind])
 
-        self.update_overlay_visibility()
         self.update_phase_visibility()
         self.update_x_limits()
 
