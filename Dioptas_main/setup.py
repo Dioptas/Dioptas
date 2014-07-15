@@ -42,4 +42,4 @@ setup(name="Dioptas",
       version="0.1",
       description="Anlysis of 2 dimensional X-ray diffraction patterns.",
       options={"build_exe": build_exe_options},
-      executables=[Executable("Dioptas.py", base=base)])
+      executables=[Executable("Dioptas.py", base=base, requires=['PyQt4'])])

@@ -38,3 +38,5 @@ if __name__ == "__main__":
         # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
     controller = MainController(app)
     app.exec_()
+    del app
+
