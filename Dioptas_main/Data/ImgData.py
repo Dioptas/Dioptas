@@ -36,10 +36,13 @@ class ImgData(Observable):
         self.file_iteration_mode = 'number'
         self.img_transformations = []
 
+        self.autoprocess = False
+        self.file_name_iterator = FileNameIterator()
+
         x = np.arange(2048)
         y = np.arange(2048)
         X, Y = np.meshgrid(x, y)
-        self.img_data = 2000 * np.ones((2048, 2048))
+        self.img_data = 2000 * np.ones((2048.0, 2048.0))
         line_pos = np.linspace(0, 2047, 10)
         for pos in line_pos:
             self.img_data += gauss_function(X, 10000 * random.random(), 50 * random.random(), pos)
@@ -57,21 +60,22 @@ class ImgData(Observable):
         except AttributeError:
             self.img_data = np.array(Image.open(filename))
         self.perform_img_transformations()
+        self.file_name_iterator.update_filename(filename)
         self.notify()
 
-    def load_next(self):
-        next_file_name = FileNameIterator.get_next_filename(
-            self.filename, self.file_iteration_mode)
+    def load_next_file(self):
+        next_file_name = self.file_name_iterator.get_next_filename(self.file_iteration_mode)
         if next_file_name is not None:
             self.load(next_file_name)
             return True
         return False
 
     def load_previous_file(self):
-        previous_file_name = FileNameIterator.get_previous_filename(
-            self.filename, self.file_iteration_mode)
+        previous_file_name = self.file_name_iterator.get_previous_filename(self.file_iteration_mode)
         if previous_file_name is not None:
             self.load(previous_file_name)
+            return True
+        return False
 
     def set_calibration_file(self, filename):
         self.integrator = pyFAI.load(filename)

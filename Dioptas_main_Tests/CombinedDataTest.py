@@ -21,7 +21,7 @@ class CombinedDataTest(unittest.TestCase):
 
     def test_dependencies(self):
         tth1, int1 = self.calibration_data.integrate_1d()
-        self.img_data.load_next()
+        self.img_data.load_next_file()
         tth2, int2 = self.calibration_data.integrate_1d()
         self.assertFalse(np.array_equal(int1, int2))
 
@@ -57,7 +57,7 @@ class CombinedDataTest(unittest.TestCase):
         self.img_data.subscribe(integrate_and_set_spectrum)
 
         y1 = self.spectrum_data.spectrum.data[1]
-        self.img_data.load_next()
+        self.img_data.load_next_file()
         y2 = self.spectrum_data.spectrum.data[1]
         self.assertFalse(np.array_equal(y1, y2))
 

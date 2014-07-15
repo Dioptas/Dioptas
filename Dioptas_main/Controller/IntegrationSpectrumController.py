@@ -201,7 +201,7 @@ class IntegrationSpectrumController(object):
             os.path.basename(self.spectrum_data.spectrum_filename))
 
     def load_next(self):
-        self.spectrum_data.load_next()
+        self.spectrum_data.load_next_file()
         self.view.spec_filename_txt.setText(
             os.path.basename(self.spectrum_data.spectrum_filename))
 

@@ -161,7 +161,7 @@ class CalibrationController(object):
             self.img_data.load(filename)
 
     def load_next_img(self):
-        self.img_data.load_next()
+        self.img_data.load_next_file()
 
     def load_previous_img(self):
         self.img_data.load_previous_file()
