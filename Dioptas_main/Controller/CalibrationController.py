@@ -3,9 +3,9 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,6 +21,7 @@
 
 __author__ = 'Clemens Prescher'
 import os
+import time
 
 from PyQt4 import QtGui, QtCore
 
@@ -58,7 +59,7 @@ class CalibrationController(object):
         self.view.calibrant_cb.currentIndexChanged.connect(self.load_calibrant)
         self.connect_click_function(self.view.load_img_btn, self.load_img)
         self.connect_click_function(self.view.load_next_img_btn, self.load_next_img)
-        self.connect_click_function(self.view.load_previous_img_btn, self. load_previous_img)
+        self.connect_click_function(self.view.load_previous_img_btn, self.load_previous_img)
         self.view.filename_txt.editingFinished.connect(self.filename_txt_changed)
 
         self.connect_click_function(self.view.save_calibration_btn, self.save_calibration)
@@ -102,12 +103,6 @@ class CalibrationController(object):
         """
         Creates the mouse_move connections to show the current position of the mouse pointer.
         """
-        # self.img_view_mouse_proxy = SignalFrequencyLimiter(self.view.img_view.mouse_moved.connect, self.show_img_mouse_position)
-        # self.cake_view_mouse_prox = SignalFrequencyLimiter(self.view.cake_view.mouse_moved.connect, self.show_cake_mouse_position)
-        # self.spectrum_view_mouse_proxy = SignalFrequencyLimiter(self.view.spectrum_view.mouse_moved.connect, self.show_spectrum_mouse_position)
-        # self.img_view_mouse_proxy=pg.SignalProxy         (self.view.img_view.mouse_moved, 0.02, slot=self.show_img_mouse_position)
-        # self.cake_view_mouse_proxy=pg.SignalProxy        (self.view.cake_view.mouse_moved, 0.02,slot=self.show_cake_mouse_position)
-        # self.spectrum_view_mouse_proxy=pg.SignalProxy(self.view.spectrum_view.mouse_moved, 0.02,  slot=self.show_spectrum_mouse_position)
         self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.view.cake_view.mouse_moved.connect(self.show_cake_mouse_position)
         self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
@@ -302,12 +297,25 @@ class CalibrationController(object):
         """
         self.load_calibrant()  #load the right calibration file...
         self.calibration_data.set_start_values(self.view.get_start_values())
+        progress_dialog = self.create_progress_dialog('Calibrating.', '', 0, show_cancel_btn=False)
         self.calibration_data.calibrate()
         self.update_calibration_parameter()
 
+        progress_dialog.close()
+
         if self.view.options_automatic_refinement_cb.isChecked():
             self.refine()
-        self.update_all()
+        else:
+            self.update_all()
+
+    def create_progress_dialog(self, text_str, abort_str, end_value, show_cancel_btn=True):
+        progress_dialog = QtGui.QProgressDialog(text_str, abort_str, 0, end_value,
+                                                self.view)
+        progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+        if not show_cancel_btn:
+            progress_dialog.setCancelButton(None)
+        progress_dialog.show()
+        return progress_dialog
 
     def refine(self):
         """
@@ -322,7 +330,9 @@ class CalibrationController(object):
         #       search next ring
         #       calibrate based on all previous found points
 
+        num_rings = self.view.options_num_rings_sb.value()
 
+        progress_dialog = self.create_progress_dialog("Refining Calibration.", 'Abort', num_rings)
         self.clear_peaks_btn_click()
         self.load_calibrant(wavelength_from='pyFAI')  #load right calibration file
 
@@ -331,7 +341,6 @@ class CalibrationController(object):
         delta_tth = np.float(self.view.options_delta_tth_txt.text())
         intensity_min_factor = np.float(self.view.options_intensity_mean_factor_sb.value())
         intensity_max = np.float(self.view.options_intensity_limit_txt.text())
-        num_rings = self.view.options_num_rings_sb.value()
 
         self.calibration_data.setup_peak_search_algorithm(algorithm)
 
@@ -341,6 +350,7 @@ class CalibrationController(object):
             mask = None
 
         self.calibration_data.search_peaks_on_ring(0, delta_tth, intensity_min_factor, intensity_max, mask)
+        progress_dialog.setValue(1)
         self.calibration_data.search_peaks_on_ring(1, delta_tth, intensity_min_factor, intensity_max, mask)
         if len(self.calibration_data.points):
             self.calibration_data.refine()
@@ -348,6 +358,9 @@ class CalibrationController(object):
         else:
             print('Did not find any Points with the specified parameters for the first two rings!')
 
+        progress_dialog.setValue(2)
+
+        refinement_canceled = False
         for i in range(num_rings - 2):
             points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
                                                                 intensity_max, mask)
@@ -358,8 +371,29 @@ class CalibrationController(object):
                 self.calibration_data.refine()
             else:
                 print('Did not find enough points with the specified parameters!')
-        self.calibration_data.integrate()
-        self.update_all()
+            progress_dialog.setLabelText("Refining Calibration. \n"
+                                         "Finding peaks on Ring {}.".format(i + 3 ))
+            progress_dialog.setValue(i + 3)
+            if progress_dialog.wasCanceled():
+                refinement_canceled = True
+                break
+        progress_dialog.close()
+        del progress_dialog
+
+        QtGui.QApplication.processEvents()
+        print(refinement_canceled)
+        if not refinement_canceled:
+            print('still doing it')
+            progress_dialog = self.create_progress_dialog('Integrated to spectrum.', '',
+                                                          0, show_cancel_btn=False)
+            QtGui.QApplication.processEvents()
+            self.calibration_data.integrate_1d()
+            progress_dialog.setLabelText('Integrating to cake.')
+            QtGui.QApplication.processEvents()
+            QtGui.QApplication.processEvents()
+            self.calibration_data.integrate_2d()
+            progress_dialog.close()
+            self.update_all()
 
     def load_calibration(self, filename=None):
         """
@@ -400,8 +434,6 @@ class CalibrationController(object):
         accordingly with the new diffraction pattern and cake image.
         :return:
         """
-        self.calibration_data.integrate_1d()
-        self.calibration_data.integrate_2d()
         self.view.cake_view.plot_image(self.calibration_data.cake_img, False)
         self.view.cake_view.auto_range()
 
