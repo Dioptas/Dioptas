@@ -53,6 +53,10 @@ class CalibrationData(object):
         self.polarization_factor = 0.95
         self._calibrants_working_dir = os.path.dirname(Calibrants.__file__)
 
+        self.cake_img = np.zeros((2048,2048))
+        self.tth = np.linspace(0, 25)
+        self.int = np.sin(self.tth)
+
     def find_peaks_automatic(self, x, y, peak_ind):
         massif = Massif(self.img_data.img_data)
         cur_peak_points = massif.find_peaks([x, y])
