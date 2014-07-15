@@ -111,7 +111,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_tw.blockSignals(False)
 
     def select_overlay(self, ind):
-        self.overlay_tw.selectRow(ind)
+        if self.overlay_tw.rowCount()>0:
+            self.overlay_tw.selectRow(ind)
 
     def get_selected_overlay_row(self):
         selected = self.overlay_tw.selectionModel().selectedRows()
@@ -120,9 +121,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         except IndexError:
             row = -1
         return row
-
-    def get_overlay(self):
-        pass
 
     def del_overlay(self, ind):
         self.overlay_tw.blockSignals(True)
