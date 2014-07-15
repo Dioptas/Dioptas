@@ -22,7 +22,7 @@ __author__ = 'Clemens Prescher'
 
 import numpy as np
 import os
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtGui
 from stat import S_ISREG, ST_CTIME, ST_MODE
 from colorsys import hsv_to_rgb
 
@@ -55,17 +55,65 @@ class Observable(object):
         self.notification = True
 
 
-class FileNameIterator(object):
+class FileNameIterator(QtCore.QObject):
     # TODO create an File Index and then just get the next files according to this.
     # Otherwise searching a network is always to slow...
+    file_added = QtCore.pyqtSignal(str)
 
-    @staticmethod
-    def get_next_filename(filepath, mode='number'):
-        complete_path = os.path.abspath(filepath)
-        directory, file_str = os.path.split(complete_path)
-        filename, file_type_str = file_str.split('.')
+    def __init__(self, filename=None):
+        super(FileNameIterator, self).__init__()
+        self.acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                                       '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                                       '.mccd', '.mar3450', '.pnm']
 
-        if mode == 'number':
+        self.directory_watcher = QtCore.QFileSystemWatcher()
+        self.directory_watcher.directoryChanged.connect(self.directory_changed)
+        if  filename is None:
+            self.complete_path = None
+            self.directory = None
+            self.filename = None
+        else:
+            self.complete_path = os.path.abspath(filename)
+            self.directory, self.filename = os.path.split(self.complete_path)
+            self.directory_watcher.addPath(self.directory)
+            self._files_before = dict(
+                [(f, None) for f in os.listdir(self.directory)])
+            self._get_files_list()
+            self._order_file_list()
+
+    def _order_file_list(self):
+        self.ordered_file_list = list(sorted(((stat[ST_CTIME], path)
+                               for stat, path in self.file_list if S_ISREG(stat[ST_MODE]))))
+
+    def _get_files_list(self):
+        file_list = os.listdir(self.directory)
+        files = []
+        for file in file_list:
+            is_correct_ending = False
+            for ending in self.acceptable_file_endings:
+                if file.endswith(ending):
+                    is_correct_ending = True
+                    break
+            if is_correct_ending:
+                files.append(file)
+        paths = (os.path.join(self.directory, file) for file in files)
+        self.file_list = ((os.stat(path), path) for path in paths)
+        return self.file_list
+
+    def get_next_filename(self,  mode='number'):
+        if self.complete_path is None:
+            return None
+        if mode == 'time':
+            time_stat = os.stat(self.complete_path)[ST_CTIME]
+            cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
+            try:
+                self.complete_path = self.ordered_file_list[cur_ind + 1][1]
+                return self.complete_path
+            except IndexError:
+                return None
+        elif mode == 'number':
+            directory, file_str = os.path.split(self.complete_path)
+            filename, file_type_str = file_str.split('.')
             file_number_str = FileNameIterator._get_ending_number(filename)
             try:
                 file_number = int(file_number_str)
@@ -78,37 +126,34 @@ class FileNameIterator(object):
             new_file_name = file_base_str + number_str + '.' + file_type_str
             new_complete_path = os.path.join(directory, new_file_name)
             if os.path.exists(new_complete_path):
+                self.complete_path = new_complete_path
                 return new_complete_path
             return None
-        elif mode == 'time':
-            files_list = os.listdir(directory)
-            files = []
-            for file in files_list:
-                if file.endswith(file_type_str):
-                    files.append(file)
 
-            paths = (os.path.join(directory, file) for file in files)
-            entries = ((os.stat(path), path) for path in paths)
 
-            entries = list(sorted(((stat[ST_CTIME], path)
-                                   for stat, path in entries if S_ISREG(stat[ST_MODE]))))
+    def get_previous_filename(self,  mode='number'):
+        """
+        Tries to get the previous filename.
 
-            for ind, entry in enumerate(entries):
-                if entry[1] == complete_path:
-                    try:
-                        return entries[ind + 1][1]
-                    except IndexError:
-                        return None
+        :param mode:
+            can have two values either number or mode. Number will decrement the last digits of the file name \
+            and time will get the next file by creation time.
+        :return:
+            either new filename as a string if it exists or None
+        """
+        if self.complete_path is None:
             return None
-
-
-    @staticmethod
-    def get_previous_filename(filepath, mode='number'):
-        complete_path = os.path.abspath(filepath)
-        directory, file_str = os.path.split(complete_path)
-        filename, file_type_str = file_str.split('.')
-
-        if mode == 'number':
+        if mode == 'time':
+            time_stat = os.stat(self.complete_path)[ST_CTIME]
+            cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
+            try:
+                self.complete_path = self.ordered_file_list[cur_ind - 1][1]
+                return self.complete_path
+            except IndexError:
+                return None
+        elif mode == 'number':
+            directory, file_str = os.path.split(self.complete_path)
+            filename, file_type_str = file_str.split('.')
             file_number_str = FileNameIterator._get_ending_number(filename)
             try:
                 file_number = int(file_number_str)
@@ -121,6 +166,7 @@ class FileNameIterator(object):
 
             new_complete_path = os.path.join(directory, new_file_name)
             if os.path.exists(new_complete_path):
+                self.complete_path = new_complete_path
                 return new_complete_path
 
             format_str = '0' + str(len(file_number_str) - 1) + 'd'
@@ -129,26 +175,56 @@ class FileNameIterator(object):
 
             new_complete_path = os.path.join(directory, new_file_name)
             if os.path.exists(new_complete_path):
+                self.complete_path = new_complete_path
                 return new_complete_path
             return None
 
-        elif mode == 'time':
-            files_list = os.listdir(directory)
-            files = []
-            for file in files_list:
-                if file.endswith(file_type_str):
-                    files.append(file)
+    def update_filename(self, new_filename):
 
-            paths = (os.path.join(directory, file) for file in files)
-            entries = ((os.stat(path), path) for path in paths)
+        self.complete_path = os.path.abspath(new_filename)
+        new_directory, file_str = os.path.split(self.complete_path)
 
-            entries = list(sorted(((stat[ST_CTIME], path)
-                                   for stat, path in entries if S_ISREG(stat[ST_MODE]))))
+        if self.directory is not None:
+            self.directory_watcher.removePath(self.directory)
+            if self.directory == new_directory:
+                return
 
-            for ind, entry in enumerate(entries):
-                if entry[1] == complete_path and ind is not 0:
-                    return entries[ind - 1][1]
-            return None
+        self.directory = new_directory
+        self._files_before = dict(
+            [(f, None) for f in os.listdir(self.directory)])
+        self.directory_watcher.addPath(self.directory)
+        self._get_files_list()
+        self._order_file_list()
+
+
+    def directory_changed(self, path):
+        if self.complete_path is None:
+            return
+        self._get_files_list()
+        self._order_file_list()
+
+        self._files_now = dict(
+            [(f, None) for f in os.listdir(self.working_dir['image'])])
+        self._files_added = [
+            f for f in self._files_now if not f in self._files_before]
+        self._files_removed = [
+            f for f in self._files_before if not f in self._files_now]
+        if len(self._files_added) > 0:
+            new_file_str = self._files_added[-1]
+            path = os.path.join(self.working_dir['image'], new_file_str)
+
+            read_file = False
+            for ending in self.acceptable_file_endings:
+                if path.endswith(ending):
+                    read_file = True
+                    break
+            file_info = os.stat(path)
+            if file_info.st_size > 100:
+                if read_file:
+                    self.file_added.emit(path)
+                self._files_before = self._files_now
+
+
 
     @staticmethod
     def _get_ending_number(basename):
@@ -158,6 +234,7 @@ class FileNameIterator(object):
                 res += char
             else:
                 return res[::-1]
+
 
 
 class SignalFrequencyLimiter(object):
@@ -171,6 +248,8 @@ class SignalFrequencyLimiter(object):
             callback function responding to the signal
         :param time:
             time in milliseconds between each new callback_function call
+        :param disconnect_function:
+            function for disconnecting the callback function
         """
         self.connect_function = connect_function
         self.disconnect_function = disconnect_function
