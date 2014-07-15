@@ -20,6 +20,13 @@ from __future__ import absolute_import
 __author__ = 'Clemens Prescher'
 
 import sys
+
+#setup the logger:
+import logging
+FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(filename='log.txt', format=FORMAT, level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from PyQt4 import QtGui
 from Controller.MainController import MainController
 
@@ -73,6 +80,7 @@ def load_overlay(controller, filename):
 
 if __name__ == "__main__":
     import os
+    logger.info('Starting a new instance of Dioptas \n ######################.')
 
     app = QtGui.QApplication(sys.argv)
 
