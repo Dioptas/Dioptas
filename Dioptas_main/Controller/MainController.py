@@ -2,7 +2,7 @@
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -17,32 +17,32 @@
 
 
 import os
-
 import csv
 
 from PyQt4 import QtGui, QtCore
-from Views.MainView import MainView
 
+from Views.MainView import MainView
 from Data.ImgData import ImgData
 from Data.MaskData import MaskData
 from Data.SpectrumData import SpectrumData
 from Data.CalibrationData import CalibrationData
 from Data.PhaseData import PhaseData
-
 from .CalibrationController import CalibrationController
 from .IntegrationController import IntegrationController
 from .MaskController import MaskController
 
 __VERSION__ = '0.1'
 
-import time
-
 
 class MainController(object):
+    """
+    Creates a the main controller for Dioptas. Loads all the data objects and connects them with the other controllers
+    """
+
     def __init__(self, app):
         self.splash_img = QtGui.QPixmap("UiFiles/splash.png")
         self.splash_screen = QtGui.QSplashScreen(self.splash_img, QtCore.Qt.WindowStaysOnTopHint)
-        self.splash_screen.show()
+        self.raise_window(self.splash_screen)
         self.app = app
         app.processEvents()
         app.processEvents()
@@ -75,14 +75,15 @@ class MainController(object):
                                                             self.phase_data)
         self.create_signals()
         self.set_title()
-        self.raise_window()
+        self.raise_window(self.view)
         self.splash_screen.finish(self.view)
 
-    def raise_window(self):
-        self.view.show()
-        self.view.setWindowState(self.view.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        self.view.activateWindow()
-        self.view.raise_()
+    @staticmethod
+    def raise_window(widget):
+        widget.show()
+        widget.setWindowState(widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        widget.activateWindow()
+        widget.raise_()
 
     def create_signals(self):
         self.view.tabWidget.currentChanged.connect(self.tab_changed)
@@ -147,6 +148,7 @@ class MainController(object):
     def close_event(self, _):
         self.save_directories()
         self.view.close()
-        del self.app
+        self.view.destroy(True, True)
+        del self.view
 
 

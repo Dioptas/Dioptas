@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ from PyQt4 import QtGui, QtCore
 from functools import partial
 import numpy as np
 
-
 from .UiFiles.IntegrationUI import Ui_xrs_integration_widget
 from .ImgView import IntegrationImgView
 from .SpectrumView import SpectrumView
@@ -32,10 +31,10 @@ from .SpectrumView import SpectrumView
 class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     overlay_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
     overlay_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
-    overlay_name_changed = QtCore.pyqtSignal(int, basestring)
+    overlay_name_changed = QtCore.pyqtSignal(int, str)
     phase_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
     phase_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
-    phase_name_changed = QtCore.pyqtSignal(int, basestring)
+    phase_name_changed = QtCore.pyqtSignal(int, str)
 
     def __init__(self):
         super(IntegrationView, self).__init__()
@@ -85,7 +84,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()
-        self.overlay_tw.setRowCount(current_rows+1)
+        self.overlay_tw.setRowCount(current_rows + 1)
         self.overlay_tw.blockSignals(True)
 
         show_cb = QtGui.QCheckBox()
@@ -96,15 +95,14 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_show_cbs.append(show_cb)
 
         color_button = QtGui.QPushButton()
-        color_button.setStyleSheet("background-color: " +color)
+        color_button.setStyleSheet("background-color: " + color)
         color_button.clicked.connect(partial(self.overlay_color_btn_click, color_button))
-        self.overlay_tw.setCellWidget(current_rows,1, color_button)
+        self.overlay_tw.setCellWidget(current_rows, 1, color_button)
         self.overlay_color_btns.append(color_button)
 
         name_item = QtGui.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.overlay_tw.setItem(current_rows,2, QtGui.QTableWidgetItem(name))
-
+        self.overlay_tw.setItem(current_rows, 2, QtGui.QTableWidgetItem(name))
 
         self.overlay_tw.setColumnWidth(0, 20)
         self.overlay_tw.setColumnWidth(1, 25)
@@ -133,10 +131,10 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         del self.overlay_show_cbs[ind]
         del self.overlay_color_btns[ind]
 
-        if self.overlay_tw.rowCount()>ind:
+        if self.overlay_tw.rowCount() > ind:
             self.select_overlay(ind)
         else:
-            self.select_overlay(self.overlay_tw.rowCount()-1)
+            self.select_overlay(self.overlay_tw.rowCount() - 1)
 
     def overlay_color_btn_click(self, button):
         self.overlay_color_btn_clicked.emit(self.overlay_color_btns.index(button), button)
@@ -162,7 +160,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
     def add_phase(self, name, color):
         current_rows = self.phase_tw.rowCount()
-        self.phase_tw.setRowCount(current_rows+1)
+        self.phase_tw.setRowCount(current_rows + 1)
         self.phase_tw.blockSignals(True)
 
         show_cb = QtGui.QCheckBox()
@@ -173,22 +171,22 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.phase_show_cbs.append(show_cb)
 
         color_button = QtGui.QPushButton()
-        color_button.setStyleSheet("background-color: " +color)
+        color_button.setStyleSheet("background-color: " + color)
         color_button.clicked.connect(partial(self.phase_color_btn_click, color_button))
-        self.phase_tw.setCellWidget(current_rows,1, color_button)
+        self.phase_tw.setCellWidget(current_rows, 1, color_button)
         self.phase_color_btns.append(color_button)
 
-        self.phase_tw.setItem(current_rows,2, QtGui.QTableWidgetItem(name))
+        self.phase_tw.setItem(current_rows, 2, QtGui.QTableWidgetItem(name))
 
         pressure_item = QtGui.QTableWidgetItem('0 GPa')
         pressure_item.setFlags(pressure_item.flags() & ~QtCore.Qt.ItemIsEditable)
         pressure_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.phase_tw.setItem(current_rows,3, pressure_item)
+        self.phase_tw.setItem(current_rows, 3, pressure_item)
 
         temperature_item = QtGui.QTableWidgetItem('300 K')
         temperature_item.setFlags(temperature_item.flags() & ~QtCore.Qt.ItemIsEditable)
         temperature_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.phase_tw.setItem(current_rows,4, temperature_item)
+        self.phase_tw.setItem(current_rows, 4, temperature_item)
 
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
@@ -219,10 +217,10 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         del self.phase_show_cbs[ind]
         del self.phase_color_btns[ind]
 
-        if self.phase_tw.rowCount()>ind:
+        if self.phase_tw.rowCount() > ind:
             self.select_phase(ind)
         else:
-            self.select_phase(self.phase_tw.rowCount()-1)
+            self.select_phase(self.phase_tw.rowCount() - 1)
 
     def set_phase_tw_temperature(self, ind, T):
         temperature_item = self.phase_tw.item(ind, 4)
