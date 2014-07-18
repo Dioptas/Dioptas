@@ -372,7 +372,7 @@ class CalibrationController(object):
         for i in range(num_rings - 2):
             points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
                                                                 intensity_max, mask)
-            self.view.peak_num_sb.setValue(i + 3)
+            self.view.peak_num_sb.setValue(i + 4)
             if len(self.calibration_data.points):
                 self.plot_points(points)
                 QtGui.QApplication.processEvents()
