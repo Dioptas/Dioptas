@@ -7,7 +7,7 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
@@ -286,6 +286,7 @@ class CalibrationController(object):
         """
         self.calibration_data.clear_peaks()
         self.view.img_view.clear_scatter_plot()
+        self.view.peak_num_sb.setValue(1)
 
     def wavelength_cb_changed(self):
         """
@@ -313,10 +314,13 @@ class CalibrationController(object):
     def create_progress_dialog(self, text_str, abort_str, end_value, show_cancel_btn=True):
         progress_dialog = QtGui.QProgressDialog(text_str, abort_str, 0, end_value,
                                                 self.view)
+        progress_dialog.setWindowTitle('   ')
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+        progress_dialog.setWindowFlags(QtCore.Qt.Popup)
         if not show_cancel_btn:
             progress_dialog.setCancelButton(None)
         progress_dialog.show()
+        QtGui.QApplication.processEvents()
         return progress_dialog
 
     def refine(self):
@@ -352,8 +356,10 @@ class CalibrationController(object):
             mask = None
 
         self.calibration_data.search_peaks_on_ring(0, delta_tth, intensity_min_factor, intensity_max, mask)
+        self.view.peak_num_sb.setValue(2)
         progress_dialog.setValue(1)
         self.calibration_data.search_peaks_on_ring(1, delta_tth, intensity_min_factor, intensity_max, mask)
+        self.view.peak_num_sb.setValue(3)
         if len(self.calibration_data.points):
             self.calibration_data.refine()
             self.plot_points()
@@ -366,6 +372,7 @@ class CalibrationController(object):
         for i in range(num_rings - 2):
             points = self.calibration_data.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
                                                                 intensity_max, mask)
+            self.view.peak_num_sb.setValue(i + 4)
             if len(self.calibration_data.points):
                 self.plot_points(points)
                 QtGui.QApplication.processEvents()
@@ -374,7 +381,7 @@ class CalibrationController(object):
             else:
                 print('Did not find enough points with the specified parameters!')
             progress_dialog.setLabelText("Refining Calibration. \n"
-                                         "Finding peaks on Ring {}.".format(i + 3 ))
+                                         "Finding peaks on Ring {}.".format(i + 3))
             progress_dialog.setValue(i + 3)
             if progress_dialog.wasCanceled():
                 refinement_canceled = True
@@ -386,7 +393,7 @@ class CalibrationController(object):
         print(refinement_canceled)
         if not refinement_canceled:
             print('still doing it')
-            progress_dialog = self.create_progress_dialog('Integrated to spectrum.', '',
+            progress_dialog = self.create_progress_dialog('Integrating to spectrum.', '',
                                                           0, show_cancel_btn=False)
             QtGui.QApplication.processEvents()
             self.calibration_data.integrate_1d()
