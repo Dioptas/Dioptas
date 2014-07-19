@@ -42,3 +42,7 @@ Python and the other required packages can be installed by using a package manag
 
 to be filled
 
+Running the Program
+------------------
+
+You can start the program by running the Dioptas.py script in the Dioptas_main folder.
