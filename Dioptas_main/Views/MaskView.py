@@ -24,7 +24,7 @@ from PyQt4 import QtGui
 
 
 from .UiFiles.MaskUI import Ui_xrs_mask_widget
-from .ImgView import MaskImgView
+from .ImgWidget import MaskImgWidget
 
 
 class MaskView(QtGui.QWidget, Ui_xrs_mask_widget):
@@ -32,7 +32,7 @@ class MaskView(QtGui.QWidget, Ui_xrs_mask_widget):
         super(MaskView, self).__init__(None)
         self.setupUi(self)
         #self.splitter.setStretchFactor(0, 1)
-        self.img_view = MaskImgView(self.img_pg_layout)
+        self.img_view = MaskImgWidget(self.img_pg_layout)
         self.set_validator()
 
     def set_validator(self):

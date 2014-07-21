@@ -24,8 +24,8 @@ from functools import partial
 import numpy as np
 
 from .UiFiles.IntegrationUI import Ui_xrs_integration_widget
-from .ImgView import IntegrationImgView
-from .SpectrumView import SpectrumView
+from .ImgWidget import IntegrationImgView
+from .SpectrumWidget import SpectrumWidget
 
 
 class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
@@ -47,7 +47,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
         self.img_pg_layout.ci.layout.setContentsMargins(10, 10, 10, 5)
         self.img_pg_layout.ci.layout.setSpacing(5)
-        self.spectrum_view = SpectrumView(self.spectrum_pg_layout)
+        self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
         self.spectrum_pg_layout.ci.layout.setContentsMargins(10, 10, 0, 10)
         self.set_validator()
 

@@ -40,6 +40,6 @@ if sys.platform == "win32":
 
 setup(name="Dioptas",
       version="0.1",
-      description="Anlysis of 2 dimensional X-ray diffraction patterns.",
+      description="Analysis of 2 dimensional X-ray diffraction patterns.",
       options={"build_exe": build_exe_options},
-      executables=[Executable("Dioptas.py", base=base, requires=['PyQt4'])])
+      executables=[Executable("Dioptas.py", base=base)])

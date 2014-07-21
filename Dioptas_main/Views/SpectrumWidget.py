@@ -30,13 +30,13 @@ from pyqtgraph.exporters.SVGExporter import SVGExporter
 
 # TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
 
-class SpectrumView(QtCore.QObject):
+class SpectrumWidget(QtCore.QObject):
     mouse_moved = QtCore.pyqtSignal(float, float)
     mouse_left_clicked = QtCore.pyqtSignal(float, float)
     range_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, pg_layout):
-        super(SpectrumView, self).__init__()
+        super(SpectrumWidget, self).__init__()
         self.pg_layout = pg_layout
         self.create_graphics()
         self.create_main_plot()

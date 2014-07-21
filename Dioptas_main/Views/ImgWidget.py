@@ -28,13 +28,13 @@ from PyQt4 import QtCore, QtGui
 from .HorHistogramLUTItem import HorHistogramLUTItem
 
 
-class ImgView(QtCore.QObject):
+class ImgWidget(QtCore.QObject):
     mouse_moved = QtCore.pyqtSignal(float, float)
     mouse_left_clicked = QtCore.pyqtSignal(float, float)
     mouse_left_double_clicked = QtCore.pyqtSignal(float, float)
 
     def __init__(self, pg_layout, orientation='vertical'):
-        super(ImgView, self).__init__()
+        super(ImgWidget, self).__init__()
         self.pg_layout = pg_layout
         self.orientation = orientation
 
@@ -186,9 +186,9 @@ class ImgView(QtCore.QObject):
                 pg.ViewBox.wheelEvent(self.img_view_box, ev)
 
 
-class CalibrationCakeView(ImgView):
+class CalibrationCakeWidget(ImgWidget):
     def __init__(self, pg_layout, orientation='vertical'):
-        super(CalibrationCakeView, self).__init__(pg_layout, orientation)
+        super(CalibrationCakeWidget, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
         self._vertical_line_activated = False
         self.create_vertical_line()
@@ -212,9 +212,9 @@ class CalibrationCakeView(ImgView):
         self.vertical_line.setValue(y)
 
 
-class MaskImgView(ImgView):
+class MaskImgWidget(ImgWidget):
     def __init__(self, pg_layout, orientation='vertical'):
-        super(MaskImgView, self).__init__(pg_layout, orientation)
+        super(MaskImgWidget, self).__init__(pg_layout, orientation)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
         self.set_color()
@@ -258,7 +258,7 @@ class MaskImgView(ImgView):
 from pyFAI import marchingsquares
 
 
-class IntegrationImgView(MaskImgView, CalibrationCakeView):
+class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgView, self).__init__(pg_layout, orientation)
         self.deactivate_vertical_line()
