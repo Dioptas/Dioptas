@@ -108,7 +108,7 @@ class MaskData(object):
     def mask_QGraphicsEllipseItem(self, QGraphicsEllipseItem):
         """
         Masks an Ellipse given by a QGraphicsEllipseItem from the QtGui
-        Library. Uses the sklimage.draw.ellipse function.
+        Library. Uses the skimage.draw.ellipse function.
         """
         bounding_rect = QGraphicsEllipseItem.rect()
         cx = bounding_rect.center().x()
