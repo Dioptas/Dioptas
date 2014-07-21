@@ -176,7 +176,7 @@ class CalibrationData(object):
         self.integrate_2d()
 
     def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='ocl_csr_cpu'):
+                     unit='2th_deg', method='lut'):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
             #do not perform integration if the image is completelye masked...
             return self.tth, self.int
