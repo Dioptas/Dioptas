@@ -14,10 +14,12 @@
 *.poni
 *.xy
 *.csv
+*.ai
 log.txt
 .ipynb_checkpoints/
 .idea
 Testing/
+_build/
 PDX\ main/Tools
 marchingsquares_.*
 marchingsquares_.c
