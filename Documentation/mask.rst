@@ -35,8 +35,8 @@ geometric shapes are created by using left clicks:
     the double click as last point to the polygon)
 
 
-Threshold and Cosmic Removal
-----------------------------
+Threshold Masking and Cosmic Removal
+------------------------------------
 
 In order to do threshold masking, please insert the wanted number next to the desired Thresh button and click the button.
 
