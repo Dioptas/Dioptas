@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Calibration.ui'
 #
-# Created: Mon Jul  7 10:02:42 2014
+# Created: Thu Jul 24 16:41:50 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -149,7 +149,7 @@ class Ui_XrsCalibrationWidget(object):
         self.ToolBox.setObjectName(_fromUtf8("ToolBox"))
         self.start_values = QtGui.QWidget()
         self.start_values.setEnabled(True)
-        self.start_values.setGeometry(QtCore.QRect(0, 0, 415, 919))
+        self.start_values.setGeometry(QtCore.QRect(0, -273, 415, 919))
         self.start_values.setObjectName(_fromUtf8("start_values"))
         self.verticalLayout_5 = QtGui.QVBoxLayout(self.start_values)
         self.verticalLayout_5.setSpacing(30)
@@ -265,7 +265,11 @@ class Ui_XrsCalibrationWidget(object):
         self.label_10.setObjectName(_fromUtf8("label_10"))
         self.gridLayout_2.addWidget(self.label_10, 0, 1, 1, 2)
         self.peak_num_sb = QtGui.QSpinBox(self.groupBox_3)
+        self.peak_num_sb.setFocusPolicy(QtCore.Qt.TabFocus)
+        self.peak_num_sb.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+        self.peak_num_sb.setWrapping(False)
         self.peak_num_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.peak_num_sb.setButtonSymbols(QtGui.QAbstractSpinBox.UpDownArrows)
         self.peak_num_sb.setMinimum(1)
         self.peak_num_sb.setObjectName(_fromUtf8("peak_num_sb"))
         self.gridLayout_2.addWidget(self.peak_num_sb, 0, 3, 1, 1)
@@ -293,6 +297,8 @@ class Ui_XrsCalibrationWidget(object):
         self.label_13.setObjectName(_fromUtf8("label_13"))
         self.horizontalLayout_9.addWidget(self.label_13)
         self.search_size_sb = QtGui.QSpinBox(self.groupBox_3)
+        self.search_size_sb.setFocusPolicy(QtCore.Qt.TabFocus)
+        self.search_size_sb.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         self.search_size_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.search_size_sb.setMaximum(9000)
         self.search_size_sb.setProperty("value", 10)
@@ -325,6 +331,7 @@ class Ui_XrsCalibrationWidget(object):
         self.label_18.setObjectName(_fromUtf8("label_18"))
         self.gridLayout_5.addWidget(self.label_18, 3, 0, 1, 1)
         self.options_peaksearch_algorithm_cb = QtGui.QComboBox(self.groupBox)
+        self.options_peaksearch_algorithm_cb.setFocusPolicy(QtCore.Qt.NoFocus)
         self.options_peaksearch_algorithm_cb.setObjectName(_fromUtf8("options_peaksearch_algorithm_cb"))
         self.options_peaksearch_algorithm_cb.addItem(_fromUtf8(""))
         self.options_peaksearch_algorithm_cb.addItem(_fromUtf8(""))
@@ -335,7 +342,7 @@ class Ui_XrsCalibrationWidget(object):
         self.gridLayout_5.addWidget(self.label_25, 4, 0, 1, 1)
         self.options_intensity_mean_factor_sb = QtGui.QDoubleSpinBox(self.groupBox)
         self.options_intensity_mean_factor_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.options_intensity_mean_factor_sb.setSingleStep(1.0)
+        self.options_intensity_mean_factor_sb.setSingleStep(0.1)
         self.options_intensity_mean_factor_sb.setProperty("value", 3.0)
         self.options_intensity_mean_factor_sb.setObjectName(_fromUtf8("options_intensity_mean_factor_sb"))
         self.gridLayout_5.addWidget(self.options_intensity_mean_factor_sb, 4, 1, 1, 1)
@@ -712,11 +719,11 @@ class Ui_XrsCalibrationWidget(object):
         self.invert_vertical_btn.setText(_translate("XrsCalibrationWidget", "Flip vertical", None))
         self.reset_transformations_btn.setText(_translate("XrsCalibrationWidget", "Reset Transformations", None))
         self.groupBox_3.setTitle(_translate("XrsCalibrationWidget", "Peak Selection", None))
-        self.label_10.setText(_translate("XrsCalibrationWidget", "Current peaknumber:", None))
+        self.label_10.setText(_translate("XrsCalibrationWidget", "Current Ring Number:", None))
         self.automatic_peak_num_inc_cb.setText(_translate("XrsCalibrationWidget", "automatic increase", None))
-        self.automatic_peak_search_rb.setText(_translate("XrsCalibrationWidget", "automatic peak  search (APS)", None))
-        self.select_peak_rb.setText(_translate("XrsCalibrationWidget", "single peak search (SPS)", None))
-        self.label_13.setText(_translate("XrsCalibrationWidget", "SPS searchsize:", None))
+        self.automatic_peak_search_rb.setText(_translate("XrsCalibrationWidget", "automatic peak  search", None))
+        self.select_peak_rb.setText(_translate("XrsCalibrationWidget", "single peak search", None))
+        self.label_13.setText(_translate("XrsCalibrationWidget", "searchsize:", None))
         self.clear_peaks_btn.setText(_translate("XrsCalibrationWidget", "Clear All Peaks", None))
         self.groupBox.setTitle(_translate("XrsCalibrationWidget", "Refinement Options", None))
         self.options_automatic_refinement_cb.setText(_translate("XrsCalibrationWidget", "automatic refinement", None))

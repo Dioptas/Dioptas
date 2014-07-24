@@ -194,7 +194,7 @@ QTableWidget QPushButton::pressed{
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>3</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -875,6 +875,9 @@ QTableWidget QPushButton::pressed{
                  <property name="singleStep">
                   <double>0.010000000000000</double>
                  </property>
+                 <property name="value">
+                  <double>1.000000000000000</double>
+                 </property>
                 </widget>
                </item>
                <item row="2" column="0">
@@ -1092,7 +1095,7 @@ QTableWidget QPushButton::pressed{
             </widget>
            </item>
            <item>
-            <widget class="QWidget" name="" native="true">
+            <widget class="QWidget" name="widget" native="true">
              <property name="maximumSize">
               <size>
                <width>350</width>
