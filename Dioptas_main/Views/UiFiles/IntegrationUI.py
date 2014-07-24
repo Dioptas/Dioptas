@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Mon Jul  7 10:02:43 2014
+# Created: Thu Jul 24 16:41:50 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -401,6 +401,7 @@ class Ui_xrs_integration_widget(object):
         self.overlay_scale_sb.setDecimals(4)
         self.overlay_scale_sb.setMaximum(999999.0)
         self.overlay_scale_sb.setSingleStep(0.01)
+        self.overlay_scale_sb.setProperty("value", 1.0)
         self.overlay_scale_sb.setObjectName(_fromUtf8("overlay_scale_sb"))
         self.gridLayout.addWidget(self.overlay_scale_sb, 1, 1, 1, 1)
         self.label_4 = QtGui.QLabel(self.overlay_tab)
@@ -799,7 +800,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_16.addWidget(self.widget1)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):

@@ -6,8 +6,8 @@ Preparation
 ~~~~~~~~~~~
 
 Load the
-calibration image by clicking the "load image" button on the upper right side of the window. This will display the
-image. Now you can insert the starting values for the calibration in the menu on the right. The calibration procedure
+calibration image by clicking the "load image" button on the upper right side of the window.
+Now you can insert the starting values for the calibration in the menu on the right. The calibration procedure
 will define distance and center position of the x-ray. Therefore, wavelength and pixel width/height  have to be defined based on
 the experimental setup. Please choose the correct calibrant from the Calibrant drop-down list. Additionally the image
 can be rotated, or flipped in order to accommodate for different detector orientations. These image transformations will
@@ -37,16 +37,16 @@ the first on it with the left mouse button. If the peak search was successful it
 
     LaB\ :sub:`6` \  2D diffraction image with the first ring selected.
 
-If the default automatic peak finding fails (if it does select other peaks in addition to the first diffraction ring) there
+If the default automatic peak searching fails (if it does select other peaks in addition to the first diffraction ring) there
 are several options:
 
 * perform the automatic peak search on a different ring.
 
-  - change the current peak number
-  - and select the corresponding peak
+  - change the current ring number
+  - and select the a peak on this ring
 
 * choose single peak search, which will search the highest intensity peak around the click position, whereby the size of
-  the search area is defined byt the SPS search size
+  the search area is defined byt the *search size*
 
   - then search one peak for one diffraction ring (the current peak number will automatically increase)
   - or deselect the automatic increase checkbox and click several spots on the first ring, or any ring you like (with
@@ -95,7 +95,7 @@ There are several options available:
     image of the mask can be made transparent to be able to "look behind"
 
 *Peaksearch algorithm:*
-    The algorithm used for searching peaks. The standard algorithm is "Massif" although "Blob" detection may give better
+    The algorithm used for searching peaks on the ring. The standard algorithm is "Massif" although "Blob" detection may give better
     results in some cases.
 
 *Delta 2th:*

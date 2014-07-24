@@ -288,7 +288,7 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>0</y>
+            <y>-273</y>
             <width>415</width>
             <height>919</height>
            </rect>
@@ -567,14 +567,26 @@
                 <item row="0" column="1" colspan="2">
                  <widget class="QLabel" name="label_10">
                   <property name="text">
-                   <string>Current peaknumber:</string>
+                   <string>Current Ring Number:</string>
                   </property>
                  </widget>
                 </item>
                 <item row="0" column="3">
                  <widget class="QSpinBox" name="peak_num_sb">
+                  <property name="focusPolicy">
+                   <enum>Qt::TabFocus</enum>
+                  </property>
+                  <property name="contextMenuPolicy">
+                   <enum>Qt::NoContextMenu</enum>
+                  </property>
+                  <property name="wrapping">
+                   <bool>false</bool>
+                  </property>
                   <property name="alignment">
                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                  <property name="buttonSymbols">
+                   <enum>QAbstractSpinBox::UpDownArrows</enum>
                   </property>
                   <property name="minimum">
                    <number>1</number>
@@ -603,7 +615,7 @@
               <item>
                <widget class="QRadioButton" name="automatic_peak_search_rb">
                 <property name="text">
-                 <string>automatic peak  search (APS)</string>
+                 <string>automatic peak  search</string>
                 </property>
                 <property name="checked">
                  <bool>true</bool>
@@ -613,7 +625,7 @@
               <item>
                <widget class="QRadioButton" name="select_peak_rb">
                 <property name="text">
-                 <string>single peak search (SPS)</string>
+                 <string>single peak search</string>
                 </property>
                </widget>
               </item>
@@ -622,7 +634,7 @@
                 <item>
                  <widget class="QLabel" name="label_13">
                   <property name="text">
-                   <string>SPS searchsize:</string>
+                   <string>searchsize:</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -631,6 +643,12 @@
                 </item>
                 <item>
                  <widget class="QSpinBox" name="search_size_sb">
+                  <property name="focusPolicy">
+                   <enum>Qt::TabFocus</enum>
+                  </property>
+                  <property name="contextMenuPolicy">
+                   <enum>Qt::NoContextMenu</enum>
+                  </property>
                   <property name="alignment">
                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                   </property>
@@ -708,6 +726,9 @@
               </item>
               <item row="2" column="1">
                <widget class="QComboBox" name="options_peaksearch_algorithm_cb">
+                <property name="focusPolicy">
+                 <enum>Qt::NoFocus</enum>
+                </property>
                 <item>
                  <property name="text">
                   <string>Massif</string>
@@ -736,7 +757,7 @@
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                 </property>
                 <property name="singleStep">
-                 <double>1.000000000000000</double>
+                 <double>0.100000000000000</double>
                 </property>
                 <property name="value">
                  <double>3.000000000000000</double>
