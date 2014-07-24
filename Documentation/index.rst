@@ -14,4 +14,5 @@ Contents:
   Introduction
   calibration
   mask
+  integration
 
