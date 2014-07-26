@@ -83,25 +83,6 @@ class IntegrationSpectrumController(object):
     def image_changed(self):
         self.view.img_view.roi.blockSignals(True)
         if self.calibration_data.is_calibrated:
-            if self.autocreate:
-                filename = self.img_data.filename
-                if filename is not '':
-                    filename = os.path.join(
-                        self.working_dir['spectrum'],
-                        os.path.basename(
-                            self.img_data.filename).split('.')[:-1][0] + '.xy')
-
-                self.view.spec_next_btn.setEnabled(True)
-                self.view.spec_previous_btn.setEnabled(True)
-                self.view.spec_filename_txt.setText(os.path.basename(filename))
-                self.view.spec_directory_txt.setText(os.path.dirname(filename))
-            else:
-                self.view.spec_next_btn.setEnabled(False)
-                self.view.spec_previous_btn.setEnabled(False)
-                self.view.spec_filename_txt.setText(
-                    'No File saved or selected')
-                filename = None
-
             if self.view.img_mask_btn.isChecked():
                 self.mask_data.set_dimension(self.img_data.img_data.shape)
                 mask = self.mask_data.get_mask()
@@ -122,8 +103,28 @@ class IntegrationSpectrumController(object):
             elif roi_mask is not None and mask is not None:
                 mask = np.logical_or(mask, roi_mask)
 
-            tth, I = self.calibration_data.integrate_1d(
-                filename=filename, mask=mask, unit=self.integration_unit)
+            tth, I = self.calibration_data.integrate_1d(mask=mask, unit=self.integration_unit)
+
+            if self.autocreate:
+                filename = self.img_data.filename
+                if filename is not '':
+                    filename = os.path.join(
+                        self.working_dir['spectrum'],
+                        os.path.basename(
+                            self.img_data.filename).split('.')[:-1][0] + '.xy')
+                self.save_spectrum(filename)
+
+                self.view.spec_next_btn.setEnabled(True)
+                self.view.spec_previous_btn.setEnabled(True)
+                self.view.spec_filename_txt.setText(os.path.basename(filename))
+                self.view.spec_directory_txt.setText(os.path.dirname(filename))
+            else:
+                self.view.spec_next_btn.setEnabled(False)
+                self.view.spec_previous_btn.setEnabled(False)
+                self.view.spec_filename_txt.setText(
+                    'No File saved or selected')
+                filename = None
+
             if filename is not None:
                 spectrum_name = filename
             else:
@@ -172,6 +173,7 @@ class IntegrationSpectrumController(object):
                     header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
                         self.spectrum_data.bkg_ind].name
                 header = header.replace('# ', '')
+                header += '\n\n'+self.integration_unit + '\t I'
                 x, y = self.spectrum_data.spectrum.data
                 data = np.dstack((x, y))[0]
                 np.savetxt(filename, data, header=header)
