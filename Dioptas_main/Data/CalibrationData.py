@@ -181,8 +181,6 @@ class CalibrationData(object):
             #correct for different orientation definition in pyFAI compared to Fit2D
             polarization_factor = -polarization_factor
 
-
-
         t1 = time.time()
         if unit is 'd_A':
             try:

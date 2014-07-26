@@ -105,15 +105,16 @@ class IntegrationSpectrumController(object):
 
             tth, I = self.calibration_data.integrate_1d(mask=mask, unit=self.integration_unit)
 
+            self.spectrum_data.set_spectrum(tth, I, self.img_data.filename)
+
             if self.autocreate:
                 filename = self.img_data.filename
                 if filename is not '':
                     filename = os.path.join(
                         self.working_dir['spectrum'],
                         os.path.basename(
-                            self.img_data.filename).split('.')[:-1][0] + '.xy')
+                            str(self.img_data.filename)).split('.')[:-1][0] + '.xy')
                 self.save_spectrum(filename)
-
                 self.view.spec_next_btn.setEnabled(True)
                 self.view.spec_previous_btn.setEnabled(True)
                 self.view.spec_filename_txt.setText(os.path.basename(filename))
@@ -123,13 +124,7 @@ class IntegrationSpectrumController(object):
                 self.view.spec_previous_btn.setEnabled(False)
                 self.view.spec_filename_txt.setText(
                     'No File saved or selected')
-                filename = None
 
-            if filename is not None:
-                spectrum_name = filename
-            else:
-                spectrum_name = self.img_data.filename
-            self.spectrum_data.set_spectrum(tth, I, spectrum_name)
         self.view.img_view.roi.blockSignals(False)
 
     def plot_spectra(self):
@@ -157,24 +152,30 @@ class IntegrationSpectrumController(object):
                 filename = os.path.join(
                     directory,
                     self.spectrum_data.spectrum.name + '_bkg_subtracted.xy')
-                self.save_spectrum(filename)
+                self.save_spectrum(filename, subtract_background=True)
 
-    def save_spectrum(self, filename=None):
+    def save_spectrum(self, filename=None, subtract_background = False):
         if filename is None:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Spectrum Data.",
                                                              self.working_dir['spectrum'],
                                                              ('Data (*.xy);;png (*.png);; svg (*.svg)')))
+            subtract_background = True  #when manually saving the spectrum the background will be automatically
+                                        # subtracted
 
         if filename is not '':
             print(filename)
             if filename.endswith('.xy'):
                 header = self.calibration_data.geometry.makeHeaders()
-                if self.spectrum_data.bkg_ind is not -1:
-                    header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
-                        self.spectrum_data.bkg_ind].name
+                if subtract_background:
+                    if self.spectrum_data.bkg_ind is not -1:
+                        header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
+                            self.spectrum_data.bkg_ind].name
                 header = header.replace('# ', '')
                 header += '\n\n'+self.integration_unit + '\t I'
-                x, y = self.spectrum_data.spectrum.data
+                if subtract_background:
+                    x, y = self.spectrum_data.spectrum.data
+                else:
+                    x, y = self.spectrum_data.spectrum._x, self.spectrum_data.spectrum._y
                 data = np.dstack((x, y))[0]
                 np.savetxt(filename, data, header=header)
             elif filename.endswith('.png'):

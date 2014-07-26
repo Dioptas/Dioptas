@@ -196,7 +196,7 @@ class IntegrationImageController(object):
                     self.img_data.turn_off_notification()
                     self.img_data.load(filename)
                     self.integrate_spectrum(
-                        os.path.join(working_directory, os.path.splitext(base_filename)[0] + '.chi'))
+                        os.path.join(working_directory, os.path.splitext(base_filename)[0] + '.xy'))
                     if progress_dialog.wasCanceled():
                         break
                 self.img_data.turn_on_notification()
