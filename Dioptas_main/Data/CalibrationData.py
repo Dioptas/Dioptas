@@ -161,7 +161,8 @@ class CalibrationData(object):
                                            pixel2=self.start_values['pixel_height'],
                                            calibrant=self.calibrant)
         self.refine()
-        self.integrate()
+        self.integrate_1d()
+        self.integrate_2d()
         self.is_calibrated = True
         self.calibration_name = 'current'
 
@@ -171,17 +172,16 @@ class CalibrationData(object):
         if self.fit_wavelength:
             self.geometry.refine2_wavelength(fix=[])
 
-    def integrate(self):
-        self.integrate_1d()
-        self.integrate_2d()
-
     def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None,
                      unit='2th_deg', method='lut'):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
-            #do not perform integration if the image is completelye masked...
+            #do not perform integration if the image is completely masked...
             return self.tth, self.int
-        if polarization_factor is None:
-            polarization_factor = self.polarization_factor
+        if polarization_factor is not None:
+            #correct for different orientation definition in pyFAI compared to Fit2D
+            polarization_factor = -polarization_factor
+
+
 
         t1 = time.time()
         if unit is 'd_A':

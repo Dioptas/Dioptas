@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Calibration.ui'
 #
-# Created: Thu Jul 24 16:41:50 2014
+# Created: Sat Jul 26 12:38:36 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -149,7 +149,7 @@ class Ui_XrsCalibrationWidget(object):
         self.ToolBox.setObjectName(_fromUtf8("ToolBox"))
         self.start_values = QtGui.QWidget()
         self.start_values.setEnabled(True)
-        self.start_values.setGeometry(QtCore.QRect(0, -273, 415, 919))
+        self.start_values.setGeometry(QtCore.QRect(0, 0, 415, 919))
         self.start_values.setObjectName(_fromUtf8("start_values"))
         self.verticalLayout_5 = QtGui.QVBoxLayout(self.start_values)
         self.verticalLayout_5.setSpacing(30)
@@ -382,7 +382,7 @@ class Ui_XrsCalibrationWidget(object):
         self.verticalLayout_5.addItem(spacerItem4)
         self.ToolBox.addItem(self.start_values, _fromUtf8(""))
         self.pyFAI = QtGui.QWidget()
-        self.pyFAI.setGeometry(QtCore.QRect(0, 0, 430, 476))
+        self.pyFAI.setGeometry(QtCore.QRect(0, 0, 192, 390))
         self.pyFAI.setObjectName(_fromUtf8("pyFAI"))
         self.gridLayout_3 = QtGui.QGridLayout(self.pyFAI)
         self.gridLayout_3.setMargin(8)
@@ -497,7 +497,7 @@ class Ui_XrsCalibrationWidget(object):
         self.gridLayout_3.addWidget(self.label_15, 2, 0, 1, 1)
         self.ToolBox.addItem(self.pyFAI, _fromUtf8(""))
         self.fit2d = QtGui.QWidget()
-        self.fit2d.setGeometry(QtCore.QRect(0, 0, 430, 476))
+        self.fit2d.setGeometry(QtCore.QRect(0, 0, 184, 357))
         self.fit2d.setObjectName(_fromUtf8("fit2d"))
         self.gridLayout_7 = QtGui.QGridLayout(self.fit2d)
         self.gridLayout_7.setMargin(8)
@@ -711,7 +711,7 @@ class Ui_XrsCalibrationWidget(object):
         self.label_2.setText(_translate("XrsCalibrationWidget", "Wavelength:", None))
         self.sv_wavelength_txt.setText(_translate("XrsCalibrationWidget", "0.4133", None))
         self.label_7.setText(_translate("XrsCalibrationWidget", "Å", None))
-        self.sv_polarization_txt.setText(_translate("XrsCalibrationWidget", "0.95", None))
+        self.sv_polarization_txt.setText(_translate("XrsCalibrationWidget", "0.999", None))
         self.label_14.setText(_translate("XrsCalibrationWidget", "Polarization:", None))
         self.rotate_p90_btn.setText(_translate("XrsCalibrationWidget", "Rotate +90°", None))
         self.rotate_m90_btn.setText(_translate("XrsCalibrationWidget", "Rotate -90°", None))

@@ -288,7 +288,7 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-273</y>
+            <y>0</y>
             <width>415</width>
             <height>919</height>
            </rect>
@@ -451,7 +451,7 @@
                 <item row="2" column="1">
                  <widget class="QLineEdit" name="sv_polarization_txt">
                   <property name="text">
-                   <string>0.95</string>
+                   <string>0.999</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -861,8 +861,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>430</width>
-            <height>476</height>
+            <width>192</width>
+            <height>390</height>
            </rect>
           </property>
           <attribute name="label">
@@ -1121,8 +1121,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>430</width>
-            <height>476</height>
+            <width>184</width>
+            <height>357</height>
            </rect>
           </property>
           <attribute name="label">
