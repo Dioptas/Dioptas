@@ -70,7 +70,7 @@ class PhaseData(Observable):
         for ind in range(len(self.phases)):
             self.get_lines_d(ind)
 
-    def rescale_reflections(self, ind, spectrum, x_range,
+    def get_rescaled_reflections(self, ind, spectrum, x_range,
                             y_range, wavelength, unit='tth'):
         positions = self.reflections[ind][:, 0]
         if unit is 'q' or unit is 'tth':
@@ -87,12 +87,14 @@ class PhaseData(Observable):
         baseline = y_range[0] + 0.05 * (y_range[1] - y_range[0])
         if baseline < 0:
             baseline = 0
-        # search for reflections within spectrum range
+
         intensities = self.reflections[ind][:, 1]
+
+        # search for reflections within current spectrum view range
         intensities_for_scaling = intensities[
             np.where((positions > x_range[0]) &
                      (positions < x_range[1]))]
-        # rescale intensity
+        # rescale intensity based on the lines visible
         if len(intensities_for_scaling):
             scale_factor = (max_intensity - baseline) / \
                            np.max(intensities_for_scaling)
