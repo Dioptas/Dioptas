@@ -141,7 +141,7 @@ class IntegrationPhaseController(object):
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline = \
-            self.phase_data.rescale_reflections(
+            self.phase_data.get_rescaled_reflections(
                 -1, self.spectrum_data.spectrum,
                 x_range, y_range,
                 self.calibration_data.geometry.wavelength * 1e10,
@@ -288,7 +288,7 @@ class IntegrationPhaseController(object):
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline = \
-            self.phase_data.rescale_reflections(
+            self.phase_data.get_rescaled_reflections(
                 ind, self.spectrum_data.spectrum,
                 x_range, y_range,
                 self.calibration_data.geometry.wavelength * 1e10,
