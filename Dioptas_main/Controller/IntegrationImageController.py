@@ -481,10 +481,10 @@ class IntegrationImageController(object):
     def load_calibration(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(
-                self.view, str_caption="Load calibration...",
-                str_directory=self.working_dir[
+                self.view, "Load calibration...",
+                self.working_dir[
                     'calibration'],
-                str_filter='*.poni'))
+                '*.poni'))
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.load(filename)

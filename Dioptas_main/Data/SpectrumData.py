@@ -50,7 +50,6 @@ class SpectrumData(Observable):
         logger.info("Load spectrum: {}".format(filename))
         self.spectrum_filename = filename
         self.spectrum.load(filename)
-        print(filename)
         self.file_name_iterator.update_filename(filename)
         self.notify()
 
