@@ -21,8 +21,11 @@ __author__ = 'Clemens Prescher'
 import logging
 logger = logging.getLogger(__name__)
 
-import numpy as np
 import os
+
+import numpy as np
+from scipy.interpolate import interp1d
+
 from copy import deepcopy
 from .HelperModule import Observable, FileNameIterator, get_base_name
 
@@ -119,7 +122,7 @@ class Spectrum(object):
             self.name = os.path.basename(filename).split('.')[:-1][0]
 
         except ValueError:
-            print('Wrong data format for spectrum file!')
+            print('Wrong data format for spectrum file! - ' +filename)
             return -1
 
     def save(self, filename, header=''):
@@ -135,15 +138,23 @@ class Spectrum(object):
     @property
     def data(self):
         if self.bkg_spectrum is not None:
-            _, y_bkg = self.bkg_spectrum.data
-            return self._x, self._y * self._scaling + self.offset - y_bkg
+            #create background function
+            x_bkg, y_bkg = self.bkg_spectrum.data
+            f_bkg = interp1d(x_bkg, y_bkg, kind='cubic')
+
+            #limit x and y:
+            ind = np.where((self._x <= np.max(x_bkg)) & (self._x >= np.min(x_bkg)))
+            x = self._x[ind]
+            y = self._y[ind]
+
+            return x, y * self._scaling + self.offset - f_bkg(x)
         else:
             return self.original_data
 
 
     @data.setter
-    def data(self, xxx_todo_changeme):
-        (x, y) = xxx_todo_changeme
+    def data(self, data):
+        (x, y) = data
         self._x = x
         self._y = y
         self.scaling = 1
