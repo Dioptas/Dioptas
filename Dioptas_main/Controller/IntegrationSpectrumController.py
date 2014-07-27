@@ -22,6 +22,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
+from Data.SpectrumData import BkgNotInRangeError
 import numpy as np
 
 
@@ -128,7 +129,13 @@ class IntegrationSpectrumController(object):
         self.view.img_view.roi.blockSignals(False)
 
     def plot_spectra(self):
-        x, y = self.spectrum_data.spectrum.data
+        try:
+            x, y = self.spectrum_data.spectrum.data
+        except BkgNotInRangeError as e:
+            print(e)
+            self.reset_background(popup = True)
+            x, y = self.spectrum_data.spectrum.data
+
         self.view.spectrum_view.plot_data(
             x, y, self.spectrum_data.spectrum.name)
 
@@ -141,6 +148,14 @@ class IntegrationSpectrumController(object):
             self.view.bkg_name_lbl.setText('Bkg: ' + self.spectrum_data.overlays[self.spectrum_data.bkg_ind].name)
         else:
             self.view.bkg_name_lbl.setText('')
+
+    def reset_background(self, popup = True):
+        self.view.overlay_show_cb_set_checked(self.spectrum_data.bkg_ind, True)  #show the old overlay again
+        self.spectrum_data.bkg_ind = -1
+        self.spectrum_data.spectrum.reset_background()
+        self.view.overlay_set_as_bkg_btn.setChecked(False)
+
+
 
     def autocreate_spectrum(self):
         if self.spectrum_data.bkg_ind is not -1:

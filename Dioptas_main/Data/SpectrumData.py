@@ -140,12 +140,22 @@ class Spectrum(object):
         if self.bkg_spectrum is not None:
             #create background function
             x_bkg, y_bkg = self.bkg_spectrum.data
+
+            if np.array_equal(x_bkg, self._x):
+                #if spectrum and bkg have the same x basis we just delete y-y_bkg
+                return self._x, self._y * self._scaling + self.offset - y_bkg
+
+            #otherwise the background will be interpolated
             f_bkg = interp1d(x_bkg, y_bkg, kind='cubic')
 
-            #limit x and y:
+            #find overlapping x and y values:
             ind = np.where((self._x <= np.max(x_bkg)) & (self._x >= np.min(x_bkg)))
             x = self._x[ind]
             y = self._y[ind]
+
+            if len(x)==0:
+                #if there is no overlapping between background and spectrum, raise an error
+                raise BkgNotInRangeError(self.name)
 
             return x, y * self._scaling + self.offset - f_bkg(x)
         else:
@@ -175,6 +185,11 @@ class Spectrum(object):
         else:
             self._scaling = value
 
+class BkgNotInRangeError(Exception):
+    def __init__(self, spectrum_name):
+        self.spectrum_name = spectrum_name
+    def __str__(self):
+        return "The background range does not overlap with the Spectrum range for "+ self.spectrum_name
 
 def test():
     my_spectrum = Spectrum()
