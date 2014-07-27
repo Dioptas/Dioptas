@@ -148,16 +148,18 @@ class IntegrationOverlayController(object):
 
     def overlay_set_as_bkg_btn_clicked(self):
         cur_ind = self.view.get_selected_overlay_row()
-        if cur_ind is -1:
+        if cur_ind is -1: #no overlay selected
             self.view.overlay_set_as_bkg_btn.setChecked(False)
             return
 
         if not self.view.overlay_set_as_bkg_btn.isChecked():
+            #if the overlay is not currently a background
             self.spectrum_data.bkg_ind = -1
             self.spectrum_data.spectrum.reset_background()
             self.view.overlay_show_cb_set_checked(cur_ind, True)
             self.spectrum_data.notify()
         else:
+            #if the overlay is currently the active background
             if self.spectrum_data.bkg_ind is not -1:
                 self.view.overlay_show_cb_set_checked(self.spectrum_data.bkg_ind, True)  #show the old overlay again
             self.spectrum_data.bkg_ind = cur_ind
