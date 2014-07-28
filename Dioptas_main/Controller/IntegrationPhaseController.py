@@ -83,6 +83,7 @@ class IntegrationPhaseController(object):
                     filename = str(filename)
                     progress_dialog.setValue(ind)
                     progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
+                    progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
                     QtGui.QApplication.processEvents()
                     self.phase_data.add_phase(filename)
 
