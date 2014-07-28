@@ -77,13 +77,13 @@ class IntegrationPhaseController(object):
                 progress_dialog = QtGui.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
                                                         self.view)
                 progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+                progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
                 progress_dialog.show()
                 QtGui.QApplication.processEvents()
                 for ind, filename in enumerate(filenames):
                     filename = str(filename)
                     progress_dialog.setValue(ind)
                     progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
-                    progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
                     QtGui.QApplication.processEvents()
                     self.phase_data.add_phase(filename)
 

@@ -45,7 +45,7 @@ class CalibrationData(object):
                              'wavelength': 0.3344e-10,
                              'pixel_width': 79e-6,
                              'pixel_height': 79e-6,
-                             'polarization_factor': 0.95}
+                             'polarization_factor': 0.999}
         self.fit_wavelength = False
         self.is_calibrated = False
         self.use_mask = False
