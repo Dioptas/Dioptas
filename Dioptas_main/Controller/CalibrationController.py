@@ -396,9 +396,7 @@ class CalibrationController(object):
         del progress_dialog
 
         QtGui.QApplication.processEvents()
-        print(refinement_canceled)
         if not refinement_canceled:
-            print('still doing it')
             progress_dialog = self.create_progress_dialog('Integrating to spectrum.', '',
                                                           0, show_cancel_btn=False)
             QtGui.QApplication.processEvents()
