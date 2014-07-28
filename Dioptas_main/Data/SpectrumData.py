@@ -146,7 +146,7 @@ class Spectrum(object):
                 return self._x, self._y * self._scaling + self.offset - y_bkg
 
             #otherwise the background will be interpolated
-            f_bkg = interp1d(x_bkg, y_bkg, kind='cubic')
+            f_bkg = interp1d(x_bkg, y_bkg, kind='linear')
 
             #find overlapping x and y values:
             ind = np.where((self._x <= np.max(x_bkg)) & (self._x >= np.min(x_bkg)))
