@@ -186,6 +186,7 @@ class IntegrationImageController(object):
                 progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0, len(filenames),
                                                         self.view)
                 progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+                progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
                 progress_dialog.show()
                 for ind in range(len(filenames)):
                     filename = str(filenames[ind])

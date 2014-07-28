@@ -314,9 +314,15 @@ class CalibrationController(object):
     def create_progress_dialog(self, text_str, abort_str, end_value, show_cancel_btn=True):
         progress_dialog = QtGui.QProgressDialog(text_str, abort_str, 0, end_value,
                                                 self.view)
+
+        progress_dialog.move(self.view.tab_widget.x() + self.view.tab_widget.size().width()/2.0 -\
+                             progress_dialog.size().width()/2.0,
+                             self.view.tab_widget.y() + self.view.tab_widget.size().height()/2.0 -
+                             progress_dialog.size().height()/2.0)
+
         progress_dialog.setWindowTitle('   ')
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
-        progress_dialog.setWindowFlags(QtCore.Qt.Popup)
+        progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         if not show_cancel_btn:
             progress_dialog.setCancelButton(None)
         progress_dialog.show()
