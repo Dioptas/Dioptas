@@ -154,7 +154,23 @@ Background subtraction
 
 Not yet Implemented
 
-Options
--------
+Options (X-Tab)
+---------------
 
-to be filled
+.. figure:: images/integration_options.png
+    :align: center
+    :width: 700
+
+    Integration window option in Dioptas.
+
+The currently available options:
+
+*Mask - Transparent*:
+    If a mask is used for integration it will be shown as transparent red over the image, compared to the usual solid red.
+    This makes it possible to still be able to see what exactly is masked
+
+*Levels - Autoscale, Absolute, Percentage*:
+    These 3 choices are different modes for intensity scaling when loading new files or browsing files. *Autoscale* will
+    always perform autoscaling for each newly loaded image. When using *Absolute* the maximum and minimum levels remain
+    the same and are independent of the img intensities and when using *Percentage* the levels are always scaled as
+    percentage of the maximum intensity of the newly loaded image.
