@@ -88,7 +88,7 @@ Overlays
 In the overlay control panel you can add, delete or clear overlays and adjust their scaling and offset.
 
 *Add*:
-    Loads a spectrum file (2-column file) as overlay. It is possible to select multiple spectra and load all at once.
+    Loads a spectrum file (2-column file) as overlay. It is possible to select multiple spectra and load them all at once.
 
 *Delete*:
     Deletes the currently selected overlay in the overlay list.
@@ -96,7 +96,8 @@ In the overlay control panel you can add, delete or clear overlays and adjust th
 *Clear*:
     Deletes all currently loaded overlays.
 
-The list of overlays shows several items to represent an overlay. The first checkbox controls if the overlay is visible
+The list of overlays shows several widgets representing the state of each individual overlay.
+The first checkbox controls if the overlay is visible
 in the graph. The colored button shows the overlay color. Clicking on it will pop-up a color-chooser dialog where the color
 for this overlay can be changed. The name of an overlay is by default its filename, but it can also be changed by
 double-clicking the name in the overlay list.
@@ -117,12 +118,41 @@ each newly integrated image or newly loaded spectrum. If autosave for spectra is
 Phases
 ------
 
-to be filled
+.. figure:: images/phase_control.png
+    :align: center
+    :width: 700
+
+    Phase controls for Dioptas
+
+The basic controls for phases are similar to the ones in overlay:
+
+*Add*:
+    Loads a *.jcpds file, calculates the line positions in the range of the current spectrum and shows the phase lines in
+    the graph. You can select multiple spectra in the file dialog.
+
+*Edit*:
+    Not yet implemented
+
+*Delete*:
+    Deletes the currently selected phase in the phase list.
+
+*Clear*:
+    Deletes all phases.
+
+The list of phases shows several widgets representing the state of each individual phase overlay.
+The first checkbox controls if the phase lines are visible in the graph.
+The colored button shows the color of the phase lines. Clicking on it will pop-up a color-chooser dialog where the color
+for this phase can be changed. The name of an phase is by default its filename, but can be changed by
+double-clicking the name in the phase list. Additionally the pressure and temperature for each phase is shown in the phase
+list. If for a particular phase thermal expansion is not in the jcpds file it will always display '- K'.
+
+On the right side the pressure and temperatures of the loaded phases can be adjusted. If *Apply to all phases* is checked
+the pressure and temperature will be set for all loaded phases.
 
 Background subtraction
 ----------------------
 
-to be filled
+Not yet Implemented
 
 Options
 -------
