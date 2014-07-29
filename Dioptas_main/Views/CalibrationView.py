@@ -83,7 +83,7 @@ class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
     def set_start_values(self, start_values):
         self.sv_distance_txt.setText('%.3f' % (start_values['dist'] * 1000))
         self.sv_wavelength_txt.setText('%.6f' % (start_values['wavelength'] * 1e10))
-        self.sv_polarization_txt.setText('%.2f' % (start_values['polarization_factor']))
+        self.sv_polarization_txt.setText('%.3f' % (start_values['polarization_factor']))
         self.sv_pixel_height_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
         self.sv_pixel_width_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
         return start_values
