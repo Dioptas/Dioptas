@@ -172,7 +172,7 @@ class CalibrationData(object):
         if self.fit_wavelength:
             self.geometry.refine2_wavelength(fix=[])
 
-    def integrate_1d(self, num_points=1400, mask=None, polarization_factor=None, filename=None,
+    def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
                      unit='2th_deg', method='lut'):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
             #do not perform integration if the image is completely masked...
@@ -180,6 +180,9 @@ class CalibrationData(object):
         if polarization_factor is not None:
             #correct for different orientation definition in pyFAI compared to Fit2D
             polarization_factor = -polarization_factor
+
+        if num_points is None:
+            num_points = self.calculate_number_of_spectrum_points(1.1)
 
         t1 = time.time()
         if unit is 'd_A':
@@ -254,6 +257,26 @@ class CalibrationData(object):
             pyFAI_parameter['wavelength'] = 0
 
         return pyFAI_parameter, fit2d_parameter
+
+    def calculate_number_of_spectrum_points(self, max_dist_factor = 1.5):
+        #calculates the number of points for an integrated spectrum, based on the distance of the beam center to the the
+        #image corners. Maximum value is determined by the shape of the image.
+        fit2d_parameter = self.geometry.getFit2D()
+        center_x = fit2d_parameter['centerX']
+        center_y = fit2d_parameter['centerY']
+        width, height = self.img_data.img_data.shape
+
+        if center_x<width and center_x>0:
+            side1 = np.max([abs(width-center_x), center_x])
+        else:
+            side1 = width
+
+        if center_y<height and center_y>0:
+            side2 = np.max([abs(height-center_y), center_y])
+        else:
+            side2 = height
+        max_dist = np.sqrt(side1**2+side2**2)
+        return max_dist * max_dist_factor
 
     def load(self, filename):
         self.geometry = GeometryRefinement(np.zeros((2, 3)),
