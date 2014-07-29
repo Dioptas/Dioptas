@@ -15,6 +15,7 @@
 *.xy
 *.csv
 *.ai
+*.psd
 log.txt
 .ipynb_checkpoints/
 .idea
