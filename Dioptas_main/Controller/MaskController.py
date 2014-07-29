@@ -67,6 +67,8 @@ class MaskController(object):
         self.polygon = None
         self.point = None
 
+        self.img_data.subscribe(self.update_mask_dimension)
+
         self.raise_window()
 
     def raise_window(self):
@@ -103,6 +105,9 @@ class MaskController(object):
 
         self.view.keyPressEvent = self.key_press_event
 
+
+    def update_mask_dimension(self):
+        self.mask_data.set_dimension(self.img_data.img_data.shape)
 
     def uncheck_all_btn(self, except_btn=None):
         btns = [self.view.circle_btn, self.view.rectangle_btn, self.view.polygon_btn, \
