@@ -431,14 +431,16 @@ class PhasePlot(object):
     def hide(self):
         if self.visible:
             self.visible = False
-            for line_item in self.line_items:
-                self.plot_item.removeItem(line_item)
+            for ind, line_item in enumerate(self.line_items):
+                if self.line_visible[ind]:
+                    self.plot_item.removeItem(line_item)
 
     def show(self):
         if not self.visible:
             self.visible = True
-            for line_item in self.line_items:
-                self.plot_item.addItem(line_item)
+            for ind, line_item in enumerate(self.line_items):
+                if self.line_visible[ind]:
+                    self.plot_item.addItem(line_item)
 
 
     def remove(self):
