@@ -87,7 +87,6 @@ class IntegrationPhaseController(object):
                     QtGui.QApplication.processEvents()
                     self.phase_data.add_phase(filename)
 
-
                     if self.view.phase_apply_to_all_cb.isChecked():
                         pressure = np.float(self.view.phase_pressure_sb.value())
                         temperature = np.float(self.view.phase_temperature_sb.value())
