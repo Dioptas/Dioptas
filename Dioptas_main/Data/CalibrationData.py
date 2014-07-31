@@ -183,6 +183,7 @@ class CalibrationData(object):
 
         if num_points is None:
             num_points = self.calculate_number_of_spectrum_points(1.1)
+            print(num_points)
 
         t1 = time.time()
         if unit is 'd_A':
@@ -276,7 +277,7 @@ class CalibrationData(object):
         else:
             side2 = height
         max_dist = np.sqrt(side1**2+side2**2)
-        return max_dist * max_dist_factor
+        return int(max_dist * max_dist_factor)
 
     def load(self, filename):
         self.geometry = GeometryRefinement(np.zeros((2, 3)),
