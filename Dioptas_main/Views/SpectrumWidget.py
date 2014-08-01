@@ -4,8 +4,8 @@
 # GSECARS, University of Chicago
 #
 # This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
 #     This program is distributed in the hope that it will be useful,
@@ -55,7 +55,6 @@ class SpectrumWidget(QtCore.QObject):
         self.view_box = self.spectrum_plot.vb
         self.legend = LegendItem(horSpacing=20, box=False, verSpacing=-3)
         self.phases_legend = LegendItem(horSpacing=20, box=False, verSpacing=-3)
-
 
     def create_main_plot(self):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
@@ -112,8 +111,8 @@ class SpectrumWidget(QtCore.QObject):
 
         self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
                                 minXRange=x_range[0], maxXRange=x_range[1])
-                                # yMin=y_range[0], yMax=y_range[1],
-                                # minYRange=y_range[0], maxYRange=y_range[1],)
+        # yMin=y_range[0], yMax=y_range[1],
+        # minYRange=y_range[0], maxYRange=y_range[1],)
 
     def add_overlay(self, spectrum, show=True):
         x, y = spectrum.data
@@ -140,7 +139,7 @@ class SpectrumWidget(QtCore.QObject):
 
     def hide_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
-        self.legend.hideItem(ind+1)
+        self.legend.hideItem(ind + 1)
         self.overlay_show[ind] = False
 
         self.update_phase_visibility()
@@ -148,7 +147,7 @@ class SpectrumWidget(QtCore.QObject):
 
     def show_overlay(self, ind):
         self.spectrum_plot.addItem(self.overlays[ind])
-        self.legend.showItem(ind+1)
+        self.legend.showItem(ind + 1)
         self.overlay_show[ind] = True
 
         self.update_phase_visibility()
@@ -166,10 +165,10 @@ class SpectrumWidget(QtCore.QObject):
 
     def set_overlay_color(self, ind, color):
         self.overlays[ind].setPen(pg.mkPen(color=color, width=1.5))
-        self.legend.setItemColor(ind+1, color)
+        self.legend.setItemColor(ind + 1, color)
 
     def rename_overlay(self, ind, name):
-        self.legend.renameItem(ind+1, name)
+        self.legend.renameItem(ind + 1, name)
 
 
     def add_phase(self, name, positions, intensities, baseline):
@@ -220,7 +219,6 @@ class SpectrumWidget(QtCore.QObject):
         else:
             self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions))
 
-
     def save_png(self, filename):
         exporter = ImageExporter(self.spectrum_plot)
         exporter.export(filename)
@@ -249,7 +247,6 @@ class SpectrumWidget(QtCore.QObject):
         pos = self.plot_item.mapFromScene(pos)
         self.mouse_moved.emit(pos.x(), pos.y())
 
-
     def modify_mouse_behavior(self):
         #different mouse handlers
         self.view_box.setMouseMode(self.view_box.RectMode)
@@ -260,6 +257,13 @@ class SpectrumWidget(QtCore.QObject):
         self.view_box.mouseDoubleClickEvent = self.myMouseDoubleClickEvent
         self.view_box.wheelEvent = self.myWheelEvent
 
+        #create sigranged changed timer for right click drag
+        #if not using the timer the signals are fired too often and
+        #the computer becomes slow...
+        self.range_changed_timer = QtCore.QTimer()
+        self.range_changed_timer.timeout.connect(self.emit_sig_range_changed)
+        self.range_changed_timer.setInterval(30)
+        self.last_view_range= np.array(self.view_box.viewRange())
 
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
@@ -283,18 +287,16 @@ class SpectrumWidget(QtCore.QObject):
             y = pos.y()
             self.mouse_left_clicked.emit(x, y)
 
-
     def myMouseDoubleClickEvent(self, ev):
-        if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and \
-                                                                  ev.modifiers() & QtCore.Qt.ControlModifier):
+        if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and
+                                                      ev.modifiers() & QtCore.Qt.ControlModifier):
             self.view_box.autoRange()
             self.view_box.enableAutoRange()
             self._auto_range = True
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
-
     def myMouseDragEvent(self, ev, axis=None):
-        #most of this code is copied behavior of left click mouse drag from the original code
+        #most of this code is copied behavior mouse drag from the original code
         ev.accept()
         pos = ev.pos()
         lastPos = ev.lastPos()
@@ -302,21 +304,39 @@ class SpectrumWidget(QtCore.QObject):
         dif *= -1
 
         if ev.button() == QtCore.Qt.RightButton or \
-                (ev.button() == QtCore.Qt.LeftButton and \
-                             ev.modifiers() & QtCore.Qt.ControlModifier):
+                (ev.button() == QtCore.Qt.LeftButton and
+                         ev.modifiers() & QtCore.Qt.ControlModifier):
             #determine the amount of translation
             tr = dif
             tr = self.view_box.mapToView(tr) - self.view_box.mapToView(pg.Point(0, 0))
             x = tr.x()
             y = tr.y()
-
             self.view_box.translateBy(x=x, y=y)
+            if ev.start:
+                self.range_changed_timer.start()
+            if ev.isFinish():
+                self.range_changed_timer.stop()
+                self.emit_sig_range_changed()
         else:
-            self._auto_range = False
-            pg.ViewBox.mouseDragEvent(self.view_box, ev)
+            if ev.isFinish():  ## This is the final move in the drag; change the view scale now
+                #print "finish"
+                self.view_box.rbScaleBox.hide()
+                #ax = QtCore.QRectF(Point(self.pressPos), Point(self.mousePos))
+                ax = QtCore.QRectF(pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos))
+                ax = self.view_box.childGroup.mapRectFromParent(ax)
+                self.view_box.showAxRect(ax)
+                self.view_box.axHistoryPointer += 1
+                self.view_box.axHistory = self.view_box.axHistory[:self.view_box.axHistoryPointer] + [ax]
+                self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
+            else:
+                ## update shape of scale box
+                self.view_box.updateScaleBox(ev.buttonDownPos(), ev.pos())
 
-        self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
-
+    def emit_sig_range_changed(self):
+        new_view_range = np.array(self.view_box.viewRange())
+        if not np.array_equal(self.last_view_range, new_view_range):
+            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
+            self.last_view_range = new_view_range
 
     def myWheelEvent(self, ev, axis=None, *args):
         if ev.delta() > 0:
