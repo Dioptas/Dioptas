@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@ from __future__ import absolute_import
 __author__ = 'Clemens Prescher'
 
 import pyqtgraph as pg
-from  pyqtgraph.exporters.ImageExporter import ImageExporter
+from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from PyQt4 import QtCore, QtGui
 
@@ -116,11 +116,10 @@ class ImgWidget(QtCore.QObject):
         self.img_view_box.mouseDoubleClickEvent = self.myMouseDoubleClickEvent
         self.img_view_box.wheelEvent = self.myWheelEvent
 
-
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
-                (ev.button() == QtCore.Qt.LeftButton and \
-                             ev.modifiers() & QtCore.Qt.ControlModifier):
+                (ev.button() == QtCore.Qt.LeftButton and
+                         ev.modifiers() & QtCore.Qt.ControlModifier):
             view_range = np.array(self.img_view_box.viewRange()) * 2
             if self.img_data is not None:
                 if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
@@ -139,6 +138,7 @@ class ImgWidget(QtCore.QObject):
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
             self.img_view_box.autoRange()
+            self.img_view_box.enableAutoRange(True)
         if ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
@@ -169,7 +169,18 @@ class ImgWidget(QtCore.QObject):
             self.img_view_box.translateBy(x=x, y=y)
             self.img_view_box.sigRangeChangedManually.emit(self.img_view_box.state['mouseEnabled'])
         else:
-            pg.ViewBox.mouseDragEvent(self.img_view_box, ev)
+            if ev.isFinish():  ## This is the final move in the drag; change the view scale now
+                #print "finish"
+                self.img_view_box.rbScaleBox.hide()
+                #ax = QtCore.QRectF(Point(self.pressPos), Point(self.mousePos))
+                ax = QtCore.QRectF(pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos))
+                ax = self.img_view_box.childGroup.mapRectFromParent(ax)
+                self.img_view_box.showAxRect(ax)
+                self.img_view_box.axHistoryPointer += 1
+                self.img_view_box.axHistory = self.img_view_box.axHistory[:self.img_view_box.axHistoryPointer] + [ax]
+            else:
+                ## update shape of scale box
+                self.img_view_box.updateScaleBox(ev.buttonDownPos(), ev.pos())
 
     def myWheelEvent(self, ev):
         if ev.delta() > 0:
@@ -379,7 +390,7 @@ class MyRectangle(QtGui.QGraphicsRectItem):
 
 
 class MyROI(pg.ROI):
-    def __init__(self, pos, size, pen, img_shape = (2048,2048)):
+    def __init__(self, pos, size, pen, img_shape=(2048, 2048)):
         super(MyROI, self).__init__(pos, size, pen=pen)
         self.img_shape = img_shape
         self.base_mask = np.ones(img_shape)
@@ -425,6 +436,7 @@ class MyROI(pg.ROI):
             self.last_state = self.getState()
             return self.roi_mask
 
+
 class RoiShade(object):
     def __init__(self, view_box, roi, img_shape=(2048, 2048)):
         self.view_box = view_box
@@ -435,27 +447,28 @@ class RoiShade(object):
 
 
     def create_rect(self):
-        color = QtGui.QColor(0,0,0,100)
+        color = QtGui.QColor(0, 0, 0, 100)
         self.left_rect = QtGui.QGraphicsRectItem()
-        self.left_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0,0)))
+        self.left_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.left_rect.setBrush(QtGui.QBrush(color))
         self.right_rect = QtGui.QGraphicsRectItem()
-        self.right_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0,0)))
+        self.right_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.right_rect.setBrush(QtGui.QBrush(color))
 
         self.top_rect = QtGui.QGraphicsRectItem()
-        self.top_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0,0)))
+        self.top_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.top_rect.setBrush(QtGui.QBrush(color))
         self.bottom_rect = QtGui.QGraphicsRectItem()
-        self.bottom_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0,0)))
+        self.bottom_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.bottom_rect.setBrush(QtGui.QBrush(color))
 
 
     def update_rects(self):
         roi_rect = self.roi.parentBounds()
-        self.left_rect.setRect(0,0,roi_rect.left(), self.img_shape[0])
-        self.right_rect.setRect(roi_rect.right(),0,self.img_shape[1]-roi_rect.right(), self.img_shape[0])
-        self.top_rect.setRect(roi_rect.left(),roi_rect.bottom(),roi_rect.width(), self.img_shape[0]-roi_rect.bottom())
+        self.left_rect.setRect(0, 0, roi_rect.left(), self.img_shape[0])
+        self.right_rect.setRect(roi_rect.right(), 0, self.img_shape[1] - roi_rect.right(), self.img_shape[0])
+        self.top_rect.setRect(roi_rect.left(), roi_rect.bottom(), roi_rect.width(),
+                              self.img_shape[0] - roi_rect.bottom())
         self.bottom_rect.setRect(roi_rect.left(), 0, roi_rect.width(), roi_rect.top())
 
     def activate_rects(self):
@@ -465,7 +478,7 @@ class RoiShade(object):
             self.view_box.addItem(self.right_rect)
             self.view_box.addItem(self.top_rect)
             self.view_box.addItem(self.bottom_rect)
-            self.active=True
+            self.active = True
 
     def deactivate_rects(self):
         if self.active:
