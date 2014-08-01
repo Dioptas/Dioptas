@@ -138,7 +138,6 @@ class ImgWidget(QtCore.QObject):
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
             self.img_view_box.autoRange()
-            self.img_view_box.enableAutoRange(True)
         if ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
