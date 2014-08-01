@@ -173,7 +173,7 @@ class CalibrationData(object):
             self.geometry.refine2_wavelength(fix=[])
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='lut'):
+                     unit='2th_deg', method='csr_ocl'):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
             #do not perform integration if the image is completely masked...
             return self.tth, self.int
@@ -218,7 +218,7 @@ class CalibrationData(object):
             self.int = self.int[ind]
         return self.tth, self.int
 
-    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='lut', dimensions=(2048, 2048)):
+    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='lut_ocl', dimensions=(2048, 2048)):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
         t1 = time.time()

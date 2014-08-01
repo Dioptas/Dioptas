@@ -23,8 +23,6 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
 
-from Data.HelperModule import FileNameIterator
-
 
 class IntegrationImageController(object):
     """
