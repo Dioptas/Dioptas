@@ -1,6 +1,6 @@
 __author__ = 'Clemens Prescher'
 
-from Data.SpectrumData import Spectrum, SpectrumData
+from Data.SpectrumData import Spectrum, SpectrumData, BkgNotInRangeError
 import unittest
 import numpy as np
 
@@ -50,9 +50,9 @@ class SpectrumDataTest(unittest.TestCase):
         self.assertTrue(self.spectrum_data.overlays[-1].name == 'spec_test2')
 
     def test_background(self):
-        x_spectrum = np.linspace(0,100,101)
+        x_spectrum = np.linspace(0,100,1001)
         y_spectrum = np.sin(x_spectrum)
-        x_background = np.linspace(0,91, 102)
+        x_background = np.linspace(0,91, 1002)
         y_background = np.cos(x_background)
 
         spec = Spectrum(x_spectrum, y_spectrum)
@@ -60,14 +60,14 @@ class SpectrumDataTest(unittest.TestCase):
 
         x, y = spec.data
 
-        self.assertTrue(x[-1]<100)
-        self.assertEqual(len(x), 92)
+        self.assertTrue(x[-1]<1000)
+        self.assertEqual(len(x), 911)
 
-        test_x = np.linspace(0,91, 92)
+        test_x = np.linspace(0,91, 911)
         test_y = np.sin(test_x) - np.cos(test_x)
 
         diff = abs(np.sum(test_y-y))
-        self.assertLess(diff, 1e-4)
+        self.assertLess(diff, 1e-3)
 
     def test_background_not_in_spectrum_range(self):
         x_spectrum = np.linspace(0,30,101)
@@ -78,10 +78,7 @@ class SpectrumDataTest(unittest.TestCase):
         spec = Spectrum(x_spectrum, y_spectrum)
         spec.set_background(Spectrum(x_background, y_background))
 
-        x, y = spec.data
-
-        self.assertEqual(len(x), 0)
-        self.assertEqual(len(y), 0)
+        self.assertRaises(BkgNotInRangeError)
 
 
 
