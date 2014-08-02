@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
@@ -391,20 +391,19 @@ class IntegrationImageController(object):
 
                 azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
-                tth_str = '2θ:%9.2f  ' % tth
-                self.view.mouse_tth_lbl.setText(tth_str)
+                tth_str = u"2θ:%9.3f  " % tth
+                self.view.mouse_tth_lbl.setText(unicode(tth_str))
                 self.view.mouse_d_lbl.setText('d:%9.3f  ' % d)
                 self.view.mouse_q_lbl.setText('Q:%9.3f  ' % q_value)
                 self.view.mouse_azi_lbl.setText('X:%9.3f  ' % azi)
             else:
-                self.view.mouse_tth_lbl.setText('2θ: -')
+                self.view.mouse_tth_lbl.setText(u'2θ: -')
                 self.view.mouse_d_lbl.setText('d: -')
                 self.view.mouse_q_lbl.setText('Q: -')
                 self.view.mouse_azi_lbl.setText('X: -')
 
     def img_mouse_click(self, x, y):
         #update click position
-        # self.mouse_timer_function() #update the mouse position fields
         try:
             x_pos_string = 'X:  %4d' % y
             y_pos_string = 'Y:  %4d' % x

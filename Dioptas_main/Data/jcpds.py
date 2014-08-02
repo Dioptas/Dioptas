@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Support for calculating D spacing for powder diffraction lines as
 as function of pressure and temperature, given symmetry, zero-pressue lattice

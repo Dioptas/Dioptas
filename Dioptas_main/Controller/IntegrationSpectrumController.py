@@ -268,7 +268,7 @@ class IntegrationSpectrumController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
-        self.view.spectrum_view.spectrum_plot.setLabel('bottom', '2θ', '°')
+        self.view.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', '°')
         self.view.spectrum_view.spectrum_plot.invertX(False)
         if self.calibration_data.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
@@ -416,15 +416,15 @@ class IntegrationSpectrumController(object):
                 q_value = self.convert_x_value(d_value, 'd_A', 'q_A^-1')
                 tth = self.convert_x_value(d_value, 'd_A', '2th_deg')
 
-            tth_str = '2θ:%9.3f  ' % tth
+            tth_str = u'2θ:%9.3f  ' % tth
             d_str = 'd:%9.3f  ' % d_value
             q_str = 'Q:%9.3f  ' % q_value
         else:
-            tth_str = '2θ: -'
+            tth_str = u'2θ: -'
             d_str = 'd: -'
             q_str = 'Q: -'
             if self.integration_unit == '2th_deg':
-                tth_str = '2θ:%9.3f  ' % x
+                tth_str = u'2θ:%9.3f  ' % x
             elif self.integration_unit == 'q_A^-1':
                 q_str = 'Q:%9.3f  ' % x
             elif self.integration_unit == 'd_A':
