@@ -24,6 +24,7 @@ from PyQt4 import QtGui, QtCore
 import pyFAI
 from Data.SpectrumData import BkgNotInRangeError
 import numpy as np
+import time
 
 
 class IntegrationSpectrumController(object):
