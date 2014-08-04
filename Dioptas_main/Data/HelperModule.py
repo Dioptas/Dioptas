@@ -61,39 +61,46 @@ class FileNameIterator(QtCore.QObject):
     # TODO create an File Index and then just get the next files according to this.
     # Otherwise searching a network is always to slow...
 
-    def __init__(self, filename=None, acceptable_file_endings=None):
+    def __init__(self, filename=None):
         super(FileNameIterator, self).__init__()
         self.acceptable_file_endings = []
+        self.directory_watcher = QtCore.QFileSystemWatcher()
+        self.directory_watcher.directoryChanged.connect(self.update_file_list)
 
         if filename is None:
             self.complete_path = None
             self.directory = None
             self.filename = None
+            self.file_list = []
+            self.ordered_file_list = []
         else:
             self.complete_path = os.path.abspath(filename)
             self.directory, self.filename = os.path.split(self.complete_path)
             self.acceptable_file_endings.append(self.filename.split('.')[-1])
+
             self._get_files_list()
             self._order_file_list()
+
+
+    def _get_files_list(self):
+        file_list = os.listdir(self.directory)
+        if file_list is not self.file_list:
+            files = []
+            for file in file_list:
+                is_correct_ending = False
+                for ending in self.acceptable_file_endings:
+                    if file.endswith(ending):
+                        is_correct_ending = True
+                        break
+                if is_correct_ending:
+                    files.append(file)
+            paths = (os.path.join(self.directory, file) for file in files)
+            self.file_list = ((os.stat(path), path) for path in paths)
+        return self.file_list
 
     def _order_file_list(self):
         self.ordered_file_list = list(sorted(((stat[ST_CTIME], path)
                                               for stat, path in self.file_list if S_ISREG(stat[ST_MODE]))))
-
-    def _get_files_list(self):
-        file_list = os.listdir(self.directory)
-        files = []
-        for file in file_list:
-            is_correct_ending = False
-            for ending in self.acceptable_file_endings:
-                if file.endswith(ending):
-                    is_correct_ending = True
-                    break
-            if is_correct_ending:
-                files.append(file)
-        paths = (os.path.join(self.directory, file) for file in files)
-        self.file_list = ((os.stat(path), path) for path in paths)
-        return self.file_list
 
     def get_next_filename(self, mode='number'):
         if self.complete_path is None:
@@ -124,7 +131,6 @@ class FileNameIterator(QtCore.QObject):
                 self.complete_path = new_complete_path
                 return new_complete_path
             return None
-
 
     def get_previous_filename(self, mode='number'):
         """
@@ -176,17 +182,23 @@ class FileNameIterator(QtCore.QObject):
             return None
 
     def update_filename(self, new_filename):
-
         self.complete_path = os.path.abspath(new_filename)
         new_directory, file_str = os.path.split(self.complete_path)
         try:
             self.acceptable_file_endings.append(file_str.split('.')[-1])
         except AttributeError:
             pass
-        self.directory = new_directory
+        if self.directory != new_directory:
+            if self.directory is not None:
+                self.directory_watcher.removePath(self.directory)
+            self.directory_watcher.addPath(new_directory)
+            self.directory = new_directory
+            self.update_file_list()
+
+    def update_file_list(self):
+        QtGui.QApplication.processEvents()
         self._get_files_list()
         self._order_file_list()
-
 
     @staticmethod
     def _get_ending_number(basename):

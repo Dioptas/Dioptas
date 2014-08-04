@@ -143,7 +143,6 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.img_load_calibration_btn, self.load_calibration)
         self.create_auto_process_signal()
 
-
     def connect_click_function(self, emitter, function):
         """
         Small helper function for the button-click connection.
@@ -528,7 +527,6 @@ class IntegrationImageController(object):
                 if read_file:
                     self.load_file(path)
                 self._files_before = self._files_now
-
 
     def save_img(self, filename=None):
         if filename is None:
