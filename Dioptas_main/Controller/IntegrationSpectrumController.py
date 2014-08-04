@@ -250,7 +250,7 @@ class IntegrationSpectrumController(object):
 
     def spec_directory_txt_changed(self):
         if os.path.exists(self.view.spec_directory_txt.text()):
-            self.working_dir['spectrum'] = self.view.spec_directory_txt.text()
+            self.working_dir['spectrum'] = str(self.view.spec_directory_txt.text())
         else:
             self.view.spec_directory_txt.setText(self.working_dir['spectrum'])
 
