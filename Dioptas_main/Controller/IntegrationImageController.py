@@ -124,6 +124,7 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.prev_img_btn, self.load_previous_img)
         self.connect_click_function(self.view.load_img_btn, self.load_file)
         self.view.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
+        self.view.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.connect_click_function(self.view.img_directory_btn, self.img_directory_btn_click)
 
         self.connect_click_function(self.view.img_browse_by_name_rb, self.set_iteration_mode_number)
@@ -260,13 +261,27 @@ class IntegrationImageController(object):
         else:
             self.view.img_filename_txt.setText(current_filename)
 
+    def directory_txt_changed(self):
+        new_directory = str(self.view.img_directory_txt.text())
+        if os.path.exists(new_directory) and new_directory != self.working_dir['image']:
+            if self.view.autoprocess_cb.isChecked():
+                self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
+            self.working_dir['image'] = os.path.abspath(new_directory)
+            old_filename = str(self.view.img_filename_txt.text())
+            self.view.img_filename_txt.setText(old_filename+'*')
+            #update for autoprocessing of images
+        else:
+            self.view.img_directory_txt.setText(self.working_dir['image'])
+
     def img_directory_btn_click(self):
-        directory = QtGui.QFileDialog.getExistingDirectory(
+        directory = str(QtGui.QFileDialog.getExistingDirectory(
             self.view,
             "Please choose the image working directory.",
-            self.working_dir['image'])
+            self.working_dir['image']))
         if directory is not '':
-            self.working_dir['image'] = str(directory)
+            if self.view.autoprocess_cb.isChecked():
+                self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
+            self.working_dir['image'] = directory
             self.view.img_directory_txt.setText(directory)
 
     def update_img(self, reset_img_levels=None):
