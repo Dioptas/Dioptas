@@ -99,6 +99,7 @@ class MainController(object):
             auto_scale_previous = self.integration_controller.image_controller._auto_scale
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()
+            self.integration_controller.image_controller.update_img()
             self.integration_controller.image_controller._auto_scale = auto_scale_previous
         elif ind == 1:
             self.mask_controller.plot_mask()

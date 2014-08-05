@@ -300,7 +300,12 @@ class IntegrationImageController(object):
                 roi_mask[x1:x2, y1:y2] = 0
             else:
                 roi_mask = np.zeros(self.img_data.img_data.shape)
-            mask = np.logical_or(mask, roi_mask)
+
+            if self.use_mask or self.roi_active:
+                mask = np.logical_or(mask, roi_mask)
+            else:
+                mask = None
+
             self.calibration_data.integrate_2d(mask)
             self.plot_cake()
             self.view.img_view.plot_mask(

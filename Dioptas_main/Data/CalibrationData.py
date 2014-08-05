@@ -31,6 +31,7 @@ from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
 from .HelperModule import get_base_name
+from copy import deepcopy, copy
 import Calibrants
 
 
@@ -40,6 +41,7 @@ class CalibrationData(object):
         self.points = []
         self.points_index = []
         self.geometry = AzimuthalIntegrator()
+        self.geometry2 = AzimuthalIntegrator()
         self.calibrant = Calibrant()
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
@@ -162,6 +164,7 @@ class CalibrationData(object):
                                            calibrant=self.calibrant)
         self.refine()
         self.integrate_1d()
+        self.geometry2 = copy(self.geometry)
         self.integrate_2d()
         self.is_calibrated = True
         self.calibration_name = 'current'
@@ -171,9 +174,10 @@ class CalibrationData(object):
         self.geometry.refine2()
         if self.fit_wavelength:
             self.geometry.refine2_wavelength(fix=[])
+        self.geometry2 = copy(self.geometry)
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='lut'):
+                     unit='2th_deg', method='csr'):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
             #do not perform integration if the image is completely masked...
             return self.tth, self.int
@@ -183,7 +187,6 @@ class CalibrationData(object):
 
         if num_points is None:
             num_points = self.calculate_number_of_spectrum_points(1.1)
-            print(num_points)
 
         t1 = time.time()
         if unit is 'd_A':
@@ -193,7 +196,7 @@ class CalibrationData(object):
                                                                mask=mask, polarization_factor=polarization_factor,
                                                                filename=filename)
             except NameError:
-                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
+                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
                                                                unit='2th_deg',
                                                                mask=mask, polarization_factor=polarization_factor,
                                                                filename=filename)
@@ -218,11 +221,13 @@ class CalibrationData(object):
             self.int = self.int[ind]
         return self.tth, self.int
 
-    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='lut', dimensions=(2048, 2048)):
+    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr', dimensions=(2048, 2048)):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
+
         t1 = time.time()
-        res = self.geometry.integrate2d(self.img_data.img_data, dimensions[0], dimensions[1], method=method, mask=mask,
+
+        res = self.geometry2.integrate2d(self.img_data.img_data, dimensions[0], dimensions[1], method=method, mask=mask,
                                         unit=unit, polarization_factor=polarization_factor)
         logger.info('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         self.cake_img = res[0]
@@ -288,6 +293,7 @@ class CalibrationData(object):
         self.geometry.load(filename)
         self.calibration_name = get_base_name(filename)
         self.is_calibrated = True
+        self.geometry2 = copy(self.geometry)
 
     def save(self, filename):
         self.geometry.save(filename)
