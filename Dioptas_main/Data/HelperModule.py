@@ -6,10 +6,10 @@
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
+# (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
 #
@@ -24,6 +24,7 @@ import numpy as np
 import os
 from PyQt4 import QtCore, QtGui
 from stat import S_ISREG, ST_CTIME, ST_MODE
+from copy import deepcopy
 from colorsys import hsv_to_rgb
 
 import time
@@ -81,8 +82,8 @@ class FileNameIterator(QtCore.QObject):
             self._get_files_list()
             self._order_file_list()
 
-
     def _get_files_list(self):
+        t1 = time.time()
         file_list = os.listdir(self.directory)
         if file_list is not self.file_list:
             files = []
@@ -95,12 +96,14 @@ class FileNameIterator(QtCore.QObject):
                 if is_correct_ending:
                     files.append(file)
             paths = (os.path.join(self.directory, file) for file in files)
-            self.file_list = ((os.stat(path), path) for path in paths)
+            self.file_list = [(os.stat(path)[8], path) for path in paths]
+        print('Time needed  for getting files: {}s.'.format(time.time() - t1))
         return self.file_list
 
     def _order_file_list(self):
-        self.ordered_file_list = list(sorted(((stat[ST_CTIME], path)
-                                              for stat, path in self.file_list if S_ISREG(stat[ST_MODE]))))
+        t1 = time.time()
+        self.ordered_file_list = list(sorted(((stat, path) for stat, path in self.file_list)))
+        print('Time needed  for ordering files: {}s.'.format(time.time() - t1))
 
     def get_next_filename(self, mode='number'):
         if self.complete_path is None:
@@ -108,6 +111,7 @@ class FileNameIterator(QtCore.QObject):
         if mode == 'time':
             time_stat = os.stat(self.complete_path)[ST_CTIME]
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
+            # cur_ind = self.ordered_file_list.index(self.complete_path)
             try:
                 self.complete_path = self.ordered_file_list[cur_ind + 1][1]
                 return self.complete_path
@@ -147,6 +151,7 @@ class FileNameIterator(QtCore.QObject):
         if mode == 'time':
             time_stat = os.stat(self.complete_path)[ST_CTIME]
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
+            # cur_ind = self.ordered_file_list.index(self.complete_path)
             if cur_ind > 0:
                 try:
                     self.complete_path = self.ordered_file_list[cur_ind - 1][1]
