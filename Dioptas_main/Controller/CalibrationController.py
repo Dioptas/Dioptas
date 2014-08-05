@@ -8,7 +8,7 @@
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
 #
@@ -21,7 +21,7 @@
 
 __author__ = 'Clemens Prescher'
 import os
-import time
+from copy import copy
 
 from PyQt4 import QtGui, QtCore
 
@@ -123,6 +123,7 @@ class CalibrationController(object):
                                                 pixelX=fit2d_parameter['pixelX'],
                                                 pixelY=fit2d_parameter['pixelY'])
         self.calibration_data.geometry.wavelength = fit2d_parameter['wavelength']
+        self.calibration_data.geometry2 = copy(self.calibration_data.geometry)
         self.calibration_data.polarization_factor = fit2d_parameter['polarization_factor']
         self.calibration_data.is_calibrated = True
         self.update_all()
@@ -141,10 +142,10 @@ class CalibrationController(object):
                                                 pixel1=pyFAI_parameter['pixel1'],
                                                 pixel2=pyFAI_parameter['pixel2'])
         self.calibration_data.geometry.wavelength = pyFAI_parameter['wavelength']
+        self.calibration_data.geometry2 = copy(self.calibration_data.geometry)
         self.calibration_data.polarization_factor = pyFAI_parameter['polarization_factor']
         self.calibration_data.is_calibrated = True
         self.update_all()
-
 
     def load_img(self, filename=None):
         """
@@ -234,7 +235,6 @@ class CalibrationController(object):
         self.view.calibrant_cb.setCurrentIndex(index)
         self.load_calibrant()
 
-
     def plot_image(self):
         """
         Plots the current image loaded in img_data and autoscales the intensity.
@@ -271,7 +271,7 @@ class CalibrationController(object):
             list of points, whereby a point is a [x,y] element. If it is none it will plot the points stored in the
             calibration_data
         """
-        if points == None:
+        if points is None:
             try:
                 points = self.calibration_data.get_point_array()
             except IndexError:
@@ -298,7 +298,7 @@ class CalibrationController(object):
         """
         Performs calibration based on the previously inputted/searched peaks and start values.
         """
-        self.load_calibrant()  #load the right calibration file...
+        self.load_calibrant()  # load the right calibration file...
         self.calibration_data.set_start_values(self.view.get_start_values())
         progress_dialog = self.create_progress_dialog('Calibrating.', '', 0, show_cancel_btn=False)
         self.calibration_data.calibrate()
@@ -315,10 +315,10 @@ class CalibrationController(object):
         progress_dialog = QtGui.QProgressDialog(text_str, abort_str, 0, end_value,
                                                 self.view)
 
-        progress_dialog.move(self.view.tab_widget.x() + self.view.tab_widget.size().width()/2.0 -\
-                             progress_dialog.size().width()/2.0,
-                             self.view.tab_widget.y() + self.view.tab_widget.size().height()/2.0 -
-                             progress_dialog.size().height()/2.0)
+        progress_dialog.move(self.view.tab_widget.x() + self.view.tab_widget.size().width() / 2.0 - \
+                             progress_dialog.size().width() / 2.0,
+                             self.view.tab_widget.y() + self.view.tab_widget.size().height() / 2.0 -
+                             progress_dialog.size().height() / 2.0)
 
         progress_dialog.setWindowTitle('   ')
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -406,7 +406,7 @@ class CalibrationController(object):
             QtGui.QApplication.processEvents()
             self.calibration_data.integrate_2d()
             progress_dialog.close()
-            self.update_all()
+            self.update_all(integrate=False)
 
     def load_calibration(self, filename=None):
         """
@@ -422,7 +422,6 @@ class CalibrationController(object):
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.load(filename)
             self.update_all()
-
 
     def use_mask_status_changed(self):
         self.plot_mask()
@@ -440,13 +439,15 @@ class CalibrationController(object):
         else:
             self.view.img_view.set_color([255, 0, 0, 255])
 
-
-    def update_all(self):
+    def update_all(self, integrate=True):
         """
         Performs 1d and 2d integration based on the current calibration parameter set. Updates the GUI interface
         accordingly with the new diffraction pattern and cake image.
         :return:
         """
+        if integrate:
+            self.calibration_data.integrate_1d()
+            self.calibration_data.integrate_2d()
         self.view.cake_view.plot_image(self.calibration_data.cake_img, False)
         self.view.cake_view.auto_range()
 
@@ -485,7 +486,6 @@ class CalibrationController(object):
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.geometry.save(filename)
-
 
     def show_img_mouse_position(self, x, y):
         """
