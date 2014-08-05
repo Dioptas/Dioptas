@@ -397,16 +397,7 @@ class CalibrationController(object):
 
         QtGui.QApplication.processEvents()
         if not refinement_canceled:
-            progress_dialog = self.create_progress_dialog('Integrating to spectrum.', '',
-                                                          0, show_cancel_btn=False)
-            QtGui.QApplication.processEvents()
-            self.calibration_data.integrate_1d()
-            progress_dialog.setLabelText('Integrating to cake.')
-            QtGui.QApplication.processEvents()
-            QtGui.QApplication.processEvents()
-            self.calibration_data.integrate_2d()
-            progress_dialog.close()
-            self.update_all(integrate=False)
+            self.update_all()
 
     def load_calibration(self, filename=None):
         """
@@ -446,8 +437,15 @@ class CalibrationController(object):
         :return:
         """
         if integrate:
-            self.calibration_data.integrate_1d()
+            progress_dialog = self.create_progress_dialog('Integrating to cake.', '',
+                                                          0, show_cancel_btn=False)
+            QtGui.QApplication.processEvents()
             self.calibration_data.integrate_2d()
+            progress_dialog.setLabelText('Integrating to spectrum.')
+            QtGui.QApplication.processEvents()
+            QtGui.QApplication.processEvents()
+            self.calibration_data.integrate_1d()
+            progress_dialog.close()
         self.view.cake_view.plot_image(self.calibration_data.cake_img, False)
         self.view.cake_view.auto_range()
 
