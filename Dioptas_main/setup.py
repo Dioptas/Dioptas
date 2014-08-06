@@ -39,7 +39,7 @@ if sys.platform == "win32":
     base = "Win32GUI"
 
 setup(name="Dioptas",
-      version="0.1.3",
+      version="0.1.4",
       description="Analysis of 2 dimensional X-ray diffraction patterns.",
       options={"build_exe": build_exe_options},
       executables=[Executable("Dioptas.py", base=base)])

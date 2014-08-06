@@ -94,7 +94,9 @@ class IntegrationController(object):
                                                                  self.mask_data,
                                                                  self.calibration_data, self.spectrum_data)
         self.image_controller = IntegrationImageController(self.working_dir, self.view, self.img_data,
-                                                           self.mask_data, self.calibration_data)
+                                                           self.mask_data, self.spectrum_data,
+                                                           self.calibration_data)
+
         self.overlay_controller = IntegrationOverlayController(self.working_dir, self.view, self.spectrum_data)
 
         self.phase_controller = IntegrationPhaseController(self.working_dir, self.view, self.calibration_data,
