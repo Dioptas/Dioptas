@@ -307,3 +307,14 @@ def calculate_color(ind):
 
 def gauss_function(x, int, hwhm, center):
     return int * np.exp(-(x - float(center)) ** 2 / (2 * hwhm ** 2))
+
+def save_chi_file(filename, unit, x, y):
+    file_handle = open(filename, 'w')
+    num_points = len(x)
+
+    file_handle.write(filename+'\n')
+    file_handle.write(unit+'\n\n')
+    file_handle.write("       {}\n".format(num_points))
+    for ind in xrange(num_points):
+        file_handle.write(' {:.7E}  {:.7E}\n'.format(x[ind], y[ind]))
+    file_handle.close()
