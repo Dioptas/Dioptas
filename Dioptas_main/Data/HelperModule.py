@@ -85,24 +85,24 @@ class FileNameIterator(QtCore.QObject):
     def _get_files_list(self):
         t1 = time.time()
         file_list = os.listdir(self.directory)
-        if file_list is not self.file_list:
-            files = []
-            for file in file_list:
-                is_correct_ending = False
-                for ending in self.acceptable_file_endings:
-                    if file.endswith(ending):
-                        is_correct_ending = True
-                        break
-                if is_correct_ending:
-                    files.append(file)
-            paths = (os.path.join(self.directory, file) for file in files)
-            self.file_list = [(os.stat(path)[8], path) for path in paths]
+        files = []
+        for file in file_list:
+            is_correct_ending = False
+            for ending in self.acceptable_file_endings:
+                if file.endswith(ending):
+                    is_correct_ending = True
+                    break
+            if is_correct_ending:
+                files.append(file)
+        paths = (os.path.join(self.directory, file) for file in files)
+        self.file_list = ((os.stat(path), path) for path in paths)
         print('Time needed  for getting files: {}s.'.format(time.time() - t1))
         return self.file_list
 
     def _order_file_list(self):
         t1 = time.time()
-        self.ordered_file_list = list(sorted(((stat, path) for stat, path in self.file_list)))
+        self.ordered_file_list = list(sorted(((stat[ST_CTIME], path)\
+                                              for stat, path in self.file_list if S_ISREG(stat[ST_MODE]))))
         print('Time needed  for ordering files: {}s.'.format(time.time() - t1))
 
     def get_next_filename(self, mode='number'):
