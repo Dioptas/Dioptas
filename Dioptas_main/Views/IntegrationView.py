@@ -3,7 +3,7 @@
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 # GSECARS, University of Chicago
 #
-#     This program is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
@@ -54,6 +54,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)
         self.overlay_show_cbs = []
         self.overlay_color_btns = []
+        self.overlay_tw.setItemDelegate(NoRectDelegate())
 
         self.phase_tw.cellChanged.connect(self.phase_label_editingFinished)
         self.phase_show_cbs = []
@@ -64,7 +65,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         header_view.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
         header_view.setResizeMode(4, QtGui.QHeaderView.ResizeToContents)
         header_view.hide()
-
+        self.phase_tw.setItemDelegate(NoRectDelegate())
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -111,7 +112,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_tw.blockSignals(False)
 
     def select_overlay(self, ind):
-        if self.overlay_tw.rowCount()>0:
+        if self.overlay_tw.rowCount() > 0:
             self.overlay_tw.selectRow(ind)
 
     def get_selected_overlay_row(self):
@@ -260,3 +261,11 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
             label_item = self.phase_tw.item(row, col)
             self.phase_name_changed.emit(row, str(label_item.text()))
 
+
+class NoRectDelegate(QtGui.QItemDelegate):
+    def __init__(self):
+        super(NoRectDelegate, self).__init__()
+
+    def drawFocus(self, painter, option, rect):
+        option.state &= ~QtGui.QStyle.State_HasFocus
+        QtGui.QItemDelegate.drawFocus(self, painter, option, rect)

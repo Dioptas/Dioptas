@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Wed Aug  6 13:51:02 2014
-#      by: PyQt4 UI code generator 4.10.4
+# Created: Wed Aug 06 15:14:27 2014
+#      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -56,7 +56,10 @@ class Ui_xrs_integration_widget(object):
 "    margin-left: 7px;\n"
 "}\n"
 "\n"
-""))
+"QTableWidget {\n"
+"    selection-background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(177,80,0,255), stop:1 rgba(255,120,0,255));\n"
+"    selection-color: #F1F1F1;\n"
+"}"))
         self.verticalLayout_16 = QtGui.QVBoxLayout(xrs_integration_widget)
         self.verticalLayout_16.setSpacing(3)
         self.verticalLayout_16.setMargin(8)
@@ -204,7 +207,7 @@ class Ui_xrs_integration_widget(object):
         self.widget_2 = QtGui.QWidget(self.image_tab)
         self.widget_2.setObjectName(_fromUtf8("widget_2"))
         self.horizontalLayout_23 = QtGui.QHBoxLayout(self.widget_2)
-        self.horizontalLayout_23.setSpacing(-1)
+        self.horizontalLayout_23.setSpacing(6)
         self.horizontalLayout_23.setMargin(0)
         self.horizontalLayout_23.setObjectName(_fromUtf8("horizontalLayout_23"))
         self.qa_img_save_img_btn = QtGui.QPushButton(self.widget_2)

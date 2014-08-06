@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Wed Aug  6 13:51:02 2014
-#      by: PyQt4 UI code generator 4.10.4
+# Created: Wed Aug 06 15:14:27 2014
+#      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -212,7 +212,7 @@ class Ui_mainView(object):
 "    padding-right: 8px;   \n"
 " }  \n"
 "QPushButton:pressed{\n"
-"        margin-top: 2,px;\n"
+"        margin-top: 2px;\n"
 "        margin-left: 2px;    \n"
 "}\n"
 "QPushButton::disabled{\n"
