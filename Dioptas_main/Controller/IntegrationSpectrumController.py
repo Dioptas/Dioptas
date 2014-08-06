@@ -256,10 +256,10 @@ class IntegrationSpectrumController(object):
             self.view.spec_directory_txt.setText(self.working_dir['spectrum'])
 
     def set_iteration_mode_number(self):
-        self.spectrum_data.file_iteration_mode = 'number'
+        self.spectrum_data.set_file_iteration_mode('number')
 
     def set_iteration_mode_time(self):
-        self.spectrum_data.file_iteration_mode = 'time'
+        self.spectrum_data.set_file_iteration_mode('time')
 
     def set_unit_tth(self):
         self.view.spec_tth_btn.setChecked(True)

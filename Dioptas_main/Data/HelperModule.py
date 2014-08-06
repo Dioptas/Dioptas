@@ -67,6 +67,7 @@ class FileNameIterator(QtCore.QObject):
         self.acceptable_file_endings = []
         self.directory_watcher = QtCore.QFileSystemWatcher()
         self.directory_watcher.directoryChanged.connect(self.update_file_list)
+        self.create_timed_file_list = False
 
         if filename is None:
             self.complete_path = None
@@ -78,9 +79,6 @@ class FileNameIterator(QtCore.QObject):
             self.complete_path = os.path.abspath(filename)
             self.directory, self.filename = os.path.split(self.complete_path)
             self.acceptable_file_endings.append(self.filename.split('.')[-1])
-
-            self._get_files_list()
-            self._order_file_list()
 
     def _get_files_list(self):
         t1 = time.time()
@@ -198,12 +196,16 @@ class FileNameIterator(QtCore.QObject):
                 self.directory_watcher.removePath(self.directory)
             self.directory_watcher.addPath(new_directory)
             self.directory = new_directory
+            if self.create_timed_file_list:
+                self.update_file_list()
+
+        if (self.create_timed_file_list and self.ordered_file_list == []):
             self.update_file_list()
 
     def update_file_list(self):
-        QtGui.QApplication.processEvents()
-        self._get_files_list()
-        self._order_file_list()
+        if self.create_timed_file_list:
+            self._get_files_list()
+            self._order_file_list()
 
     @staticmethod
     def _get_ending_number(basename):

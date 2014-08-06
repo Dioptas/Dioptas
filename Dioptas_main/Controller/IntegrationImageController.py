@@ -466,10 +466,10 @@ class IntegrationImageController(object):
         self.view.click_azi_lbl.setText(self.view.mouse_azi_lbl.text())
 
     def set_iteration_mode_number(self):
-        self.img_data.file_iteration_mode = 'number'
+        self.img_data.set_file_iteration_mode('number')
 
     def set_iteration_mode_time(self):
-        self.img_data.file_iteration_mode = 'time'
+        self.img_data.set_file_iteration_mode('time')
 
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.calibration_data.geometry.wavelength
