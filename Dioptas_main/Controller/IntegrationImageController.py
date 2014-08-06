@@ -30,12 +30,13 @@ class IntegrationImageController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, working_dir, view, img_data, mask_data,
+    def __init__(self, working_dir, view, img_data, mask_data, spectrum_data,
                  calibration_data):
         self.working_dir = working_dir
         self.view = view
         self.img_data = img_data
         self.mask_data = mask_data
+        self.spectrum_data = spectrum_data
         self.calibration_data = calibration_data
         self._auto_scale = True
         self.img_mode = 'Image'
@@ -194,15 +195,48 @@ class IntegrationImageController(object):
                     QtGui.QApplication.processEvents()
                     self.img_data.turn_off_notification()
                     self.img_data.load(filename)
-                    self.integrate_spectrum(
-                        os.path.join(working_directory, os.path.splitext(base_filename)[0] + '.xy'))
+                    x, y = self.integrate_spectrum()
+                    file_endings = self.get_spectrum_file_endings()
+                    print file_endings
+                    for file_ending in file_endings:
+                        filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
+                        print filename
+                        self.spectrum_data.set_spectrum(x,y, filename, unit=self.get_integration_unit())
+                        if file_ending == '.xy':
+                            self.spectrum_data.save_spectrum(filename, header=self.create_header())
+                        else:
+                            self.spectrum_data.save_spectrum(filename)
                     if progress_dialog.wasCanceled():
                         break
                 self.img_data.turn_on_notification()
                 self.img_data.notify()
                 progress_dialog.close()
 
-    def integrate_spectrum(self, filename):
+    def create_header(self):
+        header = self.calibration_data.geometry.makeHeaders()
+        header = header.replace('\r\n', '')
+        header += '\n#\n# ' + self.spectrum_data.unit + '\t I'
+        return header
+
+    def get_spectrum_file_endings(self):
+        res = []
+        if self.view.spectrum_header_xy_cb.isChecked():
+            res.append('.xy')
+        if self.view.spectrum_header_chi_cb.isChecked():
+            res.append('.chi')
+        if self.view.spectrum_header_dat_cb.isChecked():
+            res.append('.dat')
+        return res
+
+    def get_integration_unit(self):
+        if self.view.spec_tth_btn.isChecked():
+            return '2th_deg'
+        elif self.view.spec_q_btn.isChecked():
+            return 'q_A^-1'
+        elif self.view.spec_d_btn.isChecked():
+            return 'd_A'
+
+    def integrate_spectrum(self):
         if self.view.img_mask_btn.isChecked():
             self.mask_data.set_dimension(self.img_data.img_data.shape)
             mask = self.mask_data.get_mask()
@@ -233,7 +267,8 @@ class IntegrationImageController(object):
             # in case something weird happened
             print('No correct integration unit selected')
             return
-        self.calibration_data.integrate_1d(filename=filename, mask=mask, unit=integration_unit)
+
+        return self.calibration_data.integrate_1d(mask=mask, unit=integration_unit)
 
     def change_mask_mode(self):
         self.use_mask = not self.use_mask

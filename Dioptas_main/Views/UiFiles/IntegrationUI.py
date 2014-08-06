@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Wed Aug 06 09:29:09 2014
-# by: PyQt4 UI code generator 4.9.6
+# Created: Wed Aug  6 13:51:02 2014
+#      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -17,48 +17,46 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
-
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
-
 class Ui_xrs_integration_widget(object):
     def setupUi(self, xrs_integration_widget):
         xrs_integration_widget.setObjectName(_fromUtf8("xrs_integration_widget"))
         xrs_integration_widget.resize(1307, 823)
         xrs_integration_widget.setStyleSheet(_fromUtf8("\n"
-                                                       "\n"
-                                                       "#image_frame, #spec_container_widget, #spec_btn_widget {\n"
-                                                       "    background: black;\n"
-                                                       "}\n"
-                                                       "#spec_btn_widget QPushButton{\n"
-                                                       "    padding: 0px;\n"
-                                                       "    padding-right: 1px;\n"
-                                                       "    border-radius: 3px;\n"
-                                                       "}\n"
-                                                       "\n"
-                                                       "#image_frame QPushButton{\n"
-                                                       "    padding-left: 4px;\n"
-                                                       "    padding-right: 4px;\n"
-                                                       "}\n"
-                                                       "\n"
-                                                       "#spec_btn_widget QPushButton::pressed, #image_frame QPushButton::pressed{\n"
-                                                       "    margin: 0px;\n"
-                                                       "}\n"
-                                                       "\n"
-                                                       "QTableWidget QPushButton {\n"
-                                                       "    margin: 5px;\n"
-                                                       "}\n"
-                                                       "\n"
-                                                       "QTableWidget QPushButton::pressed{\n"
-                                                       "    margin-top: 7px;\n"
-                                                       "    margin-left: 7px;\n"
-                                                       "}\n"
-                                                       "\n"
-                                                       ""))
+"\n"
+"#image_frame, #spec_container_widget, #spec_btn_widget {\n"
+"    background: black;\n"
+"}\n"
+"#spec_btn_widget QPushButton{\n"
+"    padding: 0px;\n"
+"    padding-right: 1px;\n"
+"    border-radius: 3px;\n"
+"}\n"
+"\n"
+"#image_frame QPushButton{\n"
+"    padding-left: 4px;\n"
+"    padding-right: 4px;\n"
+"}\n"
+"\n"
+"#spec_btn_widget QPushButton::pressed, #image_frame QPushButton::pressed{\n"
+"    margin: 0px;\n"
+"}\n"
+"\n"
+"QTableWidget QPushButton {\n"
+"    margin: 5px;\n"
+"}\n"
+"\n"
+"QTableWidget QPushButton::pressed{\n"
+"    margin-top: 7px;\n"
+"    margin-left: 7px;\n"
+"}\n"
+"\n"
+""))
         self.verticalLayout_16 = QtGui.QVBoxLayout(xrs_integration_widget)
         self.verticalLayout_16.setSpacing(3)
         self.verticalLayout_16.setMargin(8)
@@ -206,7 +204,7 @@ class Ui_xrs_integration_widget(object):
         self.widget_2 = QtGui.QWidget(self.image_tab)
         self.widget_2.setObjectName(_fromUtf8("widget_2"))
         self.horizontalLayout_23 = QtGui.QHBoxLayout(self.widget_2)
-        self.horizontalLayout_23.setSpacing(6)
+        self.horizontalLayout_23.setSpacing(-1)
         self.horizontalLayout_23.setMargin(0)
         self.horizontalLayout_23.setObjectName(_fromUtf8("horizontalLayout_23"))
         self.qa_img_save_img_btn = QtGui.QPushButton(self.widget_2)
@@ -352,7 +350,7 @@ class Ui_xrs_integration_widget(object):
         self.overlay_tw.setMinimumSize(QtCore.QSize(350, 0))
         self.overlay_tw.setStyleSheet(_fromUtf8(""))
         self.overlay_tw.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.overlay_tw.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.EditKeyPressed)
+        self.overlay_tw.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked|QtGui.QAbstractItemView.EditKeyPressed)
         self.overlay_tw.setTabKeyNavigation(False)
         self.overlay_tw.setAlternatingRowColors(False)
         self.overlay_tw.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
@@ -381,7 +379,7 @@ class Ui_xrs_integration_widget(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.overlay_offset_sb.sizePolicy().hasHeightForWidth())
         self.overlay_offset_sb.setSizePolicy(sizePolicy)
-        self.overlay_offset_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.overlay_offset_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.overlay_offset_sb.setDecimals(3)
         self.overlay_offset_sb.setMinimum(-999999999.0)
         self.overlay_offset_sb.setMaximum(999999999.0)
@@ -399,7 +397,7 @@ class Ui_xrs_integration_widget(object):
         sizePolicy.setHeightForWidth(self.overlay_scale_sb.sizePolicy().hasHeightForWidth())
         self.overlay_scale_sb.setSizePolicy(sizePolicy)
         self.overlay_scale_sb.setMinimumSize(QtCore.QSize(0, 0))
-        self.overlay_scale_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.overlay_scale_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.overlay_scale_sb.setDecimals(4)
         self.overlay_scale_sb.setMaximum(999999.0)
         self.overlay_scale_sb.setSingleStep(0.01)
@@ -411,14 +409,12 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout.addWidget(self.label_4, 2, 0, 1, 1)
         self.overlay_scale_step_txt = QtGui.QLineEdit(self.overlay_tab)
         self.overlay_scale_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
-        self.overlay_scale_step_txt.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.overlay_scale_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.overlay_scale_step_txt.setObjectName(_fromUtf8("overlay_scale_step_txt"))
         self.gridLayout.addWidget(self.overlay_scale_step_txt, 1, 2, 1, 1)
         self.overlay_offset_step_txt = QtGui.QLineEdit(self.overlay_tab)
         self.overlay_offset_step_txt.setMaximumSize(QtCore.QSize(80, 16777215))
-        self.overlay_offset_step_txt.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.overlay_offset_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.overlay_offset_step_txt.setObjectName(_fromUtf8("overlay_offset_step_txt"))
         self.gridLayout.addWidget(self.overlay_offset_step_txt, 2, 2, 1, 1)
         self.label_5 = QtGui.QLabel(self.overlay_tab)
@@ -477,7 +473,7 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_9.setObjectName(_fromUtf8("horizontalLayout_9"))
         self.phase_tw = QtGui.QTableWidget(self.phase_tab)
         self.phase_tw.setMinimumSize(QtCore.QSize(350, 0))
-        self.phase_tw.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.EditKeyPressed)
+        self.phase_tw.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked|QtGui.QAbstractItemView.EditKeyPressed)
         self.phase_tw.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self.phase_tw.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.phase_tw.setShowGrid(False)
@@ -499,7 +495,7 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout_2.setSpacing(8)
         self.gridLayout_2.setObjectName(_fromUtf8("gridLayout_2"))
         self.label_6 = QtGui.QLabel(self.widget)
-        self.label_6.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_6.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_6.setObjectName(_fromUtf8("label_6"))
         self.gridLayout_2.addWidget(self.label_6, 0, 3, 1, 1)
         self.label = QtGui.QLabel(self.widget)
@@ -516,7 +512,7 @@ class Ui_xrs_integration_widget(object):
         self.phase_pressure_sb.setMaximumSize(QtCore.QSize(99999, 16777215))
         self.phase_pressure_sb.setSizeIncrement(QtCore.QSize(0, 0))
         self.phase_pressure_sb.setFocusPolicy(QtCore.Qt.WheelFocus)
-        self.phase_pressure_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.phase_pressure_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.phase_pressure_sb.setMinimum(-999999999.0)
         self.phase_pressure_sb.setMaximum(999999999.0)
         self.phase_pressure_sb.setSingleStep(0.5)
@@ -529,8 +525,7 @@ class Ui_xrs_integration_widget(object):
         sizePolicy.setHeightForWidth(self.phase_pressure_step_txt.sizePolicy().hasHeightForWidth())
         self.phase_pressure_step_txt.setSizePolicy(sizePolicy)
         self.phase_pressure_step_txt.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.phase_pressure_step_txt.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.phase_pressure_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.phase_pressure_step_txt.setObjectName(_fromUtf8("phase_pressure_step_txt"))
         self.gridLayout_2.addWidget(self.phase_pressure_step_txt, 1, 3, 1, 1)
         self.label_2 = QtGui.QLabel(self.widget)
@@ -538,7 +533,7 @@ class Ui_xrs_integration_widget(object):
         self.gridLayout_2.addWidget(self.label_2, 2, 0, 1, 1)
         self.phase_temperature_sb = QtGui.QDoubleSpinBox(self.widget)
         self.phase_temperature_sb.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.phase_temperature_sb.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.phase_temperature_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.phase_temperature_sb.setMaximum(999999999.0)
         self.phase_temperature_sb.setSingleStep(100.0)
         self.phase_temperature_sb.setProperty("value", 300.0)
@@ -551,8 +546,7 @@ class Ui_xrs_integration_widget(object):
         sizePolicy.setHeightForWidth(self.phase_temperature_step_txt.sizePolicy().hasHeightForWidth())
         self.phase_temperature_step_txt.setSizePolicy(sizePolicy)
         self.phase_temperature_step_txt.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.phase_temperature_step_txt.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.phase_temperature_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.phase_temperature_step_txt.setObjectName(_fromUtf8("phase_temperature_step_txt"))
         self.gridLayout_2.addWidget(self.phase_temperature_step_txt, 2, 3, 1, 1)
         self.phase_apply_to_all_cb = QtGui.QCheckBox(self.widget)
@@ -567,7 +561,7 @@ class Ui_xrs_integration_widget(object):
         self.label_8.setObjectName(_fromUtf8("label_8"))
         self.gridLayout_2.addWidget(self.label_8, 2, 2, 1, 1)
         self.label_9 = QtGui.QLabel(self.widget)
-        self.label_9.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_9.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_9.setObjectName(_fromUtf8("label_9"))
         self.gridLayout_2.addWidget(self.label_9, 0, 1, 1, 1)
         self.verticalLayout_7.addLayout(self.gridLayout_2)
@@ -638,16 +632,16 @@ class Ui_xrs_integration_widget(object):
         self.groupBox_3.setObjectName(_fromUtf8("groupBox_3"))
         self.horizontalLayout_16 = QtGui.QHBoxLayout(self.groupBox_3)
         self.horizontalLayout_16.setObjectName(_fromUtf8("horizontalLayout_16"))
-        self.spectrum_header_complete_rb = QtGui.QRadioButton(self.groupBox_3)
-        self.spectrum_header_complete_rb.setChecked(True)
-        self.spectrum_header_complete_rb.setObjectName(_fromUtf8("spectrum_header_complete_rb"))
-        self.horizontalLayout_16.addWidget(self.spectrum_header_complete_rb)
-        self.spectrum_header_chi_rb = QtGui.QRadioButton(self.groupBox_3)
-        self.spectrum_header_chi_rb.setObjectName(_fromUtf8("spectrum_header_chi_rb"))
-        self.horizontalLayout_16.addWidget(self.spectrum_header_chi_rb)
-        self.spectrum_header_none_rb = QtGui.QRadioButton(self.groupBox_3)
-        self.spectrum_header_none_rb.setObjectName(_fromUtf8("spectrum_header_none_rb"))
-        self.horizontalLayout_16.addWidget(self.spectrum_header_none_rb)
+        self.spectrum_header_xy_cb = QtGui.QCheckBox(self.groupBox_3)
+        self.spectrum_header_xy_cb.setChecked(True)
+        self.spectrum_header_xy_cb.setObjectName(_fromUtf8("spectrum_header_xy_cb"))
+        self.horizontalLayout_16.addWidget(self.spectrum_header_xy_cb)
+        self.spectrum_header_chi_cb = QtGui.QCheckBox(self.groupBox_3)
+        self.spectrum_header_chi_cb.setObjectName(_fromUtf8("spectrum_header_chi_cb"))
+        self.horizontalLayout_16.addWidget(self.spectrum_header_chi_cb)
+        self.spectrum_header_dat_cb = QtGui.QCheckBox(self.groupBox_3)
+        self.spectrum_header_dat_cb.setObjectName(_fromUtf8("spectrum_header_dat_cb"))
+        self.horizontalLayout_16.addWidget(self.spectrum_header_dat_cb)
         self.horizontalLayout_20.addWidget(self.groupBox_3)
         spacerItem9 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_20.addItem(spacerItem9)
@@ -750,28 +744,28 @@ class Ui_xrs_integration_widget(object):
         self.mouse_tth_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.mouse_tth_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.mouse_tth_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.mouse_tth_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.mouse_tth_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.mouse_tth_lbl.setObjectName(_fromUtf8("mouse_tth_lbl"))
         self.horizontalLayout_28.addWidget(self.mouse_tth_lbl)
         self.mouse_q_lbl = QtGui.QLabel(self.widget1)
         self.mouse_q_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.mouse_q_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.mouse_q_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.mouse_q_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.mouse_q_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.mouse_q_lbl.setObjectName(_fromUtf8("mouse_q_lbl"))
         self.horizontalLayout_28.addWidget(self.mouse_q_lbl)
         self.mouse_d_lbl = QtGui.QLabel(self.widget1)
         self.mouse_d_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.mouse_d_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.mouse_d_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.mouse_d_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.mouse_d_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.mouse_d_lbl.setObjectName(_fromUtf8("mouse_d_lbl"))
         self.horizontalLayout_28.addWidget(self.mouse_d_lbl)
         self.mouse_azi_lbl = QtGui.QLabel(self.widget1)
         self.mouse_azi_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.mouse_azi_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.mouse_azi_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.mouse_azi_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.mouse_azi_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.mouse_azi_lbl.setObjectName(_fromUtf8("mouse_azi_lbl"))
         self.horizontalLayout_28.addWidget(self.mouse_azi_lbl)
         self.verticalLayout_3.addLayout(self.horizontalLayout_28)
@@ -781,28 +775,28 @@ class Ui_xrs_integration_widget(object):
         self.click_tth_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.click_tth_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.click_tth_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.click_tth_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.click_tth_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.click_tth_lbl.setObjectName(_fromUtf8("click_tth_lbl"))
         self.horizontalLayout_29.addWidget(self.click_tth_lbl)
         self.click_q_lbl = QtGui.QLabel(self.widget1)
         self.click_q_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.click_q_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.click_q_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.click_q_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.click_q_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.click_q_lbl.setObjectName(_fromUtf8("click_q_lbl"))
         self.horizontalLayout_29.addWidget(self.click_q_lbl)
         self.click_d_lbl = QtGui.QLabel(self.widget1)
         self.click_d_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.click_d_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.click_d_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.click_d_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.click_d_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.click_d_lbl.setObjectName(_fromUtf8("click_d_lbl"))
         self.horizontalLayout_29.addWidget(self.click_d_lbl)
         self.click_azi_lbl = QtGui.QLabel(self.widget1)
         self.click_azi_lbl.setMinimumSize(QtCore.QSize(80, 0))
         self.click_azi_lbl.setMaximumSize(QtCore.QSize(115, 16777215))
         self.click_azi_lbl.setTextFormat(QtCore.Qt.AutoText)
-        self.click_azi_lbl.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.click_azi_lbl.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.click_azi_lbl.setObjectName(_fromUtf8("click_azi_lbl"))
         self.horizontalLayout_29.addWidget(self.click_azi_lbl)
         self.verticalLayout_3.addLayout(self.horizontalLayout_29)
@@ -826,7 +820,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_16.addWidget(self.widget1)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(5)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
@@ -848,8 +842,7 @@ class Ui_xrs_integration_widget(object):
         self.qa_img_set_as_background_btn.setText(_translate("xrs_integration_widget", "As Bkg", None))
         self.img_load_calibration_btn.setText(_translate("xrs_integration_widget", "Load Calibration", None))
         self.calibration_lbl.setText(_translate("xrs_integration_widget", "None", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.image_tab),
-                                  _translate("xrs_integration_widget", "Img", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.image_tab), _translate("xrs_integration_widget", "Img", None))
         self.spec_load_btn.setText(_translate("xrs_integration_widget", "Load", None))
         self.spec_previous_btn.setText(_translate("xrs_integration_widget", "<", None))
         self.spec_next_btn.setText(_translate("xrs_integration_widget", ">", None))
@@ -860,8 +853,7 @@ class Ui_xrs_integration_widget(object):
         self.qa_spectrum_save_spectrum_btn.setText(_translate("xrs_integration_widget", "Save Spectrum", None))
         self.qa_spectrum_set_as_overlay_btn.setText(_translate("xrs_integration_widget", "As Overlay", None))
         self.qa_spectrum_set_as_background_btn.setText(_translate("xrs_integration_widget", "As Bkg", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.spectra_tab),
-                                  _translate("xrs_integration_widget", "Spec", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.spectra_tab), _translate("xrs_integration_widget", "Spec", None))
         self.overlay_add_btn.setText(_translate("xrs_integration_widget", "Add", None))
         self.overlay_del_btn.setText(_translate("xrs_integration_widget", "Delete", None))
         self.overlay_clear_btn.setText(_translate("xrs_integration_widget", "Clear ", None))
@@ -871,8 +863,7 @@ class Ui_xrs_integration_widget(object):
         self.overlay_offset_step_txt.setText(_translate("xrs_integration_widget", "100", None))
         self.label_5.setText(_translate("xrs_integration_widget", "Step", None))
         self.overlay_set_as_bkg_btn.setText(_translate("xrs_integration_widget", "Set as Background", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.overlay_tab),
-                                  _translate("xrs_integration_widget", "Overlay", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.overlay_tab), _translate("xrs_integration_widget", "Overlay", None))
         self.phase_add_btn.setText(_translate("xrs_integration_widget", "Add", None))
         self.phase_edit_btn.setText(_translate("xrs_integration_widget", "Edit", None))
         self.phase_del_btn.setText(_translate("xrs_integration_widget", "Delete", None))
@@ -886,8 +877,7 @@ class Ui_xrs_integration_widget(object):
         self.label_7.setText(_translate("xrs_integration_widget", "<i>GPa</i>", None))
         self.label_8.setText(_translate("xrs_integration_widget", "<i>K</i>", None))
         self.label_9.setText(_translate("xrs_integration_widget", "Parameter", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.phase_tab),
-                                  _translate("xrs_integration_widget", "Phase", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.phase_tab), _translate("xrs_integration_widget", "Phase", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_5), _translate("xrs_integration_widget", "Bkg", None))
         self.groupBox1.setTitle(_translate("xrs_integration_widget", "Mask", None))
         self.mask_transparent_cb.setText(_translate("xrs_integration_widget", "Transparent", None))
@@ -895,12 +885,11 @@ class Ui_xrs_integration_widget(object):
         self.img_levels_autoscale_rb.setText(_translate("xrs_integration_widget", "AutoScale", None))
         self.img_levels_absolute_rb.setText(_translate("xrs_integration_widget", "Absolute", None))
         self.img_levels_percentage_rb.setText(_translate("xrs_integration_widget", "Percentage", None))
-        self.groupBox_3.setTitle(_translate("xrs_integration_widget", "Spectrum Format", None))
-        self.spectrum_header_complete_rb.setText(_translate("xrs_integration_widget", ".xy", None))
-        self.spectrum_header_chi_rb.setText(_translate("xrs_integration_widget", ".chi", None))
-        self.spectrum_header_none_rb.setText(_translate("xrs_integration_widget", ".dat", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.special_tab),
-                                  _translate("xrs_integration_widget", "X", None))
+        self.groupBox_3.setTitle(_translate("xrs_integration_widget", "Spectrum data types", None))
+        self.spectrum_header_xy_cb.setText(_translate("xrs_integration_widget", ".xy    ", None))
+        self.spectrum_header_chi_cb.setText(_translate("xrs_integration_widget", ".chi    ", None))
+        self.spectrum_header_dat_cb.setText(_translate("xrs_integration_widget", ".dat    ", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.special_tab), _translate("xrs_integration_widget", "X", None))
         self.spec_tth_btn.setText(_translate("xrs_integration_widget", " 2θ", None))
         self.spec_q_btn.setText(_translate("xrs_integration_widget", "Q", None))
         self.spec_d_btn.setText(_translate("xrs_integration_widget", "d", None))
@@ -919,6 +908,5 @@ class Ui_xrs_integration_widget(object):
         self.click_d_lbl.setText(_translate("xrs_integration_widget", "d:", None))
         self.click_azi_lbl.setText(_translate("xrs_integration_widget", "χ:", None))
         self.bkg_name_lbl.setText(_translate("xrs_integration_widget", "Bkg:", None))
-
 
 from pyqtgraph import GraphicsLayoutWidget

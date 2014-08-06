@@ -106,18 +106,20 @@ class IntegrationSpectrumController(object):
             elif roi_mask is not None and mask is not None:
                 mask = np.logical_or(mask, roi_mask)
 
-            tth, I = self.calibration_data.integrate_1d(mask=mask, unit=self.integration_unit)
+            x, y = self.calibration_data.integrate_1d(mask=mask, unit=self.integration_unit)
 
-            self.spectrum_data.set_spectrum(tth, I, self.img_data.filename)
+            self.spectrum_data.set_spectrum(x, y, self.img_data.filename, unit=self.integration_unit)
 
             if self.autocreate:
                 filename = self.img_data.filename
-                if filename is not '':
-                    filename = os.path.join(
-                        self.working_dir['spectrum'],
-                        os.path.basename(
-                            str(self.img_data.filename)).split('.')[:-1][0] + self.get_spectrum_file_ending())
-                self.save_spectrum(filename)
+                file_endings = self.get_spectrum_file_endings()
+                for file_ending in file_endings:
+                    if filename is not '':
+                        filename = os.path.join(
+                            self.working_dir['spectrum'],
+                            os.path.basename(
+                                str(self.img_data.filename)).split('.')[:-1][0] + file_ending)
+                    self.save_spectrum(filename)
                 self.view.spec_next_btn.setEnabled(True)
                 self.view.spec_previous_btn.setEnabled(True)
                 self.view.spec_filename_txt.setText(os.path.basename(filename))
@@ -129,15 +131,15 @@ class IntegrationSpectrumController(object):
                     'No File saved or selected')
         self.view.img_view.roi.blockSignals(False)
 
-    def get_spectrum_file_ending(self):
-        if self.view.spectrum_header_complete_rb.isChecked():
-            return '.xy'
-        elif self.view.spectrum_header_chi_rb.isChecked():
-            return '.chi'
-        elif self.view.spectrum_header_none_rb.isChecked():
-            return '.dat'
-
-
+    def get_spectrum_file_endings(self):
+        res = []
+        if self.view.spectrum_header_xy_cb.isChecked():
+            res.append('.xy')
+        if self.view.spectrum_header_chi_cb.isChecked():
+            res.append('.chi')
+        if self.view.spectrum_header_dat_cb.isChecked():
+            res.append('.dat')
+        return res
 
     def plot_spectra(self):
         try:
@@ -169,14 +171,16 @@ class IntegrationSpectrumController(object):
     def autocreate_spectrum(self):
         if self.spectrum_data.bkg_ind is not -1:
             if self.autocreate is True:
-                directory = os.path.join(
-                    self.working_dir['spectrum'], 'bkg_subtracted')
-                if not os.path.exists(directory):
-                    os.mkdir(directory)
-                filename = os.path.join(
-                    directory,
-                    self.spectrum_data.spectrum.name + '_bkg_subtracted.xy')
-                self.save_spectrum(filename, subtract_background=True)
+                file_endings = self.get_spectrum_file_endings()
+                for file_ending in file_endings:
+                    directory = os.path.join(
+                        self.working_dir['spectrum'], 'bkg_subtracted')
+                    if not os.path.exists(directory):
+                        os.mkdir(directory)
+                    filename = os.path.join(
+                        directory,
+                        self.spectrum_data.spectrum.name + '_bkg_subtracted'+file_ending)
+                    self.save_spectrum(filename, subtract_background=True)
 
     def save_spectrum(self, filename=None, subtract_background = False):
         if filename is None:
@@ -189,27 +193,20 @@ class IntegrationSpectrumController(object):
 
         if filename is not '':
             print(filename)
-            if subtract_background:
-                x, y = self.spectrum_data.spectrum.data
-            else:
-                x, y = self.spectrum_data.spectrum._x, self.spectrum_data.spectrum._y
-            data = np.dstack((x, y))[0]
-
             if filename.endswith('.xy'):
                 header = self.calibration_data.geometry.makeHeaders()
                 if subtract_background:
                     if self.spectrum_data.bkg_ind is not -1:
                         header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
                             self.spectrum_data.bkg_ind].name
-                header = header.replace('# ', '')
                 header = header.replace('\r\n', '')
-                header += '\n\n' + self.integration_unit + '\t I'
+                header += '\n#\n# ' + self.integration_unit + '\t I'
 
-                np.savetxt(filename, data, header=header)
+                self.spectrum_data.save_spectrum(filename, header, subtract_background)
             elif filename.endswith('.chi'):
-                save_chi_file(filename, self.integration_unit, x, y)
+                self.spectrum_data.save_spectrum(filename, subtract_background = subtract_background)
             elif filename.endswith('.dat'):
-                np.savetxt(filename, data)
+                self.spectrum_data.save_spectrum(filename, subtract_background = subtract_background)
             elif filename.endswith('.png'):
                 self.view.spectrum_view.save_png(filename)
             elif filename.endswith('.svg'):

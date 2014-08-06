@@ -43,10 +43,11 @@ class SpectrumData(Observable):
         self.bkg_ind = -1
         self.spectrum_filename = ''
 
-    def set_spectrum(self, x, y, filename=''):
+    def set_spectrum(self, x, y, filename='', unit=''):
         self.spectrum_filename = filename
         self.spectrum.data = (x, y)
         self.spectrum.name = get_base_name(filename)
+        self.unit = unit
         self.notify()
 
     def load_spectrum(self, filename):
@@ -55,6 +56,32 @@ class SpectrumData(Observable):
         self.spectrum.load(filename)
         self.file_name_iterator.update_filename(filename)
         self.notify()
+
+    def save_spectrum(self, filename, header = None, subtract_background = False):
+        if subtract_background:
+            x, y = self.spectrum.data
+        else:
+            x, y = self.spectrum._x, self.spectrum._y
+
+        file_handle = open(filename, 'w')
+        num_points = len(x)
+
+        if filename.endswith('.chi'):
+            if header is None or header=='':
+                file_handle.write(filename+'\n')
+                file_handle.write(self.unit+'\n\n')
+                file_handle.write("       {}\n".format(num_points))
+            else:
+                file_handle.write(header)
+            for ind in xrange(num_points):
+                file_handle.write(' {:.7E}  {:.7E}\n'.format(x[ind], y[ind]))
+        else:
+            if header is not None:
+                file_handle.write(header)
+                file_handle.write('\n')
+            for ind in xrange(num_points):
+                file_handle.write('{:.9E}  {:.9E}\n'.format(x[ind], y[ind]))
+        file_handle.close()
 
     def load_next_file(self):
         next_file_name = self.file_name_iterator.get_next_filename(self.file_iteration_mode)
