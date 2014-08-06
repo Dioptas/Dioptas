@@ -23,7 +23,7 @@ __author__ = 'Clemens Prescher'
 import numpy as np
 import os
 from PyQt4 import QtCore, QtGui
-from stat import S_ISREG, ST_CTIME, ST_MODE
+from stat import S_ISREG, ST_MTIME, ST_MODE, ST_CTIME
 from copy import deepcopy
 from colorsys import hsv_to_rgb
 
@@ -89,7 +89,7 @@ class FileNameIterator(QtCore.QObject):
             if self.is_correct_file_type(file):
                 files.append(file)
         paths = [os.path.join(self.directory, file) for file in files]
-        file_list = [(os.stat(path), path) for path in paths]
+        file_list = [(os.path.getctime(path), path) for path in paths]
         self.filename_list = paths
         print('Time needed  for getting files: {}s.'.format(time.time() - t1))
         return file_list
@@ -104,8 +104,9 @@ class FileNameIterator(QtCore.QObject):
 
     def _order_file_list(self):
         t1 = time.time()
-        self.ordered_file_list = list(sorted(((stat[ST_CTIME], path)\
-                                              for stat, path in self.file_list if S_ISREG(stat[ST_MODE]))))
+        self.ordered_file_list = self.file_list
+        self.ordered_file_list.sort(key=lambda x: x[0])
+
         print('Time needed  for ordering files: {}s.'.format(time.time() - t1))
 
     def update_file_list(self):
@@ -116,7 +117,7 @@ class FileNameIterator(QtCore.QObject):
         if self.complete_path is None:
             return None
         if mode == 'time':
-            time_stat = os.stat(self.complete_path)[ST_CTIME]
+            time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
             # cur_ind = self.ordered_file_list.index(self.complete_path)
             try:
@@ -156,7 +157,7 @@ class FileNameIterator(QtCore.QObject):
         if self.complete_path is None:
             return None
         if mode == 'time':
-            time_stat = os.stat(self.complete_path)[ST_CTIME]
+            time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
             # cur_ind = self.ordered_file_list.index(self.complete_path)
             if cur_ind > 0:
@@ -223,10 +224,13 @@ class FileNameIterator(QtCore.QObject):
         self.filename_list = cur_filename_list
         for filename in new_filename_list:
             creation_time = os.path.getctime(filename)
-            for ind in xrange(len(self.ordered_file_list)):
-                if creation_time>self.ordered_file_list[ind][0]:
-                    self.ordered_file_list.insert(ind, (creation_time, filename))
-                    break
+            if creation_time > self.ordered_file_list[-1][0]:
+                self.ordered_file_list.append((creation_time, filename))
+            else:
+                for ind in xrange(len(self.ordered_file_list)):
+                    if creation_time<self.ordered_file_list[ind][0]:
+                        self.ordered_file_list.insert(ind, (creation_time, filename))
+                        break
 
 
 
