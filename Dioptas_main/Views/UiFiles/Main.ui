@@ -199,7 +199,7 @@ height: 18px;
     padding-right: 8px;   
  }  
 QPushButton:pressed{
-		margin-top: 2,px;
+		margin-top: 2px;
 		margin-left: 2px;	
 }
 QPushButton::disabled{
