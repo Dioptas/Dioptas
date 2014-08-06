@@ -168,8 +168,8 @@ class IntegrationImageController(object):
                 filenames = [filenames]
 
         if filenames is not None and len(filenames) is not 0:
+            self.working_dir['image'] = os.path.dirname(str(filenames[0]))
             if len(filenames) == 1:
-                self.working_dir['image'] = os.path.dirname(str(filenames[0]))
                 self.img_data.load(str(filenames[0]))
             else:
                 if self.view.spec_autocreate_cb.isChecked():

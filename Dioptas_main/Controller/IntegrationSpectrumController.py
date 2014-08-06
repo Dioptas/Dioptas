@@ -116,7 +116,7 @@ class IntegrationSpectrumController(object):
                     filename = os.path.join(
                         self.working_dir['spectrum'],
                         os.path.basename(
-                            str(self.img_data.filename)).split('.')[:-1][0] + '.xy')
+                            str(self.img_data.filename)).split('.')[:-1][0] + self.get_spectrum_file_ending())
                 self.save_spectrum(filename)
                 self.view.spec_next_btn.setEnabled(True)
                 self.view.spec_previous_btn.setEnabled(True)
@@ -127,8 +127,17 @@ class IntegrationSpectrumController(object):
                 self.view.spec_previous_btn.setEnabled(False)
                 self.view.spec_filename_txt.setText(
                     'No File saved or selected')
-
         self.view.img_view.roi.blockSignals(False)
+
+    def get_spectrum_file_ending(self):
+        if self.view.spectrum_header_complete_rb.isChecked():
+            return '.xy'
+        elif self.view.spectrum_header_chi_rb.isChecked():
+            return '.chi'
+        elif self.view.spectrum_header_none_rb.isChecked():
+            return '.dat'
+
+
 
     def plot_spectra(self):
         try:
@@ -157,8 +166,6 @@ class IntegrationSpectrumController(object):
         self.spectrum_data.spectrum.reset_background()
         self.view.overlay_set_as_bkg_btn.setChecked(False)
 
-
-
     def autocreate_spectrum(self):
         if self.spectrum_data.bkg_ind is not -1:
             if self.autocreate is True:
@@ -175,39 +182,37 @@ class IntegrationSpectrumController(object):
         if filename is None:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Spectrum Data.",
                                                              self.working_dir['spectrum'],
-                                                             ('Data (*.xy);;png (*.png);; svg (*.svg)')))
+                                                             (
+                                                             'Data (*.xy);; Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg)')))
             subtract_background = True  #when manually saving the spectrum the background will be automatically
                                         # subtracted
 
         if filename is not '':
             print(filename)
+            if subtract_background:
+                x, y = self.spectrum_data.spectrum.data
+            else:
+                x, y = self.spectrum_data.spectrum._x, self.spectrum_data.spectrum._y
+            data = np.dstack((x, y))[0]
+
             if filename.endswith('.xy'):
+                header = self.calibration_data.geometry.makeHeaders()
                 if subtract_background:
-                    x, y = self.spectrum_data.spectrum.data
-                else:
-                    x, y = self.spectrum_data.spectrum._x, self.spectrum_data.spectrum._y
-                data = np.dstack((x, y))[0]
+                    if self.spectrum_data.bkg_ind is not -1:
+                        header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
+                            self.spectrum_data.bkg_ind].name
+                header = header.replace('# ', '')
+                header = header.replace('\r\n', '')
+                header += '\n\n' + self.integration_unit + '\t I'
 
-                if self.view.spectrum_header_complete_rb.isChecked():
-                    header = self.calibration_data.geometry.makeHeaders()
-                    if subtract_background:
-                        if self.spectrum_data.bkg_ind is not -1:
-                            header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
-                                self.spectrum_data.bkg_ind].name
-                    header = header.replace('# ', '')
-                    header = header.replace('\r\n', '')
-                    header += '\n\n'+self.integration_unit + '\t I'
-
-                    np.savetxt(filename, data, header=header)
-                elif self.view.spectrum_header_none_rb.isChecked():
-                    np.savetxt(filename, data)
-                elif self.view.spectrum_header_chi_rb.isChecked():
-                    save_chi_file(filename, self.integration_unit, x, y)
-
+                np.savetxt(filename, data, header=header)
+            elif filename.endswith('.chi'):
+                save_chi_file(filename, self.integration_unit, x, y)
+            elif filename.endswith('.dat'):
+                np.savetxt(filename, data)
             elif filename.endswith('.png'):
                 self.view.spectrum_view.save_png(filename)
             elif filename.endswith('.svg'):
-                print('inside')
                 self.view.spectrum_view.save_svg(filename)
 
 
