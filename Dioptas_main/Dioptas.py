@@ -20,6 +20,7 @@
 #TODO quick actions to save spectrum
 # TODO having an export fit2d parameters btn
 # TODO fix this issue with the calibrant not updating etc. (it should update itself everytime you calibrate etc.)\
+from __future__ import absolute_import
 
 __author__ = 'Clemens Prescher'
 import sys
