@@ -70,6 +70,15 @@ class SpectrumData(Observable):
             return True
         return False
 
+    def set_file_iteration_mode(self, mode):
+        if mode == 'number':
+            self.file_iteration_mode = 'number'
+            self.file_name_iterator.create_timed_file_list = False
+        elif mode == 'time':
+            self.file_iteration_mode = 'time'
+            self.file_name_iterator.create_timed_file_list = True
+            self.file_name_iterator.update_filename(self.filename)
+
     def add_overlay(self, x, y, name=''):
         self.overlays.append(Spectrum(x, y, name))
         self.notify()
