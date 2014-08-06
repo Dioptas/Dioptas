@@ -23,6 +23,7 @@ import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
 from Data.SpectrumData import BkgNotInRangeError
+from Data.HelperModule import save_chi_file
 import numpy as np
 import time
 
@@ -181,19 +182,28 @@ class IntegrationSpectrumController(object):
         if filename is not '':
             print(filename)
             if filename.endswith('.xy'):
-                header = self.calibration_data.geometry.makeHeaders()
-                if subtract_background:
-                    if self.spectrum_data.bkg_ind is not -1:
-                        header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
-                            self.spectrum_data.bkg_ind].name
-                header = header.replace('# ', '')
-                header += '\n\n'+self.integration_unit + '\t I'
                 if subtract_background:
                     x, y = self.spectrum_data.spectrum.data
                 else:
                     x, y = self.spectrum_data.spectrum._x, self.spectrum_data.spectrum._y
                 data = np.dstack((x, y))[0]
-                np.savetxt(filename, data, header=header)
+
+                if self.view.spectrum_header_complete_rb.isChecked():
+                    header = self.calibration_data.geometry.makeHeaders()
+                    if subtract_background:
+                        if self.spectrum_data.bkg_ind is not -1:
+                            header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
+                                self.spectrum_data.bkg_ind].name
+                    header = header.replace('# ', '')
+                    header = header.replace('\r\n', '')
+                    header += '\n\n'+self.integration_unit + '\t I'
+
+                    np.savetxt(filename, data, header=header)
+                elif self.view.spectrum_header_none_rb.isChecked():
+                    np.savetxt(filename, data)
+                elif self.view.spectrum_header_chi_rb.isChecked():
+                    save_chi_file(filename, self.integration_unit, x, y)
+
             elif filename.endswith('.png'):
                 self.view.spectrum_view.save_png(filename)
             elif filename.endswith('.svg'):
