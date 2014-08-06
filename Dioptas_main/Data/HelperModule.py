@@ -66,7 +66,7 @@ class FileNameIterator(QtCore.QObject):
         super(FileNameIterator, self).__init__()
         self.acceptable_file_endings = []
         self.directory_watcher = QtCore.QFileSystemWatcher()
-        self.directory_watcher.directoryChanged.connect(self.update_file_list)
+        self.directory_watcher.directoryChanged.connect(self.add_new_files_to_list)
         self.create_timed_file_list = False
 
         if filename is None:
@@ -75,6 +75,7 @@ class FileNameIterator(QtCore.QObject):
             self.filename = None
             self.file_list = []
             self.ordered_file_list = []
+            self.filename_list = []
         else:
             self.complete_path = os.path.abspath(filename)
             self.directory, self.filename = os.path.split(self.complete_path)
@@ -82,26 +83,34 @@ class FileNameIterator(QtCore.QObject):
 
     def _get_files_list(self):
         t1 = time.time()
-        file_list = os.listdir(self.directory)
+        filename_list = os.listdir(self.directory)
         files = []
-        for file in file_list:
-            is_correct_ending = False
-            for ending in self.acceptable_file_endings:
-                if file.endswith(ending):
-                    is_correct_ending = True
-                    break
-            if is_correct_ending:
+        for file in filename_list:
+            if self.is_correct_file_type(file):
                 files.append(file)
-        paths = (os.path.join(self.directory, file) for file in files)
-        self.file_list = ((os.stat(path), path) for path in paths)
+        paths = [os.path.join(self.directory, file) for file in files]
+        file_list = [(os.stat(path), path) for path in paths]
+        self.filename_list = paths
         print('Time needed  for getting files: {}s.'.format(time.time() - t1))
-        return self.file_list
+        return file_list
+
+    def is_correct_file_type(self, filename):
+        is_correct_ending = False
+        for ending in self.acceptable_file_endings:
+            if filename.endswith(ending):
+                is_correct_ending = True
+                break
+        return is_correct_ending
 
     def _order_file_list(self):
         t1 = time.time()
         self.ordered_file_list = list(sorted(((stat[ST_CTIME], path)\
                                               for stat, path in self.file_list if S_ISREG(stat[ST_MODE]))))
         print('Time needed  for ordering files: {}s.'.format(time.time() - t1))
+
+    def update_file_list(self):
+        self.file_list = self._get_files_list()
+        self._order_file_list()
 
     def get_next_filename(self, mode='number'):
         if self.complete_path is None:
@@ -202,10 +211,25 @@ class FileNameIterator(QtCore.QObject):
         if (self.create_timed_file_list and self.ordered_file_list == []):
             self.update_file_list()
 
-    def update_file_list(self):
-        if self.create_timed_file_list:
-            self._get_files_list()
-            self._order_file_list()
+    def add_new_files_to_list(self):
+        """
+        checks for new files in folder and adds them to the sorted_file_list
+        :return:
+        """
+        cur_filename_list = os.listdir(self.directory)
+        cur_filename_list = [os.path.join(self.directory, filename) for filename in cur_filename_list if
+                             self.is_correct_file_type(filename)]
+        new_filename_list = [filename for filename in cur_filename_list if filename not in list(self.filename_list)]
+        self.filename_list = cur_filename_list
+        for filename in new_filename_list:
+            creation_time = os.path.getctime(filename)
+            for ind in xrange(len(self.ordered_file_list)):
+                if creation_time>self.ordered_file_list[ind][0]:
+                    self.ordered_file_list.insert(ind, (creation_time, filename))
+                    break
+
+
+
 
     @staticmethod
     def _get_ending_number(basename):
