@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@
 __author__ = 'Clemens Prescher'
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import os
@@ -57,7 +58,7 @@ class SpectrumData(Observable):
         self.file_name_iterator.update_filename(filename)
         self.notify()
 
-    def save_spectrum(self, filename, header = None, subtract_background = False):
+    def save_spectrum(self, filename, header=None, subtract_background=False):
         if subtract_background:
             x, y = self.spectrum.data
         else:
@@ -67,9 +68,9 @@ class SpectrumData(Observable):
         num_points = len(x)
 
         if filename.endswith('.chi'):
-            if header is None or header=='':
-                file_handle.write(filename+'\n')
-                file_handle.write(self.unit+'\n\n')
+            if header is None or header == '':
+                file_handle.write(filename + '\n')
+                file_handle.write(self.unit + '\n\n')
                 file_handle.write("       {}\n".format(num_points))
             else:
                 file_handle.write(header)
@@ -158,7 +159,7 @@ class Spectrum(object):
             self.name = os.path.basename(filename).split('.')[:-1][0]
 
         except ValueError:
-            print('Wrong data format for spectrum file! - ' +filename)
+            print('Wrong data format for spectrum file! - ' + filename)
             return -1
 
     def save(self, filename, header=''):
@@ -189,7 +190,7 @@ class Spectrum(object):
             x = self._x[ind]
             y = self._y[ind]
 
-            if len(x)==0:
+            if len(x) == 0:
                 #if there is no overlapping between background and spectrum, raise an error
                 raise BkgNotInRangeError(self.name)
 
@@ -221,11 +222,14 @@ class Spectrum(object):
         else:
             self._scaling = value
 
+
 class BkgNotInRangeError(Exception):
     def __init__(self, spectrum_name):
         self.spectrum_name = spectrum_name
+
     def __str__(self):
-        return "The background range does not overlap with the Spectrum range for "+ self.spectrum_name
+        return "The background range does not overlap with the Spectrum range for " + self.spectrum_name
+
 
 def test():
     my_spectrum = Spectrum()
