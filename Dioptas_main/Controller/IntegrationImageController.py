@@ -10,7 +10,7 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
 #
 #     You should have received a copy of the GNU General Public License
@@ -182,7 +182,8 @@ class IntegrationImageController(object):
                 if working_directory is '':
                     return
 
-                progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0, len(filenames),
+                progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
+                                                        len(filenames),
                                                         self.view)
                 progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
                 progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
@@ -201,9 +202,10 @@ class IntegrationImageController(object):
                     for file_ending in file_endings:
                         filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
                         print filename
-                        self.spectrum_data.set_spectrum(x,y, filename, unit=self.get_integration_unit())
+                        self.spectrum_data.set_spectrum(x, y, filename, unit=self.get_integration_unit())
                         if file_ending == '.xy':
-                            self.spectrum_data.save_spectrum(filename, header=self.create_header())
+                            self.spectrum_data.save_spectrum(filename, header=self.create_header(
+                                polarization_factor=self.calibration_data.polarization_factor))
                         else:
                             self.spectrum_data.save_spectrum(filename)
                     if progress_dialog.wasCanceled():
@@ -214,7 +216,7 @@ class IntegrationImageController(object):
 
     def create_header(self):
         header = self.calibration_data.geometry.makeHeaders()
-        header = header.replace('\r\n', '')
+        header = header.replace('\r\n', '\n')
         header += '\n#\n# ' + self.spectrum_data.unit + '\t I'
         return header
 
@@ -303,7 +305,7 @@ class IntegrationImageController(object):
                 self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
             self.working_dir['image'] = os.path.abspath(new_directory)
             old_filename = str(self.view.img_filename_txt.text())
-            self.view.img_filename_txt.setText(old_filename+'*')
+            self.view.img_filename_txt.setText(old_filename + '*')
             #update for autoprocessing of images
         else:
             self.view.img_directory_txt.setText(self.working_dir['image'])

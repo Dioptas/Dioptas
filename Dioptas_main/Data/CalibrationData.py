@@ -31,7 +31,7 @@ from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
 from .HelperModule import get_base_name
-from copy import deepcopy, copy
+from copy import copy
 import Calibrants
 
 
@@ -47,12 +47,12 @@ class CalibrationData(object):
                              'wavelength': 0.3344e-10,
                              'pixel_width': 79e-6,
                              'pixel_height': 79e-6,
-                             'polarization_factor': 0.999}
+                             'polarization_factor': 0.99}
         self.fit_wavelength = False
         self.is_calibrated = False
         self.use_mask = False
         self.calibration_name = 'None'
-        self.polarization_factor = 0.95
+        self.polarization_factor = 0.99
         self._calibrants_working_dir = os.path.dirname(Calibrants.__file__)
 
         self.cake_img = np.zeros((2048, 2048))

@@ -1,5 +1,12 @@
-0.1.4 (development)
+0.1.5 (development)
 -------------------
+
+Bugfixes:
+    - Fixed the header format of xy files in windows
+    - .xy header now correctly shows the polarization factor
+
+0.1.4 (stable 08/10/2014)
+-------------------------
 
 - spectra can now be saved in .xy, .chi and dat format
 - they can be selected for automatic creation of spectrum files when loading images

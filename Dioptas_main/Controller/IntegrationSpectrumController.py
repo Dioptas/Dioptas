@@ -194,12 +194,13 @@ class IntegrationSpectrumController(object):
         if filename is not '':
             print(filename)
             if filename.endswith('.xy'):
-                header = self.calibration_data.geometry.makeHeaders()
+                header = self.calibration_data.geometry.makeHeaders(polarization_factor=
+                                                                    self.calibration_data.polarization_factor)
                 if subtract_background:
                     if self.spectrum_data.bkg_ind is not -1:
                         header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
                             self.spectrum_data.bkg_ind].name
-                header = header.replace('\r\n', '')
+                header = header.replace('\r\n', '\n')
                 header += '\n#\n# ' + self.integration_unit + '\t I'
 
                 self.spectrum_data.save_spectrum(filename, header, subtract_background)
@@ -211,7 +212,6 @@ class IntegrationSpectrumController(object):
                 self.view.spectrum_view.save_png(filename)
             elif filename.endswith('.svg'):
                 self.view.spectrum_view.save_svg(filename)
-
 
     def load(self, filename=None):
         if filename is None:
