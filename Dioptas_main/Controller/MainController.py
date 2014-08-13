@@ -131,7 +131,7 @@ class MainController(object):
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += ' - © C. Prescher'
+        str += u' - © C. Prescher'
         self.view.setWindowTitle(str)
 
     def load_directories(self):
