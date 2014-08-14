@@ -204,8 +204,7 @@ class IntegrationImageController(object):
                         print filename
                         self.spectrum_data.set_spectrum(x, y, filename, unit=self.get_integration_unit())
                         if file_ending == '.xy':
-                            self.spectrum_data.save_spectrum(filename, header=self.create_header(
-                                polarization_factor=self.calibration_data.polarization_factor))
+                            self.spectrum_data.save_spectrum(filename, header=self.create_header())
                         else:
                             self.spectrum_data.save_spectrum(filename)
                     if progress_dialog.wasCanceled():
@@ -215,7 +214,7 @@ class IntegrationImageController(object):
                 progress_dialog.close()
 
     def create_header(self):
-        header = self.calibration_data.geometry.makeHeaders()
+        header = self.calibration_data.geometry.makeHeaders(polarization_factor=self.calibration_data.polarization_factor)
         header = header.replace('\r\n', '\n')
         header += '\n#\n# ' + self.spectrum_data.unit + '\t I'
         return header
