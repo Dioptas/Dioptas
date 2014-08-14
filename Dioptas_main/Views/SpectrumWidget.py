@@ -419,8 +419,8 @@ class PhasePlot(object):
 
     def set_color(self, color):
         for line_item in self.line_items:
-            line_item.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.DashLine))
-        self.ref_legend_line.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.DashLine))
+            line_item.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine))
+        self.ref_legend_line.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine))
 
 
     def hide(self):
