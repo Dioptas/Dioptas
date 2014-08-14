@@ -109,16 +109,13 @@ class SpectrumData(Observable):
 
     def add_overlay(self, x, y, name=''):
         self.overlays.append(Spectrum(x, y, name))
-        self.notify()
 
     def set_current_spectrum_as_overlay(self):
         self.overlays.append(deepcopy(self.spectrum))
-        self.notify()
 
     def add_overlay_file(self, filename):
         self.overlays.append(Spectrum())
         self.overlays[-1].load(filename)
-        self.notify()
 
     def del_overlay(self, ind):
         del self.overlays[ind]

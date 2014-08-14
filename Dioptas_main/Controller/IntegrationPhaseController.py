@@ -57,7 +57,7 @@ class IntegrationPhaseController(object):
         self.view.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
         self.view.phase_name_changed.connect(self.rename_phase)
 
-        self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_intensities_slot)
+        self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_phase_intensities_slot)
         self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
         self.spectrum_data.subscribe(self.spectrum_data_changed)
 
@@ -189,13 +189,13 @@ class IntegrationPhaseController(object):
             for ind in range(len(self.phase_data.phases)):
                 self.phase_data.set_pressure(ind, np.float(val))
                 self.view.set_phase_tw_pressure(ind, val)
-            self.update_intensities()
+            self.update_phase_intensities()
 
         else:
             cur_ind = self.view.get_selected_phase_row()
             self.phase_data.set_pressure(cur_ind, np.float(val))
             self.view.set_phase_tw_pressure(cur_ind, val)
-            self.update_intensity(cur_ind)
+            self.update_phase_intensity(cur_ind)
 
     def phase_temperature_sb_changed(self, val):
         """
@@ -205,12 +205,12 @@ class IntegrationPhaseController(object):
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in range(len(self.phase_data.phases)):
                 self.update_phase_temperature(ind, val)
-            self.update_intensities()
+            self.update_phase_intensities()
 
         else:
             cur_ind = self.view.get_selected_phase_row()
             self.update_phase_temperature(cur_ind, val)
-            self.update_intensity(cur_ind)
+            self.update_phase_intensity(cur_ind)
 
     def update_phase_temperature(self, ind, val):
         if self.phase_data.phases[ind].has_thermal_expansion():
@@ -264,50 +264,6 @@ class IntegrationPhaseController(object):
     def rename_phase(self, ind, name):
         self.view.spectrum_view.rename_phase(ind, name)
 
-    def update_intensities_slot(self, *args):
-        """
-        Used as a slot when autoRange of the view is. Tries to prevent a call on autorange while updating intensities of
-        phases.
-        """
-        axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
-        auto_range = copy(self.view.spectrum_view.spectrum_plot.vb.state['autoRange'])
-
-        self.view.spectrum_view.spectrum_plot.disableAutoRange()
-        self.update_intensities(axis_range)
-
-        if auto_range[0] and auto_range[1]:
-            self.view.spectrum_view.spectrum_plot.enableAutoRange()
-
-    def update_intensity(self, ind, axis_range=None):
-        """
-        Updates the intensities of a specific phase with index ind.
-        :param ind: Index of the phase
-        :param axis_range: list/tuple of visible x_range and y_range -- ((x_min, x_max), (y_min, y_max))
-        """
-        if axis_range is None:
-            axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
-        x_range = axis_range[0]
-        y_range = axis_range[1]
-        positions, intensities, baseline = \
-            self.phase_data.get_rescaled_reflections(
-                ind, self.spectrum_data.spectrum,
-                x_range, y_range,
-                self.calibration_data.geometry.wavelength * 1e10,
-                self.get_unit())
-        self.view.spectrum_view.update_phase_intensities(
-            ind, positions, intensities, baseline)
-
-    def update_intensities(self, axis_range=None):
-        """
-        Updates all intensities of all phases in the spectrum view. Also checks if phase lines are still visible.
-        (within range of spectrum and/or overlays
-        :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
-        """
-        self.view.spectrum_view.view_box.blockSignals(True)
-        for ind in range(len(self.phase_data.phases)):
-            self.update_intensity(ind, axis_range)
-        self.view.spectrum_view.view_box.blockSignals(False)
-        self.view.spectrum_view.update_phase_line_visibilities()
 
     def get_unit(self):
         """
@@ -328,23 +284,66 @@ class IntegrationPhaseController(object):
         This is needed because the graph scaling is to slow, to call update_intensities immediately after the autoscale-btn
         was clicked
         """
-        QtCore.QTimer.singleShot(50, self.update_intensities_slot)
+        QtCore.QTimer.singleShot(50, self.update_phase_intensities_slot)
 
     def spectrum_data_changed(self):
         """
-        Function is called after the specturm data has changed.
+        Function is called after the spectrum data has changed.
         """
-        QtCore.QTimer.singleShot(10, self.update_intensities_slot)
-        self.view.spectrum_view.view_box.sigRangeChanged.connect(self.update_intensities_spectrum_slot)
+        # QtGui.QApplication.processEvents()
+        # self.update_phase_lines_slot()
+        QtCore.QTimer.singleShot(50, self.update_phase_lines_slot)
 
-    def update_intensities_spectrum_slot(self, *args):
+
+    def update_phase_intensities_slot(self, *args):
         """
-        function will be executed after a sigRangeChange event after a spectrum changed. It will disconnect the first
-        handler afterwards. This is needed because of some timing issues.
+        Used as a slot when autoRange of the view is. Tries to prevent a call on autorange while updating intensities of
+        phases.
         """
-        self.update_intensities()
-        try:
-            self.view.spectrum_view.view_box.sigRangeChanged.disconnect(self.update_intensities_spectrum_slot)
-        except TypeError:
-            pass
+        axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
+        auto_range = copy(self.view.spectrum_view.spectrum_plot.vb.state['autoRange'])
+
+        self.view.spectrum_view.spectrum_plot.disableAutoRange()
+        self.update_phase_intensities(axis_range)
+
+        if auto_range[0] and auto_range[1]:
+            self.view.spectrum_view.spectrum_plot.enableAutoRange()
+
+
+    def update_phase_lines_slot(self,*args):
+        self.update_phase_intensities_slot()
+        self.view.spectrum_view.update_phase_line_visibilities()
+
+
+    def update_phase_intensities(self, axis_range=None):
+        """
+        Updates all intensities of all phases in the spectrum view. Also checks if phase lines are still visible.
+        (within range of spectrum and/or overlays
+        :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
+        """
+        self.view.spectrum_view.view_box.blockSignals(True)
+        for ind in range(len(self.phase_data.phases)):
+            self.update_phase_intensity(ind, axis_range)
+        self.view.spectrum_view.view_box.blockSignals(False)
+
+    def update_phase_intensity(self, ind, axis_range=None):
+        """
+        Updates the intensities of a specific phase with index ind.
+        :param ind: Index of the phase
+        :param axis_range: list/tuple of visible x_range and y_range -- ((x_min, x_max), (y_min, y_max))
+        """
+        if axis_range is None:
+            axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
+        x_range = axis_range[0]
+        y_range = axis_range[1]
+        positions, intensities, baseline = \
+            self.phase_data.get_rescaled_reflections(
+                ind, self.spectrum_data.spectrum,
+                x_range, y_range,
+                self.calibration_data.geometry.wavelength * 1e10,
+                self.get_unit())
+        self.view.spectrum_view.update_phase_intensities(
+            ind, positions, intensities, baseline)
+
+
 
