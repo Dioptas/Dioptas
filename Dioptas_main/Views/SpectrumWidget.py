@@ -19,7 +19,7 @@ from __future__ import absolute_import, print_function
 
 
 __author__ = 'Clemens Prescher'
-
+import time
 import pyqtgraph as pg
 from .ExLegendItem import LegendItem
 import numpy as np
@@ -68,7 +68,7 @@ class SpectrumWidget(QtCore.QObject):
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
 
     def create_pos_line(self):
-        self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5))
+        self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5, style=QtCore.Qt.DashLine))
         self.spectrum_plot.addItem(self.pos_line)
 
     def set_pos_line(self, x):
@@ -87,32 +87,20 @@ class SpectrumWidget(QtCore.QObject):
 
     def update_graph_limits(self):
         x_range = list(self.plot_item.dataBounds(0))
-        y_range = list(self.plot_item.dataBounds(1))
         for ind, overlay in enumerate(self.overlays):
             if self.overlay_show[ind]:
                 x_range_overlay = overlay.dataBounds(0)
-                y_range_overlay = overlay.dataBounds(0)
                 if x_range_overlay[0] < x_range[0]:
                     x_range[0] = x_range_overlay[0]
                 if x_range_overlay[1] > x_range[1]:
                     x_range[1] = x_range_overlay[1]
 
-                if y_range_overlay[0] < y_range[0]:
-                    y_range[0] = y_range_overlay[0]
-                if y_range_overlay[1] > y_range[1]:
-                    y_range[1] = y_range_overlay[1]
-
         diff = x_range[1] - x_range[0]
         x_range = [x_range[0] - 0.02 * diff,
                    x_range[1] + 0.02 * diff]
-        diff = y_range[1] - y_range[0]
-        y_range = [y_range[0] - 0.02 * diff,
-                   y_range[1] + 0.02 * diff]
 
         self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
-                                minXRange=x_range[0], maxXRange=x_range[1])
-        # yMin=y_range[0], yMax=y_range[1],
-        # minYRange=y_range[0], maxYRange=y_range[1],)
+                                minXRange=x_range[0], maxXRange=x_range[1])\
 
     def add_overlay(self, spectrum, show=True):
         x, y = spectrum.data
@@ -124,7 +112,6 @@ class SpectrumWidget(QtCore.QObject):
             self.spectrum_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], spectrum.name)
             self.update_graph_limits()
-
         return color
 
     def del_overlay(self, ind):
@@ -134,7 +121,6 @@ class SpectrumWidget(QtCore.QObject):
         self.overlay_names.remove(self.overlay_names[ind])
         self.overlay_show.remove(self.overlay_show[ind])
 
-        self.update_phase_visibility()
         self.update_graph_limits()
 
     def hide_overlay(self, ind):
@@ -142,7 +128,6 @@ class SpectrumWidget(QtCore.QObject):
         self.legend.hideItem(ind + 1)
         self.overlay_show[ind] = False
 
-        self.update_phase_visibility()
         self.update_graph_limits()
 
     def show_overlay(self, ind):
@@ -150,15 +135,11 @@ class SpectrumWidget(QtCore.QObject):
         self.legend.showItem(ind + 1)
         self.overlay_show[ind] = True
 
-        self.update_phase_visibility()
         self.update_graph_limits()
 
     def update_overlay(self, spectrum, ind):
         x, y = spectrum.data
         self.overlays[ind].setData(x, y)
-        if self._auto_range:
-            self.view_box.autoRange()
-            self.view_box.enableAutoRange()
 
     def get_overlay_color(self, ind):
         pass
@@ -174,9 +155,6 @@ class SpectrumWidget(QtCore.QObject):
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
         return self.phases[-1].color
-
-    # def update_phase(self, ind, positions, intensities, name=None, baseline=0):
-    #     self.phases[ind].create_items(positions, intensities, name, baseline)
 
     def set_phase_color(self, ind, color):
         self.phases[ind].set_color(color)
@@ -205,13 +183,6 @@ class SpectrumWidget(QtCore.QObject):
     def del_phase(self, ind):
         self.phases[ind].remove()
         del self.phases[ind]
-
-    def update_phase_visibility(self):
-        for phase in self.phases:
-            if phase.visible:
-                phase.show()
-            else:
-                phase.hide()
 
     def plot_vertical_lines(self, positions, name=None):
         if len(self.phases_vlines) > 0:
@@ -319,9 +290,9 @@ class SpectrumWidget(QtCore.QObject):
                 self.emit_sig_range_changed()
         else:
             if ev.isFinish():  ## This is the final move in the drag; change the view scale now
-                #print "finish"
+                self._auto_range = False
+                self.view_box.enableAutoRange(enable=False)
                 self.view_box.rbScaleBox.hide()
-                #ax = QtCore.QRectF(Point(self.pressPos), Point(self.mousePos))
                 ax = QtCore.QRectF(pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos))
                 ax = self.view_box.childGroup.mapRectFromParent(ax)
                 self.view_box.showAxRect(ax)
@@ -346,18 +317,19 @@ class SpectrumWidget(QtCore.QObject):
             # axis_range = self.spectrum_plot.viewRange()
             # self.range_changed.emit(axis_range)
         else:
-            view_range = np.array(self.view_box.viewRange())
-            curve_data = self.plot_item.getData()
-            x_range = np.max(curve_data[0]) - np.min(curve_data[0])
-            y_range = np.max(curve_data[1]) - np.min(curve_data[1])
-            if (view_range[0][1] - view_range[0][0]) > x_range and \
-                            (view_range[1][1] - view_range[1][0]) > y_range:
-                self.view_box.autoRange()
-                self.view_box.enableAutoRange()
-                self._auto_range = True
-            else:
-                self._auto_range = False
-                pg.ViewBox.wheelEvent(self.view_box, ev)
+            if self._auto_range is not True:
+                view_range = np.array(self.view_box.viewRange())
+                curve_data = self.plot_item.getData()
+                x_range = np.max(curve_data[0]) - np.min(curve_data[0])
+                y_range = np.max(curve_data[1]) - np.min(curve_data[1])
+                if (view_range[0][1] - view_range[0][0]) >= x_range and \
+                                (view_range[1][1] - view_range[1][0]) >= y_range:
+                    self.view_box.autoRange()
+                    self.view_box.enableAutoRange()
+                    self._auto_range = True
+                else:
+                    self._auto_range = False
+                    pg.ViewBox.wheelEvent(self.view_box, ev)
         self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
 
@@ -396,9 +368,10 @@ class PhasePlot(object):
         self.visible = True
         self.line_items = []
         self.line_visible = []
+        self.spectrum_x_range = []
         self.index = PhasePlot.num_phases
         self.color = calculate_color(self.index + 9)
-        self.pen = pg.mkPen(color=self.color, width=1.3, style=QtCore.Qt.DashLine)
+        self.pen = pg.mkPen(color=self.color, width=0.9, style=QtCore.Qt.SolidLine)
         self.ref_legend_line = pg.PlotDataItem(pen=self.pen)
         self.name = ''
         PhasePlot.num_phases += 1
@@ -411,7 +384,8 @@ class PhasePlot(object):
         for ind, position in enumerate(positions):
             self.line_items.append(pg.PlotDataItem(x=[position, position],
                                                    y=[baseline, intensities[ind]],
-                                                   pen=self.pen))
+                                                   pen=self.pen,
+                                                   antialias = False))
             self.line_visible.append(True)
             self.plot_item.addItem(self.line_items[ind])
 
@@ -441,6 +415,7 @@ class PhasePlot(object):
                     if self.line_visible[ind]:
                         self.plot_item.removeItem(line_item)
                         self.line_visible[ind] = False
+
 
     def set_color(self, color):
         for line_item in self.line_items:

@@ -1,3 +1,3 @@
 #!/bin/sh
-python -m cProfile -o profile.data Py2DeX_loaded.py
+python -m cProfile -o profile.data Dioptas_loaded.py
 snakeviz profile.data &
