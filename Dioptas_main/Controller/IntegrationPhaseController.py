@@ -46,7 +46,7 @@ class IntegrationPhaseController(object):
         self.connect_click_function(self.view.phase_clear_btn, self.clear_phases)
 
         self.view.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
-        self.view.phase_temperature_step_txt.editingFinished.connect(self.update_phase_pressure_step)
+        self.view.phase_temperature_step_txt.editingFinished.connect(self.update_phase_temperature_step)
 
         self.view.phase_pressure_sb.valueChanged.connect(self.phase_pressure_sb_changed)
         self.view.phase_temperature_sb.valueChanged.connect(self.phase_temperature_sb_changed)
