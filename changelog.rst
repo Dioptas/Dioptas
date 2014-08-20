@@ -4,6 +4,8 @@
 Bugfixes:
     - Fixed the header format of xy files in windows
     - .xy header now correctly shows the polarization factor
+    - the temperature step in the user interface for phases now correctly changes the step of the temperature spin box
+    - erroneous jcpds files will now give an error messagebox and will be handled correctly - no restart needed anymore
 
 0.1.4 (stable 08/10/2014)
 -------------------------
