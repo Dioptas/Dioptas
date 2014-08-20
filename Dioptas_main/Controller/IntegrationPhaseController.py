@@ -22,11 +22,13 @@
 __author__ = 'Clemens Prescher'
 
 import os
-from PyQt4 import QtGui, QtCore
-import numpy as np
-from Data.HelperModule import get_base_name
 from copy import copy
-import pyqtgraph as pg
+import numpy as np
+
+from PyQt4 import QtGui, QtCore
+
+from Data.HelperModule import get_base_name
+from Data.PhaseData import PhaseLoadError
 
 
 class IntegrationPhaseController(object):
@@ -86,24 +88,8 @@ class IntegrationPhaseController(object):
                     progress_dialog.setValue(ind)
                     progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
                     QtGui.QApplication.processEvents()
-                    self.phase_data.add_phase(filename)
 
-                    if self.view.phase_apply_to_all_cb.isChecked():
-                        pressure = np.float(self.view.phase_pressure_sb.value())
-                        temperature = np.float(self.view.phase_temperature_sb.value())
-                        self.phase_data.phases[-1].compute_d(pressure=pressure,
-                                                             temperature=temperature)
-                    else:
-                        pressure = 0
-                        temperature = 300
-
-
-                    self.phase_data.get_lines_d(-1)
-                    color = self.add_phase_plot()
-                    self.view.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
-
-                    self.view.set_phase_tw_pressure(len(self.phase_data.phases)-1, pressure)
-                    self.update_phase_temperature(len(self.phase_data.phases)-1, temperature)
+                    self._add_phase(filename)
 
                     if progress_dialog.wasCanceled():
                         break
@@ -111,6 +97,12 @@ class IntegrationPhaseController(object):
                 QtGui.QApplication.processEvents()
                 self.update_temperature_control_visibility()
         else:
+            self._add_phase(filename)
+            self.working_dir['phase'] = os.path.dirname(str(filename))
+            self.update_temperature_control_visibility()
+
+    def _add_phase(self, filename):
+        try:
             self.phase_data.add_phase(filename)
 
             if self.view.phase_apply_to_all_cb.isChecked():
@@ -129,9 +121,16 @@ class IntegrationPhaseController(object):
 
             self.view.set_phase_tw_pressure(len(self.phase_data.phases)-1, pressure)
             self.update_phase_temperature(len(self.phase_data.phases)-1, temperature)
-
-            self.working_dir['phase'] = os.path.dirname(str(filename))
-            self.update_temperature_control_visibility()
+        except PhaseLoadError as e:
+            msg_box = QtGui.QMessageBox(self.view)
+            msg_box.setWindowFlags(QtCore.Qt.Tool)
+            msg_box.setText('Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'.\
+                            format(e.filename))
+            msg_box.setIcon(QtGui.QMessageBox.Critical)
+            msg_box.setWindowTitle('Error')
+            msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
+            msg_box.setDefaultButton(QtGui.QMessageBox.Ok)
+            msg_box.exec_()
 
     def add_phase_plot(self):
         """
@@ -237,6 +236,10 @@ class IntegrationPhaseController(object):
     def update_temperature_control_visibility(self, row_ind = None):
         if row_ind is None:
             row_ind = self.view.get_selected_phase_row()
+
+        if row_ind == -1:
+            return
+
         if self.phase_data.phases[row_ind].has_thermal_expansion():
             self.view.phase_temperature_sb.setEnabled(True)
             self.view.phase_temperature_step_txt.setEnabled(True)

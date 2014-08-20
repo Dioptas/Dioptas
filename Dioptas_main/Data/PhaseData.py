@@ -22,6 +22,12 @@ from .HelperModule import Observable
 from Data.jcpds import jcpds
 import numpy as np
 
+class PhaseLoadError(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __repr__(self):
+        return "Could not load {} as jcpds file".format(self.filename)
 
 class PhaseData(Observable):
     def __init__(self):
@@ -30,9 +36,13 @@ class PhaseData(Observable):
         self.reflections = []
 
     def add_phase(self, filename):
-        self.phases.append(jcpds())
-        self.phases[-1].read_file(filename)
-        self.reflections.append([])
+        jcpds_object = jcpds()
+        try:
+            jcpds_object.read_file(filename)
+            self.phases.append(jcpds_object)
+            self.reflections.append([])
+        except (ZeroDivisionError, UnboundLocalError, ValueError):
+            raise PhaseLoadError(filename)
 
     def del_phase(self, ind):
         del self.phases[ind]
