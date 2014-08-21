@@ -1,0 +1,1120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>JcpdsEditorWidget</class>
+ <widget class="QWidget" name="JcpdsEditorWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>583</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">#mainView, #calibration_tab, #mask_tab, #integration_tab {  
+     background: #3C3C3C;      
+	border: 5px solid #3C3C3C;
+ }  
+
+QTabWidget::tab-bar{ 
+	alignment: center;
+}
+
+QWidget{
+	color: #F1F1F1;
+}
+
+
+QTabBar::tab:left, QTabBar::tab:right {  
+     background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
+     border: 1px solid  #5B5B5B;  
+	font: normal 14px;
+	color: #F1F1F1;
+     border-radius:2px;
+	
+    padding: 0px;
+     width: 20px;  
+    min-height:140px;
+ }  
+
+
+QTabBar::tab::top, QTabBar::tab::bottom {  
+     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
+     border: 1px solid  #5B5B5B;  
+	border-right: 0px solid white;
+	  color: #F1F1F1; 
+    font: normal 11px;
+     border-radius:2px;
+     min-width: 80px;  
+    height: 19px;
+    padding: 0px;
+     margin-top: 1px ;
+	margin-right: 1px;
+ }  
+QTabBar::tab::left:last, QTabBar::tab::right:last{
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+QTabBar::tab:left:first, QTabBar::tab:right:first{
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+QTabWidget, QTabWidget::tab-bar,  QTabWidget::panel, QWidget{  
+     background: #3C3C3C;      
+ }  
+
+QTabWidget::tab-bar {
+	alignment: center;
+}
+
+ QTabBar::tab:hover {  
+     border: 1px solid #ADADAD;  
+ }  
+   
+ QTabBar:tab:selected{  
+
+	background: qlineargradient(
+        x1: 0, y1: 1, 
+        x2: 0, y2: 0,
+        stop: 0 #727272, 
+        stop: 1 #444444
+    );
+     border:1px solid  rgb(255, 120,00);/*#ADADAD; */ 
+}
+
+QTabBar::tab:bottom:last, QTabBar::tab:top:last{
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+QTabBar::tab:bottom:first, QTabBar::tab:top:first{
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+ QTabBar::tab:top:!selected {  
+    margin-top: 1px;
+    padding-top:1px;
+ }  
+QTabBar::tab:bottom:!selected{
+	margin-bottom: 1px;
+    padding-bottom:1px;
+}
+
+QGraphicsView {
+	border-style: none;
+}
+
+ QLabel , QCheckBox, QGroupBox, QRadioButton, QListWidget::item, QPushButton, QToolBox::tab, QSpinBox, QDoubleSpinBox , QComboBox{  
+     color: #F1F1F1; 
+    font-size: 12px;
+ }  
+ QCheckBox{  
+     border-radius: 5px;  
+ }  
+ QRadioButton, QCheckBox {  
+     font-weight: normal;  
+	height: 15px;
+ }  
+ 
+ QLineEdit  {  
+     border-radius: 2px;  
+     background: #F1F1F1;  
+     color: black;  
+	height: 18 px;
+ }  
+
+QLineEdit::focus{
+	border-style: none;
+     border-radius: 2px;  
+     background: #F1F1F1;  
+     color: black;  
+}
+
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled{
+	color:rgb(148, 148, 148)
+}
+QSpinBox, QDoubleSpinBox {
+	background-color:  #F1F1F1;	
+	color: black;
+	margin-left: -15px;
+	margin-right: -2px;
+	height: 30px;
+}
+
+QComboBox QAbstractItemView{
+	background: #2D2D30;
+	color: #F1F1F1;
+	selection-background-color: rgba(221, 124, 40, 120);
+	border-radius: 5px;
+
+}
+
+QComboBox:!editable {
+    margin-left: 1px;
+    padding-left: 10px;
+    height: 23px;
+    background-color: #3C3C3C;
+}
+
+QComboBox::item{
+    background-color: #3C3C3C;
+}
+
+QComboBox::item::selected {
+    background-color: #505050;
+}
+QToolBox::tab:QToolButton{
+    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
+     border: 1px solid  #5B5B5B;  
+
+     border-radius:2px;
+     padding-right: 10px;  
+    
+      color: #F1F1F1; 
+    font-size: 12px;
+    padding: 3px;
+}
+QToolBox::tab:QToolButton{
+    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
+     border: 1px solid  #5B5B5B;  
+
+     border-radius:2px;
+     padding-right: 10px;  
+    
+      color: #F1F1F1; 
+    font-size: 12px;
+    padding: 3px;
+}
+  
+QPushButton{  
+	 color: #F1F1F1;
+     background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);
+     border: 1px solid #5B5B5B;
+     border-radius: 5px; 
+     padding-left: 8px;
+height: 18px;
+    padding-right: 8px;   
+ }  
+QPushButton:pressed{
+		margin-top: 2px;
+		margin-left: 2px;	
+}
+QPushButton::disabled{
+}
+
+QPushButton::hover{  
+     border:1px solid #ADADAD; 
+ }  
+ 
+
+QPushButton::checked{
+	background: qlineargradient(
+        x1: 0, y1: 1, 
+        x2: 0, y2: 0,
+        stop: 0 #727272, 
+        stop: 1 #444444
+    );
+     border:1px solid  rgb(255, 120,00);
+}
+
+QPushButton::focus {
+	outline: None;
+}
+ QGroupBox {  
+     border: 1px solid #ADADAD;  
+     border-radius: 4px;  
+     margin-top: 7px;  
+     padding: 0px  
+ }  
+ QGroupBox::title {  
+      subcontrol-origin: margin;  
+      left: 20px  
+  }
+
+QSplitter::handle:hover {
+	background: #3C3C3C;
+ }
+
+
+QGraphicsView{
+	border-style: none;
+}
+
+ QScrollBar:vertical {
+      border: 2px solid #3C3C3C;
+      background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #323232, stop:1 #505050);
+      width: 12px;
+      margin: 0px 0px 0px 0px;
+  }
+  QScrollBar::handle:vertical {
+      background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #969696, stop:1 #CACACA);
+	 border-radius: 3px;
+      min-height: 20px;
+	padding: 15px;
+  }
+  QScrollBar::add-line:vertical {
+      border: 0px solid grey;
+      height: 0px;
+  }
+
+  QScrollBar::sub-line:vertical {
+      border: 0px solid grey;
+      height: 0px;
+  }
+  QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+      background: none;
+  }
+
+QScrollBar:horizontal {
+    border: 2px solid #3C3C3C;
+    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #323232, stop:1 #505050);
+	height: 12 px;
+    margin: 0px 0px 0px 0px;
+}
+
+QScrollBar::handle:horizontal {
+    background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #969696, stop:1 #CACACA);
+   border-radius: 3px;
+    min-width: 20px;
+  padding: 15px;
+}
+QScrollBar::add-line:horizontal {
+    border: 0px solid grey;
+    height: 0px;
+}
+
+QScrollBar::sub-line:horizontal {
+    border: 0px solid grey;
+    height: 0px;
+}
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
+
+#click_x_lbl, #click_y_lbl, #click_int_lbl, #click_azi_lbl, #click_d_lbl, #click_tth_lbl, #click_q_lbl {
+    color: #00DD00;
+}
+
+QHeaderView::section
+{
+	spacing: 10px;
+	color: #F1F1F1;
+     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #323232, stop:1 #505050);
+	border: None;
+	font-size: 12px;
+}
+
+QTableWidget {
+	font-size: 12px;
+	text-align: center;
+}
+
+</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0,0,1,0">
+   <item>
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Filename:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="filename_txt"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>Comment:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="comments_txt"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>6</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Lattice Parameters</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QLabel" name="label_42">
+          <property name="text">
+           <string>Symmetry: </string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="symmetry_cb">
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <item>
+           <property name="text">
+            <string>cubic</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>tetragonal</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>rhombohedral</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>orthorhombic</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>monoclinic</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>triclinic</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QGridLayout" name="gridLayout">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>a:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="lattice_a_txt"/>
+        </item>
+        <item row="0" column="2">
+         <widget class="QLabel" name="label_12">
+          <property name="text">
+           <string>Å</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <spacer name="horizontalSpacer_6">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="0" column="4">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>b:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5">
+         <widget class="QLineEdit" name="lattice_b_txt"/>
+        </item>
+        <item row="0" column="6">
+         <widget class="QLabel" name="label_13">
+          <property name="text">
+           <string>Å</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="7">
+         <spacer name="horizontalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="0" column="8">
+         <widget class="QLabel" name="label_4">
+          <property name="layoutDirection">
+           <enum>Qt::LeftToRight</enum>
+          </property>
+          <property name="text">
+           <string>c:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="9">
+         <widget class="QLineEdit" name="lattice_c_txt"/>
+        </item>
+        <item row="0" column="10">
+         <widget class="QLabel" name="label_14">
+          <property name="text">
+           <string>Å</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="11">
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="0" column="12">
+         <widget class="QLabel" name="label_43">
+          <property name="text">
+           <string>V:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="13">
+         <widget class="QLineEdit" name="lattice_volume_txt"/>
+        </item>
+        <item row="0" column="14">
+         <widget class="QLabel" name="label_44">
+          <property name="text">
+           <string>Å&lt;sup&gt;3&lt;/sup&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>α:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="lattice_alpha_txt"/>
+        </item>
+        <item row="1" column="2">
+         <widget class="QLabel" name="label_9">
+          <property name="text">
+           <string>°</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="3">
+         <spacer name="horizontalSpacer_7">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="4">
+         <widget class="QLabel" name="label_5">
+          <property name="text">
+           <string>β:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="5">
+         <widget class="QLineEdit" name="lattice_beta_txt"/>
+        </item>
+        <item row="1" column="6">
+         <widget class="QLabel" name="label_10">
+          <property name="text">
+           <string>°</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="7">
+         <spacer name="horizontalSpacer_5">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="8">
+         <widget class="QLabel" name="label_7">
+          <property name="layoutDirection">
+           <enum>Qt::LeftToRight</enum>
+          </property>
+          <property name="text">
+           <string>γ:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="9">
+         <widget class="QLineEdit" name="lattice_gamma_txt"/>
+        </item>
+        <item row="1" column="10">
+         <widget class="QLabel" name="label_11">
+          <property name="text">
+           <string>°</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="11" colspan="3">
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>138</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QLabel" name="label_45">
+          <property name="text">
+           <string>a/b:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lattice_ab_txt"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_8">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_15">
+          <property name="text">
+           <string>c/a:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lattice_ca_txt"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_9">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_16">
+          <property name="text">
+           <string>c/b:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lattice_cb_txt"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_12">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_10">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout_4">
+     <item row="0" column="0">
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>220</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>220</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Equation of State</string>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="3" column="2">
+         <widget class="QLabel" name="label_25">
+          <property name="text">
+           <string>1/K&lt;sup&gt;2&lt;/sup&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="2">
+         <widget class="QLabel" name="label_26">
+          <property name="text">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;GPa/K&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_18">
+          <property name="text">
+           <string>K':</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="label_20">
+          <property name="text">
+           <string>dK'/dT:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_19">
+          <property name="text">
+           <string>dK/dT:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="eos_K_txt"/>
+        </item>
+        <item row="0" column="2">
+         <widget class="QLabel" name="label_23">
+          <property name="text">
+           <string>GPa</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="2">
+         <widget class="QLabel" name="label_24">
+          <property name="text">
+           <string>1/K</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLineEdit" name="eos_dKdT_txt"/>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_21">
+          <property name="text">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;α&lt;span style=&quot; vertical-align:sub;&quot;&gt;T&lt;/span&gt;:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="eos_Kp_txt"/>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="eos_alphaT_txt"/>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLineEdit" name="eos_dKpdT_txt"/>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_17">
+          <property name="text">
+           <string>K:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="label_22">
+          <property name="text">
+           <string>dα&lt;sub&gt;T&lt;/sub&gt;/dT:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="2">
+         <widget class="QLabel" name="label_27">
+          <property name="text">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1/K&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="eos_dalphadT_txt"/>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="0" column="1" rowspan="2">
+      <widget class="QGroupBox" name="groupBox_3">
+       <property name="title">
+        <string>Reflections</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QPushButton" name="reflections_add_btn">
+            <property name="text">
+             <string>Add</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="reflections_delete_btn">
+            <property name="text">
+             <string>Delete</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="reflections_clear_btn">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="reflaction_table">
+          <property name="frameShape">
+           <enum>QFrame::NoFrame</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <property name="gridStyle">
+           <enum>Qt::NoPen</enum>
+          </property>
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+          <attribute name="horizontalHeaderCascadingSectionResizes">
+           <bool>true</bool>
+          </attribute>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>40</number>
+          </attribute>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>New Row</string>
+           </property>
+          </row>
+          <column>
+           <property name="text">
+            <string>h</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>k</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>l</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>d</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>I</string>
+           </property>
+          </column>
+          <item row="0" column="0">
+           <property name="text">
+            <string>1</string>
+           </property>
+          </item>
+          <item row="0" column="1">
+           <property name="text">
+            <string>2</string>
+           </property>
+          </item>
+          <item row="0" column="2">
+           <property name="text">
+            <string>3</string>
+           </property>
+          </item>
+          <item row="1" column="0">
+           <property name="text">
+            <string>2</string>
+           </property>
+          </item>
+          <item row="1" column="1">
+           <property name="text">
+            <string>3</string>
+           </property>
+          </item>
+          <item row="1" column="2">
+           <property name="text">
+            <string>4</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <item>
+      <widget class="QPushButton" name="save_btn">
+       <property name="text">
+        <string>Save</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="save_as_btn">
+       <property name="text">
+        <string>Save As</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_11">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="ok_btn">
+       <property name="text">
+        <string>Ok</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancel_btn">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
