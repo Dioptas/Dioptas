@@ -6,6 +6,7 @@
 *.user
 *.sln.docstates
 *.tif
+*.mar3450
 *.tiff
 *.jpg
 *.png
@@ -19,14 +20,8 @@
 log.txt
 .ipynb_checkpoints/
 .idea
-Testing/
+Testing Ideas/
 _build/
-PDX\ main/Tools
-marchingsquares_.*
-marchingsquares_.c
-marchingsquares.py
-marchingsquares.so
-build_output.txt
 # Build results
 
 [Dd]ebug/
