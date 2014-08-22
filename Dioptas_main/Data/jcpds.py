@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Support for calculating D spacing for powder diffraction lines as
-as function of pressure and temperature, given symmetry, zero-pressue lattice
-constants and equation of state paramters.
+as function of pressure and temperature, given symmetry, zero-pressure lattice
+constants and equation of state parameters.
 
 Author:
   Mark Rivers
@@ -17,6 +17,10 @@ Modifications:
         - changed np function to numpy versions,
         - using scipy optimize for solving the inverse Birch-Murnaghan problem
         - fixed a bug which was causing a gamma0 to be 0 for cubic unit cell
+    August 22, 2014 Clemens Prescher
+        - calculation of d spacings is now done by using arrays
+        - added several new utility function -- calculate_d0, add_reflection
+        - updated the write_file function to be able to use new standard
 
 """
 import logging
@@ -27,6 +31,8 @@ import numpy as np
 from scipy.optimize import minimize
 import os
 
+
+import time
 
 class jcpds_reflection:
     """
@@ -41,13 +47,13 @@ class jcpds_reflection:
 
     """
 
-    def __init__(self):
-        self.d0 = 0.
-        self.d = 0.
-        self.intensity = 0.
-        self.h = 0.
-        self.k = 0.
-        self.l = 0.
+    def __init__(self, h=0., k=0., l=0., intensity=0., d=0.):
+        self.d0 = d
+        self.d = d
+        self.intensity = intensity
+        self.h = h
+        self.k = k
+        self.l = l
 
 
 class jcpds:
@@ -261,7 +267,6 @@ class jcpds:
                 self.reflections.append(reflection)
 
         fp.close()
-
         self.compute_v0()
         self.a = self.a0
         self.b = self.b0
@@ -271,14 +276,20 @@ class jcpds:
         self.gamma = self.gamma0
         self.v = self.v0
         # Compute D spacings, make sure they are consistent with the input values
+
         self.compute_d()
-        reflections = self.get_reflections()
-        for r in reflections:
-            diff = abs(r.d0 - r.d) / r.d0
-            if (diff > .001):
-                logger.info(('Reflection ', r.h, r.k, r.l, \
-                    ': calculated D ', r.d, \
-                    ') differs by more than 0.1% from input D (', r.d0, ')'))
+        for reflection in self.reflections:
+            reflection.d0 = reflection.d
+
+        ## we just removed this check because it should be better to care more about the actual a,b,c values than
+        # individual d spacings
+        # reflections = self.get_reflections()
+        # for r in reflections:
+        #     diff = abs(r.d0 - r.d) / r.d0
+        #     if (diff > .001):
+        #         logger.info(('Reflection ', r.h, r.k, r.l, \
+        #             ': calculated D ', r.d, \
+        #             ') differs by more than 0.1% from input D (', r.d0, ')'))
 
 
     def write_file(self, file):
@@ -300,27 +311,27 @@ class jcpds:
            j.write_file('alumina_new.jcpds')
         """
         fp = open(file, 'w')
-        fp.writeline('VERSION:   4')
+        fp.write('VERSION:   4\n')
         for comment in self.comments:
-            fp.writeline('COMMENT: ' + comment)
-        fp.writeline('K0:       ' + str(self.k0))
-        fp.writeline('K0P:      ' + str(self.k0p0))
-        fp.writeline('DK0DT:    ' + str(self.dk0dt))
-        fp.writeline('DK0PDT:   ' + str(self.dk0pdt))
-        fp.writeline('SYMMETRY: ' + self.symmetry)
-        fp.writeline('A:        ' + str(self.a0))
-        fp.writeline('B:        ' + str(self.b0))
-        fp.writeline('C:        ' + str(self.c0))
-        fp.writeline('ALPHA:    ' + str(self.alpha0))
-        fp.writeline('BETA:     ' + str(self.beta0))
-        fp.writeline('GAMMA:    ' + str(self.gamma0))
-        fp.writeline('VOLUME:   ' + str(self.v0))
-        fp.writeline('ALPHAT:   ' + str(self.alpha_t0))
-        fp.writeline('DALPHADT: ' + str(self.d_alpha_dt))
+            fp.write('COMMENT: ' + comment+'\n')
+        fp.write('K0:       ' + str(self.k0)+'\n')
+        fp.write('K0P:      ' + str(self.k0p0)+'\n')
+        fp.write('DK0DT:    ' + str(self.dk0dt)+'\n')
+        fp.write('DK0PDT:   ' + str(self.dk0pdt)+'\n')
+        fp.write('SYMMETRY: ' + self.symmetry+'\n')
+        fp.write('A:        ' + str(self.a0)+'\n')
+        fp.write('B:        ' + str(self.b0)+'\n')
+        fp.write('C:        ' + str(self.c0)+'\n')
+        fp.write('ALPHA:    ' + str(self.alpha0)+'\n')
+        fp.write('BETA:     ' + str(self.beta0)+'\n')
+        fp.write('GAMMA:    ' + str(self.gamma0)+'\n')
+        fp.write('VOLUME:   ' + str(self.v0)+'\n')
+        fp.write('ALPHAT:   ' + str(self.alpha_t0)+'\n')
+        fp.write('DALPHADT: ' + str(self.d_alpha_dt)+'\n')
         reflections = self.get_reflections()
         for r in reflections:
-            fp.writeline('DIHKL:    ', str(r.d0), str(r.inten),
-                         str(r.h), str(r.k), str(r.l))
+            fp.write('DIHKL:    ', str(r.d0), str(r.inten),
+                         str(r.h), str(r.k), str(r.l), '\n')
         fp.close()
 
 
@@ -479,6 +490,68 @@ class jcpds:
                 (1 + 0.75 * (self.k0p - 4.) * (v0_v ** (2. / 3.) - 1.0)) -
                 self.mod_pressure) ** 2
 
+    def compute_d0(self):
+        """
+        computes d0 values for the based on the the current lattice parameters
+        """
+        a = self.a0
+        b = self.b0
+        c = self.c0
+        degre_to_radians = np.pi / 180.
+        alpha = self.alpha0 * degre_to_radians
+        beta = self.beta0 * degre_to_radians
+        gamma = self.gamma0 * degre_to_radians
+
+        h = np.zeros(len(self.reflections))
+        k = np.zeros(len(self.reflections))
+        l = np.zeros(len(self.reflections))
+
+        for ind, reflection in enumerate(self.reflections):
+            h[ind] = reflection.h
+            k[ind] = reflection.k
+            l[ind] = reflection.l
+
+        if (self.symmetry == 'CUBIC'):
+            d2inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
+        elif (self.symmetry == 'TETRAGONAL'):
+            d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
+        elif (self.symmetry == 'ORTHORHOMBIC'):
+            d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
+        elif (self.symmetry == 'HEXAGONAL'):
+            d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
+        elif (self.symmetry == 'RHOMBOHEDRAL'):
+            d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
+                                              (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
+                     (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
+        elif (self.symmetry == 'MONOCLINIC'):
+            d2inv = (h ** 2 / np.sin(beta) ** 2 / a ** 2 +
+                     k ** 2 / b ** 2 +
+                     l ** 2 / np.sin(beta) ** 2 / c ** 2 +
+                     2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
+        elif (self.symmetry == 'TRICLINIC'):
+            V = (a ** 2 * b ** 2 * c ** 2 *
+                 (1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
+                  np.cos(gamma) ** 2 +
+                  2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
+            s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
+            s22 = a ** 2 * c ** 2 * np.sin(beta) ** 2
+            s33 = a ** 2 * b ** 2 * np.sin(gamma) ** 2
+            s12 = a * b * c ** 2 * (np.cos(alpha) * np.cos(beta) -
+                                    np.cos(gamma))
+            s23 = a ** 2 * b * c * (np.cos(beta) * np.cos(gamma) -
+                                    np.cos(alpha))
+            s31 = a * b ** 2 * c * (np.cos(gamma) * np.cos(alpha) -
+                                    np.cos(beta))
+            d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
+                     2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
+        else:
+            logger.error(('Unknown crystal symmetry = ' + self.symmetry))
+        d_spacings = np.sqrt(1. / d2inv)
+
+        for ind in xrange(len(self.reflections)):
+            self.reflections[ind].d0 = d_spacings[ind]
+
+
 
     def compute_d(self, pressure=None, temperature=None):
         """
@@ -518,7 +591,7 @@ class jcpds:
         """
         self.compute_volume(pressure, temperature)
 
-        # Assumme each cell dimension changes by the same fractional amount = cube
+        # Assume each cell dimension changes by the same fractional amount = cube
         # root of volume change ratio
         ratio = np.float((self.v / self.v0) ** (1.0 / 3.0))
         self.a = self.a0 * ratio
@@ -532,47 +605,58 @@ class jcpds:
         alpha = self.alpha * dtor
         beta = self.beta * dtor
         gamma = self.gamma * dtor
-        refl = self.get_reflections()
-        for r in refl:
-            h = float(r.h)
-            k = float(r.k)
-            l = float(r.l)
-            if (self.symmetry == 'CUBIC'):
-                d2inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
-            elif (self.symmetry == 'TETRAGONAL'):
-                d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
-            elif (self.symmetry == 'ORTHORHOMBIC'):
-                d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
-            elif (self.symmetry == 'HEXAGONAL'):
-                d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
-            elif (self.symmetry == 'RHOMBOHEDRAL'):
-                d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
-                                                  (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
-                         (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
-            elif (self.symmetry == 'MONOCLINIC'):
-                d2inv = (h ** 2 / np.sin(beta) ** 2 / a ** 2 +
-                         k ** 2 / b ** 2 +
-                         l ** 2 / np.sin(beta) ** 2 / c ** 2 +
-                         2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
-            elif (self.symmetry == 'TRICLINIC'):
-                V = (a ** 2 * b ** 2 * c ** 2 *
-                     (1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
-                      np.cos(gamma) ** 2 +
-                      2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
-                s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
-                s22 = a ** 2 * c ** 2 * np.sin(beta) ** 2
-                s33 = a ** 2 * b ** 2 * np.sin(gamma) ** 2
-                s12 = a * b * c ** 2 * (np.cos(alpha) * np.cos(beta) -
-                                        np.cos(gamma))
-                s23 = a ** 2 * b * c * (np.cos(beta) * np.cos(gamma) -
-                                        np.cos(alpha))
-                s31 = a * b ** 2 * c * (np.cos(gamma) * np.cos(alpha) -
-                                        np.cos(beta))
-                d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
-                         2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
-            else:
-                logger.error(('Unknown crystal symmetry = ' + self.symmetry))
-            r.d = np.sqrt(1. / d2inv)
+
+        h = np.zeros(len(self.reflections))
+        k = np.zeros(len(self.reflections))
+        l = np.zeros(len(self.reflections))
+
+        for ind, reflection in enumerate(self.reflections):
+            h[ind] = reflection.h
+            k[ind] = reflection.k
+            l[ind] = reflection.l
+
+        if (self.symmetry == 'CUBIC'):
+            d2inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
+        elif (self.symmetry == 'TETRAGONAL'):
+            d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
+        elif (self.symmetry == 'ORTHORHOMBIC'):
+            d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
+        elif (self.symmetry == 'HEXAGONAL'):
+            d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
+        elif (self.symmetry == 'RHOMBOHEDRAL'):
+            d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
+                                              (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
+                     (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
+        elif (self.symmetry == 'MONOCLINIC'):
+            d2inv = (h ** 2 / np.sin(beta) ** 2 / a ** 2 +
+                     k ** 2 / b ** 2 +
+                     l ** 2 / np.sin(beta) ** 2 / c ** 2 +
+                     2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
+        elif (self.symmetry == 'TRICLINIC'):
+            V = (a ** 2 * b ** 2 * c ** 2 *
+                 (1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
+                  np.cos(gamma) ** 2 +
+                  2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
+            s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
+            s22 = a ** 2 * c ** 2 * np.sin(beta) ** 2
+            s33 = a ** 2 * b ** 2 * np.sin(gamma) ** 2
+            s12 = a * b * c ** 2 * (np.cos(alpha) * np.cos(beta) -
+                                    np.cos(gamma))
+            s23 = a ** 2 * b * c * (np.cos(beta) * np.cos(gamma) -
+                                    np.cos(alpha))
+            s31 = a * b ** 2 * c * (np.cos(gamma) * np.cos(alpha) -
+                                    np.cos(beta))
+            d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
+                     2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
+        else:
+            logger.error(('Unknown crystal symmetry = ' + self.symmetry))
+        d_spacings = np.sqrt(1. / d2inv)
+        for ind in xrange(len(self.reflections)):
+            self.reflections[ind].d = d_spacings[ind]
+
+    def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0.):
+        new_reflection = jcpds_reflection(h,k,l, intensity, d)
+        self.reflections.append(new_reflection)
 
     def get_reflections(self):
         """
