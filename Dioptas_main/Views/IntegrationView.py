@@ -39,16 +39,20 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def __init__(self):
         super(IntegrationView, self).__init__()
         self.setupUi(self)
+
         self.horizontal_splitter.setStretchFactor(5, 0)
         self.horizontal_splitter.setSizes([500, 200])
         self.vertical_splitter.setStretchFactor(0, 0)
         self.vertical_splitter.setStretchFactor(1, 1)
         self.vertical_splitter.setSizes([100, 700])
+
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
         self.img_pg_layout.ci.layout.setContentsMargins(10, 10, 10, 5)
         self.img_pg_layout.ci.layout.setSpacing(5)
+
         self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
         self.spectrum_pg_layout.ci.layout.setContentsMargins(10, 10, 0, 10)
+
         self.set_validator()
 
         self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)

@@ -68,6 +68,9 @@ class IntegrationPhaseController(object):
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_canceled)
 
+        self.jcpds_editor_controller.lattice_param_changed.connect(self.jcpds_editor_lattice_param_changed)
+        self.jcpds_editor_controller.eos_param_changed.connect(self.jcpds_editor_eos_param_changed)
+
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
@@ -369,6 +372,23 @@ class IntegrationPhaseController(object):
             pass
         self.phase_data.set_pressure(cur_ind, float(self.view.phase_pressure_sb.value()))
         self.update_phase_intensity(cur_ind)
+
+    def jcpds_editor_lattice_param_changed(self):
+        cur_ind = self.view.get_selected_phase_row()
+        try:
+            self.phase_data.set_temperature(cur_ind, float(self.view.phase_temperature_sb.value()))
+        except:
+            pass
+        self.phase_data.set_pressure(cur_ind, float(self.view.phase_pressure_sb.value()))
+        self.update_phase_intensity(cur_ind)
+
+    def jcpds_editor_eos_param_changed(self):
+        cur_ind = self.view.get_selected_phase_row()
+        self.phase_data.set_temperature(cur_ind, float(self.view.phase_temperature_sb.value()))
+        self.phase_data.set_pressure(cur_ind, float(self.view.phase_pressure_sb.value()))
+        self.update_phase_intensity(cur_ind)
+        self.update_temperature_control_visibility(cur_ind)
+
 
 
 

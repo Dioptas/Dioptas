@@ -36,6 +36,35 @@ def _update_view(inner_function):
         self.view.show_jcpds(self.jcpds_phase)
     return wrapper
 
+def _emit_lattice_param_changed(inner_function):
+    @wraps(inner_function)
+    def wrapper(self):
+        inner_function(self)
+        self.lattice_param_changed.emit()
+    return wrapper
+
+def _emit_eos_param_changed(inner_function):
+    @wraps(inner_function)
+    def wrapper(self):
+        inner_function(self)
+        self.eos_param_changed.emit()
+    return wrapper
+
+def _emit_reflections_number_changed(inner_function):
+    @wraps(inner_function)
+    def wrapper(self):
+        inner_function(self)
+        self.reflections_number_changed.emit()
+    return wrapper
+
+def _emit_reflections_param_changed(inner_function):
+    @wraps(inner_function)
+    def wrapper(self):
+        inner_function(self)
+        self.reflections_param_changed.emit()
+    return wrapper
+
+
 
 class JcpdsEditorController(QtCore.QObject):
     canceled_editor = QtCore.pyqtSignal(jcpds)
@@ -98,83 +127,85 @@ class JcpdsEditorController(QtCore.QObject):
     def comments_changed(self):
         self.jcpds_phase.comments[0] = str(self.view.comments_txt.text())
 
+    @_emit_lattice_param_changed
     @_update_view
     def symmetry_changed(self):
         new_symmetry = str(self.view.symmetry_cb.currentText()).upper()
         self.jcpds_phase.symmetry = new_symmetry
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_a_changed(self):
         self.jcpds_phase.a0 = float(str(self.view.lattice_a_txt.text()))
-        self.lattice_param_changed.emit()
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_b_changed(self):
         self.jcpds_phase.b0 = float(str(self.view.lattice_b_txt.text()))
-        self.lattice_param_changed.emit()
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_c_changed(self):
         self.jcpds_phase.c0 = float(str(self.view.lattice_c_txt.text()))
-        self.lattice_param_changed.emit()
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_ab_changed(self):
         ab_ratio = float(str(self.view.lattice_ab_txt.text()))
         self.jcpds_phase.a0 = self.jcpds_phase.b0 * ab_ratio
-        self.lattice_param_changed.emit()
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_ca_changed(self):
         ca_ratio = float(str(self.view.lattice_ca_txt.text()))
         self.jcpds_phase.c0 = self.jcpds_phase.a0 * ca_ratio
-        self.lattice_param_changed.emit()
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_cb_changed(self):
         cb_ratio = float(str(self.view.lattice_cb_txt.text()))
         self.jcpds_phase.c0 = self.jcpds_phase.b0 * cb_ratio
-        self.lattice_param_changed.emit()
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_alpha_changed(self):
         self.jcpds_phase.alpha0 = float(str(self.view.lattice_alpha_txt.text()))
-        self.lattice_param_changed.emit()
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_beta_changed(self):
         self.jcpds_phase.beta0 = float(str(self.view.lattice_beta_txt.text()))
-        self.lattice_param_changed.emit()
 
+    @_emit_lattice_param_changed
     @_update_view
     def lattice_gamma_changed(self):
         self.jcpds_phase.gamma0 = float(str(self.view.lattice_gamma_txt.text()))
-        self.lattice_param_changed.emit()
 
+    @_emit_eos_param_changed
     def eos_K_changed(self):
         self.jcpds_phase.k0 = float(str(self.view.eos_K_txt.text()))
-        self.eos_param_changed.emit()
 
+    @_emit_eos_param_changed
     def eos_Kp_changed(self):
         self.jcpds_phase.k0p0 = float(str(self.view.eos_Kp_txt.text()))
-        self.eos_param_changed.emit()
 
+    @_emit_eos_param_changed
     def eos_alphaT_changed(self):
-        self.jcpds_phase.alpha0 = float(str(self.view.eos_alphaT_txt.text()))
-        self.eos_param_changed.emit()
+        self.jcpds_phase.alpha_t0 = float(str(self.view.eos_alphaT_txt.text()))
 
+    @_emit_eos_param_changed
     def eos_dalphadT_changed(self):
         self.jcpds_phase.d_alpha_dt =float(str(self.view.eos_dalphadT_txt.text()))
-        self.eos_param_changed.emit()
 
+    @_emit_eos_param_changed
     def eos_dKdT_changed(self):
         self.jcpds_phase.dk0dt = float(str(self.view.eos_dKdT_txt.text()))
-        self.eos_param_changed.emit()
 
+    @_emit_eos_param_changed
     def eos_dKpdT_changed(self):
         self.jcpds_phase.dk0pdt = float(str(self.view.eos_dKpdT_txt.text()))
-        self.eos_param_changed.emit()
 
+    @_emit_reflections_number_changed
     def reflections_delete_btn_click(self):
         rows = self.view.get_selected_reflections()
         if rows is None:
@@ -187,13 +218,12 @@ class JcpdsEditorController(QtCore.QObject):
             del self.jcpds_phase.reflections[rows[ind]]
             rows = rows - 1
         self.view.reflection_table.resizeColumnsToContents()
-        self.reflections_number_changed.emit()
 
+    @_emit_reflections_number_changed
     def reflections_add_btn_click(self):
         self.jcpds_phase.add_reflection()
         self.view.add_reflection_to_table()
         self.view.reflection_table.selectRow(self.view.reflection_table.rowCount()-1)
-        self.reflections_number_changed.emit()
 
     def reflection_table_changed(self, row, col):
         label_item = self.view.reflection_table.item(row, col)
@@ -211,12 +241,12 @@ class JcpdsEditorController(QtCore.QObject):
         self.view.show_jcpds(self.jcpds_phase)
         self.reflections_param_changed.emit()
 
+    @_emit_reflections_number_changed
     def reflections_clear_btn_click(self):
         self.view.reflection_table.clearContents()
         self.view.reflection_table.setRowCount(0)
         self.view.reflection_table.resizeColumnsToContents()
         self.jcpds_phase.reflections = []
-        self.reflections_number_changed.emit()
 
     def save_as_btn_click(self, filename = False):
         if filename is False:
