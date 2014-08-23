@@ -399,7 +399,7 @@ class CalibrationController(object):
         if not refinement_canceled:
             self.update_all()
 
-    def load_calibration(self, filename=None):
+    def load_calibration(self, filename=None, update_all = True):
         """
         Loads a '*.poni' file and updates the calibration data class
         :param filename:
@@ -412,7 +412,8 @@ class CalibrationController(object):
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.load(filename)
-            self.update_all()
+            if update_all:
+                self.update_all()
 
     def use_mask_status_changed(self):
         self.plot_mask()

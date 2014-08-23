@@ -19,9 +19,11 @@ __author__ = 'Clemens Prescher'
 import unittest
 import numpy as np
 import os
+import time
 
 from Data.jcpds import jcpds
 from Controller.JcpdsEditorController import JcpdsEditorController
+from Controller.MainController import MainController
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 import sys
@@ -63,7 +65,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.jcpds = jcpds()
         self.jcpds.read_file('Data/jcpds/au_Anderson.jcpds')
 
-        self.jcpds_controller = JcpdsEditorController(self.jcpds)
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds',self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
 
         # Erwin immediately sees the filename in the explorer
@@ -87,7 +89,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.assertEqual(c, 4.07860)
 
         V = float(str(self.jcpds_view.lattice_volume_txt.text()))
-        self.assertAlmostEqual(V, a * b * c)
+        self.assertAlmostEqual(V, a * b * c, delta=0.0001)
 
         alpha = float(str(self.jcpds_view.lattice_alpha_txt.text()))
         beta = float(str(self.jcpds_view.lattice_beta_txt.text()))
@@ -147,8 +149,8 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         # he notices that the system is a smart editor shows ratios of lattice parameters:
 
         self.assertAlmostEqual(float(str(self.jcpds_view.lattice_ab_txt.text())), 4.08/5)
-        self.assertAlmostEqual(float(str(self.jcpds_view.lattice_ca_txt.text())), 6.0/4.08)
-        self.assertAlmostEqual(float(str(self.jcpds_view.lattice_cb_txt.text())), 6.0/5)
+        self.assertAlmostEqual(float(str(self.jcpds_view.lattice_ca_txt.text())), 6.0/4.08, delta=0.0001)
+        self.assertAlmostEqual(float(str(self.jcpds_view.lattice_cb_txt.text())), 6.0/5, delta = 0.0001)
 
         # he decides to play with the ratios to be better able to fit it to the current spectrum:
 
@@ -171,6 +173,9 @@ class EditCurrentJcpdsTest(unittest.TestCase):
 
         self.set_symmetry("hexagonal")
         self.assertEqual(float(str(self.jcpds_view.lattice_gamma_txt.text())), 120)
+        self.set_symmetry("monoclinic")
+        self.set_symmetry("rhombohedral")
+        self.set_symmetry("orthorhombic")
 
         # now he wants to have full control over the unit cell and sees how the volume changes when he changes the
         # angles
@@ -219,7 +224,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.jcpds = jcpds()
         self.jcpds.read_file('Data/jcpds/au_Anderson.jcpds')
 
-        self.jcpds_controller = JcpdsEditorController(self.jcpds)
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds/',self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
 
         #he sees that there are 13 reflections predefined in the table
@@ -268,9 +273,13 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.insert_reflection_table_value(12,0,1)
         self.assertEqual(self.get_reflection_table_value(12,4), 4.0786)
         self.insert_reflection_table_value(12,1,1)
-        self.assertAlmostEqual(self.get_reflection_table_value(12,4), calculate_cubic_d_spacing(1,1,0,4.0786))
+        self.assertAlmostEqual(self.get_reflection_table_value(12,4),
+                               calculate_cubic_d_spacing(1,1,0,4.0786),
+                               delta = 0.0001)
         self.insert_reflection_table_value(12,2,3)
-        self.assertAlmostEqual(self.get_reflection_table_value(12,4), calculate_cubic_d_spacing(1,1,3,4.0786))
+        self.assertAlmostEqual(self.get_reflection_table_value(12,4),
+                               calculate_cubic_d_spacing(1,1,3,4.0786),
+                               delta = 0.0001)
 
         #then she decides that everybody should screw with the table and clears it:
 
@@ -287,17 +296,79 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         # then he sees the save_as button and is happy to save his non-sense for later users
         filename='Data/jcpds/au_mal_anders.jcpds'
         self.jcpds_controller.save_as_btn_click(filename)
-        self.assertTrue(os.path.exists('Data/jcpds/au_mal_anders.jcpds'))
+        self.assertTrue(os.path.exists(filename))
 
         # he decides to change the lattice parameter and then reload the file to see if everything is ok
         self.enter_value_into_text_field(self.jcpds_view.lattice_a_txt, 10)
 
         self.jcpds.read_file('Data/jcpds/au_mal_anders.jcpds')
-        self.jcpds_controller = JcpdsEditorController(self.jcpds)
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
         self.assertEqual(float(str(self.jcpds_view.lattice_a_txt.text())), 4.0786)
         self.assertEqual(float(str(self.jcpds_view.lattice_b_txt.text())), 4.0786)
         self.assertEqual(float(str(self.jcpds_view.lattice_c_txt.text())), 4.0786)
+
+        # then he decides to make this phase it little bit more useful and adds some peaks and saves this as a different
+        # version and trys to load it again...
+
+        QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
+
+        self.insert_reflection_table_value(0,0, 1)
+        self.insert_reflection_table_value(0,3, 100)
+        self.insert_reflection_table_value(1,1, 1)
+        self.insert_reflection_table_value(1,3, 50)
+        self.insert_reflection_table_value(2,2,1)
+        self.insert_reflection_table_value(2,3, 20)
+
+        filename='Data/jcpds/au_mal_anders_vers2.jcpds'
+        self.jcpds_controller.save_as_btn_click(filename)
+
+        self.jcpds.read_file(filename)
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
+
+    def test_connection_between_main_gui_and_jcpds_editor(self):
+        #Erwin opens up the program, loads image and calibration and some phases
+        self.main_controller = MainController(self.app)
+        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
+        self.main_controller.calibration_controller.set_calibrant(7)
+        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.main_controller.view.tabWidget.setCurrentIndex(2)
+        self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/au_Anderson.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/mo.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/ar.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/re.jcpds')
+
+        self.phase_controller = self.main_controller.integration_controller.phase_controller
+        self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
+        self.jcpds_view = self.jcpds_editor_controller.view
+
+        self.phase_controller.view.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        QtGui.QApplication.processEvents()
+        self.assertTrue(self.jcpds_view.isActiveWindow())
+
+        # He changes some parameter but then realizes that he screwed it up and presses cancel to revert all his changes
+
+        self.enter_value_into_text_field(self.jcpds_view.lattice_a_txt, 10.4)
+
+        self.assertAlmostEqual(self.phase_controller.phase_data.phases[0].a0, 10.4)
+        QTest.mouseClick(self.jcpds_view.cancel_btn, QtCore.Qt.LeftButton)
+
+        self.assertNotAlmostEqual(self.phase_controller.phase_data.phases[0].a0, 10.4)
+
+        # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click another
+        # phase --  so he just selects it without closing and reopening the editor and magically the new parameters show up
+
+        self.phase_controller.view.phase_tw.selectRow(1)
+        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        QtGui.QApplication.processEvents()
+
+        self.phase_controller.view.phase_tw.selectRow(2)
+        self.assertTrue(float(str(self.jcpds_view.lattice_a_txt.text())), 5.51280) #Argon lattice parameter
+
 
 
 

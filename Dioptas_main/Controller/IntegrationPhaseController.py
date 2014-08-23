@@ -29,6 +29,7 @@ from PyQt4 import QtGui, QtCore
 
 from Data.HelperModule import get_base_name
 from Data.PhaseData import PhaseLoadError
+from .JcpdsEditorController import JcpdsEditorController
 
 
 class IntegrationPhaseController(object):
@@ -39,6 +40,7 @@ class IntegrationPhaseController(object):
         self.calibration_data = calibration_data
         self.spectrum_data = spectrum_data
         self.phase_data = phase_data
+        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir)
         self.phase_lw_items = []
         self.create_signals()
 
@@ -46,6 +48,7 @@ class IntegrationPhaseController(object):
         self.connect_click_function(self.view.phase_add_btn, self.add_phase)
         self.connect_click_function(self.view.phase_del_btn, self.del_phase)
         self.connect_click_function(self.view.phase_clear_btn, self.clear_phases)
+        self.connect_click_function(self.view.phase_edit_btn, self.edit_phase)
 
         self.view.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
         self.view.phase_temperature_step_txt.editingFinished.connect(self.update_phase_temperature_step)
@@ -62,6 +65,8 @@ class IntegrationPhaseController(object):
         self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_phase_intensities_slot)
         self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
         self.spectrum_data.subscribe(self.spectrum_data_changed)
+
+        self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_canceled)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -152,6 +157,10 @@ class IntegrationPhaseController(object):
                                                   baseline)
         return color
 
+    def edit_phase(self):
+        cur_ind = self.view.get_selected_phase_row()
+        self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
+
     def del_phase(self):
         """
         Deletes the currently selected Phase
@@ -232,6 +241,9 @@ class IntegrationPhaseController(object):
         self.view.phase_temperature_sb.setValue(temperature)
         self.view.phase_temperature_sb.blockSignals(False)
         self.update_temperature_control_visibility(row)
+
+        if self.jcpds_editor_controller.view.isVisible():
+            self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
 
     def update_temperature_control_visibility(self, row_ind = None):
         if row_ind is None:
@@ -347,6 +359,16 @@ class IntegrationPhaseController(object):
                 self.get_unit())
         self.view.spectrum_view.update_phase_intensities(
             ind, positions, intensities, baseline)
+
+    def jcpds_editor_canceled(self, jcpds):
+        cur_ind = self.view.get_selected_phase_row()
+        self.phase_data.phases[cur_ind] = jcpds
+        try:
+            self.phase_data.set_temperature(cur_ind, float(self.view.phase_temperature_sb.value()))
+        except:
+            pass
+        self.phase_data.set_pressure(cur_ind, float(self.view.phase_pressure_sb.value()))
+        self.update_phase_intensity(cur_ind)
 
 
 

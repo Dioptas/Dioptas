@@ -29,12 +29,30 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.setup_ui()
         self.set_validators()
 
+    def raise_widget(self):
+        self.show()
+        self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.activateWindow()
+        self.raise_()
+
     def setup_ui(self):
         self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'rhombohedral',
-                           'orthorhombic',  'monoclinc', 'triclinic']
+                           'orthorhombic',  'monoclinic', 'triclinic']
         self.symmetry_cb.clear()
         self.symmetry_cb.addItems(self.symmetries)
         self.reflection_table.setItemDelegate(TextDoubleDelegate(self))
+        cleanlooks = QtGui.QStyleFactory.create('cleanlooks')
+        self.symmetry_cb.setStyle(cleanlooks)
+
+        reflections_horizontal_header_item = self.reflection_table.horizontalHeaderItem(1)
+        reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20,24))
+
+        self.reflection_table.verticalHeader().setDefaultSectionSize(20)
+
+        # self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(QtCore.Qt.FramelessWindowHint|QtCore.Qt.NoDropShadowWindowHint| QtCore.Qt.Window)
+        self.setWindowFlags(QtCore.Qt.Tool)
+        # self.setWindowModality(QtCore.Qt.ApplicationModal)
 
     def set_validators(self):
         self.lattice_a_txt.setValidator(QtGui.QDoubleValidator())
@@ -69,11 +87,11 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.lattice_b_txt.setText(str(jcpds_phase.b0))
         self.lattice_c_txt.setText(str(jcpds_phase.c0))
 
-        self.lattice_ab_txt.setText(str(jcpds_phase.a0/float(jcpds_phase.b0)))
-        self.lattice_ca_txt.setText(str(jcpds_phase.c0/float(jcpds_phase.a0)))
-        self.lattice_cb_txt.setText(str(jcpds_phase.c0/float(jcpds_phase.b0)))
+        self.lattice_ab_txt.setText(str('{:g}'.format(jcpds_phase.a0/float(jcpds_phase.b0))))
+        self.lattice_ca_txt.setText(str('{:g}'.format(jcpds_phase.c0/float(jcpds_phase.a0))))
+        self.lattice_cb_txt.setText(str('{:g}'.format(jcpds_phase.c0/float(jcpds_phase.b0))))
 
-        self.lattice_volume_txt.setText(str(jcpds_phase.v0))
+        self.lattice_volume_txt.setText(str('{:g}'.format(jcpds_phase.v0)))
 
         self.lattice_alpha_txt.setText(str(jcpds_phase.alpha0))
         self.lattice_beta_txt.setText(str(jcpds_phase.beta0))
@@ -87,7 +105,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.eos_dKpdT_txt.setText(str(jcpds_phase.dk0pdt))
 
         #update reflections:
-        self.reflection_table.clear()
+        self.reflection_table.clearContents()
         self.reflection_table.setRowCount(0)
         for reflection in jcpds_phase.reflections:
             self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
@@ -160,7 +178,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
             self.lattice_ca_txt.setEnabled(False)
             self.lattice_cb_txt.setEnabled(False)
 
-        elif symmetry == 'MONOCLINC':
+        elif symmetry == 'MONOCLINIC':
             self.lattice_a_txt.setEnabled(True)
             self.lattice_b_txt.setEnabled(True)
             self.lattice_c_txt.setEnabled(True)
@@ -204,11 +222,11 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         new_row_ind = int(self.reflection_table.rowCount())
         self.reflection_table.setRowCount(new_row_ind+1)
 
-        self.reflection_table.setItem(new_row_ind, 0, CenteredQTableWidgetItem(str(h)))
-        self.reflection_table.setItem(new_row_ind, 1, CenteredQTableWidgetItem(str(k)))
-        self.reflection_table.setItem(new_row_ind, 2, CenteredQTableWidgetItem(str(l)))
-        self.reflection_table.setItem(new_row_ind, 3, CenteredQTableWidgetItem(str(intensity)))
-        self.reflection_table.setItem(new_row_ind, 4, CenteredQTableWidgetItem(str(d)))
+        self.reflection_table.setItem(new_row_ind, 0, CenteredQTableWidgetItem(str('{:g}'.format(h))))
+        self.reflection_table.setItem(new_row_ind, 1, CenteredQTableWidgetItem(str('{:g}'.format(k))))
+        self.reflection_table.setItem(new_row_ind, 2, CenteredQTableWidgetItem(str('{:g}'.format(l))))
+        self.reflection_table.setItem(new_row_ind, 3, CenteredQTableWidgetItem(str('{:g}'.format(intensity))))
+        self.reflection_table.setItem(new_row_ind, 4, CenteredQTableWidgetItem(str('{:g}'.format(d))))
 
         self.reflection_table.resizeColumnsToContents()
         self.reflection_table.blockSignals(False)
