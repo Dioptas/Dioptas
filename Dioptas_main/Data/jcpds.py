@@ -56,7 +56,7 @@ class jcpds_reflection:
         self.l = l
 
 
-class jcpds:
+class jcpds(object):
     def __init__(self):
         self.filename = ' '
         self.name = ' '
@@ -330,8 +330,7 @@ class jcpds:
         fp.write('DALPHADT: ' + str(self.d_alpha_dt)+'\n')
         reflections = self.get_reflections()
         for r in reflections:
-            fp.write('DIHKL:    ', str(r.d0), str(r.inten),
-                         str(r.h), str(r.k), str(r.l), '\n')
+            fp.write('DIHKL:    {:g}\t{:g}\t{:g}\t{:g}\t{:g}\n'.format(r.d0, r.intensity, r.h, r.k, r.l))
         fp.close()
 
 

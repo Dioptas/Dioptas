@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>583</width>
-    <height>600</height>
+    <width>466</width>
+    <height>597</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>JCPDS - Editor</string>
   </property>
   <property name="styleSheet">
    <string notr="true">#mainView, #calibration_tab, #mask_tab, #integration_tab {  
@@ -351,7 +351,7 @@ QTableWidget {
      <property name="sizeHint" stdset="0">
       <size>
        <width>0</width>
-       <height>6</height>
+       <height>10</height>
       </size>
      </property>
     </spacer>
@@ -361,11 +361,11 @@ QTableWidget {
      <property name="title">
       <string>Lattice Parameters</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
+     <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
-         <widget class="QLabel" name="label_42">
+         <widget class="QLabel" name="label_46">
           <property name="text">
            <string>Symmetry: </string>
           </property>
@@ -373,6 +373,30 @@ QTableWidget {
         </item>
         <item>
          <widget class="QComboBox" name="symmetry_cb">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>120</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="baseSize">
+           <size>
+            <width>120</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
           </property>
@@ -409,7 +433,7 @@ QTableWidget {
          </widget>
         </item>
         <item>
-         <spacer name="horizontalSpacer">
+         <spacer name="horizontalSpacer_2">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -425,74 +449,18 @@ QTableWidget {
       </item>
       <item>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="0" column="0">
-         <widget class="QLabel" name="label">
-          <property name="text">
-           <string>a:</string>
+        <property name="horizontalSpacing">
+         <number>5</number>
+        </property>
+        <item row="1" column="7">
+         <widget class="QLineEdit" name="lattice_gamma_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="lattice_a_txt"/>
-        </item>
-        <item row="0" column="2">
-         <widget class="QLabel" name="label_12">
-          <property name="text">
-           <string>Å</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="3">
-         <spacer name="horizontalSpacer_6">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="0" column="4">
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>b:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="5">
-         <widget class="QLineEdit" name="lattice_b_txt"/>
         </item>
         <item row="0" column="6">
-         <widget class="QLabel" name="label_13">
-          <property name="text">
-           <string>Å</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="7">
-         <spacer name="horizontalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="0" column="8">
-         <widget class="QLabel" name="label_4">
+         <widget class="QLabel" name="label_32">
           <property name="layoutDirection">
            <enum>Qt::LeftToRight</enum>
           </property>
@@ -504,121 +472,36 @@ QTableWidget {
           </property>
          </widget>
         </item>
-        <item row="0" column="9">
-         <widget class="QLineEdit" name="lattice_c_txt"/>
-        </item>
-        <item row="0" column="10">
-         <widget class="QLabel" name="label_14">
-          <property name="text">
-           <string>Å</string>
+        <item row="0" column="4">
+         <widget class="QLineEdit" name="lattice_b_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
-        </item>
-        <item row="0" column="11">
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="0" column="12">
-         <widget class="QLabel" name="label_43">
-          <property name="text">
-           <string>V:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="13">
-         <widget class="QLineEdit" name="lattice_volume_txt">
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="14">
-         <widget class="QLabel" name="label_44">
-          <property name="text">
-           <string>Å&lt;sup&gt;3&lt;/sup&gt;</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>α:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLineEdit" name="lattice_alpha_txt"/>
         </item>
         <item row="1" column="2">
-         <widget class="QLabel" name="label_9">
+         <widget class="QLabel" name="label_35">
           <property name="text">
            <string>°</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="3">
-         <spacer name="horizontalSpacer_7">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
         <item row="1" column="4">
-         <widget class="QLabel" name="label_5">
-          <property name="text">
-           <string>β:</string>
+         <widget class="QLineEdit" name="lattice_beta_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
         <item row="1" column="5">
-         <widget class="QLineEdit" name="lattice_beta_txt"/>
-        </item>
-        <item row="1" column="6">
-         <widget class="QLabel" name="label_10">
+         <widget class="QLabel" name="label_37">
           <property name="text">
            <string>°</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="7">
-         <spacer name="horizontalSpacer_5">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="1" column="8">
-         <widget class="QLabel" name="label_7">
+        <item row="1" column="6">
+         <widget class="QLabel" name="label_38">
           <property name="layoutDirection">
            <enum>Qt::LeftToRight</enum>
           </property>
@@ -630,127 +513,186 @@ QTableWidget {
           </property>
          </widget>
         </item>
-        <item row="1" column="9">
-         <widget class="QLineEdit" name="lattice_gamma_txt"/>
+        <item row="1" column="3">
+         <widget class="QLabel" name="label_36">
+          <property name="text">
+           <string>β:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
         </item>
-        <item row="1" column="10">
-         <widget class="QLabel" name="label_11">
+        <item row="5" column="1">
+         <widget class="QLineEdit" name="lattice_ab_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5">
+         <widget class="QLabel" name="label_31">
+          <property name="text">
+           <string>Å</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="8">
+         <widget class="QLabel" name="label_33">
+          <property name="text">
+           <string>Å</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="lattice_alpha_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="7">
+         <widget class="QLineEdit" name="lattice_c_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_34">
+          <property name="text">
+           <string>α:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="3">
+         <widget class="QLabel" name="label_40">
+          <property name="text">
+           <string>c/a:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_28">
+          <property name="text">
+           <string>a:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="7">
+         <widget class="QLineEdit" name="lattice_volume_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="label_49">
+          <property name="text">
+           <string>a/b:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="8">
+         <widget class="QLabel" name="label_39">
           <property name="text">
            <string>°</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="11" colspan="3">
-         <spacer name="horizontalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>138</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="Line" name="line">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <item>
-         <widget class="QLabel" name="label_45">
-          <property name="text">
-           <string>a/b:</string>
+        <item row="5" column="7">
+         <widget class="QLineEdit" name="lattice_cb_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QLineEdit" name="lattice_ab_txt"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_8">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_15">
-          <property name="text">
-           <string>c/a:</string>
+        <item row="5" column="4">
+         <widget class="QLineEdit" name="lattice_ca_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QLineEdit" name="lattice_ca_txt"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_9">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_16">
+        <item row="5" column="6">
+         <widget class="QLabel" name="label_41">
           <property name="text">
            <string>c/b:</string>
           </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
          </widget>
         </item>
-        <item>
-         <widget class="QLineEdit" name="lattice_cb_txt"/>
+        <item row="0" column="3">
+         <widget class="QLabel" name="label_30">
+          <property name="text">
+           <string>b:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
         </item>
-        <item>
-         <spacer name="horizontalSpacer_12">
+        <item row="4" column="0" colspan="9">
+         <widget class="Line" name="line_2">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
+         </widget>
         </item>
-        <item>
-         <spacer name="horizontalSpacer_10">
+        <item row="0" column="2">
+         <widget class="QLabel" name="label_29">
+          <property name="text">
+           <string>Å</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="8">
+         <widget class="QLabel" name="label_48">
+          <property name="text">
+           <string>Å&lt;sup&gt;3&lt;/sup&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="6">
+         <widget class="QLabel" name="label_47">
+          <property name="text">
+           <string>V:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0" colspan="9">
+         <widget class="Line" name="line_3">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="lattice_a_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
-         </spacer>
+         </widget>
         </item>
        </layout>
       </item>
@@ -769,13 +711,13 @@ QTableWidget {
        </property>
        <property name="minimumSize">
         <size>
-         <width>220</width>
+         <width>200</width>
          <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>220</width>
+         <width>200</width>
          <height>16777215</height>
         </size>
        </property>
@@ -828,7 +770,11 @@ QTableWidget {
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLineEdit" name="eos_K_txt"/>
+         <widget class="QLineEdit" name="eos_K_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
         </item>
         <item row="0" column="2">
          <widget class="QLabel" name="label_23">
@@ -845,7 +791,11 @@ QTableWidget {
          </widget>
         </item>
         <item row="4" column="1">
-         <widget class="QLineEdit" name="eos_dKdT_txt"/>
+         <widget class="QLineEdit" name="eos_dKdT_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="label_21">
@@ -858,13 +808,25 @@ QTableWidget {
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="eos_Kp_txt"/>
+         <widget class="QLineEdit" name="eos_Kp_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLineEdit" name="eos_alphaT_txt"/>
+         <widget class="QLineEdit" name="eos_alphaT_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
         </item>
         <item row="5" column="1">
-         <widget class="QLineEdit" name="eos_dKpdT_txt"/>
+         <widget class="QLineEdit" name="eos_dKpdT_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
         </item>
         <item row="0" column="0">
          <widget class="QLabel" name="label_17">
@@ -894,7 +856,11 @@ QTableWidget {
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QLineEdit" name="eos_dalphadT_txt"/>
+         <widget class="QLineEdit" name="eos_dalphadT_txt">
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -916,11 +882,17 @@ QTableWidget {
           <property name="selectionBehavior">
            <enum>QAbstractItemView::SelectRows</enum>
           </property>
+          <property name="showGrid">
+           <bool>false</bool>
+          </property>
           <property name="gridStyle">
            <enum>Qt::NoPen</enum>
           </property>
           <property name="sortingEnabled">
-           <bool>true</bool>
+           <bool>false</bool>
+          </property>
+          <property name="cornerButtonEnabled">
+           <bool>false</bool>
           </property>
           <attribute name="horizontalHeaderCascadingSectionResizes">
            <bool>true</bool>
@@ -929,6 +901,9 @@ QTableWidget {
            <number>40</number>
           </attribute>
           <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="verticalHeaderShowSortIndicator" stdset="0">
            <bool>false</bool>
           </attribute>
           <column>
@@ -948,12 +923,12 @@ QTableWidget {
           </column>
           <column>
            <property name="text">
-            <string>d</string>
+            <string>I</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>I</string>
+            <string>d</string>
            </property>
           </column>
          </widget>

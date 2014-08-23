@@ -41,13 +41,6 @@ class MainController(object):
     """
 
     def __init__(self, app):
-        self.splash_img = QtGui.QPixmap("UiFiles/splash.png")
-        self.splash_screen = QtGui.QSplashScreen(self.splash_img, QtCore.Qt.WindowStaysOnTopHint)
-        self.raise_window(self.splash_screen)
-        self.app = app
-        app.processEvents()
-        app.processEvents()
-
         self.view = MainView()
         #create data
         self.img_data = ImgData()
@@ -77,7 +70,6 @@ class MainController(object):
         self.create_signals()
         self.set_title()
         self.raise_window(self.view)
-        self.splash_screen.finish(self.view)
 
     @staticmethod
     def raise_window(widget):
