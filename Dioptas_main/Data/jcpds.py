@@ -496,10 +496,10 @@ class jcpds(object):
         a = self.a0
         b = self.b0
         c = self.c0
-        degre_to_radians = np.pi / 180.
-        alpha = self.alpha0 * degre_to_radians
-        beta = self.beta0 * degre_to_radians
-        gamma = self.gamma0 * degre_to_radians
+        degree_to_radians = np.pi / 180.
+        alpha = self.alpha0 * degree_to_radians
+        beta = self.beta0 * degree_to_radians
+        gamma = self.gamma0 * degree_to_radians
 
         h = np.zeros(len(self.reflections))
         k = np.zeros(len(self.reflections))
@@ -601,9 +601,9 @@ class jcpds(object):
         b = self.b
         c = self.c
         dtor = np.pi / 180.
-        alpha = self.alpha * dtor
-        beta = self.beta * dtor
-        gamma = self.gamma * dtor
+        alpha = self.alpha0 * dtor
+        beta = self.beta0 * dtor
+        gamma = self.gamma0 * dtor
 
         h = np.zeros(len(self.reflections))
         k = np.zeros(len(self.reflections))
