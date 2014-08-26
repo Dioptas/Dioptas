@@ -68,8 +68,13 @@ class IntegrationPhaseController(object):
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_canceled)
 
-        self.jcpds_editor_controller.lattice_param_changed.connect(self.jcpds_editor_lattice_param_changed)
-        self.jcpds_editor_controller.eos_param_changed.connect(self.jcpds_editor_eos_param_changed)
+        self.jcpds_editor_controller.lattice_param_changed.connect(self.update_cur_phase_parameters)
+        self.jcpds_editor_controller.eos_param_changed.connect(self.update_cur_phase_parameters)
+
+        self.jcpds_editor_controller.reflection_line_added.connect(self.jcpds_editor_reflection_added)
+        self.jcpds_editor_controller.reflection_line_removed.connect(self.jcpds_editor_reflection_removed)
+        self.jcpds_editor_controller.reflection_line_edited.connect(self.update_cur_phase_parameters)
+        self.jcpds_editor_controller.reflection_line_cleared.connect(self.jcpds_editor_reflection_cleared)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -173,8 +178,14 @@ class IntegrationPhaseController(object):
             self.view.del_phase(cur_ind)
             self.phase_data.del_phase(cur_ind)
             self.view.spectrum_view.del_phase(cur_ind)
-        if len(self.phase_data.phases)>0:
             self.update_temperature_control_visibility()
+            if self.jcpds_editor_controller.active:
+                cur_ind = self.view.get_selected_phase_row()
+                if cur_ind>=0:
+                    self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
+                else:
+                    self.jcpds_editor_controller.view.close()
+
 
     def clear_phases(self):
         """
@@ -366,28 +377,30 @@ class IntegrationPhaseController(object):
     def jcpds_editor_canceled(self, jcpds):
         cur_ind = self.view.get_selected_phase_row()
         self.phase_data.phases[cur_ind] = jcpds
-        try:
-            self.phase_data.set_temperature(cur_ind, float(self.view.phase_temperature_sb.value()))
-        except:
-            pass
-        self.phase_data.set_pressure(cur_ind, float(self.view.phase_pressure_sb.value()))
-        self.update_phase_intensity(cur_ind)
+        self.view.spectrum_view.phases[cur_ind].clear_lines()
+        for dummy_line_ind in self.phase_data.phases[cur_ind].reflections:
+            self.view.spectrum_view.phases[cur_ind].add_line()
+        self.update_cur_phase_parameters()
 
-    def jcpds_editor_lattice_param_changed(self):
+    def update_cur_phase_parameters(self):
         cur_ind = self.view.get_selected_phase_row()
-        try:
-            self.phase_data.set_temperature(cur_ind, float(self.view.phase_temperature_sb.value()))
-        except:
-            pass
-        self.phase_data.set_pressure(cur_ind, float(self.view.phase_pressure_sb.value()))
-        self.update_phase_intensity(cur_ind)
-
-    def jcpds_editor_eos_param_changed(self):
-        cur_ind = self.view.get_selected_phase_row()
-        self.phase_data.set_temperature(cur_ind, float(self.view.phase_temperature_sb.value()))
-        self.phase_data.set_pressure(cur_ind, float(self.view.phase_pressure_sb.value()))
+        self.phase_data.set_pressure_temperature(cur_ind, float(self.view.phase_pressure_sb.value()),
+                                                 float(self.view.phase_temperature_sb.value()))
         self.update_phase_intensity(cur_ind)
         self.update_temperature_control_visibility(cur_ind)
+
+    def jcpds_editor_reflection_removed(self, reflection_ind):
+        cur_phase_ind = self.view.get_selected_phase_row()
+        self.view.spectrum_view.phases[cur_phase_ind].remove_line(reflection_ind)
+
+    def jcpds_editor_reflection_added(self):
+        cur_ind = self.view.get_selected_phase_row()
+        self.view.spectrum_view.phases[cur_ind].add_line()
+
+    def jcpds_editor_reflection_cleared(self):
+        cur_phase_ind = self.view.get_selected_phase_row()
+        self.view.spectrum_view.phases[cur_phase_ind].clear_lines()
+
 
 
 

@@ -48,12 +48,16 @@ class PhaseData(Observable):
         del self.phases[ind]
         del self.reflections[ind]
 
-    def set_pressure(self, ind, P):
-        self.phases[ind].compute_d(pressure=P)
+    def set_pressure(self, ind, pressure):
+        self.phases[ind].compute_d(pressure=pressure)
         self.get_lines_d(ind)
 
-    def set_temperature(self, ind, T):
-        self.phases[ind].compute_d(temperature=T)
+    def set_temperature(self, ind, temperature):
+        self.phases[ind].compute_d(temperature=temperature)
+        self.get_lines_d(ind)
+
+    def set_pressure_temperature(self, ind, pressure, temperature):
+        self.phases[ind].compute_d(temperature=temperature, pressure=pressure)
         self.get_lines_d(ind)
 
     def set_pressure_all(self, P):

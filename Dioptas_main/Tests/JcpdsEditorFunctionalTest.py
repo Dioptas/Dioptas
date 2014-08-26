@@ -19,7 +19,6 @@ __author__ = 'Clemens Prescher'
 import unittest
 import numpy as np
 import os
-import time
 
 from Data.jcpds import jcpds
 from Controller.JcpdsEditorController import JcpdsEditorController
@@ -35,6 +34,7 @@ def calculate_cubic_d_spacing(h, k, l, a):
 
 
 class EditCurrentJcpdsTest(unittest.TestCase):
+
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
 
@@ -67,6 +67,9 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         new_line_pos = self.get_phase_line_position(phase_ind, line_ind)
         self.assertNotAlmostEqual(prev_line_pos, new_line_pos)
         return new_line_pos
+
+    def convert_d_to_twotheta(self, d, wavelength):
+        return np.arcsin(wavelength/(2*d))/np.pi*360
 
     def test_correctly_displays_parameters_and_can_be_edited(self):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
@@ -134,7 +137,8 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.assertEqual(b, 4.08)
         self.assertEqual(c, 4.08)
 
-        # then he tries to type something into b even though it is a cubic phase, however he cannot because it is disabled
+        # then he tries to type something into b even though it is a cubic phase,
+        # however he cannot because it is disabled
         self.assertEqual(self.jcpds_view.lattice_b_txt.isEnabled(), False)
 
         # then he realizes that he needs to change the symmetry first to be able to
@@ -167,11 +171,9 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.assertEqual(float(str(self.jcpds_view.lattice_a_txt.text())), 4.08)
         self.assertEqual(float(str(self.jcpds_view.lattice_c_txt.text())), 1.5 * 4.08)
 
-
         # then he set all values back again and
         #  plays a little bit with the symmetry and accidentally changes it to several different symmetries
         # and sees that the parameters change accordingly...
-
         self.enter_value_into_text_field(self.jcpds_view.lattice_a_txt, 4.08)
         self.enter_value_into_text_field(self.jcpds_view.lattice_b_txt, '5')
         self.enter_value_into_text_field(self.jcpds_view.lattice_c_txt, '6')
@@ -236,23 +238,23 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
 
-        #he sees that there are 13 reflections predefined in the table
+        # he sees that there are 13 reflections predefined in the table
 
         self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 13)
 
-        #he checks if the values are correct:
+        # he checks if the values are correct:
 
         self.assertAlmostEqual(self.get_reflection_table_value(0, 4), 2.355, delta=0.001)
         self.assertEqual(self.get_reflection_table_value(1, 1), 0)
         self.assertAlmostEqual(self.get_reflection_table_value(12, 4), 0.6449, delta=0.0001)
         self.assertEqual(self.get_reflection_table_value(12, 3), 10)
 
-        #then he decides to change the lattice parameter and sees that the values in the table are changing:
+        # then he decides to change the lattice parameter and sees that the values in the table are changing:
         self.enter_value_into_text_field(self.jcpds_view.lattice_a_txt, 4)
         self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 13)
         self.assertEqual(self.get_reflection_table_value(1, 4), 2)
 
-        #After playing with the lattice parameter he sets it back to the original value and looks at the reflections
+        # After playing with the lattice parameter he sets it back to the original value and looks at the reflections
         # He thinks that he doesn't need the sixth reflection because it any way has to low intensity
         self.enter_value_into_text_field(self.jcpds_view.lattice_a_txt, 4.0786)
         self.jcpds_view.reflection_table.selectRow(5)
@@ -262,7 +264,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.assertAlmostEqual(self.get_reflection_table_value(5, 4), 0.9358, delta=0.0002)
         self.assertEqual(len(self.jcpds.reflections), 12)
 
-        #then he changed his mind and wants to add the reflection back:
+        # then he changed his mind and wants to add the reflection back:
 
         QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
         QtGui.QApplication.processEvents()
@@ -271,11 +273,11 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 13)
         self.assertEqual(self.jcpds_view.get_selected_reflections()[0], 12)
 
-        self.assertEqual(self.get_reflection_table_value(12, 0), 0)  #h
-        self.assertEqual(self.get_reflection_table_value(12, 1), 0)  #k
-        self.assertEqual(self.get_reflection_table_value(12, 2), 0)  #l
-        self.assertEqual(self.get_reflection_table_value(12, 3), 0)  #intensity
-        self.assertEqual(self.get_reflection_table_value(12, 4), 0)  #d
+        self.assertEqual(self.get_reflection_table_value(12, 0), 0)  # h
+        self.assertEqual(self.get_reflection_table_value(12, 1), 0)  # k
+        self.assertEqual(self.get_reflection_table_value(12, 2), 0)  # l
+        self.assertEqual(self.get_reflection_table_value(12, 3), 0)  # intensity
+        self.assertEqual(self.get_reflection_table_value(12, 4), 0)  # d
 
         # then he edits he and realizes how the d spacings are magically calculated
 
@@ -290,7 +292,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
                                calculate_cubic_d_spacing(1, 1, 3, 4.0786),
                                delta=0.0001)
 
-        #then she decides that everybody should screw with the table and clears it:
+        # then she decides that everybody should screw with the table and clears it:
 
         QTest.mouseClick(self.jcpds_view.reflections_clear_btn, QtCore.Qt.LeftButton)
         self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 0)
@@ -337,8 +339,9 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.jcpds.read_file(filename)
         self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
 
-    def test_connection_between_main_gui_and_jcpds_editor(self):
-        #Erwin opens up the program, loads image and calibration and some phases
+    def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
+        # Erwin opens up the program, loads image and calibration and some phases
+        
         self.main_controller = MainController(self.app)
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
@@ -369,93 +372,161 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.assertNotAlmostEqual(self.phase_controller.phase_data.phases[0].a0, 10.4)
 
         # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click another
-        # phase --  so he just selects it without closing and reopening the editor and magically the new parameters show up
+        # phase --  so he just selects it without closing and reopening the editor
+        # and magically the new parameters show up
 
         self.phase_controller.view.phase_tw.selectRow(1)
         QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
         QtGui.QApplication.processEvents()
 
         self.phase_controller.view.phase_tw.selectRow(2)
-        self.assertTrue(float(str(self.jcpds_view.lattice_a_txt.text())), 5.51280)  #Argon lattice parameter
+        self.assertTrue(float(str(self.jcpds_view.lattice_a_txt.text())), 5.51280)  # Argon lattice parameter
 
         # Now he changes the lattice parameter and wants to see if there is any change in the line position in the graph
 
         prev_line_pos = self.get_phase_line_position(2, 0)
         self.enter_value_into_text_field(self.jcpds_view.lattice_a_txt, 3.4)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         # now he decides to have full control, changes the structure to TRICLINIC and plays with all parameters:
 
         self.set_symmetry('triclinic')
 
         self.enter_value_into_text_field(self.jcpds_view.lattice_b_txt, 3.2)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.lattice_c_txt, 3.1)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.lattice_ab_txt, 1.6)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.lattice_ca_txt, 1.9)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.lattice_ab_txt, 0.3)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.lattice_alpha_txt, 70)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.lattice_beta_txt, 70)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.lattice_gamma_txt, 70)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-
-
-        # then he increases the pressure and sees the line moving, but he realizes that the equation of state may be wrong
-        # so he decides to change the parameters in the jcpds-editor
+        # then he increases the pressure and sees the line moving, but he realizes that the equation of state may 
+        # be wrong so he decides to change the parameters in the jcpds-editor
         self.main_controller.integration_controller.view.phase_pressure_sb.setValue(10)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.eos_K_txt, 120)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.eos_Kp_txt, 6)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        # he decides to change temperature value and play with all
+        # he decides to change temperature value and play with all equation of state parameters
         self.enter_value_into_text_field(self.jcpds_view.eos_alphaT_txt, 6.234e-5)
         self.assertEqual(self.phase_controller.phase_data.phases[2].alpha_t0, 6.234e-5)
 
         self.main_controller.integration_controller.view.phase_temperature_sb.setValue(1300)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.eos_alphaT_txt, 10.234e-5)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.eos_dalphadT_txt, 10.234e-6)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.eos_dKdT_txt, 1.2e-4)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.eos_dKpdT_txt, 1.3e-6)
-        prev_line_pos= self.compare_line_position(prev_line_pos, 2, 0)
+        prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
+    def test_connection_between_main_gui_and_jcpds_editor_reflections(self):
+        # Erwin loads Dioptas with a previous calibration and image file then he adds several phases and looks into the
+        # jcpds editor for the first phase. He sees that everything seems to be correct
 
+        self.main_controller = MainController(self.app)
+        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
+        self.main_controller.calibration_controller.set_calibrant(7)
+        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.main_controller.view.tabWidget.setCurrentIndex(2)
+        self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/au_Anderson.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/mo.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/ar.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/re.jcpds')
 
+        self.phase_controller = self.main_controller.integration_controller.phase_controller
+        self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
+        self.jcpds_view = self.jcpds_editor_controller.view
+        self.jcpds_phase = self.main_controller.phase_data.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
 
+        self.phase_controller.view.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        QtGui.QApplication.processEvents()
 
+        self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 13)
+        self.assertEqual(len(self.jcpds_phase.reflections), 13)
+        self.assertEqual(len(self.jcpds_in_spec.line_items), 13)
+        self.assertEqual(len(self.jcpds_in_spec.line_visible), 13)
 
+        # then he decides to add another reflection to the jcpds file and sees that after changing the parameters it is
+        # miraculously connected to the view
 
+        #adding the reflection
+        QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
 
+        self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 14)
+        self.assertEqual(len(self.jcpds_phase.reflections), 14)
+        self.assertEqual(len(self.jcpds_in_spec.line_items), 14)
+        self.assertEqual(len(self.jcpds_in_spec.line_visible), 14)
 
+        # putting reasonable values into the reflection
+        self.insert_reflection_table_value(13, 0, 1)
+        self.insert_reflection_table_value(13, 3, 90)
+        self.assertAlmostEqual(self.get_phase_line_position(0, 13), self.convert_d_to_twotheta(4.0786, 0.31),
+                               delta = 0.0005)
 
+        #he looks through the reflection and sees that one is actually forbidden. Who has added this reflection to the
+        # file? He decides to delete it
 
+        self.jcpds_view.reflection_table.selectRow(5)
 
+        QTest.mouseClick(self.jcpds_view.reflections_delete_btn, QtCore.Qt.LeftButton)
 
+        self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 13)
+        self.assertEqual(len(self.jcpds_phase.reflections), 13)
+        self.assertEqual(len(self.jcpds_in_spec.line_items), 13)
+        self.assertEqual(len(self.jcpds_in_spec.line_visible), 13)
 
+        #then he looks again at all reflection and does not like it so he decides to clear all of them and build them
+        # up from sketch...
+
+        QTest.mouseClick(self.jcpds_view.reflections_clear_btn, QtCore.Qt.LeftButton)
+        self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 0)
+        self.assertEqual(len(self.jcpds_phase.reflections), 0)
+        self.assertEqual(len(self.jcpds_in_spec.line_items), 0)
+        self.assertEqual(len(self.jcpds_in_spec.line_visible), 0)
+
+        # He adds some lines and sees the values change:
+
+        QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.jcpds_view.reflections_add_btn, QtCore.Qt.LeftButton)
+
+        self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 4)
+        self.assertEqual(len(self.jcpds_phase.reflections), 4)
+        self.assertEqual(len(self.jcpds_in_spec.line_items), 4)
+        self.assertEqual(len(self.jcpds_in_spec.line_visible), 4)
+
+        # now he decides to delete this phase and sees that the phase in the editor view is automatically changing to
+        # the newly selected one
 
 
