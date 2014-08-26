@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -34,49 +34,52 @@ def _update_view(inner_function):
         self.jcpds_phase.compute_v0()
         self.jcpds_phase.compute_d0()
         self.view.show_jcpds(self.jcpds_phase)
+
     return wrapper
+
 
 def _emit_lattice_param_changed(inner_function):
     @wraps(inner_function)
     def wrapper(self):
         inner_function(self)
         self.lattice_param_changed.emit()
+
     return wrapper
+
 
 def _emit_eos_param_changed(inner_function):
     @wraps(inner_function)
     def wrapper(self):
         inner_function(self)
         self.eos_param_changed.emit()
+
     return wrapper
 
-def _emit_reflections_number_changed(inner_function):
-    @wraps(inner_function)
-    def wrapper(self):
-        inner_function(self)
-        self.reflections_number_changed.emit()
-    return wrapper
 
 def _emit_reflections_param_changed(inner_function):
     @wraps(inner_function)
     def wrapper(self):
         inner_function(self)
         self.reflections_param_changed.emit()
-    return wrapper
 
+    return wrapper
 
 
 class JcpdsEditorController(QtCore.QObject):
     canceled_editor = QtCore.pyqtSignal(jcpds)
     lattice_param_changed = QtCore.pyqtSignal()
     eos_param_changed = QtCore.pyqtSignal()
-    reflections_number_changed = QtCore.pyqtSignal()
-    reflections_param_changed = QtCore.pyqtSignal()
+
+    reflection_line_edited = QtCore.pyqtSignal()
+    reflection_line_added = QtCore.pyqtSignal()
+    reflection_line_removed = QtCore.pyqtSignal(int)
+    reflection_line_cleared = QtCore.pyqtSignal()
 
     def __init__(self, working_dir, jcpds_phase=None):
         super(JcpdsEditorController, self).__init__()
         self.view = JcpdsEditorWidget()
-        self.working_dir=working_dir
+        self.working_dir = working_dir
+        self.active = False
         self.create_connections()
         if jcpds_phase is not None:
             self.show_phase(jcpds_phase)
@@ -87,7 +90,12 @@ class JcpdsEditorController(QtCore.QObject):
         self.start_jcpds_phase = deepcopy(jcpds_phase)
         self.jcpds_phase = jcpds_phase
         self.view.show_jcpds(jcpds_phase)
+        self.active = True
         self.view.raise_widget()
+
+    def close_view(self):
+        self.active = False
+        self.view.close()
 
     def create_connections(self):
         self.view.comments_txt.editingFinished.connect(self.comments_changed)
@@ -119,9 +127,13 @@ class JcpdsEditorController(QtCore.QObject):
 
         self.view.reflection_table.cellChanged.connect(self.reflection_table_changed)
 
+        self.view.reflection_table.verticalScrollBar().valueChanged.connect(self.reflection_table_scrolled)
+
         self.view.save_as_btn.clicked.connect(self.save_as_btn_click)
         self.view.ok_btn.clicked.connect(self.ok_btn_click)
         self.view.cancel_btn.clicked.connect(self.cancel_btn_click)
+
+        self.view.closeEvent = self.view_closed
 
     @_update_view
     def comments_changed(self):
@@ -195,7 +207,7 @@ class JcpdsEditorController(QtCore.QObject):
 
     @_emit_eos_param_changed
     def eos_dalphadT_changed(self):
-        self.jcpds_phase.d_alpha_dt =float(str(self.view.eos_dalphadT_txt.text()))
+        self.jcpds_phase.d_alpha_dt = float(str(self.view.eos_dalphadT_txt.text()))
 
     @_emit_eos_param_changed
     def eos_dKdT_changed(self):
@@ -205,7 +217,6 @@ class JcpdsEditorController(QtCore.QObject):
     def eos_dKpdT_changed(self):
         self.jcpds_phase.dk0pdt = float(str(self.view.eos_dKpdT_txt.text()))
 
-    @_emit_reflections_number_changed
     def reflections_delete_btn_click(self):
         rows = self.view.get_selected_reflections()
         if rows is None:
@@ -216,39 +227,44 @@ class JcpdsEditorController(QtCore.QObject):
         for ind in range(len(rows)):
             self.view.remove_reflection_from_table(rows[ind])
             del self.jcpds_phase.reflections[rows[ind]]
+            self.reflection_line_removed.emit(rows[ind])
             rows = rows - 1
         self.view.reflection_table.resizeColumnsToContents()
 
-    @_emit_reflections_number_changed
     def reflections_add_btn_click(self):
         self.jcpds_phase.add_reflection()
         self.view.add_reflection_to_table()
-        self.view.reflection_table.selectRow(self.view.reflection_table.rowCount()-1)
+        self.view.reflection_table.selectRow(self.view.reflection_table.rowCount() - 1)
+        self.reflection_line_added.emit()
 
     def reflection_table_changed(self, row, col):
         label_item = self.view.reflection_table.item(row, col)
         value = float(str(label_item.text()))
-        if col == 0: #h
+        if col == 0:  # h
             self.jcpds_phase.reflections[row].h = value
-        elif col == 1: #k
+        elif col == 1:  # k
             self.jcpds_phase.reflections[row].k = value
-        elif col ==2: #l
+        elif col == 2:  # l
             self.jcpds_phase.reflections[row].l = value
-        elif col == 3: #intensity
+        elif col == 3:  # intensity
             self.jcpds_phase.reflections[row].intensity = value
 
         self.jcpds_phase.compute_d0()
         self.view.show_jcpds(self.jcpds_phase)
-        self.reflections_param_changed.emit()
+        self.view.reflection_table.resizeColumnsToContents()
+        self.reflection_line_edited.emit()
 
-    @_emit_reflections_number_changed
     def reflections_clear_btn_click(self):
         self.view.reflection_table.clearContents()
         self.view.reflection_table.setRowCount(0)
         self.view.reflection_table.resizeColumnsToContents()
         self.jcpds_phase.reflections = []
+        self.reflection_line_cleared.emit()
 
-    def save_as_btn_click(self, filename = False):
+    def reflection_table_scrolled(self):
+        self.view.reflection_table.resizeColumnsToContents()
+
+    def save_as_btn_click(self, filename=False):
         if filename is False:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save JCPDS phase.",
                                                              self.working_dir['phase'],
@@ -258,11 +274,12 @@ class JcpdsEditorController(QtCore.QObject):
             self.jcpds_phase.write_file(filename)
 
     def ok_btn_click(self):
-        self.view.close()
+        self.close()
 
     def cancel_btn_click(self):
         self.view.close()
         self.jcpds_phase = deepcopy(self.start_jcpds_phase)
         self.canceled_editor.emit(self.jcpds_phase)
 
-
+    def view_closed(self, _):
+        self.close_view()

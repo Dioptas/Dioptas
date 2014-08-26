@@ -237,7 +237,6 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.reflection_table.blockSignals(False)
 
 
-
     # def get_jcpds(self):
     #     self.jcpds_phase.filename = str(self.filename_txt.text())
     #     self.jcpds_phase.comments_txt = [str(self.comments_text())]
@@ -290,6 +289,7 @@ class TextDoubleDelegate(QtGui.QStyledItemDelegate):
 
     def updateEditorGeometry(self, editor, option, _):
         editor.setGeometry(option.rect)
+
 
 class CenteredQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, value):

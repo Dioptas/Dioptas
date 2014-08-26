@@ -28,7 +28,9 @@ from PyQt4 import QtCore, QtGui
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
 
-# TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show, should probably a class, making it more readable
+# TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show,
+# should probably a class, making it more readable
+
 
 class SpectrumWidget(QtCore.QObject):
     mouse_moved = QtCore.pyqtSignal(float, float)
@@ -102,6 +104,7 @@ class SpectrumWidget(QtCore.QObject):
         self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
                                 minXRange=x_range[0], maxXRange=x_range[1])\
 
+
     def add_overlay(self, spectrum, show=True):
         x, y = spectrum.data
         color = calculate_color(len(self.overlays) + 1)
@@ -150,7 +153,6 @@ class SpectrumWidget(QtCore.QObject):
 
     def rename_overlay(self, ind, name):
         self.legend.renameItem(ind + 1, name)
-
 
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
@@ -219,7 +221,7 @@ class SpectrumWidget(QtCore.QObject):
         self.mouse_moved.emit(pos.x(), pos.y())
 
     def modify_mouse_behavior(self):
-        #different mouse handlers
+        # different mouse handlers
         self.view_box.setMouseMode(self.view_box.RectMode)
 
         self.pg_layout.scene().sigMouseMoved.connect(self.mouseMoved)
@@ -228,18 +230,18 @@ class SpectrumWidget(QtCore.QObject):
         self.view_box.mouseDoubleClickEvent = self.myMouseDoubleClickEvent
         self.view_box.wheelEvent = self.myWheelEvent
 
-        #create sigranged changed timer for right click drag
-        #if not using the timer the signals are fired too often and
-        #the computer becomes slow...
+        # create sigranged changed timer for right click drag
+        # if not using the timer the signals are fired too often and
+        # the computer becomes slow...
         self.range_changed_timer = QtCore.QTimer()
         self.range_changed_timer.timeout.connect(self.emit_sig_range_changed)
         self.range_changed_timer.setInterval(30)
-        self.last_view_range= np.array(self.view_box.viewRange())
+        self.last_view_range = np.array(self.view_box.viewRange())
 
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
-                (ev.button() == QtCore.Qt.LeftButton and \
-                             ev.modifiers() & QtCore.Qt.ControlModifier):
+                (ev.button() == QtCore.Qt.LeftButton and
+                 ev.modifiers() & QtCore.Qt.ControlModifier):
             view_range = np.array(self.view_box.viewRange()) * 2
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
@@ -267,7 +269,7 @@ class SpectrumWidget(QtCore.QObject):
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
     def myMouseDragEvent(self, ev, axis=None):
-        #most of this code is copied behavior mouse drag from the original code
+        # most of this code is copied behavior mouse drag from the original code
         ev.accept()
         pos = ev.pos()
         lastPos = ev.lastPos()
@@ -276,8 +278,8 @@ class SpectrumWidget(QtCore.QObject):
 
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and
-                         ev.modifiers() & QtCore.Qt.ControlModifier):
-            #determine the amount of translation
+                 ev.modifiers() & QtCore.Qt.ControlModifier):
+            # determine the amount of translation
             tr = dif
             tr = self.view_box.mapToView(tr) - self.view_box.mapToView(pg.Point(0, 0))
             x = tr.x()
@@ -289,7 +291,7 @@ class SpectrumWidget(QtCore.QObject):
                 self.range_changed_timer.stop()
                 self.emit_sig_range_changed()
         else:
-            if ev.isFinish():  ## This is the final move in the drag; change the view scale now
+            if ev.isFinish():  # This is the final move in the drag; change the view scale now
                 self._auto_range = False
                 self.view_box.enableAutoRange(enable=False)
                 self.view_box.rbScaleBox.hide()
@@ -300,7 +302,7 @@ class SpectrumWidget(QtCore.QObject):
                 self.view_box.axHistory = self.view_box.axHistory[:self.view_box.axHistoryPointer] + [ax]
                 self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
             else:
-                ## update shape of scale box
+                # update shape of scale box
                 self.view_box.updateScaleBox(ev.buttonDownPos(), ev.pos())
 
     def emit_sig_range_changed(self):
@@ -323,7 +325,7 @@ class SpectrumWidget(QtCore.QObject):
                 x_range = np.max(curve_data[0]) - np.min(curve_data[0])
                 y_range = np.max(curve_data[1]) - np.min(curve_data[1])
                 if (view_range[0][1] - view_range[0][0]) >= x_range and \
-                                (view_range[1][1] - view_range[1][0]) >= y_range:
+                        (view_range[1][1] - view_range[1][0]) >= y_range:
                     self.view_box.autoRange()
                     self.view_box.enableAutoRange()
                     self._auto_range = True
@@ -334,6 +336,7 @@ class SpectrumWidget(QtCore.QObject):
 
 
 class PhaseLinesPlot(object):
+
     def __init__(self, plot_item, positions=None, name='Dummy',
                  pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine)):
         self.plot_item = plot_item
@@ -346,11 +349,11 @@ class PhaseLinesPlot(object):
             self.set_data(positions, name)
 
     def set_data(self, positions, name):
-        #remove all old lines
+        # remove all old lines
         for item in self.line_items:
             self.plot_item.removeItem(item)
 
-        #create new ones on each Position:
+        # create new ones on each Position:
         self.line_items = []
         self.peak_positions = positions
         for ind, position in enumerate(positions):
@@ -378,14 +381,14 @@ class PhasePlot(object):
         self.create_items(positions, intensities, name, baseline)
 
     def create_items(self, positions, intensities, name=None, baseline=0):
-        #create new ones on each Position:
+        # create new ones on each Position:
         self.line_items = []
 
         for ind, position in enumerate(positions):
             self.line_items.append(pg.PlotDataItem(x=[position, position],
                                                    y=[baseline, intensities[ind]],
                                                    pen=self.pen,
-                                                   antialias = False))
+                                                   antialias=False))
             self.line_visible.append(True)
             self.plot_item.addItem(self.line_items[ind])
 
@@ -395,6 +398,22 @@ class PhasePlot(object):
                 self.name = name
             except IndexError:
                 pass
+
+    def add_line(self):
+        self.line_items.append(pg.PlotDataItem(x=[0, 0],
+                                               y=[0, 0],
+                                               pen=self.pen, antialias=False))
+        self.line_visible.append(True)
+        self.plot_item.addItem(self.line_items[-1])
+
+    def remove_line(self, ind=-1):
+        self.plot_item.removeItem(self.line_items[ind])
+        del self.line_items[ind]
+        del self.line_visible[ind]
+
+    def clear_lines(self):
+        for dummy_ind in xrange(len(self.line_items)):
+            self.remove_line()
 
     def update_intensities(self, positions, intensities, baseline=0):
         if self.visible:
@@ -416,12 +435,10 @@ class PhasePlot(object):
                         self.plot_item.removeItem(line_item)
                         self.line_visible[ind] = False
 
-
     def set_color(self, color):
         for line_item in self.line_items:
             line_item.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine))
         self.ref_legend_line.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine))
-
 
     def hide(self):
         if self.visible:
@@ -436,7 +453,6 @@ class PhasePlot(object):
             for ind, line_item in enumerate(self.line_items):
                 if self.line_visible[ind]:
                     self.plot_item.addItem(line_item)
-
 
     def remove(self):
         try:
