@@ -102,17 +102,21 @@ class JcpdsEditorController(QtCore.QObject):
 
         self.view.symmetry_cb.currentIndexChanged.connect(self.symmetry_changed)
 
-        self.view.lattice_a_txt.editingFinished.connect(self.lattice_a_changed)
-        self.view.lattice_b_txt.editingFinished.connect(self.lattice_b_changed)
-        self.view.lattice_c_txt.editingFinished.connect(self.lattice_c_changed)
+        self.view.lattice_a_sb.valueChanged.connect(self.lattice_a_changed)
+        self.view.lattice_b_sb.valueChanged.connect(self.lattice_b_changed)
+        self.view.lattice_c_sb.valueChanged.connect(self.lattice_c_changed)
 
-        self.view.lattice_ab_txt.editingFinished.connect(self.lattice_ab_changed)
-        self.view.lattice_ca_txt.editingFinished.connect(self.lattice_ca_changed)
-        self.view.lattice_cb_txt.editingFinished.connect(self.lattice_cb_changed)
+        self.view.lattice_ab_sb.valueChanged.connect(self.lattice_ab_changed)
+        self.view.lattice_ca_sb.valueChanged.connect(self.lattice_ca_changed)
+        self.view.lattice_cb_sb.valueChanged.connect(self.lattice_cb_changed)
 
-        self.view.lattice_alpha_txt.editingFinished.connect(self.lattice_alpha_changed)
-        self.view.lattice_beta_txt.editingFinished.connect(self.lattice_beta_changed)
-        self.view.lattice_gamma_txt.editingFinished.connect(self.lattice_gamma_changed)
+        self.view.lattice_alpha_sb.valueChanged.connect(self.lattice_alpha_changed)
+        self.view.lattice_beta_sb.valueChanged.connect(self.lattice_beta_changed)
+        self.view.lattice_gamma_sb.valueChanged.connect(self.lattice_gamma_changed)
+
+        self.view.lattice_length_step_txt.editingFinished.connect(self.lattice_length_step_changed)
+        self.view.lattice_angle_step_txt.editingFinished.connect(self.lattice_angle_step_changed)
+        self.view.lattice_ratio_step_txt.editingFinished.connect(self.lattice_ratio_step_changed)
 
         self.view.eos_K_txt.editingFinished.connect(self.eos_K_changed)
         self.view.eos_Kp_txt.editingFinished.connect(self.eos_Kp_changed)
@@ -148,50 +152,69 @@ class JcpdsEditorController(QtCore.QObject):
     @_emit_lattice_param_changed
     @_update_view
     def lattice_a_changed(self):
-        self.jcpds_phase.a0 = float(str(self.view.lattice_a_txt.text()))
+        self.jcpds_phase.a0 = float(self.view.lattice_a_sb.value())
 
     @_emit_lattice_param_changed
     @_update_view
     def lattice_b_changed(self):
-        self.jcpds_phase.b0 = float(str(self.view.lattice_b_txt.text()))
+        self.jcpds_phase.b0 = float(self.view.lattice_b_sb.value())
 
     @_emit_lattice_param_changed
     @_update_view
     def lattice_c_changed(self):
-        self.jcpds_phase.c0 = float(str(self.view.lattice_c_txt.text()))
+        self.jcpds_phase.c0 = float(self.view.lattice_c_sb.value())
 
     @_emit_lattice_param_changed
     @_update_view
     def lattice_ab_changed(self):
-        ab_ratio = float(str(self.view.lattice_ab_txt.text()))
+        ab_ratio = float(self.view.lattice_ab_sb.value())
         self.jcpds_phase.a0 = self.jcpds_phase.b0 * ab_ratio
 
     @_emit_lattice_param_changed
     @_update_view
     def lattice_ca_changed(self):
-        ca_ratio = float(str(self.view.lattice_ca_txt.text()))
+        ca_ratio = float(self.view.lattice_ca_sb.value())
         self.jcpds_phase.c0 = self.jcpds_phase.a0 * ca_ratio
 
     @_emit_lattice_param_changed
     @_update_view
     def lattice_cb_changed(self):
-        cb_ratio = float(str(self.view.lattice_cb_txt.text()))
+        cb_ratio = float(self.view.lattice_cb_sb.value())
         self.jcpds_phase.c0 = self.jcpds_phase.b0 * cb_ratio
 
     @_emit_lattice_param_changed
     @_update_view
     def lattice_alpha_changed(self):
-        self.jcpds_phase.alpha0 = float(str(self.view.lattice_alpha_txt.text()))
+        self.jcpds_phase.alpha0 = float(self.view.lattice_alpha_sb.value())
 
     @_emit_lattice_param_changed
     @_update_view
     def lattice_beta_changed(self):
-        self.jcpds_phase.beta0 = float(str(self.view.lattice_beta_txt.text()))
+        self.jcpds_phase.beta0 = float(self.view.lattice_beta_sb.value())
 
     @_emit_lattice_param_changed
     @_update_view
     def lattice_gamma_changed(self):
-        self.jcpds_phase.gamma0 = float(str(self.view.lattice_gamma_txt.text()))
+        self.jcpds_phase.gamma0 = float(self.view.lattice_gamma_sb.value())
+
+    def lattice_length_step_changed(self):
+        value = float(str(self.view.lattice_length_step_txt.text()))
+        self.view.lattice_a_sb.setSingleStep(value)
+        self.view.lattice_b_sb.setSingleStep(value)
+        self.view.lattice_c_sb.setSingleStep(value)
+
+    def lattice_angle_step_changed(self):
+        value = float(str(self.view.lattice_angle_step_txt.text()))
+        self.view.lattice_alpha_sb.setSingleStep(value)
+        self.view.lattice_beta_sb.setSingleStep(value)
+        self.view.lattice_gamma_sb.setSingleStep(value)
+
+    def lattice_ratio_step_changed(self):
+        value = float(str(self.view.lattice_ratio_step_txt.text()))
+        self.view.lattice_ab_sb.setSingleStep(value)
+        self.view.lattice_ca_sb.setSingleStep(value)
+        self.view.lattice_cb_sb.setSingleStep(value)
+
 
     @_emit_eos_param_changed
     def eos_K_changed(self):

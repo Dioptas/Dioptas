@@ -49,25 +49,12 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
 
         self.reflection_table.verticalHeader().setDefaultSectionSize(20)
 
-        # self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint)
-        # self.setWindowFlags(QtCore.Qt.FramelessWindowHint|QtCore.Qt.NoDropShadowWindowHint| QtCore.Qt.Window)
         self.setWindowFlags(QtCore.Qt.Tool)
-        # self.setWindowModality(QtCore.Qt.ApplicationModal)
 
     def set_validators(self):
-        self.lattice_a_txt.setValidator(QtGui.QDoubleValidator())
-        self.lattice_b_txt.setValidator(QtGui.QDoubleValidator())
-        self.lattice_c_txt.setValidator(QtGui.QDoubleValidator())
-
-        self.lattice_alpha_txt.setValidator(QtGui.QDoubleValidator())
-        self.lattice_beta_txt.setValidator(QtGui.QDoubleValidator())
-        self.lattice_gamma_txt.setValidator(QtGui.QDoubleValidator())
-
-        self.lattice_volume_txt.setValidator(QtGui.QDoubleValidator())
-
-        self.lattice_ab_txt.setValidator(QtGui.QDoubleValidator())
-        self.lattice_ca_txt.setValidator(QtGui.QDoubleValidator())
-        self.lattice_cb_txt.setValidator(QtGui.QDoubleValidator())
+        self.lattice_length_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.lattice_angle_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.lattice_ratio_step_txt.setValidator(QtGui.QDoubleValidator())
 
         self.eos_K_txt.setValidator(QtGui.QDoubleValidator())
         self.eos_Kp_txt.setValidator(QtGui.QDoubleValidator())
@@ -77,25 +64,38 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.eos_dKpdT_txt.setValidator(QtGui.QDoubleValidator())
 
     def show_jcpds(self, jcpds_phase=None):
+        self.blockAllSignals(True)
+
         self.filename_txt.setText(jcpds_phase.filename)
         self.comments_txt.setText(jcpds_phase.comments[0])
 
         self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.symmetry.lower()))
-        self.update_txt_enable(jcpds_phase.symmetry)
+        self.update_spinbox_enable(jcpds_phase.symmetry)
 
-        self.lattice_a_txt.setText(str(jcpds_phase.a0))
-        self.lattice_b_txt.setText(str(jcpds_phase.b0))
-        self.lattice_c_txt.setText(str(jcpds_phase.c0))
+        self.lattice_a_sb.setValue(jcpds_phase.a0)
+        self.lattice_b_sb.setValue(jcpds_phase.b0)
+        self.lattice_c_sb.setValue(jcpds_phase.c0)
 
-        self.lattice_ab_txt.setText(str('{:g}'.format(jcpds_phase.a0/float(jcpds_phase.b0))))
-        self.lattice_ca_txt.setText(str('{:g}'.format(jcpds_phase.c0/float(jcpds_phase.a0))))
-        self.lattice_cb_txt.setText(str('{:g}'.format(jcpds_phase.c0/float(jcpds_phase.b0))))
+        try:
+            self.lattice_ab_sb.setValue(jcpds_phase.a0/float(jcpds_phase.b0))
+        except ZeroDivisionError:
+            self.lattice_ab_sb.setSpecialValueText('Inf')
+
+        try:
+            self.lattice_ca_sb.setValue(jcpds_phase.c0/float(jcpds_phase.a0))
+        except ZeroDivisionError:
+            self.lattice_ca_sb.setSpecialValueText('Inf')
+
+        try:
+            self.lattice_cb_sb.setValue(jcpds_phase.c0/float(jcpds_phase.b0))
+        except ZeroDivisionError:
+            self.lattice_cb_sb.setSpecialValueText('Inf')
 
         self.lattice_volume_txt.setText(str('{:g}'.format(jcpds_phase.v0)))
 
-        self.lattice_alpha_txt.setText(str(jcpds_phase.alpha0))
-        self.lattice_beta_txt.setText(str(jcpds_phase.beta0))
-        self.lattice_gamma_txt.setText(str(jcpds_phase.gamma0))
+        self.lattice_alpha_sb.setValue(jcpds_phase.alpha0)
+        self.lattice_beta_sb.setValue(jcpds_phase.beta0)
+        self.lattice_gamma_sb.setValue(jcpds_phase.gamma0)
 
         self.eos_K_txt.setText(str(jcpds_phase.k0))
         self.eos_Kp_txt.setText(str(jcpds_phase.k0p))
@@ -110,99 +110,113 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         for reflection in jcpds_phase.reflections:
             self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
                                          reflection.intensity, reflection.d0)
+        self.blockAllSignals(False)
+
+    def blockAllSignals(self, bool=True):
+        self.lattice_a_sb.blockSignals(bool)
+        self.lattice_b_sb.blockSignals(bool)
+        self.lattice_c_sb.blockSignals(bool)
+
+        self.lattice_alpha_sb.blockSignals(bool)
+        self.lattice_beta_sb.blockSignals(bool)
+        self.lattice_gamma_sb.blockSignals(bool)
+
+        self.lattice_ab_sb.blockSignals(bool)
+        self.lattice_ca_sb.blockSignals(bool)
+        self.lattice_cb_sb.blockSignals(bool)
 
 
-    def update_txt_enable(self, symmetry):
+    def update_spinbox_enable(self, symmetry):
         if symmetry == 'CUBIC':
-            self.lattice_a_txt.setEnabled(True)
-            self.lattice_b_txt.setEnabled(False)
-            self.lattice_c_txt.setEnabled(False)
+            self.lattice_a_sb.setEnabled(True)
+            self.lattice_b_sb.setEnabled(False)
+            self.lattice_c_sb.setEnabled(False)
 
-            self.lattice_alpha_txt.setEnabled(False)
-            self.lattice_beta_txt.setEnabled(False)
-            self.lattice_gamma_txt.setEnabled(False)
+            self.lattice_alpha_sb.setEnabled(False)
+            self.lattice_beta_sb.setEnabled(False)
+            self.lattice_gamma_sb.setEnabled(False)
 
-            self.lattice_ab_txt.setEnabled(False)
-            self.lattice_ca_txt.setEnabled(False)
-            self.lattice_cb_txt.setEnabled(False)
+            self.lattice_ab_sb.setEnabled(False)
+            self.lattice_ca_sb.setEnabled(False)
+            self.lattice_cb_sb.setEnabled(False)
 
         elif symmetry == 'TETRAGONAL':
-            self.lattice_a_txt.setEnabled(True)
-            self.lattice_b_txt.setEnabled(False)
-            self.lattice_c_txt.setEnabled(True)
+            self.lattice_a_sb.setEnabled(True)
+            self.lattice_b_sb.setEnabled(False)
+            self.lattice_c_sb.setEnabled(True)
 
-            self.lattice_alpha_txt.setEnabled(False)
-            self.lattice_beta_txt.setEnabled(False)
-            self.lattice_gamma_txt.setEnabled(False)
+            self.lattice_alpha_sb.setEnabled(False)
+            self.lattice_beta_sb.setEnabled(False)
+            self.lattice_gamma_sb.setEnabled(False)
 
-            self.lattice_ab_txt.setEnabled(False)
-            self.lattice_ca_txt.setEnabled(True)
-            self.lattice_cb_txt.setEnabled(False)
+            self.lattice_ab_sb.setEnabled(False)
+            self.lattice_ca_sb.setEnabled(True)
+            self.lattice_cb_sb.setEnabled(False)
 
         elif symmetry == 'ORTHORHOMBIC':
-            self.lattice_a_txt.setEnabled(True)
-            self.lattice_b_txt.setEnabled(True)
-            self.lattice_c_txt.setEnabled(True)
+            self.lattice_a_sb.setEnabled(True)
+            self.lattice_b_sb.setEnabled(True)
+            self.lattice_c_sb.setEnabled(True)
 
-            self.lattice_alpha_txt.setEnabled(False)
-            self.lattice_beta_txt.setEnabled(False)
-            self.lattice_gamma_txt.setEnabled(False)
+            self.lattice_alpha_sb.setEnabled(False)
+            self.lattice_beta_sb.setEnabled(False)
+            self.lattice_gamma_sb.setEnabled(False)
 
-            self.lattice_ab_txt.setEnabled(True)
-            self.lattice_ca_txt.setEnabled(True)
-            self.lattice_cb_txt.setEnabled(True)
+            self.lattice_ab_sb.setEnabled(True)
+            self.lattice_ca_sb.setEnabled(True)
+            self.lattice_cb_sb.setEnabled(True)
 
         elif symmetry == 'HEXAGONAL':
-            self.lattice_a_txt.setEnabled(True)
-            self.lattice_b_txt.setEnabled(False)
-            self.lattice_c_txt.setEnabled(True)
+            self.lattice_a_sb.setEnabled(True)
+            self.lattice_b_sb.setEnabled(False)
+            self.lattice_c_sb.setEnabled(True)
 
-            self.lattice_alpha_txt.setEnabled(False)
-            self.lattice_beta_txt.setEnabled(False)
-            self.lattice_gamma_txt.setEnabled(False)
+            self.lattice_alpha_sb.setEnabled(False)
+            self.lattice_beta_sb.setEnabled(False)
+            self.lattice_gamma_sb.setEnabled(False)
 
-            self.lattice_ab_txt.setEnabled(False)
-            self.lattice_ca_txt.setEnabled(True)
-            self.lattice_cb_txt.setEnabled(False)
+            self.lattice_ab_sb.setEnabled(False)
+            self.lattice_ca_sb.setEnabled(True)
+            self.lattice_cb_sb.setEnabled(False)
 
         elif symmetry == 'RHOMBOHEDRAL':
-            self.lattice_a_txt.setEnabled(True)
-            self.lattice_b_txt.setEnabled(False)
-            self.lattice_c_txt.setEnabled(False)
+            self.lattice_a_sb.setEnabled(True)
+            self.lattice_b_sb.setEnabled(False)
+            self.lattice_c_sb.setEnabled(False)
 
-            self.lattice_alpha_txt.setEnabled(True)
-            self.lattice_beta_txt.setEnabled(False)
-            self.lattice_gamma_txt.setEnabled(False)
+            self.lattice_alpha_sb.setEnabled(True)
+            self.lattice_beta_sb.setEnabled(False)
+            self.lattice_gamma_sb.setEnabled(False)
 
-            self.lattice_ab_txt.setEnabled(False)
-            self.lattice_ca_txt.setEnabled(False)
-            self.lattice_cb_txt.setEnabled(False)
+            self.lattice_ab_sb.setEnabled(False)
+            self.lattice_ca_sb.setEnabled(False)
+            self.lattice_cb_sb.setEnabled(False)
 
         elif symmetry == 'MONOCLINIC':
-            self.lattice_a_txt.setEnabled(True)
-            self.lattice_b_txt.setEnabled(True)
-            self.lattice_c_txt.setEnabled(True)
+            self.lattice_a_sb.setEnabled(True)
+            self.lattice_b_sb.setEnabled(True)
+            self.lattice_c_sb.setEnabled(True)
 
-            self.lattice_alpha_txt.setEnabled(False)
-            self.lattice_beta_txt.setEnabled(True)
-            self.lattice_gamma_txt.setEnabled(False)
+            self.lattice_alpha_sb.setEnabled(False)
+            self.lattice_beta_sb.setEnabled(True)
+            self.lattice_gamma_sb.setEnabled(False)
 
-            self.lattice_ab_txt.setEnabled(True)
-            self.lattice_ca_txt.setEnabled(True)
-            self.lattice_cb_txt.setEnabled(True)
+            self.lattice_ab_sb.setEnabled(True)
+            self.lattice_ca_sb.setEnabled(True)
+            self.lattice_cb_sb.setEnabled(True)
 
         elif symmetry == 'TRICLINIC':
-            self.lattice_a_txt.setEnabled(True)
-            self.lattice_b_txt.setEnabled(True)
-            self.lattice_c_txt.setEnabled(True)
+            self.lattice_a_sb.setEnabled(True)
+            self.lattice_b_sb.setEnabled(True)
+            self.lattice_c_sb.setEnabled(True)
 
-            self.lattice_alpha_txt.setEnabled(True)
-            self.lattice_beta_txt.setEnabled(True)
-            self.lattice_gamma_txt.setEnabled(True)
+            self.lattice_alpha_sb.setEnabled(True)
+            self.lattice_beta_sb.setEnabled(True)
+            self.lattice_gamma_sb.setEnabled(True)
 
-            self.lattice_ab_txt.setEnabled(True)
-            self.lattice_ca_txt.setEnabled(True)
-            self.lattice_cb_txt.setEnabled(True)
+            self.lattice_ab_sb.setEnabled(True)
+            self.lattice_ca_sb.setEnabled(True)
+            self.lattice_cb_sb.setEnabled(True)
 
         else:
             print('Unknown symmetry: {}.'.format(symmetry))
