@@ -27,7 +27,10 @@ Modifications:
     August 27, 2014 Clemens Prescher
         - added modified flag and the surrounding functions. When an attribute is changed, it will set it to true and the
           filename and name will have an asterisk appended to indicate that this is not the original jcpds loaded
-        - added a
+        - added a reload function
+        - renamed read and write to load and save
+        - the load function will now reset all parameters (previously parameters not set in the newly loaded file, were
+          taken over from the previous state of the object)
 
 """
 import logging
@@ -168,7 +171,7 @@ class jcpds(object):
            not needed for a hexagonal material, and will be simple ignorred if
            they are present.
         """
-
+        self.__init__()
         # Initialize variables
         self._filename = filename
         # Construct base name = file without path and without extension
