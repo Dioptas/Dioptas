@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Mask.ui'
 #
-# Created: Tue Aug 26 16:31:04 2014
+# Created: Tue Aug 26 20:56:27 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
