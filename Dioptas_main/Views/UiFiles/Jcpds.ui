@@ -1092,7 +1092,7 @@ QTableWidget {
           </column>
           <column>
            <property name="text">
-            <string>I</string>
+            <string>Intensity</string>
            </property>
           </column>
           <column>
