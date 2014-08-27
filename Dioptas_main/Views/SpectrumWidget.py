@@ -440,9 +440,10 @@ class PhasePlot(object):
                         self.line_visible[ind] = False
 
     def set_color(self, color):
+        self.pen = pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine)
         for line_item in self.line_items:
-            line_item.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine))
-        self.ref_legend_line.setPen(pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine))
+            line_item.setPen(self.pen)
+        self.ref_legend_line.setPen(self.pen)
 
     def hide(self):
         if self.visible:
