@@ -243,7 +243,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.reflection_table.setItem(new_row_ind, 1, CenteredQTableWidgetItem(str('{:g}'.format(k))))
         self.reflection_table.setItem(new_row_ind, 2, CenteredQTableWidgetItem(str('{:g}'.format(l))))
         self.reflection_table.setItem(new_row_ind, 3, CenteredQTableWidgetItem(str('{:g}'.format(intensity))))
-        self.reflection_table.setItem(new_row_ind, 4, CenteredQTableWidgetItem(str('{:g}'.format(d))))
+        self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{:g}'.format(d))))
 
         self.reflection_table.resizeColumnsToContents()
         self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
@@ -332,3 +332,8 @@ class CenteredQTableWidgetItem(QtGui.QTableWidgetItem):
 
     def __ne__(self, other):
         return float(str(self.text()))!=float(str(other.text()))
+    
+class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
+    def __init__(self, value):
+        super(CenteredNonEditableQTableWidgetItem, self).__init__(value)
+        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
