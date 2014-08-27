@@ -38,7 +38,7 @@ class PhaseData(Observable):
     def add_phase(self, filename):
         jcpds_object = jcpds()
         try:
-            jcpds_object.read_file(filename)
+            jcpds_object.load_file(filename)
             self.phases.append(jcpds_object)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError):

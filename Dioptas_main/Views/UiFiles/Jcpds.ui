@@ -1319,6 +1319,13 @@ QTableWidget {
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="reload_file_btn">
+       <property name="text">
+        <string> Reload File</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer_11">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>

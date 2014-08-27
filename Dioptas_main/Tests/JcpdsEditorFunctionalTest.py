@@ -79,7 +79,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
         # and wants to edit the parameters
         self.jcpds = jcpds()
-        self.jcpds.read_file('Data/jcpds/au_Anderson.jcpds')
+        self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
         self.jcpds_controller = JcpdsEditorController('Data/jcpds', self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
@@ -235,7 +235,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
         # and wants to look for the reflections entered
         self.jcpds = jcpds()
-        self.jcpds.read_file('Data/jcpds/au_Anderson.jcpds')
+        self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
         self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
@@ -308,13 +308,13 @@ class EditCurrentJcpdsTest(unittest.TestCase):
 
         # then he sees the save_as button and is happy to save his non-sense for later users
         filename = 'Data/jcpds/au_mal_anders.jcpds'
-        self.jcpds_controller.save_as_btn_click(filename)
+        self.jcpds_controller.save_as_btn_clicked(filename)
         self.assertTrue(os.path.exists(filename))
 
         # he decides to change the lattice parameter and then reload the file to see if everything is ok
         self.enter_value_into_spinbox(self.jcpds_view.lattice_a_sb, 10)
 
-        self.jcpds.read_file('Data/jcpds/au_mal_anders.jcpds')
+        self.jcpds.load_file('Data/jcpds/au_mal_anders.jcpds')
         self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
         self.assertEqual(float(str(self.jcpds_view.lattice_a_sb.text())), 4.0786)
@@ -336,9 +336,9 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.insert_reflection_table_value(2, 3, 20)
 
         filename = 'Data/jcpds/au_mal_anders_vers2.jcpds'
-        self.jcpds_controller.save_as_btn_click(filename)
+        self.jcpds_controller.save_as_btn_clicked(filename)
 
-        self.jcpds.read_file(filename)
+        self.jcpds.load_file(filename)
         self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
 
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
@@ -528,7 +528,34 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.assertEqual(len(self.jcpds_in_spec.line_items), 4)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 4)
 
-        # now he decides to delete this phase and sees that the phase in the editor view is automatically changing to
-        # the newly selected one
+    def test_phase_name_difference_after_modified(self):
+        self.main_controller = MainController(self.app)
+        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
+        self.main_controller.calibration_controller.set_calibrant(7)
+        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.main_controller.view.tabWidget.setCurrentIndex(2)
+        self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/au_Anderson.jcpds')
+
+        # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
+        # change anything the names every are the same...
+
+        self.phase_controller = self.main_controller.integration_controller.phase_controller
+        self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
+        self.jcpds_view = self.jcpds_editor_controller.view
+        self.jcpds_phase = self.main_controller.phase_data.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
+
+
+        self.assertEqual('au_Anderson', self.jcpds_phase.name)
+        self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0,2).text()))
+        self.phase_controller.view.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        QtGui.QApplication.processEvents()
+        self.assertEqual('au_Anderson', self.jcpds_phase.name)
+        self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0,2).text()))
+
+
+
 
 

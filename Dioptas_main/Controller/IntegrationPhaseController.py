@@ -60,7 +60,6 @@ class IntegrationPhaseController(object):
         self.view.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
         self.view.phase_color_btn_clicked.connect(self.phase_color_btn_clicked)
         self.view.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
-        self.view.phase_name_changed.connect(self.rename_phase)
 
         self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_phase_intensities_slot)
         self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
@@ -75,6 +74,8 @@ class IntegrationPhaseController(object):
         self.jcpds_editor_controller.reflection_line_removed.connect(self.jcpds_editor_reflection_removed)
         self.jcpds_editor_controller.reflection_line_edited.connect(self.update_cur_phase_parameters)
         self.jcpds_editor_controller.reflection_line_cleared.connect(self.jcpds_editor_reflection_cleared)
+
+        self.jcpds_editor_controller.phase_modified.connect(self.update_cur_phase_name)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -290,10 +291,6 @@ class IntegrationPhaseController(object):
         else:
             self.view.spectrum_view.hide_phase(ind)
 
-    def rename_phase(self, ind, name):
-        self.view.spectrum_view.rename_phase(ind, name)
-
-
     def get_unit(self):
         """
         returns the unit currently selected in the GUI
@@ -373,6 +370,11 @@ class IntegrationPhaseController(object):
                 self.get_unit())
         self.view.spectrum_view.update_phase_intensities(
             ind, positions, intensities, baseline)
+
+    def update_cur_phase_name(self):
+        cur_ind = self.view.get_selected_phase_row()
+        self.view.rename_phase(cur_ind, self.phase_data.phases[cur_ind].name)
+
 
     def jcpds_editor_canceled(self, jcpds):
         cur_ind = self.view.get_selected_phase_row()

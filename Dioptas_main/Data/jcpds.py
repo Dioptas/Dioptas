@@ -24,6 +24,10 @@ Modifications:
     August 26, 2014 Clemens Prescher
         - added sorting functions
         - fixed the d spacing calculation for triclinic structure - equation used was wrong...
+    August 27, 2014 Clemens Prescher
+        - added modified flag and the surrounding functions. When an attribute is changed, it will set it to true and the
+          filename and name will have an asterisk appended to indicate that this is not the original jcpds loaded
+        - added a
 
 """
 import logging
@@ -61,8 +65,8 @@ class jcpds_reflection:
 
 class jcpds(object):
     def __init__(self):
-        self.filename = ' '
-        self.name = ' '
+        self._filename = ' '
+        self._name = ' '
         self.version = 0
         self.comments = []
         self.symmetry = ''
@@ -91,8 +95,9 @@ class jcpds(object):
         self.pressure = 0.
         self.temperature = 0.
         self.reflections = []
+        self.modified = False
 
-    def read_file(self, filename):
+    def load_file(self, filename):
         """
         Reads a JCPDS file into the JCPDS object.
 
@@ -165,12 +170,12 @@ class jcpds(object):
         """
 
         # Initialize variables
-        self.filename = filename
+        self._filename = filename
         # Construct base name = file without path and without extension
         name = os.path.basename(filename)
         pos = name.find('.')
         if (pos >= 0): name = name[0:pos]
-        self.name = name
+        self._name = name
         line = ''
         version = 0.
         self.comments = []
@@ -284,6 +289,8 @@ class jcpds(object):
         for reflection in self.reflections:
             reflection.d0 = reflection.d
 
+        self.modified = False
+
         ## we just removed this check because it should be better to care more about the actual a,b,c values than
         # individual d spacings
         # reflections = self.get_reflections()
@@ -295,12 +302,12 @@ class jcpds(object):
         #             ') differs by more than 0.1% from input D (', r.d0, ')'))
 
 
-    def write_file(self, file):
+    def save_file(self, filename):
         """
         Writes a JCPDS object to a file.
 
         Inputs:
-           file:  The name of the file to written.
+           filename:  The name of the file to written.
 
         Procedure:
            This procedure writes a JCPDS file.  It always writes files in the
@@ -313,7 +320,7 @@ class jcpds(object):
            j.read_file('alumina_old.jcpds')
            j.write_file('alumina_new.jcpds')
         """
-        fp = open(file, 'w')
+        fp = open(filename, 'w')
         fp.write('VERSION:   4\n')
         for comment in self.comments:
             fp.write('COMMENT: ' + comment+'\n')
@@ -335,6 +342,46 @@ class jcpds(object):
         for r in reflections:
             fp.write('DIHKL:    {:g}\t{:g}\t{:g}\t{:g}\t{:g}\n'.format(r.d0, r.intensity, r.h, r.k, r.l))
         fp.close()
+
+        self._filename = filename
+        name = os.path.basename(filename)
+        pos = name.find('.')
+        if (pos >= 0): name = name[0:pos]
+        self._name = name
+
+        self.modified = False
+
+    def reload_file(self):
+        self.load_file(self._filename)
+
+    def __setattr__(self, key, value):
+        if key in ['comments', 'a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0',
+                   'symmetry', 'k0', 'k0p0', 'dk0dt', 'dk0pdt',
+                    'alpha_t0', 'd_alpha_dt', 'reflections']:
+            self.modified = True
+        super(jcpds, self).__setattr__(key, value)
+
+    @property
+    def filename(self):
+        if self.modified:
+            return self._filename + '*'
+        else:
+            return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = value
+
+    @property
+    def name(self):
+        if self.modified:
+            return self._name + '*'
+        else:
+            return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
 
 
     def compute_v0(self):
@@ -659,6 +706,11 @@ class jcpds(object):
     def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0.):
         new_reflection = jcpds_reflection(h,k,l, intensity, d)
         self.reflections.append(new_reflection)
+        self.modified = True
+
+    def remove_reflection(self, ind):
+        del self.reflections[ind]
+        self.modified = True
 
     def get_reflections(self):
         """
@@ -673,7 +725,10 @@ class jcpds(object):
         new_reflections = []
         for ind in ind_list:
             new_reflections.append(self.reflections[ind])
+
+        modified_flag = self.modified
         self.reflections = new_reflections
+        self.modified = modified_flag
 
     def sort_reflections_by_h(self, reversed = False):
         h_list = []
@@ -794,7 +849,7 @@ def lookup_jcpds_line(in_string,
     full_file = path + file + '.jcpds'
     try:
         j = jcpds()
-        j.read_file(full_file)
+        j.load_file(full_file)
         refl = j.get_reflections()
         for r in refl:
             if (r.h == hkl[0] and

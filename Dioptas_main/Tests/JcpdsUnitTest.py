@@ -54,3 +54,18 @@ class JcpdsUnitTest(unittest.TestCase):
         self.jcpds.sort_reflections_by_d()
         self.assertEqual(self.jcpds.reflections[0].intensity, 2)
         self.assertEqual(self.jcpds.reflections[6].intensity, 10)
+
+    def test_modified_flag(self):
+        self.assertFalse(self.jcpds.modified)
+
+        self.jcpds.a0 = 3
+        self.assertTrue(self.jcpds.modified)
+        self.assertEqual(self.jcpds.a0, 3)
+        self.jcpds.modified = False
+
+        self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
+        self.assertFalse(self.jcpds.modified)
+        self.jcpds.k0 = 200
+        self.assertTrue(self.jcpds.modified)
+        self.assertEqual('Data/jcpds/au_Anderson.jcpds*', self.jcpds.filename)
+        self.assertEqual('au_Anderson*', self.jcpds.name)
