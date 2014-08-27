@@ -48,6 +48,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20,24))
 
         self.reflection_table.verticalHeader().setDefaultSectionSize(20)
+        self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
 
         self.setWindowFlags(QtCore.Qt.Tool)
 
@@ -243,6 +244,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.reflection_table.setItem(new_row_ind, 4, CenteredQTableWidgetItem(str('{:g}'.format(d))))
 
         self.reflection_table.resizeColumnsToContents()
+        self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
         self.reflection_table.blockSignals(False)
 
     def remove_reflection_from_table(self, ind):
@@ -295,7 +297,8 @@ class TextDoubleDelegate(QtGui.QStyledItemDelegate):
 
     def setEditorData(self, parent, index):
         value = index.model().data(index, QtCore.Qt.EditRole)
-        self.editor.setText("{:g}".format(float(str(value.toString()))))
+        if value.toString() != '':
+            self.editor.setText("{:g}".format(float(str(value.toString()))))
 
     def setModelData(self, parent, model, index):
         value = self.editor.text()
@@ -309,3 +312,21 @@ class CenteredQTableWidgetItem(QtGui.QTableWidgetItem):
     def __init__(self, value):
         super(CenteredQTableWidgetItem, self).__init__(value)
         self.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+
+    def __gt__(self, other):
+        return float(str(self.text())>float(str(other.text())))
+
+    def __lt__(self, other):
+        return float(str(self.text()))<float(str(other.text()))
+
+    def __ge__(self, other):
+        return float(str(self.text())>=float(str(other.text())))
+
+    def __le__(self, other):
+        return float(str(self.text()))<=float(str(other.text()))
+
+    def __eq__(self, other):
+        return float(str(self.text()))==float(str(other.text()))
+
+    def __ne__(self, other):
+        return float(str(self.text()))!=float(str(other.text()))

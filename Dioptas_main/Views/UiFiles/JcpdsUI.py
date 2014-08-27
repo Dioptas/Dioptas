@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Jcpds.ui'
 #
-# Created: Tue Aug 26 16:31:04 2014
+# Created: Tue Aug 26 20:56:27 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -341,6 +341,8 @@ class Ui_JcpdsEditorWidget(object):
         self.label_8.setObjectName(_fromUtf8("label_8"))
         self.gridLayout_3.addWidget(self.label_8, 1, 0, 1, 1)
         self.comments_txt = QtGui.QLineEdit(JcpdsEditorWidget)
+        self.comments_txt.setFrame(True)
+        self.comments_txt.setCursorMoveStyle(QtCore.Qt.VisualMoveStyle)
         self.comments_txt.setObjectName(_fromUtf8("comments_txt"))
         self.gridLayout_3.addWidget(self.comments_txt, 1, 1, 1, 1)
         self.verticalLayout_3.addLayout(self.gridLayout_3)
@@ -654,7 +656,7 @@ class Ui_JcpdsEditorWidget(object):
         self.reflection_table.setHorizontalHeaderItem(3, item)
         item = QtGui.QTableWidgetItem()
         self.reflection_table.setHorizontalHeaderItem(4, item)
-        self.reflection_table.horizontalHeader().setCascadingSectionResizes(True)
+        self.reflection_table.horizontalHeader().setCascadingSectionResizes(False)
         self.reflection_table.horizontalHeader().setDefaultSectionSize(40)
         self.reflection_table.verticalHeader().setVisible(False)
         self.reflection_table.verticalHeader().setSortIndicatorShown(False)

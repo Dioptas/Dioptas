@@ -133,6 +133,9 @@ class JcpdsEditorController(QtCore.QObject):
 
         self.view.reflection_table.verticalScrollBar().valueChanged.connect(self.reflection_table_scrolled)
 
+        self.previous_header_item_index_sorted = None
+        self.view.reflection_table.horizontalHeader().sectionClicked.connect(self.horizontal_header_clicked)
+
         self.view.save_as_btn.clicked.connect(self.save_as_btn_click)
         self.view.ok_btn.clicked.connect(self.ok_btn_click)
         self.view.cancel_btn.clicked.connect(self.cancel_btn_click)
@@ -253,6 +256,7 @@ class JcpdsEditorController(QtCore.QObject):
             self.reflection_line_removed.emit(rows[ind])
             rows = rows - 1
         self.view.reflection_table.resizeColumnsToContents()
+        self.view.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
 
     def reflections_add_btn_click(self):
         self.jcpds_phase.add_reflection()
@@ -262,17 +266,18 @@ class JcpdsEditorController(QtCore.QObject):
 
     def reflection_table_changed(self, row, col):
         label_item = self.view.reflection_table.item(row, col)
-        value = float(str(label_item.text()))
-        if col == 0:  # h
-            self.jcpds_phase.reflections[row].h = value
-        elif col == 1:  # k
-            self.jcpds_phase.reflections[row].k = value
-        elif col == 2:  # l
-            self.jcpds_phase.reflections[row].l = value
-        elif col == 3:  # intensity
-            self.jcpds_phase.reflections[row].intensity = value
+        if label_item.text() != '':
+            value = float(str(label_item.text()))
+            if col == 0:  # h
+                self.jcpds_phase.reflections[row].h = value
+            elif col == 1:  # k
+                self.jcpds_phase.reflections[row].k = value
+            elif col == 2:  # l
+                self.jcpds_phase.reflections[row].l = value
+            elif col == 3:  # intensity
+                self.jcpds_phase.reflections[row].intensity = value
 
-        self.jcpds_phase.compute_d0()
+            self.jcpds_phase.compute_d0()
         self.view.show_jcpds(self.jcpds_phase)
         self.view.reflection_table.resizeColumnsToContents()
         self.reflection_line_edited.emit()
@@ -287,6 +292,33 @@ class JcpdsEditorController(QtCore.QObject):
     def reflection_table_scrolled(self):
         self.view.reflection_table.resizeColumnsToContents()
 
+    def horizontal_header_clicked(self, ind):
+
+        if self.previous_header_item_index_sorted == ind:
+            reversed = True
+        else:
+            reversed = False
+
+        if ind == 0 :
+            self.jcpds_phase.sort_reflections_by_h(reversed)
+        elif ind == 1:
+            self.jcpds_phase.sort_reflections_by_k(reversed)
+        elif ind == 2:
+            self.jcpds_phase.sort_reflections_by_l(reversed)
+        elif ind == 3:
+            self.jcpds_phase.sort_reflections_by_intensity(reversed)
+        elif ind == 4:
+            self.jcpds_phase.sort_reflections_by_d(reversed)
+
+
+        self.view.show_jcpds(self.jcpds_phase)
+        self.view.reflection_table.resizeColumnsToContents()
+
+        if self.previous_header_item_index_sorted == ind:
+            self.previous_header_item_index_sorted = None
+        else:
+            self.previous_header_item_index_sorted = ind
+
     def save_as_btn_click(self, filename=False):
         if filename is False:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save JCPDS phase.",
@@ -297,7 +329,7 @@ class JcpdsEditorController(QtCore.QObject):
             self.jcpds_phase.write_file(filename)
 
     def ok_btn_click(self):
-        self.close()
+        self.view.close()
 
     def cancel_btn_click(self):
         self.view.close()

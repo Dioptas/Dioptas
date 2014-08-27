@@ -21,6 +21,9 @@ Modifications:
         - calculation of d spacings is now done by using arrays
         - added several new utility function -- calculate_d0, add_reflection
         - updated the write_file function to be able to use new standard
+    August 26, 2014 Clemens Prescher
+        - added sorting functions
+        - fixed the d spacing calculation for triclinic structure - equation used was wrong...
 
 """
 import logging
@@ -528,8 +531,8 @@ class jcpds(object):
                      l ** 2 / np.sin(beta) ** 2 / c ** 2 +
                      2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
         elif (self.symmetry == 'TRICLINIC'):
-            V = (a ** 2 * b ** 2 * c ** 2 *
-                 (1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
+            V = (a  * b  * c  *
+                 np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
                   np.cos(gamma) ** 2 +
                   2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
             s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
@@ -632,8 +635,8 @@ class jcpds(object):
                      l ** 2 / np.sin(beta) ** 2 / c ** 2 +
                      2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
         elif (self.symmetry == 'TRICLINIC'):
-            V = (a ** 2 * b ** 2 * c ** 2 *
-                 (1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
+            V = (  a * b  * c  *
+                 np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
                   np.cos(gamma) ** 2 +
                   2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
             s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
@@ -663,6 +666,49 @@ class jcpds(object):
         This information is an array of elements of class jcpds_reflection
         """
         return self.reflections
+
+    def reorder_reflections_by_index(self, ind_list, reversed=False):
+        if reversed:
+            ind_list= ind_list[::-1]
+        new_reflections = []
+        for ind in ind_list:
+            new_reflections.append(self.reflections[ind])
+        self.reflections = new_reflections
+
+    def sort_reflections_by_h(self, reversed = False):
+        h_list = []
+        for reflection in self.reflections:
+            h_list.append(reflection.h)
+        sorted_ind = np.argsort(h_list)
+        self.reorder_reflections_by_index(sorted_ind, reversed)
+
+    def sort_reflections_by_k(self, reversed = False):
+        k_list = []
+        for reflection in self.reflections:
+            k_list.append(reflection.k)
+        sorted_ind = np.argsort(k_list)
+        self.reorder_reflections_by_index(sorted_ind, reversed)
+
+    def sort_reflections_by_l(self, reversed = False):
+        l_list = []
+        for reflection in self.reflections:
+            l_list.append(reflection.l)
+        sorted_ind = np.argsort(l_list)
+        self.reorder_reflections_by_index(sorted_ind, reversed)
+
+    def sort_reflections_by_intensity(self, reversed = False):
+        intensity_list = []
+        for reflection in self.reflections:
+            intensity_list.append(reflection.intensity)
+        sorted_ind = np.argsort(intensity_list)
+        self.reorder_reflections_by_index(sorted_ind, reversed)
+
+    def sort_reflections_by_d(self, reversed = False):
+        d_list = []
+        for reflection in self.reflections:
+            d_list.append(reflection.d0)
+        sorted_ind = np.argsort(d_list)
+        self.reorder_reflections_by_index(sorted_ind, reversed)
 
     def has_thermal_expansion(self):
         return (self.alpha_t0!=0) or (self.d_alpha_dt!=0)
