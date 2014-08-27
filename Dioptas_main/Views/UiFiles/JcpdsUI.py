@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Jcpds.ui'
 #
-# Created: Tue Aug 26 20:56:27 2014
+# Created: Tue Aug 26 22:57:09 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -815,7 +815,7 @@ class Ui_JcpdsEditorWidget(object):
         item = self.reflection_table.horizontalHeaderItem(2)
         item.setText(_translate("JcpdsEditorWidget", "l", None))
         item = self.reflection_table.horizontalHeaderItem(3)
-        item.setText(_translate("JcpdsEditorWidget", "I", None))
+        item.setText(_translate("JcpdsEditorWidget", "Intensity", None))
         item = self.reflection_table.horizontalHeaderItem(4)
         item.setText(_translate("JcpdsEditorWidget", "d", None))
         self.reflections_add_btn.setText(_translate("JcpdsEditorWidget", "Add", None))
