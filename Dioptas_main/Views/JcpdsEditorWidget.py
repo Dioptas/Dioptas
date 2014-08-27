@@ -126,6 +126,8 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.lattice_ca_sb.blockSignals(bool)
         self.lattice_cb_sb.blockSignals(bool)
 
+        self.symmetry_cb.blockSignals(bool)
+
 
     def update_spinbox_enable(self, symmetry):
         if symmetry == 'CUBIC':

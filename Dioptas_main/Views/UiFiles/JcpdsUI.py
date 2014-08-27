@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Jcpds.ui'
 #
-# Created: Tue Aug 26 22:57:09 2014
+# Created: Wed Aug 27 10:46:02 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -757,6 +757,9 @@ class Ui_JcpdsEditorWidget(object):
         self.save_as_btn = QtGui.QPushButton(JcpdsEditorWidget)
         self.save_as_btn.setObjectName(_fromUtf8("save_as_btn"))
         self.horizontalLayout_5.addWidget(self.save_as_btn)
+        self.reload_file_btn = QtGui.QPushButton(JcpdsEditorWidget)
+        self.reload_file_btn.setObjectName(_fromUtf8("reload_file_btn"))
+        self.horizontalLayout_5.addWidget(self.reload_file_btn)
         spacerItem5 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_5.addItem(spacerItem5)
         self.ok_btn = QtGui.QPushButton(JcpdsEditorWidget)
@@ -834,6 +837,7 @@ class Ui_JcpdsEditorWidget(object):
         self.label_26.setText(_translate("JcpdsEditorWidget", "<html><head/><body><p>GPa/K</p></body></html>", None))
         self.label_27.setText(_translate("JcpdsEditorWidget", "<html><head/><body><p>1/K</p></body></html>", None))
         self.save_as_btn.setText(_translate("JcpdsEditorWidget", "Save As", None))
+        self.reload_file_btn.setText(_translate("JcpdsEditorWidget", " Reload File", None))
         self.ok_btn.setText(_translate("JcpdsEditorWidget", "Ok", None))
         self.cancel_btn.setText(_translate("JcpdsEditorWidget", "Cancel", None))
 

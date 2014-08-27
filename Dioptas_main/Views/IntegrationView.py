@@ -34,7 +34,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     overlay_name_changed = QtCore.pyqtSignal(int, str)
     phase_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
     phase_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
-    phase_name_changed = QtCore.pyqtSignal(int, str)
 
     def __init__(self):
         super(IntegrationView, self).__init__()
@@ -60,7 +59,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_color_btns = []
         self.overlay_tw.setItemDelegate(NoRectDelegate())
 
-        self.phase_tw.cellChanged.connect(self.phase_label_editingFinished)
         self.phase_show_cbs = []
         self.phase_color_btns = []
         header_view = QtGui.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
@@ -179,7 +177,10 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.phase_tw.setCellWidget(current_rows, 1, color_button)
         self.phase_color_btns.append(color_button)
 
-        self.phase_tw.setItem(current_rows, 2, QtGui.QTableWidgetItem(name))
+        name_item = QtGui.QTableWidgetItem(name)
+        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        name_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.phase_tw.setItem(current_rows, 2, name_item)
 
         pressure_item = QtGui.QTableWidgetItem('0 GPa')
         pressure_item.setFlags(pressure_item.flags() & ~QtCore.Qt.ItemIsEditable)
@@ -225,6 +226,13 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         else:
             self.select_phase(self.phase_tw.rowCount() - 1)
 
+    def rename_phase(self, ind, name):
+        self.spectrum_view.rename_phase(ind, name)
+        name_item = self.phase_tw.item(ind, 2)
+        name_item.setText(name)
+
+
+
     def set_phase_tw_temperature(self, ind, T):
         temperature_item = self.phase_tw.item(ind, 4)
         temperature_item.setText("{0} K".format(T))
@@ -259,11 +267,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def phase_show_cb_is_checked(self, ind):
         checkbox = self.phase_show_cbs[ind]
         return checkbox.isChecked()
-
-    def phase_label_editingFinished(self, row, col):
-        if col == 2:
-            label_item = self.phase_tw.item(row, col)
-            self.phase_name_changed.emit(row, str(label_item.text()))
 
 
 class NoRectDelegate(QtGui.QItemDelegate):

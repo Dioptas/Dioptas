@@ -34,6 +34,7 @@ def _update_view(inner_function):
         self.jcpds_phase.compute_v0()
         self.jcpds_phase.compute_d0()
         self.view.show_jcpds(self.jcpds_phase)
+        self.phase_modified.emit()
 
     return wrapper
 
@@ -52,6 +53,7 @@ def _emit_eos_param_changed(inner_function):
     def wrapper(self):
         inner_function(self)
         self.eos_param_changed.emit()
+        self.phase_modified.emit()
 
     return wrapper
 
@@ -74,6 +76,8 @@ class JcpdsEditorController(QtCore.QObject):
     reflection_line_added = QtCore.pyqtSignal()
     reflection_line_removed = QtCore.pyqtSignal(int)
     reflection_line_cleared = QtCore.pyqtSignal()
+
+    phase_modified = QtCore.pyqtSignal()
 
     def __init__(self, working_dir, jcpds_phase=None):
         super(JcpdsEditorController, self).__init__()
@@ -98,6 +102,9 @@ class JcpdsEditorController(QtCore.QObject):
         self.view.close()
 
     def create_connections(self):
+
+        self.phase_modified.connect(self.update_filename)
+
         self.view.comments_txt.editingFinished.connect(self.comments_changed)
 
         self.view.symmetry_cb.currentIndexChanged.connect(self.symmetry_changed)
@@ -136,11 +143,15 @@ class JcpdsEditorController(QtCore.QObject):
         self.previous_header_item_index_sorted = None
         self.view.reflection_table.horizontalHeader().sectionClicked.connect(self.horizontal_header_clicked)
 
-        self.view.save_as_btn.clicked.connect(self.save_as_btn_click)
-        self.view.ok_btn.clicked.connect(self.ok_btn_click)
-        self.view.cancel_btn.clicked.connect(self.cancel_btn_click)
+        self.view.save_as_btn.clicked.connect(self.save_as_btn_clicked)
+        self.view.reload_file_btn.clicked.connect(self.reload_file_btn_clicked)
+        self.view.ok_btn.clicked.connect(self.ok_btn_clicked)
+        self.view.cancel_btn.clicked.connect(self.cancel_btn_clicked)
 
         self.view.closeEvent = self.view_closed
+
+    def update_filename(self):
+        self.view.filename_txt.setText(self.jcpds_phase.filename)
 
     @_update_view
     def comments_changed(self):
@@ -252,17 +263,20 @@ class JcpdsEditorController(QtCore.QObject):
         rows = np.array(rows)
         for ind in range(len(rows)):
             self.view.remove_reflection_from_table(rows[ind])
-            del self.jcpds_phase.reflections[rows[ind]]
+            self.jcpds_phase.remove_reflection(rows[ind])
             self.reflection_line_removed.emit(rows[ind])
             rows = rows - 1
         self.view.reflection_table.resizeColumnsToContents()
         self.view.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
+        self.update_filename()
+        self.phase_modified.emit()
 
     def reflections_add_btn_click(self):
         self.jcpds_phase.add_reflection()
         self.view.add_reflection_to_table()
         self.view.reflection_table.selectRow(self.view.reflection_table.rowCount() - 1)
         self.reflection_line_added.emit()
+        self.phase_modified.emit()
 
     def reflection_table_changed(self, row, col):
         label_item = self.view.reflection_table.item(row, col)
@@ -288,6 +302,7 @@ class JcpdsEditorController(QtCore.QObject):
         self.view.reflection_table.resizeColumnsToContents()
         self.jcpds_phase.reflections = []
         self.reflection_line_cleared.emit()
+        self.phase_modified.emit()
 
     def reflection_table_scrolled(self):
         self.view.reflection_table.resizeColumnsToContents()
@@ -319,22 +334,32 @@ class JcpdsEditorController(QtCore.QObject):
         else:
             self.previous_header_item_index_sorted = ind
 
-    def save_as_btn_click(self, filename=False):
+    def save_as_btn_clicked(self, filename=False):
         if filename is False:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save JCPDS phase.",
                                                              self.working_dir['phase'],
                                                              ('JCPDS Phase (*.jcpds)')))
 
         if filename != '':
-            self.jcpds_phase.write_file(filename)
+            self.jcpds_phase.save_file(filename)
+            self.show_phase(self.jcpds_phase)
+            self.lattice_param_changed.emit()
+            self.phase_modified.emit()
 
-    def ok_btn_click(self):
+    def reload_file_btn_clicked(self):
+        self.jcpds_phase.reload_file()
+        self.show_phase(self.jcpds_phase)
+        self.canceled_editor.emit(self.jcpds_phase)
+        self.phase_modified.emit()
+
+    def ok_btn_clicked(self):
         self.view.close()
 
-    def cancel_btn_click(self):
+    def cancel_btn_clicked(self):
         self.view.close()
         self.jcpds_phase = deepcopy(self.start_jcpds_phase)
         self.canceled_editor.emit(self.jcpds_phase)
+        self.phase_modified.emit()
 
     def view_closed(self, _):
         self.close_view()

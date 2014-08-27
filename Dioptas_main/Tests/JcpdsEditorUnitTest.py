@@ -27,7 +27,7 @@ class JcpdsDisplayTestAuAnderson(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.jcpds = jcpds()
         self.jcpds.compute_v0()
-        self.jcpds.read_file('Data/jcpds/au_Anderson.jcpds')
+        self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
         self.jcpds_editor = JcpdsEditorWidget()
         self.jcpds_editor.show_jcpds(self.jcpds)
