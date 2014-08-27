@@ -388,6 +388,7 @@ class IntegrationPhaseController(object):
                                                  float(self.view.phase_temperature_sb.value()))
         self.update_phase_intensity(cur_ind)
         self.update_temperature_control_visibility(cur_ind)
+        self.view.spectrum_view.update_phase_line_visibility(cur_ind)
 
     def jcpds_editor_reflection_removed(self, reflection_ind):
         cur_phase_ind = self.view.get_selected_phase_row()

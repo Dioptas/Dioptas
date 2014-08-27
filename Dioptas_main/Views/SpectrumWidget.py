@@ -177,6 +177,10 @@ class SpectrumWidget(QtCore.QObject):
         if len(self.phases):
             self.phases[ind].update_intensities(positions, intensities, baseline)
 
+    def update_phase_line_visibility(self, ind):
+        x_range = self.plot_item.dataBounds(0)
+        self.phases[ind].update_visibilities(x_range)
+
     def update_phase_line_visibilities(self):
         x_range = self.plot_item.dataBounds(0)
         for phase in self.phases:
