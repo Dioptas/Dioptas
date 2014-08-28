@@ -40,7 +40,7 @@ class IntegrationPhaseController(object):
         self.calibration_data = calibration_data
         self.spectrum_data = spectrum_data
         self.phase_data = phase_data
-        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir)
+        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.calibration_data)
         self.phase_lw_items = []
         self.create_signals()
 
@@ -65,7 +65,7 @@ class IntegrationPhaseController(object):
         self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
         self.spectrum_data.subscribe(self.spectrum_data_changed)
 
-        self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_canceled)
+        self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
 
         self.jcpds_editor_controller.lattice_param_changed.connect(self.update_cur_phase_parameters)
         self.jcpds_editor_controller.eos_param_changed.connect(self.update_cur_phase_parameters)
@@ -126,7 +126,7 @@ class IntegrationPhaseController(object):
                                                      temperature=temperature)
             else:
                 pressure = 0
-                temperature = 300
+                temperature = 298
 
 
             self.phase_data.get_lines_d(-1)
@@ -194,6 +194,7 @@ class IntegrationPhaseController(object):
         """
         while self.view.phase_tw.rowCount() > 0:
             self.del_phase()
+            self.jcpds_editor_controller.close_view()
 
     def update_phase_pressure_step(self):
         value = np.float(self.view.phase_pressure_step_txt.text())
@@ -220,6 +221,9 @@ class IntegrationPhaseController(object):
             self.view.set_phase_tw_pressure(cur_ind, val)
             self.update_phase_intensity(cur_ind)
 
+        self.update_jcpds_editor()
+
+
     def phase_temperature_sb_changed(self, val):
         """
         Called when temperature spinbox emits a new value. Calculates the appropriate EOS values and updates line
@@ -235,12 +239,14 @@ class IntegrationPhaseController(object):
             self.update_phase_temperature(cur_ind, val)
             self.update_phase_intensity(cur_ind)
 
+        self.update_jcpds_editor()
+
     def update_phase_temperature(self, ind, val):
         if self.phase_data.phases[ind].has_thermal_expansion():
             self.phase_data.set_temperature(ind, np.float(val))
             self.view.set_phase_tw_temperature(ind, val)
         else:
-            self.phase_data.set_temperature(ind, 300)
+            self.phase_data.set_temperature(ind, 298)
             self.view.set_phase_tw_temperature(ind, '-')
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
@@ -257,8 +263,7 @@ class IntegrationPhaseController(object):
         self.view.phase_temperature_sb.blockSignals(False)
         self.update_temperature_control_visibility(row)
 
-        if self.jcpds_editor_controller.view.isVisible():
-            self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
+        self.update_jcpds_editor(cur_ind)
 
     def update_temperature_control_visibility(self, row_ind = None):
         if row_ind is None:
@@ -375,8 +380,13 @@ class IntegrationPhaseController(object):
         cur_ind = self.view.get_selected_phase_row()
         self.view.rename_phase(cur_ind, self.phase_data.phases[cur_ind].name)
 
+    def update_jcpds_editor(self, cur_ind=None):
+        if cur_ind is None:
+            cur_ind = self.view.get_selected_phase_row()
+        if self.jcpds_editor_controller.view.isVisible():
+            self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
 
-    def jcpds_editor_canceled(self, jcpds):
+    def jcpds_editor_reload_phase(self, jcpds):
         cur_ind = self.view.get_selected_phase_row()
         self.phase_data.phases[cur_ind] = jcpds
         self.view.spectrum_view.phases[cur_ind].clear_lines()
@@ -386,8 +396,7 @@ class IntegrationPhaseController(object):
 
     def update_cur_phase_parameters(self):
         cur_ind = self.view.get_selected_phase_row()
-        self.phase_data.set_pressure_temperature(cur_ind, float(self.view.phase_pressure_sb.value()),
-                                                 float(self.view.phase_temperature_sb.value()))
+        self.phase_data.get_lines_d(cur_ind)
         self.update_phase_intensity(cur_ind)
         self.update_temperature_control_visibility(cur_ind)
         self.view.spectrum_view.update_phase_line_visibility(cur_ind)
@@ -395,10 +404,12 @@ class IntegrationPhaseController(object):
     def jcpds_editor_reflection_removed(self, reflection_ind):
         cur_phase_ind = self.view.get_selected_phase_row()
         self.view.spectrum_view.phases[cur_phase_ind].remove_line(reflection_ind)
+        self.phase_data.get_lines_d(cur_phase_ind)
 
     def jcpds_editor_reflection_added(self):
         cur_ind = self.view.get_selected_phase_row()
         self.view.spectrum_view.phases[cur_ind].add_line()
+        self.phase_data.get_lines_d(cur_ind)
 
     def jcpds_editor_reflection_cleared(self):
         cur_phase_ind = self.view.get_selected_phase_row()

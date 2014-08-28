@@ -30,7 +30,7 @@ class JcpdsDisplayTestAuAnderson(unittest.TestCase):
         self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
         self.jcpds_editor = JcpdsEditorWidget()
-        self.jcpds_editor.show_jcpds(self.jcpds)
+        self.jcpds_editor.show_jcpds(self.jcpds, wavelength=0.31)
 
     def tearDown(self):
         del self.app
@@ -42,28 +42,35 @@ class JcpdsDisplayTestAuAnderson(unittest.TestCase):
                          self.jcpds.comments[0])
 
     def test_all_lattice_parameters_are_shown_correctly(self):
-        self.assertEqual(float(str(self.jcpds_editor.lattice_a_txt.text())),
+        self.assertEqual(self.jcpds_editor.lattice_a_sb.value(),
                          self.jcpds.a0)
-        self.assertEqual(float(str(self.jcpds_editor.lattice_b_txt.text())),
+        self.assertEqual(self.jcpds_editor.lattice_b_sb.value(),
                          self.jcpds.b0)
-        self.assertEqual(float(str(self.jcpds_editor.lattice_c_txt.text())),
+        self.assertEqual(self.jcpds_editor.lattice_c_sb.value(),
                          self.jcpds.c0)
         self.assertAlmostEqual(float(str(self.jcpds_editor.lattice_volume_txt.text())),
                          self.jcpds.v0, delta=0.0001)
 
-        self.assertEqual(float(str(self.jcpds_editor.lattice_alpha_txt.text())),
+        self.assertEqual(float(str(self.jcpds_editor.lattice_eos_a_txt.text())),
+                         self.jcpds.a)
+        self.assertEqual(float(str(self.jcpds_editor.lattice_eos_b_txt.text())),
+                         self.jcpds.b)
+        self.assertEqual(float(str(self.jcpds_editor.lattice_eos_c_txt.text())),
+                         self.jcpds.c)
+
+        self.assertEqual(self.jcpds_editor.lattice_alpha_sb.value(),
                          self.jcpds.alpha)
-        self.assertEqual(float(str(self.jcpds_editor.lattice_beta_txt.text())),
+        self.assertEqual(self.jcpds_editor.lattice_beta_sb.value(),
                          self.jcpds.beta0)
-        self.assertEqual(float(str(self.jcpds_editor.lattice_gamma_txt.text())),
+        self.assertEqual(self.jcpds_editor.lattice_gamma_sb.value(),
                          self.jcpds.gamma0)
 
-        self.assertEqual(float(str(self.jcpds_editor.lattice_ab_txt.text())),
+        self.assertEqual(self.jcpds_editor.lattice_ab_sb.value(),
                          self.jcpds.a0/float(self.jcpds.b0))
-        self.assertEqual(self.jcpds_editor.lattice_ca_txt.text(),
-                         '1')
-        self.assertEqual(self.jcpds_editor.lattice_cb_txt.text(),
-                         '1')
+        self.assertEqual(self.jcpds_editor.lattice_ca_sb.value(),
+                         1)
+        self.assertEqual(self.jcpds_editor.lattice_cb_sb.value(),
+                         1)
 
     def test_all_eos_parameters_are_shown_correctly(self):
         self.assertEqual(float(str(self.jcpds_editor.eos_K_txt.text())),
@@ -78,3 +85,5 @@ class JcpdsDisplayTestAuAnderson(unittest.TestCase):
                          self.jcpds.dk0dt)
         self.assertEqual(float(str(self.jcpds_editor.eos_dKpdT_txt.text())),
                          self.jcpds.dk0pdt)
+
+

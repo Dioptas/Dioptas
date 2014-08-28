@@ -96,7 +96,7 @@ class jcpds(object):
         self.gamma = 0.
         self.v = 0.
         self.pressure = 0.
-        self.temperature = 0.
+        self.temperature = 298.
         self.reflections = []
         self.modified = False
 
@@ -355,7 +355,12 @@ class jcpds(object):
         self.modified = False
 
     def reload_file(self):
+        pressure = self.pressure
+        temperature = self.temperature
         self.load_file(self._filename)
+        self.pressure = pressure
+        self.temperature = temperature
+        self.compute_d()
 
     def __setattr__(self, key, value):
         if key in ['comments', 'a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0',

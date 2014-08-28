@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ import numpy as np
 import os
 
 from Data.jcpds import jcpds
+from Data.CalibrationData import CalibrationData
 from Controller.JcpdsEditorController import JcpdsEditorController
 from Controller.MainController import MainController
 from PyQt4 import QtGui, QtCore
@@ -33,8 +34,7 @@ def calculate_cubic_d_spacing(h, k, l, a):
     return np.sqrt(1. / d_squared_inv)
 
 
-class EditCurrentJcpdsTest(unittest.TestCase):
-
+class JcpdsEditorFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
 
@@ -73,7 +73,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         return new_line_pos
 
     def convert_d_to_twotheta(self, d, wavelength):
-        return np.arcsin(wavelength/(2*d))/np.pi*360
+        return np.arcsin(wavelength / (2 * d)) / np.pi * 360
 
     def test_correctly_displays_parameters_and_can_be_edited(self):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
@@ -81,7 +81,10 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.jcpds = jcpds()
         self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds', self.jcpds)
+        calibration_data = CalibrationData()
+        calibration_data.geometry.wavelength = 0.31
+
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds', calibration_data, self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
 
         # Erwin immediately sees the filename in the explorer
@@ -132,6 +135,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         # then he decides to put a new lattice parameter into the a box and realizes that all
         # others are changing too.
         self.enter_value_into_spinbox(self.jcpds_view.lattice_a_sb, 4.08)
+        QtGui.QApplication.processEvents()
         a = float(str(self.jcpds_view.lattice_a_sb.text()))
         b = float(str(self.jcpds_view.lattice_b_sb.text()))
         c = float(str(self.jcpds_view.lattice_c_sb.text()))
@@ -237,7 +241,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.jcpds = jcpds()
         self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', jcpds_phase=self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
 
         # he sees that there are 13 reflections predefined in the table
@@ -315,7 +319,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.enter_value_into_spinbox(self.jcpds_view.lattice_a_sb, 10)
 
         self.jcpds.load_file('Data/jcpds/au_mal_anders.jcpds')
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', jcpds_phase=self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
         self.assertEqual(float(str(self.jcpds_view.lattice_a_sb.text())), 4.0786)
         self.assertEqual(float(str(self.jcpds_view.lattice_b_sb.text())), 4.0786)
@@ -343,7 +347,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
 
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
         # Erwin opens up the program, loads image and calibration and some phases
-        
+
         self.main_controller = MainController(self.app)
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
@@ -388,6 +392,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
 
         prev_line_pos = self.get_phase_line_position(2, 0)
         self.enter_value_into_spinbox(self.jcpds_view.lattice_a_sb, 3.4)
+        QtGui.QApplication.processEvents()
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         # now he decides to have full control, changes the structure to TRICLINIC and plays with all parameters:
@@ -493,7 +498,7 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.insert_reflection_table_value(13, 0, 1)
         self.insert_reflection_table_value(13, 3, 90)
         self.assertAlmostEqual(self.get_phase_line_position(0, 13), self.convert_d_to_twotheta(4.0786, 0.31),
-                               delta = 0.0005)
+                               delta=0.0005)
 
         #he looks through the reflection and sees that one is actually forbidden. Who has added this reflection to the
         # file? He decides to delete it
@@ -546,16 +551,70 @@ class EditCurrentJcpdsTest(unittest.TestCase):
         self.jcpds_phase = self.main_controller.phase_data.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
 
-
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
-        self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0,2).text()))
+        self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0, 2).text()))
         self.phase_controller.view.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
         QtGui.QApplication.processEvents()
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
-        self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0,2).text()))
+        self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0, 2).text()))
 
+    def test_high_pressure_values_are_shown_in_jcpds_editor(self):
+        self.main_controller = MainController(self.app)
+        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
+        self.main_controller.calibration_controller.set_calibrant(7)
+        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.main_controller.view.tabWidget.setCurrentIndex(2)
+        self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/au_Anderson.jcpds')
 
+        # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
+        self.phase_controller = self.main_controller.integration_controller.phase_controller
+        self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
+        self.jcpds_view = self.jcpds_editor_controller.view
+        self.jcpds_phase = self.main_controller.phase_data.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
 
+        self.phase_controller.view.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        QtGui.QApplication.processEvents()
 
+        # he looks at the jcpds_editor and sees that there are not only hkl and intensity values for each reflection but
+        # also d0, d, two_theta0 and two_theta
+        # however, the zero values and non-zero values are all the same
+
+        self.assertEqual(8, self.jcpds_view.reflection_table.columnCount())
+        for row_ind in xrange(13):
+            self.assertEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 6))
+            self.assertAlmostEqual(self.get_reflection_table_value(row_ind, 5),
+                                   self.convert_d_to_twotheta(self.jcpds_phase.reflections[row_ind].d0, 0.31),
+                                   delta=0.0001)
+            self.assertEqual(self.get_reflection_table_value(row_ind, 5), self.get_reflection_table_value(row_ind, 7))
+
+        # he further realizes that there are two sets of lattice parameters in the display, but both still show the same
+        # values...
+
+        self.assertEqual(float(self.jcpds_view.lattice_eos_a_txt.text()), self.jcpds_view.lattice_a_sb.value())
+        self.assertEqual(float(self.jcpds_view.lattice_eos_b_txt.text()), self.jcpds_view.lattice_b_sb.value())
+        self.assertEqual(float(self.jcpds_view.lattice_eos_c_txt.text()), self.jcpds_view.lattice_c_sb.value())
+        self.assertEqual(float(self.jcpds_view.lattice_eos_volume_txt.text()),
+                         float(self.jcpds_view.lattice_volume_txt.text()))
+
+        #then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
+        # values
+
+        self.phase_controller.view.phase_pressure_sb.setValue(30)
+        for row_ind in xrange(13):
+            self.assertNotEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 5))
+            self.assertNotAlmostEqual(self.get_reflection_table_value(row_ind, 6),
+                                   self.convert_d_to_twotheta(self.jcpds_phase.reflections[row_ind].d0, 0.31),
+                                   delta=0.0001)
+            self.assertNotEqual(self.get_reflection_table_value(row_ind,6),
+                                self.get_reflection_table_value(row_ind,7))
+
+        self.assertNotEqual(float(self.jcpds_view.lattice_eos_a_txt.text()), self.jcpds_view.lattice_a_sb.value())
+        self.assertNotEqual(float(self.jcpds_view.lattice_eos_b_txt.text()), self.jcpds_view.lattice_b_sb.value())
+        self.assertNotEqual(float(self.jcpds_view.lattice_eos_c_txt.text()), self.jcpds_view.lattice_c_sb.value())
+        self.assertNotEqual(float(self.jcpds_view.lattice_eos_volume_txt.text()),
+                         float(self.jcpds_view.lattice_volume_txt.text()))

@@ -322,3 +322,6 @@ def save_chi_file(filename, unit, x, y):
     for ind in xrange(num_points):
         file_handle.write(' {:.7E}  {:.7E}\n'.format(x[ind], y[ind]))
     file_handle.close()
+
+def convert_d_to_two_theta(d, wavelength):
+    return np.arcsin(wavelength/(2*d))/np.pi*360

@@ -126,7 +126,7 @@ class phaseControllerTest(unittest.TestCase):
                 self.assertEqual(phase.temperature, temperature)
                 self.assertEqual(self.phase_view.get_phase_tw_temperature(ind), temperature)
             else:
-                self.assertEqual(phase.temperature, 300)
+                self.assertEqual(phase.temperature, 298)
                 self.assertTrue(np.isnan(self.phase_view.get_phase_tw_temperature(ind)))
 
     def test_apply_to_all_for_new_added_phase_in_table_widget(self):
@@ -142,7 +142,7 @@ class phaseControllerTest(unittest.TestCase):
                 self.assertEqual(phase.temperature, temperature)
                 self.assertEqual(self.phase_view.get_phase_tw_temperature(ind), temperature)
             else:
-                self.assertEqual(phase.temperature, 300)
+                self.assertEqual(phase.temperature, 298)
                 self.assertTrue(np.isnan(self.phase_view.get_phase_tw_temperature(ind)))
 
     def test_apply_to_all_for_new_added_phase_d_positions(self):
@@ -172,3 +172,4 @@ class phaseControllerTest(unittest.TestCase):
     def tearDown(self):
         QtGui.QApplication.closeAllWindows()
         QtGui.QApplication.quit()
+        del self.app

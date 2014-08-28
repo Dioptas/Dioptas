@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Wed Aug 27 10:46:02 2014
+# Created: Thu Aug 28 07:56:08 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -207,7 +207,6 @@ class Ui_xrs_integration_widget(object):
         self.widget_2 = QtGui.QWidget(self.image_tab)
         self.widget_2.setObjectName(_fromUtf8("widget_2"))
         self.horizontalLayout_23 = QtGui.QHBoxLayout(self.widget_2)
-        self.horizontalLayout_23.setSpacing(6)
         self.horizontalLayout_23.setMargin(0)
         self.horizontalLayout_23.setObjectName(_fromUtf8("horizontalLayout_23"))
         self.qa_img_save_img_btn = QtGui.QPushButton(self.widget_2)
@@ -539,7 +538,7 @@ class Ui_xrs_integration_widget(object):
         self.phase_temperature_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.phase_temperature_sb.setMaximum(999999999.0)
         self.phase_temperature_sb.setSingleStep(100.0)
-        self.phase_temperature_sb.setProperty("value", 300.0)
+        self.phase_temperature_sb.setProperty("value", 298.0)
         self.phase_temperature_sb.setObjectName(_fromUtf8("phase_temperature_sb"))
         self.gridLayout_2.addWidget(self.phase_temperature_sb, 2, 1, 1, 1)
         self.phase_temperature_step_txt = QtGui.QLineEdit(self.widget)
@@ -823,7 +822,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_16.addWidget(self.widget1)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
