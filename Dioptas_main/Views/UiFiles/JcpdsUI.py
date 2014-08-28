@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Jcpds.ui'
 #
-# Created: Thu Aug 28 10:43:00 2014
+# Created: Thu Aug 28 15:21:46 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_JcpdsEditorWidget(object):
     def setupUi(self, JcpdsEditorWidget):
         JcpdsEditorWidget.setObjectName(_fromUtf8("JcpdsEditorWidget"))
-        JcpdsEditorWidget.resize(615, 613)
+        JcpdsEditorWidget.resize(603, 618)
         JcpdsEditorWidget.setStyleSheet(_fromUtf8("#mainView, #calibration_tab, #mask_tab, #integration_tab {  \n"
 "     background: #3C3C3C;      \n"
 "    border: 5px solid #3C3C3C;\n"
@@ -326,6 +326,7 @@ class Ui_JcpdsEditorWidget(object):
 "}\n"
 "\n"
 ""))
+        JcpdsEditorWidget.setSizeGripEnabled(True)
         self.verticalLayout_3 = QtGui.QVBoxLayout(JcpdsEditorWidget)
         self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
         self.gridLayout_3 = QtGui.QGridLayout()

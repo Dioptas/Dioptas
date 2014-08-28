@@ -374,7 +374,7 @@ class JcpdsEditorController(QtCore.QObject):
         self.show_phase(self.jcpds_phase)
 
     def ok_btn_clicked(self):
-        self.view.close()
+        self.close_view()
 
     def cancel_btn_clicked(self):
         self.view.close()
