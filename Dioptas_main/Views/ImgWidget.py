@@ -84,7 +84,7 @@ class ImgWidget(QtCore.QObject):
 
     def auto_range(self):
         hist_x, hist_y = self.data_img_item.getHistogram()
-        ind = np.where(np.cumsum(hist_y) < (0.995 * np.sum(hist_y)))
+        ind = np.where(np.cumsum(hist_y) < (0.996 * np.sum(hist_y)))
         if len(ind[0]):
             self.img_histogram_LUT.setLevels(np.min(np.min(self.img_data)), hist_x[ind[0][-1]])
         else:

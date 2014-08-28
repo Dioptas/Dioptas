@@ -24,7 +24,7 @@ from PyQt4 import QtCore, QtGui
 from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
 from Data.HelperModule import convert_d_to_two_theta
 
-class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
+class JcpdsEditorWidget(QtGui.QDialog, Ui_JcpdsEditorWidget):
 
     def __init__(self, parent = None):
         super(JcpdsEditorWidget, self).__init__(parent)

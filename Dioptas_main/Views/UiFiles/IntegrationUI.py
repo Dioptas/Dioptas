@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu Aug 28 10:42:59 2014
+# Created: Thu Aug 28 15:21:46 2014
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -822,7 +822,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_16.addWidget(self.widget1)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
