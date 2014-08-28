@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_phase = jcpds_phase
         if wavelength is None:
             if self.calibration_data is not None:
-                wavelength = self.calibration_data.wavelength*1e10
+                wavelength = self.calibration_data.wavelength * 1e10
         self.view.show_jcpds(jcpds_phase, wavelength)
         self.active = True
         self.view.raise_widget()
@@ -114,6 +114,8 @@ class JcpdsEditorController(QtCore.QObject):
         self.view.reflections_clear_btn.clicked.connect(self.reflections_clear_btn_click)
 
         self.view.reflection_table.cellChanged.connect(self.reflection_table_changed)
+
+        self.view.reflection_table.keyPressEvent = self.reflection_table_key_pressed
 
         self.view.reflection_table.verticalScrollBar().valueChanged.connect(self.reflection_table_scrolled)
 
@@ -272,7 +274,7 @@ class JcpdsEditorController(QtCore.QObject):
 
     def reflections_add_btn_click(self):
         self.jcpds_phase.add_reflection()
-        self.view.add_reflection_to_table(0., 0., 0., 0., 0.,0.,0.,0.)
+        self.view.add_reflection_to_table(0., 0., 0., 0., 0., 0., 0., 0.)
         self.view.reflection_table.selectRow(self.view.reflection_table.rowCount() - 1)
         self.reflection_line_added.emit()
         self.phase_modified.emit()
@@ -294,6 +296,26 @@ class JcpdsEditorController(QtCore.QObject):
         self.view.reflection_table.resizeColumnsToContents()
         self.reflection_line_edited.emit()
 
+    def reflection_table_key_pressed(self, key_press_event):
+        if key_press_event == QtGui.QKeySequence.Copy:
+            res = ''
+            selection_ranges = self.view.reflection_table.selectedRanges()
+            for range_ind in range(len(selection_ranges)):
+                if range_ind > 0:
+                    res += '\n'
+                for row_ind in range(int(selection_ranges[range_ind].rowCount())):
+                    if row_ind > 0:
+                        res += '\n'
+                    for col_ind in range(selection_ranges[range_ind].columnCount()):
+                        if col_ind > 0:
+                            res += '\t'
+                        res += str(self.view.reflection_table.item(
+                            selection_ranges[range_ind].topRow() + row_ind,
+                            selection_ranges[range_ind].leftColumn() + col_ind).text())
+            QtGui.QApplication.clipboard().setText(res)
+        elif key_press_event == QtGui.QKeySequence.SelectAll:
+            self.view.reflection_table.selectAll()
+
     def reflections_clear_btn_click(self):
         self.view.reflection_table.clearContents()
         self.view.reflection_table.setRowCount(0)
@@ -312,7 +334,7 @@ class JcpdsEditorController(QtCore.QObject):
         else:
             reversed = False
 
-        if ind == 0 :
+        if ind == 0:
             self.jcpds_phase.sort_reflections_by_h(reversed)
         elif ind == 1:
             self.jcpds_phase.sort_reflections_by_k(reversed)
@@ -325,9 +347,7 @@ class JcpdsEditorController(QtCore.QObject):
         elif ind == 5 or ind == 7:
             self.jcpds_phase.sort_reflections_by_d(not reversed)
 
-
-
-        self.view.show_jcpds(self.jcpds_phase, wavelength=self.calibration_data.wavelength*1e10)
+        self.view.show_jcpds(self.jcpds_phase, wavelength=self.calibration_data.wavelength * 1e10)
         self.view.reflection_table.resizeColumnsToContents()
 
         if self.previous_header_item_index_sorted == ind:
