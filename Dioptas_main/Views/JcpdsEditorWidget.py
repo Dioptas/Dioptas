@@ -17,9 +17,12 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Clemens Prescher'
 
+import numpy as np
 from PyQt4 import QtCore, QtGui
-from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
 
+
+from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
+from Data.HelperModule import convert_d_to_two_theta
 
 class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
 
@@ -64,7 +67,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.eos_dKdT_txt.setValidator(QtGui.QDoubleValidator())
         self.eos_dKpdT_txt.setValidator(QtGui.QDoubleValidator())
 
-    def show_jcpds(self, jcpds_phase=None):
+    def show_jcpds(self, jcpds_phase, wavelength = None):
         self.blockAllSignals(True)
 
         self.filename_txt.setText(jcpds_phase.filename)
@@ -76,6 +79,13 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.lattice_a_sb.setValue(jcpds_phase.a0)
         self.lattice_b_sb.setValue(jcpds_phase.b0)
         self.lattice_c_sb.setValue(jcpds_phase.c0)
+
+
+        self.lattice_eos_a_txt.setText('{:.4f}'.format(jcpds_phase.a))
+        self.lattice_eos_b_txt.setText('{:.4f}'.format(jcpds_phase.b))
+        self.lattice_eos_c_txt.setText('{:.4f}'.format(jcpds_phase.c))
+
+        self.lattice_eos_volume_txt.setText('{:.4f}'.format(jcpds_phase.v))
 
         try:
             self.lattice_ab_sb.setValue(jcpds_phase.a0/float(jcpds_phase.b0))
@@ -109,8 +119,20 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.reflection_table.clearContents()
         self.reflection_table.setRowCount(0)
         for reflection in jcpds_phase.reflections:
-            self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
-                                         reflection.intensity, reflection.d0)
+            if wavelength is None:
+                self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
+                                             reflection.intensity, reflection.d0, reflection.d)
+            else:
+                two_theta0 = convert_d_to_two_theta(reflection.d0, wavelength)
+                two_theta = convert_d_to_two_theta(reflection.d, wavelength)
+                self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
+                                             reflection.intensity, reflection.d0, reflection.d,
+                                             two_theta0, two_theta)
+        if wavelength is None:
+            self.reflection_table.setColumnCount(6)
+        else:
+            self.reflection_table.setColumnCount(8)
+
         self.blockAllSignals(False)
 
     def blockAllSignals(self, bool=True):
@@ -234,7 +256,8 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
             row = None
         return row
 
-    def add_reflection_to_table(self, h=0., k=0., l=0., intensity=0., d=0.):
+    def add_reflection_to_table(self, h=0., k=0., l=0., intensity=0., d0=0., d=0., two_theta_0 = None,
+                                two_theta = None):
         self.reflection_table.blockSignals(True)
         new_row_ind = int(self.reflection_table.rowCount())
         self.reflection_table.setRowCount(new_row_ind+1)
@@ -243,7 +266,16 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.reflection_table.setItem(new_row_ind, 1, CenteredQTableWidgetItem(str('{:g}'.format(k))))
         self.reflection_table.setItem(new_row_ind, 2, CenteredQTableWidgetItem(str('{:g}'.format(l))))
         self.reflection_table.setItem(new_row_ind, 3, CenteredQTableWidgetItem(str('{:g}'.format(intensity))))
-        self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{:g}'.format(d))))
+        if two_theta is None or two_theta_0 is None:
+            self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(d0))))
+            self.reflection_table.setItem(new_row_ind, 5, CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(d))))
+        else:
+            self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(d0))))
+            self.reflection_table.setItem(new_row_ind, 5,
+                                          CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(two_theta_0))))
+            self.reflection_table.setItem(new_row_ind, 6, CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(d))))
+            self.reflection_table.setItem(new_row_ind, 7,
+                                          CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(two_theta))))
 
         self.reflection_table.resizeColumnsToContents()
         self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
@@ -337,3 +369,4 @@ class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
     def __init__(self, value):
         super(CenteredNonEditableQTableWidgetItem, self).__init__(value)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+

@@ -187,7 +187,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         pressure_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 3, pressure_item)
 
-        temperature_item = QtGui.QTableWidgetItem('300 K')
+        temperature_item = QtGui.QTableWidgetItem('298 K')
         temperature_item.setFlags(temperature_item.flags() & ~QtCore.Qt.ItemIsEditable)
         temperature_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 4, temperature_item)

@@ -298,3 +298,7 @@ class CalibrationData(object):
     def save(self, filename):
         self.geometry.save(filename)
         self.calibration_name = get_base_name(filename)
+
+    @property
+    def wavelength(self):
+        return self.geometry.wavelength

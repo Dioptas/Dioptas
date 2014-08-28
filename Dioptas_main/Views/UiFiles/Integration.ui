@@ -197,7 +197,7 @@ QTableWidget {
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -398,9 +398,6 @@ QTableWidget {
          <item>
           <widget class="QWidget" name="widget_2" native="true">
            <layout class="QHBoxLayout" name="horizontalLayout_23">
-            <property name="spacing">
-             <number>6</number>
-            </property>
             <property name="margin">
              <number>0</number>
             </property>
@@ -1224,7 +1221,7 @@ QTableWidget {
                    <double>100.000000000000000</double>
                   </property>
                   <property name="value">
-                   <double>300.000000000000000</double>
+                   <double>298.000000000000000</double>
                   </property>
                  </widget>
                 </item>
