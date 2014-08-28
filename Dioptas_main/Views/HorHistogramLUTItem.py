@@ -40,6 +40,10 @@ import pyqtgraph.debug as debug
 
 __all__ = ['HistogramLUTItem']
 
+#add grey_inverse to the list of color gradients:
+import pyqtgraph.graphicsItems.GradientEditorItem
+pyqtgraph.graphicsItems.GradientEditorItem.Gradients['grey_inverse'] = \
+    {'ticks': [(0.0, (255, 255, 255, 255)), (1.0, (0, 0, 0, 255))], 'mode': 'rgb'}
 
 class HorHistogramLUTItem(GraphicsWidget):
     """
