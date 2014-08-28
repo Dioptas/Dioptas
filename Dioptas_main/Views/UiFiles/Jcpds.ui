@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>JcpdsEditorWidget</class>
- <widget class="QWidget" name="JcpdsEditorWidget">
+ <widget class="QDialog" name="JcpdsEditorWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>615</width>
+    <width>604</width>
     <height>613</height>
    </rect>
   </property>
@@ -313,6 +313,9 @@ QTableWidget {
 }
 
 </string>
+  </property>
+  <property name="sizeGripEnabled">
+   <bool>true</bool>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0,0,0,1,0">
    <item>

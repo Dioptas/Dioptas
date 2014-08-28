@@ -263,7 +263,7 @@ class IntegrationPhaseController(object):
         self.view.phase_temperature_sb.blockSignals(False)
         self.update_temperature_control_visibility(row)
 
-        self.update_jcpds_editor(cur_ind)
+        self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
 
     def update_temperature_control_visibility(self, row_ind = None):
         if row_ind is None:
@@ -384,7 +384,7 @@ class IntegrationPhaseController(object):
         if cur_ind is None:
             cur_ind = self.view.get_selected_phase_row()
         if self.jcpds_editor_controller.view.isVisible():
-            self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
+            self.jcpds_editor_controller.update_phase_view(self.phase_data.phases[cur_ind])
 
     def jcpds_editor_reload_phase(self, jcpds):
         cur_ind = self.view.get_selected_phase_row()
