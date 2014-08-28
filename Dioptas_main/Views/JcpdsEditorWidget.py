@@ -54,6 +54,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
 
         self.setWindowFlags(QtCore.Qt.Tool)
+        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
     def set_validators(self):
         self.lattice_length_step_txt.setValidator(QtGui.QDoubleValidator())
