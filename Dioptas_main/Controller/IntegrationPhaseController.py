@@ -406,6 +406,7 @@ class IntegrationPhaseController(object):
         cur_phase_ind = self.view.get_selected_phase_row()
         self.view.spectrum_view.phases[cur_phase_ind].remove_line(reflection_ind)
         self.phase_data.get_lines_d(cur_phase_ind)
+        self.update_phase_intensity(cur_phase_ind)
 
     def jcpds_editor_reflection_added(self):
         cur_ind = self.view.get_selected_phase_row()
