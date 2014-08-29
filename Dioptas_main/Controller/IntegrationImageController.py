@@ -187,6 +187,10 @@ class IntegrationImageController(object):
                                                         self.view)
                 progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
                 progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+                progress_dialog.move(self.view.spectrum_view.pg_layout.x() + self.view.spectrum_view.pg_layout.size().width() / 2.0 - \
+                                     progress_dialog.size().width() / 2.0,
+                                     self.view.spectrum_view.pg_layout.y() + self.view.spectrum_view.pg_layout.size().height() / 2.0 -
+                                     progress_dialog.size().height() / 2.0)
                 progress_dialog.show()
                 for ind in range(len(filenames)):
                     filename = str(filenames[ind])
@@ -198,7 +202,6 @@ class IntegrationImageController(object):
                     self.img_data.load(filename)
                     x, y = self.integrate_spectrum()
                     file_endings = self.get_spectrum_file_endings()
-                    print file_endings
                     for file_ending in file_endings:
                         filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
                         print filename
@@ -207,6 +210,8 @@ class IntegrationImageController(object):
                             self.spectrum_data.save_spectrum(filename, header=self.create_header())
                         else:
                             self.spectrum_data.save_spectrum(filename)
+                    QtGui.QApplication.processEvents()
+                    QtGui.QApplication.processEvents()
                     if progress_dialog.wasCanceled():
                         break
                 self.img_data.turn_on_notification()
