@@ -1,5 +1,11 @@
-0.1.5 (development)
--------------------
+0.2.0 (stable 08/29/2014)
+-------------------------
+    - Finished the JCPDS editor (pops up when you select a phase and select edit)
+    - Fixed several small bugs using jcpds files (triclinic works now)
+    - added inverse grey scale to the available image color scales
+
+0.1.5 (stable 08/20/2014)
+-------------------------
 
 Bugfixes:
     - Fixed the header format of xy files in windows
