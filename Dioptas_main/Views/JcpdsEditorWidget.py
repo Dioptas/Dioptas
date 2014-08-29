@@ -24,7 +24,7 @@ from PyQt4 import QtCore, QtGui
 from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
 from Data.HelperModule import convert_d_to_two_theta
 
-class JcpdsEditorWidget(QtGui.QDialog, Ui_JcpdsEditorWidget):
+class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
 
     def __init__(self, parent = None):
         super(JcpdsEditorWidget, self).__init__(parent)
@@ -77,10 +77,12 @@ class JcpdsEditorWidget(QtGui.QDialog, Ui_JcpdsEditorWidget):
         self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.symmetry.lower()))
         self.update_spinbox_enable(jcpds_phase.symmetry)
 
-        self.lattice_a_sb.setValue(jcpds_phase.a0)
-        self.lattice_b_sb.setValue(jcpds_phase.b0)
-        self.lattice_c_sb.setValue(jcpds_phase.c0)
-
+        if not self.lattice_a_sb.hasFocus():
+            self.lattice_a_sb.setValue(jcpds_phase.a0)
+        if not self.lattice_b_sb.hasFocus():
+            self.lattice_b_sb.setValue(jcpds_phase.b0)
+        if not self.lattice_c_sb.hasFocus():
+            self.lattice_c_sb.setValue(jcpds_phase.c0)
 
         self.lattice_eos_a_txt.setText('{:.4f}'.format(jcpds_phase.a))
         self.lattice_eos_b_txt.setText('{:.4f}'.format(jcpds_phase.b))
@@ -89,25 +91,31 @@ class JcpdsEditorWidget(QtGui.QDialog, Ui_JcpdsEditorWidget):
         self.lattice_eos_volume_txt.setText('{:.4f}'.format(jcpds_phase.v))
 
         try:
-            self.lattice_ab_sb.setValue(jcpds_phase.a0/float(jcpds_phase.b0))
+            if not self.lattice_ab_sb.hasFocus():
+                self.lattice_ab_sb.setValue(jcpds_phase.a0/float(jcpds_phase.b0))
         except ZeroDivisionError:
             self.lattice_ab_sb.setSpecialValueText('Inf')
 
         try:
-            self.lattice_ca_sb.setValue(jcpds_phase.c0/float(jcpds_phase.a0))
+            if not self.lattice_ca_sb.hasFocus():
+                self.lattice_ca_sb.setValue(jcpds_phase.c0/float(jcpds_phase.a0))
         except ZeroDivisionError:
             self.lattice_ca_sb.setSpecialValueText('Inf')
 
         try:
-            self.lattice_cb_sb.setValue(jcpds_phase.c0/float(jcpds_phase.b0))
+            if not self.lattice_cb_sb.hasFocus():
+                self.lattice_cb_sb.setValue(jcpds_phase.c0/float(jcpds_phase.b0))
         except ZeroDivisionError:
             self.lattice_cb_sb.setSpecialValueText('Inf')
 
         self.lattice_volume_txt.setText(str('{:g}'.format(jcpds_phase.v0)))
 
-        self.lattice_alpha_sb.setValue(jcpds_phase.alpha0)
-        self.lattice_beta_sb.setValue(jcpds_phase.beta0)
-        self.lattice_gamma_sb.setValue(jcpds_phase.gamma0)
+        if not self.lattice_alpha_sb.hasFocus():
+            self.lattice_alpha_sb.setValue(jcpds_phase.alpha0)
+        if not self.lattice_beta_sb.hasFocus():
+            self.lattice_beta_sb.setValue(jcpds_phase.beta0)
+        if not self.lattice_gamma_sb.hasFocus():
+            self.lattice_gamma_sb.setValue(jcpds_phase.gamma0)
 
         self.eos_K_txt.setText(str(jcpds_phase.k0))
         self.eos_Kp_txt.setText(str(jcpds_phase.k0p))
