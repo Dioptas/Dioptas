@@ -274,7 +274,11 @@ class IntegrationImageController(object):
             print('No correct integration unit selected')
             return
 
-        return self.calibration_data.integrate_1d(mask=mask, unit=integration_unit)
+        if not self.view.automatic_binning_cb.isChecked():
+            num_points = int(str(self.view.bin_count_txt.text()))
+        else:
+            num_points = None
+        return self.calibration_data.integrate_1d(mask=mask, unit=integration_unit, num_points=num_points)
 
     def change_mask_mode(self):
         self.use_mask = not self.use_mask

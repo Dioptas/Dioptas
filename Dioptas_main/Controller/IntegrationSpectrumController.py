@@ -78,6 +78,10 @@ class IntegrationSpectrumController(object):
 
         self.connect_click_function(self.view.qa_img_save_spectrum_btn, self.save_spectrum)
         self.connect_click_function(self.view.qa_spectrum_save_spectrum_btn, self.save_spectrum)
+
+        self.view.bin_count_txt.editingFinished.connect(self.image_changed)
+        self.connect_click_function(self.view.automatic_binning_cb, self.automatic_binning_cb_clicked)
+
         self.view.keyPressEvent = self.key_press_event
 
     def connect_click_function(self, emitter, function):
@@ -106,7 +110,13 @@ class IntegrationSpectrumController(object):
             elif roi_mask is not None and mask is not None:
                 mask = np.logical_or(mask, roi_mask)
 
-            x, y = self.calibration_data.integrate_1d(mask=mask, unit=self.integration_unit)
+            if not self.view.automatic_binning_cb.isChecked():
+                num_points = int(str(self.view.bin_count_txt.text()))
+            else:
+                num_points = None
+
+            x, y = self.calibration_data.integrate_1d(mask=mask, unit=self.integration_unit, num_points=num_points)
+            self.view.bin_count_txt.setText(str(self.calibration_data.num_points))
 
             self.spectrum_data.set_spectrum(x, y, self.img_data.filename, unit=self.integration_unit)
 
@@ -167,6 +177,12 @@ class IntegrationSpectrumController(object):
         self.spectrum_data.bkg_ind = -1
         self.spectrum_data.spectrum.reset_background()
         self.view.overlay_set_as_bkg_btn.setChecked(False)
+
+    def automatic_binning_cb_clicked(self):
+        current_value = self.view.automatic_binning_cb.isChecked()
+        self.view.bin_count_txt.setEnabled(~current_value)
+        if current_value:
+            self.image_changed()
 
     def autocreate_spectrum(self):
         if self.spectrum_data.bkg_ind is not -1:
