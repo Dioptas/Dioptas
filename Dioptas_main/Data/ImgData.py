@@ -37,6 +37,7 @@ class ImgData(Observable):
         super(ImgData, self).__init__()
         self.filename = ''
         self.img_transformations = []
+        self.super_sampling_factor = 1
 
 
         self.file_iteration_mode = 'number'
@@ -45,12 +46,12 @@ class ImgData(Observable):
         x = np.arange(2048)
         y = np.arange(2048)
         X, Y = np.meshgrid(x, y)
-        self.img_data = 2000 * np.ones((2048.0, 2048.0))
+        self._img_data = 2000 * np.ones((2048.0, 2048.0))
         line_pos = np.linspace(0, 2047, 10)
         for pos in line_pos:
-            self.img_data += gauss_function(X, 10000 * random.random(), 50 * random.random(), pos)
-            self.img_data += gauss_function(Y, 10000 * random.random(), 50 * random.random(), pos)
-        self.img_data += gauss_function(X, 200 + 200 * random.random(), 500 + 500 * random.random(),
+            self._img_data += gauss_function(X, 10000 * random.random(), 50 * random.random(), pos)
+            self._img_data += gauss_function(Y, 10000 * random.random(), 50 * random.random(), pos)
+        self._img_data += gauss_function(X, 200 + 200 * random.random(), 500 + 500 * random.random(),
                                         800 + 400 * random.random()) * \
                          gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
                                         800 + 400 * random.random())
@@ -59,10 +60,10 @@ class ImgData(Observable):
         logger.info("Loading {}.".format(filename))
         self.filename = filename
         try:
-            self.img_data_fabio = fabio.open(filename)
-            self.img_data = self.img_data_fabio.data[::-1]
+            self._img_data_fabio = fabio.open(filename)
+            self._img_data = self._img_data_fabio.data[::-1]
         except AttributeError:
-            self.img_data = np.array(Image.open(filename))
+            self._img_data = np.array(Image.open(filename))[::-1]
         self.perform_img_transformations()
         self.notify()
         self.file_name_iterator.update_filename(filename)
@@ -99,40 +100,54 @@ class ImgData(Observable):
     def get_img_data(self):
         return self.img_data
 
+    @property
+    def img_data(self):
+        return self._img_data
+
     def rotate_img_p90(self):
-        self.img_data = rotate_matrix_p90(self.img_data)
+        self._img_data = rotate_matrix_p90(self.img_data)
         self.img_transformations.append(rotate_matrix_p90)
         self.notify()
 
     def rotate_img_m90(self):
-        self.img_data = rotate_matrix_m90(self.img_data)
+        self._img_data = rotate_matrix_m90(self.img_data)
         self.img_transformations.append(rotate_matrix_m90)
         self.notify()
 
     def flip_img_horizontally(self):
-        self.img_data = np.fliplr(self.img_data)
+        self._img_data = np.fliplr(self.img_data)
         self.img_transformations.append(np.fliplr)
         self.notify()
 
     def flip_img_vertically(self):
-        self.img_data = np.flipud(self.img_data)
+        self._img_data = np.flipud(self.img_data)
         self.img_transformations.append(np.flipud)
         self.notify()
 
     def reset_img_transformations(self):
         for transformation in reversed(self.img_transformations):
             if transformation == rotate_matrix_p90:
-                self.img_data = rotate_matrix_m90(self.img_data)
+                self._img_data = rotate_matrix_m90(self.img_data)
             elif transformation == rotate_matrix_m90:
-                self.img_data = rotate_matrix_p90(self.img_data)
+                self._img_data = rotate_matrix_p90(self.img_data)
             else:
-                self.img_data = transformation(self.img_data)
+                self._img_data = transformation(self.img_data)
         self.img_transformations = []
         self.notify()
 
     def perform_img_transformations(self):
         for transformation in self.img_transformations:
-            self.img_data = transformation(self.img_data)
+            self._img_data = transformation(self._img_data)
+
+    def set_super_sampling(self, factor):
+        self.super_sampling_factor = factor
+        self._img_data_super_sampled = np.zeros((self._img_data.size()[0]*factor,
+                                                 self._img_data.size()[1]*factor))
+
+        for row in range(factor):
+            for col in range(factor):
+                self._img_data_super_sampled[row::factor, col::factor] = self._img_data
+        self._img_data_super_sampled/=factor**2
 
 
 
