@@ -187,6 +187,7 @@ class CalibrationData(object):
 
         if num_points is None:
             num_points = self.calculate_number_of_spectrum_points(1.1)
+        self.num_points = num_points
 
         t1 = time.time()
         if unit is 'd_A':

@@ -629,6 +629,56 @@ QTableWidget {
           </layout>
          </item>
          <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_20">
+           <item>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_3">
+             <property name="title">
+              <string>Spectrum data types</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_16">
+              <item>
+               <widget class="QCheckBox" name="spectrum_header_xy_cb">
+                <property name="text">
+                 <string>.xy    </string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="spectrum_header_chi_cb">
+                <property name="text">
+                 <string>.chi    </string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="spectrum_header_dat_cb">
+                <property name="text">
+                 <string>.dat    </string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
           <spacer name="verticalSpacer_4">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -1440,34 +1490,55 @@ QTableWidget {
           </layout>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_20">
+          <layout class="QHBoxLayout" name="horizontalLayout_21">
            <item>
-            <widget class="QGroupBox" name="groupBox_3">
+            <widget class="QGroupBox" name="groupBox_4">
              <property name="title">
-              <string>Spectrum data types</string>
+              <string>Integration</string>
              </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_16">
-              <item>
-               <widget class="QCheckBox" name="spectrum_header_xy_cb">
+             <layout class="QGridLayout" name="gridLayout_4">
+              <item row="0" column="0" colspan="2">
+               <widget class="QCheckBox" name="automatic_binning_cb">
                 <property name="text">
-                 <string>.xy    </string>
+                 <string>Automatic estimation of number of bins</string>
                 </property>
                 <property name="checked">
                  <bool>true</bool>
                 </property>
                </widget>
               </item>
-              <item>
-               <widget class="QCheckBox" name="spectrum_header_chi_cb">
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_11">
                 <property name="text">
-                 <string>.chi    </string>
+                 <string>Number of bins:</string>
                 </property>
                </widget>
               </item>
-              <item>
-               <widget class="QCheckBox" name="spectrum_header_dat_cb">
-                <property name="text">
-                 <string>.dat    </string>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="bin_count_txt">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>400</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="baseSize">
+                 <size>
+                  <width>100</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -1475,13 +1546,13 @@ QTableWidget {
             </widget>
            </item>
            <item>
-            <spacer name="horizontalSpacer_2">
+            <spacer name="horizontalSpacer_5">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
-               <width>40</width>
+               <width>500</width>
                <height>20</height>
               </size>
              </property>
