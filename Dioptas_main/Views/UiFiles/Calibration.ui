@@ -288,9 +288,9 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>0</y>
+            <y>-445</y>
             <width>415</width>
-            <height>919</height>
+            <height>921</height>
            </rect>
           </property>
           <attribute name="label">
@@ -317,6 +317,13 @@
                 <property name="verticalSpacing">
                  <number>12</number>
                 </property>
+                <item row="3" column="2">
+                 <widget class="QLabel" name="label_8">
+                  <property name="text">
+                   <string>μm</string>
+                  </property>
+                 </widget>
+                </item>
                 <item row="3" column="0">
                  <widget class="QLabel" name="label_3">
                   <property name="text">
@@ -327,10 +334,16 @@
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="2">
-                 <widget class="QLabel" name="label_8">
-                  <property name="text">
-                   <string>μm</string>
+                <item row="6" column="1" colspan="2">
+                 <widget class="QComboBox" name="calibrant_cb">
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="editable">
+                   <bool>false</bool>
+                  </property>
+                  <property name="frame">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
@@ -368,19 +381,6 @@
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item row="6" column="1" colspan="2">
-                 <widget class="QComboBox" name="calibrant_cb">
-                  <property name="focusPolicy">
-                   <enum>Qt::NoFocus</enum>
-                  </property>
-                  <property name="editable">
-                   <bool>false</bool>
-                  </property>
-                  <property name="frame">
-                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
@@ -465,6 +465,23 @@
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="3">
+                 <widget class="QCheckBox" name="sv_distance_cb">
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="3">
+                 <widget class="QCheckBox" name="sv_wavelength_cb">
+                  <property name="text">
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -861,8 +878,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>192</width>
-            <height>390</height>
+            <width>430</width>
+            <height>476</height>
            </rect>
           </property>
           <attribute name="label">
@@ -1114,6 +1131,16 @@
              </property>
             </widget>
            </item>
+           <item row="0" column="3">
+            <widget class="QCheckBox" name="pf_distance_cb">
+             <property name="text">
+              <string/>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
          <widget class="QWidget" name="fit2d">
@@ -1121,8 +1148,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>184</width>
-            <height>357</height>
+            <width>430</width>
+            <height>476</height>
            </rect>
           </property>
           <attribute name="label">
@@ -1380,6 +1407,16 @@
              </property>
             </widget>
            </item>
+           <item row="0" column="4">
+            <widget class="QCheckBox" name="f2_distance_cb">
+             <property name="text">
+              <string/>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </widget>
@@ -1478,38 +1515,5 @@
   <tabstop>spectrum_pg_layout</tabstop>
  </tabstops>
  <resources/>
- <connections>
-  <connection>
-   <sender>f2_wavelength_cb</sender>
-   <signal>clicked()</signal>
-   <receiver>pf_wavelength_cb</receiver>
-   <slot>toggle()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>833</x>
-     <y>162</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>833</x>
-     <y>131</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pf_wavelength_cb</sender>
-   <signal>clicked()</signal>
-   <receiver>f2_wavelength_cb</receiver>
-   <slot>toggle()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>833</x>
-     <y>131</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>833</x>
-     <y>162</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

@@ -70,8 +70,13 @@ class CalibrationController(object):
         self.view.img_view.mouse_left_clicked.connect(self.search_peaks)
         self.connect_click_function(self.view.clear_peaks_btn, self.clear_peaks_btn_click)
 
-        self.connect_click_function(self.view.f2_wavelength_cb, self.wavelength_cb_changed)
-        self.connect_click_function(self.view.pf_wavelength_cb, self.wavelength_cb_changed)
+        self.view.f2_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
+        self.view.pf_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
+        self.view.sv_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
+
+        self.view.f2_distance_cb.stateChanged.connect(self.distance_cb_changed)
+        self.view.pf_distance_cb.stateChanged.connect(self.distance_cb_changed)
+        self.view.sv_distance_cb.stateChanged.connect(self.distance_cb_changed)
 
         self.view.use_mask_cb.stateChanged.connect(self.use_mask_status_changed)
         self.view.mask_transparent_cb.stateChanged.connect(self.mask_transparent_status_changed)
@@ -288,11 +293,42 @@ class CalibrationController(object):
         self.view.img_view.clear_scatter_plot()
         self.view.peak_num_sb.setValue(1)
 
-    def wavelength_cb_changed(self):
+    def wavelength_cb_changed(self, value):
         """
         Sets the fit_wavelength parameter in the calibration data according to the GUI state.
         """
-        self.calibration_data.fit_wavelength = self.view.f2_wavelength_cb.isChecked()
+        self.view.f2_wavelength_cb.blockSignals(True)
+        self.view.pf_wavelength_cb.blockSignals(True)
+        self.view.sv_wavelength_cb.blockSignals(True)
+
+        self.view.f2_wavelength_cb.setChecked(value)
+        self.view.pf_wavelength_cb.setChecked(value)
+        self.view.sv_wavelength_cb.setChecked(value)
+
+        self.view.f2_wavelength_cb.blockSignals(False)
+        self.view.pf_wavelength_cb.blockSignals(False)
+        self.view.sv_wavelength_cb.blockSignals(False)
+
+        self.calibration_data.fit_wavelength = value
+
+    def distance_cb_changed(self, value):
+        """
+        Sets the fit_distance parameter int he calibration model according to the GUI state
+        """
+        self.view.f2_distance_cb.blockSignals(True)
+        self.view.pf_distance_cb.blockSignals(True)
+        self.view.sv_distance_cb.blockSignals(True)
+
+        self.view.f2_distance_cb.setChecked(value)
+        self.view.pf_distance_cb.setChecked(value)
+        self.view.sv_distance_cb.setChecked(value)
+
+        self.view.f2_distance_cb.blockSignals(False)
+        self.view.pf_distance_cb.blockSignals(False)
+        self.view.sv_distance_cb.blockSignals(False)
+
+        self.calibration_data.fit_distance = value
+
 
     def calibrate(self):
         """
