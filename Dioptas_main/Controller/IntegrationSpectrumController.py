@@ -79,8 +79,8 @@ class IntegrationSpectrumController(object):
         self.connect_click_function(self.view.qa_img_save_spectrum_btn, self.save_spectrum)
         self.connect_click_function(self.view.qa_spectrum_save_spectrum_btn, self.save_spectrum)
 
+        self.view.automatic_binning_cb.stateChanged.connect(self.automatic_binning_cb_changed)
         self.view.bin_count_txt.editingFinished.connect(self.image_changed)
-        self.connect_click_function(self.view.automatic_binning_cb, self.automatic_binning_cb_clicked)
 
         self.view.keyPressEvent = self.key_press_event
 
@@ -178,9 +178,9 @@ class IntegrationSpectrumController(object):
         self.spectrum_data.spectrum.reset_background()
         self.view.overlay_set_as_bkg_btn.setChecked(False)
 
-    def automatic_binning_cb_clicked(self):
+    def automatic_binning_cb_changed(self):
         current_value = self.view.automatic_binning_cb.isChecked()
-        self.view.bin_count_txt.setEnabled(~current_value)
+        self.view.bin_count_txt.setEnabled(not current_value)
         if current_value:
             self.image_changed()
 
