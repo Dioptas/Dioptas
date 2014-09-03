@@ -1,3 +1,13 @@
+0.2.1 (development)
+-------------------
+    - it is now possible to change the number of bins for integration in the GUI (under X). After each change to the
+        number the spectrum will be integrated again automatically, to see the effects of different bin numbers easily.
+    - the available spectrum file formats checkboxes have been moved from the X menu to Spec to be more easily visible
+
+Bugfixes:
+    - MAC version - fixed a bug where the image was flipped vertically
+
+
 0.2.0 (stable 08/29/2014)
 -------------------------
     - Finished the JCPDS editor (pops up when you select a phase and select edit)
