@@ -34,8 +34,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # becomes editable.
         self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(4)
         self.assertFalse(self.integration_view.bin_count_txt.isEnabled())
-        QTest.mouseClick(self.integration_view.automatic_binning_cb, QtCore.Qt.LeftButton)
-
+        self.integration_view.automatic_binning_cb.setChecked(False)
         self.assertTrue(self.integration_view.bin_count_txt.isEnabled())
 
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
@@ -48,6 +47,6 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
-        QTest.mouseClick(self.integration_view.automatic_binning_cb, QtCore.Qt.LeftButton)
+        self.integration_view.automatic_binning_cb.setChecked(True)
         self.assertEqual(int(str(self.integration_view.bin_count_txt.text())), 1595)
         self.assertEqual(len(self.main_controller.spectrum_data.spectrum._x), previous_number_of_points)

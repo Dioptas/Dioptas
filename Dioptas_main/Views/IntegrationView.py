@@ -76,6 +76,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.overlay_offset_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.bin_count_txt.setValidator(QtGui.QIntValidator())
 
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
