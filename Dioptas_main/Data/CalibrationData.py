@@ -49,6 +49,7 @@ class CalibrationData(object):
                              'pixel_height': 79e-6,
                              'polarization_factor': 0.99}
         self.fit_wavelength = False
+        self.fit_distance = True
         self.is_calibrated = False
         self.use_mask = False
         self.calibration_name = 'None'
@@ -171,9 +172,15 @@ class CalibrationData(object):
 
     def refine(self):
         self.geometry.data = self.create_point_array(self.points, self.points_index)
-        self.geometry.refine2()
+        # self.geometry.refine2()
+        fix = ['wavelength']
         if self.fit_wavelength:
-            self.geometry.refine2_wavelength(fix=[])
+            fix = []
+        if not self.fit_distance:
+            fix.append('dist')
+        if self.fit_wavelength:
+            self.geometry.refine2()
+        self.geometry.refine2_wavelength(fix=fix)
         self.geometry2 = copy(self.geometry)
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
