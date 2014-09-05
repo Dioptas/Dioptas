@@ -5,7 +5,10 @@
     - the available spectrum file formats checkboxes have been moved from the X menu to Spec to be more easily visible
 
 Bugfixes:
-    - MAC version - fixed a bug where the image was flipped vertically
+    - MAC version - fixed a bug which caused the image to be flipped vertically
+    - Polarization correction - fixed a bug which either caused the polarization correction to not be applied or being
+                                with the wrong sign. Checked now everything again against fit2d and should be working
+                                correctly
 
 
 0.2.0 (stable 08/29/2014)

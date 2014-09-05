@@ -21,6 +21,7 @@ __author__ = 'Clemens Prescher'
 import os
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 import logging
 logger = logging.getLogger(__name__)
@@ -188,9 +189,9 @@ class CalibrationData(object):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
             #do not perform integration if the image is completely masked...
             return self.tth, self.int
-        if polarization_factor is not None:
+        if polarization_factor is None:
             #correct for different orientation definition in pyFAI compared to Fit2D
-            polarization_factor = -polarization_factor
+            polarization_factor = self.polarization_factor
 
         if num_points is None:
             num_points = self.calculate_number_of_spectrum_points(1.1)
