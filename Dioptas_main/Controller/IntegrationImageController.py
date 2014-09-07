@@ -412,7 +412,7 @@ class IntegrationImageController(object):
     def _update_image_scatter_pos(self):
         cur_tth = self.get_current_spectrum_tth()
         self.view.img_view.set_circle_scatter_tth(
-            self.calibration_data.geometry._ttha, cur_tth / 180 * np.pi)
+            self.calibration_data.get_two_theta_array(), cur_tth / 180 * np.pi)
 
     def get_current_spectrum_tth(self):
         cur_pos = self.view.spectrum_view.pos_line.getPos()[0]
@@ -442,16 +442,15 @@ class IntegrationImageController(object):
                 x = np.array([y])
                 y = np.array([x_temp])
                 if self.img_mode == 'Cake':
-                    tth = self.calibration_data.cake_tth[np.round(y[0])]
-                    azi = self.calibration_data.cake_azi[np.round(x[0])]
+                    tth = self.calibration_data.get_two_theta_cake(y)
+                    azi = self.calibration_data.get_azi_cake(x)
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
-                    tth = self.calibration_data.geometry.tth(np.array([x]), np.array([y]))[0]
+                    tth = self.calibration_data.get_two_theta_img(x,y)
                     tth = tth / np.pi * 180.0
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
-                    azi = self.calibration_data.geometry.chi(
-                        x, y)[0] / np.pi * 180
+                    azi = self.calibration_data.get_azi_img(x,y)/ np.pi * 180
 
                 azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
@@ -482,13 +481,11 @@ class IntegrationImageController(object):
         if self.calibration_data.is_calibrated:
             if self.img_mode == 'Cake':  # cake mode
                 y = np.array([y])
-                tth = self.calibration_data.cake_tth[np.round(y[0])] / 180 * np.pi
+                tth = self.calibration_data.get_two_theta_cake(y) / 180 * np.pi
             elif self.img_mode == 'Image':  # image mode
-                x = np.array([x])
-                y = np.array([y])
-                tth = self.calibration_data.geometry.tth(np.array([x]), np.array([y]))[0]
+                tth = self.calibration_data.get_two_theta_img(x,y)
                 self.view.img_view.set_circle_scatter_tth(
-                    self.calibration_data.geometry._ttha, tth)
+                    self.calibration_data.get_two_theta_array(), tth)
             else:  # in the cas of whatever
                 tth = 0
 

@@ -427,7 +427,7 @@ class IntegrationSpectrumController(object):
     def set_image_line_position(self, tth):
         if self.calibration_data.is_calibrated:
             self.view.img_view.set_circle_scatter_tth(
-                self.calibration_data.geometry._ttha, tth / 180 * np.pi)
+                self.calibration_data.get_two_theta_array(), tth / 180 * np.pi)
 
     def show_spectrum_mouse_position(self, x, y):
         tth_str, d_str, q_str, azi_str = self.get_position_strings(x)
