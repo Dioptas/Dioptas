@@ -373,7 +373,7 @@ class CalibrationData(object):
         self.calibration_name = get_base_name(filename)
 
     def create_file_header(self):
-        return self.cake_geometry.makeHeaders(polarization_factor=self.calibration_data.polarization_factor)
+        return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
 
     def set_fit2d(self, fit2d_parameter):
         self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],

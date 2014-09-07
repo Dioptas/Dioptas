@@ -201,10 +201,16 @@ class SpectrumWidget(QtCore.QObject):
         exporter.export(filename)
 
     def save_svg(self, filename):
-        self.invert_color()
+        self._invert_color()
+        previous_label = None
+        if self.spectrum_plot.getAxis('bottom').labelText == u'2θ':
+            previous_label = (u'2θ', '°')
+            self.spectrum_plot.setLabel('bottom', '2th_deg', '')
         exporter = SVGExporter(self.spectrum_plot)
         exporter.export(filename)
-        self.norm_color()
+        self._norm_color()
+        if previous_label is not None:
+            self.spectrum_plot.setLabel('bottom', previous_label[0], previous_label[1])
 
     def _invert_color(self):
         self.spectrum_plot.getAxis('bottom').setPen('k')

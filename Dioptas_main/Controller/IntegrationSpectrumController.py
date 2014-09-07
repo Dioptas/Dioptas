@@ -23,9 +23,7 @@ import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
 from Data.SpectrumData import BkgNotInRangeError
-from Data.HelperModule import save_chi_file
 import numpy as np
-import time
 
 
 class IntegrationSpectrumController(object):
