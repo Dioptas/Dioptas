@@ -3,8 +3,8 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import sys
+import os
 
-import numpy as np
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
@@ -22,6 +22,9 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.calibration_data = self.main_controller.calibration_data
         self.img_data = self.main_controller.img_data
         self.mask_data = self.main_controller.mask_data
+
+        self.integration_spectrum_controller = self.main_controller.integration_controller.spectrum_controller
+        self.integration_image_controller = self.main_controller.integration_controller.image_controller
 
     def tearDown(self):
         del self.app
@@ -83,3 +86,49 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.mask_data.load_mask('Data/test.mask')
         QTest.mouseClick(self.integration_view.img_mask_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_view.img_mode_btn, QtCore.Qt.LeftButton)
+
+    def test_saving_image(self):
+        #Tests if the image save procedures are working for the different possible file endings
+        self.integration_image_controller.save_img('Data/Test_img.png')
+        self.integration_image_controller.save_img('Data/Test_img.tiff')
+
+        self.assertTrue(os.path.exists('Data/Test_img.png'))
+        self.assertTrue(os.path.exists('Data/Test_img.tiff'))
+
+        os.remove('Data/Test_img.png')
+        os.remove('Data/Test_img.tiff')
+
+    def test_saving_spectrum(self):
+        #Tests if the spectrum save procedures is are working for all fileendings
+        def save_spectra_test_for_size_and_delete(self):
+            self.integration_spectrum_controller.save_spectrum('Data/Test_spec.xy')
+            self.integration_spectrum_controller.save_spectrum('Data/Test_spec.chi')
+            self.integration_spectrum_controller.save_spectrum('Data/Test_spec.dat')
+            self.integration_spectrum_controller.save_spectrum('Data/Test_spec.png')
+            self.integration_spectrum_controller.save_spectrum('Data/Test_spec.svg')
+
+            self.assertTrue(os.path.exists('Data/Test_spec.xy'))
+            self.assertTrue(os.path.exists('Data/Test_spec.chi'))
+            self.assertTrue(os.path.exists('Data/Test_spec.dat'))
+            self.assertTrue(os.path.exists('Data/Test_spec.png'))
+            self.assertTrue(os.path.exists('Data/Test_spec.svg'))
+
+            self.assertGreater(os.stat('Data/Test_spec.xy').st_size, 1)
+            self.assertGreater(os.stat('Data/Test_spec.chi').st_size, 1)
+            self.assertGreater(os.stat('Data/Test_spec.dat').st_size, 1)
+            self.assertGreater(os.stat('Data/Test_spec.png').st_size, 1)
+            self.assertGreater(os.stat('Data/Test_spec.svg').st_size, 1)
+
+            os.remove('Data/Test_spec.xy')
+            os.remove('Data/Test_spec.chi')
+            os.remove('Data/Test_spec.dat')
+            os.remove('Data/Test_spec.png')
+            os.remove('Data/Test_spec.svg')
+
+        save_spectra_test_for_size_and_delete(self)
+        QTest.mouseClick(self.integration_spectrum_controller.view.spec_q_btn, QtCore.Qt.LeftButton)
+        save_spectra_test_for_size_and_delete(self)
+        QTest.mouseClick(self.integration_spectrum_controller.view.spec_d_btn, QtCore.Qt.LeftButton)
+        save_spectra_test_for_size_and_delete(self)
+
+
