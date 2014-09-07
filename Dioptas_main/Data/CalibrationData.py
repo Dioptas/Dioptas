@@ -246,7 +246,7 @@ class CalibrationData(object):
 
         t1 = time.time()
 
-        res = self.geometry2.integrate2d(self.img_data.img_data, dimensions[0], dimensions[1], method=method, mask=mask,
+        res = self.geometry2.integrate2d(self.img_data._img_data, dimensions[0], dimensions[1], method=method, mask=mask,
                                          unit=unit, polarization_factor=polarization_factor)
         logger.info('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         self.cake_img = res[0]
@@ -356,19 +356,19 @@ class CalibrationData(object):
             factor = self.supersampling_factor
         self.geometry.pixel1 = self.orig_pixel1 / float(factor)
         self.geometry.pixel2 = self.orig_pixel2 / float(factor)
-        self.geometry2.pixel1 = self.orig_pixel1 / float(factor)
-        self.geometry2.pixel2 = self.orig_pixel2 / float(factor)
+        # self.geometry2.pixel1 = self.orig_pixel1 / float(factor)
+        # self.geometry2.pixel2 = self.orig_pixel2 / float(factor)
 
         if factor != self.supersampling_factor:
             self.geometry.reset()
-            self.geometry2.reset()
+            # self.geometry2.reset()
             self.supersampling_factor = factor
 
     def reset_supersampling(self):
         self.geometry.pixel1 = self.orig_pixel1
         self.geometry.pixel2 = self.orig_pixel2
-        self.geometry2.pixel1 = self.orig_pixel1
-        self.geometry2.pixel2 = self.orig_pixel2
+        # self.geometry2.pixel1 = self.orig_pixel1
+        # self.geometry2.pixel2 = self.orig_pixel2
 
     def get_two_theta_img(self, x, y):
         """
