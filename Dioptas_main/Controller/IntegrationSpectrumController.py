@@ -81,6 +81,7 @@ class IntegrationSpectrumController(object):
 
         self.view.automatic_binning_cb.stateChanged.connect(self.automatic_binning_cb_changed)
         self.view.bin_count_txt.editingFinished.connect(self.image_changed)
+        self.view.supersampling_sb.valueChanged.connect(self.supersampling_changed)
 
         self.view.keyPressEvent = self.key_press_event
 
@@ -183,6 +184,11 @@ class IntegrationSpectrumController(object):
         self.view.bin_count_txt.setEnabled(not current_value)
         if current_value:
             self.image_changed()
+
+    def supersampling_changed(self, value):
+        self.calibration_data.set_supersampling(value)
+        self.img_data.set_supersampling(value)
+        self.image_changed()
 
     def autocreate_spectrum(self):
         if self.spectrum_data.bkg_ind is not -1:

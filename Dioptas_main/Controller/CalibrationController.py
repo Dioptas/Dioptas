@@ -120,17 +120,7 @@ class CalibrationController(object):
         Takes all parameters inserted into the fit2d txt-fields and updates the current calibration accordingly.
         """
         fit2d_parameter = self.view.get_fit2d_parameter()
-        self.calibration_data.geometry.setFit2D(directDist=fit2d_parameter['directDist'],
-                                                centerX=fit2d_parameter['centerX'],
-                                                centerY=fit2d_parameter['centerY'],
-                                                tilt=fit2d_parameter['tilt'],
-                                                tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
-                                                pixelX=fit2d_parameter['pixelX'],
-                                                pixelY=fit2d_parameter['pixelY'])
-        self.calibration_data.geometry.wavelength = fit2d_parameter['wavelength']
-        self.calibration_data.geometry2 = copy(self.calibration_data.geometry)
-        self.calibration_data.polarization_factor = fit2d_parameter['polarization_factor']
-        self.calibration_data.is_calibrated = True
+        self.calibration_data.set_fit2d(fit2d_parameter)
         self.update_all()
 
     def update_pyFAI_btn_click(self):
@@ -138,18 +128,7 @@ class CalibrationController(object):
         Takes all parameters inserted into the fit2d txt-fields and updates the current calibration accordingly.
         """
         pyFAI_parameter = self.view.get_pyFAI_parameter()
-        self.calibration_data.geometry.setPyFAI(dist=pyFAI_parameter['dist'],
-                                                poni1=pyFAI_parameter['poni1'],
-                                                poni2=pyFAI_parameter['poni2'],
-                                                rot1=pyFAI_parameter['rot1'],
-                                                rot2=pyFAI_parameter['rot2'],
-                                                rot3=pyFAI_parameter['rot3'],
-                                                pixel1=pyFAI_parameter['pixel1'],
-                                                pixel2=pyFAI_parameter['pixel2'])
-        self.calibration_data.geometry.wavelength = pyFAI_parameter['wavelength']
-        self.calibration_data.geometry2 = copy(self.calibration_data.geometry)
-        self.calibration_data.polarization_factor = pyFAI_parameter['polarization_factor']
-        self.calibration_data.is_calibrated = True
+        self.calibration_data.set_pyFAI(pyFAI_parameter)
         self.update_all()
 
     def load_img(self, filename=None):
@@ -245,7 +224,7 @@ class CalibrationController(object):
         Plots the current image loaded in img_data and autoscales the intensity.
         :return:
         """
-        self.view.img_view.plot_image(self.img_data.get_img_data(), True)
+        self.view.img_view.plot_image(self.img_data.get_img(), True)
         self.view.img_view.auto_range()
         self.view.set_img_filename(self.img_data.filename)
 

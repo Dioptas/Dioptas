@@ -100,9 +100,15 @@ class ImgData(Observable):
     def get_img_data(self):
         return self.img_data
 
+    def get_img(self):
+        return self._img_data
+
     @property
     def img_data(self):
-        return self._img_data
+        if self.super_sampling_factor == 1:
+            return self._img_data
+        else:
+            return self._img_data_supersampled
 
     def rotate_img_p90(self):
         self._img_data = rotate_matrix_p90(self.img_data)
@@ -139,15 +145,17 @@ class ImgData(Observable):
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
 
-    def set_super_sampling(self, factor):
-        self.super_sampling_factor = factor
-        self._img_data_super_sampled = np.zeros((self._img_data.size()[0]*factor,
-                                                 self._img_data.size()[1]*factor))
+    def set_supersampling(self, factor=None):
+        if factor is None:
+            factor = self.super_sampling_factor
 
-        for row in range(factor):
-            for col in range(factor):
-                self._img_data_super_sampled[row::factor, col::factor] = self._img_data
-        self._img_data_super_sampled/=factor**2
+        if factor != self.super_sampling_factor:
+            self._img_data_supersampled = np.zeros((self._img_data.shape[0]*factor,
+                                                     self._img_data.shape[1]*factor))
+            for row in range(factor):
+                for col in range(factor):
+                    self._img_data_supersampled[row::factor, col::factor] = self._img_data
+            self.super_sampling_factor = factor
 
 
 
