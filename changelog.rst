@@ -1,14 +1,26 @@
-0.2.1 (development)
--------------------
+0.2.1 (stable 09/09/2014)
+-------------------------
+    - in the "X"-tab in the integration widget there are now two new options for integration available
     - it is now possible to change the number of bins for integration in the GUI (under X). After each change to the
         number the spectrum will be integrated again automatically, to see the effects of different bin numbers easily.
+    - the standard number of bin has been increased by a factor of approximately 0.9
+    - additionally, the images can now be supersampled, up to a factor of 5. Supersampling divides a pixel into equal
+        area subpixel which leads in the end to a smoother spectrum. A supersampling factor of 2 will divide each pixel
+        into four subpixel, a factor of 3 into 9 and so on. Depending on the initial image size the integration of the
+        supersampled image can take very long (especially the first integration where the lookup table/sparse matrix is
+        created). To reset the supersampling just type 1 into the spinbox.
     - the available spectrum file formats checkboxes have been moved from the X menu to Spec to be more easily visible
+    - the speed of the calibration procedure has been improved
+    - it is now possible to leave the detector distance constant during calibration (Warning: This is the pyFAI geometry
+        detector distance, not the fit2d detector distance. The Fit2D detector distance could still vary a little bit
+        during the calibration procedure due to the different geometries of Fit2D and pyFAI)
 
 Bugfixes:
     - MAC version - fixed a bug which caused the image to be flipped vertically
     - Polarization correction - fixed a bug which either caused the polarization correction to not be applied or being
-                                with the wrong sign. Checked now everything again against fit2d and should be working
+                                with the wrong sign. Checked now everything again against Fit2D and should be working
                                 correctly
+    - Saving the spectrum in the vector based .svg format is now working
 
 
 0.2.0 (stable 08/29/2014)
