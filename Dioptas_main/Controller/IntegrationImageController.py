@@ -66,7 +66,7 @@ class IntegrationImageController(object):
         if auto_scale is None:
             auto_scale = self._auto_scale
 
-        self.view.img_view.plot_image(self.img_data.get_img_data(),
+        self.view.img_view.plot_image(self.img_data.get_img(),
                                       False)
 
         if auto_scale:
@@ -427,7 +427,7 @@ class IntegrationImageController(object):
         return cur_tth
 
     def show_img_mouse_position(self, x, y):
-        img_shape = self.img_data.get_img_data().shape
+        img_shape = self.img_data.get_img().shape
         if x > 0 and y > 0 and x < img_shape[0] and y < img_shape[1]:
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y

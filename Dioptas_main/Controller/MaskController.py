@@ -183,7 +183,7 @@ class MaskController(object):
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def plot_image(self):
-        self.view.img_view.plot_image(self.img_data.get_img_data(), False)
+        self.view.img_view.plot_image(self.img_data.get_img(), False)
         self.view.img_view.auto_range()
 
     def process_click(self, x, y):
@@ -256,12 +256,12 @@ class MaskController(object):
 
     def below_thresh_btn_click(self):
         thresh = np.float64(self.view.below_thresh_txt.text())
-        self.mask_data.mask_below_threshold(self.img_data.get_img_data(), thresh)
+        self.mask_data.mask_below_threshold(self.img_data.get_img(), thresh)
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def above_thresh_btn_click(self):
         thresh = np.float64(self.view.above_thresh_txt.text())
-        self.mask_data.mask_above_threshold(self.img_data.get_img_data(), thresh)
+        self.mask_data.mask_above_threshold(self.img_data.get_img(), thresh)
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def invert_mask_btn_click(self):
@@ -273,7 +273,7 @@ class MaskController(object):
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def cosmic_btn_click(self):
-        self.mask_data.remove_cosmic(self.img_data.get_img_data())
+        self.mask_data.remove_cosmic(self.img_data.get_img())
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def save_mask_btn_click(self, filename=None):
@@ -283,7 +283,7 @@ class MaskController(object):
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
-            np.savetxt(filename, self.mask_data.get_mask(), fmt="%d")
+            np.savetxt(filename, self.mask_data.get_img(), fmt="%d")
 
     def load_mask_btn_click(self, filename=None):
         if filename is None:
@@ -293,7 +293,7 @@ class MaskController(object):
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
             mask_data = np.loadtxt(filename)
-            if self.img_data.get_img_data().shape == mask_data.shape:
+            if self.img_data.get_img().shape == mask_data.shape:
                 self.mask_data.set_mask(np.loadtxt(filename))
                 self.plot_mask()
             else:
@@ -316,7 +316,7 @@ class MaskController(object):
                                                                'the same shape. Mask could not be added.')
 
     def plot_mask(self):
-        self.view.img_view.plot_mask(self.mask_data.get_mask())
+        self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def key_press_event(self, ev):
         if self.state == "point":

@@ -5,10 +5,10 @@
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
@@ -24,6 +24,7 @@ import time
 import matplotlib.pyplot as plt
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 from pyFAI.massif import Massif
@@ -49,12 +50,15 @@ class CalibrationData(object):
                              'pixel_width': 79e-6,
                              'pixel_height': 79e-6,
                              'polarization_factor': 0.99}
+        self.orig_pixel1 = 79e-6
+        self.orig_pixel2 = 79e-6
         self.fit_wavelength = False
         self.fit_distance = True
         self.is_calibrated = False
         self.use_mask = False
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
+        self.supersampling_factor = 1
         self._calibrants_working_dir = os.path.dirname(Calibrants.__file__)
 
         self.cake_img = np.zeros((2048, 2048))
@@ -169,9 +173,13 @@ class CalibrationData(object):
         self.geometry2 = copy(self.geometry)
         self.integrate_2d()
         self.is_calibrated = True
+        self.orig_pixel1 = self.start_values['pixel_width']
+        self.orig_pixel2 = self.start_values['pixel_height']
         self.calibration_name = 'current'
+        self.set_supersampling()
 
     def refine(self):
+        self.reset_supersampling()
         self.geometry.data = self.create_point_array(self.points, self.points_index)
         # self.geometry.refine2()
         fix = ['wavelength']
@@ -183,6 +191,7 @@ class CalibrationData(object):
             self.geometry.refine2()
         self.geometry.refine2_wavelength(fix=fix)
         self.geometry2 = copy(self.geometry)
+        self.set_supersampling()
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
                      unit='2th_deg', method='csr'):
@@ -198,6 +207,7 @@ class CalibrationData(object):
         self.num_points = num_points
 
         t1 = time.time()
+        print self.img_data.img_data.shape
         if unit is 'd_A':
             try:
                 self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
@@ -237,7 +247,7 @@ class CalibrationData(object):
         t1 = time.time()
 
         res = self.geometry2.integrate2d(self.img_data.img_data, dimensions[0], dimensions[1], method=method, mask=mask,
-                                        unit=unit, polarization_factor=polarization_factor)
+                                         unit=unit, polarization_factor=polarization_factor)
         logger.info('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         self.cake_img = res[0]
         self.cake_tth = res[1]
@@ -273,7 +283,7 @@ class CalibrationData(object):
 
         return pyFAI_parameter, fit2d_parameter
 
-    def calculate_number_of_spectrum_points(self, max_dist_factor = 1.5):
+    def calculate_number_of_spectrum_points(self, max_dist_factor=1.5):
         #calculates the number of points for an integrated spectrum, based on the distance of the beam center to the the
         #image corners. Maximum value is determined by the shape of the image.
         fit2d_parameter = self.geometry.getFit2D()
@@ -281,16 +291,16 @@ class CalibrationData(object):
         center_y = fit2d_parameter['centerY']
         width, height = self.img_data.img_data.shape
 
-        if center_x<width and center_x>0:
-            side1 = np.max([abs(width-center_x), center_x])
+        if center_x < width and center_x > 0:
+            side1 = np.max([abs(width - center_x), center_x])
         else:
             side1 = width
 
-        if center_y<height and center_y>0:
-            side2 = np.max([abs(height-center_y), center_y])
+        if center_y < height and center_y > 0:
+            side2 = np.max([abs(height - center_y), center_y])
         else:
             side2 = height
-        max_dist = np.sqrt(side1**2+side2**2)
+        max_dist = np.sqrt(side1 ** 2 + side2 ** 2)
         return int(max_dist * max_dist_factor)
 
     def load(self, filename):
@@ -307,6 +317,58 @@ class CalibrationData(object):
     def save(self, filename):
         self.geometry.save(filename)
         self.calibration_name = get_base_name(filename)
+
+    def set_fit2d(self, fit2d_parameter):
+        self.geometry.setFit2D(directDist=fit2d_parameter['directDist'],
+                               centerX=fit2d_parameter['centerX'],
+                               centerY=fit2d_parameter['centerY'],
+                               tilt=fit2d_parameter['tilt'],
+                               tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
+                               pixelX=fit2d_parameter['pixelX'],
+                               pixelY=fit2d_parameter['pixelY'])
+        self.geometry.wavelength = fit2d_parameter['wavelength']
+        self.geometry2 = copy(self.geometry)
+        self.polarization_factor = fit2d_parameter['polarization_factor']
+        self.orig_pixel1 = fit2d_parameter['pixelX']*1e-6
+        self.orig_pixel2 = fit2d_parameter['pixelY']*1e-6
+        self.is_calibrated = True
+        self.set_supersampling()
+
+    def set_pyFAI(self, pyFAI_parameter):
+        self.geometry.setPyFAI(dist=pyFAI_parameter['dist'],
+                               poni1=pyFAI_parameter['poni1'],
+                               poni2=pyFAI_parameter['poni2'],
+                               rot1=pyFAI_parameter['rot1'],
+                               rot2=pyFAI_parameter['rot2'],
+                               rot3=pyFAI_parameter['rot3'],
+                               pixel1=pyFAI_parameter['pixel1'],
+                               pixel2=pyFAI_parameter['pixel2'])
+        self.geometry.wavelength = pyFAI_parameter['wavelength']
+        self.geometry2 = copy(self.geometry)
+        self.polarization_factor = pyFAI_parameter['polarization_factor']
+        self.orig_pixel1 = pyFAI_parameter['pixel1']
+        self.orig_pixel2 = pyFAI_parameter['pixel2']
+        self.is_calibrated = True
+        self.set_supersampling()
+
+    def set_supersampling(self, factor=None):
+        if factor is None:
+            factor = self.supersampling_factor
+        self.geometry.pixel1 = self.orig_pixel1 / float(factor)
+        self.geometry.pixel2 = self.orig_pixel2 / float(factor)
+        self.geometry2.pixel1 = self.orig_pixel1 / float(factor)
+        self.geometry2.pixel2 = self.orig_pixel2 / float(factor)
+
+        if factor != self.supersampling_factor:
+            self.geometry.reset()
+            self.geometry2.reset()
+            self.supersampling_factor = factor
+
+    def reset_supersampling(self):
+        self.geometry.pixel1 = self.orig_pixel1
+        self.geometry.pixel2 = self.orig_pixel2
+        self.geometry2.pixel1 = self.orig_pixel1
+        self.geometry2.pixel2 = self.orig_pixel2
 
     @property
     def wavelength(self):
