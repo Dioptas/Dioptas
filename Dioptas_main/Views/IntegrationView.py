@@ -39,6 +39,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         super(IntegrationView, self).__init__()
         self.setupUi(self)
 
+        self.tabWidget.setCurrentIndex(0)
+        
         self.horizontal_splitter.setStretchFactor(5, 0)
         self.horizontal_splitter.setSizes([500, 200])
         self.vertical_splitter.setStretchFactor(0, 0)
