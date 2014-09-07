@@ -499,7 +499,7 @@ class CalibrationController(object):
                                                              self.working_dir['calibration'], '*.poni'))
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
-            self.calibration_data.geometry.save(filename)
+            self.calibration_data.save(filename)
 
     def show_img_mouse_position(self, x, y):
         """

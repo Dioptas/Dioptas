@@ -90,3 +90,8 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_data.set_supersampling(2)
         self.calibration_controller.view.use_mask_cb.setChecked(True)
         self.calibration_controller.calibrate()
+
+    def test_loading_and_saving_of_calibration_files(self):
+        self.calibration_controller.load_calibration('Data/calibration.poni')
+        self.calibration_controller.save_calibration('Data/calibration.poni')
+
