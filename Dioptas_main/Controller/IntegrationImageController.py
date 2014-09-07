@@ -428,7 +428,7 @@ class IntegrationImageController(object):
 
     def show_img_mouse_position(self, x, y):
         img_shape = self.img_data.get_img().shape
-        if x > 0 and y > 0 and x < img_shape[0] and y < img_shape[1]:
+        if x > 0 and y > 0 and x < img_shape[0]-1 and y < img_shape[1]-1:
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
             self.view.mouse_x_lbl.setText(x_pos_string)
@@ -480,13 +480,19 @@ class IntegrationImageController(object):
 
         if self.calibration_data.is_calibrated:
             if self.img_mode == 'Cake':  # cake mode
+                cake_shape = self.calibration_data.cake_img.shape
+                if x < 0 or y < 0 or x > (cake_shape[0]-1) or y > (cake_shape[1]-1):
+                    return
                 y = np.array([y])
                 tth = self.calibration_data.get_two_theta_cake(y) / 180 * np.pi
             elif self.img_mode == 'Image':  # image mode
+                img_shape = self.img_data.get_img().shape
+                if x < 0 or y < 0 or x > img_shape[0]-1 or y > img_shape[1]-1:
+                    return
                 tth = self.calibration_data.get_two_theta_img(x,y)
                 self.view.img_view.set_circle_scatter_tth(
                     self.calibration_data.get_two_theta_array(), tth)
-            else:  # in the cas of whatever
+            else:  # in the case of whatever
                 tth = 0
 
             # calculate right unit
