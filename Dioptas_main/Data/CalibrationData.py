@@ -370,6 +370,54 @@ class CalibrationData(object):
         self.geometry2.pixel1 = self.orig_pixel1
         self.geometry2.pixel2 = self.orig_pixel2
 
+    def get_two_theta_img(self, x, y):
+        """
+        Gives the two_theta value for the x,y coordinates on the image
+        :return:
+            two theta in radians
+        """
+        x = np.array([x])*self.supersampling_factor
+        y = np.array([y])*self.supersampling_factor
+
+        return self.geometry.tth(x,y)[0]
+
+    def get_azi_img(self, x, y):
+        """
+        Gives chi for position on image.
+        :param x:
+            x-coordinate in pixel
+        :param y:
+            y-coordinate in pixel
+        :return:
+            azimuth in radians
+        """
+        x*=self.supersampling_factor
+        y*=self.supersampling_factor
+        return self.geometry.chi(x,y)[0]
+
+    def get_two_theta_cake(self, y):
+        """
+        Gives the two_theta value for the x coordinate in the cake
+        :param x:
+            y-coordinate on image
+        :return:
+            two theta in degree
+        """
+        return self.cake_tth[np.round(y[0])]
+
+    def get_azi_cake(self, x):
+        """
+        Gives the azimuth value for a cake.
+        :param x:
+            x-coordinate in pixel
+        :return:
+            azimuth in degree
+        """
+        return self.cake_azi[np.round(x[0])]
+
+    def get_two_theta_array(self):
+        return self.geometry._ttha[::self.supersampling_factor,::self.supersampling_factor]
+
     @property
     def wavelength(self):
         return self.geometry.wavelength
