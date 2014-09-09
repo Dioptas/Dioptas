@@ -78,4 +78,8 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
         self.assertEqual(self.img_data.img_data.shape[0], 2*img_shape[0])
         self.assertEqual(self.img_data.img_data.shape[1], 2*img_shape[0])
+
+        self.mask_data.load_mask('Data/test.mask')
+        QTest.mouseClick(self.integration_view.img_mask_btn, QtCore.Qt.LeftButton)
+
         self.fail("please finish the test")

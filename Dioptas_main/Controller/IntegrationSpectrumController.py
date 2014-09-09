@@ -92,7 +92,8 @@ class IntegrationSpectrumController(object):
         self.view.img_view.roi.blockSignals(True)
         if self.calibration_data.is_calibrated:
             if self.view.img_mask_btn.isChecked():
-                self.mask_data.set_dimension(self.img_data.img_data.shape)
+                if self.mask_data.supersampling_factor != self.img_data.supersampling_factor:
+                    self.mask_data.set_supersampling(self.img_data.supersampling_factor)
                 mask = self.mask_data.get_mask()
             else:
                 mask = None

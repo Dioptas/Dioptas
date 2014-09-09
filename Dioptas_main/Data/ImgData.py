@@ -37,7 +37,7 @@ class ImgData(Observable):
         super(ImgData, self).__init__()
         self.filename = ''
         self.img_transformations = []
-        self.super_sampling_factor = 1
+        self.supersampling_factor = 1
 
 
         self.file_iteration_mode = 'number'
@@ -65,6 +65,7 @@ class ImgData(Observable):
         except AttributeError:
             self._img_data = np.array(Image.open(filename))[::-1]
         self.perform_img_transformations()
+        self.set_supersampling()
         self.notify()
         self.file_name_iterator.update_filename(filename)
 
@@ -105,7 +106,7 @@ class ImgData(Observable):
 
     @property
     def img_data(self):
-        if self.super_sampling_factor == 1:
+        if self.supersampling_factor == 1:
             return self._img_data
         else:
             return self._img_data_supersampled
@@ -147,15 +148,18 @@ class ImgData(Observable):
 
     def set_supersampling(self, factor=None):
         if factor is None:
-            factor = self.super_sampling_factor
+            factor = self.supersampling_factor
+        else:
+            self.supersampling_factor = factor
 
-        if factor != self.super_sampling_factor:
+        if factor != 1:
             self._img_data_supersampled = np.zeros((self._img_data.shape[0]*factor,
                                                      self._img_data.shape[1]*factor))
             for row in range(factor):
                 for col in range(factor):
                     self._img_data_supersampled[row::factor, col::factor] = self._img_data
-            self.super_sampling_factor = factor
+
+
 
 
 
