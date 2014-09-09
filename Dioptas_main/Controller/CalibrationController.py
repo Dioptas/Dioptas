@@ -317,7 +317,6 @@ class CalibrationController(object):
         self.calibration_data.set_start_values(self.view.get_start_values())
         progress_dialog = self.create_progress_dialog('Calibrating.', '', 0, show_cancel_btn=False)
         self.calibration_data.calibrate()
-        self.update_calibration_parameter()
 
         progress_dialog.close()
 
@@ -325,6 +324,7 @@ class CalibrationController(object):
             self.refine()
         else:
             self.update_all()
+        self.update_calibration_parameter_in_view()
 
     def create_progress_dialog(self, text_str, abort_str, end_value, show_cancel_btn=True):
         progress_dialog = QtGui.QProgressDialog(text_str, abort_str, 0, end_value,
@@ -475,10 +475,10 @@ class CalibrationController(object):
         if self.view.ToolBox.currentIndex() is not 2 or \
                         self.view.ToolBox.currentIndex() is not 3:
             self.view.ToolBox.setCurrentIndex(2)
-        self.update_calibration_parameter()
+        self.update_calibration_parameter_in_view()
         self.load_calibrant('pyFAI')
 
-    def update_calibration_parameter(self):
+    def update_calibration_parameter_in_view(self):
         """
         Reads the calibration parameter from the calibration_data object and displays them in the GUI.
         :return:

@@ -100,7 +100,7 @@ class MainController(object):
         elif ind == 0:
             self.calibration_controller.plot_mask()
             try:
-                self.calibration_controller.update_calibration_parameter()
+                self.calibration_controller.update_calibration_parameter_in_view()
             except TypeError:
                 pass
 

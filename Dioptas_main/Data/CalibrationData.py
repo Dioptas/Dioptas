@@ -42,8 +42,7 @@ class CalibrationData(object):
         self.img_data = img_data
         self.points = []
         self.points_index = []
-        self.geometry = AzimuthalIntegrator()
-        self.geometry2 = AzimuthalIntegrator()
+        self.spectrum_geometry = AzimuthalIntegrator()
         self.calibrant = Calibrant()
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
@@ -114,6 +113,24 @@ class CalibrationData(object):
         self.points = []
         self.points_index = []
 
+    def create_cake_geometry(self):
+        self.cake_geometry = AzimuthalIntegrator()
+
+        pyFAI_parameter = self.spectrum_geometry.getPyFAI()
+        pyFAI_parameter['polarization_factor'] = self.polarization_factor
+        pyFAI_parameter['wavelength'] = self.spectrum_geometry.wavelength
+
+        self.cake_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
+                               poni1=pyFAI_parameter['poni1'],
+                               poni2=pyFAI_parameter['poni2'],
+                               rot1=pyFAI_parameter['rot1'],
+                               rot2=pyFAI_parameter['rot2'],
+                               rot3=pyFAI_parameter['rot3'],
+                               pixel1=pyFAI_parameter['pixel1'],
+                               pixel2=pyFAI_parameter['pixel2'])
+
+        self.cake_geometry.wavelength = pyFAI_parameter['wavelength']
+
     def setup_peak_search_algorithm(self, algorithm, mask=None):
         """
         Initializes the peak search algorithm on the current image
@@ -149,10 +166,10 @@ class CalibrationData(object):
         tth_calibrant = np.float(tth_calibrant_list[peak_index])
 
         # get the calculated two theta values for the whole image
-        if self.geometry._ttha is None:
-            tth_array = self.geometry.twoThetaArray(self.img_data._img_data.shape)
+        if self.spectrum_geometry._ttha is None:
+            tth_array = self.spectrum_geometry.twoThetaArray(self.img_data._img_data.shape)
         else:
-            tth_array = self.geometry._ttha
+            tth_array = self.spectrum_geometry._ttha
 
         # create mask based on two_theta position
         ring_mask = abs(tth_array - tth_calibrant) <= delta_tth
@@ -186,49 +203,48 @@ class CalibrationData(object):
             self.points_index.append(peak_index)
 
         self.set_supersampling()
-        self.geometry.reset()
+        self.spectrum_geometry.reset()
 
     def set_calibrant(self, filename):
         self.calibrant = Calibrant()
         self.calibrant.load_file(filename)
-        self.geometry.calibrant = self.calibrant
+        self.spectrum_geometry.calibrant = self.calibrant
 
     def set_start_values(self, start_values):
         self.start_values = start_values
         self.polarization_factor = start_values['polarization_factor']
 
     def calibrate(self):
-        self.geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
+        self.spectrum_geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
                                            dist=self.start_values['dist'],
                                            wavelength=self.start_values['wavelength'],
                                            pixel1=self.start_values['pixel_width'],
                                            pixel2=self.start_values['pixel_height'],
                                            calibrant=self.calibrant)
         self.refine()
-        self.geometry2 = copy(self.geometry)
+        self.create_cake_geometry()
         self.is_calibrated = True
 
         self.orig_pixel1 = self.start_values['pixel_width']
         self.orig_pixel2 = self.start_values['pixel_height']
         self.calibration_name = 'current'
         self.set_supersampling()
-        self.geometry.reset()
+        self.spectrum_geometry.reset()
 
     def refine(self):
         self.reset_supersampling()
-        self.geometry.data = self.create_point_array(self.points, self.points_index)
-        # self.geometry.refine2()
+        self.spectrum_geometry.data = self.create_point_array(self.points, self.points_index)
         fix = ['wavelength']
         if self.fit_wavelength:
             fix = []
         if not self.fit_distance:
             fix.append('dist')
         if self.fit_wavelength:
-            self.geometry.refine2()
-        self.geometry.refine2_wavelength(fix=fix)
-        self.geometry2 = copy(self.geometry)
+            self.spectrum_geometry.refine2()
+        self.spectrum_geometry.refine2_wavelength(fix=fix)
+        self.create_cake_geometry()
         self.set_supersampling()
-        self.geometry.reset()
+        self.spectrum_geometry.reset()
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
                      unit='2th_deg', method='csr'):
@@ -240,33 +256,33 @@ class CalibrationData(object):
             polarization_factor = self.polarization_factor
 
         if num_points is None:
-            num_points = self.calculate_number_of_spectrum_points(1.1)
+            num_points = self.calculate_number_of_spectrum_points(2)
         self.num_points = num_points
 
         t1 = time.time()
-        
+
         if unit is 'd_A':
             try:
-                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points, method=method,
                                                                unit='2th_deg',
                                                                mask=mask, polarization_factor=polarization_factor,
                                                                filename=filename)
             except NameError:
-                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points, method=method,
                                                                unit='2th_deg',
                                                                mask=mask, polarization_factor=polarization_factor,
                                                                filename=filename)
             ind = np.where(self.tth > 0)
-            self.tth = self.geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
+            self.tth = self.spectrum_geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
             self.int = self.int[ind]
         else:
             try:
-                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points, method=method,
                                                                unit=unit,
                                                                mask=mask, polarization_factor=polarization_factor,
                                                                filename=filename)
             except NameError:
-                self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
                                                                unit=unit,
                                                                mask=mask, polarization_factor=polarization_factor,
                                                                filename=filename)
@@ -283,7 +299,7 @@ class CalibrationData(object):
 
         t1 = time.time()
 
-        res = self.geometry2.integrate2d(self.img_data._img_data, dimensions[0], dimensions[1], method=method, mask=mask,
+        res = self.cake_geometry.integrate2d(self.img_data._img_data, dimensions[0], dimensions[1], method=method, mask=mask,
                                          unit=unit, polarization_factor=polarization_factor)
         logger.info('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         self.cake_img = res[0]
@@ -305,16 +321,16 @@ class CalibrationData(object):
         return self.create_point_array(self.points, self.points_index)
 
     def get_calibration_parameter(self):
-        pyFAI_parameter = self.geometry.getPyFAI()
+        pyFAI_parameter = self.cake_geometry.getPyFAI()
         pyFAI_parameter['polarization_factor'] = self.polarization_factor
         try:
-            fit2d_parameter = self.geometry.getFit2D()
+            fit2d_parameter = self.cake_geometry.getFit2D()
             fit2d_parameter['polarization_factor'] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
         try:
-            pyFAI_parameter['wavelength'] = self.geometry.wavelength
-            fit2d_parameter['wavelength'] = self.geometry.wavelength
+            pyFAI_parameter['wavelength'] = self.spectrum_geometry.wavelength
+            fit2d_parameter['wavelength'] = self.spectrum_geometry.wavelength
         except RuntimeWarning:
             pyFAI_parameter['wavelength'] = 0
 
@@ -323,7 +339,7 @@ class CalibrationData(object):
     def calculate_number_of_spectrum_points(self, max_dist_factor=1.5):
         #calculates the number of points for an integrated spectrum, based on the distance of the beam center to the the
         #image corners. Maximum value is determined by the shape of the image.
-        fit2d_parameter = self.geometry.getFit2D()
+        fit2d_parameter = self.spectrum_geometry.getFit2D()
         center_x = fit2d_parameter['centerX']
         center_y = fit2d_parameter['centerY']
         width, height = self.img_data.img_data.shape
@@ -341,31 +357,34 @@ class CalibrationData(object):
         return int(max_dist * max_dist_factor)
 
     def load(self, filename):
-        self.geometry = GeometryRefinement(np.zeros((2, 3)),
+        self.spectrum_geometry = GeometryRefinement(np.zeros((2, 3)),
                                            dist=self.start_values['dist'],
                                            wavelength=self.start_values['wavelength'],
                                            pixel1=self.start_values['pixel_width'],
                                            pixel2=self.start_values['pixel_height'])
-        self.geometry.load(filename)
+        self.spectrum_geometry.load(filename)
         self.calibration_name = get_base_name(filename)
         self.is_calibrated = True
-        self.geometry2 = copy(self.geometry)
+        self.create_cake_geometry()
         self.set_supersampling()
 
     def save(self, filename):
-        self.geometry.save(filename)
+        self.cake_geometry.save(filename)
         self.calibration_name = get_base_name(filename)
 
+    def create_file_header(self):
+        return self.cake_geometry.makeHeaders(polarization_factor=self.calibration_data.polarization_factor)
+
     def set_fit2d(self, fit2d_parameter):
-        self.geometry.setFit2D(directDist=fit2d_parameter['directDist'],
+        self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
                                centerX=fit2d_parameter['centerX'],
                                centerY=fit2d_parameter['centerY'],
                                tilt=fit2d_parameter['tilt'],
                                tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
                                pixelX=fit2d_parameter['pixelX'],
                                pixelY=fit2d_parameter['pixelY'])
-        self.geometry.wavelength = fit2d_parameter['wavelength']
-        self.geometry2 = copy(self.geometry)
+        self.spectrum_geometry.wavelength = fit2d_parameter['wavelength']
+        self.create_cake_geometry()
         self.polarization_factor = fit2d_parameter['polarization_factor']
         self.orig_pixel1 = fit2d_parameter['pixelX']*1e-6
         self.orig_pixel2 = fit2d_parameter['pixelY']*1e-6
@@ -373,7 +392,7 @@ class CalibrationData(object):
         self.set_supersampling()
 
     def set_pyFAI(self, pyFAI_parameter):
-        self.geometry.setPyFAI(dist=pyFAI_parameter['dist'],
+        self.spectrum_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
                                poni1=pyFAI_parameter['poni1'],
                                poni2=pyFAI_parameter['poni2'],
                                rot1=pyFAI_parameter['rot1'],
@@ -381,8 +400,8 @@ class CalibrationData(object):
                                rot3=pyFAI_parameter['rot3'],
                                pixel1=pyFAI_parameter['pixel1'],
                                pixel2=pyFAI_parameter['pixel2'])
-        self.geometry.wavelength = pyFAI_parameter['wavelength']
-        self.geometry2 = copy(self.geometry)
+        self.spectrum_geometry.wavelength = pyFAI_parameter['wavelength']
+        self.create_cake_geometry()
         self.polarization_factor = pyFAI_parameter['polarization_factor']
         self.orig_pixel1 = pyFAI_parameter['pixel1']
         self.orig_pixel2 = pyFAI_parameter['pixel2']
@@ -392,18 +411,16 @@ class CalibrationData(object):
     def set_supersampling(self, factor=None):
         if factor is None:
             factor = self.supersampling_factor
-        self.geometry.pixel1 = self.orig_pixel1 / float(factor)
-        self.geometry.pixel2 = self.orig_pixel2 / float(factor)
+        self.spectrum_geometry.pixel1 = self.orig_pixel1 / float(factor)
+        self.spectrum_geometry.pixel2 = self.orig_pixel2 / float(factor)
 
         if factor != self.supersampling_factor:
-            self.geometry.reset()
+            self.spectrum_geometry.reset()
             self.supersampling_factor = factor
 
     def reset_supersampling(self):
-        self.geometry.pixel1 = self.orig_pixel1
-        self.geometry.pixel2 = self.orig_pixel2
-        # self.geometry2.pixel1 = self.orig_pixel1
-        # self.geometry2.pixel2 = self.orig_pixel2
+        self.spectrum_geometry.pixel1 = self.orig_pixel1
+        self.spectrum_geometry.pixel2 = self.orig_pixel2
 
     def get_two_theta_img(self, x, y):
         """
@@ -414,7 +431,7 @@ class CalibrationData(object):
         x = np.array([x])*self.supersampling_factor
         y = np.array([y])*self.supersampling_factor
 
-        return self.geometry.tth(x,y)[0]
+        return self.spectrum_geometry.tth(x,y)[0]
 
     def get_azi_img(self, x, y):
         """
@@ -428,7 +445,7 @@ class CalibrationData(object):
         """
         x*=self.supersampling_factor
         y*=self.supersampling_factor
-        return self.geometry.chi(x,y)[0]
+        return self.spectrum_geometry.chi(x,y)[0]
 
     def get_two_theta_cake(self, y):
         """
@@ -451,8 +468,8 @@ class CalibrationData(object):
         return self.cake_azi[np.round(x[0])]
 
     def get_two_theta_array(self):
-        return self.geometry._ttha[::self.supersampling_factor,::self.supersampling_factor]
+        return self.spectrum_geometry._ttha[::self.supersampling_factor,::self.supersampling_factor]
 
     @property
     def wavelength(self):
-        return self.geometry.wavelength
+        return self.spectrum_geometry.wavelength

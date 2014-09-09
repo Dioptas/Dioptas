@@ -140,7 +140,6 @@ class MaskController(object):
             self.clicks = 0
             self.uncheck_all_btn(except_btn=self.view.circle_btn)
         else:
-            print('hmm')
             self.state = None
             self.clicks = 0
             self.uncheck_all_btn()

@@ -219,7 +219,7 @@ class IntegrationImageController(object):
                 progress_dialog.close()
 
     def create_header(self):
-        header = self.calibration_data.geometry.makeHeaders(polarization_factor=self.calibration_data.polarization_factor)
+        header = self.calibration_data.create_file_header()
         header = header.replace('\r\n', '\n')
         header += '\n#\n# ' + self.spectrum_data.unit + '\t I'
         return header
@@ -313,7 +313,6 @@ class IntegrationImageController(object):
             self.working_dir['image'] = os.path.abspath(new_directory)
             old_filename = str(self.view.img_filename_txt.text())
             self.view.img_filename_txt.setText(old_filename + '*')
-            #update for autoprocessing of images
         else:
             self.view.img_directory_txt.setText(self.working_dir['image'])
 
@@ -334,16 +333,16 @@ class IntegrationImageController(object):
         if self.img_mode == 'Cake' and \
                 self.calibration_data.is_calibrated:
             if self.use_mask:
-                mask = self.mask_data.get_mask()
+                mask = self.mask_data.get_img()
             else:
-                mask = np.zeros(self.img_data.img_data.shape)
+                mask = np.zeros(self.img_data._img_data.shape)
 
             if self.roi_active:
-                roi_mask = np.ones(self.img_data.img_data.shape)
-                x1, x2, y1, y2 = self.view.img_view.roi.getIndexLimits(self.img_data.img_data.shape)
+                roi_mask = np.ones(self.img_data._img_data.shape)
+                x1, x2, y1, y2 = self.view.img_view.roi.getIndexLimits(self.img_data._img_data.shape)
                 roi_mask[x1:x2, y1:y2] = 0
             else:
-                roi_mask = np.zeros(self.img_data.img_data.shape)
+                roi_mask = np.zeros(self.img_data._img_data.shape)
 
             if self.use_mask or self.roi_active:
                 mask = np.logical_or(mask, roi_mask)
@@ -498,11 +497,11 @@ class IntegrationImageController(object):
             if self.view.spec_q_btn.isChecked():
                 pos = 4 * np.pi * \
                       np.sin(tth / 2) / \
-                      self.calibration_data.geometry.get_wavelength() / 1e10
+                      self.calibration_data.wavlength / 1e10
             elif self.view.spec_tth_btn.isChecked():
                 pos = tth / np.pi * 180
             elif self.view.spec_d_btn.isChecked():
-                pos = self.calibration_data.geometry.get_wavelength() / \
+                pos = self.calibration_data.wavelength / \
                       (2 * np.sin(tth / 2)) * 1e10
             else:
                 pos = 0
@@ -519,7 +518,7 @@ class IntegrationImageController(object):
         self.img_data.set_file_iteration_mode('time')
 
     def convert_x_value(self, value, previous_unit, new_unit):
-        wavelength = self.calibration_data.geometry.wavelength
+        wavelength = self.calibration_data.wavelength
         if previous_unit == '2th_deg':
             tth = value
         elif previous_unit == 'q_A^-1':
