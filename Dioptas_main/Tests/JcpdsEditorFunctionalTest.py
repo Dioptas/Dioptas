@@ -82,7 +82,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
         calibration_data = CalibrationData()
-        calibration_data.geometry.wavelength = 0.31
+        calibration_data.spectrum_geometry.wavelength = 0.31
 
         self.jcpds_controller = JcpdsEditorController('Data/jcpds', calibration_data, self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
