@@ -94,7 +94,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertEqual(len(self.spectrum_view.spectrum_view.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
-        multiplier = 40
+        multiplier = 1
         for dummy_index in range(multiplier):
             self.load_overlays()
 
