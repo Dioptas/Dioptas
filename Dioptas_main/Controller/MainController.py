@@ -86,6 +86,7 @@ class MainController(object):
 
     def tab_changed(self, ind):
         if ind == 2:
+            self.mask_data.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.view.calibration_lbl.setText(self.calibration_data.calibration_name)
             auto_scale_previous = self.integration_controller.image_controller._auto_scale

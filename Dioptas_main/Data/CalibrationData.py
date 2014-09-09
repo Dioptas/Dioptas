@@ -66,7 +66,18 @@ class CalibrationData(object):
         self.int = np.sin(self.tth)
 
     def find_peaks_automatic(self, x, y, peak_ind):
-        massif = Massif(self.img_data.img_data)
+        """
+        Searches peaks by using the Massif algorithm
+        :param x:
+            x-coordinate in pixel - should be from original image (not supersampled x-coordinate)
+        :param y:
+            y-coordinate in pixel - should be from original image (not supersampled y-coordinate)
+        :param peak_ind:
+            peak/ring index to which the found points will be added
+        :return:
+            array of points found
+        """
+        massif = Massif(self.img_data._img_data)
         cur_peak_points = massif.find_peaks([x, y])
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
@@ -74,11 +85,24 @@ class CalibrationData(object):
         return np.array(cur_peak_points)
 
     def find_peak(self, x, y, search_size, peak_ind):
+        """
+        Searches a peak around the x,y position. It just searches for the maximum value in a specific search size.
+        :param x:
+            x-coordinate in pixel - should be from original image (not supersampled x-coordinate)
+        :param y:
+            y-coordinate in pixel - should be form original image (not supersampled y-coordinate)
+        :param search_size:
+            the amount of pixels in all direction in which the algorithm searches for the maximum peak
+        :param peak_ind:
+            peak/ring index to which the found points will be added
+        :return:
+            point found (as array)
+        """
         left_ind = np.round(x - search_size * 0.5)
         top_ind = np.round(y - search_size * 0.5)
-        x_ind, y_ind = np.where(self.img_data.img_data[left_ind:(left_ind + search_size),
+        x_ind, y_ind = np.where(self.img_data._img_data[left_ind:(left_ind + search_size),
                                 top_ind:(top_ind + search_size)] == \
-                                self.img_data.img_data[left_ind:(left_ind + search_size),
+                                self.img_data._img_data[left_ind:(left_ind + search_size),
                                 top_ind:(top_ind + search_size)].max())
         x_ind = x_ind[0] + left_ind
         y_ind = y_ind[0] + top_ind
@@ -91,33 +115,42 @@ class CalibrationData(object):
         self.points_index = []
 
     def setup_peak_search_algorithm(self, algorithm, mask=None):
-        # init the peak search algorithm
+        """
+        Initializes the peak search algorithm on the current image
+        :param algorithm:
+            peak search algorithm used. Possible algorithms are 'Massif' and 'Blob'
+        :param mask:
+            if a mask is used during the process this is provided here as a 2d array for the image.
+        """
+
         if algorithm == 'Massif':
-            self.peak_search_algorithm = Massif(self.img_data.img_data)
+            self.peak_search_algorithm = Massif(self.img_data._img_data)
         elif algorithm == 'Blob':
             if mask is not None:
-                self.peak_search_algorithm = BlobDetection(self.img_data.img_data * mask)
+                self.peak_search_algorithm = BlobDetection(self.img_data._img_data * mask)
             else:
-                self.peak_search_algorithm = BlobDetection(self.img_data.img_data)
+                self.peak_search_algorithm = BlobDetection(self.img_data._img_data)
             self.peak_search_algorithm.process()
         else:
             return
 
+
     def search_peaks_on_ring(self, peak_index, delta_tth=0.1, min_mean_factor=1,
                              upper_limit=55000, mask=None):
+        self.reset_supersampling()
         if not self.is_calibrated:
             return
 
         #transform delta from degree into radians
         delta_tth = delta_tth / 180.0 * np.pi
 
-        # get appropiate two theta value for the ring number
+        # get appropriate two theta value for the ring number
         tth_calibrant_list = self.calibrant.get_2th()
         tth_calibrant = np.float(tth_calibrant_list[peak_index])
 
         # get the calculated two theta values for the whole image
         if self.geometry._ttha is None:
-            tth_array = self.geometry.twoThetaArray(self.img_data.img_data.shape)
+            tth_array = self.geometry.twoThetaArray(self.img_data._img_data.shape)
         else:
             tth_array = self.geometry._ttha
 
@@ -130,15 +163,15 @@ class CalibrationData(object):
             mask = ring_mask
 
         # calculate the mean and standard deviation of this area
-        sub_data = np.array(self.img_data.img_data.ravel()[np.where(mask.ravel())], dtype=np.float64)
+        sub_data = np.array(self.img_data._img_data.ravel()[np.where(mask.ravel())], dtype=np.float64)
         sub_data[np.where(sub_data > upper_limit)] = np.NaN
         mean = np.nanmean(sub_data)
         std = np.nanstd(sub_data)
 
         # set the threshold into the mask (don't detect very low intensity peaks)
         threshold = min_mean_factor * mean + std
-        mask2 = np.logical_and(self.img_data.img_data > threshold, mask)
-        mask2[np.where(self.img_data.img_data > upper_limit)] = False
+        mask2 = np.logical_and(self.img_data._img_data > threshold, mask)
+        mask2[np.where(self.img_data._img_data > upper_limit)] = False
         size2 = mask2.sum(dtype=int)
 
         keep = int(np.ceil(np.sqrt(size2)))
@@ -151,6 +184,9 @@ class CalibrationData(object):
         if len(res):
             self.points.append(np.array(res))
             self.points_index.append(peak_index)
+
+        self.set_supersampling()
+        self.geometry.reset()
 
     def set_calibrant(self, filename):
         self.calibrant = Calibrant()
@@ -169,14 +205,14 @@ class CalibrationData(object):
                                            pixel2=self.start_values['pixel_height'],
                                            calibrant=self.calibrant)
         self.refine()
-        self.integrate_1d()
         self.geometry2 = copy(self.geometry)
-        self.integrate_2d()
         self.is_calibrated = True
+
         self.orig_pixel1 = self.start_values['pixel_width']
         self.orig_pixel2 = self.start_values['pixel_height']
         self.calibration_name = 'current'
         self.set_supersampling()
+        self.geometry.reset()
 
     def refine(self):
         self.reset_supersampling()
@@ -192,6 +228,7 @@ class CalibrationData(object):
         self.geometry.refine2_wavelength(fix=fix)
         self.geometry2 = copy(self.geometry)
         self.set_supersampling()
+        self.geometry.reset()
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
                      unit='2th_deg', method='csr'):
@@ -207,7 +244,7 @@ class CalibrationData(object):
         self.num_points = num_points
 
         t1 = time.time()
-        print self.img_data.img_data.shape
+        
         if unit is 'd_A':
             try:
                 self.tth, self.int = self.geometry.integrate1d(self.img_data.img_data, num_points, method=method,
@@ -313,6 +350,7 @@ class CalibrationData(object):
         self.calibration_name = get_base_name(filename)
         self.is_calibrated = True
         self.geometry2 = copy(self.geometry)
+        self.set_supersampling()
 
     def save(self, filename):
         self.geometry.save(filename)
@@ -356,12 +394,9 @@ class CalibrationData(object):
             factor = self.supersampling_factor
         self.geometry.pixel1 = self.orig_pixel1 / float(factor)
         self.geometry.pixel2 = self.orig_pixel2 / float(factor)
-        # self.geometry2.pixel1 = self.orig_pixel1 / float(factor)
-        # self.geometry2.pixel2 = self.orig_pixel2 / float(factor)
 
         if factor != self.supersampling_factor:
             self.geometry.reset()
-            # self.geometry2.reset()
             self.supersampling_factor = factor
 
     def reset_supersampling(self):

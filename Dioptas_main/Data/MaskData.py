@@ -32,7 +32,7 @@ from sys import getsizeof
 class MaskData(object):
     def __init__(self, mask_dimension=(2048, 2048)):
         self.mask_dimension = mask_dimension
-        self.super_sampling = 1
+        self.supersampling_factor = 1
         self.reset_dimension()
         self.mode = True
 
@@ -49,19 +49,21 @@ class MaskData(object):
 
     def set_supersampling(self, factor=None):
         if factor is None:
-            factor = self.super_sampling
+            factor = self.supersampling_factor
         else:
-            self.super_sampling = factor
-        self._mask_data_supersampled = np.zeros((self._mask_data.shape[0]*factor,
-                                                 self._mask_data.shape[1]*factor))
-        for row in range(factor):
-            for col in range(factor):
-                self._mask_data_supersampled[row::factor, col::factor] = self._mask_data
+            self.supersampling_factor = factor
+
+        if factor != 1:
+            self._mask_data_supersampled = np.zeros((self._mask_data.shape[0]*factor,
+                                                     self._mask_data.shape[1]*factor))
+            for row in range(factor):
+                for col in range(factor):
+                    self._mask_data_supersampled[row::factor, col::factor] = self._mask_data
 
 
 
     def get_mask(self):
-        if self.super_sampling == 1:
+        if self.supersampling_factor == 1:
             return self._mask_data
         else:
             return self._mask_data_supersampled
