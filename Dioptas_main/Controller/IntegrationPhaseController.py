@@ -158,7 +158,7 @@ class IntegrationPhaseController(object):
             self.phase_data.get_rescaled_reflections(
                 -1, self.spectrum_data.spectrum,
                 x_range, y_range,
-                self.calibration_data.geometry.wavelength * 1e10,
+                self.calibration_data.wavelength * 1e10,
                 self.get_unit())
         color = self.view.spectrum_view.add_phase(self.phase_data.phases[-1].name,
                                                   positions,
@@ -372,7 +372,7 @@ class IntegrationPhaseController(object):
             self.phase_data.get_rescaled_reflections(
                 ind, self.spectrum_data.spectrum,
                 x_range, y_range,
-                self.calibration_data.geometry.wavelength * 1e10,
+                self.calibration_data.wavelength * 1e10,
                 self.get_unit())
         self.view.spectrum_view.update_phase_intensities(
             ind, positions, intensities, baseline)

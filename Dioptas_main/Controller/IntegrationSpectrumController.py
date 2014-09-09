@@ -217,8 +217,7 @@ class IntegrationSpectrumController(object):
         if filename is not '':
             print(filename)
             if filename.endswith('.xy'):
-                header = self.calibration_data.geometry.makeHeaders(polarization_factor=
-                                                                    self.calibration_data.polarization_factor)
+                header = self.calibration_data.create_file_header()
                 if subtract_background:
                     if self.spectrum_data.bkg_ind is not -1:
                         header += "\n# \n# BackgroundFile: " + self.spectrum_data.overlays[
@@ -364,7 +363,7 @@ class IntegrationSpectrumController(object):
         self.view.spectrum_view.set_pos_line(new_line_pos)
 
     def convert_x_value(self, value, previous_unit, new_unit):
-        wavelength = self.calibration_data.geometry.wavelength
+        wavelength = self.calibration_data.wavelength
         if previous_unit == '2th_deg':
             tth = value
         elif previous_unit == 'q_A^-1':
