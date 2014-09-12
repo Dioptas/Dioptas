@@ -251,6 +251,12 @@ class CalibrationData(object):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
             #do not perform integration if the image is completely masked...
             return self.tth, self.int
+
+        if self.spectrum_geometry._polarization is not None:
+            if self.img_data.img_data.shape != self.spectrum_geometry._polarization.shape:
+                #resetting the integrator if the polarization correction matrix has not the correct shape
+                self.spectrum_geometry.reset()
+
         if polarization_factor is None:
             #correct for different orientation definition in pyFAI compared to Fit2D
             polarization_factor = self.polarization_factor
@@ -296,6 +302,11 @@ class CalibrationData(object):
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr', dimensions=(2048, 2048)):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
+
+        if self.cake_geometry._polarization is not None:
+            if self.img_data.img_data.shape != self.cake_geometry._polarization.shape:
+                #resetting the integrator if the polarization correction matrix has not the same shape as the image
+                self.cake_geometry.reset()
 
         t1 = time.time()
 
