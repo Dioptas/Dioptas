@@ -42,6 +42,9 @@ class phaseControllerTest(unittest.TestCase):
         self.phase_view = self.controller.view.integration_widget
         self.phase_tw = self.phase_view.phase_tw
 
+    def tearDown(self):
+        del self.app
+
     def test_manual_deleting_phases(self):
         self.load_phases()
         QtGui.QApplication.processEvents()
@@ -168,8 +171,3 @@ class phaseControllerTest(unittest.TestCase):
     def load_phase(self, filename):
         self.controller.integration_controller.phase_controller.add_phase(
             'Data/jcpds/' + filename)
-
-    def tearDown(self):
-        QtGui.QApplication.closeAllWindows()
-        QtGui.QApplication.quit()
-        del self.app

@@ -91,6 +91,24 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.view.use_mask_cb.setChecked(True)
         self.calibration_controller.calibrate()
 
+    def test_calibrating_one_image_size_and_loading_different_image_size(self):
+        self.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.calibration_controller.search_peaks(1179.6, 1129.4)
+        self.calibration_controller.search_peaks(1268.5, 1119.8)
+        self.calibration_controller.view.sv_wavelength_txt.setText('0.31')
+        self.calibration_controller.view.sv_distance_txt.setText('200')
+        self.calibration_controller.view.sv_pixel_width_txt.setText('79')
+        self.calibration_controller.view.sv_pixel_height_txt.setText('79')
+        self.calibration_controller.view.calibrant_cb.setCurrentIndex(7)
+        self.calibration_controller.view.options_automatic_refinement_cb.setChecked(False)
+        self.calibration_controller.view.use_mask_cb.setChecked(True)
+        self.calibration_controller.calibrate()
+        self.calibration_data.integrate_1d()
+        self.calibration_data.integrate_2d()
+        self.calibration_controller.load_img('Data/CeO2_Pilatus1M.tif')
+        self.calibration_data.integrate_1d()
+        self.calibration_data.integrate_2d()
+
     def test_loading_and_saving_of_calibration_files(self):
         self.calibration_controller.load_calibration('Data/calibration.poni')
         self.calibration_controller.save_calibration('Data/calibration.poni')

@@ -41,6 +41,9 @@ class OverlayControllerTest(unittest.TestCase):
         self.spectrum_view = self.controller.view.integration_widget
         self.overlay_tw = self.spectrum_view.overlay_tw
 
+    def tearDown(self):
+        del self.app
+
     def test_manual_deleting_overlays(self):
         self.load_overlays()
 
@@ -116,6 +119,3 @@ class OverlayControllerTest(unittest.TestCase):
     def load_overlay(self, filename):
         self.controller.integration_controller.overlay_controller.add_overlay(
             'Data/' + filename)
-
-    def tearDown(self):
-        pass
