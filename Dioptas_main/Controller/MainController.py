@@ -32,7 +32,7 @@ from .CalibrationController import CalibrationController
 from .IntegrationController import IntegrationController
 from .MaskController import MaskController
 
-__VERSION__ = '0.2.1'
+__VERSION__ = '0.2.2'
 
 
 class MainController(object):
@@ -110,7 +110,7 @@ class MainController(object):
         calibration_name = self.calibration_data.calibration_name
         str = 'Dioptas ' + __VERSION__
         if img_filename is '' and spec_filename is '':
-            self.view.setWindowTitle(str + u' - © C. Prescher')
+            self.view.setWindowTitle(str + u' - © 2014 C. Prescher')
             return
 
         if img_filename is not '' or spec_filename is not '':
@@ -124,7 +124,7 @@ class MainController(object):
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += u' - © C. Prescher'
+        str += u' - © 2014 C. Prescher'
         self.view.setWindowTitle(str)
 
     def load_directories(self):
