@@ -496,7 +496,7 @@ class IntegrationImageController(object):
             if self.view.spec_q_btn.isChecked():
                 pos = 4 * np.pi * \
                       np.sin(tth / 2) / \
-                      self.calibration_data.wavlength / 1e10
+                      self.calibration_data.wavelength / 1e10
             elif self.view.spec_tth_btn.isChecked():
                 pos = tth / np.pi * 180
             elif self.view.spec_d_btn.isChecked():
