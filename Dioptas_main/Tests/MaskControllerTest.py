@@ -7,7 +7,8 @@ import os
 import numpy as np
 import time
 
-from PyQt4 import QtGui
+from PyQt4 import QtGui, QtCore
+from PyQt4.QtTest import QTest
 
 
 from Data.ImgData import ImgData
@@ -18,13 +19,15 @@ from Views.MaskView import MaskView
 class MaskControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-        self.img_data = ImgData()
-        self.mask_data = MaskData()
-        self.mask_view = MaskView()
 
         self.working_dir = {}
 
         self.mask_controller = MaskController(self.working_dir)
+        self.img_data = self.mask_controller.img_data
+        self.mask_data = self.mask_controller.mask_data
+        self.mask_view = self.mask_controller.view
+
+
 
     def tearDown(self):
         del self.app
@@ -37,7 +40,6 @@ class MaskControllerTest(unittest.TestCase):
         self.mask_controller.load_mask_btn_click('Data/test.mask')
         self.mask_data.mask_below_threshold(self.img_data, 1)
         self.mask_controller.save_mask_btn_click('Data/test2.mask')
-
         self.assertTrue(os.path.exists('Data/test2.mask'))
         os.remove('Data/test2.mask')
 
@@ -54,4 +56,14 @@ class MaskControllerTest(unittest.TestCase):
         self.mask_data.mask_below_threshold(self.img_data, 1)
         self.mask_controller.save_mask_btn_click('Data/test1.mask')
         self.assertEqual(self.get_file_size('Data/test1.mask'), self.get_file_size('Data/test.mask'))
+
+    def test_grow_and_shrinking(self):
+        self.mask_data.mask_ellipse(100,100,20,20)
+        previous_mask = np.copy(self.mask_data._mask_data)
+
+        QTest.mouseClick(self.mask_view.grow_btn, QtCore.Qt.LeftButton)
+        self.assertFalse(np.array_equal(previous_mask, self.mask_data._mask_data))
+
+        QTest.mouseClick(self.mask_view.shrink_btn, QtCore.Qt.LeftButton)
+        self.assertTrue(np.array_equal(previous_mask, self.mask_data._mask_data))
 

@@ -81,6 +81,9 @@ class MaskController(object):
         self.connect_click_function(self.view.below_thresh_btn, self.below_thresh_btn_click)
         self.connect_click_function(self.view.above_thresh_btn, self.above_thresh_btn_click)
         self.connect_click_function(self.view.cosmic_btn, self.cosmic_btn_click)
+
+        self.connect_click_function(self.view.grow_btn, self.grow_btn_click)
+        self.connect_click_function(self.view.shrink_btn, self.shrink_btn_click)
         self.connect_click_function(self.view.invert_mask_btn, self.invert_mask_btn_click)
         self.connect_click_function(self.view.clear_mask_btn, self.clear_mask_btn_click)
         self.connect_click_function(self.view.save_mask_btn, self.save_mask_btn_click)
@@ -251,6 +254,14 @@ class MaskController(object):
     def above_thresh_btn_click(self):
         thresh = np.float64(self.view.above_thresh_txt.text())
         self.mask_data.mask_above_threshold(self.img_data.get_img(), thresh)
+        self.view.img_view.plot_mask(self.mask_data.get_img())
+
+    def grow_btn_click(self):
+        self.mask_data.grow()
+        self.view.img_view.plot_mask(self.mask_data.get_img())
+
+    def shrink_btn_click(self):
+        self.mask_data.shrink()
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def invert_mask_btn_click(self):
