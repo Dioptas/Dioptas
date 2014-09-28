@@ -54,12 +54,11 @@ class MaskData(object):
             self.supersampling_factor = factor
 
         if factor != 1:
-            self._mask_data_supersampled = np.zeros((self._mask_data.shape[0]*factor,
-                                                     self._mask_data.shape[1]*factor))
+            self._mask_data_supersampled = np.zeros((self._mask_data.shape[0] * factor,
+                                                     self._mask_data.shape[1] * factor))
             for row in range(factor):
                 for col in range(factor):
                     self._mask_data_supersampled[row::factor, col::factor] = self._mask_data
-
 
 
     def get_mask(self):
@@ -182,6 +181,18 @@ class MaskData(object):
         rr, cc = skimage.draw.ellipse(
             cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
         self._mask_data[rr, cc] = self.mode
+
+    def grow(self):
+        self._mask_data[1:, :] = np.logical_or(self._mask_data[1:, :], self._mask_data[:-1, :])
+        self._mask_data[:-1, :] = np.logical_or(self._mask_data[:-1, :], self._mask_data[1:, :])
+        self._mask_data[:, 1:] = np.logical_or(self._mask_data[:, 1:], self._mask_data[:, :-1])
+        self._mask_data[:, :-1] = np.logical_or(self._mask_data[:, :-1], self._mask_data[:, 1:])
+
+    def shrink(self):
+        self._mask_data[1:, :] = np.logical_and(self._mask_data[1:, :], self._mask_data[:-1, :])
+        self._mask_data[:-1, :] = np.logical_and(self._mask_data[:-1, :], self._mask_data[1:, :])
+        self._mask_data[:, 1:] = np.logical_and(self._mask_data[:, 1:], self._mask_data[:, :-1])
+        self._mask_data[:, :-1] = np.logical_and(self._mask_data[:, :-1], self._mask_data[:, 1:])
 
     def invert_mask(self):
         self.update_deque()
