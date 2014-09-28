@@ -425,7 +425,7 @@ class IntegrationImageController(object):
 
     def show_img_mouse_position(self, x, y):
         img_shape = self.img_data.get_img().shape
-        if x > 0 and y > 0 and x < img_shape[0]-1 and y < img_shape[1]-1:
+        if x > 0 and y > 0 and x < img_shape[1]-1 and y < img_shape[0]-1:
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
             self.view.mouse_x_lbl.setText(x_pos_string)
