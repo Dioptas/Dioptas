@@ -101,7 +101,7 @@ class MainController(object):
             self.calibration_controller.plot_mask()
             try:
                 self.calibration_controller.update_calibration_parameter_in_view()
-            except TypeError:
+            except (TypeError, AttributeError):
                 pass
 
     def set_title(self):
