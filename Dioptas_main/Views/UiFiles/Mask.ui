@@ -214,16 +214,6 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="0" colspan="2">
-          <widget class="QPushButton" name="cosmic_btn">
-           <property name="text">
-            <string>Cosmic Removal</string>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
          <item row="0" column="1">
           <widget class="QLineEdit" name="above_thresh_txt">
            <property name="alignment">
@@ -255,27 +245,7 @@
          <property name="spacing">
           <number>8</number>
          </property>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="invert_mask_btn">
-           <property name="text">
-            <string>Invert</string>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QPushButton" name="clear_mask_btn">
-           <property name="text">
-            <string>Clear</string>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
+         <item row="2" column="0">
           <widget class="QPushButton" name="undo_btn">
            <property name="text">
             <string>undo</string>
@@ -286,9 +256,49 @@
           </widget>
          </item>
          <item row="1" column="1">
+          <widget class="QPushButton" name="clear_mask_btn">
+           <property name="text">
+            <string>Clear</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="invert_mask_btn">
+           <property name="text">
+            <string>Invert</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
           <widget class="QPushButton" name="redo_btn">
            <property name="text">
             <string>redo</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="grow_btn">
+           <property name="text">
+            <string>Grow</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="shrink_btn">
+           <property name="text">
+            <string>Shrink</string>
            </property>
            <property name="flat">
             <bool>true</bool>
@@ -299,6 +309,23 @@
        </item>
        <item>
         <widget class="Line" name="line_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="cosmic_btn">
+         <property name="text">
+          <string>Cosmic Removal</string>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line_4">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
@@ -383,6 +410,8 @@
       <zorder>line_2</zorder>
       <zorder>line_3</zorder>
       <zorder>line_5</zorder>
+      <zorder>cosmic_btn</zorder>
+      <zorder>line_4</zorder>
      </widget>
     </widget>
    </item>
