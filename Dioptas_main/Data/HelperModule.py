@@ -29,7 +29,7 @@ import time
 
 import matplotlib.pyplot as plt
 
-#distinguishable_colors = np.loadtxt('Data/distinguishable_colors.txt')[::-1]
+# distinguishable_colors = np.loadtxt('Data/distinguishable_colors.txt')[::-1]
 
 
 class Observable(object):
@@ -224,19 +224,16 @@ class FileNameIterator(QtCore.QObject):
         self.filename_list = cur_filename_list
         for filename in new_filename_list:
             creation_time = os.path.getctime(filename)
-            if len(self.ordered_file_list)>0:
+            if len(self.ordered_file_list) > 0:
                 if creation_time > self.ordered_file_list[-1][0]:
                     self.ordered_file_list.append((creation_time, filename))
                 else:
                     for ind in xrange(len(self.ordered_file_list)):
-                        if creation_time<self.ordered_file_list[ind][0]:
+                        if creation_time < self.ordered_file_list[ind][0]:
                             self.ordered_file_list.insert(ind, (creation_time, filename))
                             break
             else:
                 self.ordered_file_list.append((creation_time, filename))
-
-
-
 
 
     @staticmethod
@@ -312,19 +309,22 @@ def calculate_color(ind):
 def gauss_function(x, int, hwhm, center):
     return int * np.exp(-(x - float(center)) ** 2 / (2 * hwhm ** 2))
 
+
 def save_chi_file(filename, unit, x, y):
     file_handle = open(filename, 'w')
     num_points = len(x)
 
-    file_handle.write(filename+'\n')
-    file_handle.write(unit+'\n\n')
+    file_handle.write(filename + '\n')
+    file_handle.write(unit + '\n\n')
     file_handle.write("       {}\n".format(num_points))
     for ind in xrange(num_points):
         file_handle.write(' {:.7E}  {:.7E}\n'.format(x[ind], y[ind]))
     file_handle.close()
 
+
 def convert_d_to_two_theta(d, wavelength):
-    return np.arcsin(wavelength/(2*d))/np.pi*360
+    return np.arcsin(wavelength / (2 * d)) / np.pi * 360
+
 
 def calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness, seat_thickness,
                                         small_cbn_seat_radius, large_cbn_seat_radius, tilt=0):
@@ -338,22 +338,22 @@ def calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness,
     ds = seat_thickness
     r1 = small_cbn_seat_radius
     r2 = large_cbn_seat_radius
-    tilt=-tilt
+    tilt = -tilt
 
     t = tth_array
     a = azi_array
-    
-    scor=0
-    dtor = np.pi/180.0
+
+    scor = 0
+    dtor = np.pi / 180.0
 
     # ;calculate 2-theta limit for seat
-    ts1=180/np.pi*np.arctan(r1/diam)
-    ts2=180/np.pi*np.arctan(r2/(diam+ds))
-    tseat=180/np.pi*np.arctan((r2-r1)/ds)
-    tcell=180/np.pi*np.arctan(((19.-7)/2)/15.)
-    tc1=180/np.pi*np.arctan((7./2)/(diam+ds))
-    tc2=180/np.pi*np.arctan((19./2)/(diam+ds+10.))
-    print 'ts1=', ts1,'  ts2=', ts2, '  tseat=', tseat, '   tcell=', tc1, tc2, tcell
+    ts1 = 180 / np.pi * np.arctan(r1 / diam)
+    ts2 = 180 / np.pi * np.arctan(r2 / (diam + ds))
+    tseat = 180 / np.pi * np.arctan((r2 - r1) / ds)
+    tcell = 180 / np.pi * np.arctan(((19. - 7) / 2) / 15.)
+    tc1 = 180 / np.pi * np.arctan((7. / 2) / (diam + ds))
+    tc2 = 180 / np.pi * np.arctan((19. / 2) / (diam + ds + 10.))
+    print 'ts1=', ts1, '  ts2=', ts2, '  tseat=', tseat, '   tcell=', tc1, tc2, tcell
 
 
     # rut=np.sqrt((1-np.tan(dtor*tilt)*np.cos(dtor*a))**2+(np.tan(dtor*tilt)*np.sin(dtor*a))**2)
@@ -363,42 +363,40 @@ def calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness,
     #my first version
     # tt=np.abs(t+np.cos(np.pi/180.*a)*tilt)
 
-    tt = np.sqrt(t**2+tilt**2-2*t*tilt*np.cos(dtor*(np.pi-a)))
+    tt = np.sqrt(t ** 2 + tilt ** 2 - 2 * t * tilt * np.cos(dtor * (np.pi - a)))
 
     # ;absorption by diamond
-    c=diam/np.cos(dtor*tt)
-    ac=np.exp(-0.215680897*3.516*c/10)
+    c = diam / np.cos(dtor * tt)
+    ac = np.exp(-0.215680897 * 3.516 * c / 10)
 
 
     # ;absorption by conic part of seat
     if (ts2 >= ts1):
-        deltar=(c*np.sin(dtor*tt)-r1).clip(min=0)
-        cc=deltar*np.sin(dtor*(90-tseat))/np.sin(dtor*(tseat-tt.clip(max=ts2)))
-        acc=np.exp(-(0.183873713+0.237310767)/2*3.435*cc/10)
-        accc=(acc-1.)*(np.logical_and(tt >= ts1, tt <= ts2))+1
+        deltar = (c * np.sin(dtor * tt) - r1).clip(min=0)
+        cc = deltar * np.sin(dtor * (90 - tseat)) / np.sin(dtor * (tseat - tt.clip(max=ts2)))
+        acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
+        accc = (acc - 1.) * (np.logical_and(tt >= ts1, tt <= ts2)) + 1
         # ;absorption by seat
-        ccs=ds/np.cos(dtor*tt)
-        accs=np.exp(-(0.183873713+0.237310767)/2*3.435*ccs/10)
-        accsc=(accs-1.)*(tt >= ts2)+1
+        ccs = ds / np.cos(dtor * tt)
+        accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
+        accsc = (accs - 1.) * (tt >= ts2) + 1
 
     else:
         print 'in the else path'
-        delta=((diam+ds)*np.tan(dtor*tt)-r2).clip(min=0)
+        delta = ((diam + ds) * np.tan(dtor * tt) - r2).clip(min=0)
 
-        cc=delta*np.sin(dtor*(90+tseat))/np.sin(dtor*(tt.clip(max<ts1)-tseat))
+        cc = delta * np.sin(dtor * (90 + tseat)) / np.sin(dtor * (tt.clip(max < ts1) - tseat))
 
-        acc=np.exp(-(0.183873713+0.237310767)/2*3.435*cc/10)
+        acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
 
-        accc=(acc-1.)*(np.logical_and(tt >= ts2, tt <= ts1))+1
+        accc = (acc - 1.) * (np.logical_and(tt >= ts2, tt <= ts1)) + 1
         # ;absorption by seat
-        ccs=ds/np.cos(dtor*tt)
-        accs=np.exp(-(0.183873713+0.237310767)/2*3.435*ccs/10)
-        accsc=(accs-1.)*(tt >= ts1)+1
-    cor=ac*accc*accsc
+        ccs = ds / np.cos(dtor * tt)
+        accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
+        accsc = (accs - 1.) * (tt >= ts1) + 1
+    cor = ac * accc * accsc
 
-    return tt
-
-
+    return cor
 
 
 if __name__ == '__main__':
