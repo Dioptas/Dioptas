@@ -81,6 +81,13 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
         self.bin_count_txt.setValidator(QtGui.QIntValidator())
 
+        self.cbn_diamond_thickness_txt.setValidator(QtGui.QDoubleValidator())
+        self.cbn_seat_thickness_txt.setValidator(QtGui.QDoubleValidator())
+        self.cbn_cell_tilt_txt.setValidator(QtGui.QDoubleValidator())
+        self.cbn_inner_seat_radius_txt.setValidator(QtGui.QDoubleValidator())
+        self.cbn_outer_seat_radius_txt.setValidator(QtGui.QDoubleValidator())
+        self.cbn_tilt_rotation_txt.setValidator(QtGui.QDoubleValidator())
+
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
         self.img_view.activate_vertical_line()

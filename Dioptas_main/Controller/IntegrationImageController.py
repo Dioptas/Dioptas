@@ -152,6 +152,7 @@ class IntegrationImageController(object):
         self.view.cbn_inner_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.view.cbn_outer_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.view.cbn_cell_tilt_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_tilt_rotation_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.connect_click_function(self.view.cbn_plot_correction_btn, self.cbn_plot_correction_btn_clicked)
 
         self.create_auto_process_signal()
@@ -643,12 +644,15 @@ class IntegrationImageController(object):
             inner_seat_radius = float(str(self.view.cbn_inner_seat_radius_txt.text()))
             outer_seat_radius = float(str(self.view.cbn_outer_seat_radius_txt.text()))
             tilt = float(str(self.view.cbn_cell_tilt_txt.text()))
+            tilt_rotation = float(str(self.view.cbn_tilt_rotation_txt.text()))
 
             tth_array = 180.0/np.pi*self.calibration_data.spectrum_geometry.ttha
             azi_array = 180.0/np.pi*self.calibration_data.spectrum_geometry.chia
-
+            import time
+            t1 = time.time()
             res = calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness, seat_thickness,
-                                                      inner_seat_radius, outer_seat_radius, tilt)
+                                                      inner_seat_radius, outer_seat_radius, tilt, tilt_rotation)
+            print "Time needed for correction calculation: {}".format(time.time()-t1)
             self.img_data.set_absorption_correction(res)
         else:
             self.img_data.set_absorption_correction(None)
