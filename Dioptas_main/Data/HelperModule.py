@@ -326,8 +326,10 @@ def convert_d_to_two_theta(d, wavelength):
     return np.arcsin(wavelength / (2 * d)) / np.pi * 360
 
 
-def calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness, seat_thickness,
-                                        small_cbn_seat_radius, large_cbn_seat_radius, tilt=0):
+def calculate_cbn_absorption_correction(tth_array, azi_array,
+                                        diamond_thickness, seat_thickness,
+                                        small_cbn_seat_radius, large_cbn_seat_radius,
+                                        tilt=0, tilt_rotation=0):
     #diam - diamond thickness
     #ds - seat thickness
     #r1 - small radius
@@ -360,10 +362,11 @@ def calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness,
     #
     # tt=t+180/np.pi*np.arctan(1.-rut)
 
-    #my first version
+    #my first version (equivalent to vitalis equations!!!
     # tt=np.abs(t+np.cos(np.pi/180.*a)*tilt)
 
-    tt = np.sqrt(t ** 2 + tilt ** 2 - 2 * t * tilt * np.cos(dtor * (np.pi - a)))
+    #final good version:
+    tt = np.sqrt(t ** 2 + tilt ** 2 - 2 * t * tilt * np.cos(dtor * (a+tilt_rotation)))
 
     # ;absorption by diamond
     c = diam / np.cos(dtor * tt)
