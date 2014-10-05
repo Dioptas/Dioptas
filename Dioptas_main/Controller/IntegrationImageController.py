@@ -21,6 +21,9 @@ import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
+from Data.HelperModule import calculate_cbn_absorption_correction
+
+import matplotlib.pyplot as plt
 
 
 class IntegrationImageController(object):
@@ -142,6 +145,15 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.qa_img_save_img_btn, self.save_img)
 
         self.connect_click_function(self.view.img_load_calibration_btn, self.load_calibration)
+
+        self.connect_click_function(self.view.cbn_groupbox, self.cbn_groupbox_changed)
+        self.view.cbn_diamond_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_seat_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_inner_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_outer_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_cell_tilt_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.connect_click_function(self.view.cbn_plot_correction_btn, self.cbn_plot_correction_btn_clicked)
+
         self.create_auto_process_signal()
 
     def connect_click_function(self, emitter, function):
@@ -624,3 +636,31 @@ class IntegrationImageController(object):
                 im = Image.fromarray(im_array)
                 im.save(filename)
 
+    def cbn_groupbox_changed(self):
+        if self.view.cbn_groupbox.isChecked() and self.calibration_data.is_calibrated:
+            diamond_thickness = float(str(self.view.cbn_diamond_thickness_txt.text()))
+            seat_thickness = float(str(self.view.cbn_seat_thickness_txt.text()))
+            inner_seat_radius = float(str(self.view.cbn_inner_seat_radius_txt.text()))
+            outer_seat_radius = float(str(self.view.cbn_outer_seat_radius_txt.text()))
+            tilt = float(str(self.view.cbn_cell_tilt_txt.text()))
+
+            tth_array = 180.0/np.pi*self.calibration_data.spectrum_geometry.ttha
+            azi_array = 180.0/np.pi*self.calibration_data.spectrum_geometry.chia
+
+            res = calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness, seat_thickness,
+                                                      inner_seat_radius, outer_seat_radius, tilt)
+            self.img_data.set_absorption_correction(res)
+        else:
+            self.img_data.set_absorption_correction(None)
+
+    def cbn_plot_correction_btn_clicked(self):
+        if str(self.view.cbn_plot_correction_btn.text()) == 'Plot Cor':
+            self.view.img_view.plot_image(self.img_data._absorption_correction,
+                                        True)
+            self.view.cbn_plot_correction_btn.setText('Plot Img')
+        else:
+            self.view.cbn_plot_correction_btn.setText('Plot Cor')
+            if self.img_mode == 'Cake':
+                self.plot_cake(True)
+            elif self.img_mode == 'Image':
+                self.plot_img(True)

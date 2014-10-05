@@ -27,6 +27,8 @@ from colorsys import hsv_to_rgb
 
 import time
 
+import matplotlib.pyplot as plt
+
 #distinguishable_colors = np.loadtxt('Data/distinguishable_colors.txt')[::-1]
 
 
@@ -323,3 +325,85 @@ def save_chi_file(filename, unit, x, y):
 
 def convert_d_to_two_theta(d, wavelength):
     return np.arcsin(wavelength/(2*d))/np.pi*360
+
+def calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness, seat_thickness,
+                                        small_cbn_seat_radius, large_cbn_seat_radius, tilt=0):
+    #diam - diamond thickness
+    #ds - seat thickness
+    #r1 - small radius
+    #r2 - large radius
+    #tilt - tilting angle of DAC
+
+    diam = diamond_thickness
+    ds = seat_thickness
+    r1 = small_cbn_seat_radius
+    r2 = large_cbn_seat_radius
+    tilt=-tilt
+
+    t = tth_array
+    a = azi_array
+    
+    scor=0
+    dtor = np.pi/180.0
+
+    # ;calculate 2-theta limit for seat
+    ts1=180/np.pi*np.arctan(r1/diam)
+    ts2=180/np.pi*np.arctan(r2/(diam+ds))
+    tseat=180/np.pi*np.arctan((r2-r1)/ds)
+    tcell=180/np.pi*np.arctan(((19.-7)/2)/15.)
+    tc1=180/np.pi*np.arctan((7./2)/(diam+ds))
+    tc2=180/np.pi*np.arctan((19./2)/(diam+ds+10.))
+    print 'ts1=', ts1,'  ts2=', ts2, '  tseat=', tseat, '   tcell=', tc1, tc2, tcell
+
+
+    # rut=np.sqrt((1-np.tan(dtor*tilt)*np.cos(dtor*a))**2+(np.tan(dtor*tilt)*np.sin(dtor*a))**2)
+    #
+    # tt=t+180/np.pi*np.arctan(1.-rut)
+
+    #my first version
+    # tt=np.abs(t+np.cos(np.pi/180.*a)*tilt)
+
+    tt = np.sqrt(t**2+tilt**2-2*t*tilt*np.cos(dtor*(np.pi-a)))
+
+    # ;absorption by diamond
+    c=diam/np.cos(dtor*tt)
+    ac=np.exp(-0.215680897*3.516*c/10)
+
+
+    # ;absorption by conic part of seat
+    if (ts2 >= ts1):
+        deltar=(c*np.sin(dtor*tt)-r1).clip(min=0)
+        cc=deltar*np.sin(dtor*(90-tseat))/np.sin(dtor*(tseat-tt.clip(max=ts2)))
+        acc=np.exp(-(0.183873713+0.237310767)/2*3.435*cc/10)
+        accc=(acc-1.)*(np.logical_and(tt >= ts1, tt <= ts2))+1
+        # ;absorption by seat
+        ccs=ds/np.cos(dtor*tt)
+        accs=np.exp(-(0.183873713+0.237310767)/2*3.435*ccs/10)
+        accsc=(accs-1.)*(tt >= ts2)+1
+
+    else:
+        print 'in the else path'
+        delta=((diam+ds)*np.tan(dtor*tt)-r2).clip(min=0)
+
+        cc=delta*np.sin(dtor*(90+tseat))/np.sin(dtor*(tt.clip(max<ts1)-tseat))
+
+        acc=np.exp(-(0.183873713+0.237310767)/2*3.435*cc/10)
+
+        accc=(acc-1.)*(np.logical_and(tt >= ts2, tt <= ts1))+1
+        # ;absorption by seat
+        ccs=ds/np.cos(dtor*tt)
+        accs=np.exp(-(0.183873713+0.237310767)/2*3.435*ccs/10)
+        accsc=(accs-1.)*(tt >= ts1)+1
+    cor=ac*accc*accsc
+
+    return tt
+
+
+
+
+if __name__ == '__main__':
+    tth = np.linspace(0, 30, 1000)
+    cor = calculate_cbn_absorption_correction(tth, 0, 2.3, 5.3, .4, 1.95)
+
+    plt.plot(tth, cor)
+    plt.show()

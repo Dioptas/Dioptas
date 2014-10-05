@@ -56,6 +56,8 @@ class ImgData(Observable):
                          gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
                                         800 + 400 * random.random())
 
+        self._absorption_correction = None
+
     def load(self, filename):
         logger.info("Loading {}.".format(filename))
         self.filename = filename
@@ -107,9 +109,14 @@ class ImgData(Observable):
     @property
     def img_data(self):
         if self.supersampling_factor == 1:
-            return self._img_data
+            res_img = self._img_data
         else:
-            return self._img_data_supersampled
+            res_img = self._img_data_supersampled
+
+        if self._absorption_correction is None:
+            return res_img
+        else:
+            return res_img*self._absorption_correction
 
     def rotate_img_p90(self):
         self._img_data = rotate_matrix_p90(self.img_data)
@@ -158,6 +165,10 @@ class ImgData(Observable):
             for row in range(factor):
                 for col in range(factor):
                     self._img_data_supersampled[row::factor, col::factor] = self._img_data
+
+    def set_absorption_correction(self, absorption_correction):
+        self._absorption_correction = absorption_correction
+        self.notify()
 
 
 
