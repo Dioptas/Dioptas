@@ -20,6 +20,7 @@
 __author__ = 'Clemens Prescher'
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import numpy as np
@@ -39,7 +40,6 @@ class ImgData(Observable):
         self.img_transformations = []
         self.supersampling_factor = 1
 
-
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 
@@ -52,9 +52,9 @@ class ImgData(Observable):
             self._img_data += gauss_function(X, 10000 * random.random(), 50 * random.random(), pos)
             self._img_data += gauss_function(Y, 10000 * random.random(), 50 * random.random(), pos)
         self._img_data += gauss_function(X, 200 + 200 * random.random(), 500 + 500 * random.random(),
-                                        800 + 400 * random.random()) * \
-                         gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
-                                        800 + 400 * random.random())
+                                         800 + 400 * random.random()) * \
+                          gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
+                                         800 + 400 * random.random())
 
         self._absorption_correction = None
 
@@ -116,7 +116,7 @@ class ImgData(Observable):
         if self._absorption_correction is None:
             return res_img
         else:
-            return res_img*self._absorption_correction
+            return res_img / self._absorption_correction
 
     def rotate_img_p90(self):
         self._img_data = rotate_matrix_p90(self.img_data)
@@ -160,8 +160,8 @@ class ImgData(Observable):
             self.supersampling_factor = factor
 
         if factor != 1:
-            self._img_data_supersampled = np.zeros((self._img_data.shape[0]*factor,
-                                                     self._img_data.shape[1]*factor))
+            self._img_data_supersampled = np.zeros((self._img_data.shape[0] * factor,
+                                                    self._img_data.shape[1] * factor))
             for row in range(factor):
                 for col in range(factor):
                     self._img_data_supersampled[row::factor, col::factor] = self._img_data
@@ -169,9 +169,6 @@ class ImgData(Observable):
     def set_absorption_correction(self, absorption_correction):
         self._absorption_correction = absorption_correction
         self.notify()
-
-
-
 
 
 def test():
