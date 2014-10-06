@@ -96,6 +96,29 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.img_view.img_view_box.setAspectLocked(True)
         self.img_view.deactivate_vertical_line()
 
+    def dock_img(self, bool_value):
+
+        if not bool_value:
+            splitter_handle = self.horizontal_splitter.handle(1)
+            self.horizontal_splitter_state = self.horizontal_splitter.saveState()
+            self.horizontal_splitter.setSizes([0, 100])
+            splitter_handle.setEnabled(False)
+            self.img_dock_btn.setText('Dock')
+            self.image_frame.setParent(self)
+            self.image_frame.setWindowFlags(QtCore.Qt.Window)
+            self.image_frame.show()
+            # self.widget.show()
+        elif bool_value:
+            self.img_dock_btn.setText('Undock')
+            self.vertical_splitter.setParent(self)
+            self.image_frame.setParent(self.horizontal_splitter)
+            # self.image_frame.setWindowFlags(QtCore.Qt.Window)
+            self.horizontal_splitter.addWidget(self.image_frame)
+            self.vertical_splitter.setParent(self.horizontal_splitter)
+            self.horizontal_splitter.addWidget(self.vertical_splitter)
+
+            self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
+
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()
         self.overlay_tw.setRowCount(current_rows + 1)

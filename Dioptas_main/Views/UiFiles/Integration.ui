@@ -181,6 +181,16 @@ QTableWidget {
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QPushButton" name="img_dock_btn">
+           <property name="text">
+            <string>Undock</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
       </layout>
