@@ -42,6 +42,7 @@ class IntegrationImageController(object):
         self.calibration_data = calibration_data
         self._auto_scale = True
         self.img_mode = 'Image'
+        self.img_docked = True
         self.use_mask = False
         self.roi_active = False
 
@@ -141,6 +142,7 @@ class IntegrationImageController(object):
         self.connect_click_function(self.view.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.view.img_mode_btn, self.change_view_mode)
         self.connect_click_function(self.view.img_autoscale_btn, self.view.img_view.auto_range)
+        self.connect_click_function(self.view.img_dock_btn, self.img_dock_btn_clicked)
 
         self.connect_click_function(self.view.qa_img_save_img_btn, self.save_img)
 
@@ -403,6 +405,10 @@ class IntegrationImageController(object):
                     self.view.img_view.activate_roi()
                 self._update_image_scatter_pos()
                 self.view.img_mode_btn.setText('Cake')
+
+    def img_dock_btn_clicked(self):
+        self.img_docked = not self.img_docked
+        self.view.dock_img(self.img_docked)
 
     def _update_cake_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()

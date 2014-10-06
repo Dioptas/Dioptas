@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Sun Oct  5 02:33:33 2014
+# Created: Mon Oct  6 08:29:24 2014
 #      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -114,6 +114,10 @@ class Ui_xrs_integration_widget(object):
         self.img_autoscale_btn.setFlat(True)
         self.img_autoscale_btn.setObjectName(_fromUtf8("img_autoscale_btn"))
         self.horizontalLayout_30.addWidget(self.img_autoscale_btn)
+        self.img_dock_btn = QtGui.QPushButton(self.image_frame)
+        self.img_dock_btn.setFlat(True)
+        self.img_dock_btn.setObjectName(_fromUtf8("img_dock_btn"))
+        self.horizontalLayout_30.addWidget(self.img_dock_btn)
         self.verticalLayout_9.addLayout(self.horizontalLayout_30)
         self.vertical_splitter = QtGui.QSplitter(self.horizontal_splitter)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -956,6 +960,7 @@ class Ui_xrs_integration_widget(object):
         self.img_mode_btn.setText(_translate("xrs_integration_widget", "Cake", None))
         self.img_mask_btn.setText(_translate("xrs_integration_widget", "Mask", None))
         self.img_autoscale_btn.setText(_translate("xrs_integration_widget", "AutoScale", None))
+        self.img_dock_btn.setText(_translate("xrs_integration_widget", "Undock", None))
         self.load_img_btn.setText(_translate("xrs_integration_widget", "Load", None))
         self.prev_img_btn.setText(_translate("xrs_integration_widget", "<", None))
         self.next_img_btn.setText(_translate("xrs_integration_widget", ">", None))
