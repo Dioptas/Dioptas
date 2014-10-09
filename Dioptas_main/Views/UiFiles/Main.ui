@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>720</width>
-    <height>757</height>
+    <width>1063</width>
+    <height>669</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -269,12 +269,15 @@ QGraphicsView{
   }
 
 QDockWidget::title {
-     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
+     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);	
+	 border: 1px solid  #5B5B5B;  
+
+     border-radius:2px;
+     padding: 2px;
+	margin: 0px;
 }
 
-#click_x_lbl, #click_y_lbl, #click_int_lbl, #click_azi_lbl, #click_d_lbl, #click_tth_lbl, #click_q_lbl {
-    color: #00DD00;
-}
+
 
 </string>
   </property>

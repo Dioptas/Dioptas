@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Sun Oct  5 18:48:45 2014
+# Created: Thu Oct  9 14:42:02 2014
 #      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_mainView(object):
     def setupUi(self, mainView):
         mainView.setObjectName(_fromUtf8("mainView"))
-        mainView.resize(720, 757)
+        mainView.resize(1063, 669)
         mainView.setStyleSheet(_fromUtf8("#mainView, #calibration_tab, #mask_tab, #integration_tab {  \n"
 "     background: #3C3C3C;      \n"
 "    border: 5px solid #3C3C3C;\n"
@@ -282,12 +282,15 @@ class Ui_mainView(object):
 "  }\n"
 "\n"
 "QDockWidget::title {\n"
-"     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);\n"
+"     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);    \n"
+"     border: 1px solid  #5B5B5B;  \n"
+"\n"
+"     border-radius:2px;\n"
+"     padding: 2px;\n"
+"    margin: 0px;\n"
 "}\n"
 "\n"
-"#click_x_lbl, #click_y_lbl, #click_int_lbl, #click_azi_lbl, #click_d_lbl, #click_tth_lbl, #click_q_lbl {\n"
-"    color: #00DD00;\n"
-"}\n"
+"\n"
 "\n"
 ""))
         self.gridLayout = QtGui.QGridLayout(mainView)

@@ -111,6 +111,7 @@ class MainController(object):
         str = 'Dioptas ' + __VERSION__
         if img_filename is '' and spec_filename is '':
             self.view.setWindowTitle(str + u' - © 2014 C. Prescher')
+            self.view.integration_widget.img_frame.setWindowTitle(str + u' - © 2014 C. Prescher')
             return
 
         if img_filename is not '' or spec_filename is not '':
@@ -126,6 +127,7 @@ class MainController(object):
         str += ']'
         str += u' - © 2014 C. Prescher'
         self.view.setWindowTitle(str)
+        self.view.integration_widget.img_frame.setWindowTitle(str)
 
     def load_directories(self):
         if os.path.exists('working_directories.csv'):
