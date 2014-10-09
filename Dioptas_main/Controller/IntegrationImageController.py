@@ -450,9 +450,15 @@ class IntegrationImageController(object):
             self.view.mouse_x_lbl.setText(x_pos_string)
             self.view.mouse_y_lbl.setText(y_pos_string)
 
+            self.view.img_widget_mouse_x_lbl.setText(x_pos_string)
+            self.view.img_widget_mouse_y_lbl.setText(y_pos_string)
+
             int_string = 'I:   %5d' % self.view.img_view.img_data[
                 np.floor(y), np.floor(x)]
+
             self.view.mouse_int_lbl.setText(int_string)
+            self.view.img_widget_mouse_int_lbl.setText(int_string)
+
             if self.calibration_data.is_calibrated:
                 x_temp = x
                 x = np.array([y])
@@ -475,11 +481,19 @@ class IntegrationImageController(object):
                 self.view.mouse_d_lbl.setText('d:%9.3f  ' % d)
                 self.view.mouse_q_lbl.setText('Q:%9.3f  ' % q_value)
                 self.view.mouse_azi_lbl.setText('X:%9.3f  ' % azi)
+                self.view.img_widget_mouse_tth_lbl.setText(unicode(tth_str))
+                self.view.img_widget_mouse_d_lbl.setText('d:%9.3f  ' % d)
+                self.view.img_widget_mouse_q_lbl.setText('Q:%9.3f  ' % q_value)
+                self.view.img_widget_mouse_azi_lbl.setText('X:%9.3f  ' % azi)
             else:
                 self.view.mouse_tth_lbl.setText(u'2θ: -')
                 self.view.mouse_d_lbl.setText('d: -')
                 self.view.mouse_q_lbl.setText('Q: -')
                 self.view.mouse_azi_lbl.setText('X: -')
+                self.view.img_widget_mouse_tth_lbl.setText(u'2θ: -')
+                self.view.img_widget_mouse_d_lbl.setText('d: -')
+                self.view.img_widget_mouse_q_lbl.setText('Q: -')
+                self.view.img_widget_mouse_azi_lbl.setText('X: -')
 
     def img_mouse_click(self, x, y):
         #update click position
@@ -488,9 +502,14 @@ class IntegrationImageController(object):
             y_pos_string = 'Y:  %4d' % x
             int_string = 'I:   %5d' % self.view.img_view.img_data[
                 np.floor(x), np.floor(y)]
+
             self.view.click_x_lbl.setText(x_pos_string)
             self.view.click_y_lbl.setText(y_pos_string)
             self.view.click_int_lbl.setText(int_string)
+
+            self.view.img_widget_click_x_lbl.setText(x_pos_string)
+            self.view.img_widget_click_y_lbl.setText(y_pos_string)
+            self.view.img_widget_click_int_lbl.setText(int_string)
         except IndexError:
             self.view.click_int_lbl.setText('I: ')
 
@@ -528,6 +547,10 @@ class IntegrationImageController(object):
         self.view.click_d_lbl.setText(self.view.mouse_d_lbl.text())
         self.view.click_q_lbl.setText(self.view.mouse_q_lbl.text())
         self.view.click_azi_lbl.setText(self.view.mouse_azi_lbl.text())
+        self.view.img_widget_click_tth_lbl.setText(self.view.mouse_tth_lbl.text())
+        self.view.img_widget_click_d_lbl.setText(self.view.mouse_d_lbl.text())
+        self.view.img_widget_click_q_lbl.setText(self.view.mouse_q_lbl.text())
+        self.view.img_widget_click_azi_lbl.setText(self.view.mouse_azi_lbl.text())
 
     def set_iteration_mode_number(self):
         self.img_data.set_file_iteration_mode('number')

@@ -51,6 +51,9 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
         self.img_pg_layout.ci.layout.setContentsMargins(10, 10, 10, 5)
         self.img_pg_layout.ci.layout.setSpacing(5)
+        self.frame_img_positions_widget.hide()
+        self.img_frame_size = QtCore.QSize(400, 500)
+        self.img_frame_position = QtCore.QPoint(0,0)
 
         self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
         self.spectrum_pg_layout.ci.layout.setContentsMargins(10, 10, 0, 10)
@@ -97,27 +100,46 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.img_view.deactivate_vertical_line()
 
     def dock_img(self, bool_value):
-
         if not bool_value:
-            splitter_handle = self.horizontal_splitter.handle(1)
-            self.horizontal_splitter_state = self.horizontal_splitter.saveState()
-            self.horizontal_splitter.setSizes([0, 100])
-            splitter_handle.setEnabled(False)
             self.img_dock_btn.setText('Dock')
-            self.image_frame.setParent(self)
-            self.image_frame.setWindowFlags(QtCore.Qt.Window)
-            self.image_frame.show()
-            # self.widget.show()
+
+            # save current splitter state
+            self.horizontal_splitter_state = self.horizontal_splitter.saveState()
+
+            # splitter_handle = self.horizontal_splitter.handle(1)
+            # splitter_handle.setEnabled(False)
+
+            self.img_frame.setParent(self)
+            self.img_frame.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | \
+                                          QtCore.Qt.WindowMinimizeButtonHint | QtCore.Qt.WindowMaximizeButtonHint)
+            self.frame_img_positions_widget.show()
+            self.img_frame.resize(self.img_frame_size)
+            self.img_frame.move(self.img_frame_position)
+            self.footer_img_mouse_position_widget.hide()
+            self.img_frame.show()
         elif bool_value:
             self.img_dock_btn.setText('Undock')
+
+            # save the current position and size of the img_frame to be able to restore it later
+            self.img_frame_size = self.img_frame.size()
+            self.img_frame_position = self.img_frame.pos()
+
+            #reassign visibilities of mouse position and click labels
+            self.footer_img_mouse_position_widget.show()
+            self.frame_img_positions_widget.hide()
+
+            #remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
             self.vertical_splitter.setParent(self)
-            self.image_frame.setParent(self.horizontal_splitter)
-            # self.image_frame.setWindowFlags(QtCore.Qt.Window)
-            self.horizontal_splitter.addWidget(self.image_frame)
+
+            self.img_frame.setParent(self.horizontal_splitter)
+            self.horizontal_splitter.addWidget(self.img_frame)
+
             self.vertical_splitter.setParent(self.horizontal_splitter)
             self.horizontal_splitter.addWidget(self.vertical_splitter)
 
+            # restore the previously used size when image was undocked
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
+
 
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()
