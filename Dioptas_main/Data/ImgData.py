@@ -55,7 +55,9 @@ class ImgData(Observable):
                                          800 + 400 * random.random()) * \
                           gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
                                          800 + 400 * random.random())
-
+        self._background_data = None
+        self._background_scaling = 1
+        self._background_offset = 0
         self._absorption_correction = None
 
     def load(self, filename):
@@ -70,6 +72,28 @@ class ImgData(Observable):
         self.set_supersampling()
         self.notify()
         self.file_name_iterator.update_filename(filename)
+
+    def load_background(self, filename):
+        self.background_filename = filename
+        try:
+            self._background_data_fabio = fabio.open(filename)
+            self._background_data = self._background_data_fabio.data[::-1]
+        except AttributeError:
+            self._background_data = np.array(Image.open(filename))[::-1]
+        self.perform_background_transformations()
+        self.set_supersampling()
+        self.notify()
+
+    def reset_background(self):
+        self._background_data = None
+
+    def set_background_scaling(self, value):
+        self._background_scaling = value
+        self.notify()
+
+    def set_background_offset(self, value):
+        self._background_offset = value
+        self.notify()
 
     def load_next_file(self):
         next_file_name = self.file_name_iterator.get_next_filename(self.file_iteration_mode)
@@ -94,12 +118,6 @@ class ImgData(Observable):
             self.file_name_iterator.create_timed_file_list = True
             self.file_name_iterator.update_filename(self.filename)
 
-    def set_calibration_file(self, filename):
-        self.integrator = pyFAI.load(filename)
-
-    def get_spectrum(self):
-        return self.tth, self.I
-
     def get_img_data(self):
         return self.img_data
 
@@ -108,44 +126,82 @@ class ImgData(Observable):
 
     @property
     def img_data(self):
-        if self.supersampling_factor == 1:
-            res_img = self._img_data
-        else:
-            res_img = self._img_data_supersampled
+        """
 
-        if self._absorption_correction is None:
-            return res_img
+        :return:
+            img data with background and absorption correction if available
+        """
+
+        if self.supersampling_factor == 1:
+            if self._background_data is None and self._absorption_correction is None:
+                return self._img_data
+
+            elif self._background_data is not None and self._absorption_correction is None:
+                return self._img_data - (self._background_scaling * self._background_data + self._background_offset)
+
+            elif self._background_data is None and self._absorption_correction is not None:
+                return self._img_data / self._absorption_correction
+
+            elif self._background_data is not None and self._absorption_correction is not None:
+                return (self._img_data - (
+                self._background_scaling * self._background_data + self._background_offset)) / self._absorption_correction
+
         else:
-            return res_img / self._absorption_correction
+            if self._background_data is None and self._absorption_correction is None:
+                return self._img_data_supersampled
+
+            elif self._background_data is not None and self._absorption_correction is None:
+                return self._img_data_supersampled - (self._background_scaling * self._background_data_supersampled + self._background_offset)
+
+            elif self._background_data is None and self._absorption_correction is not None:
+                return self._img_data_supersampled / self._absorption_correction
+
+            elif self._background_data is not None and self._absorption_correction is not None:
+                return (self._img_data_supersampled - (
+                self._background_scaling * self._background_data_supersampled + self._background_offset)) / self._absorption_correction
 
     def rotate_img_p90(self):
-        self._img_data = rotate_matrix_p90(self.img_data)
+        self._img_data = rotate_matrix_p90(self._img_data)
+        if self._background_data is not None:
+            self._background_data = rotate_matrix_p90(self._background_data)
         self.img_transformations.append(rotate_matrix_p90)
         self.notify()
 
     def rotate_img_m90(self):
-        self._img_data = rotate_matrix_m90(self.img_data)
+        self._img_data = rotate_matrix_m90(self._img_data)
+        if self._background_data is not None:
+            self._background_data = rotate_matrix_m90(self._background_data)
         self.img_transformations.append(rotate_matrix_m90)
         self.notify()
 
     def flip_img_horizontally(self):
-        self._img_data = np.fliplr(self.img_data)
+        self._img_data = np.fliplr(self._img_data)
+        if self._background_data is not None:
+            self._background_data = np.fliplr(self._background_data)
         self.img_transformations.append(np.fliplr)
         self.notify()
 
     def flip_img_vertically(self):
-        self._img_data = np.flipud(self.img_data)
+        self._img_data = np.flipud(self._img_data)
+        if self._background_data is not None:
+            self._background_data = np.flipud(self._background_data)
         self.img_transformations.append(np.flipud)
         self.notify()
 
     def reset_img_transformations(self):
         for transformation in reversed(self.img_transformations):
             if transformation == rotate_matrix_p90:
-                self._img_data = rotate_matrix_m90(self.img_data)
+                self._img_data = rotate_matrix_m90(self._img_data)
+                if self._background_data is not None:
+                    self._background_data = rotate_matrix_m90(self._background_data)
             elif transformation == rotate_matrix_m90:
-                self._img_data = rotate_matrix_p90(self.img_data)
+                self._img_data = rotate_matrix_p90(self._img_data)
+                if self._background_data is not None:
+                    self._background_data = rotate_matrix_p90(self._background_data)
             else:
-                self._img_data = transformation(self.img_data)
+                self._img_data = transformation(self._img_data)
+                if self._background_data is not None:
+                    self._background_data = transformation(self._background_data)
         self.img_transformations = []
         self.notify()
 
@@ -153,34 +209,34 @@ class ImgData(Observable):
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
 
+    def perform_background_transformations(self):
+        for transformation in self.img_transformations:
+            self._background_data = transformation(self._background_data)
+
     def set_supersampling(self, factor=None):
         if factor is None:
             factor = self.supersampling_factor
         else:
             self.supersampling_factor = factor
+        self._img_data_supersampled = self.supersample_data(self._img_data, factor)
 
-        if factor != 1:
-            self._img_data_supersampled = np.zeros((self._img_data.shape[0] * factor,
-                                                    self._img_data.shape[1] * factor))
+        if self._background_data is not None:
+            self._background_data_supersampled = self.supersample_data(self._background_data, factor)
+
+
+    def supersample_data(self, img_data, factor):
+        if factor > 1:
+            img_data_supersampled = np.zeros((img_data.shape[0] * factor,
+                                              img_data.shape[1] * factor))
             for row in range(factor):
                 for col in range(factor):
-                    self._img_data_supersampled[row::factor, col::factor] = self._img_data
+                    img_data_supersampled[row::factor, col::factor] = img_data
+
+            return img_data_supersampled
+        else:
+            return img_data
+
 
     def set_absorption_correction(self, absorption_correction):
         self._absorption_correction = absorption_correction
         self.notify()
-
-
-def test():
-    filename = '../ExampleData/test_999.tif'
-    print((FileNameIterator.get_next_filename(filename)))
-
-    filename = '../ExampleData/test_002.tif'
-    print((FileNameIterator.get_previous_filename(filename)))
-
-    filename = '../ExampleData/test_008.tif'
-    print((FileNameIterator.get_next_filename(filename, 'date')))
-
-
-if __name__ == '__main__':
-    test()
