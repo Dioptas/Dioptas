@@ -3,12 +3,8 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import sys
-import os
-import numpy as np
-import time
 
 from PyQt4 import QtGui
-import matplotlib.pyplot as plt
 
 
 from Data.ImgData import ImgData
