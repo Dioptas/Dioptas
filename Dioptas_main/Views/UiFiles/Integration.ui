@@ -1843,7 +1843,7 @@ QTableWidget {
             <item row="1" column="0">
              <widget class="QPushButton" name="bkg_image_delete_btn">
               <property name="text">
-               <string>Delete Background</string>
+               <string>Delete</string>
               </property>
               <property name="flat">
                <bool>true</bool>
@@ -1867,7 +1867,7 @@ QTableWidget {
             <item row="0" column="0">
              <widget class="QPushButton" name="bkg_image_load_btn">
               <property name="text">
-               <string>Load Background</string>
+               <string>Load</string>
               </property>
               <property name="flat">
                <bool>true</bool>

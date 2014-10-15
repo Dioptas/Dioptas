@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Wed Oct 15 17:02:36 2014
+# Created: Wed Oct 15 17:11:41 2014
 #      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -1242,10 +1242,10 @@ class Ui_xrs_integration_widget(object):
         self.label_9.setText(_translate("xrs_integration_widget", "Parameter", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.phase_tab), _translate("xrs_integration_widget", "Phase", None))
         self.groupBox_5.setTitle(_translate("xrs_integration_widget", "Image Background", None))
-        self.bkg_image_delete_btn.setText(_translate("xrs_integration_widget", "Delete Background", None))
+        self.bkg_image_delete_btn.setText(_translate("xrs_integration_widget", "Delete", None))
         self.label_19.setText(_translate("xrs_integration_widget", "Scale:", None))
         self.label_20.setText(_translate("xrs_integration_widget", "Offset:", None))
-        self.bkg_image_load_btn.setText(_translate("xrs_integration_widget", "Load Background", None))
+        self.bkg_image_load_btn.setText(_translate("xrs_integration_widget", "Load", None))
         self.bkg_image_offset_step_txt.setText(_translate("xrs_integration_widget", "100", None))
         self.bkg_image_filename.setText(_translate("xrs_integration_widget", "None", None))
         self.bkg_image_scale_step_txt.setText(_translate("xrs_integration_widget", "0.01", None))

@@ -39,6 +39,7 @@ from Controller.IntegrationOverlayController import IntegrationOverlayController
 from Controller.IntegrationImageController import IntegrationImageController
 from Controller.IntegrationSpectrumController import IntegrationSpectrumController
 from Controller.IntegrationPhaseController import IntegrationPhaseController
+from Controller.IntegrationBackgroundController import IntegrationBackgroundController
 
 
 class IntegrationController(object):
@@ -101,6 +102,9 @@ class IntegrationController(object):
 
         self.phase_controller = IntegrationPhaseController(self.working_dir, self.view, self.calibration_data,
                                                            self.spectrum_data, self.phase_data)
+
+        self.background_controller = IntegrationBackgroundController(self.working_dir, self.view,
+                                                                     self.img_data, self.spectrum_data)
 
 
 if __name__ == "__main__":
