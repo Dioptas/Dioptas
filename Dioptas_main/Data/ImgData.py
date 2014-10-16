@@ -77,15 +77,16 @@ class ImgData(Observable):
         self.background_filename = filename
         try:
             self._background_data_fabio = fabio.open(filename)
-            self._background_data = self._background_data_fabio.data[::-1]
+            self._background_data = self._background_data_fabio.data[::-1].astype(float)
         except AttributeError:
-            self._background_data = np.array(Image.open(filename))[::-1]
+            self._background_data = np.array(Image.open(filename))[::-1].astype(float)
         self.perform_background_transformations()
         self.set_supersampling()
         self.notify()
 
     def reset_background(self):
         self._background_data = None
+        self.notify()
 
     def set_background_scaling(self, value):
         self._background_scaling = value
@@ -122,7 +123,10 @@ class ImgData(Observable):
         return self.img_data
 
     def get_img(self):
-        return self._img_data
+        if self._background_data is not None:
+            return self._img_data - (self._background_scaling * self._background_data + self._background_offset)
+        else:
+            return self._img_data
 
     @property
     def img_data(self):
