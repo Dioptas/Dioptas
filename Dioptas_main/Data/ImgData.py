@@ -77,9 +77,9 @@ class ImgData(Observable):
         self.background_filename = filename
         try:
             self._background_data_fabio = fabio.open(filename)
-            self._background_data = self._background_data_fabio.data[::-1]
+            self._background_data = self._background_data_fabio.data[::-1].astype(float)
         except AttributeError:
-            self._background_data = np.array(Image.open(filename))[::-1]
+            self._background_data = np.array(Image.open(filename))[::-1].astype(float)
         self.perform_background_transformations()
         self.set_supersampling()
         self.notify()
