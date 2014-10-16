@@ -86,6 +86,7 @@ class ImgData(Observable):
 
     def reset_background(self):
         self._background_data = None
+        self.notify()
 
     def set_background_scaling(self, value):
         self._background_scaling = value
@@ -122,7 +123,10 @@ class ImgData(Observable):
         return self.img_data
 
     def get_img(self):
-        return self._img_data
+        if self._background_data is not None:
+            return self._img_data - (self._background_scaling * self._background_data + self._background_offset)
+        else:
+            return self._img_data
 
     @property
     def img_data(self):

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Wed Oct 15 17:11:41 2014
+# Created: Thu Oct 16 13:47:57 2014
 #      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -764,6 +764,7 @@ class Ui_xrs_integration_widget(object):
         self.bkg_image_scale_sb.setObjectName(_fromUtf8("bkg_image_scale_sb"))
         self.gridLayout_5.addWidget(self.bkg_image_scale_sb, 1, 2, 1, 1)
         self.bkg_image_delete_btn = QtGui.QPushButton(self.groupBox_5)
+        self.bkg_image_delete_btn.setMinimumSize(QtCore.QSize(75, 0))
         self.bkg_image_delete_btn.setFlat(True)
         self.bkg_image_delete_btn.setObjectName(_fromUtf8("bkg_image_delete_btn"))
         self.gridLayout_5.addWidget(self.bkg_image_delete_btn, 1, 0, 1, 1)
@@ -774,6 +775,7 @@ class Ui_xrs_integration_widget(object):
         self.label_20.setObjectName(_fromUtf8("label_20"))
         self.gridLayout_5.addWidget(self.label_20, 1, 5, 1, 1)
         self.bkg_image_load_btn = QtGui.QPushButton(self.groupBox_5)
+        self.bkg_image_load_btn.setMinimumSize(QtCore.QSize(75, 0))
         self.bkg_image_load_btn.setFlat(True)
         self.bkg_image_load_btn.setObjectName(_fromUtf8("bkg_image_load_btn"))
         self.gridLayout_5.addWidget(self.bkg_image_load_btn, 0, 0, 1, 1)
@@ -787,9 +789,9 @@ class Ui_xrs_integration_widget(object):
         self.bkg_image_offset_step_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.bkg_image_offset_step_txt.setObjectName(_fromUtf8("bkg_image_offset_step_txt"))
         self.gridLayout_5.addWidget(self.bkg_image_offset_step_txt, 1, 7, 1, 1)
-        self.bkg_image_filename = QtGui.QLabel(self.groupBox_5)
-        self.bkg_image_filename.setObjectName(_fromUtf8("bkg_image_filename"))
-        self.gridLayout_5.addWidget(self.bkg_image_filename, 0, 1, 1, 8)
+        self.bkg_image_filename_lbl = QtGui.QLabel(self.groupBox_5)
+        self.bkg_image_filename_lbl.setObjectName(_fromUtf8("bkg_image_filename_lbl"))
+        self.gridLayout_5.addWidget(self.bkg_image_filename_lbl, 0, 1, 1, 8)
         self.bkg_image_scale_step_txt = QtGui.QLineEdit(self.groupBox_5)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -1076,7 +1078,7 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_21.addWidget(self.click_int_lbl)
         self.verticalLayout_4.addLayout(self.horizontalLayout_21)
         self.horizontalLayout_12.addWidget(self.widget_3)
-        spacerItem18 = QtGui.QSpacerItem(80, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        spacerItem18 = QtGui.QSpacerItem(180, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_12.addItem(spacerItem18)
         self.horizontalLayout_24.addWidget(self.footer_img_mouse_position_widget)
         self.verticalLayout_3 = QtGui.QVBoxLayout()
@@ -1145,19 +1147,20 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_29.addWidget(self.click_azi_lbl)
         self.verticalLayout_3.addLayout(self.horizontalLayout_29)
         self.horizontalLayout_24.addLayout(self.verticalLayout_3)
-        spacerItem19 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        spacerItem19 = QtGui.QSpacerItem(250, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_24.addItem(spacerItem19)
         self.verticalLayout_14 = QtGui.QVBoxLayout()
         self.verticalLayout_14.setObjectName(_fromUtf8("verticalLayout_14"))
         spacerItem20 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout_14.addItem(spacerItem20)
         self.bkg_name_lbl = QtGui.QLabel(self.widget1)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.bkg_name_lbl.sizePolicy().hasHeightForWidth())
         self.bkg_name_lbl.setSizePolicy(sizePolicy)
-        self.bkg_name_lbl.setMinimumSize(QtCore.QSize(0, 19))
+        self.bkg_name_lbl.setMinimumSize(QtCore.QSize(160, 19))
+        self.bkg_name_lbl.setText(_fromUtf8(""))
         self.bkg_name_lbl.setObjectName(_fromUtf8("bkg_name_lbl"))
         self.verticalLayout_14.addWidget(self.bkg_name_lbl)
         self.horizontalLayout_24.addLayout(self.verticalLayout_14)
@@ -1247,7 +1250,7 @@ class Ui_xrs_integration_widget(object):
         self.label_20.setText(_translate("xrs_integration_widget", "Offset:", None))
         self.bkg_image_load_btn.setText(_translate("xrs_integration_widget", "Load", None))
         self.bkg_image_offset_step_txt.setText(_translate("xrs_integration_widget", "100", None))
-        self.bkg_image_filename.setText(_translate("xrs_integration_widget", "None", None))
+        self.bkg_image_filename_lbl.setText(_translate("xrs_integration_widget", "None", None))
         self.bkg_image_scale_step_txt.setText(_translate("xrs_integration_widget", "0.01", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.bkg_tab), _translate("xrs_integration_widget", "Bkg", None))
         self.groupBox1.setTitle(_translate("xrs_integration_widget", "Mask", None))
@@ -1293,6 +1296,5 @@ class Ui_xrs_integration_widget(object):
         self.click_q_lbl.setText(_translate("xrs_integration_widget", "Q:", None))
         self.click_d_lbl.setText(_translate("xrs_integration_widget", "d:", None))
         self.click_azi_lbl.setText(_translate("xrs_integration_widget", "χ:", None))
-        self.bkg_name_lbl.setText(_translate("xrs_integration_widget", "Bkg:", None))
 
 from pyqtgraph import GraphicsLayoutWidget
