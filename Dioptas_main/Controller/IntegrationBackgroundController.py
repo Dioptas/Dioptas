@@ -18,6 +18,8 @@
 
 __author__ = 'Clemens Prescher'
 from PyQt4 import QtGui, QtCore
+import os
+import numpy as np
 
 
 class IntegrationBackgroundController(object):
@@ -26,7 +28,7 @@ class IntegrationBackgroundController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, working_dir, view, img_data, spectrum_data,):
+    def __init__(self, working_dir, view, img_data, spectrum_data, ):
         self.working_dir = working_dir
         self.view = view
         self.img_data = img_data
@@ -39,8 +41,8 @@ class IntegrationBackgroundController(object):
 
         self.view.bkg_image_scale_step_txt.editingFinished.connect(self.update_bkg_image_scale_step)
         self.view.bkg_image_offset_step_txt.editingFinished.connect(self.update_bkg_image_offset_step)
-        self.view.bkg_image_scale_sb.valueChanged.connect(self.bkg_image_scale_sb_changed)
-        self.view.bkg_image_offset_sb.valueChanged.connect(self.bkg_image_offset_sb_changed)
+        self.view.bkg_image_scale_sb.valueChanged.connect(self.img_data.set_background_scaling)
+        self.view.bkg_image_offset_sb.valueChanged.connect(self.img_data.set_background_offset)
 
     def connect_click_function(self, emitter, function):
         """
@@ -48,21 +50,26 @@ class IntegrationBackgroundController(object):
         """
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def load_background(self, filename = None):
-        print 'yeha loading file'
+    def load_background(self, filename=None):
+        if filename is None:
+            filename = str(QtGui.QFileDialog.getOpenFileName(
+                self.view, "Load an image background file",
+                self.working_dir['image']))
+
+        if filename is not None and filename is not '':
+            self.img_data.load_background(filename)
+            self.view.bkg_image_filename_lbl.setText(os.path.basename(filename))
+            self.view.bkg_name_lbl.setText("Bkg Image: {}".format(os.path.basename(filename)))
 
     def delete_background(self):
-        print 'deleting background'
+        self.img_data.reset_background()
+        self.view.bkg_image_filename_lbl.setText("None")
+        self.view.bkg_name_lbl.setText('')
 
     def update_bkg_image_scale_step(self):
-        pass
+        value = np.float(self.view.bkg_image_scale_step_txt.text())
+        self.view.bkg_image_scale_sb.setSingleStep(value)
 
     def update_bkg_image_offset_step(self):
-        pass
-
-    def bkg_image_scale_sb_changed(self):
-        pass
-
-    def bkg_image_offset_sb_changed(self):
-        pass
-
+        value = np.float(self.view.bkg_image_offset_step_txt.text())
+        self.view.bkg_image_offset_sb.setSingleStep(value)
