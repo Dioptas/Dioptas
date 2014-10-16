@@ -133,3 +133,13 @@ class ImgDataUnitTest(unittest.TestCase):
         self.assertTrue(np.array_equal(self.img_data.img_data,
                                        self.img_data._img_data-(2.3*self.img_data._background_data+100)))
 
+    def test_background_with_different_shape(self):
+        self.img_data.load_background('Data/CeO2_Pilatus1M.tif')
+        self.assertEqual(self.img_data._background_data, None)
+
+        self.img_data.load_background('Data/Mg2SiO4_ambient_002.tif')
+        self.assertTrue(self.img_data._background_data is not None)
+
+        self.img_data.load('Data/CeO2_Pilatus1M.tif')
+        self.assertEqual(self.img_data._background_data, None)
+
