@@ -68,10 +68,15 @@ class ImgData(Observable):
             self._img_data = self._img_data_fabio.data[::-1]
         except AttributeError:
             self._img_data = np.array(Image.open(filename))[::-1]
-        self.perform_img_transformations()
+        self.file_name_iterator.update_filename(filename)
+
+        if not self._image_and_background_shape_equal():
+            self._background_data = None
+            self._background_data_fabio = None
+
+        self.perform_background_transformations()
         self.set_supersampling()
         self.notify()
-        self.file_name_iterator.update_filename(filename)
 
     def load_background(self, filename):
         self.background_filename = filename
@@ -80,9 +85,23 @@ class ImgData(Observable):
             self._background_data = self._background_data_fabio.data[::-1].astype(float)
         except AttributeError:
             self._background_data = np.array(Image.open(filename))[::-1].astype(float)
-        self.perform_background_transformations()
-        self.set_supersampling()
-        self.notify()
+
+        if self._image_and_background_shape_equal():
+            self.perform_background_transformations()
+            self.set_supersampling()
+            self.notify()
+            return True
+        else:
+            self._background_data = None
+            self._background_data_fabio = None
+            return False
+
+    def _image_and_background_shape_equal(self):
+        if self._background_data is None:
+            return True
+        if self._background_data.shape == self._img_data.shape:
+            return True
+        return False
 
     def reset_background(self):
         self._background_data = None
