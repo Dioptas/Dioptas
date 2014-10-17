@@ -53,7 +53,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.img_pg_layout.ci.layout.setSpacing(5)
         self.frame_img_positions_widget.hide()
         self.img_frame_size = QtCore.QSize(400, 500)
-        self.img_frame_position = QtCore.QPoint(0,0)
+        self.img_frame_position = QtCore.QPoint(0, 0)
 
         self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
         self.spectrum_pg_layout.ci.layout.setContentsMargins(10, 10, 0, 10)
@@ -127,7 +127,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
             self.img_frame_size = self.img_frame.size()
             self.img_frame_position = self.img_frame.pos()
 
-            #reassign visibilities of mouse position and click labels
+            # reassign visibilities of mouse position and click labels
             self.footer_img_mouse_position_widget.show()
             self.frame_img_positions_widget.hide()
 
@@ -214,7 +214,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         label_item = self.overlay_tw.item(row, col)
         self.overlay_name_changed.emit(row, str(label_item.text()))
 
-    ################################################################################################
+    # ###############################################################################################
     # Now comes all the phase tw stuff
     ################################################################################################
 
@@ -289,7 +289,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.spectrum_view.rename_phase(ind, name)
         name_item = self.phase_tw.item(ind, 2)
         name_item.setText(name)
-
 
 
     def set_phase_tw_temperature(self, ind, T):

@@ -90,11 +90,10 @@ class ImgData(Observable):
             self.perform_background_transformations()
             self.set_supersampling()
             self.notify()
-            return True
         else:
             self._background_data = None
             self._background_data_fabio = None
-            return False
+            self.notify()
 
     def _image_and_background_shape_equal(self):
         if self._background_data is None:
@@ -106,6 +105,9 @@ class ImgData(Observable):
     def reset_background(self):
         self._background_data = None
         self.notify()
+
+    def has_background(self):
+        return self._background_data is not None
 
     def set_background_scaling(self, value):
         self._background_scaling = value
