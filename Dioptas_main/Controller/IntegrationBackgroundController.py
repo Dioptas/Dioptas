@@ -44,6 +44,8 @@ class IntegrationBackgroundController(object):
         self.view.bkg_image_scale_sb.valueChanged.connect(self.img_data.set_background_scaling)
         self.view.bkg_image_offset_sb.valueChanged.connect(self.img_data.set_background_offset)
 
+        self.img_data.subscribe(self.update_background_image_filename)
+
     def connect_click_function(self, emitter, function):
         """
         Small helper function for the button-click connection.
@@ -57,14 +59,13 @@ class IntegrationBackgroundController(object):
                 self.working_dir['image']))
 
         if filename is not None and filename is not '':
+            self.view.bkg_image_filename_lbl.setText("Loading File")
             self.img_data.load_background(filename)
-            self.view.bkg_image_filename_lbl.setText(os.path.basename(filename))
-            self.view.bkg_name_lbl.setText("Bkg Image: {}".format(os.path.basename(filename)))
 
     def delete_background(self):
-        self.img_data.reset_background()
         self.view.bkg_image_filename_lbl.setText("None")
         self.view.bkg_name_lbl.setText('')
+        self.img_data.reset_background()
 
     def update_bkg_image_scale_step(self):
         value = np.float(self.view.bkg_image_scale_step_txt.text())
@@ -73,3 +74,16 @@ class IntegrationBackgroundController(object):
     def update_bkg_image_offset_step(self):
         value = np.float(self.view.bkg_image_offset_step_txt.text())
         self.view.bkg_image_offset_sb.setSingleStep(value)
+
+    def update_background_image_filename(self):
+        if self.img_data.has_background():
+            self.view.bkg_image_filename_lbl.setText(os.path.basename(self.img_data.background_filename))
+            self.view.bkg_name_lbl.setText('Bkg image: {}'.format(os.path.basename(self.img_data.background_filename)))
+        else:
+            if str(self.view.bkg_image_filename_lbl.text())!='None':
+                QtGui.QMessageBox.critical(self.view, 'ERROR',
+                                           'Background image does not have the same dimensions as original Image. ' +\
+                                           'Resetting Background Image.')
+
+            self.view.bkg_image_filename_lbl.setText('None')
+            self.view.bkg_name_lbl.setText('')
