@@ -55,6 +55,17 @@ class ImgData(Observable):
                                          800 + 400 * random.random()) * \
                           gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
                                          800 + 400 * random.random())
+
+        self._img_data_background_subtracted = None
+        self._img_data_absorption_corrected = None
+        self._img_data_background_subtracted_absorption_corrected = None
+
+        self._img_data_supersampled = None
+        self._img_data_supersampled_background_subtracted = None
+        self._img_data_supersampled_absorption_corrected = None
+        self._img_data_supersampled_background_subtracted_absorption_corrected = None
+
+        self.background_filename = ''
         self._background_data = None
         self._background_scaling = 1
         self._background_offset = 0
@@ -71,11 +82,11 @@ class ImgData(Observable):
         self.file_name_iterator.update_filename(filename)
 
         if not self._image_and_background_shape_equal():
-            self._background_data = None
-            self._background_data_fabio = None
+            self._reset_background()
 
-        self.perform_background_transformations()
-        self.set_supersampling()
+        self.perform_img_transformations()
+        self._set_image_super_sampling(self.supersampling_factor)
+        self._calculate_img_data()
         self.notify()
 
     def load_background(self, filename):
@@ -88,12 +99,11 @@ class ImgData(Observable):
 
         if self._image_and_background_shape_equal():
             self.perform_background_transformations()
-            self.set_supersampling()
-            self.notify()
+            self._set_background_super_sampling(self.supersampling_factor)
         else:
-            self._background_data = None
-            self._background_data_fabio = None
-            self.notify()
+            self._reset_background()
+        self._calculate_img_data()
+        self.notify()
 
     def _image_and_background_shape_equal(self):
         if self._background_data is None:
@@ -102,8 +112,13 @@ class ImgData(Observable):
             return True
         return False
 
-    def reset_background(self):
+    def _reset_background(self):
+        self.background_filename = None
         self._background_data = None
+        self._background_data_fabio = None
+
+    def reset_background(self):
+        self._reset_background()
         self.notify()
 
     def has_background(self):
@@ -111,25 +126,23 @@ class ImgData(Observable):
 
     def set_background_scaling(self, value):
         self._background_scaling = value
+        self._calculate_img_data()
         self.notify()
 
     def set_background_offset(self, value):
         self._background_offset = value
+        self._calculate_img_data()
         self.notify()
 
     def load_next_file(self):
         next_file_name = self.file_name_iterator.get_next_filename(self.file_iteration_mode)
         if next_file_name is not None:
             self.load(next_file_name)
-            return True
-        return False
 
     def load_previous_file(self):
         previous_file_name = self.file_name_iterator.get_previous_filename(self.file_iteration_mode)
         if previous_file_name is not None:
             self.load(previous_file_name)
-            return True
-        return False
 
     def set_file_iteration_mode(self, mode):
         if mode == 'number':
@@ -145,9 +158,37 @@ class ImgData(Observable):
 
     def get_img(self):
         if self._background_data is not None:
-            return self._img_data - (self._background_scaling * self._background_data + self._background_offset)
+            return self._img_data_background_subtracted
         else:
             return self._img_data
+
+    def _calculate_img_data(self):
+        print "calculating image"
+        if self.supersampling_factor == 1:
+            if self._background_data is not None and self._absorption_correction is None:
+                self._img_data_background_subtracted = self._img_data - (self._background_scaling *
+                                                                         self._background_data +
+                                                                         self._background_offset)
+            elif self._background_data is None and self._absorption_correction is not None:
+                self._img_data_absorption_corrected = self._img_data / self._absorption_correction
+
+            elif self._background_data is not None and self._absorption_correction is not None:
+                self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
+                    self._background_scaling * self._background_data + self._background_offset)) / \
+                                                                            self._absorption_correction
+        else:
+            if self._background_data is not None and self._absorption_correction is None:
+                self._img_data_supersampled_background_subtracted = self._img_data_supersampled - (self._background_scaling *
+                                                                         self._background_data_supersampled +
+                                                                         self._background_offset)
+            elif self._background_data is None and self._absorption_correction is not None:
+                self._img_data_supersampled_absorption_corrected = self._img_data_supersampled / self._absorption_correction
+
+            elif self._background_data is not None and self._absorption_correction is not None:
+                self._img_data_supersampled_background_subtracted_absorption_corrected = (self._img_data_supersampled - (
+                    self._background_scaling * self._background_data_supersampled + self._background_offset)) / \
+                                                                            self._absorption_correction
+
 
     @property
     def img_data(self):
@@ -156,40 +197,39 @@ class ImgData(Observable):
         :return:
             img data with background and absorption correction if available
         """
-
         if self.supersampling_factor == 1:
             if self._background_data is None and self._absorption_correction is None:
                 return self._img_data
 
             elif self._background_data is not None and self._absorption_correction is None:
-                return self._img_data - (self._background_scaling * self._background_data + self._background_offset)
+                return self._img_data_background_subtracted
 
             elif self._background_data is None and self._absorption_correction is not None:
-                return self._img_data / self._absorption_correction
+                return self._img_data_absorption_corrected
 
             elif self._background_data is not None and self._absorption_correction is not None:
-                return (self._img_data - (
-                self._background_scaling * self._background_data + self._background_offset)) / self._absorption_correction
+                return self._img_data_background_subtracted_absorption_corrected
 
         else:
             if self._background_data is None and self._absorption_correction is None:
                 return self._img_data_supersampled
 
             elif self._background_data is not None and self._absorption_correction is None:
-                return self._img_data_supersampled - (self._background_scaling * self._background_data_supersampled + self._background_offset)
+                return self._img_data_supersampled_background_subtracted
 
             elif self._background_data is None and self._absorption_correction is not None:
-                return self._img_data_supersampled / self._absorption_correction
+                return self._img_data_supersampled_absorption_corrected
 
             elif self._background_data is not None and self._absorption_correction is not None:
-                return (self._img_data_supersampled - (
-                self._background_scaling * self._background_data_supersampled + self._background_offset)) / self._absorption_correction
+                return self._img_data_supersampled_background_subtracted_absorption_corrected
 
     def rotate_img_p90(self):
         self._img_data = rotate_matrix_p90(self._img_data)
         if self._background_data is not None:
             self._background_data = rotate_matrix_p90(self._background_data)
         self.img_transformations.append(rotate_matrix_p90)
+
+        self._calculate_img_data()
         self.notify()
 
     def rotate_img_m90(self):
@@ -197,6 +237,8 @@ class ImgData(Observable):
         if self._background_data is not None:
             self._background_data = rotate_matrix_m90(self._background_data)
         self.img_transformations.append(rotate_matrix_m90)
+
+        self._calculate_img_data()
         self.notify()
 
     def flip_img_horizontally(self):
@@ -204,6 +246,8 @@ class ImgData(Observable):
         if self._background_data is not None:
             self._background_data = np.fliplr(self._background_data)
         self.img_transformations.append(np.fliplr)
+
+        self._calculate_img_data()
         self.notify()
 
     def flip_img_vertically(self):
@@ -211,6 +255,8 @@ class ImgData(Observable):
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
         self.img_transformations.append(np.flipud)
+        
+        self._calculate_img_data()
         self.notify()
 
     def reset_img_transformations(self):
@@ -228,6 +274,7 @@ class ImgData(Observable):
                 if self._background_data is not None:
                     self._background_data = transformation(self._background_data)
         self.img_transformations = []
+        self._calculate_img_data()
         self.notify()
 
     def perform_img_transformations(self):
@@ -238,16 +285,22 @@ class ImgData(Observable):
         for transformation in self.img_transformations:
             self._background_data = transformation(self._background_data)
 
-    def set_supersampling(self, factor=None):
-        if factor is None:
-            factor = self.supersampling_factor
-        else:
-            self.supersampling_factor = factor
+    def _set_supersampling(self, factor = None):
+        self._set_image_super_sampling(factor)
+        self._set_background_super_sampling(factor)
+
+    def _set_image_super_sampling(self, factor):
         self._img_data_supersampled = self.supersample_data(self._img_data, factor)
 
+    def _set_background_super_sampling(self, factor):
         if self._background_data is not None:
             self._background_data_supersampled = self.supersample_data(self._background_data, factor)
 
+    def set_supersampling(self, factor=None):
+        self.supersampling_factor = factor
+        self._set_supersampling(factor)
+        print 'hm'
+        self._calculate_img_data()
 
     def supersample_data(self, img_data, factor):
         if factor > 1:
@@ -264,4 +317,5 @@ class ImgData(Observable):
 
     def set_absorption_correction(self, absorption_correction):
         self._absorption_correction = absorption_correction
+        self._calculate_img_data()
         self.notify()
