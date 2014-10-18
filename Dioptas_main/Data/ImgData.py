@@ -112,9 +112,6 @@ class ImgData(Observable):
             self._img_data = np.array(Image.open(filename))[::-1]
         self.file_name_iterator.update_filename(filename)
 
-        if not self._image_and_background_shape_equal():
-            self._reset_background()
-
         self._perform_img_transformations()
         self._calculate_img_data()
         self.notify()
@@ -133,10 +130,7 @@ class ImgData(Observable):
         except AttributeError:
             self._background_data = np.array(Image.open(filename))[::-1].astype(float)
 
-        if self._image_and_background_shape_equal():
-            self._perform_background_transformations()
-        else:
-            self._reset_background()
+        self._perform_background_transformations()
         self._calculate_img_data()
         self.notify()
 
@@ -209,6 +203,16 @@ class ImgData(Observable):
         Calculates compound img_data based on the state of the object. This function is used internally to not compute
         those img arrays every time somebody requests the image data by get_img_data() and img_data.
         """
+
+        #check that all data has the same dimensions
+        if self._background_data is not None:
+            if self._img_data.shape != self._background_data.shape:
+                self._background_data = None
+        if self._absorption_correction is not None:
+            if self._img_data.shape != self._absorption_correction.shape:
+                self._absorption_correction = None
+
+        #calculate the current _img_data
         if self._background_data is not None and self._absorption_correction is None:
             self._img_data_background_subtracted = self._img_data - (self._background_scaling *
                                                                      self._background_data +
@@ -220,6 +224,8 @@ class ImgData(Observable):
             self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
                 self._background_scaling * self._background_data + self._background_offset)) / \
                                                                         self._absorption_correction
+
+        # supersample the current image data
         if self.supersampling_factor > 1:
             if self._background_data is None and self._absorption_correction is None:
                 self._img_data_supersampled = self.supersample_data(self._img_data, self.supersampling_factor)
@@ -363,8 +369,9 @@ class ImgData(Observable):
         """
         Performs all saved image transformation on background image.
         """
-        for transformation in self.img_transformations:
-            self._background_data = transformation(self._background_data)
+        if self._background_data is not None:
+            for transformation in self.img_transformations:
+                self._background_data = transformation(self._background_data)
 
 
     def set_supersampling(self, factor=None):
@@ -401,7 +408,16 @@ class ImgData(Observable):
         Sets an array by which the image will be divided
         :param absorption_correction: array with same shape as the loaded original image
         """
-        if absorption_correction.shape == self._img_data.shape:
+        if absorption_correction is None:
+            self._absorption_correction = None
+            self.notify()
+        elif absorption_correction.shape == self._img_data.shape:
             self._absorption_correction = absorption_correction
             self._calculate_img_data()
             self.notify()
+
+    def has_absorption_correction(self):
+        """
+        :return: Whether the ImgData object has an active absorption correction or not
+        """
+        return self._absorption_correction is not None
