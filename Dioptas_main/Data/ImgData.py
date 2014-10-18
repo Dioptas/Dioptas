@@ -26,15 +26,33 @@ logger = logging.getLogger(__name__)
 import numpy as np
 import random
 import fabio
-import pyFAI
-import pyFAI.utils
 from PIL import Image
 from .HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator, gauss_function
 
 
 class ImgData(Observable):
+    """
+    Main Image handling class. Supports several features:
+        - loading image files in any format using fabio
+        - iterating through files either by file number or time of creation
+        - image transformations like rotating and flipping
+        - setting a background image
+        - setting an absorption correction (img_data is divided by this)
+        - using supersampling (splitting each pixel into n**2 pixel with equal intensity)
+
+    It inherits the Observable interface for implementing the observer pattern. To subscribe a function to changes in
+    ImgData use:
+        img_data = ImgData()
+        img_data.subscribe(function)
+
+    The function will be called every time the img_data has changed.
+    """
     def __init__(self):
+        """
+        Defines all object variables and creates a dummy image.
+        :return:
+        """
         super(ImgData, self).__init__()
         self.filename = ''
         self.img_transformations = []
@@ -43,6 +61,28 @@ class ImgData(Observable):
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 
+        self._img_data = None
+        self._img_data_background_subtracted = None
+        self._img_data_absorption_corrected = None
+        self._img_data_background_subtracted_absorption_corrected = None
+
+        self._img_data_supersampled = None
+        self._img_data_supersampled_background_subtracted = None
+        self._img_data_supersampled_absorption_corrected = None
+        self._img_data_supersampled_background_subtracted_absorption_corrected = None
+
+        self.background_filename = ''
+        self._background_data = None
+        self._background_data_supersampled = None
+        self._background_scaling = 1
+        self._background_offset = 0
+
+        self._absorption_correction = None
+        self._absorption_correction_supersampled = None
+
+        self._create_dummy_img()
+
+    def _create_dummy_img(self):
         x = np.arange(2048)
         y = np.arange(2048)
         X, Y = np.meshgrid(x, y)
@@ -56,22 +96,13 @@ class ImgData(Observable):
                           gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
                                          800 + 400 * random.random())
 
-        self._img_data_background_subtracted = None
-        self._img_data_absorption_corrected = None
-        self._img_data_background_subtracted_absorption_corrected = None
-
-        self._img_data_supersampled = None
-        self._img_data_supersampled_background_subtracted = None
-        self._img_data_supersampled_absorption_corrected = None
-        self._img_data_supersampled_background_subtracted_absorption_corrected = None
-
-        self.background_filename = ''
-        self._background_data = None
-        self._background_scaling = 1
-        self._background_offset = 0
-        self._absorption_correction = None
-
     def load(self, filename):
+        """
+        Loads an image file in any format known by fabIO. Automatically performs all previous img transformations,
+        performs supersampling and recalculates background subtracted and absorption corrected image data. Observers
+        will be notified after the process.
+        :param filename: path of the image file to be loaded
+        """
         logger.info("Loading {}.".format(filename))
         self.filename = filename
         try:
@@ -84,12 +115,17 @@ class ImgData(Observable):
         if not self._image_and_background_shape_equal():
             self._reset_background()
 
-        self.perform_img_transformations()
-        self._set_image_super_sampling(self.supersampling_factor)
+        self._perform_img_transformations()
         self._calculate_img_data()
         self.notify()
 
     def load_background(self, filename):
+        """
+        Loads an image file as background in any format known by fabIO. Automatically performs all previous img
+        transformations, supersampling and recalculates background subtracted and absorption corrected image data.
+        Observers will be notified after the process.
+        :param filename: path of the image file to be loaded
+        """
         self.background_filename = filename
         try:
             self._background_data_fabio = fabio.open(filename)
@@ -98,14 +134,17 @@ class ImgData(Observable):
             self._background_data = np.array(Image.open(filename))[::-1].astype(float)
 
         if self._image_and_background_shape_equal():
-            self.perform_background_transformations()
-            self._set_background_super_sampling(self.supersampling_factor)
+            self._perform_background_transformations()
         else:
             self._reset_background()
         self._calculate_img_data()
         self.notify()
 
     def _image_and_background_shape_equal(self):
+        """
+        Tests if the original image and original background image have the same shape
+        :return: Boolean
+        """
         if self._background_data is None:
             return True
         if self._background_data.shape == self._img_data.shape:
@@ -113,6 +152,9 @@ class ImgData(Observable):
         return False
 
     def _reset_background(self):
+        """
+        Resets the background data to None
+        """
         self.background_filename = None
         self._background_data = None
         self._background_data_fabio = None
@@ -163,39 +205,46 @@ class ImgData(Observable):
             return self._img_data
 
     def _calculate_img_data(self):
-        print "calculating image"
-        if self.supersampling_factor == 1:
+        """
+        Calculates compound img_data based on the state of the object. This function is used internally to not compute
+        those img arrays every time somebody requests the image data by get_img_data() and img_data.
+        """
+        if self._background_data is not None and self._absorption_correction is None:
+            self._img_data_background_subtracted = self._img_data - (self._background_scaling *
+                                                                     self._background_data +
+                                                                     self._background_offset)
+        elif self._background_data is None and self._absorption_correction is not None:
+            self._img_data_absorption_corrected = self._img_data / self._absorption_correction
+
+        elif self._background_data is not None and self._absorption_correction is not None:
+            self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
+                self._background_scaling * self._background_data + self._background_offset)) / \
+                                                                        self._absorption_correction
+        if self.supersampling_factor > 1:
+            if self._background_data is None and self._absorption_correction is None:
+                self._img_data_supersampled = self.supersample_data(self._img_data, self.supersampling_factor)
+
             if self._background_data is not None and self._absorption_correction is None:
-                self._img_data_background_subtracted = self._img_data - (self._background_scaling *
-                                                                         self._background_data +
-                                                                         self._background_offset)
+                self._img_data_supersampled_background_subtracted = \
+                    self.supersample_data(self._img_data_background_subtracted, self.supersampling_factor)
+
             elif self._background_data is None and self._absorption_correction is not None:
-                self._img_data_absorption_corrected = self._img_data / self._absorption_correction
+                self._img_data_supersampled_absorption_corrected = \
+                    self.supersample_data(self._img_data_absorption_corrected, self.supersampling_factor)
 
             elif self._background_data is not None and self._absorption_correction is not None:
-                self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
-                    self._background_scaling * self._background_data + self._background_offset)) / \
-                                                                            self._absorption_correction
-        else:
-            if self._background_data is not None and self._absorption_correction is None:
-                self._img_data_supersampled_background_subtracted = self._img_data_supersampled - (self._background_scaling *
-                                                                         self._background_data_supersampled +
-                                                                         self._background_offset)
-            elif self._background_data is None and self._absorption_correction is not None:
-                self._img_data_supersampled_absorption_corrected = self._img_data_supersampled / self._absorption_correction
-
-            elif self._background_data is not None and self._absorption_correction is not None:
-                self._img_data_supersampled_background_subtracted_absorption_corrected = (self._img_data_supersampled - (
-                    self._background_scaling * self._background_data_supersampled + self._background_offset)) / \
-                                                                            self._absorption_correction
+                self._img_data_supersampled_background_subtracted_absorption_corrected = \
+                    self.supersample_data(self._img_data_background_subtracted_absorption_corrected,
+                                          self.supersampling_factor)
 
 
     @property
     def img_data(self):
         """
-
         :return:
-            img data with background and absorption correction if available
+            The image based on the current state of the ImgData object. If supersampling is set it will return a
+            supersampled image array if background_data is set it will return a background_subtracted array and so on.
+            It also works for combinations of all these options.
         """
         if self.supersampling_factor == 1:
             if self._background_data is None and self._absorption_correction is None:
@@ -224,15 +273,27 @@ class ImgData(Observable):
                 return self._img_data_supersampled_background_subtracted_absorption_corrected
 
     def rotate_img_p90(self):
+        """
+        Rotates the image by 90 degree and updates the background accordingly (does not effect absorption correction).
+        The transformation is saved and applied to every new image and background image loaded.
+        Notifies observers.
+        """
         self._img_data = rotate_matrix_p90(self._img_data)
+
         if self._background_data is not None:
             self._background_data = rotate_matrix_p90(self._background_data)
+
         self.img_transformations.append(rotate_matrix_p90)
 
         self._calculate_img_data()
         self.notify()
 
     def rotate_img_m90(self):
+        """
+        Rotates the image by -90 degree and updates the background accordingly (does not effect absorption correction).
+        The transformation is saved and applied to every new image and background image loaded.
+        Notifies observers.
+        """
         self._img_data = rotate_matrix_m90(self._img_data)
         if self._background_data is not None:
             self._background_data = rotate_matrix_m90(self._background_data)
@@ -242,6 +303,11 @@ class ImgData(Observable):
         self.notify()
 
     def flip_img_horizontally(self):
+        """
+        Flips image about a horizontal axis and updates the background accordingly (does not effect absorption
+        correction). The transformation is saved and applied to every new image and background image loaded.
+        Notifies observers.
+        """
         self._img_data = np.fliplr(self._img_data)
         if self._background_data is not None:
             self._background_data = np.fliplr(self._background_data)
@@ -251,6 +317,11 @@ class ImgData(Observable):
         self.notify()
 
     def flip_img_vertically(self):
+        """
+        Flips image about a vertical axis and updates the background accordingly (does not effect absorption
+        correction). The transformation is saved and applied to every new image and background image loaded.
+        Notifies observers.
+        """
         self._img_data = np.flipud(self._img_data)
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
@@ -260,6 +331,10 @@ class ImgData(Observable):
         self.notify()
 
     def reset_img_transformations(self):
+        """
+        Reverts all image transformations and resets the transformation stack.
+        Notifies observers.
+        """
         for transformation in reversed(self.img_transformations):
             if transformation == rotate_matrix_p90:
                 self._img_data = rotate_matrix_m90(self._img_data)
@@ -277,32 +352,38 @@ class ImgData(Observable):
         self._calculate_img_data()
         self.notify()
 
-    def perform_img_transformations(self):
+    def _perform_img_transformations(self):
+        """
+        Performs all saved image transformation on original image.
+        """
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
 
-    def perform_background_transformations(self):
+    def _perform_background_transformations(self):
+        """
+        Performs all saved image transformation on background image.
+        """
         for transformation in self.img_transformations:
             self._background_data = transformation(self._background_data)
 
-    def _set_supersampling(self, factor = None):
-        self._set_image_super_sampling(factor)
-        self._set_background_super_sampling(factor)
-
-    def _set_image_super_sampling(self, factor):
-        self._img_data_supersampled = self.supersample_data(self._img_data, factor)
-
-    def _set_background_super_sampling(self, factor):
-        if self._background_data is not None:
-            self._background_data_supersampled = self.supersample_data(self._background_data, factor)
 
     def set_supersampling(self, factor=None):
+        """
+        Stores the supersampling factor and calculates supersampled original and background image arrays.
+        Updates all data calculations according to current ImgData object state.
+        Does not notify Observers!
+        :param factor: int - supersampling factor
+        """
         self.supersampling_factor = factor
-        self._set_supersampling(factor)
-        print 'hm'
         self._calculate_img_data()
 
     def supersample_data(self, img_data, factor):
+        """
+        Creates a supersampled array from img_data.
+        :param img_data: image array
+        :param factor: int - supersampling factor
+        :return:
+        """
         if factor > 1:
             img_data_supersampled = np.zeros((img_data.shape[0] * factor,
                                               img_data.shape[1] * factor))
@@ -316,6 +397,11 @@ class ImgData(Observable):
 
 
     def set_absorption_correction(self, absorption_correction):
-        self._absorption_correction = absorption_correction
-        self._calculate_img_data()
-        self.notify()
+        """
+        Sets an array by which the image will be divided
+        :param absorption_correction: array with same shape as the loaded original image
+        """
+        if absorption_correction.shape == self._img_data.shape:
+            self._absorption_correction = absorption_correction
+            self._calculate_img_data()
+            self.notify()
