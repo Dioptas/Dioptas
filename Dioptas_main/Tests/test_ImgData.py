@@ -143,3 +143,12 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_data.load('Data/CeO2_Pilatus1M.tif')
         self.assertEqual(self.img_data._background_data, None)
 
+    def test_absorption_correction_with_supersampling(self):
+        original_image = np.copy(self.img_data.get_img_data())
+        self.img_data.set_absorption_correction(np.ones(original_image.shape)*0.6)
+
+        self.assertAlmostEqual(np.sum(original_image)/0.6, np.sum(self.img_data.get_img_data()), places=4)
+
+        self.img_data.set_supersampling(2)
+        self.img_data.get_img_data()
+
