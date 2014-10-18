@@ -268,14 +268,39 @@ QGraphicsView{
       background: none;
   }
 
-QDockWidget::title {
-     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);	
-	 border: 1px solid  #5B5B5B;  
 
-     border-radius:2px;
-     padding: 2px;
-	margin: 0px;
+QDoubleSpinBox, QSpinBox {
+  padding-right: -8px;
+} 
+
+
+QSplitterHandle:hover {}
+
+QSplitter::handle:vertical{
+	background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #505050,
+stop: 0.7 #3C3C3C);
+	height: 15px;
 }
+
+QSplitter::handle:vertical:pressed, QSplitter::handle:vertical:hover{
+	background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #5C5C5C,
+stop: 0.7 #3C3C3C);
+}
+
+QSplitter::handle:horizontal{
+	background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #505050,
+stop: 0.7 #3C3C3C);
+	width: 15px;
+}
+
+QSplitter::handle:horizontal:pressed, QSplitter::handle:horizontal:hover{
+	background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #5C5C5C,
+stop: 0.7 #3C3C3C);
+}
+
+QSplitter::handle:hover {
+	background: #3C3C3C;
+ }
 
 
 
