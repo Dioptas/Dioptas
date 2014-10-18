@@ -130,15 +130,22 @@ class MainController(object):
         self.view.integration_widget.img_frame.setWindowTitle(str)
 
     def load_directories(self):
-        if os.path.exists('working_directories.csv'):
-            reader = csv.reader(open('working_directories.csv', 'r'))
+        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        working_directories_path = os.path.join(directory_path, 'working_directories.csv')
+        if os.path.exists(working_directories_path):
+            reader = csv.reader(open(working_directories_path, 'r'))
             self.working_dir = dict(x for x in reader)
         else:
             self.working_dir = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
                                 'phase': ''}
 
     def save_directories(self):
-        writer = csv.writer(open('working_directories.csv', 'w'))
+        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        if not os.path.exists(directory_path):
+            os.mkdir(directory_path)
+
+        working_directories_path = os.path.join(directory_path, 'working_directories.csv')
+        writer = csv.writer(open(working_directories_path, 'w'))
         for key, value in list(self.working_dir.items()):
             writer.writerow([key, value])
 
