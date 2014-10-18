@@ -63,6 +63,9 @@ class MainView(QtGui.QWidget, Ui_mainView):
         if platform == "darwin":
             self.tabWidget.setStyleSheet(
                 "QDoubleSpinBox, QSpinBox {padding-right: -8px;}")
+        else:
+            self.tabWidget.setStyleSheet(
+                "QDoubleSpinBox, QSpinBox {padding-right: -3px;}")
 
 
 if __name__ == "__main__":
