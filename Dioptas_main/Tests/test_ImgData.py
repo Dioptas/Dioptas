@@ -152,3 +152,10 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_data.set_supersampling(2)
         self.img_data.get_img_data()
 
+    def test_absorption_correction_with_different_image_sizes(self):
+        self.img_data.set_absorption_correction(np.ones(self.img_data._img_data.shape)*0.4)
+        self.assertNotEqual(self.img_data._absorption_correction, None)
+
+        self.img_data.load('Data/CeO2_Pilatus1M.tif')
+        self.assertEqual(self.img_data._absorption_correction, None)
+

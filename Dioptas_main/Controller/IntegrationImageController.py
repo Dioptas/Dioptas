@@ -235,6 +235,13 @@ class IntegrationImageController(object):
                 self.img_data.notify()
                 progress_dialog.close()
 
+            # check if absorption correction was removed due to different shape
+            if self.img_data._absorption_correction is None and self.view.cbn_groupbox.isChecked():
+                self.view.cbn_groupbox.setChecked(False)
+                QtGui.QMessageBox.critical(self.view,
+                                       'ERROR',
+                                       'Due to a change in image dimensions the cBN seat correction has been removed')
+
     def create_header(self):
         header = self.calibration_data.create_file_header()
         header = header.replace('\r\n', '\n')
@@ -347,6 +354,8 @@ class IntegrationImageController(object):
     def update_img(self, reset_img_levels=None):
         self.view.img_filename_txt.setText(os.path.basename(self.img_data.filename))
         self.view.img_directory_txt.setText(os.path.dirname(self.img_data.filename))
+        self.view.cbn_plot_correction_btn.setText('Plot Cor')
+
         if self.img_mode == 'Cake' and \
                 self.calibration_data.is_calibrated:
             if self.use_mask:
@@ -689,6 +698,13 @@ class IntegrationImageController(object):
             self.img_data.set_absorption_correction(res)
         else:
             self.img_data.set_absorption_correction(None)
+
+        if not self.calibration_data.is_calibrated:
+            self.view.cbn_groupbox.setChecked(False)
+            QtGui.QMessageBox.critical(self.view,
+                                       'ERROR',
+                                       'Please calibrate the geometry first or load an existent calibration file. '+\
+                                       'The cBN seat correction needs a calibrated geometry.')
 
     def cbn_plot_correction_btn_clicked(self):
         if str(self.view.cbn_plot_correction_btn.text()) == 'Plot Cor':
