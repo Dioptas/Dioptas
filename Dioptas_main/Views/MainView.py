@@ -56,9 +56,9 @@ class MainView(QtGui.QWidget, Ui_mainView):
         self.integration_tab.setLayout(self.integration_layout)
         self.integration_layout.addWidget(self.integration_widget)
 
-        self.set_system_dependant_stylesheet()
+        self.set_system_dependent_stylesheet()
 
-    def set_system_dependant_stylesheet(self):
+    def set_system_dependent_stylesheet(self):
         from sys import platform
         if platform == "darwin":
             self.tabWidget.setStyleSheet(
