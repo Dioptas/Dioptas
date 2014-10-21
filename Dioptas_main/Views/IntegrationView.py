@@ -67,6 +67,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
         self.phase_show_cbs = []
         self.phase_color_btns = []
+        self.show_parameter_in_spectrum = True
         header_view = QtGui.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
         self.phase_tw.setHorizontalHeader(header_view)
         header_view.setResizeMode(2, QtGui.QHeaderView.Stretch)
@@ -253,8 +254,6 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
-        # self.phase_tw.setColumnWidth(3, 85)
-        # self.phase_tw.setColumnWidth(4, 85)
         self.phase_tw.setRowHeight(current_rows, 25)
         self.select_phase(current_rows)
         self.phase_tw.blockSignals(False)
@@ -291,26 +290,43 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         name_item.setText(name)
 
 
-    def set_phase_tw_temperature(self, ind, T):
+    def set_phase_temperature(self, ind, T):
         temperature_item = self.phase_tw.item(ind, 4)
         temperature_item.setText("{0} K".format(T))
+        self.update_phase_parameters_in_legend(ind)
 
-    def get_phase_tw_temperature(self, ind):
+    def get_phase_temperature(self, ind):
         temperature_item = self.phase_tw.item(ind, 4)
         try:
             temperature = float(str(temperature_item.text()).split()[0])
         except:
-            temperature = np.NaN
+            temperature = None
         return temperature
 
-    def set_phase_tw_pressure(self, ind, P):
+    def set_phase_pressure(self, ind, P):
         pressure_item = self.phase_tw.item(ind, 3)
         pressure_item.setText("{0} GPa".format(P))
+        self.update_phase_parameters_in_legend(ind)
 
-    def get_phase_tw_pressure(self, ind):
+    def get_phase_pressure(self, ind):
         pressure_item = self.phase_tw.item(ind, 3)
         pressure = float(str(pressure_item.text()).split()[0])
         return pressure
+
+    def update_phase_parameters_in_legend(self, ind):
+        pressure = self.get_phase_pressure(ind)
+        temperature = self.get_phase_temperature(ind)
+
+        name_str = str(self.phase_tw.item(ind,2).text())
+
+        if self.show_parameter_in_spectrum:
+            if pressure > 0:
+                name_str += ' {} GPa'.format(pressure)
+            if temperature !=0 and temperature!=298 and temperature is not None:
+                name_str += ' {} K'.format(temperature)
+
+        self.spectrum_view.rename_phase(ind, name_str)
+
 
     def phase_color_btn_click(self, button):
         self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
