@@ -29,10 +29,13 @@ build_exe_options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopenc
                      "includes": ["re", "scipy.sparse.csgraph._validation", "scipy.integrate.vode", "scipy.special",
                                   "scipy.special._ufuncs", "scipy.special._ufuncs_cxx", "scipy.integrate.lsoda",
                                   "skimage._shared.geometry", "matplotlib.backends.backend_macosx"],
-                     "include_files": ("Calibrants",),
+                     "include_files": ("Calibrants","Views/UiFiles/images", "Views/UiFiles/Icon"),
                      "create_shared_zip": True,
-                     "compressed": True,
+                     "compressed": False,
+                     "icon":"Views/UiFiles/Icon/Icon1_128x128.ico",
 }
+
+bdist_mac_options = {}
 # GUI applications require a different base on Windows (the default is for a
 # console application).
 base = None
@@ -42,5 +45,8 @@ if sys.platform == "win32":
 setup(name="Dioptas",
       version="0.2.2d",
       description="Analysis of 2 dimensional X-ray diffraction patterns.",
-      options={"build_exe": build_exe_options},
-      executables=[Executable("Dioptas.py", base=base)])
+      options={"build_exe": build_exe_options,
+               "bdist_mac": bdist_mac_options},
+      executables=[Executable("Dioptas.py",
+                              base=base,
+                              icon="Views/UiFiles/Icon/Icon1_128x128.ico")])
