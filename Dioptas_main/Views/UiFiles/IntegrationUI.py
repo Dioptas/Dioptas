@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Mon Oct 20 20:39:34 2014
+# Created: Mon Oct 20 21:35:29 2014
 #      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -1181,7 +1181,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_16.addWidget(self.widget1)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(4)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
@@ -1260,7 +1260,7 @@ class Ui_xrs_integration_widget(object):
         self.phase_show_parameter_in_spectrum_cb.setText(_translate("xrs_integration_widget", "Show in Spectrum", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.phase_tab), _translate("xrs_integration_widget", "Phase", None))
         self.groupBox_5.setTitle(_translate("xrs_integration_widget", "Image Background", None))
-        self.bkg_image_delete_btn.setText(_translate("xrs_integration_widget", "Delete", None))
+        self.bkg_image_delete_btn.setText(_translate("xrs_integration_widget", "Remove", None))
         self.label_19.setText(_translate("xrs_integration_widget", "Scale:", None))
         self.label_20.setText(_translate("xrs_integration_widget", "Offset:", None))
         self.bkg_image_load_btn.setText(_translate("xrs_integration_widget", "Load", None))
