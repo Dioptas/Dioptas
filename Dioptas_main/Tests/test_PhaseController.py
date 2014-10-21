@@ -118,7 +118,7 @@ class phaseControllerTest(unittest.TestCase):
         self.phase_view.phase_pressure_sb.setValue(200)
         for ind, phase in enumerate(self.phase_data.phases):
             self.assertEqual(phase.pressure, pressure)
-            self.assertEqual(self.phase_view.get_phase_tw_pressure(ind), pressure)
+            self.assertEqual(self.phase_view.get_phase_pressure(ind), pressure)
 
     def test_temperature_change(self):
         self.load_phases()
@@ -127,10 +127,10 @@ class phaseControllerTest(unittest.TestCase):
         for ind, phase in enumerate(self.phase_data.phases):
             if phase.has_thermal_expansion():
                 self.assertEqual(phase.temperature, temperature)
-                self.assertEqual(self.phase_view.get_phase_tw_temperature(ind), temperature)
+                self.assertEqual(self.phase_view.get_phase_temperature(ind), temperature)
             else:
                 self.assertEqual(phase.temperature, 298)
-                self.assertTrue(np.isnan(self.phase_view.get_phase_tw_temperature(ind)))
+                self.assertEqual(self.phase_view.get_phase_temperature(ind), None)
 
     def test_apply_to_all_for_new_added_phase_in_table_widget(self):
         temperature = 1500
@@ -140,13 +140,13 @@ class phaseControllerTest(unittest.TestCase):
         self.load_phases()
         for ind, phase in enumerate(self.phase_data.phases):
             self.assertEqual(phase.pressure, pressure)
-            self.assertEqual(self.phase_view.get_phase_tw_pressure(ind), pressure)
+            self.assertEqual(self.phase_view.get_phase_pressure(ind), pressure)
             if phase.has_thermal_expansion():
                 self.assertEqual(phase.temperature, temperature)
-                self.assertEqual(self.phase_view.get_phase_tw_temperature(ind), temperature)
+                self.assertEqual(self.phase_view.get_phase_temperature(ind), temperature)
             else:
                 self.assertEqual(phase.temperature, 298)
-                self.assertTrue(np.isnan(self.phase_view.get_phase_tw_temperature(ind)))
+                self.assertEqual(self.phase_view.get_phase_temperature(ind), None)
 
     def test_apply_to_all_for_new_added_phase_d_positions(self):
         pressure = 50
