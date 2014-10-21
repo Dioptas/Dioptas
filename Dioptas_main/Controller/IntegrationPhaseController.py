@@ -53,8 +53,9 @@ class IntegrationPhaseController(object):
 
         self.view.phase_pressure_sb.valueChanged.connect(self.phase_pressure_sb_changed)
         self.view.phase_temperature_sb.valueChanged.connect(self.phase_temperature_sb_changed)
-        #
-        # self.view.phase_lw.currentItemChanged.connect(self.phase_item_changed)
+
+        self.view.phase_show_parameter_in_spectrum_cb.stateChanged.connect(self.phase_show_parameter_cb_state_changed)
+
         self.view.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
         self.view.phase_color_btn_clicked.connect(self.phase_color_btn_clicked)
         self.view.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
@@ -131,7 +132,7 @@ class IntegrationPhaseController(object):
             color = self.add_phase_plot()
             self.view.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
-            self.view.set_phase_tw_pressure(len(self.phase_data.phases)-1, pressure)
+            self.view.set_phase_pressure(len(self.phase_data.phases)-1, pressure)
             self.update_phase_temperature(len(self.phase_data.phases)-1, temperature)
         except PhaseLoadError as e:
             msg_box = QtGui.QMessageBox(self.view)
@@ -210,13 +211,13 @@ class IntegrationPhaseController(object):
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in range(len(self.phase_data.phases)):
                 self.phase_data.set_pressure(ind, np.float(val))
-                self.view.set_phase_tw_pressure(ind, val)
+                self.view.set_phase_pressure(ind, val)
             self.update_phase_intensities()
 
         else:
             cur_ind = self.view.get_selected_phase_row()
             self.phase_data.set_pressure(cur_ind, np.float(val))
-            self.view.set_phase_tw_pressure(cur_ind, val)
+            self.view.set_phase_pressure(cur_ind, val)
             self.update_phase_intensity(cur_ind)
 
         self.update_jcpds_editor()
@@ -239,13 +240,20 @@ class IntegrationPhaseController(object):
 
         self.update_jcpds_editor()
 
+
     def update_phase_temperature(self, ind, val):
         if self.phase_data.phases[ind].has_thermal_expansion():
             self.phase_data.set_temperature(ind, np.float(val))
-            self.view.set_phase_tw_temperature(ind, val)
+            self.view.set_phase_temperature(ind, val)
         else:
             self.phase_data.set_temperature(ind, 298)
-            self.view.set_phase_tw_temperature(ind, '-')
+            self.view.set_phase_temperature(ind, '-')
+
+    def phase_show_parameter_cb_state_changed(self):
+        value = self.view.phase_show_parameter_in_spectrum_cb.isChecked()
+        self.view.show_parameter_in_spectrum = value
+        for ind in range(len(self.phase_data.phases)):
+            self.view.update_phase_parameters_in_legend(ind)
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
         cur_ind = row
