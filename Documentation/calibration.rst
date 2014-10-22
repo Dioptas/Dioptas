@@ -8,10 +8,12 @@ Preparation
 Load the
 calibration image by clicking the "load image" button on the upper right side of the window.
 Now you can insert the starting values for the calibration in the menu on the right. The calibration procedure
-will define distance and center position of the x-ray. Therefore, wavelength and pixel width/height  have to be defined based on
-the experimental setup. Please choose the correct calibrant from the Calibrant drop-down list. Additionally the image
-can be rotated, or flipped in order to accommodate for different detector orientations. These image transformations will
-be applied to all subsequent loaded images in the calibration module and integration module.
+will define distance and center position of the x-ray. Therefore, wavelength and pixel width/height  have to be defined
+based on the experimental setup and detector used.
+Please choose the correct calibrant from the Calibrant drop-down list.
+Additionally the image can be rotated, or flipped in order to accommodate for different detector orientations.
+These image transformations will be applied to all subsequent loaded images in the calibration module and in the
+integration module.
 
 .. figure:: images/start_values.png
    :align: center
@@ -29,15 +31,16 @@ when "Calibration Parameters" is selected.
 
     Peak Selection Options
 
-By default automatic peak search is selected, which tries to automatically find peaks on a certain ring. To search on
-the first on it with the left mouse button. If the peak search was successful it should like this:
+By default automatic peak search is selected, which tries to automatically find peaks on a clicked ring. To search on
+the first ring please click on it with the left mouse button. If the peak search was successful it should look like
+this:
 
 .. figure:: images/peak_selection2.png
     :align:  center
 
     LaB\ :sub:`6` \  2D diffraction image with the first ring selected.
 
-If the default automatic peak searching fails (if it does select other peaks in addition to the first diffraction ring) there
+If the automatic peak searching fails (if it does select other peaks in addition to the first diffraction ring) there
 are several options:
 
 * perform the automatic peak search on a different ring.
@@ -50,7 +53,7 @@ are several options:
 
   - then search one peak for one diffraction ring (the current peak number will automatically increase)
   - or deselect the automatic increase checkbox and click several spots on the first ring, or any ring you like (with
-    the appropriate peak number selected)
+    the corresponding peak number selected)
 
 The Calibration and Refinement Process
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -115,5 +118,5 @@ There are several options available:
 
 
 If the calibration/refinement fails you can in principle play with all parameters. However, the most common adjustments are the
-number of rings and the Intensity Min factor.
+number of rings and the *Intensity Min factor*.
 
