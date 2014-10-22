@@ -1,9 +1,18 @@
-0.2.2 (development)
--------------------
+0.2.2 (rc 10/20/2014)
+---------------------
+    - defining an image as background prior to integration has been implemented. The controls can be found in the Bkg
+        tab in the integration widget
+    - it is now possible to do an absorption correction for cBN seats based on the geometry and rotation of the cell.
+        Further details of the calculation can be found in the manual.
+    - the pressure of each phase is now shown next to it in the spectrum view and not only in the phase tab.
+    - the image window in the integration widget can now be undocked, which creates a separate window for the image
+        view whereby the windows are still connected (the green line). This enables the use of Dioptas over 2 Monitors
+        for having a better overview.
 
 Bugfixes
     - It is now possible to load images with different shapes, after calibration has been done. Although you might wanna
       use a different calibration for different detectors/images.
+    - The gui has been updated to look reasonable good also on OS X 10.10 Yosemite.
 
 0.2.1 (stable 09/09/2014)
 -------------------------

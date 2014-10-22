@@ -43,7 +43,7 @@ if sys.platform == "win32":
     base = "Win32GUI"
 
 setup(name="Dioptas",
-      version="0.2.2d",
+      version="0.2.2",
       description="Analysis of 2 dimensional X-ray diffraction patterns.",
       options={"build_exe": build_exe_options,
                "bdist_mac": bdist_mac_options},

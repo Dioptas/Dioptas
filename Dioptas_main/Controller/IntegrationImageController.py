@@ -23,8 +23,6 @@ import numpy as np
 from PIL import Image
 from Data.HelperModule import calculate_cbn_absorption_correction
 
-import matplotlib.pyplot as plt
-
 
 class IntegrationImageController(object):
     """

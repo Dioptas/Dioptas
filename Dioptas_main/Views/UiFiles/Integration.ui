@@ -549,7 +549,7 @@ QTableWidget {
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>4</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -1876,7 +1876,7 @@ QTableWidget {
                </size>
               </property>
               <property name="text">
-               <string>Delete</string>
+               <string>Remove</string>
               </property>
               <property name="flat">
                <bool>true</bool>
