@@ -228,7 +228,7 @@ The currently available features:
 
 *cBN Seat Correction*:
     Enabling this option calculates the theoretical transmitted intensity through a diamond and cBN seat based on the
-    parameters entered into the textboxes. Where:
+    parameters entered into the text boxes. Where:
         - Diamond d is the diamond thickness in mm.
         - Seat d is the seat thickness in mm
         - Inner Seat r is the radius of the small opening of the cBN seat (close to the diamond) in mm
