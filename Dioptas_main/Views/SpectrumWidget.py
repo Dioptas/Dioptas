@@ -56,8 +56,8 @@ class SpectrumWidget(QtCore.QObject):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
         self.spectrum_plot.setLabel('bottom', u'2θ', u'°')
         self.view_box = self.spectrum_plot.vb
-        self.legend = LegendItem(horSpacing=20, box=False, verSpacing=-3)
-        self.phases_legend = LegendItem(horSpacing=20, box=False, verSpacing=-3)
+        self.legend = LegendItem(horSpacing=20, box=False, verSpacing=-3, labelAlignment='right', showLines=False)
+        self.phases_legend = LegendItem(horSpacing=20, box=False, verSpacing=-3, labelAlignment='left', showLines=False)
 
     def create_main_plot(self):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
