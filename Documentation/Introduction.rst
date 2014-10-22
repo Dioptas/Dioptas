@@ -16,21 +16,21 @@ Dioptas has three different modules which can all be accessed by the tab indicat
 **Calibration, Mask, Integration**.
 
 The Calibration module enables you to calibrate the detector geometry. Within the mask module you can select regions you
-want to exclude from the image integration. The Integration module is the heart for data exploration. It shows both, the
-image and integrated spectra. You can overlay different spectra and show line position of phases.
+want to exclude from the image integration and the Integration module is the heart for data exploration. It shows both, the
+image and integrated spectra. One can overlay different spectra and show line position of phases.
 
 
-Mouse Interaction with Images and Graph views
----------------------------------------------
+Mouse Interaction in Image Views and Spectrum Views
+---------------------------------------------------
 
 *Left Click:*
-    Action depends on the module you are in. In the calibration View it will search for peaks. In the Mask view it is
-    the primary tool for creating geometric objects and In the Integration view it draws a line at the current two theta
-    and the graph view and img view will be synchronized about this
+    Action depends on the module you are in. In the calibration view it will search for peaks. In the Mask view it is
+    the primary tool for creating the geometric objects used to build up the mask and in the integration view it draws a
+    line at the current two theta value.
 
 *Left Drag:*
-    Zooms in to the selected area. For diffraction images it will try to scale because pixels are kept as square objects
-    on the screen.
+    Zooms into the selected area. It will try to scale images accordingly, but will not perfectly zoom in to the
+    selected area, because pixels are kept as square objects on the screen.
 
 *Right Click (Command+Right Click on Mac):*
     Zoom out.
@@ -49,7 +49,7 @@ on the top (integration view). The colors of the color bars can be easily adjust
 different color-scale by right clicking the color bar. This creates a pop-up where one of the predefined color scales
 can be selected. The position of the individual colors can be adjusted by dragging the triangle of this color. Further
 the colors can be changed completely by double clicking (left) it, which will pop up a color chooser. It is in addition
-also possible to add a complete new color by double clicking (left) next to the color bar. The histogram of pixel
-intensities is a log scale histogram and the sliders of the range used to scale the image contrast can be adjusted by
-mouse dragging until you are satisfied with it.
+also possible to add a complete new color by double clicking (left) next to the color bar.
+The histogram next to the color bar shows the intensity distribution of the loaded image on a log scale. The sliders two
+lines define the scaling of the image in the image view. Please feel free to adjust their position by dragging them.
 

@@ -2,7 +2,7 @@ Mask Creation
 =============
 
 
-In the mask module areas can be defined which will be included from integration or calibration. There are several
+In the mask module areas can be defined which will be excluded from integration or calibration. There are several
 geometries available to select different kind of areas. Additionally it is possible to mask based on threshold values
 and perform automatic cosmic removal. All tools are available on the right control panel in the Mask view. It can be
 either chosen to mask a certain region or unmask it (select either on the top of the control panel).
@@ -45,6 +45,12 @@ considerable amount of time, please be patient.
 
 Control Buttons
 ---------------
+
+*Grow*:
+    Grows the current mask by one pixel in all directions.
+
+*Shrink*:
+    Shrinks the current mask by one pixel in all directions.
 
 *Invert*:
     This will invert the mask so that unmasked areas become masked and vice versa.

@@ -318,14 +318,15 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         temperature = self.get_phase_temperature(ind)
 
         name_str = str(self.phase_tw.item(ind,2).text())
+        parameter_str = ''
 
         if self.show_parameter_in_spectrum:
             if pressure > 0:
-                name_str += ' {} GPa'.format(pressure)
+                parameter_str += '{} GPa '.format(pressure)
             if temperature !=0 and temperature!=298 and temperature is not None:
-                name_str += ' {} K'.format(temperature)
+                parameter_str += '{} K '.format(temperature)
 
-        self.spectrum_view.rename_phase(ind, name_str)
+        self.spectrum_view.rename_phase(ind, parameter_str+name_str)
 
 
     def phase_color_btn_click(self, button):
