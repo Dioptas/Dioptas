@@ -167,9 +167,13 @@ displayed in the phase legend in the spectrum if they differ from ambient condit
 uncheck the *Show in Spectrum" checkbox.
 
 JCPDS Editor
-============
+~~~~~~~~~~~~
 
-HERE NEEDS TO BE AN IMAGE OF IT!
+.. figure:: images/jcpds_editor.png
+    :align: left
+    :height: 250
+
+    Graphical JCPDS editor
 
 In the jcpds editor the content of the jcpds file can be modified. Every change will be immediately reflected in the
 position of the lines in the spectrum. You can edit the comment, the symmetry, lattice parameter and equation of state
@@ -208,7 +212,7 @@ Special (X-Tab)
     :align: center
     :width: 700
 
-    Integration window options in Dioptas.
+    Special Options.
 
 The currently available features:
 
