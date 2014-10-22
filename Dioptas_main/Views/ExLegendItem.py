@@ -47,7 +47,8 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
 
     """
 
-    def __init__(self, size=None, offset=None, horSpacing=25, verSpacing=0, box=True):
+    def __init__(self, size=None, offset=None, horSpacing=25, verSpacing=0, box=True, labelAlignment = 'center',
+                 showLines = True):
         """
         ==============  ===============================================================
         **Arguments:**
@@ -64,6 +65,11 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
                         vertically. (Can also be negative to have them really close)
         box             Specifies if the Legend should will be drawn with a rectangle
                         around it.
+        labelAlignment  Specifies the alignment of the label texts. Possible values are
+                        "center", "left" or "right".
+        showLines       Specifies whether or not the lines should be shown in the legend.
+                        If value is "False" it will only show the labels with the corresponding
+                        text color.
         ==============  ===============================================================
 
         """
@@ -83,6 +89,8 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         self.size = size
         self.offset = offset
         self.box = box
+        self.label_alignment = labelAlignment
+        self.showLines = showLines
         #A numItems variable needs to be introduced, because chaining removeItem and addItem function in random order,
         # will otherwise lead to writing in the same layout row. Idea here is to always insert LabelItems on larger
         # and larger layout row numbers. The GraphicsGridlayout item will not care about empty rows.
@@ -122,6 +130,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         #create label with same color
         label = LabelItem()
         label.setAttr('color', str(color_str[1:]))
+        label.setAttr('justify', self.label_alignment)
         label.setText(name)
 
         if isinstance(item, ItemSample):
@@ -132,7 +141,8 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         self.legendItems.append((sample, label))
         self.hiddenFlag.append(False)
         self.plotItems.append(item)
-        self.layout.addItem(sample, self.numItems, 0)
+        if self.showLines:
+            self.layout.addItem(sample, self.numItems, 0)
         self.layout.addItem(label, self.numItems, 1)
         self.numItems += 1
         self.updateSize()
@@ -190,7 +200,8 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
     def showItem(self, ind):
         sample_item, label_item = self.legendItems[ind]
         if self.hiddenFlag[ind]:
-            self.layout.addItem(sample_item, ind, 0)
+            if self.showLines:
+                self.layout.addItem(sample_item, ind, 0)
             self.layout.addItem(label_item, ind, 1)
             sample_item.show()
             label_item.show()

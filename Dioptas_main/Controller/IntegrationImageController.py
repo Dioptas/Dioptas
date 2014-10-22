@@ -23,8 +23,6 @@ import numpy as np
 from PIL import Image
 from Data.HelperModule import calculate_cbn_absorption_correction
 
-import matplotlib.pyplot as plt
-
 
 class IntegrationImageController(object):
     """
@@ -190,10 +188,12 @@ class IntegrationImageController(object):
                 if self.view.spec_autocreate_cb.isChecked():
                     working_directory = self.working_dir['spectrum']
                 else:
+                    # if there is no working directory selected A file dialog opens up to choose a directory...
                     working_directory = str(QtGui.QFileDialog.getExistingDirectory(self.view,
                                                                                    "Please choose the output directory for the integrated spectra.",
                                                                                    self.working_dir['spectrum']))
                 if working_directory is '':
+                    #abort file processing if no directory was selected
                     return
 
                 progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
@@ -201,10 +201,11 @@ class IntegrationImageController(object):
                                                         self.view)
                 progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
                 progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-                progress_dialog.move(self.view.spectrum_view.pg_layout.x() + self.view.spectrum_view.pg_layout.size().width() / 2.0 - \
-                                     progress_dialog.size().width() / 2.0,
-                                     self.view.spectrum_view.pg_layout.y() + self.view.spectrum_view.pg_layout.size().height() / 2.0 -
-                                     progress_dialog.size().height() / 2.0)
+                progress_dialog.move(
+                    self.view.spectrum_view.pg_layout.x() + self.view.spectrum_view.pg_layout.size().width() / 2.0 - \
+                    progress_dialog.size().width() / 2.0,
+                    self.view.spectrum_view.pg_layout.y() + self.view.spectrum_view.pg_layout.size().height() / 2.0 -
+                    progress_dialog.size().height() / 2.0)
                 progress_dialog.show()
                 for ind in range(len(filenames)):
                     filename = str(filenames[ind])
@@ -231,6 +232,13 @@ class IntegrationImageController(object):
                 self.img_data.turn_on_notification()
                 self.img_data.notify()
                 progress_dialog.close()
+
+            # check if absorption correction was removed due to different shape
+            if self.img_data._absorption_correction is None and self.view.cbn_groupbox.isChecked():
+                self.view.cbn_groupbox.setChecked(False)
+                QtGui.QMessageBox.critical(self.view,
+                                       'ERROR',
+                                       'Due to a change in image dimensions the cBN seat correction has been removed')
 
     def create_header(self):
         header = self.calibration_data.create_file_header()
@@ -344,6 +352,8 @@ class IntegrationImageController(object):
     def update_img(self, reset_img_levels=None):
         self.view.img_filename_txt.setText(os.path.basename(self.img_data.filename))
         self.view.img_directory_txt.setText(os.path.dirname(self.img_data.filename))
+        self.view.cbn_plot_correction_btn.setText('Plot Cor')
+
         if self.img_mode == 'Cake' and \
                 self.calibration_data.is_calibrated:
             if self.use_mask:
@@ -444,7 +454,7 @@ class IntegrationImageController(object):
 
     def show_img_mouse_position(self, x, y):
         img_shape = self.img_data.get_img().shape
-        if x > 0 and y > 0 and x < img_shape[1]-1 and y < img_shape[0]-1:
+        if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
             self.view.mouse_x_lbl.setText(x_pos_string)
@@ -469,10 +479,10 @@ class IntegrationImageController(object):
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
-                    tth = self.calibration_data.get_two_theta_img(x,y)
+                    tth = self.calibration_data.get_two_theta_img(x, y)
                     tth = tth / np.pi * 180.0
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
-                    azi = self.calibration_data.get_azi_img(x,y)/ np.pi * 180
+                    azi = self.calibration_data.get_azi_img(x, y) / np.pi * 180
 
                 azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
@@ -496,7 +506,7 @@ class IntegrationImageController(object):
                 self.view.img_widget_mouse_azi_lbl.setText('X: -')
 
     def img_mouse_click(self, x, y):
-        #update click position
+        # update click position
         try:
             x_pos_string = 'X:  %4d' % y
             y_pos_string = 'Y:  %4d' % x
@@ -516,15 +526,15 @@ class IntegrationImageController(object):
         if self.calibration_data.is_calibrated:
             if self.img_mode == 'Cake':  # cake mode
                 cake_shape = self.calibration_data.cake_img.shape
-                if x < 0 or y < 0 or x > (cake_shape[0]-1) or y > (cake_shape[1]-1):
+                if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):
                     return
                 y = np.array([y])
                 tth = self.calibration_data.get_two_theta_cake(y) / 180 * np.pi
             elif self.img_mode == 'Image':  # image mode
                 img_shape = self.img_data.get_img().shape
-                if x < 0 or y < 0 or x > img_shape[0]-1 or y > img_shape[1]-1:
+                if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
                     return
-                tth = self.calibration_data.get_two_theta_img(x,y)
+                tth = self.calibration_data.get_two_theta_img(x, y)
                 self.view.img_view.set_circle_scatter_tth(
                     self.calibration_data.get_two_theta_array(), tth)
             else:  # in the case of whatever
@@ -675,21 +685,29 @@ class IntegrationImageController(object):
             tilt = float(str(self.view.cbn_cell_tilt_txt.text()))
             tilt_rotation = float(str(self.view.cbn_tilt_rotation_txt.text()))
 
-            tth_array = 180.0/np.pi*self.calibration_data.spectrum_geometry.ttha
-            azi_array = 180.0/np.pi*self.calibration_data.spectrum_geometry.chia
+            tth_array = 180.0 / np.pi * self.calibration_data.spectrum_geometry.ttha
+            azi_array = 180.0 / np.pi * self.calibration_data.spectrum_geometry.chia
             import time
+
             t1 = time.time()
             res = calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness, seat_thickness,
                                                       inner_seat_radius, outer_seat_radius, tilt, tilt_rotation)
-            print "Time needed for correction calculation: {}".format(time.time()-t1)
+            print "Time needed for correction calculation: {}".format(time.time() - t1)
             self.img_data.set_absorption_correction(res)
         else:
             self.img_data.set_absorption_correction(None)
 
+        if not self.calibration_data.is_calibrated:
+            self.view.cbn_groupbox.setChecked(False)
+            QtGui.QMessageBox.critical(self.view,
+                                       'ERROR',
+                                       'Please calibrate the geometry first or load an existent calibration file. '+\
+                                       'The cBN seat correction needs a calibrated geometry.')
+
     def cbn_plot_correction_btn_clicked(self):
         if str(self.view.cbn_plot_correction_btn.text()) == 'Plot Cor':
             self.view.img_view.plot_image(self.img_data._absorption_correction,
-                                        True)
+                                          True)
             self.view.cbn_plot_correction_btn.setText('Plot Img')
         else:
             self.view.cbn_plot_correction_btn.setText('Plot Cor')

@@ -56,6 +56,21 @@ class MainView(QtGui.QWidget, Ui_mainView):
         self.integration_tab.setLayout(self.integration_layout)
         self.integration_layout.addWidget(self.integration_widget)
 
+        self.set_system_dependent_stylesheet()
+        self.set_icon()
+
+    def set_system_dependent_stylesheet(self):
+        from sys import platform
+        if platform == "darwin":
+            self.tabWidget.setStyleSheet(
+                "QDoubleSpinBox, QSpinBox {padding-right: -8px;}")
+        else:
+            self.tabWidget.setStyleSheet(
+                "QDoubleSpinBox, QSpinBox {padding-right: -3px;}")
+
+    def set_icon(self):
+        self.setWindowIcon(QtGui.QIcon("Views/UiFiles/Icon/Icon1.png"))
+
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
