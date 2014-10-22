@@ -27,7 +27,6 @@ from colorsys import hsv_to_rgb
 
 import time
 
-import matplotlib.pyplot as plt
 
 # distinguishable_colors = np.loadtxt('Data/distinguishable_colors.txt')[::-1]
 
@@ -405,6 +404,3 @@ def calculate_cbn_absorption_correction(tth_array, azi_array,
 if __name__ == '__main__':
     tth = np.linspace(0, 30, 1000)
     cor = calculate_cbn_absorption_correction(tth, 0, 2.3, 5.3, .4, 1.95)
-
-    plt.plot(tth, cor)
-    plt.show()

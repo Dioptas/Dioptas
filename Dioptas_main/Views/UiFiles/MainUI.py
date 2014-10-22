@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Thu Oct  9 14:42:02 2014
-#      by: PyQt4 UI code generator 4.11.1
+# Created: Sun Oct 19 11:23:45 2014
+#      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -281,15 +281,37 @@ class Ui_mainView(object):
 "      background: none;\n"
 "  }\n"
 "\n"
-"QDockWidget::title {\n"
-"     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);    \n"
-"     border: 1px solid  #5B5B5B;  \n"
+"QSplitterHandle:hover {}\n"
 "\n"
-"     border-radius:2px;\n"
-"     padding: 2px;\n"
-"    margin: 0px;\n"
+"QSplitter::handle:vertical{\n"
+"    image: url(Views/UiFiles/images/vertical_splitter.png);\n"
+"    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #505050,\n"
+"stop: 0.7 #3C3C3C);\n"
+"    height: 15px;\n"
 "}\n"
 "\n"
+"QSplitter::handle:vertical:pressed, QSplitter::handle:vertical:hover{\n"
+"    image: url(Views/UiFiles/images/vertical_splitter_pressed.png);\n"
+"    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #5C5C5C,\n"
+"stop: 0.7 #3C3C3C);\n"
+"}\n"
+"\n"
+"QSplitter::handle:horizontal{\n"
+"    image: url(Views/UiFiles/images/horizontal_splitter.png);\n"
+"    background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #505050,\n"
+"stop: 0.7 #3C3C3C);\n"
+"    width: 15px;\n"
+"}\n"
+"\n"
+"QSplitter::handle:horizontal:pressed, QSplitter::handle:horizontal:hover{\n"
+"    image: url(Views/UiFiles/images/horizontal_splitter_pressed.png);\n"
+"    background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #5C5C5C,\n"
+"stop: 0.7 #3C3C3C);\n"
+"}\n"
+"\n"
+"QSplitter::handle:hover {\n"
+"    background: #3C3C3C;\n"
+" }\n"
 "\n"
 "\n"
 ""))

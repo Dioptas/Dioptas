@@ -268,15 +268,37 @@ QGraphicsView{
       background: none;
   }
 
-QDockWidget::title {
-     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);	
-	 border: 1px solid  #5B5B5B;  
+QSplitterHandle:hover {}
 
-     border-radius:2px;
-     padding: 2px;
-	margin: 0px;
+QSplitter::handle:vertical{
+	image: url(Views/UiFiles/images/vertical_splitter.png);
+	background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #505050,
+stop: 0.7 #3C3C3C);
+	height: 15px;
 }
 
+QSplitter::handle:vertical:pressed, QSplitter::handle:vertical:hover{
+	image: url(Views/UiFiles/images/vertical_splitter_pressed.png);
+	background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #5C5C5C,
+stop: 0.7 #3C3C3C);
+}
+
+QSplitter::handle:horizontal{
+	image: url(Views/UiFiles/images/horizontal_splitter.png);
+	background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #505050,
+stop: 0.7 #3C3C3C);
+	width: 15px;
+}
+
+QSplitter::handle:horizontal:pressed, QSplitter::handle:horizontal:hover{
+	image: url(Views/UiFiles/images/horizontal_splitter_pressed.png);
+	background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0.3 #3C3C3C,  stop:0.5 #5C5C5C,
+stop: 0.7 #3C3C3C);
+}
+
+QSplitter::handle:hover {
+	background: #3C3C3C;
+ }
 
 
 </string>
