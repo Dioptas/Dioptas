@@ -1,5 +1,5 @@
-0.2.2 (rc 10/20/2014)
----------------------
+0.2.2 (stable 10/22/2014)
+-------------------------
     - defining an image as background prior to integration has been implemented. The controls can be found in the Bkg
         tab in the integration widget
     - it is now possible to do an absorption correction for cBN seats based on the geometry and rotation of the cell.

@@ -28,10 +28,10 @@ build_exe_options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopenc
                                   "Tkconstants", "Tkinter", "zmq", "PySide", "pysideuic", "PyQt4.uic.port_v3"],
                      "includes": ["re", "scipy.sparse.csgraph._validation", "scipy.integrate.vode", "scipy.special",
                                   "scipy.special._ufuncs", "scipy.special._ufuncs_cxx", "scipy.integrate.lsoda",
-                                  "skimage._shared.geometry", "matplotlib.backends.backend_macosx"],
+                                  "skimage._shared.geometry"],
                      "include_files": ("Calibrants","Views/UiFiles/images", "Views/UiFiles/Icon"),
                      "create_shared_zip": True,
-                     "compressed": False,
+                     "compressed": True,
                      "icon":"Views/UiFiles/Icon/Icon1_128x128.ico",
 }
 
