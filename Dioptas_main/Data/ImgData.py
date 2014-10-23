@@ -152,6 +152,7 @@ class ImgData(Observable):
         self.background_filename = None
         self._background_data = None
         self._background_data_fabio = None
+        self._calculate_img_data()
 
     def reset_background(self):
         self._reset_background()
@@ -332,7 +333,7 @@ class ImgData(Observable):
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
         self.img_transformations.append(np.flipud)
-        
+
         self._calculate_img_data()
         self.notify()
 
@@ -410,11 +411,13 @@ class ImgData(Observable):
         """
         if absorption_correction is None:
             self._absorption_correction = None
-            self.notify()
         elif absorption_correction.shape == self._img_data.shape:
             self._absorption_correction = absorption_correction
-            self._calculate_img_data()
-            self.notify()
+        else:
+            self._absorption_correction = None
+        self._calculate_img_data()
+        self.notify()
+
 
     def has_absorption_correction(self):
         """
