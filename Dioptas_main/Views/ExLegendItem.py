@@ -164,10 +164,11 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
             if label.text == name:  # hit
                 self.legendItems.remove((sample, label))  # remove from itemlist
                 if not self.hiddenFlag[ind]:
-                    self.layout.removeItem(sample)  # remove from layout
+                    if self.showLines:
+                        self.layout.removeItem(sample)  # remove from layout
                     self.layout.removeItem(label)
-                sample.close()  # remove from drawing
-                label.close()
+                    sample.close()  # remove from drawing
+                    label.close()
                 self.updateSize()  # redraq box
                 del self.hiddenFlag[ind]
                 return
@@ -179,7 +180,8 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
                 self.plotItems.remove(item)
 
                 if not self.hiddenFlag[ind]:
-                    self.layout.removeItem(sample)
+                    if self.showLines:
+                        self.layout.removeItem(sample)
                     self.layout.removeItem(label)
                 sample.close()
                 label.close()
@@ -190,9 +192,10 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
     def hideItem(self,ind):
         sample_item, label_item = self.legendItems[ind]
         if not self.hiddenFlag[ind]:
-            self.layout.removeItem(sample_item)
+            if self.showLines:
+                self.layout.removeItem(sample_item)
+                sample_item.hide()
             self.layout.removeItem(label_item)
-            sample_item.hide()
             label_item.hide()
         self.hiddenFlag[ind] = True
         self.updateSize()
@@ -202,8 +205,8 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         if self.hiddenFlag[ind]:
             if self.showLines:
                 self.layout.addItem(sample_item, ind, 0)
+                sample_item.show()
             self.layout.addItem(label_item, ind, 1)
-            sample_item.show()
             label_item.show()
         self.hiddenFlag[ind] = False
         self.updateSize()

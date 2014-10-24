@@ -19,7 +19,8 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 
-from PyQt4 import QtGui
+from PyQt4 import QtGui, QtCore
+from PyQt4.QtTest import QTest
 from Data.ImgData import ImgData
 from Controller.MainController import MainController
 import numpy as np
@@ -32,6 +33,7 @@ class phaseControllerTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.image_data = ImgData()
         self.controller = MainController(self.app)
+        self.controller.view.tabWidget.setCurrentIndex(2)
         self.controller.calibration_controller.load_calibration(
             'Data/LaB6_p49_40keV_006.poni')
         self.controller.view.tabWidget.setCurrentIndex(2)
@@ -157,6 +159,12 @@ class phaseControllerTest(unittest.TestCase):
         reflections1 = self.phase_data.get_lines_d(0)
         reflections2 = self.phase_data.get_lines_d(1)
         self.assertTrue(np.array_equal(reflections1, reflections2))
+
+    def test_to_not_show_lines_in_legend(self):
+        self.load_phases()
+        self.phase_tw.selectRow(1)
+        QTest.mouseClick(self.phase_view.phase_del_btn, QtCore.Qt.LeftButton)
+        self.phase_view.spectrum_view.hide_phase(1)
 
 
 
