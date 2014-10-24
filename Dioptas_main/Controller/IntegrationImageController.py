@@ -214,6 +214,7 @@ class IntegrationImageController(object):
                     progress_dialog.setLabelText("Integrating: " + base_filename)
                     QtGui.QApplication.processEvents()
                     self.img_data.turn_off_notification()
+                    self.spectrum_data.turn_off_notification()
                     self.img_data.load(filename)
                     x, y = self.integrate_spectrum()
                     file_endings = self.get_spectrum_file_endings()
@@ -230,6 +231,7 @@ class IntegrationImageController(object):
                     if progress_dialog.wasCanceled():
                         break
                 self.img_data.turn_on_notification()
+                self.spectrum_data.turn_on_notification()
                 self.img_data.notify()
                 progress_dialog.close()
 
