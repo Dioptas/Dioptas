@@ -170,6 +170,7 @@ class IntegrationImageController(object):
         self.view.img_view.mouse_left_clicked.connect(self.img_mouse_click)
         self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
 
+
     def load_file(self, filenames=None):
         if filenames is None:
             filenames = list(QtGui.QFileDialog.getOpenFileNames(
@@ -185,68 +186,81 @@ class IntegrationImageController(object):
             if len(filenames) == 1:
                 self.img_data.load(str(filenames[0]))
             else:
-                if self.view.spec_autocreate_cb.isChecked():
-                    working_directory = self.working_dir['spectrum']
-                else:
-                    # if there is no working directory selected A file dialog opens up to choose a directory...
-                    working_directory = str(QtGui.QFileDialog.getExistingDirectory(self.view,
-                                                                                   "Please choose the output directory for the integrated spectra.",
-                                                                                   self.working_dir['spectrum']))
+                working_directory = self._get_spectrum_working_director()
                 if working_directory is '':
-                    #abort file processing if no directory was selected
-                    return
+                    return # abort file processing if no directory was selected
 
-                progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
-                                                        len(filenames),
-                                                        self.view)
-                progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
-                progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-                progress_dialog.move(
-                    self.view.spectrum_view.pg_layout.x() + self.view.spectrum_view.pg_layout.size().width() / 2.0 - \
-                    progress_dialog.size().width() / 2.0,
-                    self.view.spectrum_view.pg_layout.y() + self.view.spectrum_view.pg_layout.size().height() / 2.0 -
-                    progress_dialog.size().height() / 2.0)
-                progress_dialog.show()
+                progress_dialog = self.view.get_progress_dialog("Integrating multiple files.", "Abort Integration",
+                                                                len(filenames))
+                self._set_up_multiple_file_integration()
+
                 for ind in range(len(filenames)):
                     filename = str(filenames[ind])
                     base_filename = os.path.basename(filename)
+
                     progress_dialog.setValue(ind)
                     progress_dialog.setLabelText("Integrating: " + base_filename)
-                    self.img_data.turn_off_notification()
-                    self.spectrum_data.turn_off_notification()
+
                     self.img_data.load(filename)
+
                     x, y = self.integrate_spectrum()
-                    file_endings = self.get_spectrum_file_endings()
-                    for file_ending in file_endings:
-                        filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
-                        print filename
-                        self.spectrum_data.set_spectrum(x, y, filename, unit=self.get_integration_unit())
-                        if file_ending == '.xy':
-                            self.spectrum_data.save_spectrum(filename, header=self.create_header())
-                        else:
-                            self.spectrum_data.save_spectrum(filename)
+                    self._save_spectrum(base_filename, working_directory, x, y)
+
                     QtGui.QApplication.processEvents()
                     if progress_dialog.wasCanceled():
                         break
-                self.img_data.turn_on_notification()
-                self.spectrum_data.turn_on_notification()
-                self.img_data.notify()
+
+                self._tear_down_multiple_file_integration()
                 progress_dialog.close()
 
             # check if absorption correction was removed due to different shape
             if self.img_data._absorption_correction is None and self.view.cbn_groupbox.isChecked():
                 self.view.cbn_groupbox.setChecked(False)
                 QtGui.QMessageBox.critical(self.view,
-                                       'ERROR',
-                                       'Due to a change in image dimensions the cBN seat correction has been removed')
+                                           'ERROR',
+                                           'Due to a change in image dimensions the cBN seat correction has been removed')
 
-    def create_header(self):
+    def _get_spectrum_working_director(self):
+        if self.view.spec_autocreate_cb.isChecked():
+            working_directory = self.working_dir['spectrum']
+        else:
+            # if there is no working directory selected A file dialog opens up to choose a directory...
+            working_directory = str(QtGui.QFileDialog.getExistingDirectory(
+                self.view, "Please choose the output directory for the integrated spectra.",
+                self.working_dir['spectrum']))
+        return working_directory
+
+    def _set_up_multiple_file_integration(self):
+        self.img_data.turn_off_notification()
+        self.spectrum_data.turn_off_notification()
+        if self.view.autoprocess_cb.isChecked():
+            self._stop_auto_process()
+
+    def _tear_down_multiple_file_integration(self):
+        self.img_data.turn_on_notification()
+        self.spectrum_data.turn_on_notification()
+        if self.view.autoprocess_cb.isChecked():
+            self._start_auto_process()
+        self.img_data.notify()
+
+    def _save_spectrum(self, base_filename, working_directory, x, y):
+        file_endings = self._get_spectrum_file_endings()
+        for file_ending in file_endings:
+            filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
+            print filename
+            self.spectrum_data.set_spectrum(x, y, filename, unit=self.get_integration_unit())
+            if file_ending == '.xy':
+                self.spectrum_data.save_spectrum(filename, header=self._create_spectrum_header())
+            else:
+                self.spectrum_data.save_spectrum(filename)
+
+    def _create_spectrum_header(self):
         header = self.calibration_data.create_file_header()
         header = header.replace('\r\n', '\n')
         header += '\n#\n# ' + self.spectrum_data.unit + '\t I'
         return header
 
-    def get_spectrum_file_endings(self):
+    def _get_spectrum_file_endings(self):
         res = []
         if self.view.spectrum_header_xy_cb.isChecked():
             res.append('.xy')
@@ -615,11 +629,17 @@ class IntegrationImageController(object):
 
     def auto_process_cb_click(self):
         if self.view.autoprocess_cb.isChecked():
-            self._files_before = dict(
-                [(f, None) for f in os.listdir(self.working_dir['image'])])
-            self.autoprocess_timer.start()
+            self._start_auto_process()
         else:
-            self.autoprocess_timer.stop()
+            self._stop_auto_process()
+
+    def _start_auto_process(self):
+        self._files_before = dict(
+            [(f, None) for f in os.listdir(self.working_dir['image'])])
+        self.autoprocess_timer.start()
+
+    def _stop_auto_process(self):
+        self.autoprocess_timer.stop()
 
     def check_files(self):
         self._files_now = dict(
@@ -701,7 +721,7 @@ class IntegrationImageController(object):
             self.view.cbn_groupbox.setChecked(False)
             QtGui.QMessageBox.critical(self.view,
                                        'ERROR',
-                                       'Please calibrate the geometry first or load an existent calibration file. '+\
+                                       'Please calibrate the geometry first or load an existent calibration file. ' + \
                                        'The cBN seat correction needs a calibrated geometry.')
 
     def cbn_plot_correction_btn_clicked(self):
