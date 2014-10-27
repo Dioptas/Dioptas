@@ -220,19 +220,22 @@ class CalibrationData(object):
                                            pixel1=self.start_values['pixel_width'],
                                            pixel2=self.start_values['pixel_height'],
                                            calibrant=self.calibrant)
+        self.orig_pixel1 = self.start_values['pixel_width']
+        self.orig_pixel2 = self.start_values['pixel_height']
+
         self.refine()
         self.create_cake_geometry()
         self.is_calibrated = True
 
-        self.orig_pixel1 = self.start_values['pixel_width']
-        self.orig_pixel2 = self.start_values['pixel_height']
         self.calibration_name = 'current'
         self.set_supersampling()
+        # reset the integrator (not the geometric parameters)
         self.spectrum_geometry.reset()
 
     def refine(self):
         self.reset_supersampling()
         self.spectrum_geometry.data = self.create_point_array(self.points, self.points_index)
+
         fix = ['wavelength']
         if self.fit_wavelength:
             fix = []
@@ -241,8 +244,10 @@ class CalibrationData(object):
         if self.fit_wavelength:
             self.spectrum_geometry.refine2()
         self.spectrum_geometry.refine2_wavelength(fix=fix)
+
         self.create_cake_geometry()
         self.set_supersampling()
+        # reset the integrator (not the geometric parameters)
         self.spectrum_geometry.reset()
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
