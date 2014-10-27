@@ -212,7 +212,6 @@ class IntegrationImageController(object):
                     base_filename = os.path.basename(filename)
                     progress_dialog.setValue(ind)
                     progress_dialog.setLabelText("Integrating: " + base_filename)
-                    QtGui.QApplication.processEvents()
                     self.img_data.turn_off_notification()
                     self.spectrum_data.turn_off_notification()
                     self.img_data.load(filename)
@@ -226,7 +225,6 @@ class IntegrationImageController(object):
                             self.spectrum_data.save_spectrum(filename, header=self.create_header())
                         else:
                             self.spectrum_data.save_spectrum(filename)
-                    QtGui.QApplication.processEvents()
                     QtGui.QApplication.processEvents()
                     if progress_dialog.wasCanceled():
                         break
