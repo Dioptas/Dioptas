@@ -71,42 +71,23 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.search_peaks(387.395462348, 390.987901686)
         self.calibration_controller.search_peaks(367.94835605, 554.290314848)
 
-
         self.calibration_controller.view.sv_wavelength_txt.setText('0.406626')
         self.calibration_controller.view.sv_distance_txt.setText('200')
         self.calibration_controller.view.sv_pixel_width_txt.setText('172')
         self.calibration_controller.view.sv_pixel_height_txt.setText('172')
         self.calibration_controller.view.calibrant_cb.setCurrentIndex(4)
 
-        QTest.mouseClick(self.calibration_view.options_automatic_refinement_cb, QtCore.Qt.LeftButton)
-
         start_values = self.calibration_view.get_start_values()
         self.assertAlmostEqual(start_values['wavelength'], 0.406626e-10)
         self.assertAlmostEqual(start_values['pixel_height'], 172e-6)
         self.assertAlmostEqual(start_values['pixel_width'], 172e-6)
-
-
         self.calibration_controller.load_calibrant()
         self.assertAlmostEqual(self.calibration_data.calibrant.wavelength, 0.406626e-10)
 
-
         QTest.mouseClick(self.calibration_view.integrate_btn, QtCore.Qt.LeftButton)
+        calibration_parameter = self.calibration_data.get_calibration_parameter()[0]
 
-        self.assertLess(self.calibration_data.get_calibration_parameter()[0]['dist'], 0.25)
-
-        QTest.mouseClick(self.calibration_view.clear_peaks_btn, QtCore.Qt.LeftButton)
-        self.calibration_controller.search_peaks(517.664434674, 647.529865592)
-        self.calibration_controller.search_peaks(667.380513299, 525.252854758)
-        self.calibration_controller.search_peaks(671.110095329, 473.571503774)
-        self.calibration_controller.search_peaks(592.788872703, 350.495296791)
-        self.calibration_controller.search_peaks(387.395462348, 390.987901686)
-        self.calibration_controller.search_peaks(367.94835605, 554.290314848)
-
-
-        QTest.mouseClick(self.calibration_view.integrate_btn, QtCore.Qt.LeftButton)
-
-        self.assertLess(self.calibration_data.get_calibration_parameter()[0]['dist'], 0.25)
-
+        self.assertAlmostEqual(calibration_parameter['dist'], .2086, places=4)
 
     def test_automatic_calibration_with_supersampling(self):
         self.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
