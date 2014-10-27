@@ -157,6 +157,16 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         progress_dialog.show()
         return progress_dialog
 
+    def show_error_msg(self, msg):
+        msg_box = QtGui.QMessageBox(self)
+        msg_box.setWindowFlags(QtCore.Qt.Tool)
+        msg_box.setText(msg)
+        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        msg_box.setWindowTitle('Error')
+        msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg_box.setDefaultButton(QtGui.QMessageBox.Ok)
+        msg_box.exec_()
+
     # ###############################################################################################
     # Now comes all the overlay tw stuff
     ################################################################################################
