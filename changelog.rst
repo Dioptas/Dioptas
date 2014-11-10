@@ -1,3 +1,10 @@
+0.2.3 development
+-----------------
+
+Bugfixes
+    - fixed a bug which was causing the first calibration to fail for images with a different pixelsize than 79um
+    - fixed a bug which was producing NAN intensity values for saved spectra when using masks
+
 0.2.2 (stable 10/22/2014)
 -------------------------
     - defining an image as background prior to integration has been implemented. The controls can be found in the Bkg
