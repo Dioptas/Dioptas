@@ -296,10 +296,10 @@ class CalibrationData(object):
                                                                mask=mask, polarization_factor=polarization_factor,
                                                                filename=filename)
         logger.info('1d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
-        if self.int.max() > 0:
-            ind = np.where(self.int > 0)
-            self.tth = self.tth[ind]
-            self.int = self.int[ind]
+
+        ind = np.where((self.int > 0) & (~np.isnan(self.int)))
+        self.tth = self.tth[ind]
+        self.int = self.int[ind]
         return self.tth, self.int
 
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr', dimensions=(2048, 2048)):
