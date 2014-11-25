@@ -27,21 +27,23 @@ class SaveSettingsTest(unittest.TestCase):
     def test_filenames(self):
         self.create_controller_and_data()
 
-        self.img_data.load("../Data/Mg2SiO4_ambient_001.tif")
+        self.img_data.load("Data/Mg2SiO4_ambient_001.tif")
         self.calibration_data.calibration_name = "test_calibration"
         self.spectrum_data.spectrum_filename = "test_spectrum"
         self.mask_data.filename = "yeah"
+
         self.controller.save_settings()
 
         self.create_controller_and_data()
-        self.assertEqual(self.img_data.filename, "../Data/Mg2SiO4_ambient_001.tif")
+        self.controller.load_settings()
+        self.assertEqual(self.img_data.filename, "Data/Mg2SiO4_ambient_001.tif")
         self.assertEqual(self.calibration_data.calibration_name,  "test_calibration")
-        self.assertEqual(self.spectrum_data.spectrum_filename, "test_spectrum")
         self.assertEqual(self.mask_data.filename, "yeah")
+        self.assertEqual(self.spectrum_data.spectrum_filename, "test_spectrum")
 
     def test_img_data(self):
         self.create_controller_and_data()
-        self.img_data.load("../Data/Mg2SiO4_ambient_001.tif")
+        self.img_data.load("Data/Mg2SiO4_ambient_001.tif")
 
         img_data_ar = np.copy(self.img_data._img_data)
         self.controller.save_settings()
@@ -64,7 +66,7 @@ class SaveSettingsTest(unittest.TestCase):
 
     def test_calibration_data(self):
         self.create_controller_and_data()
-        self.calibration_data.load("../Data/calibration.poni")
+        self.calibration_data.load("Data/calibration.poni")
 
         center_x = self.calibration_data.spectrum_geometry.poni1
 
@@ -75,7 +77,7 @@ class SaveSettingsTest(unittest.TestCase):
 
     def test_spectrum_data(self):
         self.create_controller_and_data()
-        self.spectrum_data.load_spectrum("../Data/spec_test.txt")
+        self.spectrum_data.load_spectrum("Data/spec_test.txt")
 
         x, y = self.spectrum_data.spectrum.data
         x = np.copy(x)
@@ -83,6 +85,7 @@ class SaveSettingsTest(unittest.TestCase):
 
         self.controller.save_settings()
         self.create_controller_and_data()
+        self.controller.load_settings()
 
         new_x, new_y = self.spectrum_data.spectrum.data
 
