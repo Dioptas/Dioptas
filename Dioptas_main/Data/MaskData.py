@@ -22,7 +22,7 @@ import pyqtgraph as pg
 from PyQt4 import QtGui
 from collections import deque
 import skimage.draw
-import scipy.signal
+from PIL import Image
 from .cosmics import cosmicsimage
 
 import time
@@ -225,18 +225,40 @@ class MaskData(object):
         self._mask_data = mask_data
 
     def save_mask(self, filename):
-        np.savetxt(filename, self.get_img(), fmt="%d")
+        im_array = np.int8(self.get_img())
+        im = Image.fromarray(im_array)
+        im.save(filename, "tiff", compression="tiff_deflate")
         self.filename = filename
 
     def load_mask(self, filename):
-        data = np.loadtxt(filename)
-        self.filename = filename
-        self.mask_dimension = data.shape
-        self.reset_dimension()
-        self.set_mask(data)
+        try:
+            data = np.array(Image.open(filename))
+        except IOError:
+            data = np.loadtxt(filename)
 
-    def add_mask(self, mask_data):
-        self._mask_data = np.logical_or(np.array(mask_data, dtype='bool'))
+        if self.mask_dimension == data.shape:
+            self.filename = filename
+            self.mask_dimension = data.shape
+            self.reset_dimension()
+            self.set_mask(data)
+            return True
+        return False
+
+    def add_mask(self, filename):
+        try:
+            data = np.array(Image.open(filename))
+        except IOError:
+            data = np.loadtxt(filename)
+
+        if self.get_mask().shape == data.shape:
+            self._add_mask(data)
+            return True
+        return False
+
+    def _add_mask(self, mask_data):
+        self.update_deque()
+        self._mask_data = np.logical_or(self._mask_data,
+                                        np.array(mask_data, dtype='bool'))
 
 
 def test_mask_data():
