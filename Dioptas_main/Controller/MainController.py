@@ -40,7 +40,7 @@ class MainController(object):
     Creates a the main controller for Dioptas. Loads all the data objects and connects them with the other controllers
     """
 
-    def __init__(self, app):
+    def __init__(self):
         self.view = MainView()
         #create data
         self.img_data = ImgData()
@@ -50,6 +50,7 @@ class MainController(object):
         self.phase_data = PhaseData()
 
         self.load_directories()
+        self.load_filenames()
         #create controller
         self.calibration_controller = CalibrationController(self.working_dir,
                                                             self.view.calibration_widget,
@@ -129,6 +130,10 @@ class MainController(object):
         self.view.setWindowTitle(str)
         self.view.integration_widget.img_frame.setWindowTitle(str)
 
+    def load_settings(self):
+        self.load_directories()
+        self.load_filenames()
+
     def load_directories(self):
         directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
         working_directories_path = os.path.join(directory_path, 'working_directories.csv')
@@ -138,6 +143,22 @@ class MainController(object):
         else:
             self.working_dir = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
                                 'phase': ''}
+
+    def load_filenames(self):
+        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        filenames_path = os.path.join(directory_path, 'filenames.csv')
+        if os.path.exists(filenames_path):
+            reader = csv.reader(open(filenames_path, 'r'))
+            filenames = dict(x for x in reader)
+            print filenames
+            self.img_data.filename = filenames['img_data']
+            self.mask_data.filename = filenames['mask_data']
+            self.calibration_data.calibration_name = filenames['calibration_data']
+            self.spectrum_data.spectrum_filename = filenames['spectrum_data']
+
+    def save_settings(self):
+        self.save_directories()
+        self.save_filenames()
 
     def save_directories(self):
         directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
@@ -149,9 +170,23 @@ class MainController(object):
         for key, value in list(self.working_dir.items()):
             writer.writerow([key, value])
 
+    def save_filenames(self):
+        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        filenames_path = os.path.join(directory_path, 'filenames.csv')
+        writer = csv.writer(open(filenames_path, 'w'))
+
+        filenames = {'img_data': self.img_data.filename,
+                     'mask_data': self.mask_data.filename,
+                     'spectrum_data': self.spectrum_data.spectrum_filename,
+                     'calibration_data': self.calibration_data.calibration_name}
+
+        for key, value in list(filenames.items()):
+            writer.writerow([key, value])
+
+
 
     def close_event(self, _):
-        self.save_directories()
+        self.save_settings()
         QtGui.QApplication.closeAllWindows()
         QtGui.QApplication.quit()
 
