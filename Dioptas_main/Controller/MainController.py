@@ -49,8 +49,7 @@ class MainController(object):
         self.spectrum_data = SpectrumData()
         self.phase_data = PhaseData()
 
-        self.load_directories()
-        self.load_filenames()
+        self.load_settings()
         #create controller
         self.calibration_controller = CalibrationController(self.working_dir,
                                                             self.view.calibration_widget,
@@ -71,6 +70,7 @@ class MainController(object):
         self.create_signals()
         self.set_title()
         self.raise_window(self.view)
+        self.img_data.notify()
 
     @staticmethod
     def raise_window(widget):
@@ -132,6 +132,7 @@ class MainController(object):
 
     def load_settings(self):
         self.load_directories()
+        self.load_data()
         self.load_filenames()
 
     def load_directories(self):
@@ -150,15 +151,33 @@ class MainController(object):
         if os.path.exists(filenames_path):
             reader = csv.reader(open(filenames_path, 'r'))
             filenames = dict(x for x in reader)
-            print filenames
             self.img_data.filename = filenames['img_data']
             self.mask_data.filename = filenames['mask_data']
             self.calibration_data.calibration_name = filenames['calibration_data']
             self.spectrum_data.spectrum_filename = filenames['spectrum_data']
 
+    def load_data(self):
+        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        data_path = os.path.join(directory_path, 'Data')
+
+        img_data_path = os.path.join(data_path, "img_data.tif")
+        mask_data_path = os.path.join(data_path, "mask_data.mask")
+        calibration_data_path = os.path.join(data_path, "calibration.poni")
+        spectrum_data_path = os.path.join(data_path, "spectrum.xy")
+
+        if os.path.exists(img_data_path):
+            self.img_data.load(img_data_path)
+        if os.path.exists(mask_data_path):
+            self.mask_data.load_mask(mask_data_path)
+        if os.path.exists(calibration_data_path):
+            self.calibration_data.load(calibration_data_path)
+        if os.path.exists(spectrum_data_path):
+            self.spectrum_data.load_spectrum(spectrum_data_path)
+
     def save_settings(self):
         self.save_directories()
         self.save_filenames()
+        self.save_data()
 
     def save_directories(self):
         directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
@@ -182,6 +201,17 @@ class MainController(object):
 
         for key, value in list(filenames.items()):
             writer.writerow([key, value])
+
+    def save_data(self):
+        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        data_path = os.path.join(directory_path, 'Data')
+        if not os.path.exists(data_path):
+            os.mkdir(data_path)
+
+        self.img_data.save(os.path.join(data_path, "img_data.tif"))
+        self.mask_data.save_mask(os.path.join(data_path, "mask_data.mask"))
+        self.calibration_data.save(os.path.join(data_path, "calibration.poni"))
+        self.spectrum_data.save_spectrum(os.path.join(data_path, "spectrum.xy"))
 
 
 

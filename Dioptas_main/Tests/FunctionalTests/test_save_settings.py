@@ -4,8 +4,8 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import sys
-import time
 import numpy as np
+import matplotlib.pyplot as plt
 from PyQt4 import QtGui, QtCore
 from Controller.MainController import MainController
 
@@ -47,5 +47,47 @@ class SaveSettingsTest(unittest.TestCase):
         self.controller.save_settings()
 
         self.create_controller_and_data()
+        self.assertEqual(np.sum(img_data_ar-self.img_data._img_data), 0)
         self.assertTrue(np.array_equal(img_data_ar, self.img_data._img_data))
+
+    def test_mask_data(self):
+        self.create_controller_and_data()
+        self.mask_data.mask_ellipse(10,10,100,100)
+
+        mask_data_array = np.copy(self.mask_data.get_mask())
+
+        self.controller.save_settings()
+        self.create_controller_and_data()
+
+        self.assertEqual(np.sum(mask_data_array-self.mask_data.get_mask()), 0)
+        self.assertTrue(np.array_equal(mask_data_array, self.mask_data.get_mask()))
+
+    def test_calibration_data(self):
+        self.create_controller_and_data()
+        self.calibration_data.load("../Data/calibration.poni")
+
+        center_x = self.calibration_data.spectrum_geometry.poni1
+
+        self.controller.save_settings()
+        self.create_controller_and_data()
+
+        self.assertEqual(self.calibration_data.spectrum_geometry.poni1, center_x)
+
+    def test_spectrum_data(self):
+        self.create_controller_and_data()
+        self.spectrum_data.load_spectrum("../Data/spec_test.txt")
+
+        x, y = self.spectrum_data.spectrum.data
+        x = np.copy(x)
+        y = np.copy(y)
+
+        self.controller.save_settings()
+        self.create_controller_and_data()
+
+        new_x, new_y = self.spectrum_data.spectrum.data
+
+        self.assertAlmostEqual(np.sum(x-new_x), 0)
+        self.assertAlmostEqual(np.sum(y-new_y), 0)
+
+
 
