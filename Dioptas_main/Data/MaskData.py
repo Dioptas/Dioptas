@@ -22,7 +22,7 @@ import pyqtgraph as pg
 from PyQt4 import QtGui
 from collections import deque
 import skimage.draw
-import scipy.signal
+from PIL import Image
 from .cosmics import cosmicsimage
 
 import time
@@ -34,6 +34,7 @@ class MaskData(object):
         self.mask_dimension = mask_dimension
         self.supersampling_factor = 1
         self.reset_dimension()
+        self.filename = ''
         self.mode = True
 
     def set_dimension(self, mask_dimension):
@@ -223,54 +224,38 @@ class MaskData(object):
         self.update_deque()
         self._mask_data = mask_data
 
+    def save_mask(self, filename):
+        im_array = np.int8(self.get_img())
+        im = Image.fromarray(im_array)
+        im.save(filename, "tiff", compression="tiff_deflate")
+        self.filename = filename
+
     def load_mask(self, filename):
-        data = np.loadtxt(filename)
-        self.mask_dimension = data.shape
-        self.reset_dimension()
-        self.set_mask(data)
+        try:
+            data = np.array(Image.open(filename))
+        except IOError:
+            data = np.loadtxt(filename)
 
-    def add_mask(self, mask_data):
-        self._mask_data = np.logical_or(np.array(mask_data, dtype='bool'))
+        if self.mask_dimension == data.shape:
+            self.filename = filename
+            self.mask_dimension = data.shape
+            self.reset_dimension()
+            self.set_mask(data)
+            return True
+        return False
 
+    def add_mask(self, filename):
+        try:
+            data = np.array(Image.open(filename))
+        except IOError:
+            data = np.loadtxt(filename)
 
-def test_mask_data():
-    # create Gaussian image:
-    img_size = 500
-    x = np.arange(img_size)
-    y = np.arange(img_size)
-    X, Y = np.meshgrid(x, y)
-    center_x = img_size / 2
-    center_y = img_size / 2
-    width = 30000.0
-    intensity = 5000.0
-    img_data = intensity * \
-               np.exp(-((X - center_x) ** 2 + (Y - center_y) ** 2) / width)
-    mask_data = MaskData(img_data.shape)
+        if self.get_mask().shape == data.shape:
+            self._add_mask(data)
+            return True
+        return False
 
-    # test the undo and redo commands
-    mask_data.mask_above_threshold(img_data, 4000)
-    mask_data.mask_below_threshold(img_data, 230)
-    mask_data.undo()
-    mask_data.undo()
-    mask_data.redo()
-    mask_data.redo()
-    mask_data.undo()
-
-    mask_data.mask_rect(200, 400, 400, 100)
-    mask_data.mask_QGraphicsRectItem(
-        QtGui.QGraphicsRectItem(100, 10, 100, 100))
-    mask_data.undo()
-
-    mask_data.mask_polygon(
-        np.array([0, 100, 150, 100, 0]), np.array([0, 0, 50, 100, 100]))
-    mask_data.mask_QGraphicsPolygonItem(
-        QtGui.QGraphicsEllipseItem(350, 350, 20, 20))
-
-    # performing the plot
-    pg.image(mask_data.get_img())
-
-
-if __name__ == "__main__":
-    print('testing mask data')
-    test_mask_data()
-    pg.QtGui.QApplication.exec_()
+    def _add_mask(self, mask_data):
+        self.update_deque()
+        self._mask_data = np.logical_or(self._mask_data,
+                                        np.array(mask_data, dtype='bool'))
