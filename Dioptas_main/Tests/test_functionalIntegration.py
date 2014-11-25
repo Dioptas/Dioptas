@@ -14,7 +14,7 @@ from Controller.MainController import MainController
 class IntegrationFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-        self.main_controller = MainController(self.app)
+        self.main_controller = MainController()
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
         self.main_controller.view.tabWidget.setCurrentIndex(2)
