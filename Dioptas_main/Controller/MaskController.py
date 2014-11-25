@@ -283,7 +283,7 @@ class MaskController(object):
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
-            np.savetxt(filename, self.mask_data.get_img(), fmt="%d")
+            self.mask_data.save_mask(filename)
 
     def load_mask_btn_click(self, filename=None):
         if filename is None:

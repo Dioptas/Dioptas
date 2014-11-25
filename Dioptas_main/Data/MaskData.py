@@ -34,6 +34,7 @@ class MaskData(object):
         self.mask_dimension = mask_dimension
         self.supersampling_factor = 1
         self.reset_dimension()
+        self.filename = ''
         self.mode = True
 
     def set_dimension(self, mask_dimension):
@@ -223,8 +224,13 @@ class MaskData(object):
         self.update_deque()
         self._mask_data = mask_data
 
+    def save_mask(self, filename):
+        np.savetxt(filename, self.get_img(), fmt="%d")
+        self.filename = filename
+
     def load_mask(self, filename):
         data = np.loadtxt(filename)
+        self.filename = filename
         self.mask_dimension = data.shape
         self.reset_dimension()
         self.set_mask(data)
