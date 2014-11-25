@@ -283,7 +283,7 @@ class MaskController(object):
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
-            np.savetxt(filename, self.mask_data.get_img(), fmt="%d")
+            self.mask_data.save_mask(filename)
 
     def load_mask_btn_click(self, filename=None):
         if filename is None:
@@ -292,9 +292,7 @@ class MaskController(object):
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
-            mask_data = np.loadtxt(filename)
-            if self.img_data.get_img().shape == mask_data.shape:
-                self.mask_data.set_mask(np.loadtxt(filename))
+            if self.mask_data.load_mask(filename):
                 self.plot_mask()
             else:
                 QtGui.QMessageBox.critical(self.view, 'Error', 'Image data and mask data in selected file do not have '
@@ -307,9 +305,7 @@ class MaskController(object):
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
-            mask_data = np.loadtxt(filename)
-            if self.mask_data.get_mask().shape == mask_data.shape:
-                self.mask_data.add_mask(np.loadtxt(filename))
+            if self.mask_data.add_mask(filename):
                 self.plot_mask()
             else:
                 QtGui.QMessageBox.critical(self.view, 'Error', 'Image data and mask data in selected file do not have '

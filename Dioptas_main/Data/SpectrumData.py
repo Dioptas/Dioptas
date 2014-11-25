@@ -54,7 +54,11 @@ class SpectrumData(Observable):
     def load_spectrum(self, filename):
         logger.info("Load spectrum: {}".format(filename))
         self.spectrum_filename = filename
-        self.spectrum.load(filename)
+
+        skiprows = 0
+        if filename.endswith('.chi'):
+            skiprows = 4
+        self.spectrum.load(filename, skiprows)
         self.file_name_iterator.update_filename(filename)
         self.notify()
 
@@ -148,7 +152,7 @@ class Spectrum(object):
         self._scaling = 1
         self.bkg_spectrum = None
 
-    def load(self, filename, skiprows=4):
+    def load(self, filename, skiprows=0):
         try:
             data = np.loadtxt(filename, skiprows=skiprows)
             self._x = data.T[0]

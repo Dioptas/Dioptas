@@ -76,6 +76,21 @@ class MaskUnitTest(unittest.TestCase):
 
         self.assertEqual(np.sum(self.mask_data._mask_data), 0)
 
+    def test_saving_and_loading(self):
+        self.mask_data.mask_ellipse(1024, 1024, 100, 100)
+        self.mask_data.set_dimension((2048, 2048))
+
+        mask_array = np.copy(self.mask_data.get_img())
+
+        self.mask_data.save_mask("Data/test.mask")
+        self.mask_data.load_mask("Data/test.mask")
+
+        self.assertTrue(np.array_equal(mask_array, self.mask_data.get_img()))
+
+
+        #loading an old style mask (text file with zeros and ones...)
+        self.mask_data.load_mask("Data/test1.mask")
+
 
 
 

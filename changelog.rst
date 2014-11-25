@@ -1,5 +1,9 @@
 0.2.3 development
 -----------------
+    - Dioptas now saves the state of the program when closing. Reopening will automatically load the last loaded image,
+      calibration, mask and spectrum
+    - mask files are now saved in a compressed tif format which reduces the filesize from before 16 Mb to now about
+      40 kb
 
 Bugfixes
     - fixed a bug which was causing the first calibration to fail for images with a different pixelsize than 79um

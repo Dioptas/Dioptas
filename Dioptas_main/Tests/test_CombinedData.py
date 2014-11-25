@@ -1,5 +1,6 @@
 __author__ = 'Clemens Prescher'
 
+import os
 from Data.SpectrumData import Spectrum, SpectrumData
 from Data.ImgData import ImgData
 from Data.CalibrationData import CalibrationData
@@ -16,12 +17,15 @@ class CombinedDataTest(unittest.TestCase):
         self.calibration_data = CalibrationData(self.img_data)
         self.calibration_data.load('Data/calibration.poni')
         self.mask_data = MaskData()
-        self.mask_data.load_mask('Data/test.mask')
+        self.mask_data.mask_ellipse(500, 500, 100, 100)
         self.spectrum_data = SpectrumData()
 
     def test_dependencies(self):
         tth1, int1 = self.calibration_data.integrate_1d()
         self.img_data.load_next_file()
+
+        self.assertEqual(os.path.abspath(self.img_data.filename),
+                         os.path.abspath('Data/Mg2SiO4_ambient_002.tif'))
         tth2, int2 = self.calibration_data.integrate_1d()
         self.assertFalse(np.array_equal(int1, int2))
 
