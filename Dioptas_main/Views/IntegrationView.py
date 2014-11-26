@@ -144,6 +144,33 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
             # restore the previously used size when image was undocked
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
 
+    def get_progress_dialog(self, msg, title, num_points):
+        progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
+                                                num_points,  self)
+        progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+        progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        progress_dialog.move(
+            self.spectrum_view.pg_layout.x() + self.spectrum_view.pg_layout.size().width() / 2.0 - \
+            progress_dialog.size().width() / 2.0,
+            self.spectrum_view.pg_layout.y() + self.spectrum_view.pg_layout.size().height() / 2.0 -
+            progress_dialog.size().height() / 2.0)
+        progress_dialog.show()
+        return progress_dialog
+
+    def show_error_msg(self, msg):
+        msg_box = QtGui.QMessageBox(self)
+        msg_box.setWindowFlags(QtCore.Qt.Tool)
+        msg_box.setText(msg)
+        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        msg_box.setWindowTitle('Error')
+        msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg_box.setDefaultButton(QtGui.QMessageBox.Ok)
+        msg_box.exec_()
+
+    # ###############################################################################################
+    # Now comes all the overlay tw stuff
+    ################################################################################################
+
 
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()

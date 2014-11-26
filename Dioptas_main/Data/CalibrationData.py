@@ -120,13 +120,13 @@ class CalibrationData(object):
         pyFAI_parameter['wavelength'] = self.spectrum_geometry.wavelength
 
         self.cake_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
-                               poni1=pyFAI_parameter['poni1'],
-                               poni2=pyFAI_parameter['poni2'],
-                               rot1=pyFAI_parameter['rot1'],
-                               rot2=pyFAI_parameter['rot2'],
-                               rot3=pyFAI_parameter['rot3'],
-                               pixel1=pyFAI_parameter['pixel1'],
-                               pixel2=pyFAI_parameter['pixel2'])
+                                    poni1=pyFAI_parameter['poni1'],
+                                    poni2=pyFAI_parameter['poni2'],
+                                    rot1=pyFAI_parameter['rot1'],
+                                    rot2=pyFAI_parameter['rot2'],
+                                    rot3=pyFAI_parameter['rot3'],
+                                    pixel1=pyFAI_parameter['pixel1'],
+                                    pixel2=pyFAI_parameter['pixel2'])
 
         self.cake_geometry.wavelength = pyFAI_parameter['wavelength']
 
@@ -157,7 +157,7 @@ class CalibrationData(object):
         if not self.is_calibrated:
             return
 
-        #transform delta from degree into radians
+        # transform delta from degree into radians
         delta_tth = delta_tth / 180.0 * np.pi
 
         # get appropriate two theta value for the ring number
@@ -215,11 +215,11 @@ class CalibrationData(object):
 
     def calibrate(self):
         self.spectrum_geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
-                                           dist=self.start_values['dist'],
-                                           wavelength=self.start_values['wavelength'],
-                                           pixel1=self.start_values['pixel_width'],
-                                           pixel2=self.start_values['pixel_height'],
-                                           calibrant=self.calibrant)
+                                                    dist=self.start_values['dist'],
+                                                    wavelength=self.start_values['wavelength'],
+                                                    pixel1=self.start_values['pixel_width'],
+                                                    pixel2=self.start_values['pixel_height'],
+                                                    calibrant=self.calibrant)
         self.orig_pixel1 = self.start_values['pixel_width']
         self.orig_pixel2 = self.start_values['pixel_height']
 
@@ -251,18 +251,17 @@ class CalibrationData(object):
         self.spectrum_geometry.reset()
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='csr_ocl'):
+                     unit='2th_deg', method='csr'):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
-            #do not perform integration if the image is completely masked...
+            # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
         if self.spectrum_geometry._polarization is not None:
             if self.img_data.img_data.shape != self.spectrum_geometry._polarization.shape:
-                #resetting the integrator if the polarization correction matrix has not the correct shape
+                # resetting the integrator if the polarization correction matrix has not the correct shape
                 self.spectrum_geometry.reset()
 
         if polarization_factor is None:
-            #correct for different orientation definition in pyFAI compared to Fit2D
             polarization_factor = self.polarization_factor
 
         if num_points is None:
@@ -273,34 +272,42 @@ class CalibrationData(object):
 
         if unit is 'd_A':
             try:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points, method=method,
-                                                               unit='2th_deg',
-                                                               mask=mask, polarization_factor=polarization_factor,
-                                                               filename=filename)
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
+                                                                        method=method,
+                                                                        unit='2th_deg',
+                                                                        mask=mask,
+                                                                        polarization_factor=polarization_factor,
+                                                                        filename=filename)
             except NameError:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points, method=method,
-                                                               unit='2th_deg',
-                                                               mask=mask, polarization_factor=polarization_factor,
-                                                               filename=filename)
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
+                                                                        method=method,
+                                                                        unit='2th_deg',
+                                                                        mask=mask,
+                                                                        polarization_factor=polarization_factor,
+                                                                        filename=filename)
             ind = np.where(self.tth > 0)
             self.tth = self.spectrum_geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
             self.int = self.int[ind]
         else:
             try:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points, method=method,
-                                                               unit=unit,
-                                                               mask=mask, polarization_factor=polarization_factor,
-                                                               filename=filename)
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
+                                                                        method=method,
+                                                                        unit=unit,
+                                                                        mask=mask,
+                                                                        polarization_factor=polarization_factor,
+                                                                        filename=filename)
             except NameError:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points, method='lut',
-                                                               unit=unit,
-                                                               mask=mask, polarization_factor=polarization_factor,
-                                                               filename=filename)
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
+                                                                        method='lut',
+                                                                        unit=unit,
+                                                                        mask=mask,
+                                                                        polarization_factor=polarization_factor,
+                                                                        filename=filename)
         logger.info('1d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
-        if self.int.max() > 0:
-            ind = np.where(self.int > 0)
-            self.tth = self.tth[ind]
-            self.int = self.int[ind]
+
+        ind = np.where((self.int > 0) & (~np.isnan(self.int)))
+        self.tth = self.tth[ind]
+        self.int = self.int[ind]
         return self.tth, self.int
 
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr', dimensions=(2048, 2048)):
@@ -309,13 +316,14 @@ class CalibrationData(object):
 
         if self.cake_geometry._polarization is not None:
             if self.img_data.img_data.shape != self.cake_geometry._polarization.shape:
-                #resetting the integrator if the polarization correction matrix has not the same shape as the image
+                # resetting the integrator if the polarization correction matrix has not the same shape as the image
                 self.cake_geometry.reset()
 
         t1 = time.time()
 
-        res = self.cake_geometry.integrate2d(self.img_data._img_data, dimensions[0], dimensions[1], method=method, mask=mask,
-                                         unit=unit, polarization_factor=polarization_factor)
+        res = self.cake_geometry.integrate2d(self.img_data._img_data, dimensions[0], dimensions[1], method=method,
+                                             mask=mask,
+                                             unit=unit, polarization_factor=polarization_factor)
         logger.info('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         self.cake_img = res[0]
         self.cake_tth = res[1]
@@ -352,7 +360,7 @@ class CalibrationData(object):
         return pyFAI_parameter, fit2d_parameter
 
     def calculate_number_of_spectrum_points(self, max_dist_factor=1.5):
-        #calculates the number of points for an integrated spectrum, based on the distance of the beam center to the the
+        # calculates the number of points for an integrated spectrum, based on the distance of the beam center to the the
         #image corners. Maximum value is determined by the shape of the image.
         fit2d_parameter = self.spectrum_geometry.getFit2D()
         center_x = fit2d_parameter['centerX']
@@ -373,10 +381,10 @@ class CalibrationData(object):
 
     def load(self, filename):
         self.spectrum_geometry = GeometryRefinement(np.zeros((2, 3)),
-                                           dist=self.start_values['dist'],
-                                           wavelength=self.start_values['wavelength'],
-                                           pixel1=self.start_values['pixel_width'],
-                                           pixel2=self.start_values['pixel_height'])
+                                                    dist=self.start_values['dist'],
+                                                    wavelength=self.start_values['wavelength'],
+                                                    pixel1=self.start_values['pixel_width'],
+                                                    pixel2=self.start_values['pixel_height'])
         self.spectrum_geometry.load(filename)
         self.calibration_name = get_base_name(filename)
         self.is_calibrated = True
@@ -392,29 +400,29 @@ class CalibrationData(object):
 
     def set_fit2d(self, fit2d_parameter):
         self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
-                               centerX=fit2d_parameter['centerX'],
-                               centerY=fit2d_parameter['centerY'],
-                               tilt=fit2d_parameter['tilt'],
-                               tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
-                               pixelX=fit2d_parameter['pixelX'],
-                               pixelY=fit2d_parameter['pixelY'])
+                                        centerX=fit2d_parameter['centerX'],
+                                        centerY=fit2d_parameter['centerY'],
+                                        tilt=fit2d_parameter['tilt'],
+                                        tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
+                                        pixelX=fit2d_parameter['pixelX'],
+                                        pixelY=fit2d_parameter['pixelY'])
         self.spectrum_geometry.wavelength = fit2d_parameter['wavelength']
         self.create_cake_geometry()
         self.polarization_factor = fit2d_parameter['polarization_factor']
-        self.orig_pixel1 = fit2d_parameter['pixelX']*1e-6
-        self.orig_pixel2 = fit2d_parameter['pixelY']*1e-6
+        self.orig_pixel1 = fit2d_parameter['pixelX'] * 1e-6
+        self.orig_pixel2 = fit2d_parameter['pixelY'] * 1e-6
         self.is_calibrated = True
         self.set_supersampling()
 
     def set_pyFAI(self, pyFAI_parameter):
         self.spectrum_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
-                               poni1=pyFAI_parameter['poni1'],
-                               poni2=pyFAI_parameter['poni2'],
-                               rot1=pyFAI_parameter['rot1'],
-                               rot2=pyFAI_parameter['rot2'],
-                               rot3=pyFAI_parameter['rot3'],
-                               pixel1=pyFAI_parameter['pixel1'],
-                               pixel2=pyFAI_parameter['pixel2'])
+                                        poni1=pyFAI_parameter['poni1'],
+                                        poni2=pyFAI_parameter['poni2'],
+                                        rot1=pyFAI_parameter['rot1'],
+                                        rot2=pyFAI_parameter['rot2'],
+                                        rot3=pyFAI_parameter['rot3'],
+                                        pixel1=pyFAI_parameter['pixel1'],
+                                        pixel2=pyFAI_parameter['pixel2'])
         self.spectrum_geometry.wavelength = pyFAI_parameter['wavelength']
         self.create_cake_geometry()
         self.polarization_factor = pyFAI_parameter['polarization_factor']
@@ -443,10 +451,10 @@ class CalibrationData(object):
         :return:
             two theta in radians
         """
-        x = np.array([x])*self.supersampling_factor
-        y = np.array([y])*self.supersampling_factor
+        x = np.array([x]) * self.supersampling_factor
+        y = np.array([y]) * self.supersampling_factor
 
-        return self.spectrum_geometry.tth(x,y)[0]
+        return self.spectrum_geometry.tth(x, y)[0]
 
     def get_azi_img(self, x, y):
         """
@@ -458,9 +466,9 @@ class CalibrationData(object):
         :return:
             azimuth in radians
         """
-        x*=self.supersampling_factor
-        y*=self.supersampling_factor
-        return self.spectrum_geometry.chi(x,y)[0]
+        x *= self.supersampling_factor
+        y *= self.supersampling_factor
+        return self.spectrum_geometry.chi(x, y)[0]
 
     def get_two_theta_cake(self, y):
         """
@@ -483,7 +491,7 @@ class CalibrationData(object):
         return self.cake_azi[np.round(x[0])]
 
     def get_two_theta_array(self):
-        return self.spectrum_geometry._ttha[::self.supersampling_factor,::self.supersampling_factor]
+        return self.spectrum_geometry._ttha[::self.supersampling_factor, ::self.supersampling_factor]
 
     @property
     def wavelength(self):

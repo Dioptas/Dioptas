@@ -116,6 +116,14 @@ class ImgData(Observable):
         self._calculate_img_data()
         self.notify()
 
+    def save(self, filename):
+        try:
+            self._img_data_fabio.save(filename)
+        except AttributeError:
+            im_array = np.int32(np.copy(np.flipud(self._img_data)))
+            im = Image.fromarray(im_array)
+            im.save(filename)
+
     def load_background(self, filename):
         """
         Loads an image file as background in any format known by fabIO. Automatically performs all previous img

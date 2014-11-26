@@ -159,3 +159,10 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_data.load('Data/CeO2_Pilatus1M.tif')
         self.assertEqual(self.img_data._absorption_correction, None)
 
+    def test_saving_data(self):
+        self.img_data.load('Data/Mg2SiO4_ambient_001.tif')
+        self.img_data.save('Data/TestSaving.tif')
+        first_img_array = np.copy(self.img_data._img_data)
+        self.img_data.load('Data/TestSaving.tif')
+        self.assertTrue(np.array_equal(first_img_array, self.img_data._img_data))
+
