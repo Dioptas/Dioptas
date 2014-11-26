@@ -2,14 +2,14 @@
 -----------------
     - Dioptas now saves the state of the program when closing. Reopening will automatically load the last loaded image,
       calibration, mask and spectrum
-    - mask files are now saved in a compressed tif format which reduces the filesize from before 16 Mb to now about
+    - mask files are now saved in a compressed tif format which reduces the file size from before 16 Mb to now less than
       40 kb
 
 Bugfixes
-    - fixed a bug which was causing Dioptas to crash when autoprocessing new files and the rate of new files in the folder
+    - fixed a bug which was causing Dioptas to crash when auto-processing new files and the rate of new files in the folder
       was faster than Dioptas could process them
-    - fixed a bug which was causing the first calibration to fail for images with a different pixelsize than 79um
-    - fixed a bug which was producing NAN intensity values for saved spectra when using masks
+    - fixed a bug which was causing the first calibration to fail for images with a different pixel size than 79um
+    - fixed a bug which was producing NAN intensity values in saved spectra when using masks
 
 0.2.2 (stable 10/22/2014)
 -------------------------
