@@ -6,6 +6,8 @@
       40 kb
 
 Bugfixes
+    - fixed a bug which was causing Dioptas to crash when autoprocessing new files and the rate of new files in the folder
+      was faster than Dioptas could process them
     - fixed a bug which was causing the first calibration to fail for images with a different pixelsize than 79um
     - fixed a bug which was producing NAN intensity values for saved spectra when using masks
 
