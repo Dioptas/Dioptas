@@ -1,5 +1,18 @@
-0.2.2 (rc 10/20/2014)
----------------------
+0.2.3 (stable 26/11/2014)
+-------------------------
+    - Dioptas now saves the state of the program when closing. Reopening will automatically load the last loaded image,
+      calibration, mask and spectrum
+    - mask files are now saved in a compressed tif format which reduces the file size from before 16 Mb to now less than
+      40 kb
+
+Bugfixes
+    - fixed a bug which was causing Dioptas to crash when auto-processing new files and the rate of new files in the folder
+      was faster than Dioptas could process them
+    - fixed a bug which was causing the first calibration to fail for images with a different pixel size than 79um
+    - fixed a bug which was producing NAN intensity values in saved spectra when using masks
+
+0.2.2 (stable 10/22/2014)
+-------------------------
     - defining an image as background prior to integration has been implemented. The controls can be found in the Bkg
         tab in the integration widget
     - it is now possible to do an absorption correction for cBN seats based on the geometry and rotation of the cell.

@@ -85,6 +85,9 @@ class IntegrationPhaseController(object):
         :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
         :return:
         """
+        if not self.calibration_data.is_calibrated:
+            self.view.show_error_msg("Can not load phase without calibration.")
+
         if filename is None:
             filenames = QtGui.QFileDialog.getOpenFileNames(
                 self.view, "Load Phase(s).", self.working_dir['phase'])
@@ -135,15 +138,8 @@ class IntegrationPhaseController(object):
             self.view.set_phase_pressure(len(self.phase_data.phases)-1, pressure)
             self.update_phase_temperature(len(self.phase_data.phases)-1, temperature)
         except PhaseLoadError as e:
-            msg_box = QtGui.QMessageBox(self.view)
-            msg_box.setWindowFlags(QtCore.Qt.Tool)
-            msg_box.setText('Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'.\
-                            format(e.filename))
-            msg_box.setIcon(QtGui.QMessageBox.Critical)
-            msg_box.setWindowTitle('Error')
-            msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
-            msg_box.setDefaultButton(QtGui.QMessageBox.Ok)
-            msg_box.exec_()
+            self.view.show_error_msg('Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'.\
+                                    format(e.filename))
 
     def add_phase_plot(self):
         """

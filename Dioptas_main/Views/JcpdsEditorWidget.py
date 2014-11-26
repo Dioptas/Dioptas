@@ -21,13 +21,12 @@ __author__ = 'Clemens Prescher'
 import numpy as np
 from PyQt4 import QtCore, QtGui
 
-
 from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
 from Data.HelperModule import convert_d_to_two_theta
 
-class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
 
-    def __init__(self, parent = None):
+class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
+    def __init__(self, parent=None):
         super(JcpdsEditorWidget, self).__init__(parent)
         self.setupUi(self)
         self.setup_ui()
@@ -41,7 +40,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
 
     def setup_ui(self):
         self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'rhombohedral',
-                           'orthorhombic',  'monoclinic', 'triclinic']
+                           'orthorhombic', 'monoclinic', 'triclinic']
         self.symmetry_cb.clear()
         self.symmetry_cb.addItems(self.symmetries)
         self.reflection_table.setItemDelegate(TextDoubleDelegate(self))
@@ -49,7 +48,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.symmetry_cb.setStyle(cleanlooks)
 
         reflections_horizontal_header_item = self.reflection_table.horizontalHeaderItem(1)
-        reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20,24))
+        reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20, 24))
 
         self.reflection_table.verticalHeader().setDefaultSectionSize(20)
         self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
@@ -69,7 +68,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.eos_dKdT_txt.setValidator(QtGui.QDoubleValidator())
         self.eos_dKpdT_txt.setValidator(QtGui.QDoubleValidator())
 
-    def show_jcpds(self, jcpds_phase, wavelength = None):
+    def show_jcpds(self, jcpds_phase, wavelength=None):
         self.blockAllSignals(True)
 
         self.filename_txt.setText(jcpds_phase.filename)
@@ -93,19 +92,19 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
 
         try:
             if not self.lattice_ab_sb.hasFocus():
-                self.lattice_ab_sb.setValue(jcpds_phase.a0/float(jcpds_phase.b0))
+                self.lattice_ab_sb.setValue(jcpds_phase.a0 / float(jcpds_phase.b0))
         except ZeroDivisionError:
             self.lattice_ab_sb.setSpecialValueText('Inf')
 
         try:
             if not self.lattice_ca_sb.hasFocus():
-                self.lattice_ca_sb.setValue(jcpds_phase.c0/float(jcpds_phase.a0))
+                self.lattice_ca_sb.setValue(jcpds_phase.c0 / float(jcpds_phase.a0))
         except ZeroDivisionError:
             self.lattice_ca_sb.setSpecialValueText('Inf')
 
         try:
             if not self.lattice_cb_sb.hasFocus():
-                self.lattice_cb_sb.setValue(jcpds_phase.c0/float(jcpds_phase.b0))
+                self.lattice_cb_sb.setValue(jcpds_phase.c0 / float(jcpds_phase.b0))
         except ZeroDivisionError:
             self.lattice_cb_sb.setSpecialValueText('Inf')
 
@@ -125,7 +124,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.eos_dKdT_txt.setText(str(jcpds_phase.dk0dt))
         self.eos_dKpdT_txt.setText(str(jcpds_phase.dk0pdt))
 
-        #update reflections:
+        # update reflections:
         self.reflection_table.clearContents()
         self.reflection_table.setRowCount(0)
         for reflection in jcpds_phase.reflections:
@@ -159,7 +158,6 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.lattice_cb_sb.blockSignals(bool)
 
         self.symmetry_cb.blockSignals(bool)
-
 
     def update_spinbox_enable(self, symmetry):
         if symmetry == 'CUBIC':
@@ -266,11 +264,11 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
             row = None
         return row
 
-    def add_reflection_to_table(self, h=0., k=0., l=0., intensity=0., d0=0., d=0., two_theta_0 = None,
-                                two_theta = None):
+    def add_reflection_to_table(self, h=0., k=0., l=0., intensity=0., d0=0., d=0., two_theta_0=None,
+                                two_theta=None):
         self.reflection_table.blockSignals(True)
         new_row_ind = int(self.reflection_table.rowCount())
-        self.reflection_table.setRowCount(new_row_ind+1)
+        self.reflection_table.setRowCount(new_row_ind + 1)
 
         self.reflection_table.setItem(new_row_ind, 0, CenteredQTableWidgetItem(str('{:g}'.format(h))))
         self.reflection_table.setItem(new_row_ind, 1, CenteredQTableWidgetItem(str('{:g}'.format(k))))
@@ -297,26 +295,26 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.reflection_table.blockSignals(False)
 
 
-    # def get_jcpds(self):
-    #     self.jcpds_phase.filename = str(self.filename_txt.text())
-    #     self.jcpds_phase.comments_txt = [str(self.comments_text())]
-    #
-    #     self.jcpds_phase.symmetry = str(self.symmetry_cb.text()).upper()
-    #
-    #     self.jcpds_phase.a0 = float(str(self.lattice_a_txt.text()))
-    #     self.jcpds_phase.b0 = float(str(self.lattice_b_txt.text()))
-    #     self.jcpds_phase.c0 = float(str(self.lattice_c_txt.text()))
-    #
-    #     self.jcpds_phase.alpha0 = float(str(self.lattice_alpha_txt.text()))
-    #     self.jcpds_phase.beta0 = float(str(self.lattice_beta_txt.text()))
-    #     self.jcpds_phase.gamma0 = float(str(self.lattice_gamma_txt.text()))
-    #
-    #     self.jcpds_phase.k0 = float(str(self.eos_K_txt.text()))
-    #     self.jcpds_phase.k0p = float(str(self.eos_Kp_txt.text()))
-    #     self.jcpds_phase.alpha_t0 = float(str(self.eos_alphaT_txt.text()))
-    #     self.jcpds_phase.d_alpha_dt = float(str(self.eos_dalphadT_txt.text()))
-    #     self.jcpds_phase.dk0dt = float(str(self.eos_dKdT_txt.text()))
-    #     self.jcpds_phase.dk0pdt = float(str(self.eos_dKpdT_txt.text()))
+        # def get_jcpds(self):
+        # self.jcpds_phase.filename = str(self.filename_txt.text())
+        #     self.jcpds_phase.comments_txt = [str(self.comments_text())]
+        #
+        #     self.jcpds_phase.symmetry = str(self.symmetry_cb.text()).upper()
+        #
+        #     self.jcpds_phase.a0 = float(str(self.lattice_a_txt.text()))
+        #     self.jcpds_phase.b0 = float(str(self.lattice_b_txt.text()))
+        #     self.jcpds_phase.c0 = float(str(self.lattice_c_txt.text()))
+        #
+        #     self.jcpds_phase.alpha0 = float(str(self.lattice_alpha_txt.text()))
+        #     self.jcpds_phase.beta0 = float(str(self.lattice_beta_txt.text()))
+        #     self.jcpds_phase.gamma0 = float(str(self.lattice_gamma_txt.text()))
+        #
+        #     self.jcpds_phase.k0 = float(str(self.eos_K_txt.text()))
+        #     self.jcpds_phase.k0p = float(str(self.eos_Kp_txt.text()))
+        #     self.jcpds_phase.alpha_t0 = float(str(self.eos_alphaT_txt.text()))
+        #     self.jcpds_phase.d_alpha_dt = float(str(self.eos_dalphadT_txt.text()))
+        #     self.jcpds_phase.dk0dt = float(str(self.eos_dKdT_txt.text()))
+        #     self.jcpds_phase.dk0pdt = float(str(self.eos_dKpdT_txt.text()))
 
 
 class NoRectDelegate(QtGui.QItemDelegate):
@@ -358,23 +356,24 @@ class CenteredQTableWidgetItem(QtGui.QTableWidgetItem):
         self.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
     def __gt__(self, other):
-        return float(str(self.text())>float(str(other.text())))
+        return float(str(self.text()) > float(str(other.text())))
 
     def __lt__(self, other):
-        return float(str(self.text()))<float(str(other.text()))
+        return float(str(self.text())) < float(str(other.text()))
 
     def __ge__(self, other):
-        return float(str(self.text())>=float(str(other.text())))
+        return float(str(self.text()) >= float(str(other.text())))
 
     def __le__(self, other):
-        return float(str(self.text()))<=float(str(other.text()))
+        return float(str(self.text())) <= float(str(other.text()))
 
     def __eq__(self, other):
-        return float(str(self.text()))==float(str(other.text()))
+        return float(str(self.text())) == float(str(other.text()))
 
     def __ne__(self, other):
-        return float(str(self.text()))!=float(str(other.text()))
-    
+        return float(str(self.text())) != float(str(other.text()))
+
+
 class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
     def __init__(self, value):
         super(CenteredNonEditableQTableWidgetItem, self).__init__(value)

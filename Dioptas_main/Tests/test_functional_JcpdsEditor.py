@@ -348,7 +348,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
         # Erwin opens up the program, loads image and calibration and some phases
 
-        self.main_controller = MainController(self.app)
+        self.main_controller = MainController()
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
@@ -457,7 +457,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # Erwin loads Dioptas with a previous calibration and image file then he adds several phases and looks into the
         # jcpds editor for the first phase. He sees that everything seems to be correct
 
-        self.main_controller = MainController(self.app)
+        self.main_controller = MainController()
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
@@ -534,7 +534,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 4)
 
     def test_phase_name_difference_after_modified(self):
-        self.main_controller = MainController(self.app)
+        self.main_controller = MainController()
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
@@ -560,7 +560,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0, 2).text()))
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
-        self.main_controller = MainController(self.app)
+        self.main_controller = MainController()
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
