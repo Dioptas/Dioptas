@@ -131,8 +131,8 @@ class MainController(object):
         self.view.integration_widget.img_frame.setWindowTitle(str)
 
     def load_settings(self):
-        self.load_directories()
         self.load_data()
+        self.load_directories()
         self.load_filenames()
 
     def load_directories(self):
@@ -152,6 +152,8 @@ class MainController(object):
             reader = csv.reader(open(filenames_path, 'r'))
             filenames = dict(x for x in reader)
             self.img_data.filename = filenames['img_data']
+            self.img_data.file_name_iterator.update_filename(os.path.join(self.working_dir['image'],
+                                                                          filenames['img_data']))
             self.mask_data.filename = filenames['mask_data']
             self.calibration_data.calibration_name = filenames['calibration_data']
             self.spectrum_data.spectrum_filename = filenames['spectrum_data']
