@@ -649,6 +649,7 @@ class IntegrationImageController(object):
         self.autoprocess_timer.stop()
 
     def check_files(self):
+        self.autoprocess_timer.blockSignals(True)
         self._files_now = dict(
             [(f, None) for f in os.listdir(self.working_dir['image'])])
         self._files_added = [
@@ -671,6 +672,7 @@ class IntegrationImageController(object):
                 if read_file:
                     self.load_file(path)
                 self._files_before = self._files_now
+        self.autoprocess_timer.blockSignals(False)
 
     def save_img(self, filename=None):
         if filename is None:
