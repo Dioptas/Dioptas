@@ -35,7 +35,7 @@ if __name__ == "__main__":
     elif _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
         # possible values:
-        # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
+        # "windows", "motif", "cde", "plastique", "windowsxp", or "macitosh"
     controller = MainController()
     app.exec_()
     del app
