@@ -32,7 +32,7 @@ from .CalibrationController import CalibrationController
 from .IntegrationController import IntegrationController
 from .MaskController import MaskController
 
-__VERSION__ = '0.2.2'
+__VERSION__ = '0.2.3'
 
 
 class MainController(object):
