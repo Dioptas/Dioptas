@@ -36,6 +36,8 @@ build_exe_options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopenc
 }
 
 bdist_mac_options = {"iconfile": "Views/UiFiles/Icon/icns/icon.icns"}
+bdist_dmg_options = {"volume_label": "Dioptas",
+                     "applications-shortcut": True}
 # GUI applications require a different base on Windows (the default is for a
 # console application).
 base = None
@@ -46,7 +48,8 @@ setup(name="Dioptas",
       version="0.2.3",
       description="Analysis of 2 dimensional X-ray diffraction patterns.",
       options={"build_exe": build_exe_options,
-               "bdist_mac": bdist_mac_options},
+               "bdist_mac": bdist_mac_options,
+               "bdist_dmg": bdist_dmg_options},
       executables=[Executable("Dioptas.py",
                               base=base,
                               icon="Views/UiFiles/Icon/Icon1_128x128.ico")])

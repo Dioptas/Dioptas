@@ -32,7 +32,7 @@ from .CalibrationController import CalibrationController
 from .IntegrationController import IntegrationController
 from .MaskController import MaskController
 
-__VERSION__ = '0.2.2b'
+__VERSION__ = '0.2.3'
 
 
 class MainController(object):
@@ -40,7 +40,7 @@ class MainController(object):
     Creates a the main controller for Dioptas. Loads all the data objects and connects them with the other controllers
     """
 
-    def __init__(self, app):
+    def __init__(self):
         self.view = MainView()
         #create data
         self.img_data = ImgData()
