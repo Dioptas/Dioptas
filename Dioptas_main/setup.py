@@ -32,10 +32,10 @@ build_exe_options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopenc
                      "include_files": ("Calibrants","Views/UiFiles/images", "Views/UiFiles/Icon"),
                      "create_shared_zip": True,
                      "compressed": True,
-                     "icon":"Views/UiFiles/Icon/Icon1_128x128.ico",
+                     "icon":"Views/UiFiles/Icon/icns/Icon-Application.icns",
 }
 
-bdist_mac_options = {}
+bdist_mac_options = {"iconfile": "Views/UiFiles/Icon/icns/icon.icns"}
 # GUI applications require a different base on Windows (the default is for a
 # console application).
 base = None
