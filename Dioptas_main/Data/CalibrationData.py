@@ -285,9 +285,8 @@ class CalibrationData(object):
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
-            ind = np.where(self.tth > 0)
-            self.tth = self.spectrum_geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
-            self.int = self.int[ind]
+            self.tth = self.spectrum_geometry.wavelength / (2 * np.sin(self.tth / 360 * np.pi)) * 1e10
+            self.int = self.int
         else:
             try:
                 self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
@@ -399,6 +398,7 @@ class CalibrationData(object):
         return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
 
     def set_fit2d(self, fit2d_parameter):
+        print fit2d_parameter
         self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
                                         centerX=fit2d_parameter['centerX'],
                                         centerY=fit2d_parameter['centerY'],
