@@ -20,6 +20,7 @@ class DummyCorrection(ImgCorrectionInterface):
     def shape(self):
         return self._shape
 
+
 class ImgCorrectionsUnitTest(unittest.TestCase):
 
     def setUp(self):
@@ -77,3 +78,90 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
         #just deleting something, when all corrections have a name will not change anything
         self.corrections.delete()
         self.assertEqual(np.mean(self.corrections.get_data()), 5)
+
+
+from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from Data.ImgCorrection import CbnCorrection
+
+class CbnCorrectionTest(unittest.TestCase):
+    def setUp(self):
+        # defining geometry
+        image_shape = [2048, 2048] #pixel
+        detector_distance = 200 #mm
+        wavelength = 0.31 #angstrom
+        center_x = 1024 #pixel
+        center_y = 1024 #pixel
+        tilt = 0 #degree
+        rotation = 0 #degree
+        pixel_size = 79 #um
+        dummy_tth = np.linspace(0, 35, 2000)
+        dummy_int = np.ones(dummy_tth.shape)
+        geometry = AzimuthalIntegrator()
+        geometry.setFit2D(directDist=detector_distance,
+                          centerX=center_x,
+                          centerY=center_y,
+                          tilt=tilt,
+                          tiltPlanRotation=rotation,
+                          pixelX=pixel_size,
+                          pixelY=pixel_size)
+        geometry.wavelength = wavelength/1e10
+        self.dummy_img = geometry.calcfrom1d(dummy_tth, dummy_int, shape=image_shape, correctSolidAngle=True)
+
+
+        self.tth_array = geometry.twoThetaArray(image_shape)
+        self.azi_array = geometry.chiArray(image_shape)
+
+    def test_that_it_is_calculating_correctly(self):
+        cbn_correction = CbnCorrection(self.tth_array, self.azi_array,
+                                      diamond_thickness=2.2,
+                                      seat_thickness=5.3,
+                                      small_cbn_seat_radius=0.4,
+                                      large_cbn_seat_radius=1.95,
+                                      tilt=0,
+                                      tilt_rotation=0)
+        cbn_correction_data = cbn_correction.get_data()
+        self.assertGreater(np.sum(cbn_correction_data),0)
+        self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)
+
+from Data.ImgCorrection import ObliqueAngleDetectorAbsorptionCorrection
+
+class ObliqueAngleDetectorAbsorptionCorrectionTest(unittest.TestCase):
+    def setUp(self):
+        # defining geometry
+        image_shape = [2048, 2048] #pixel
+        detector_distance = 200 #mm
+        wavelength = 0.31 #angstrom
+        center_x = 1024 #pixel
+        center_y = 1024 #pixel
+        self.tilt = 0 #degree
+        self.rotation = 0 #degree
+        pixel_size = 79 #um
+        dummy_tth = np.linspace(0, 35, 2000)
+        dummy_int = np.ones(dummy_tth.shape)
+        geometry = AzimuthalIntegrator()
+        geometry.setFit2D(directDist=detector_distance,
+                          centerX=center_x,
+                          centerY=center_y,
+                          tilt=self.tilt,
+                          tiltPlanRotation=self.rotation,
+                          pixelX=pixel_size,
+                          pixelY=pixel_size)
+        geometry.wavelength = wavelength/1e10
+        self.dummy_img = geometry.calcfrom1d(dummy_tth, dummy_int, shape=image_shape, correctSolidAngle=True)
+
+
+        self.tth_array = geometry.twoThetaArray(image_shape)
+        self.azi_array = geometry.chiArray(image_shape)
+
+    def test_it_is_correctly_calulating(self):
+        oblique_correction = ObliqueAngleDetectorAbsorptionCorrection(
+            tth_array=self.tth_array,
+            azi_array=self.azi_array,
+            detector_thickness=40,
+            absorption_length=465.5,
+            tilt=self.tilt,
+            rotation=self.rotation
+        )
+        oblique_correction_data = oblique_correction.get_data()
+        self.assertGreater(np.sum(oblique_correction_data),0)
+        self.assertEqual(oblique_correction_data.shape, self.dummy_img.shape)
