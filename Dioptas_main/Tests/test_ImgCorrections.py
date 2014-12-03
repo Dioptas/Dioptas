@@ -79,6 +79,13 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
         self.corrections.delete()
         self.assertEqual(np.mean(self.corrections.get_data()), 5)
 
+    def test_set_shape(self):
+        self.corrections.add(DummyCorrection((2048, 2048), 3), "cbn Correction")
+        self.corrections.add(DummyCorrection((2048, 2048), 5), "oblique angle Correction")
+
+        # setting it to a different shape should remove the existent corrections
+        self.corrections.set_shape((2048, 1024))
+        self.assertEqual(self.corrections.get_data(), None)
 
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from Data.ImgCorrection import CbnCorrection
@@ -153,7 +160,7 @@ class ObliqueAngleDetectorAbsorptionCorrectionTest(unittest.TestCase):
         self.tth_array = geometry.twoThetaArray(image_shape)
         self.azi_array = geometry.chiArray(image_shape)
 
-    def test_it_is_correctly_calulating(self):
+    def test_that_it_is_correctly_calculating(self):
         oblique_correction = ObliqueAngleDetectorAbsorptionCorrection(
             tth_array=self.tth_array,
             azi_array=self.azi_array,

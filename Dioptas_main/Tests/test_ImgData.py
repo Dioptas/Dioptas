@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from Data.ImgData import ImgData
+from Data.ImgCorrection import DummyCorrection
 
 
 class ImgDataUnitTest(unittest.TestCase):
@@ -145,19 +146,36 @@ class ImgDataUnitTest(unittest.TestCase):
 
     def test_absorption_correction_with_supersampling(self):
         original_image = np.copy(self.img_data.get_img_data())
-        self.img_data.set_absorption_correction(np.ones(original_image.shape)*0.6)
+        dummy_correction = DummyCorrection(self.img_data.get_img_data().shape, 0.6)
 
+        self.img_data.add_img_correction(dummy_correction, "Dummy 1")
         self.assertAlmostEqual(np.sum(original_image)/0.6, np.sum(self.img_data.get_img_data()), places=4)
 
         self.img_data.set_supersampling(2)
         self.img_data.get_img_data()
 
     def test_absorption_correction_with_different_image_sizes(self):
-        self.img_data.set_absorption_correction(np.ones(self.img_data._img_data.shape)*0.4)
-        self.assertNotEqual(self.img_data._absorption_correction, None)
+        dummy_correction = DummyCorrection(self.img_data.get_img_data().shape, 0.4)
+        # self.img_data.set_absorption_correction(np.ones(self.img_data._img_data.shape)*0.4)
+        self.img_data.add_img_correction(dummy_correction, "Dummy 1")
+        self.assertTrue(self.img_data._img_corrections.has_items())
+
 
         self.img_data.load('Data/CeO2_Pilatus1M.tif')
-        self.assertEqual(self.img_data._absorption_correction, None)
+        self.assertFalse(self.img_data.has_corrections())
+
+    def test_adding_several_absorption_corrections(self):
+        original_image = np.copy(self.img_data.get_img_data())
+        img_shape = original_image.shape
+        self.img_data.add_img_correction(DummyCorrection(img_shape, 0.4))
+        self.img_data.add_img_correction(DummyCorrection(img_shape, 3))
+        self.img_data.add_img_correction(DummyCorrection(img_shape, 5))
+
+        self.assertTrue(np.sum(original_image)/(0.5*3*5), np.sum(self.img_data.get_img_data()))
+
+        self.img_data.delete_img_correction(1)
+        self.assertTrue(np.sum(original_image)/(0.5*5), np.sum(self.img_data.get_img_data()))
+
 
     def test_saving_data(self):
         self.img_data.load('Data/Mg2SiO4_ambient_001.tif')
