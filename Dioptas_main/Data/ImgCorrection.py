@@ -23,6 +23,9 @@ class ImgCorrectionManager(object):
             return True
         return False
 
+    def has_items(self):
+        return len(self._corrections)!=0
+
     def delete(self, name=None):
         if name is None:
             if self._ind == 0:
@@ -30,6 +33,18 @@ class ImgCorrectionManager(object):
             self._ind -= 1
             name = self._ind
         del self._corrections[name]
+        if len(self._corrections) == 0:
+            self.clear()
+
+    def clear(self):
+        self._corrections={}
+        self.shape=None
+        self._ind=0
+
+    def set_shape(self, shape):
+        if self.shape != shape:
+            self.clear()
+        self.shape = shape
 
     def get_data(self):
         if len(self._corrections) == 0:
@@ -64,8 +79,14 @@ class CbnCorrection(ImgCorrectionInterface):
         self.tilt = tilt
         self.tilt_rotation = tilt_rotation
 
+        self._data = None
+        self.update()
+
 
     def get_data(self):
+        return self._data
+
+    def update(self):
         # diam - diamond thickness
         # ds - seat thickness
         # r1 - small radius
@@ -125,7 +146,7 @@ class CbnCorrection(ImgCorrectionInterface):
             accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
             accsc = (accs - 1.) * (tt >= ts1) + 1
 
-        return ac * accc * accsc
+        self._data= ac * accc * accsc
 
 
 class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
@@ -137,7 +158,13 @@ class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
         self.tilt = tilt
         self.rotation = rotation
 
+        self._data = None
+        self.update()
+
     def get_data(self):
+        return self._data
+
+    def update(self):
         tilt_rad = self.tilt / 180.0 * np.pi
         rotation_rad = self.rotation / 180.0 * np.pi
 
@@ -149,5 +176,19 @@ class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
         absorption_correction = (1 - np.exp(-attenuation_constant * path_length)) / \
                                 (1 - np.exp(-attenuation_constant * self.detector_thickness))
 
-        return 1.0 / absorption_correction
+        self._data = absorption_correction
 
+
+class DummyCorrection(ImgCorrectionInterface):
+    """
+    Used in particular for unit tests
+    """
+    def __init__(self, shape, number=1):
+        self._data = np.ones(shape)*number
+        self._shape = shape
+
+    def get_data(self):
+        return self._data
+
+    def shape(self):
+        return self._shape
