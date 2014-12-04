@@ -95,6 +95,9 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.cbn_outer_seat_radius_txt.setValidator(QtGui.QDoubleValidator())
         self.cbn_tilt_rotation_txt.setValidator(QtGui.QDoubleValidator())
 
+        self.oiadac_abs_length_txt.setValidator(QtGui.QDoubleValidator())
+        self.oiadac_thickness_txt.setValidator(QtGui.QDoubleValidator())
+
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
         self.img_view.activate_vertical_line()
