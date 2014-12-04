@@ -86,6 +86,9 @@ class CbnCorrection(ImgCorrectionInterface):
     def get_data(self):
         return self._data
 
+    def shape(self):
+        return self._data.shape
+
     def update(self):
         # diam - diamond thickness
         # ds - seat thickness
@@ -163,6 +166,9 @@ class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
 
     def get_data(self):
         return self._data
+
+    def shape(self):
+        return self._data.shape
 
     def update(self):
         tilt_rad = self.tilt / 180.0 * np.pi
