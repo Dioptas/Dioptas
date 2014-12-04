@@ -19,6 +19,7 @@
 
 import os
 import csv
+import xml.etree.cElementTree as ET
 
 from PyQt4 import QtGui, QtCore
 
@@ -49,18 +50,21 @@ class MainController(object):
         self.spectrum_data = SpectrumData()
         self.phase_data = PhaseData()
 
+        self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
+                                'phase': ''}
         self.load_settings()
         #create controller
-        self.calibration_controller = CalibrationController(self.working_dir,
+        self.calibration_controller = CalibrationController(self.working_directories,
                                                             self.view.calibration_widget,
                                                             self.img_data,
                                                             self.mask_data,
                                                             self.calibration_data)
-        self.mask_controller = MaskController(self.working_dir,
+        self.mask_controller = MaskController(self.working_directories,
                                               self.view.mask_widget,
                                               self.img_data,
                                               self.mask_data)
-        self.integration_controller = IntegrationController(self.working_dir,
+        self.integration_controller = IntegrationController(self.working_directories,
                                                             self.view.integration_widget,
                                                             self.img_data,
                                                             self.mask_data,
@@ -70,7 +74,6 @@ class MainController(object):
         self.create_signals()
         self.set_title()
         self.raise_window(self.view)
-        self.img_data.notify()
 
     @staticmethod
     def raise_window(widget):
@@ -131,91 +134,47 @@ class MainController(object):
         self.view.integration_widget.img_frame.setWindowTitle(str)
 
     def load_settings(self):
-        # self.load_data()
-        self.load_directories()
-        # self.load_filenames()
+        if os.path.exists(self.settings_directory):
+            self.load_directories()
+            self.load_xml_settings()
 
     def load_directories(self):
-        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        working_directories_path = os.path.join(directory_path, 'working_directories.csv')
+        working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
         if os.path.exists(working_directories_path):
             reader = csv.reader(open(working_directories_path, 'r'))
-            self.working_dir = dict(x for x in reader)
-        else:
-            self.working_dir = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
-                                'phase': ''}
+            self.working_directories = dict(x for x in reader)
 
-    def load_filenames(self):
-        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        filenames_path = os.path.join(directory_path, 'filenames.csv')
-        if os.path.exists(filenames_path):
-            reader = csv.reader(open(filenames_path, 'r'))
-            filenames = dict(x for x in reader)
-            self.img_data.filename = filenames['img_data']
-            self.img_data.file_name_iterator.update_filename(os.path.join(self.working_dir['image'],
-                                                                          filenames['img_data']))
-            self.mask_data.filename = filenames['mask_data']
-            self.calibration_data.calibration_name = filenames['calibration_data']
-            self.spectrum_data.spectrum_filename = filenames['spectrum_data']
 
-    def load_data(self):
-        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        data_path = os.path.join(directory_path, 'Data')
-
-        img_data_path = os.path.join(data_path, "img_data.tif")
-        mask_data_path = os.path.join(data_path, "mask_data.mask")
-        calibration_data_path = os.path.join(data_path, "calibration.poni")
-        spectrum_data_path = os.path.join(data_path, "spectrum.xy")
-
-        if os.path.exists(img_data_path):
-            self.img_data.load(img_data_path)
-        if os.path.exists(mask_data_path):
-            self.mask_data.load_mask(mask_data_path)
-        if os.path.exists(calibration_data_path):
-            self.calibration_data.load(calibration_data_path)
-        if os.path.exists(spectrum_data_path):
-            self.spectrum_data.load_spectrum(spectrum_data_path)
+    def load_xml_settings(self):
+        xml_settings_path = os.path.join(self.settings_directory, "settings.xml")
+        if os.path.exists(xml_settings_path):
+            tree = ET.parse(xml_settings_path)
+            root = tree.getroot()
+            filenames = root.find("filenames")
+            calibration_path=filenames.find("calibration").text
+            if os.path.exists(str(calibration_path)):
+                self.calibration_data.load(calibration_path)
 
     def save_settings(self):
+        if not os.path.exists(self.settings_directory):
+            os.mkdir(self.settings_directory)
         self.save_directories()
-        self.save_filenames()
-        self.save_data()
+        self.save_xml_settings()
 
     def save_directories(self):
-        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        if not os.path.exists(directory_path):
-            os.mkdir(directory_path)
-
-        working_directories_path = os.path.join(directory_path, 'working_directories.csv')
+        working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
         writer = csv.writer(open(working_directories_path, 'w'))
-        for key, value in list(self.working_dir.items()):
+        for key, value in list(self.working_directories.items()):
+            writer.writerow([key, value])
             writer.writerow([key, value])
 
-    def save_filenames(self):
-        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        filenames_path = os.path.join(directory_path, 'filenames.csv')
-        writer = csv.writer(open(filenames_path, 'w'))
-
-        filenames = {'img_data': self.img_data.filename,
-                     'mask_data': self.mask_data.filename,
-                     'spectrum_data': self.spectrum_data.spectrum_filename,
-                     'calibration_data': self.calibration_data.calibration_name}
-
-        for key, value in list(filenames.items()):
-            writer.writerow([key, value])
-
-    def save_data(self):
-        directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        data_path = os.path.join(directory_path, 'Data')
-        if not os.path.exists(data_path):
-            os.mkdir(data_path)
-
-        self.img_data.save(os.path.join(data_path, "img_data.tif"))
-        self.mask_data.save_mask(os.path.join(data_path, "mask_data.mask"))
-        self.calibration_data.save(os.path.join(data_path, "calibration.poni"))
-        self.spectrum_data.save_spectrum(os.path.join(data_path, "spectrum.xy"))
-
-
+    def save_xml_settings(self):
+        root = ET.Element("DioptasSettings")
+        filenames = ET.SubElement(root, "filenames")
+        calibration_filename = ET.SubElement(filenames, "calibration")
+        calibration_filename.text = self.calibration_data.filename
+        tree = ET.ElementTree(root)
+        tree.write(os.path.join(self.settings_directory, "settings.xml"))
 
     def close_event(self, _):
         self.save_settings()
