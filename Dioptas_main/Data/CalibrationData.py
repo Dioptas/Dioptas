@@ -54,6 +54,7 @@ class CalibrationData(object):
         self.fit_distance = True
         self.is_calibrated = False
         self.use_mask = False
+        self.filename = ''
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
@@ -386,6 +387,7 @@ class CalibrationData(object):
                                                     pixel2=self.start_values['pixel_height'])
         self.spectrum_geometry.load(filename)
         self.calibration_name = get_base_name(filename)
+        self.filename = filename
         self.is_calibrated = True
         self.create_cake_geometry()
         self.set_supersampling()
@@ -393,6 +395,7 @@ class CalibrationData(object):
     def save(self, filename):
         self.cake_geometry.save(filename)
         self.calibration_name = get_base_name(filename)
+        self.filename = filename
 
     def create_file_header(self):
         return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
