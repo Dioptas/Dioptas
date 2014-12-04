@@ -131,9 +131,9 @@ class MainController(object):
         self.view.integration_widget.img_frame.setWindowTitle(str)
 
     def load_settings(self):
-        self.load_data()
+        # self.load_data()
         self.load_directories()
-        self.load_filenames()
+        # self.load_filenames()
 
     def load_directories(self):
         directory_path = os.path.join(os.path.expanduser("~"), '.Dioptas')
