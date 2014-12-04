@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Thu Dec  4 11:07:53 2014
+# Created: Thu Dec  4 11:26:10 2014
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -898,7 +898,7 @@ class Ui_xrs_integration_widget(object):
         self.cbn_seat_thickness_txt.setObjectName(_fromUtf8("cbn_seat_thickness_txt"))
         self.gridLayout_4.addWidget(self.cbn_seat_thickness_txt, 1, 1, 1, 1)
         self.cbn_plot_correction_btn = QtGui.QPushButton(self.cbn_groupbox)
-        self.cbn_plot_correction_btn.setMinimumSize(QtCore.QSize(0, 50))
+        self.cbn_plot_correction_btn.setMinimumSize(QtCore.QSize(90, 50))
         self.cbn_plot_correction_btn.setFlat(True)
         self.cbn_plot_correction_btn.setObjectName(_fromUtf8("cbn_plot_correction_btn"))
         self.gridLayout_4.addWidget(self.cbn_plot_correction_btn, 0, 8, 2, 1)
@@ -943,7 +943,7 @@ class Ui_xrs_integration_widget(object):
         self.label_23.setObjectName(_fromUtf8("label_23"))
         self.gridLayout_6.addWidget(self.label_23, 0, 6, 1, 1)
         self.oiadac_plot_btn = QtGui.QPushButton(self.oiadac_groupbox)
-        self.oiadac_plot_btn.setMinimumSize(QtCore.QSize(0, 30))
+        self.oiadac_plot_btn.setMinimumSize(QtCore.QSize(90, 30))
         self.oiadac_plot_btn.setFlat(True)
         self.oiadac_plot_btn.setObjectName(_fromUtf8("oiadac_plot_btn"))
         self.gridLayout_6.addWidget(self.oiadac_plot_btn, 0, 7, 1, 1)
