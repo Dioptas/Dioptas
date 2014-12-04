@@ -228,7 +228,7 @@ class IntegrationImageController(object):
         progress_dialog.close()
 
     def _check_absorption_correction_shape(self):
-        if self.img_data.has_correction() is None and self.view.cbn_groupbox.isChecked():
+        if self.img_data.has_corrections() is None and self.view.cbn_groupbox.isChecked():
             self.view.cbn_groupbox.setChecked(False)
             self.view.oiadac_groupbox.setChecked(False)
             QtGui.QMessageBox.critical(self.view,
