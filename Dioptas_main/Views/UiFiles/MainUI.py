@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'Main.ui'
 #
-# Created: Sun Oct 19 11:23:45 2014
-#      by: PyQt4 UI code generator 4.11.2
+# Created: Thu Dec  4 11:27:47 2014
+#      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -61,7 +61,7 @@ class Ui_mainView(object):
 "      color: #F1F1F1; \n"
 "    font: normal 11px;\n"
 "     border-radius:2px;\n"
-"     min-width: 80px;  \n"
+"     min-width: 65px;  \n"
 "    height: 19px;\n"
 "    padding: 0px;\n"
 "     margin-top: 1px ;\n"
