@@ -31,7 +31,7 @@ from pyFAI.blob_detection import BlobDetection
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
-from .HelperModule import get_base_name
+from Data.HelperModule import get_base_name
 from copy import copy
 import Calibrants
 
