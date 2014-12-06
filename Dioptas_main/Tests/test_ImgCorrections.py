@@ -6,7 +6,7 @@ __author__ = 'Clemens Prescher'
 import unittest
 import numpy as np
 
-from Data.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface
+from Data.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, ObliqueAngleDetectorAbsorptionCorrection
 
 
 class DummyCorrection(ImgCorrectionInterface):
@@ -130,7 +130,126 @@ class CbnCorrectionTest(unittest.TestCase):
         self.assertGreater(np.sum(cbn_correction_data),0)
         self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)
 
-from Data.ImgCorrection import ObliqueAngleDetectorAbsorptionCorrection
+from CalibrationData import CalibrationData
+from ImgData import ImgData
+from MaskData import MaskData
+from lmfit import Parameters, minimize, report_fit
+from scipy.ndimage import gaussian_filter1d
+import os
+import matplotlib.pyplot as plt
+
+@unittest.skip("Optimization takes forever...")
+class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
+    def setUp(self):
+        #creating Data objects
+        self.img_data = ImgData()
+        self.img_data.load("Data/CbnCorrectionOptimization/Mg2SiO4_091.tif")
+        self.calibration_data = CalibrationData(self.img_data)
+        self.calibration_data.load("Data/CbnCorrectionOptimization/LaB6_40keV side.poni")
+        self.mask_data = MaskData()
+        self.mask_data.load_mask("Data/CbnCorrectionOptimization/Mg2SiO4_91_combined.mask")
+
+        #creating the ObliqueAngleDetectorAbsorptionCorrection
+        _, fit2d_parameter = self.calibration_data.get_calibration_parameter()
+        detector_tilt = fit2d_parameter['tilt']
+        detector_tilt_rotation = fit2d_parameter['tiltPlanRotation']
+
+        self.tth_array = self.calibration_data.spectrum_geometry.twoThetaArray((2048,2048))
+        self.azi_array = self.calibration_data.spectrum_geometry.chiArray((2048,2048))
+
+        self.oiadac_correction = ObliqueAngleDetectorAbsorptionCorrection(
+                self.tth_array, self.azi_array,
+                detector_thickness=40,
+                absorption_length=465.5,
+                tilt=detector_tilt,
+                rotation=detector_tilt_rotation,
+            )
+        self.img_data.add_img_correction(self.oiadac_correction, "oiadac")
+
+
+    def test_the_world(self):
+        params = Parameters()
+        params.add("diamond_thickness", value=2, min=1.9, max=2.3)
+        params.add("seat_thickness", value=5.3, min=4.0, max=6.6, vary=False)
+        params.add("small_cbn_seat_radius", value=0.2, min = 0.10, max=0.5, vary=True)
+        params.add("large_cbn_seat_radius", value=1.95, min = 1.85, max=2.05, vary=False)
+        params.add("tilt", value=3.3, min=0, max=8)
+        params.add("tilt_rotation", value=0, min=-15, max=+15)
+        params.add("cbn_abs_length", value=14.05, min=12, max=16)
+
+        region = [8, 26]
+
+        self.tth_array = 180.0 / np.pi * self.tth_array
+        self.azi_array = 180.0 / np.pi * self.azi_array
+
+        def fcn2min(params):
+            cbn_correction = CbnCorrection(
+                tth_array = self.tth_array,
+                azi_array = self.azi_array,
+                diamond_thickness= params['diamond_thickness'].value,
+                seat_thickness=params['seat_thickness'].value,
+                small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
+                large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
+                tilt=params['tilt'].value,
+                tilt_rotation=params['tilt_rotation'].value,
+                cbn_abs_length=params["cbn_abs_length"].value
+            )
+            self.img_data.add_img_correction(cbn_correction, "cbn")
+            tth, int = self.calibration_data.integrate_1d(mask=self.mask_data.get_mask())
+            self.img_data.delete_img_correction("cbn")
+            ind = np.where((tth>region[0]) & (tth<region[1]))
+            int = gaussian_filter1d(int, 20)
+            return (np.diff(int[ind]))**2
+
+        def output_values(param1, iteration, residual):
+            report_fit(param1)
+
+
+        result = minimize(fcn2min, params, iter_cb=output_values)
+        report_fit(params)
+
+
+        #plotting result:
+        cbn_correction = CbnCorrection(
+            tth_array = self.tth_array,
+            azi_array = self.azi_array,
+            diamond_thickness= params['diamond_thickness'].value,
+            seat_thickness=params['seat_thickness'].value,
+            small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
+            large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
+            tilt=params['tilt'].value,
+            tilt_rotation=params['tilt_rotation'].value,
+            cbn_abs_length=params['cbn_abs_length'].value
+        )
+        self.img_data.add_img_correction(cbn_correction, "cbn")
+        tth, int = self.calibration_data.integrate_1d(mask=self.mask_data.get_mask())
+        ind = np.where((tth>region[0]) & (tth<region[1]))
+        tth=tth[ind]
+        int=int[ind]
+        int_smooth = gaussian_filter1d(int, 10)
+
+        int_diff1 = np.diff(int)
+        int_diff1_smooth = np.diff(int_smooth)
+        int_diff2 = np.diff(int_diff1)
+        int_diff2_smooth = np.diff(int_diff1_smooth)
+
+        plt.figure()
+        plt.subplot(3,1,1)
+        plt.plot(tth, int)
+        plt.plot(tth, int_smooth)
+        plt.subplot(3,1,2)
+        plt.plot(int_diff1)
+        plt.plot(int_diff1_smooth)
+        plt.subplot(3,1,3)
+        plt.plot(int_diff2)
+        plt.plot(int_diff2_smooth)
+        plt.savefig("Results/optimize_cbn_absorption.png", dpi=300)
+
+        os.system("open "+"Results/optimize_cbn_absorption.png")
+
+
+
+
 
 class ObliqueAngleDetectorAbsorptionCorrectionTest(unittest.TestCase):
     def setUp(self):

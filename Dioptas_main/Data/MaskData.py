@@ -23,7 +23,7 @@ from PyQt4 import QtGui
 from collections import deque
 import skimage.draw
 from PIL import Image
-from .cosmics import cosmicsimage
+from Data.cosmics import cosmicsimage
 
 import time
 from sys import getsizeof
