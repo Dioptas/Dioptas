@@ -154,6 +154,8 @@ class IntegrationImageController(object):
         self.view.cbn_outer_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.view.cbn_cell_tilt_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.view.cbn_tilt_rotation_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_center_offset_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_center_offset_angle_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.connect_click_function(self.view.cbn_plot_correction_btn, self.cbn_plot_correction_btn_clicked)
 
         self.connect_click_function(self.view.oiadac_groupbox, self.oiadac_groupbox_changed)
@@ -730,6 +732,8 @@ class IntegrationImageController(object):
             outer_seat_radius = float(str(self.view.cbn_outer_seat_radius_txt.text()))
             tilt = float(str(self.view.cbn_cell_tilt_txt.text()))
             tilt_rotation = float(str(self.view.cbn_tilt_rotation_txt.text()))
+            center_offset = float(str(self.view.cbn_center_offset_txt.text()))
+            center_offset_angle = float(str(self.view.cbn_center_offset_angle_txt.text()))
 
             tth_array = 180.0 / np.pi * self.calibration_data.spectrum_geometry.ttha
             azi_array = 180.0 / np.pi * self.calibration_data.spectrum_geometry.chia
@@ -745,7 +749,9 @@ class IntegrationImageController(object):
                 small_cbn_seat_radius=inner_seat_radius,
                 large_cbn_seat_radius=outer_seat_radius,
                 tilt=tilt,
-                tilt_rotation=tilt_rotation
+                tilt_rotation=tilt_rotation,
+                center_offset= center_offset,
+                center_offset_angle= center_offset_angle
             )
             print "Time needed for correction calculation: {}".format(time.time() - t1)
             try:

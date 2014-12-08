@@ -68,8 +68,12 @@ class ImgCorrectionInterface(object):
 
 
 class CbnCorrection(ImgCorrectionInterface):
-    def __init__(self, tth_array, azi_array, diamond_thickness, seat_thickness, small_cbn_seat_radius,
-                 large_cbn_seat_radius, tilt=0, tilt_rotation=0):
+    def __init__(self, tth_array, azi_array,
+                 diamond_thickness, seat_thickness,
+                 small_cbn_seat_radius, large_cbn_seat_radius,
+                 tilt=0, tilt_rotation=0,
+                 diamond_abs_length = 13.7, cbn_abs_length=14.05,
+                 center_offset=0, center_offset_angle=0):
         self.tth_array = tth_array
         self.azi_array = azi_array
         self.diamond_thickness = diamond_thickness
@@ -78,6 +82,10 @@ class CbnCorrection(ImgCorrectionInterface):
         self.large_cbn_seat_radius = large_cbn_seat_radius
         self.tilt = tilt
         self.tilt_rotation = tilt_rotation
+        self.diamond_abs_length = diamond_abs_length
+        self.cbn_abs_length = cbn_abs_length
+        self.center_offset = center_offset
+        self.center_offset_angle = center_offset_angle
 
         self._data = None
         self.update()
@@ -95,59 +103,71 @@ class CbnCorrection(ImgCorrectionInterface):
         # r1 - small radius
         #r2 - large radius
         #tilt - tilting angle of DAC
+        dtor = np.pi / 180.0
 
         diam = self.diamond_thickness
         ds = self.seat_thickness
         r1 = self.small_cbn_seat_radius
         r2 = self.large_cbn_seat_radius
-        tilt = -self.tilt
-        tilt_rotation = self.tilt_rotation
+        tilt = -self.tilt * dtor
+        tilt_rotation = self.tilt_rotation * dtor
+        center_offset_angle = self.center_offset_angle * dtor
 
-        t = self.tth_array
-        a = self.azi_array
+        t = self.tth_array * dtor
+        a = self.azi_array * dtor
 
-        dtor = np.pi / 180.0
+
+
+        if self.center_offset != 0:
+            beta = a-np.arcsin(self.center_offset*np.sin((np.pi-(a+center_offset_angle)))/r1)+center_offset_angle
+            r1 = np.sqrt(r1**2+self.center_offset**2-2*r1*self.center_offset*np.cos(beta))
+            r2 = np.sqrt(r2**2+self.center_offset**2-2*r2*self.center_offset*np.cos(beta))
+
 
         # ;calculate 2-theta limit for seat
-        ts1 = 180 / np.pi * np.arctan(r1 / diam)
-        ts2 = 180 / np.pi * np.arctan(r2 / (diam + ds))
-        tseat = 180 / np.pi * np.arctan((r2 - r1) / ds)
-        tcell = 180 / np.pi * np.arctan(((19. - 7) / 2) / 15.)
-        tc1 = 180 / np.pi * np.arctan((7. / 2) / (diam + ds))
-        tc2 = 180 / np.pi * np.arctan((19. / 2) / (diam + ds + 10.))
-        print 'ts1=', ts1, '  ts2=', ts2, '  tseat=', tseat, '   tcell=', tc1, tc2, tcell
+        ts1 = np.arctan(r1 / diam)
+        ts2 = np.arctan(r2 / (diam + ds))
+        tseat = np.arctan((r2 - r1) / ds)
+        tcell = np.arctan(((19. - 7) / 2) / 15.)
+        tc1 = np.arctan((7. / 2) / (diam + ds))
+        tc2 = np.arctan((19. / 2) / (diam + ds + 10.))
+        # print 'ts1=', ts1, '  ts2=', ts2, '  tseat=', tseat, '   tcell=', tc1, tc2, tcell
 
-        tt = np.sqrt(t ** 2 + tilt ** 2 - 2 * t * tilt * np.cos(dtor * (a + tilt_rotation)))
+        tt = np.sqrt(t ** 2 + tilt ** 2 - 2 * t * tilt * np.cos(a + tilt_rotation))
 
         # ;absorption by diamond
-        c = diam / np.cos(dtor * tt)
-        ac = np.exp(-0.215680897 * 3.516 * c / 10)
+        c = diam / np.cos(tt)
+        # old version from Vitali
+        # ac = np.exp(-0.215680897 * 3.516 * c / 10)
+        ac = np.exp(-c/self.diamond_abs_length) #40keV
 
+        # # ;absorption by conic part of seat
+        # if (ts2 >= ts1) or self.center_offset!=0:
+        deltar = (c * np.sin(tt) - r1).clip(min=0)
+        # cc = deltar * np.sin(dtor * (90 - tseat)) / np.sin(dtor * (tseat - tt.clip(max=ts2)))
+        cc = deltar * np.sin(np.pi - tseat) / (np.sin(tseat - tt.clip(max=ts2)) * np.tan(tseat))
+        # acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
+        acc = np.exp(-cc/self.cbn_abs_length)
+        accc = (acc - 1.) * (np.logical_and(tt >= ts1, tt <= ts2)) + 1
+        # ;absorption by seat
+        ccs = ds / np.cos(tt)
+        # accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
+        accs = np.exp(-ccs/self.cbn_abs_length)
+        accsc = (accs - 1.) * (tt >= ts2) + 1
 
-        # ;absorption by conic part of seat
-        if (ts2 >= ts1):
-            deltar = (c * np.sin(dtor * tt) - r1).clip(min=0)
-            cc = deltar * np.sin(dtor * (90 - tseat)) / np.sin(dtor * (tseat - tt.clip(max=ts2)))
-            acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
-            accc = (acc - 1.) * (np.logical_and(tt >= ts1, tt <= ts2)) + 1
-            # ;absorption by seat
-            ccs = ds / np.cos(dtor * tt)
-            accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
-            accsc = (accs - 1.) * (tt >= ts2) + 1
-
-        else:
-            print 'in the else path'
-            delta = ((diam + ds) * np.tan(dtor * tt) - r2).clip(min=0)
-
-            cc = delta * np.sin(dtor * (90 + tseat)) / np.sin(dtor * (tt.clip(max < ts1) - tseat))
-
-            acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
-
-            accc = (acc - 1.) * (np.logical_and(tt >= ts2, tt <= ts1)) + 1
-            # ;absorption by seat
-            ccs = ds / np.cos(dtor * tt)
-            accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
-            accsc = (accs - 1.) * (tt >= ts1) + 1
+        # else:
+        #     print 'in the else path'
+        #     delta = ((diam + ds) * np.tan(dtor * tt) - r2).clip(min=0)
+        #
+        #     cc = delta * np.sin(dtor * (90 + tseat)) / np.sin(dtor * (tt.clip(max < ts1) - tseat))
+        #
+        #     acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
+        #
+        #     accc = (acc - 1.) * (np.logical_and(tt >= ts2, tt <= ts1)) + 1
+        #     # ;absorption by seat
+        #     ccs = ds / np.cos(dtor * tt)
+        #     accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
+        #     accsc = (accs - 1.) * (tt >= ts1) + 1
 
         self._data= ac * accc * accsc
 
