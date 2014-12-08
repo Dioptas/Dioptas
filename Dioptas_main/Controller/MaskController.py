@@ -168,11 +168,11 @@ class MaskController(object):
 
     def undo_btn_click(self):
         self.mask_data.undo()
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def redo_btn_click(self):
         self.mask_data.redo()
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def plot_image(self):
         self.view.img_view.plot_image(self.img_data.get_img(), False)
@@ -197,7 +197,7 @@ class MaskController(object):
             self.clicks = 0
             self.mask_data.mask_QGraphicsEllipseItem(self.circle)
             self.view.img_view.img_view_box.removeItem(self.circle)
-            self.view.img_view.plot_mask(self.mask_data.get_img())
+            self.plot_mask()
             self.view.img_view.mouse_moved.disconnect(self.circle.set_size)
             self.circle = None
 
@@ -210,14 +210,14 @@ class MaskController(object):
             self.clicks = 0
             self.mask_data.mask_QGraphicsRectItem(self.rect)
             self.view.img_view.img_view_box.removeItem(self.rect)
-            self.view.img_view.plot_mask(self.mask_data.get_img())
+            self.plot_mask()
             self.view.img_view.mouse_moved.disconnect(self.rect.set_size)
             self.rect = None
 
     def draw_point(self, x, y):
         radius = self.view.point_size_sb.value()
         self.mask_data.mask_ellipse(y, x, radius, radius)
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def set_point_size(self, radius):
         try:
@@ -241,7 +241,7 @@ class MaskController(object):
         self.polygon.add_point(y, x)
         self.clicks = 0
         self.mask_data.mask_QGraphicsPolygonItem(self.polygon)
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
         self.view.img_view.img_view_box.removeItem(self.polygon)
         self.polygon = None
 
@@ -249,32 +249,32 @@ class MaskController(object):
     def below_thresh_btn_click(self):
         thresh = np.float64(self.view.below_thresh_txt.text())
         self.mask_data.mask_below_threshold(self.img_data.get_img(), thresh)
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def above_thresh_btn_click(self):
         thresh = np.float64(self.view.above_thresh_txt.text())
         self.mask_data.mask_above_threshold(self.img_data.get_img(), thresh)
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def grow_btn_click(self):
         self.mask_data.grow()
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def shrink_btn_click(self):
         self.mask_data.shrink()
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def invert_mask_btn_click(self):
         self.mask_data.invert_mask()
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def clear_mask_btn_click(self):
         self.mask_data.clear_mask()
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def cosmic_btn_click(self):
         self.mask_data.remove_cosmic(self.img_data.get_img())
-        self.view.img_view.plot_mask(self.mask_data.get_img())
+        self.plot_mask()
 
     def save_mask_btn_click(self, filename=None):
         if filename is None:
@@ -312,6 +312,7 @@ class MaskController(object):
                                                                'the same shape. Mask could not be added.')
 
     def plot_mask(self):
+        print np.max(self.mask_data.get_img())
         self.view.img_view.plot_mask(self.mask_data.get_img())
 
     def key_press_event(self, ev):
