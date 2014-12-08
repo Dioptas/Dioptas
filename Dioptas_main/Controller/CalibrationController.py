@@ -191,7 +191,6 @@ class CalibrationController(object):
                                 self._calibrants_file_list[current_index])
         self.calibration_data.set_calibrant(filename)
 
-        wavelength = 0
         if wavelength_from == 'start_values':
             start_values = self.view.get_start_values()
             wavelength = start_values['wavelength']
