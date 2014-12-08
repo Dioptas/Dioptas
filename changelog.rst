@@ -9,6 +9,7 @@ Bugfixes
     - fixed a bug which was causing Dioptas to crash when auto-processing new files and the rate of new files in the folder
       was faster than Dioptas could process them
     - fixed a bug which was causing the first calibration to fail for images with a different pixel size than 79um
+    - fixed a bug which was causing the pixel size not to update when loading a calibration "*.poni" file
     - fixed a bug which was producing NAN intensity values in saved spectra when using masks
 
 0.2.2 (stable 10/22/2014)
