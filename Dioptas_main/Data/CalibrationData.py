@@ -380,12 +380,10 @@ class CalibrationData(object):
         return int(max_dist * max_dist_factor)
 
     def load(self, filename):
-        self.spectrum_geometry = GeometryRefinement(np.zeros((2, 3)),
-                                                    dist=self.start_values['dist'],
-                                                    wavelength=self.start_values['wavelength'],
-                                                    pixel1=self.start_values['pixel_width'],
-                                                    pixel2=self.start_values['pixel_height'])
+        self.spectrum_geometry = AzimuthalIntegrator()
         self.spectrum_geometry.load(filename)
+        self.orig_pixel1 = self.spectrum_geometry.pixel1
+        self.orig_pixel2 = self.spectrum_geometry.pixel2
         self.calibration_name = get_base_name(filename)
         self.filename = filename
         self.is_calibrated = True
