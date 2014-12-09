@@ -50,5 +50,4 @@ setup(name="Dioptas",
                "bdist_mac": bdist_mac_options,
                "bdist_dmg": bdist_dmg_options},
       executables=[Executable("Dioptas.py",
-                              base=base,
-                              icon="Views/UiFiles/Icon/Icon1_128x128.ico")])
+                              base=base)])
