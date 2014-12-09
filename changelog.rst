@@ -1,14 +1,21 @@
-0.2.3 (stable 26/11/2014)
+0.2.3 (stable 12/09/2014)
 -------------------------
-    - Dioptas now saves the state of the program when closing. Reopening will automatically load the last loaded image,
-      calibration, mask and spectrum
+    - Dioptas now saves the calibration when closing and will automatically open after restarting the program
     - mask files are now saved in a compressed tif format which reduces the file size from before 16 Mb to now less than
       40 kb
+    - Added the option to use "Oblique Incidence Angle Detector Absorption correction", which basically corrects for the
+      angle dependent path length in the detector scintillator and tries to correct the intensities correspondingly.
+      This is especially useful at very high energies.
+    - the cBN seat correction has been upgraded to include an Offset and Offset tilt parameter which corrects for
+      misalignment of the sample in respect to the cBN seat
+    - both, cBN seat correction and Oblique Incidence Angle Detector Absorption correction have been moved to a new tab
+      ("Cor") in the Integration window
 
 Bugfixes
     - fixed a bug which was causing Dioptas to crash when auto-processing new files and the rate of new files in the folder
       was faster than Dioptas could process them
     - fixed a bug which was causing the first calibration to fail for images with a different pixel size than 79um
+    - fixed a bug which was causing the pixel size not to update when loading a calibration "*.poni" file
     - fixed a bug which was producing NAN intensity values in saved spectra when using masks
 
 0.2.2 (stable 10/22/2014)

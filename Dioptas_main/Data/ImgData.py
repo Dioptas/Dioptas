@@ -27,8 +27,10 @@ import numpy as np
 import random
 import fabio
 from PIL import Image
-from .HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
+from Data.HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator, gauss_function
+
+from Data.ImgCorrection import ImgCorrectionManager
 
 
 class ImgData(Observable):
@@ -73,12 +75,10 @@ class ImgData(Observable):
 
         self.background_filename = ''
         self._background_data = None
-        self._background_data_supersampled = None
         self._background_scaling = 1
         self._background_offset = 0
 
-        self._absorption_correction = None
-        self._absorption_correction_supersampled = None
+        self._img_corrections = ImgCorrectionManager()
 
         self._create_dummy_img()
 
@@ -217,37 +217,36 @@ class ImgData(Observable):
         if self._background_data is not None:
             if self._img_data.shape != self._background_data.shape:
                 self._background_data = None
-        if self._absorption_correction is not None:
-            if self._img_data.shape != self._absorption_correction.shape:
-                self._absorption_correction = None
+        if self._img_corrections.has_items():
+            self._img_corrections.set_shape(self._img_data.shape)
 
         #calculate the current _img_data
-        if self._background_data is not None and self._absorption_correction is None:
+        if self._background_data is not None and not self._img_corrections.has_items():
             self._img_data_background_subtracted = self._img_data - (self._background_scaling *
                                                                      self._background_data +
                                                                      self._background_offset)
-        elif self._background_data is None and self._absorption_correction is not None:
-            self._img_data_absorption_corrected = self._img_data / self._absorption_correction
+        elif self._background_data is None and self._img_corrections.has_items():
+            self._img_data_absorption_corrected = self._img_data / self._img_corrections.get_data()
 
-        elif self._background_data is not None and self._absorption_correction is not None:
+        elif self._background_data is not None and self._img_corrections.has_items():
             self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
                 self._background_scaling * self._background_data + self._background_offset)) / \
-                                                                        self._absorption_correction
+                                                                        self._img_corrections.get_data()
 
         # supersample the current image data
         if self.supersampling_factor > 1:
-            if self._background_data is None and self._absorption_correction is None:
+            if self._background_data is None and not self._img_corrections.has_items():
                 self._img_data_supersampled = self.supersample_data(self._img_data, self.supersampling_factor)
 
-            if self._background_data is not None and self._absorption_correction is None:
+            if self._background_data is not None and not self._img_corrections.has_items():
                 self._img_data_supersampled_background_subtracted = \
                     self.supersample_data(self._img_data_background_subtracted, self.supersampling_factor)
 
-            elif self._background_data is None and self._absorption_correction is not None:
+            elif self._background_data is None and self._img_corrections.has_items():
                 self._img_data_supersampled_absorption_corrected = \
                     self.supersample_data(self._img_data_absorption_corrected, self.supersampling_factor)
 
-            elif self._background_data is not None and self._absorption_correction is not None:
+            elif self._background_data is not None and self._img_corrections.has_items():
                 self._img_data_supersampled_background_subtracted_absorption_corrected = \
                     self.supersample_data(self._img_data_background_subtracted_absorption_corrected,
                                           self.supersampling_factor)
@@ -262,29 +261,29 @@ class ImgData(Observable):
             It also works for combinations of all these options.
         """
         if self.supersampling_factor == 1:
-            if self._background_data is None and self._absorption_correction is None:
+            if self._background_data is None and not self._img_corrections.has_items():
                 return self._img_data
 
-            elif self._background_data is not None and self._absorption_correction is None:
+            elif self._background_data is not None and not self._img_corrections.has_items():
                 return self._img_data_background_subtracted
 
-            elif self._background_data is None and self._absorption_correction is not None:
+            elif self._background_data is None and self._img_corrections.has_items():
                 return self._img_data_absorption_corrected
 
-            elif self._background_data is not None and self._absorption_correction is not None:
+            elif self._background_data is not None and self._img_corrections.has_items():
                 return self._img_data_background_subtracted_absorption_corrected
 
         else:
-            if self._background_data is None and self._absorption_correction is None:
+            if self._background_data is None and not self._img_corrections.has_items():
                 return self._img_data_supersampled
 
-            elif self._background_data is not None and self._absorption_correction is None:
+            elif self._background_data is not None and not self._img_corrections.has_items():
                 return self._img_data_supersampled_background_subtracted
 
-            elif self._background_data is None and self._absorption_correction is not None:
+            elif self._background_data is None and self._img_corrections.has_items():
                 return self._img_data_supersampled_absorption_corrected
 
-            elif self._background_data is not None and self._absorption_correction is not None:
+            elif self._background_data is not None and self._img_corrections.has_items():
                 return self._img_data_supersampled_background_subtracted_absorption_corrected
 
     def rotate_img_p90(self):
@@ -411,24 +410,18 @@ class ImgData(Observable):
         else:
             return img_data
 
-
-    def set_absorption_correction(self, absorption_correction):
-        """
-        Sets an array by which the image will be divided
-        :param absorption_correction: array with same shape as the loaded original image
-        """
-        if absorption_correction is None:
-            self._absorption_correction = None
-        elif absorption_correction.shape == self._img_data.shape:
-            self._absorption_correction = absorption_correction
-        else:
-            self._absorption_correction = None
+    def add_img_correction(self, correction, name=None):
+        self._img_corrections.add(correction, name)
         self._calculate_img_data()
         self.notify()
 
+    def delete_img_correction(self, name=None):
+        self._img_corrections.delete(name)
+        self._calculate_img_data()
+        self.notify()
 
-    def has_absorption_correction(self):
+    def has_corrections(self):
         """
-        :return: Whether the ImgData object has an active absorption correction or not
+        :return: Whether the ImgData object has active absorption corrections or not
         """
-        return self._absorption_correction is not None
+        return self._img_corrections.has_items()

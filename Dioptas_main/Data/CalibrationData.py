@@ -31,7 +31,7 @@ from pyFAI.blob_detection import BlobDetection
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
-from .HelperModule import get_base_name
+from Data.HelperModule import get_base_name
 from copy import copy
 import Calibrants
 
@@ -54,6 +54,7 @@ class CalibrationData(object):
         self.fit_distance = True
         self.is_calibrated = False
         self.use_mask = False
+        self.filename = ''
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
@@ -285,9 +286,8 @@ class CalibrationData(object):
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
-            ind = np.where(self.tth > 0)
-            self.tth = self.spectrum_geometry.wavelength / (2 * np.sin(self.tth[ind] / 360 * np.pi)) * 1e10
-            self.int = self.int[ind]
+            self.tth = self.spectrum_geometry.wavelength / (2 * np.sin(self.tth / 360 * np.pi)) * 1e10
+            self.int = self.int
         else:
             try:
                 self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
@@ -380,13 +380,12 @@ class CalibrationData(object):
         return int(max_dist * max_dist_factor)
 
     def load(self, filename):
-        self.spectrum_geometry = GeometryRefinement(np.zeros((2, 3)),
-                                                    dist=self.start_values['dist'],
-                                                    wavelength=self.start_values['wavelength'],
-                                                    pixel1=self.start_values['pixel_width'],
-                                                    pixel2=self.start_values['pixel_height'])
+        self.spectrum_geometry = AzimuthalIntegrator()
         self.spectrum_geometry.load(filename)
+        self.orig_pixel1 = self.spectrum_geometry.pixel1
+        self.orig_pixel2 = self.spectrum_geometry.pixel2
         self.calibration_name = get_base_name(filename)
+        self.filename = filename
         self.is_calibrated = True
         self.create_cake_geometry()
         self.set_supersampling()
@@ -394,11 +393,13 @@ class CalibrationData(object):
     def save(self, filename):
         self.cake_geometry.save(filename)
         self.calibration_name = get_base_name(filename)
+        self.filename = filename
 
     def create_file_header(self):
         return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
 
     def set_fit2d(self, fit2d_parameter):
+        print fit2d_parameter
         self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
                                         centerX=fit2d_parameter['centerX'],
                                         centerY=fit2d_parameter['centerY'],
