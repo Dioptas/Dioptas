@@ -31,13 +31,12 @@ build_exe_options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopenc
                                   "skimage._shared.geometry"],
                      "include_files": ("Calibrants","Views/UiFiles/images", "Views/UiFiles/Icon"),
                      "create_shared_zip": True,
-                     "compressed": True,
-                     "icon":"Views/UiFiles/Icon/icns/Icon-Application.icns",
+                     "compressed": True
 }
 
 bdist_mac_options = {"iconfile": "Views/UiFiles/Icon/icns/icon.icns"}
-bdist_dmg_options = {"volume_label": "Dioptas",
-                     "applications-shortcut": True}
+bdist_dmg_options = {"volume_label": "Dioptas",}
+                     # "applications-shortcut": True}
 # GUI applications require a different base on Windows (the default is for a
 # console application).
 base = None

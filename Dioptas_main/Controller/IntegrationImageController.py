@@ -22,6 +22,7 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
 from Data.HelperModule import calculate_cbn_absorption_correction
+from Data.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 
 class IntegrationImageController(object):
@@ -153,7 +154,15 @@ class IntegrationImageController(object):
         self.view.cbn_outer_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.view.cbn_cell_tilt_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.view.cbn_tilt_rotation_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_center_offset_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.view.cbn_center_offset_angle_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.connect_click_function(self.view.cbn_plot_correction_btn, self.cbn_plot_correction_btn_clicked)
+
+        self.connect_click_function(self.view.oiadac_groupbox, self.oiadac_groupbox_changed)
+        self.view.oiadac_thickness_txt.editingFinished.connect(self.oiadac_groupbox_changed)
+        self.view.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
+        self.connect_click_function(self.view.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
+
 
         self.create_auto_process_signal()
 
@@ -221,11 +230,12 @@ class IntegrationImageController(object):
         progress_dialog.close()
 
     def _check_absorption_correction_shape(self):
-        if self.img_data._absorption_correction is None and self.view.cbn_groupbox.isChecked():
+        if self.img_data.has_corrections() is None and self.view.cbn_groupbox.isChecked():
             self.view.cbn_groupbox.setChecked(False)
+            self.view.oiadac_groupbox.setChecked(False)
             QtGui.QMessageBox.critical(self.view,
                                        'ERROR',
-                                       'Due to a change in image dimensions the cBN seat correction has been removed')
+                                       'Due to a change in image dimensions the corrections have been removed')
 
     def _get_spectrum_working_directory(self):
         if self.view.spec_autocreate_cb.isChecked():
@@ -373,7 +383,8 @@ class IntegrationImageController(object):
     def update_img(self, reset_img_levels=None):
         self.view.img_filename_txt.setText(os.path.basename(self.img_data.filename))
         self.view.img_directory_txt.setText(os.path.dirname(self.img_data.filename))
-        self.view.cbn_plot_correction_btn.setText('Plot Cor')
+        self.view.cbn_plot_correction_btn.setText('Plot')
+        self.view.oiadac_plot_btn.setText('Plot')
 
         if self.img_mode == 'Cake' and \
                 self.calibration_data.is_calibrated:
@@ -706,40 +717,116 @@ class IntegrationImageController(object):
                 im.save(filename)
 
     def cbn_groupbox_changed(self):
-        if self.view.cbn_groupbox.isChecked() and self.calibration_data.is_calibrated:
-            diamond_thickness = float(str(self.view.cbn_diamond_thickness_txt.text()))
-            seat_thickness = float(str(self.view.cbn_seat_thickness_txt.text()))
-            inner_seat_radius = float(str(self.view.cbn_inner_seat_radius_txt.text()))
-            outer_seat_radius = float(str(self.view.cbn_outer_seat_radius_txt.text()))
-            tilt = float(str(self.view.cbn_cell_tilt_txt.text()))
-            tilt_rotation = float(str(self.view.cbn_tilt_rotation_txt.text()))
-
-            tth_array = 180.0 / np.pi * self.calibration_data.spectrum_geometry.ttha
-            azi_array = 180.0 / np.pi * self.calibration_data.spectrum_geometry.chia
-            import time
-
-            t1 = time.time()
-            res = calculate_cbn_absorption_correction(tth_array, azi_array, diamond_thickness, seat_thickness,
-                                                      inner_seat_radius, outer_seat_radius, tilt, tilt_rotation)
-            print "Time needed for correction calculation: {}".format(time.time() - t1)
-            self.img_data.set_absorption_correction(res)
-        else:
-            self.img_data.set_absorption_correction(None)
-
         if not self.calibration_data.is_calibrated:
             self.view.cbn_groupbox.setChecked(False)
             QtGui.QMessageBox.critical(self.view,
                                        'ERROR',
                                        'Please calibrate the geometry first or load an existent calibration file. ' + \
                                        'The cBN seat correction needs a calibrated geometry.')
+            return
+
+        if self.view.cbn_groupbox.isChecked():
+            diamond_thickness = float(str(self.view.cbn_diamond_thickness_txt.text()))
+            seat_thickness = float(str(self.view.cbn_seat_thickness_txt.text()))
+            inner_seat_radius = float(str(self.view.cbn_inner_seat_radius_txt.text()))
+            outer_seat_radius = float(str(self.view.cbn_outer_seat_radius_txt.text()))
+            tilt = float(str(self.view.cbn_cell_tilt_txt.text()))
+            tilt_rotation = float(str(self.view.cbn_tilt_rotation_txt.text()))
+            center_offset = float(str(self.view.cbn_center_offset_txt.text()))
+            center_offset_angle = float(str(self.view.cbn_center_offset_angle_txt.text()))
+
+            tth_array = 180.0 / np.pi * self.calibration_data.spectrum_geometry.ttha
+            azi_array = 180.0 / np.pi * self.calibration_data.spectrum_geometry.chia
+            import time
+
+            t1 = time.time()
+
+            cbn_correction = CbnCorrection(
+                tth_array = tth_array,
+                azi_array = azi_array,
+                diamond_thickness= diamond_thickness,
+                seat_thickness=seat_thickness,
+                small_cbn_seat_radius=inner_seat_radius,
+                large_cbn_seat_radius=outer_seat_radius,
+                tilt=tilt,
+                tilt_rotation=tilt_rotation,
+                center_offset= center_offset,
+                center_offset_angle= center_offset_angle
+            )
+            print "Time needed for correction calculation: {}".format(time.time() - t1)
+            try:
+                self.img_data.delete_img_correction("cbn")
+            except KeyError:
+                pass
+            self.img_data.add_img_correction(cbn_correction, "cbn")
+        else:
+            self.img_data.delete_img_correction("cbn")
+
 
     def cbn_plot_correction_btn_clicked(self):
-        if str(self.view.cbn_plot_correction_btn.text()) == 'Plot Cor':
-            self.view.img_view.plot_image(self.img_data._absorption_correction,
+        if str(self.view.cbn_plot_correction_btn.text()) == 'Plot':
+            self.view.img_view.plot_image(self.img_data._img_corrections.get_correction("cbn").get_data(),
                                           True)
-            self.view.cbn_plot_correction_btn.setText('Plot Img')
+            self.view.cbn_plot_correction_btn.setText('Back')
+            self.view.oiadac_plot_btn.setText('Plot')
         else:
-            self.view.cbn_plot_correction_btn.setText('Plot Cor')
+            self.view.cbn_plot_correction_btn.setText('Plot')
+            if self.img_mode == 'Cake':
+                self.plot_cake(True)
+            elif self.img_mode == 'Image':
+                self.plot_img(True)
+
+
+    def oiadac_groupbox_changed(self):
+        if not self.calibration_data.is_calibrated:
+            self.view.oiadac_groupbox.setChecked(False)
+            QtGui.QMessageBox.critical(
+                self.view,
+               'ERROR',
+               'Please calibrate the geometry first or load an existent calibration file. ' + \
+               'The oblique incidence angle detector absorption correction needs a calibrated' + \
+               'geometry.'
+            )
+            return
+
+        if self.view.oiadac_groupbox.isChecked():
+            detector_thickness = float(str(self.view.oiadac_thickness_txt.text()))
+            absorption_length = float(str(self.view.oiadac_abs_length_txt.text()))
+
+            _, fit2d_parameter = self.calibration_data.get_calibration_parameter()
+            detector_tilt = fit2d_parameter['tilt']
+            detector_tilt_rotation = fit2d_parameter['tiltPlanRotation']
+
+            tth_array = self.calibration_data.spectrum_geometry.ttha
+            azi_array = self.calibration_data.spectrum_geometry.chia
+            import time
+
+            t1 = time.time()
+
+            oiadac_correction = ObliqueAngleDetectorAbsorptionCorrection(
+                tth_array, azi_array,
+                detector_thickness=detector_thickness,
+                absorption_length=absorption_length,
+                tilt=detector_tilt,
+                rotation=detector_tilt_rotation,
+            )
+            print "Time needed for correction calculation: {}".format(time.time() - t1)
+            try:
+                self.img_data.delete_img_correction("oiadac")
+            except KeyError:
+                pass
+            self.img_data.add_img_correction(oiadac_correction, "oiadac")
+        else:
+            self.img_data.delete_img_correction("oiadac")
+
+    def oiadac_plot_btn_clicked(self):
+        if str(self.view.oiadac_plot_btn.text()) == 'Plot':
+            self.view.img_view.plot_image(self.img_data._img_corrections.get_correction("oiadac").get_data(),
+                                          True)
+            self.view.oiadac_plot_btn.setText('Back')
+            self.view.cbn_plot_correction_btn.setText('Plot')
+        else:
+            self.view.oiadac_plot_btn.setText('Plot')
             if self.img_mode == 'Cake':
                 self.plot_cake(True)
             elif self.img_mode == 'Image':
