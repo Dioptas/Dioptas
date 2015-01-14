@@ -31,6 +31,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.image_data = ImgData()
         self.controller = MainController()
+        self.controller.view.show()
         self.controller.calibration_controller.load_calibration(
             'Data/LaB6_p49_40keV_006.poni')
         self.controller.view.tabWidget.setCurrentIndex(2)
