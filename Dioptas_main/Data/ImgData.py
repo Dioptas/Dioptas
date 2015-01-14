@@ -83,18 +83,8 @@ class ImgData(Observable):
         self._create_dummy_img()
 
     def _create_dummy_img(self):
-        x = np.arange(2048)
-        y = np.arange(2048)
-        X, Y = np.meshgrid(x, y)
-        self._img_data = 2000 * np.ones((2048.0, 2048.0))
-        line_pos = np.linspace(0, 2047, 10)
-        for pos in line_pos:
-            self._img_data += gauss_function(X, 10000 * random.random(), 50 * random.random(), pos)
-            self._img_data += gauss_function(Y, 10000 * random.random(), 50 * random.random(), pos)
-        self._img_data += gauss_function(X, 200 + 200 * random.random(), 500 + 500 * random.random(),
-                                         800 + 400 * random.random()) * \
-                          gauss_function(Y, 200 + 200 * random.random(), 500 + 500 * random.random(),
-                                         800 + 400 * random.random())
+        self._img_data = np.zeros((2048, 2048))
+
 
     def load(self, filename):
         """
