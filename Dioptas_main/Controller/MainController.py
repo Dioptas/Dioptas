@@ -180,5 +180,3 @@ class MainController(object):
         self.save_settings()
         QtGui.QApplication.closeAllWindows()
         QtGui.QApplication.quit()
-
-
