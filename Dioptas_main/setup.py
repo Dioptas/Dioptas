@@ -31,7 +31,7 @@ build_exe_options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopenc
                                   "skimage._shared.geometry"],
                      "include_files": ("Calibrants","Views/UiFiles/images", "Views/UiFiles/Icon"),
                      "create_shared_zip": True,
-                     "compressed": True,
+                     "compressed": True
 }
 
 bdist_mac_options = {"iconfile": "Views/UiFiles/Icon/icns/icon.icns"}
@@ -50,5 +50,4 @@ setup(name="Dioptas",
                "bdist_mac": bdist_mac_options,
                "bdist_dmg": bdist_dmg_options},
       executables=[Executable("Dioptas.py",
-                              base=base,
-                              icon="Views/UiFiles/Icon/Icon1_128x128.ico")])
+                              base=base)])
