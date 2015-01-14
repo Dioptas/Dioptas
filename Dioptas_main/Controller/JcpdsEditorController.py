@@ -27,8 +27,15 @@ from Data.jcpds import jcpds
 
 from Views.JcpdsEditorWidget import JcpdsEditorWidget
 
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from Data.CalibrationData import CalibrationData
+from Data.jcpds import jcpds
+
 
 class JcpdsEditorController(QtCore.QObject):
+    """
+    JcpdsEditorController handles all the signals and changes associated with Jcpds editor widget
+    """
     canceled_editor = QtCore.pyqtSignal(jcpds)
     lattice_param_changed = QtCore.pyqtSignal()
     eos_param_changed = QtCore.pyqtSignal()
@@ -41,6 +48,14 @@ class JcpdsEditorController(QtCore.QObject):
     phase_modified = QtCore.pyqtSignal()
 
     def __init__(self, working_dir, calibration_data=None, jcpds_phase=None):
+        """
+        :param working_dir: dictionary of working directories
+        :param calibration_data: Reference to CalibrationData object
+        :param jcpds_phase: Reference to JcpdsPhase object
+
+        :type calibration_data: CalibrationData
+        :type jcpds_phase: jcpds
+        """
         super(JcpdsEditorController, self).__init__()
         self.view = JcpdsEditorWidget()
         self.working_dir = working_dir

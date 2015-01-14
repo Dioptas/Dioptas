@@ -25,10 +25,38 @@ import pyFAI
 from Data.SpectrumData import BkgNotInRangeError
 import numpy as np
 
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from Views.IntegrationView import IntegrationView
+from Data.ImgData import ImgData
+from Data.MaskData import MaskData
+from Data.CalibrationData import CalibrationData
+from Data.SpectrumData import SpectrumData
+
 
 class IntegrationSpectrumController(object):
+    """
+    IntegrationSpectrumController handles all the interaction from the IntegrationView with the spectrum data.
+    It manages the auto integration of image files to spectra in addition to spectrum browsing and changing of units
+    (2 Theta, Q, A)
+    """
+
     def __init__(self, working_dir, view, img_data,
                  mask_data, calibration_data, spectrum_data):
+        """
+        :param working_dir: dictionary of working directories
+        :param view: Reference to an IntegrationView
+        :param img_data: reference to ImgData object
+        :param mask_data: reference to MaskData object
+        :param calibration_data: reference to CalibrationData object
+        :param spectrum_data: reference to SpectrumData object
+
+        :type view: IntegrationView
+        :type img_data: ImgData
+        :type mask_data: MaskData
+        :type calibration_data: CalibrationData
+        :type spectrum_data: SpectrumData
+        """
+
         self.working_dir = working_dir
         self.view = view
         self.img_data = img_data
@@ -156,7 +184,7 @@ class IntegrationSpectrumController(object):
             x, y = self.spectrum_data.spectrum.data
         except BkgNotInRangeError as e:
             print(e)
-            self.reset_background(popup = True)
+            self.reset_background(popup=True)
             x, y = self.spectrum_data.spectrum.data
 
         self.view.spectrum_view.plot_data(
@@ -172,8 +200,8 @@ class IntegrationSpectrumController(object):
         else:
             self.view.bkg_name_lbl.setText('')
 
-    def reset_background(self, popup = True):
-        self.view.overlay_show_cb_set_checked(self.spectrum_data.bkg_ind, True)  #show the old overlay again
+    def reset_background(self, popup=True):
+        self.view.overlay_show_cb_set_checked(self.spectrum_data.bkg_ind, True)  # show the old overlay again
         self.spectrum_data.bkg_ind = -1
         self.spectrum_data.spectrum.reset_background()
         self.view.overlay_set_as_bkg_btn.setChecked(False)
@@ -200,17 +228,17 @@ class IntegrationSpectrumController(object):
                         os.mkdir(directory)
                     filename = os.path.join(
                         directory,
-                        self.spectrum_data.spectrum.name + '_bkg_subtracted'+file_ending)
+                        self.spectrum_data.spectrum.name + '_bkg_subtracted' + file_ending)
                     self.save_spectrum(filename, subtract_background=True)
 
-    def save_spectrum(self, filename=None, subtract_background = False):
+    def save_spectrum(self, filename=None, subtract_background=False):
         if filename is None:
             filename = str(QtGui.QFileDialog.getSaveFileName(self.view, "Save Spectrum Data.",
                                                              self.working_dir['spectrum'],
                                                              (
-                                                             'Data (*.xy);; Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg)')))
-            subtract_background = True  #when manually saving the spectrum the background will be automatically
-                                        # subtracted
+                                                                 'Data (*.xy);; Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg)')))
+            subtract_background = True  # when manually saving the spectrum the background will be automatically
+            # subtracted
 
         if filename is not '':
             print(filename)
@@ -225,9 +253,9 @@ class IntegrationSpectrumController(object):
 
                 self.spectrum_data.save_spectrum(filename, header, subtract_background)
             elif filename.endswith('.chi'):
-                self.spectrum_data.save_spectrum(filename, subtract_background = subtract_background)
+                self.spectrum_data.save_spectrum(filename, subtract_background=subtract_background)
             elif filename.endswith('.dat'):
-                self.spectrum_data.save_spectrum(filename, subtract_background = subtract_background)
+                self.spectrum_data.save_spectrum(filename, subtract_background=subtract_background)
             elif filename.endswith('.png'):
                 self.view.spectrum_view.save_png(filename)
             elif filename.endswith('.svg'):

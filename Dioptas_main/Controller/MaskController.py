@@ -22,30 +22,27 @@ import sys
 import os
 
 from PyQt4 import QtGui, QtCore
-from Views.MaskView import MaskView
-from Data.ImgData import ImgData
-from Data.MaskData import MaskData
 
 import numpy as np
 
 
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from Views.MaskView import MaskView
+from Data.ImgData import ImgData
+from Data.MaskData import MaskData
+
 class MaskController(object):
-    def __init__(self, working_dir, view=None, imgData=None, maskData=None):
+    def __init__(self, working_dir, view, img_data, mask_data):
+        """
+        :param working_dir: Dictionary of working directories
+        :param view: Reference to a MaskView object
+        :param img_data: Reference to an ImgData object
+        :param mask_data: Reference to an MaskData object
+        """
         self.working_dir = working_dir
-        if view == None:
-            self.view = MaskView()
-        else:
-            self.view = view
-
-        if imgData == None:
-            self.img_data = ImgData()
-        else:
-            self.img_data = imgData
-
-        if maskData == None:
-            self.mask_data = MaskData()
-        else:
-            self.mask_data = maskData
+        self.view = view
+        self.img_data = img_data
+        self.mask_data = mask_data
 
         self.view.img_view.mouse_left_clicked.connect(self.process_click)
 
@@ -331,7 +328,7 @@ class MaskController(object):
                 self.save_mask_btn_click()
             elif ev.key == 79:  #for pressing o
                 self.load_mask_btn_click()
-            elif ev.key == 65:
+            elif ev.key == 65: # for pressing a
                 self.add_mask_btn_click()
 
 

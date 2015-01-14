@@ -29,10 +29,32 @@ from Data.HelperModule import get_base_name
 from Data.PhaseData import PhaseLoadError
 from .JcpdsEditorController import JcpdsEditorController
 
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from Views.IntegrationView import IntegrationView
+from Data.CalibrationData import CalibrationData
+from Data.SpectrumData import SpectrumData
+from Data.PhaseData import PhaseData
 
 class IntegrationPhaseController(object):
+    """
+    IntegrationPhaseController handles all the interaction between the phase controls in the IntegrationView and the
+    PhaseData object. It needs the SpectrumData object to properly handle the rescaling of the phase intensities in
+    the spectrum plot and it needs the calibration data to have access to the currently used wavelength.
+    """
     def __init__(self, working_dir, view, calibration_data,
                  spectrum_data, phase_data):
+        """
+        :param working_dir: dictionary with working directories
+        :param view: Reference to an IntegrationView
+        :param calibration_data: reference to CalibrationData object
+        :param spectrum_data: reference to SpectrumData object
+        :param phase_data: reference to PhaseData object
+
+        :type view: IntegrationView
+        :type calibration_data: CalibrationData
+        :type spectrum_data: SpectrumData
+        :type phase_data: PhaseData
+        """
         self.working_dir = working_dir
         self.view = view
         self.calibration_data = calibration_data

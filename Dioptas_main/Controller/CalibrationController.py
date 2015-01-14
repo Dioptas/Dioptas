@@ -26,6 +26,11 @@ from PyQt4 import QtGui, QtCore
 
 import numpy as np
 
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from Views.CalibrationView import CalibrationView
+from Data.ImgData import ImgData
+from Data.MaskData import MaskData
+from Data.CalibrationData import CalibrationData
 
 class CalibrationController(object):
     """
@@ -33,6 +38,22 @@ class CalibrationController(object):
     """
 
     def __init__(self, working_dir, view, img_data, mask_data, calibration_data):
+        """Manages the connection between the calibration GUI and data
+
+        :param working_dir: dictionary with working directories
+
+        :param view: Gives the Calibration Widget
+        :type view: Views.CalibrationView.CalibrationView
+
+        :param img_data: Reference to an ImgData object
+        :type img_data: Data.ImgData.ImgData
+
+        :param mask_data: Reference to an MaskData object
+        :type mask_data: Data.MaskData.MaskData
+
+        :param calibration_data: Reference to an CalibrationData object
+        :type calibration_data: Data.CalibrationData.CalibrationData
+        """
         self.working_dir = working_dir
         self.view = view
         self.img_data = img_data
@@ -59,7 +80,7 @@ class CalibrationController(object):
         self.connect_click_function(self.view.load_img_btn, self.load_img)
         self.connect_click_function(self.view.load_next_img_btn, self.load_next_img)
         self.connect_click_function(self.view.load_previous_img_btn, self.load_previous_img)
-        self.view.filename_txt.editingFinished.connect(self.filename_txt_changed)
+        self.view.filename_txt.editingFinished.connect(self.update_filename_txt)
 
         self.connect_click_function(self.view.save_calibration_btn, self.save_calibration)
         self.connect_click_function(self.view.load_calibration_btn, self.load_calibration)
@@ -77,7 +98,7 @@ class CalibrationController(object):
         self.view.pf_distance_cb.stateChanged.connect(self.distance_cb_changed)
         self.view.sv_distance_cb.stateChanged.connect(self.distance_cb_changed)
 
-        self.view.use_mask_cb.stateChanged.connect(self.use_mask_status_changed)
+        self.view.use_mask_cb.stateChanged.connect(self.plot_mask)
         self.view.mask_transparent_cb.stateChanged.connect(self.mask_transparent_status_changed)
 
 
@@ -107,9 +128,9 @@ class CalibrationController(object):
         """
         Creates the mouse_move connections to show the current position of the mouse pointer.
         """
-        self.view.img_view.mouse_moved.connect(self.show_img_mouse_position)
-        self.view.cake_view.mouse_moved.connect(self.show_cake_mouse_position)
-        self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
+        self.view.img_view.mouse_moved.connect(self.update_img_mouse_position_lbl)
+        self.view.cake_view.mouse_moved.connect(self.update_cake_mouse_position_lbl)
+        self.view.spectrum_view.mouse_moved.connect(self.update_spectrum_mouse_position_lbl)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -150,7 +171,10 @@ class CalibrationController(object):
     def load_previous_img(self):
         self.img_data.load_previous_file()
 
-    def filename_txt_changed(self):
+    def update_filename_txt(self):
+        """
+        Updates the filename in the GUI corresponding to the filename in img_data
+        """
         current_filename = os.path.basename(self.img_data.filename)
         current_directory = os.path.dirname(self.img_data.filename)
         new_filename = str(self.view.filename_txt.text())
@@ -325,6 +349,14 @@ class CalibrationController(object):
         self.update_calibration_parameter_in_view()
 
     def create_progress_dialog(self, text_str, abort_str, end_value, show_cancel_btn=True):
+        """ Creates a Progress Bar Dialog.
+        :param text_str:  Main message string
+        :param abort_str:  Text on the abort button
+        :param end_value:  Number of steps for which the progressbar is being used
+        :param show_cancel_btn: Whether the cancel button should be shown.
+        :return: ProgressDialog reference which is already shown in the interface
+        :rtype: QtGui.ProgressDialog
+        """
         progress_dialog = QtGui.QProgressDialog(text_str, abort_str, 0, end_value,
                                                 self.view)
 
@@ -428,10 +460,10 @@ class CalibrationController(object):
             if update_all:
                 self.update_all()
 
-    def use_mask_status_changed(self):
-        self.plot_mask()
-
     def plot_mask(self):
+        """
+        Plots the mask
+        """
         state = self.view.use_mask_cb.isChecked()
         if state:
             self.view.img_view.plot_mask(self.mask_data.get_img())
@@ -439,6 +471,10 @@ class CalibrationController(object):
             self.view.img_view.plot_mask(np.zeros(self.mask_data.get_img().shape))
 
     def mask_transparent_status_changed(self, state):
+        """
+        :param state: Boolean value whether the mask is being transparent
+        :type state: bool
+        """
         if state:
             self.view.img_view.set_color([255, 0, 0, 100])
         else:
@@ -448,7 +484,6 @@ class CalibrationController(object):
         """
         Performs 1d and 2d integration based on the current calibration parameter set. Updates the GUI interface
         accordingly with the new diffraction pattern and cake image.
-        :return:
         """
         if integrate:
             progress_dialog = self.create_progress_dialog('Integrating to cake.', '',
@@ -499,7 +534,7 @@ class CalibrationController(object):
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_data.save(filename)
 
-    def show_img_mouse_position(self, x, y):
+    def update_img_mouse_position_lbl(self, x, y):
         """
         Displays the values of x, y (usually mouse -position) and their image intensity in the GUI.
         """
@@ -513,7 +548,7 @@ class CalibrationController(object):
             str = "x: %.1f y: %.1f" % (x, y)
         self.view.pos_lbl.setText(str)
 
-    def show_cake_mouse_position(self, x, y):
+    def update_cake_mouse_position_lbl(self, x, y):
         """
         Displays the values of x, y (usually mouse -position) and their cake intensity in the GUI.
         """
@@ -527,7 +562,7 @@ class CalibrationController(object):
             str = "x: %.1f y: %.1f" % (x, y)
         self.view.pos_lbl.setText(str)
 
-    def show_spectrum_mouse_position(self, x, y):
+    def update_spectrum_mouse_position_lbl(self, x, y):
         """
         Displays the values of x, y (spectrum mouse-position) in the GUI.
         """
