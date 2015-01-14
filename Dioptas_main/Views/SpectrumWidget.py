@@ -98,12 +98,13 @@ class SpectrumWidget(QtCore.QObject):
                 if x_range_overlay[1] > x_range[1]:
                     x_range[1] = x_range_overlay[1]
 
-        diff = x_range[1] - x_range[0]
-        x_range = [x_range[0] - 0.02 * diff,
-                   x_range[1] + 0.02 * diff]
+        if x_range[1] is not None and x_range[0] is not None:
+            diff = x_range[1] - x_range[0]
+            x_range = [x_range[0] - 0.02 * diff,
+                       x_range[1] + 0.02 * diff]
 
-        self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
-                                minXRange=x_range[0], maxXRange=x_range[1])\
+            self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
+                                    minXRange=x_range[0], maxXRange=x_range[1])\
 
 
     def add_overlay(self, spectrum, show=True):
