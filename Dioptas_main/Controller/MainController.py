@@ -41,7 +41,9 @@ class MainController(object):
     Creates a the main controller for Dioptas. Loads all the data objects and connects them with the other controllers
     """
 
-    def __init__(self):
+    def __init__(self, use_settings=True):
+        self.use_settings = use_settings
+
         self.view = MainView()
         #create data
         self.img_data = ImgData()
@@ -53,7 +55,10 @@ class MainController(object):
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
                                 'phase': ''}
-        self.load_settings()
+
+
+        if use_settings:
+            self.load_settings()
         #create controller
         self.calibration_controller = CalibrationController(self.working_directories,
                                                             self.view.calibration_widget,
@@ -73,14 +78,12 @@ class MainController(object):
                                                             self.phase_data)
         self.create_signals()
         self.set_title()
-        self.raise_window(self.view)
 
-    @staticmethod
-    def raise_window(widget):
-        widget.show()
-        widget.setWindowState(widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        widget.activateWindow()
-        widget.raise_()
+    def show_window(self):
+        self.view.show()
+        self.view.setWindowState(self.view.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.view.activateWindow()
+        self.view.raise_()
 
     def create_signals(self):
         self.view.tabWidget.currentChanged.connect(self.tab_changed)
@@ -177,6 +180,7 @@ class MainController(object):
         tree.write(os.path.join(self.settings_directory, "settings.xml"))
 
     def close_event(self, _):
-        self.save_settings()
+        if self.use_settings:
+            self.save_settings()
         QtGui.QApplication.closeAllWindows()
         QtGui.QApplication.quit()

@@ -66,8 +66,6 @@ class JcpdsEditorController(QtCore.QObject):
             self.show_phase(jcpds_phase)
 
     def show_phase(self, jcpds_phase=None, wavelength=None):
-        if jcpds_phase is None:
-            jcpds_phase = jcpds()
         self.start_jcpds_phase = deepcopy(jcpds_phase)
         self.jcpds_phase = jcpds_phase
         if wavelength is None:

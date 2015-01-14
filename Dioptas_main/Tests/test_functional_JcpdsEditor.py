@@ -534,7 +534,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 4)
 
     def test_phase_name_difference_after_modified(self):
-        self.main_controller = MainController()
+        self.main_controller = MainController(use_settings=False)
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
@@ -560,7 +560,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0, 2).text()))
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
-        self.main_controller = MainController()
+        self.main_controller = MainController(use_settings=False)
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
