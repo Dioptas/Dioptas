@@ -19,15 +19,12 @@ from Views.MaskView import MaskView
 class MaskControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-
         self.working_dir = {}
 
-        self.mask_controller = MaskController(self.working_dir)
-        self.img_data = self.mask_controller.img_data
-        self.mask_data = self.mask_controller.mask_data
-        self.mask_view = self.mask_controller.view
-
-
+        self.img_data = ImgData()
+        self.mask_data = MaskData()
+        self.mask_view = MaskView()
+        self.mask_controller = MaskController(self.working_dir, self.mask_view, self.img_data, self.mask_data)
 
     def tearDown(self):
         del self.app

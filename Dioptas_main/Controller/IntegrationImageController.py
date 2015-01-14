@@ -21,8 +21,14 @@ import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
-from Data.HelperModule import calculate_cbn_absorption_correction
 from Data.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from Views.IntegrationView import IntegrationView
+from Data.ImgData import ImgData
+from Data.SpectrumData import SpectrumData
+from Data.MaskData import MaskData
+from Data.CalibrationData import CalibrationData
 
 
 class IntegrationImageController(object):
@@ -33,6 +39,20 @@ class IntegrationImageController(object):
 
     def __init__(self, working_dir, view, img_data, mask_data, spectrum_data,
                  calibration_data):
+        """
+        :param working_dir: dictionary of working directories
+        :param view: Reference to IntegrationView
+        :param img_data: Reference to ImgData object
+        :param mask_data: Reference to MaskData object
+        :param spectrum_data: Reference to SpectrumData object
+        :param calibration_data: Reference to CalibrationData object
+
+        :type view: IntegrationView
+        :type img_data: ImgData
+        :type mask_data: MaskData
+        :type spectrum_data: SpectrumData
+        :type calibration_data: CalibrationData
+        """
         self.working_dir = working_dir
         self.view = view
         self.img_data = img_data

@@ -22,13 +22,29 @@ import os
 import numpy as np
 
 
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from Data.SpectrumData import SpectrumData
+from Data.ImgData import ImgData
+from Views.IntegrationView import IntegrationView
+
+
 class IntegrationBackgroundController(object):
     """
     The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
     well as interaction with the image_view.
     """
 
-    def __init__(self, working_dir, view, img_data, spectrum_data, ):
+    def __init__(self, working_dir, view, img_data, spectrum_data):
+        """
+        :param working_dir: dictionary with working directories (uses the 'image' key) for the background image
+        :param view: IntegrationWidget
+        :param img_data: Reference to the ImgData object
+        :param spectrum_data: Reference to the spectrum_data object
+
+        :type view: IntegrationView
+        :type img_data: ImgData
+        :type spectrum_data: SpectrumData
+        """
         self.working_dir = working_dir
         self.view = view
         self.img_data = img_data
@@ -36,6 +52,7 @@ class IntegrationBackgroundController(object):
         self.create_signals()
 
     def create_signals(self):
+
         self.connect_click_function(self.view.bkg_image_load_btn, self.load_background)
         self.connect_click_function(self.view.bkg_image_delete_btn, self.delete_background)
 

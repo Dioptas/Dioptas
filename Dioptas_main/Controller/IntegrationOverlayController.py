@@ -22,9 +22,24 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 from Data.HelperModule import get_base_name
 
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from Views.IntegrationView import IntegrationView
+from Data.SpectrumData import SpectrumData
 
 class IntegrationOverlayController(object):
+    """
+    IntegrationOverlayController handles all the interaction between the Overlay controls of the integration view and
+    the corresponding overlay data in the SpectrumData
+    """
     def __init__(self, working_dir, view, spectrum_data):
+        """
+        :param working_dir: dictionary of working directories
+        :param view: Reference to IntegrationView object
+        :param spectrum_data: Reference to SpectrumData object
+
+        :type view: IntegrationView
+        :type spectrum_data: SpectrumData
+        """
         self.working_dir = working_dir
         self.view = view
         self.spectrum_data = spectrum_data
