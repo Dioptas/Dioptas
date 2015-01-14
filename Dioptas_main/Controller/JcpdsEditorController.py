@@ -72,8 +72,6 @@ class JcpdsEditorController(QtCore.QObject):
             if self.calibration_data is not None:
                 wavelength = self.calibration_data.wavelength * 1e10
         self.view.show_jcpds(jcpds_phase, wavelength)
-        self.active = True
-        self.view.raise_widget()
 
     def update_phase_view(self, jcpds_phase):
         if self.calibration_data is None:
@@ -87,6 +85,10 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_phase.compute_d0()
         self.jcpds_phase.compute_d()
         self.update_phase_view(self.jcpds_phase)
+
+    def show_view(self):
+        self.active = True
+        self.view.raise_widget()
 
     def close_view(self):
         self.active = False
