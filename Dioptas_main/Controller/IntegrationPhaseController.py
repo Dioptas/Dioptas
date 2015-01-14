@@ -186,6 +186,7 @@ class IntegrationPhaseController(object):
     def edit_phase(self):
         cur_ind = self.view.get_selected_phase_row()
         self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
+        self.jcpds_editor_controller.show_view()
 
     def del_phase(self):
         """
