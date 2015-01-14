@@ -28,7 +28,7 @@ import numpy as np
 import sys
 
 
-class phaseControllerTest(unittest.TestCase):
+class PhaseControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.image_data = ImgData()
