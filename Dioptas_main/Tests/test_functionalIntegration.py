@@ -89,6 +89,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
     def test_saving_image(self):
         #Tests if the image save procedures are working for the different possible file endings
+        self.main_controller.view.show()
         self.integration_image_controller.save_img('Data/Test_img.png')
         self.integration_image_controller.save_img('Data/Test_img.tiff')
 
@@ -99,6 +100,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         os.remove('Data/Test_img.tiff')
 
     def test_saving_spectrum(self):
+        self.main_controller.view.show()
         #Tests if the spectrum save procedures is are working for all fileendings
         def save_spectra_test_for_size_and_delete(self):
             self.integration_spectrum_controller.save_spectrum('Data/Test_spec.xy')

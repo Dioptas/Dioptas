@@ -37,6 +37,7 @@ if __name__ == "__main__":
         # possible values:
         # "windows", "motif", "cde", "plastique", "windowsxp", or "macitosh"
     controller = MainController()
+    controller.show_window()
     app.exec_()
     del app
 
