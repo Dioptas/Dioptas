@@ -39,6 +39,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.overlay_tw = self.spectrum_view.overlay_tw
 
     def tearDown(self):
+        del self.controller.calibration_data
         del self.app
 
     def test_manual_deleting_overlays(self):

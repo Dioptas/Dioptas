@@ -20,6 +20,14 @@ class CombinedDataTest(unittest.TestCase):
         self.mask_data.mask_ellipse(500, 500, 100, 100)
         self.spectrum_data = SpectrumData()
 
+    def tearDown(self):
+        del self.calibration_data.cake_geometry
+        del self.calibration_data.spectrum_geometry
+        del self.img_data
+        del self.calibration_data
+        del self.mask_data
+        del self.spectrum_data
+
     def test_dependencies(self):
         tth1, int1 = self.calibration_data.integrate_1d()
         self.img_data.load_next_file()
