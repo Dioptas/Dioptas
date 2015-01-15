@@ -119,7 +119,11 @@ class CbnCorrectionTest(unittest.TestCase):
         self.azi_array = self.geometry.chiArray(image_shape)
 
     def tearDown(self):
+        del self.tth_array
+        del self. azi_array
+        del self.dummy_img
         del self.geometry
+        gc.collect()
 
     def test_that_it_is_calculating_correctly(self):
         cbn_correction = CbnCorrection(self.tth_array, self.azi_array,
@@ -285,7 +289,11 @@ class ObliqueAngleDetectorAbsorptionCorrectionTest(unittest.TestCase):
         self.azi_array = self.geometry.chiArray(image_shape)
 
     def tearDown(self):
+        del self.azi_array
+        del self.tth_array
+        del self.dummy_img
         del self.geometry
+        gc.collect()
 
     def test_that_it_is_correctly_calculating(self):
         oblique_correction = ObliqueAngleDetectorAbsorptionCorrection(

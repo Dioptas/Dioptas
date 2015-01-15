@@ -46,6 +46,9 @@ class PhaseControllerTest(unittest.TestCase):
         self.phase_tw = self.phase_view.phase_tw
 
     def tearDown(self):
+        del self.phase_tw
+        del self.phase_view
+        del self.phase_data
         del self.controller.calibration_data.cake_geometry
         del self.controller.calibration_data.spectrum_geometry
         del self.controller
