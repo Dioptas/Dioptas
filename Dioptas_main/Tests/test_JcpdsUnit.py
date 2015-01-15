@@ -17,14 +17,17 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Clemens Prescher'
 
-
-__author__ = 'Clemens Prescher'
 import unittest
+import gc
 from Data.jcpds import jcpds
 
 class JcpdsUnitTest(unittest.TestCase):
     def setUp(self):
         self.jcpds = jcpds()
+
+    def tearDown(self):
+        del self.jcpds
+        gc.collect()
 
     def test_sorting_of_reflections(self):
         self.jcpds.add_reflection(1,0,0, 100, 4.0)

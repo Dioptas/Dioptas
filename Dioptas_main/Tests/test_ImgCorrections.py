@@ -3,6 +3,7 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import numpy as np
+import gc
 
 from Data.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, ObliqueAngleDetectorAbsorptionCorrection
 
@@ -24,7 +25,8 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
         self.corrections = ImgCorrectionManager()
 
     def tearDown(self):
-        pass
+        del self.corrections
+        gc.collect()
 
     def test_add_first_matrix_and_detect_shape(self):
         cor = DummyCorrection((2048, 2048))

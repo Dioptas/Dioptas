@@ -19,6 +19,7 @@ __author__ = 'Clemens Prescher'
 import unittest
 import numpy as np
 import os
+import gc
 
 from Data.jcpds import jcpds
 from Data.CalibrationData import CalibrationData
@@ -62,6 +63,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         except:
             pass
         del self.app
+        del self.calibration_data
+        del self.jcpds
+        gc.collect()
 
     def enter_value_into_text_field(self, text_field, value):
         text_field.setText('')

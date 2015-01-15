@@ -1,7 +1,9 @@
 __author__ = 'Clemens Prescher'
 
-from Data.ImgData import *
 import unittest
+import gc
+
+from Data.ImgData import *
 import numpy as np
 
 
@@ -12,6 +14,7 @@ class ImgDataTest(unittest.TestCase):
 
     def tearDown(self):
         del self.data
+        gc.collect()
 
     def test_rotation(self):
         pre_transformed_data = self.data.get_img_data()

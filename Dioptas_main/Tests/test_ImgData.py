@@ -7,6 +7,7 @@ __author__ = 'Clemens Prescher'
 import unittest
 import time
 import numpy as np
+import gc
 import matplotlib.pyplot as plt
 
 from Data.ImgData import ImgData
@@ -20,6 +21,7 @@ class ImgDataUnitTest(unittest.TestCase):
 
     def tearDown(self):
         del self.img_data
+        gc.collect()
 
     def perform_transformations_tests(self):
         self.assertEqual(np.sum(np.absolute(self.img_data.get_img_data())), 0)

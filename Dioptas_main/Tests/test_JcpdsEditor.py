@@ -21,6 +21,7 @@ from Data.jcpds import jcpds
 from Views.JcpdsEditorWidget import JcpdsEditorWidget
 from PyQt4 import QtGui
 import sys
+import gc
 
 class JcpdsDisplayTestAuAnderson(unittest.TestCase):
     def setUp(self):
@@ -33,7 +34,11 @@ class JcpdsDisplayTestAuAnderson(unittest.TestCase):
         self.jcpds_editor.show_jcpds(self.jcpds, wavelength=0.31)
 
     def tearDown(self):
+        del self.jcpds
+        self.jcpds_editor.close()
+        del self.jcpds_editor
         del self.app
+        gc.collect()
 
     def test_filename_and_comment_are_shown_correctly(self):
         self.assertEqual(self.jcpds_editor.filename_txt.text(),
