@@ -18,6 +18,9 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_data = ImgData()
         self.img_data.load('Data/Mg2SiO4_ambient_001.tif')
 
+    def tearDown(self):
+        del self.img_data
+
     def perform_transformations_tests(self):
         self.assertEqual(np.sum(np.absolute(self.img_data.get_img_data())), 0)
         self.img_data.rotate_img_m90()

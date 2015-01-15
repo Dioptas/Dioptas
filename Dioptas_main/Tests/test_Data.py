@@ -5,10 +5,13 @@ import unittest
 import numpy as np
 
 
-class XrsDataTest(unittest.TestCase):
+class ImgDataTest(unittest.TestCase):
     def setUp(self):
         self.data = ImgData()
         self.data.load('Data/test_001.tif')
+
+    def tearDown(self):
+        del self.data
 
     def test_rotation(self):
         pre_transformed_data = self.data.get_img_data()

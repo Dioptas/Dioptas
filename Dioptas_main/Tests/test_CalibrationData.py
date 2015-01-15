@@ -14,7 +14,10 @@ class MaskUnitTest(unittest.TestCase):
         self.calibration_data = CalibrationData(self.img_data)
 
     def tearDown(self):
-        pass
+        del self.img_data
+        del self.calibration_data.cake_geometry
+        del self.calibration_data.spectrum_geometry
+        del self.calibration_data
 
     def test_loading_calibration_gives_right_pixel_size(self):
         self.calibration_data.spectrum_geometry.load("Data/calibration_PE.poni")

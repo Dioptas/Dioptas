@@ -37,8 +37,29 @@ def calculate_cubic_d_spacing(h, k, l, a):
 class JcpdsEditorFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
+        self.calibration_data = CalibrationData()
+        self.jcpds = jcpds()
 
     def tearDown(self):
+        try:
+            del self.calibration_data.cake_geometry
+        except:
+            pass
+
+        try:
+            del self.calibration_data.spectrum_geometry
+        except:
+            pass
+
+        try:
+            del self.main_controller.calibration_data.cake_geometry
+        except:
+            pass
+
+        try:
+            del self.main_controller.calibration_data.spectrum_geometry
+        except:
+            pass
         del self.app
 
     def enter_value_into_text_field(self, text_field, value):
@@ -78,13 +99,11 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
     def test_correctly_displays_parameters_and_can_be_edited(self):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
         # and wants to edit the parameters
-        self.jcpds = jcpds()
         self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
-        calibration_data = CalibrationData()
-        calibration_data.spectrum_geometry.wavelength = 0.31
+        self.calibration_data.spectrum_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds', calibration_data, self.jcpds)
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds', self.calibration_data, self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
 
         # Erwin immediately sees the filename in the explorer
@@ -453,6 +472,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.enter_value_into_text_field(self.jcpds_view.eos_dKpdT_txt, 1.3e-6)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
+
     def test_connection_between_main_gui_and_jcpds_editor_reflections(self):
         # Erwin loads Dioptas with a previous calibration and image file then he adds several phases and looks into the
         # jcpds editor for the first phase. He sees that everything seems to be correct
@@ -533,6 +553,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual(len(self.jcpds_in_spec.line_items), 4)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 4)
 
+
     def test_phase_name_difference_after_modified(self):
         self.main_controller = MainController(use_settings=False)
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
@@ -558,6 +579,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         QtGui.QApplication.processEvents()
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
         self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0, 2).text()))
+
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
         self.main_controller = MainController(use_settings=False)

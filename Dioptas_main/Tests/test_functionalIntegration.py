@@ -27,6 +27,11 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.integration_image_controller = self.main_controller.integration_controller.image_controller
 
     def tearDown(self):
+        del self.calibration_data.cake_geometry
+        del self.calibration_data.spectrum_geometry
+        self.integration_view.close()
+        del self.img_data
+        del self.mask_data
         del self.app
 
     def enter_value_into_text_field(self, text_field, value):

@@ -33,7 +33,6 @@ class PhaseControllerTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.image_data = ImgData()
         self.controller = MainController(use_settings=False)
-        self.controller.view.show()
         self.controller.view.tabWidget.setCurrentIndex(2)
         self.controller.calibration_controller.load_calibration(
             'Data/LaB6_p49_40keV_006.poni')
@@ -46,6 +45,8 @@ class PhaseControllerTest(unittest.TestCase):
         self.phase_tw = self.phase_view.phase_tw
 
     def tearDown(self):
+        del self.controller.calibration_data.cake_geometry
+        del self.controller.calibration_data.spectrum_geometry
         del self.app
 
     def test_manual_deleting_phases(self):
@@ -103,7 +104,7 @@ class PhaseControllerTest(unittest.TestCase):
         self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
-        multiplier = 10
+        multiplier = 1
         for dummy_index in range(multiplier):
             self.load_phases()
 
