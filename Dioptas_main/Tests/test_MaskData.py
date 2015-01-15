@@ -18,6 +18,7 @@ class MaskUnitTest(unittest.TestCase):
 
     def tearDown(self):
         del self.mask_data
+        del self.img
         gc.collect()
 
     def test_growing_masks(self):

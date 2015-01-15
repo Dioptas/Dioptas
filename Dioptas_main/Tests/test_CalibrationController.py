@@ -33,8 +33,12 @@ class CalibrationControllerTest(unittest.TestCase):
                                                             calibration_data=self.calibration_data)
 
     def tearDown(self):
+        del self.calibration_controller
+        del self.calibration_view
         del self.calibration_data.cake_geometry
         del self.calibration_data.spectrum_geometry
+        del self.calibration_data
+        del self.mask_data
         del self.img_data
         del self.app
         gc.collect()
