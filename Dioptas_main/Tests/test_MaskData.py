@@ -15,6 +15,9 @@ class MaskUnitTest(unittest.TestCase):
         self.img = np.zeros((10, 10))
         self.mask_data.set_dimension(self.img.shape)
 
+    def tearDown(self):
+        del self.mask_data
+
     def test_growing_masks(self):
         self.mask_data._mask_data[4, 4] = 1
         self.mask_data._mask_data[0, 0] = 1
