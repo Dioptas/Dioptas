@@ -11,7 +11,7 @@ before_install:
     - ./miniconda.sh -b
     - export PATH=/home/travis/miniconda3/bin:$PATH
     - conda update --yes conda
-    - export PYTHONPATH=$PWD/source:$PYTHONPATH
+    - export PYTHONPATH=$PWD/Dioptas_main:$PYTHONPATH
 
     #clonine the used repositories
     - git clone https://github.com/kif/fabio
@@ -23,7 +23,7 @@ before_install:
 
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose pyqt scikit-image
-    - pip install lmfit pyqtgraph
+    - pip install lmfit pyqtgraph Pillow
 
     #installing fabio and pyFAI
     - cd fabio
