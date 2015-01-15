@@ -3,7 +3,7 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import sys
-import time
+import gc
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
@@ -37,6 +37,7 @@ class CalibrationControllerTest(unittest.TestCase):
         del self.calibration_data.spectrum_geometry
         del self.img_data
         del self.app
+        gc.collect()
 
     def test_automatic_calibration1(self):
         self.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')

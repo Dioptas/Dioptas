@@ -4,6 +4,7 @@ __author__ = 'Clemens Prescher'
 import unittest
 import sys
 import os
+import gc
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
@@ -27,12 +28,18 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.integration_image_controller = self.main_controller.integration_controller.image_controller
 
     def tearDown(self):
+
+        del self.integration_spectrum_controller
+        del self.integration_spectrum_controller
+        del self.mask_data
+        del self.img_data
         del self.calibration_data.cake_geometry
         del self.calibration_data.spectrum_geometry
-        self.integration_view.close()
-        del self.img_data
-        del self.mask_data
+        del self.calibration_data
+        del self.integration_view
+        del self.main_controller
         del self.app
+        gc.collect()
 
     def enter_value_into_text_field(self, text_field, value):
         text_field.setText('')

@@ -7,6 +7,7 @@ import unittest
 
 from Data.CalibrationData import CalibrationData
 from Data.ImgData import ImgData
+import gc
 
 class MaskUnitTest(unittest.TestCase):
     def setUp(self):
@@ -18,6 +19,7 @@ class MaskUnitTest(unittest.TestCase):
         del self.calibration_data.cake_geometry
         del self.calibration_data.spectrum_geometry
         del self.calibration_data
+        gc.collect()
 
     def test_loading_calibration_gives_right_pixel_size(self):
         self.calibration_data.spectrum_geometry.load("Data/calibration_PE.poni")

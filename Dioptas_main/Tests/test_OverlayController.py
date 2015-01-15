@@ -18,6 +18,7 @@
 __author__ = 'Clemens Prescher'
 
 import unittest
+import gc
 
 from PyQt4 import QtGui
 from Data.ImgData import ImgData
@@ -39,8 +40,11 @@ class OverlayControllerTest(unittest.TestCase):
         self.overlay_tw = self.spectrum_view.overlay_tw
 
     def tearDown(self):
+        del self.image_data
         del self.controller.calibration_data
+        del self.controller
         del self.app
+        gc.collect()
 
     def test_manual_deleting_overlays(self):
         self.load_overlays()

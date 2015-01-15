@@ -1,6 +1,7 @@
 __author__ = 'Clemens Prescher'
 
 import os
+import gc
 from Data.SpectrumData import Spectrum, SpectrumData
 from Data.ImgData import ImgData
 from Data.CalibrationData import CalibrationData
@@ -27,6 +28,7 @@ class CombinedDataTest(unittest.TestCase):
         del self.calibration_data
         del self.mask_data
         del self.spectrum_data
+        gc.collect()
 
     def test_dependencies(self):
         tth1, int1 = self.calibration_data.integrate_1d()

@@ -2,6 +2,7 @@
 __author__ = 'Clemens Prescher'
 
 import unittest
+import gc
 import sys
 import os
 import numpy as np
@@ -17,6 +18,7 @@ class MaskUnitTest(unittest.TestCase):
 
     def tearDown(self):
         del self.mask_data
+        gc.collect()
 
     def test_growing_masks(self):
         self.mask_data._mask_data[4, 4] = 1

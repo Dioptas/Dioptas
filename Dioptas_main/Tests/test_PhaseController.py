@@ -18,14 +18,15 @@
 __author__ = 'Clemens Prescher'
 
 import unittest
+import sys
+import gc
+
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 from Data.ImgData import ImgData
 from Controller.MainController import MainController
 import numpy as np
-
-import sys
 
 
 class PhaseControllerTest(unittest.TestCase):
@@ -47,7 +48,10 @@ class PhaseControllerTest(unittest.TestCase):
     def tearDown(self):
         del self.controller.calibration_data.cake_geometry
         del self.controller.calibration_data.spectrum_geometry
+        del self.controller
+        del self.image_data
         del self.app
+        gc.collect()
 
     def test_manual_deleting_phases(self):
         self.load_phases()

@@ -5,6 +5,7 @@ import unittest
 import sys
 import os
 import numpy as np
+import gc
 import time
 
 from PyQt4 import QtGui, QtCore
@@ -27,7 +28,14 @@ class MaskControllerTest(unittest.TestCase):
         self.mask_controller = MaskController(self.working_dir, self.mask_view, self.img_data, self.mask_data)
 
     def tearDown(self):
+        del self.img_data
+        del self.mask_data
+        self.mask_view.close()
+        del self.mask_view
+        del self.mask_controller
         del self.app
+        gc.collect()
+
 
     def get_file_size(self, filename):
         stat_info = os.stat(filename)
