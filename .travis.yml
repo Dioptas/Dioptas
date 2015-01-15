@@ -1,0 +1,39 @@
+# Config file for automatic testing at travis-ci.org
+
+language: python
+
+python:
+    - 2.7
+
+before_install:
+    - wget http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Linux-x86_64.sh -O miniconda.sh
+    - chmod +x miniconda.sh
+    - ./miniconda.sh -b
+    - export PATH=/home/travis/miniconda3/bin:$PATH
+    - conda update --yes conda
+    - export PYTHONPATH=$PWD/source:$PYTHONPATH
+
+    #clonine the used repositories
+    - git clone https://github.com/kif/fabio
+    - git clone https://github.com/kif/pyFAI
+
+    #start x-server
+    - export DISPLAY=:99.0
+    - sh -e /etc/init.d/xvfb start
+
+install:
+    - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose pyqt scikit-image
+    - pip install lmfit pyqtgraph
+
+    #installing fabio and pyFAI
+    - cd fabio
+    - python setup.py install
+
+    - cd ../pyFAI
+    - python setup.py install
+
+    - cd ../
+
+script:
+    - cd Dioptas_main
+    - nosetests
