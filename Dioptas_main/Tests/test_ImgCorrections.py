@@ -130,9 +130,9 @@ class CbnCorrectionTest(unittest.TestCase):
         self.assertGreater(np.sum(cbn_correction_data),0)
         self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)
 
-from CalibrationData import CalibrationData
-from ImgData import ImgData
-from MaskData import MaskData
+from Data.CalibrationData import CalibrationData
+from Data.ImgData import ImgData
+from Data.MaskData import MaskData
 from lmfit import Parameters, minimize, report_fit
 from scipy.ndimage import gaussian_filter1d
 import os
