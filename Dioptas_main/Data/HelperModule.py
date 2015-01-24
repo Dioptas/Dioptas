@@ -90,7 +90,7 @@ class FileNameIterator(QtCore.QObject):
         paths = [os.path.join(self.directory, file) for file in files]
         file_list = [(os.path.getctime(path), path) for path in paths]
         self.filename_list = paths
-        print('Time needed  for getting files: {}s.'.format(time.time() - t1))
+        print('Time needed  for getting files: {0}s.'.format(time.time() - t1))
         return file_list
 
     def is_correct_file_type(self, filename):
@@ -106,7 +106,7 @@ class FileNameIterator(QtCore.QObject):
         self.ordered_file_list = self.file_list
         self.ordered_file_list.sort(key=lambda x: x[0])
 
-        print('Time needed  for ordering files: {}s.'.format(time.time() - t1))
+        print('Time needed  for ordering files: {0}s.'.format(time.time() - t1))
 
     def update_file_list(self):
         self.file_list = self._get_files_list()
@@ -315,9 +315,9 @@ def save_chi_file(filename, unit, x, y):
 
     file_handle.write(filename + '\n')
     file_handle.write(unit + '\n\n')
-    file_handle.write("       {}\n".format(num_points))
+    file_handle.write("       {0}\n".format(num_points))
     for ind in xrange(num_points):
-        file_handle.write(' {:.7E}  {:.7E}\n'.format(x[ind], y[ind]))
+        file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
     file_handle.close()
 
 

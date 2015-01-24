@@ -78,7 +78,7 @@ class IntegrationBackgroundController(object):
     def update_background_image_filename(self):
         if self.img_data.has_background():
             self.view.bkg_image_filename_lbl.setText(os.path.basename(self.img_data.background_filename))
-            self.view.bkg_name_lbl.setText('Bkg image: {}'.format(os.path.basename(self.img_data.background_filename)))
+            self.view.bkg_name_lbl.setText('Bkg image: {0}'.format(os.path.basename(self.img_data.background_filename)))
         else:
             if str(self.view.bkg_image_filename_lbl.text())!='None':
                 QtGui.QMessageBox.critical(self.view, 'ERROR',

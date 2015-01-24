@@ -46,5 +46,5 @@ cbn_correction = CbnCorrection(tth_array, azi_array,
 
 t1= time.time()
 cbn_correction.get_data()
-print("It took {}s".format(time.time()-t1))
+print("It took {0}s".format(time.time()-t1))
 

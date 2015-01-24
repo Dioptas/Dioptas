@@ -52,7 +52,7 @@ class SpectrumData(Observable):
         self.notify()
 
     def load_spectrum(self, filename):
-        logger.info("Load spectrum: {}".format(filename))
+        logger.info("Load spectrum: {0}".format(filename))
         self.spectrum_filename = filename
 
         skiprows = 0
@@ -75,17 +75,17 @@ class SpectrumData(Observable):
             if header is None or header == '':
                 file_handle.write(filename + '\n')
                 file_handle.write(self.unit + '\n\n')
-                file_handle.write("       {}\n".format(num_points))
+                file_handle.write("       {0}\n".format(num_points))
             else:
                 file_handle.write(header)
             for ind in xrange(num_points):
-                file_handle.write(' {:.7E}  {:.7E}\n'.format(x[ind], y[ind]))
+                file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
         else:
             if header is not None:
                 file_handle.write(header)
                 file_handle.write('\n')
             for ind in xrange(num_points):
-                file_handle.write('{:.9E}  {:.9E}\n'.format(x[ind], y[ind]))
+                file_handle.write('{0:.9E}  {1:.9E}\n'.format(x[ind], y[ind]))
         file_handle.close()
 
     def load_next_file(self):

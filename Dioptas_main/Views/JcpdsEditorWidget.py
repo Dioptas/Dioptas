@@ -84,11 +84,11 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         if not self.lattice_c_sb.hasFocus():
             self.lattice_c_sb.setValue(jcpds_phase.c0)
 
-        self.lattice_eos_a_txt.setText('{:.4f}'.format(jcpds_phase.a))
-        self.lattice_eos_b_txt.setText('{:.4f}'.format(jcpds_phase.b))
-        self.lattice_eos_c_txt.setText('{:.4f}'.format(jcpds_phase.c))
+        self.lattice_eos_a_txt.setText('{0:.4f}'.format(jcpds_phase.a))
+        self.lattice_eos_b_txt.setText('{0:.4f}'.format(jcpds_phase.b))
+        self.lattice_eos_c_txt.setText('{0:.4f}'.format(jcpds_phase.c))
 
-        self.lattice_eos_volume_txt.setText('{:.4f}'.format(jcpds_phase.v))
+        self.lattice_eos_volume_txt.setText('{0:.4f}'.format(jcpds_phase.v))
 
         try:
             if not self.lattice_ab_sb.hasFocus():
@@ -108,7 +108,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         except ZeroDivisionError:
             self.lattice_cb_sb.setSpecialValueText('Inf')
 
-        self.lattice_volume_txt.setText(str('{:g}'.format(jcpds_phase.v0)))
+        self.lattice_volume_txt.setText(str('{0:g}'.format(jcpds_phase.v0)))
 
         if not self.lattice_alpha_sb.hasFocus():
             self.lattice_alpha_sb.setValue(jcpds_phase.alpha0)
@@ -252,7 +252,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
             self.lattice_cb_sb.setEnabled(True)
 
         else:
-            print('Unknown symmetry: {}.'.format(symmetry))
+            print('Unknown symmetry: {0}.'.format(symmetry))
 
     def get_selected_reflections(self):
         selected = self.reflection_table.selectionModel().selectedRows()
@@ -270,20 +270,20 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         new_row_ind = int(self.reflection_table.rowCount())
         self.reflection_table.setRowCount(new_row_ind + 1)
 
-        self.reflection_table.setItem(new_row_ind, 0, CenteredQTableWidgetItem(str('{:g}'.format(h))))
-        self.reflection_table.setItem(new_row_ind, 1, CenteredQTableWidgetItem(str('{:g}'.format(k))))
-        self.reflection_table.setItem(new_row_ind, 2, CenteredQTableWidgetItem(str('{:g}'.format(l))))
-        self.reflection_table.setItem(new_row_ind, 3, CenteredQTableWidgetItem(str('{:g}'.format(intensity))))
+        self.reflection_table.setItem(new_row_ind, 0, CenteredQTableWidgetItem(str('{0:g}'.format(h))))
+        self.reflection_table.setItem(new_row_ind, 1, CenteredQTableWidgetItem(str('{0:g}'.format(k))))
+        self.reflection_table.setItem(new_row_ind, 2, CenteredQTableWidgetItem(str('{0:g}'.format(l))))
+        self.reflection_table.setItem(new_row_ind, 3, CenteredQTableWidgetItem(str('{0:g}'.format(intensity))))
         if two_theta is None or two_theta_0 is None:
-            self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(d0))))
-            self.reflection_table.setItem(new_row_ind, 5, CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(d))))
+            self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d0))))
+            self.reflection_table.setItem(new_row_ind, 5, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d))))
         else:
-            self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(d0))))
+            self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d0))))
             self.reflection_table.setItem(new_row_ind, 5,
-                                          CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(two_theta_0))))
-            self.reflection_table.setItem(new_row_ind, 6, CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(d))))
+                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(two_theta_0))))
+            self.reflection_table.setItem(new_row_ind, 6, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d))))
             self.reflection_table.setItem(new_row_ind, 7,
-                                          CenteredNonEditableQTableWidgetItem(str('{:.4f}'.format(two_theta))))
+                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(two_theta))))
 
         self.reflection_table.resizeColumnsToContents()
         self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
@@ -340,7 +340,7 @@ class TextDoubleDelegate(QtGui.QStyledItemDelegate):
     def setEditorData(self, parent, index):
         value = index.model().data(index, QtCore.Qt.EditRole)
         if value.toString() != '':
-            self.editor.setText("{:g}".format(float(str(value.toString()))))
+            self.editor.setText("{0:g}".format(float(str(value.toString()))))
 
     def setModelData(self, parent, model, index):
         value = self.editor.text()

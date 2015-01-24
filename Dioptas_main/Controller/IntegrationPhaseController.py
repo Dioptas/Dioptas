@@ -138,7 +138,7 @@ class IntegrationPhaseController(object):
             self.view.set_phase_pressure(len(self.phase_data.phases)-1, pressure)
             self.update_phase_temperature(len(self.phase_data.phases)-1, temperature)
         except PhaseLoadError as e:
-            self.view.show_error_msg('Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'.\
+            self.view.show_error_msg('Could not load:\n\n{0}.\n\nPlease check if the format of the input file is correct.'.\
                                     format(e.filename))
 
     def add_phase_plot(self):

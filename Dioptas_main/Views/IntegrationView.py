@@ -354,9 +354,9 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
         if self.show_parameter_in_spectrum:
             if pressure > 0:
-                parameter_str += '{} GPa '.format(pressure)
+                parameter_str += '{0} GPa '.format(pressure)
             if temperature !=0 and temperature!=298 and temperature is not None:
-                parameter_str += '{} K '.format(temperature)
+                parameter_str += '{0} K '.format(temperature)
 
         self.spectrum_view.rename_phase(ind, parameter_str+name_str)
 

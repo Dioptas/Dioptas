@@ -753,7 +753,7 @@ class IntegrationImageController(object):
                 center_offset= center_offset,
                 center_offset_angle= center_offset_angle
             )
-            print "Time needed for correction calculation: {}".format(time.time() - t1)
+            print "Time needed for correction calculation: {0}".format(time.time() - t1)
             try:
                 self.img_data.delete_img_correction("cbn")
             except KeyError:
@@ -810,7 +810,7 @@ class IntegrationImageController(object):
                 tilt=detector_tilt,
                 rotation=detector_tilt_rotation,
             )
-            print "Time needed for correction calculation: {}".format(time.time() - t1)
+            print "Time needed for correction calculation: {0}".format(time.time() - t1)
             try:
                 self.img_data.delete_img_correction("oiadac")
             except KeyError:

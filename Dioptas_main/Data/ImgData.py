@@ -103,7 +103,7 @@ class ImgData(Observable):
         will be notified after the process.
         :param filename: path of the image file to be loaded
         """
-        logger.info("Loading {}.".format(filename))
+        logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
             self._img_data_fabio = fabio.open(filename)
