@@ -27,7 +27,7 @@ class PhaseLoadError(Exception):
         self.filename = filename
 
     def __repr__(self):
-        return "Could not load {} as jcpds file".format(self.filename)
+        return "Could not load {0} as jcpds file".format(self.filename)
 
 class PhaseData(Observable):
     def __init__(self):

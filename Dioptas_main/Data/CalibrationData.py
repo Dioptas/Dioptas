@@ -303,7 +303,7 @@ class CalibrationData(object):
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
-        logger.info('1d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
+        logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
 
         ind = np.where((self.int > 0) & (~np.isnan(self.int)))
         self.tth = self.tth[ind]
@@ -324,7 +324,7 @@ class CalibrationData(object):
         res = self.cake_geometry.integrate2d(self.img_data._img_data, dimensions[0], dimensions[1], method=method,
                                              mask=mask,
                                              unit=unit, polarization_factor=polarization_factor)
-        logger.info('2d integration of {}: {}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
+        logger.info('2d integration of {0}: {1}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
         self.cake_img = res[0]
         self.cake_tth = res[1]
         self.cake_azi = res[2]
