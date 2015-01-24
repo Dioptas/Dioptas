@@ -343,7 +343,7 @@ class jcpds(object):
         fp.write('DALPHADT: ' + str(self.d_alpha_dt)+'\n')
         reflections = self.get_reflections()
         for r in reflections:
-            fp.write('DIHKL:    {:g}\t{:g}\t{:g}\t{:g}\t{:g}\n'.format(r.d0, r.intensity, r.h, r.k, r.l))
+            fp.write('DIHKL:    {0:g}\t{1:g}\t{2:g}\t{3:g}\t{4:g}\n'.format(r.d0, r.intensity, r.h, r.k, r.l))
         fp.close()
 
         self._filename = filename

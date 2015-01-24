@@ -432,7 +432,7 @@ class CalibrationController(object):
             else:
                 print('Did not find enough points with the specified parameters!')
             progress_dialog.setLabelText("Refining Calibration. \n"
-                                         "Finding peaks on Ring {}.".format(i + 3))
+                                         "Finding peaks on Ring {0}.".format(i + 3))
             progress_dialog.setValue(i + 3)
             if progress_dialog.wasCanceled():
                 refinement_canceled = True
