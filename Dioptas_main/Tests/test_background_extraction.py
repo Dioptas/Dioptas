@@ -1,0 +1,78 @@
+# -*- coding: utf8 -*-
+__author__ = 'Clemens Prescher'
+
+import unittest
+import numpy as np
+import matplotlib.pyplot as plt
+
+from Data.Helper import extract_background
+
+
+s2pi = np.sqrt(2 * np.pi)
+
+
+def gaussian(x, amplitude=1.0, center=0.0, sigma=1.0):
+    """1 dimensional gaussian:
+    gaussian(x, amplitude, center, sigma)
+    """
+    return (amplitude / (s2pi * sigma)) * np.exp(-(1.0 * x - center) ** 2 / (2 * sigma ** 2))
+
+
+class TestBackgroundExtraction(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_simple_linear_background_with_single_peak(self):
+        x = np.linspace(0, 24, 2500)
+        y_data = gaussian(x, 10, 3, 0.1)
+        y_bkg = x * 0.4 + 5.0
+        y_measurement = y_data + y_bkg
+
+        y_extracted_bkg = extract_background(x, y_measurement, 1)
+        # plt.plot(x, y_data)
+        # plt.plot(x, y_bkg)
+        # plt.plot(x, y_measurement)
+        # plt.plot(x, y_extracted_bkg)
+        # plt.savefig('Results/background_subtraction.png')
+        self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
+
+    def test_simple_linear_background_with_multiple_peaks(self):
+        x = np.linspace(0, 24, 2500)
+        y_data = np.zeros(x.shape)
+
+        peaks = [
+            [10, 3, 0.1],
+            [12, 4, 0.1],
+            [12, 6, 0.1],
+        ]
+        for peak in peaks:
+            y_data += gaussian(x, peak[0], peak[1], peak[2])
+
+        y_bkg = x * 0.4 + 5.0
+        y_measurement = y_data + y_bkg
+
+        y_extracted_bkg = extract_background(x, y_measurement, 1)
+        self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
+
+    def test_simple_linear_background_with_multiple_close_peaks(self):
+
+        x = np.linspace(0, 24, 2500)
+        y_data = np.zeros(x.shape)
+
+        peaks = [
+            [10, 3, 0.1],
+            [12, 3.1, 0.1],
+            [12, 3.4, 0.1],
+        ]
+        for peak in peaks:
+            y_data += gaussian(x, peak[0], peak[1], peak[2])
+
+        y_bkg = x * 0.4 + 5.0
+        y_measurement = y_data + y_bkg
+
+        y_extracted_bkg = extract_background(x, y_measurement, 1)
+        self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
+
