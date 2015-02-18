@@ -22,7 +22,6 @@ __author__ = 'Clemens Prescher'
 
 from PyQt4 import QtGui, QtCore
 from functools import partial
-import numpy as np
 
 from .UiFiles.IntegrationUI import Ui_xrs_integration_widget
 from .ImgWidget import IntegrationImgView
