@@ -52,15 +52,12 @@ def smooth_bruckner(x, y, smooth_points, iterations):
         for i in range(N, N_data - 1 - N - 1):
             if y[i]>window_avg:
                 y_new = window_avg
+                #updating central value in average (first bracket)
+                #and shifting average by one index (second bracket)
+                window_avg += ((window_avg-y[i]) + (y[i+N+1]-y[i - N]))/window_size
+                y[i] = y_new
             else:
-                y_new = y[i]
-
-            #updating central value in average
-            window_avg += (y_new-y[i])/window_size
-
-            #shift new average by one
-            window_avg += (y[i+N+1]-y[i - N])/window_size
-
-            y[i] = y_new
+                #shifting average by one index
+                window_avg += (y[i+N+1]-y[i - N])/window_size
 
     return y[N:N + N_data]
