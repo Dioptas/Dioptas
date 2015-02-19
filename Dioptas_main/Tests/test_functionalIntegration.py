@@ -30,7 +30,6 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def tearDown(self):
 
         del self.integration_spectrum_controller
-        del self.integration_spectrum_controller
         del self.mask_data
         del self.img_data
         del self.calibration_data.cake_geometry

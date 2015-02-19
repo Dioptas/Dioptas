@@ -74,8 +74,8 @@ class IntegrationSpectrumController(object):
     def create_subscriptions(self):
         self.img_data.subscribe(self.image_changed)
         self.view.img_view.roi.sigRegionChangeFinished.connect(self.image_changed)
-        self.spectrum_data.subscribe(self.plot_spectra)
-        self.spectrum_data.subscribe(self.autocreate_spectrum)
+        self.spectrum_data.spectrum_changed.connect(self.plot_spectra)
+        self.spectrum_data.spectrum_changed.connect(self.autocreate_spectrum)
         self.view.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
         self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
 
