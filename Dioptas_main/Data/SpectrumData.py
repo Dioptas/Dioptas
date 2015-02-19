@@ -23,17 +23,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 import os
-
 import numpy as np
 from scipy.interpolate import interp1d
-
 from copy import deepcopy
+from PyQt4 import QtCore
+
 from .HelperModule import Observable, FileNameIterator, get_base_name
 
 
-class SpectrumData(Observable):
+class SpectrumData(QtCore.QObject):
+    spectrum_changed = QtCore.pyqtSignal()
+
     def __init__(self):
-        Observable.__init__(self)
+        super(SpectrumData, self).__init__()
         self.spectrum = Spectrum()
         self.overlays = []
         self.phases = []
@@ -44,12 +46,15 @@ class SpectrumData(Observable):
         self.bkg_ind = -1
         self.spectrum_filename = ''
 
+    def notify(self):
+        print 'hm'
+
     def set_spectrum(self, x, y, filename='', unit=''):
         self.spectrum_filename = filename
         self.spectrum.data = (x, y)
         self.spectrum.name = get_base_name(filename)
         self.unit = unit
-        self.notify()
+        self.spectrum_changed.emit()
 
     def load_spectrum(self, filename):
         logger.info("Load spectrum: {0}".format(filename))
@@ -60,7 +65,8 @@ class SpectrumData(Observable):
             skiprows = 4
         self.spectrum.load(filename, skiprows)
         self.file_name_iterator.update_filename(filename)
-        self.notify()
+
+        self.spectrum_changed.emit()
 
     def save_spectrum(self, filename, header=None, subtract_background=False):
         if subtract_background:

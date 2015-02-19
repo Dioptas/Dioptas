@@ -89,7 +89,7 @@ class MainController(object):
         self.view.tabWidget.currentChanged.connect(self.tab_changed)
         self.view.closeEvent = self.close_event
         self.img_data.subscribe(self.set_title)
-        self.spectrum_data.subscribe(self.set_title)
+        self.spectrum_data.spectrum_changed.connect(self.set_title)
 
     def tab_changed(self, ind):
         if ind == 2:

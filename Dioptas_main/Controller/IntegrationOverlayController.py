@@ -98,7 +98,7 @@ class IntegrationOverlayController(object):
             elif self.spectrum_data.bkg_ind == cur_ind:
                 self.spectrum_data.spectrum.reset_background()
                 self.spectrum_data.bkg_ind = -1
-                self.spectrum_data.notify()
+                self.spectrum_data.spectrum_changed.emit()
             self.spectrum_data.overlays.remove(self.spectrum_data.overlays[cur_ind])
             self.view.del_overlay(cur_ind)
             self.view.spectrum_view.del_overlay(cur_ind)
@@ -150,14 +150,14 @@ class IntegrationOverlayController(object):
         self.spectrum_data.overlays[cur_ind].scaling = value
         self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
         if self.view.overlay_set_as_bkg_btn.isChecked():
-            self.spectrum_data.notify()
+            self.spectrum_data.spectrum_changed.emit()
 
     def overlay_offset_sb_changed(self, value):
         cur_ind = self.view.get_selected_overlay_row()
         self.spectrum_data.overlays[cur_ind].offset = value
         self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
         if self.view.overlay_set_as_bkg_btn.isChecked():
-            self.spectrum_data.notify()
+            self.spectrum_data.spectrum_changed.emit()
 
     def overlay_set_as_bkg_btn_clicked(self):
         cur_ind = self.view.get_selected_overlay_row()
@@ -170,7 +170,7 @@ class IntegrationOverlayController(object):
             self.spectrum_data.bkg_ind = -1
             self.spectrum_data.spectrum.reset_background()
             self.view.overlay_show_cb_set_checked(cur_ind, True)
-            self.spectrum_data.notify()
+            self.spectrum_data.spectrum_changed.emit()
         else:
             #if the overlay is currently the active background
             if self.spectrum_data.bkg_ind is not -1:
@@ -183,7 +183,7 @@ class IntegrationOverlayController(object):
                 self.view.blockSignals(True)
                 self.view.overlay_show_cb_set_checked(cur_ind, False)
                 self.view.blockSignals(False)
-            self.spectrum_data.notify()
+            self.spectrum_data.spectrum_changed.emit()
 
     def qa_set_as_background_btn_click(self):
         self.set_as_overlay(True)
