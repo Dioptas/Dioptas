@@ -124,18 +124,6 @@ class SpectrumData(Observable):
     def del_overlay(self, ind):
         del self.overlays[ind]
 
-    def set_file_iteration_mode(self, mode):
-        """
-        The file iteration_mode determines how to browse between files in a specific folder:
-        possible values:
-        'number'    - browsing by ending number (like in file_001.txt)
-        'time'      - browsing by data of creation
-        """
-        if not (mode is 'number' or mode is 'time'):
-            return -1
-        else:
-            self.mode = mode
-
 
 class Spectrum(object):
     def __init__(self, x=None, y=None, name=''):
