@@ -382,3 +382,39 @@ Rot2: -0.00156720465515
 Rot3: 1.68707221612e-06
 SplineFile: None
 Wavelength: 3.1e-11
+# Nota: C-Order, 1 refers to the Y axis, 2 to the X axis 
+# Calibration done at Thu Feb 19 13:49:05 2015
+PixelSize1: 7.9e-05
+PixelSize2: 7.9e-05
+Distance: 0.196711580484
+Poni1: 0.0813975852141
+Poni2: 0.0820662115429
+Rot1: 0.00615439716514
+Rot2: -0.00156720465515
+Rot3: 1.68707221612e-06
+SplineFile: None
+Wavelength: 3.1e-11
+# Nota: C-Order, 1 refers to the Y axis, 2 to the X axis 
+# Calibration done at Thu Feb 19 13:55:31 2015
+PixelSize1: 7.9e-05
+PixelSize2: 7.9e-05
+Distance: 0.196711580484
+Poni1: 0.0813975852141
+Poni2: 0.0820662115429
+Rot1: 0.00615439716514
+Rot2: -0.00156720465515
+Rot3: 1.68707221612e-06
+SplineFile: None
+Wavelength: 3.1e-11
+# Nota: C-Order, 1 refers to the Y axis, 2 to the X axis 
+# Calibration done at Thu Feb 19 13:58:59 2015
+PixelSize1: 7.9e-05
+PixelSize2: 7.9e-05
+Distance: 0.196711580484
+Poni1: 0.0813975852141
+Poni2: 0.0820662115429
+Rot1: 0.00615439716514
+Rot2: -0.00156720465515
+Rot3: 1.68707221612e-06
+SplineFile: None
+Wavelength: 3.1e-11
