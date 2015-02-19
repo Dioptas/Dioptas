@@ -93,13 +93,7 @@ class IntegrationOverlayController(object):
     def del_overlay(self):
         cur_ind = self.view.get_selected_overlay_row()
         if cur_ind >= 0:
-            if self.spectrum_data.bkg_ind > cur_ind:
-                self.spectrum_data.bkg_ind -= 1
-            elif self.spectrum_data.bkg_ind == cur_ind:
-                self.spectrum_data.spectrum.reset_background()
-                self.spectrum_data.bkg_ind = -1
-                self.spectrum_data.spectrum_changed.emit()
-            self.spectrum_data.overlays.remove(self.spectrum_data.overlays[cur_ind])
+            self.spectrum_data.remove_overlay(cur_ind)
             self.view.del_overlay(cur_ind)
             self.view.spectrum_view.del_overlay(cur_ind)
 

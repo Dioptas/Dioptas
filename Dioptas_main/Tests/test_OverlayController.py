@@ -8,7 +8,7 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
@@ -18,11 +18,12 @@
 __author__ = 'Clemens Prescher'
 
 import unittest
-import gc
-
-from PyQt4 import QtGui
+import os
 import sys
 
+import numpy as np
+from PyQt4 import QtGui, QtCore
+from PyQt4.QtTest import QTest
 
 from Views.IntegrationView import IntegrationView
 from Data.SpectrumData import SpectrumData
@@ -41,7 +42,6 @@ class OverlayControllerTest(unittest.TestCase):
         del self.overlay_tw
         del self.controller
         del self.app
-        gc.collect()
 
     def test_manual_deleting_overlays(self):
         self.load_overlays()
@@ -106,6 +106,68 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertEqual(len(self.spectrum_data.overlays), 0)
         self.assertEqual(len(self.view.spectrum_view.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
+
+    def test_change_scaling_in_view(self):
+        self.load_overlays()
+        self.view.select_overlay(2)
+
+        self.view.overlay_scale_sb.setValue(2.0)
+        self.assertEqual(self.spectrum_data.get_overlay_scaling(2), 2)
+
+    def test_change_offset_in_view(self):
+        self.load_overlays()
+        self.view.select_overlay(3)
+        self.view.overlay_offset_sb.setValue(100)
+        self.assertEqual(self.spectrum_data.get_overlay_offset(3), 100)
+
+    def test_setting_overlay_as_bkg(self):
+        self.load_overlays()
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.view.select_overlay(0)
+        QTest.mouseClick(self.view.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
+
+        self.assertEqual(self.spectrum_data.bkg_ind, 0)
+        x, y = self.spectrum_data.spectrum.data
+        self.assertEqual(np.sum(y), 0)
+
+    def test_setting_overlay_as_bkg_and_changing_scale(self):
+        self.load_overlays()
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.view.select_overlay(0)
+        QTest.mouseClick(self.view.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
+
+        self.view.overlay_scale_sb.setValue(2)
+        _, y = self.spectrum_data.spectrum.data
+        _, y_original = self.spectrum_data.spectrum.data
+        self.assertEqual(np.sum(y-y_original), 0)
+
+    def test_setting_overlay_as_bkg_and_changing_offset(self):
+        self.load_overlays()
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.view.select_overlay(0)
+        QTest.mouseClick(self.view.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
+
+        self.view.overlay_offset_sb.setValue(100)
+        _, y = self.spectrum_data.spectrum.data
+        self.assertEqual(np.sum(y), -100*y.size)
+
+    def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(self):
+        self.load_overlays()
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.view.select_overlay(0)
+        QTest.mouseClick(self.view.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
+
+
+        _, y = self.spectrum_data.spectrum.data
+        self.assertEqual(np.sum(y), 0)
+
+        self.view.select_overlay(1)
+        QTest.mouseClick(self.view.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
+
+        _, y = self.spectrum_data.spectrum.data
+        self.assertNotEqual(np.sum(y), 0)
+
+
 
 
     def load_overlays(self):
