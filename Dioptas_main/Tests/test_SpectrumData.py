@@ -49,14 +49,14 @@ class SpectrumDataTest(unittest.TestCase):
         self.spectrum_data.add_overlay_file('Data/spec_test2.txt')
         self.assertTrue(self.spectrum_data.overlays[-1].name == 'spec_test2')
 
-    def test_background(self):
+    def test_background_spectrum(self):
         x_spectrum = np.linspace(0,100,1001)
         y_spectrum = np.sin(x_spectrum)
         x_background = np.linspace(0,91, 1002)
         y_background = np.cos(x_background)
 
         spec = Spectrum(x_spectrum, y_spectrum)
-        spec.set_background(Spectrum(x_background, y_background))
+        spec.set_background_spectrum(Spectrum(x_background, y_background))
 
         x, y = spec.data
 
@@ -69,14 +69,14 @@ class SpectrumDataTest(unittest.TestCase):
         diff = abs(np.sum(test_y-y))
         self.assertLess(diff, 1e-3)
 
-    def test_background_not_in_spectrum_range(self):
+    def test_background_spectrum_not_in_spectrum_range(self):
         x_spectrum = np.linspace(0,30,101)
         y_spectrum = np.sin(x_spectrum)
         x_background = np.linspace(50,60, 102)
         y_background = np.cos(x_background)
 
         spec = Spectrum(x_spectrum, y_spectrum)
-        spec.set_background(Spectrum(x_background, y_background))
+        spec.set_background_spectrum(Spectrum(x_background, y_background))
 
         self.assertRaises(BkgNotInRangeError)
 

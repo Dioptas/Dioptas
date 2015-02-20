@@ -203,7 +203,7 @@ class IntegrationSpectrumController(object):
     def reset_background(self, popup=True):
         self.view.overlay_show_cb_set_checked(self.spectrum_data.bkg_ind, True)  # show the old overlay again
         self.spectrum_data.bkg_ind = -1
-        self.spectrum_data.spectrum.reset_background()
+        self.spectrum_data.spectrum.unset_background_spectrum()
         self.view.overlay_set_as_bkg_btn.setChecked(False)
 
     def automatic_binning_cb_changed(self):
