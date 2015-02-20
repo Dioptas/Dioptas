@@ -1,9 +1,11 @@
 __author__ = 'Clemens Prescher'
 
-from Data.SpectrumData import Spectrum, SpectrumData
-from Data.Spectrum import BkgNotInRangeError
 import unittest
 import numpy as np
+
+from Data.SpectrumData import Spectrum, SpectrumData
+from Data.Spectrum import BkgNotInRangeError
+from Data.Helper.PeakShapes import gaussian
 
 
 class SpectrumDataTest(unittest.TestCase):
@@ -80,6 +82,30 @@ class SpectrumDataTest(unittest.TestCase):
         spec.set_background_spectrum(Spectrum(x_background, y_background))
 
         self.assertRaises(BkgNotInRangeError)
+
+    def test_auto_background_subtraction(self):
+        x = np.linspace(0, 24, 2500)
+        y = np.zeros(x.shape)
+
+        peaks = [
+            [10, 3, 0.1],
+            [12, 4, 0.1],
+            [12, 6, 0.1],
+        ]
+        for peak in peaks:
+            y += gaussian(x, peak[0], peak[1], peak[2])
+        y_bkg = x * 0.4 + 5.0
+        y_measurement = y + y_bkg
+
+        self.spectrum_data.set_spectrum(x, y_measurement)
+
+        auto_background_subtraction_parameters = [2, 50, 50]
+        self.spectrum_data.set_auto_background_subtraction(auto_background_subtraction_parameters)
+
+        x_spec, y_spec = self.spectrum_data.spectrum.data
+
+        self.assertAlmostEqual(np.sum(y_spec- y),0)
+
 
 
 

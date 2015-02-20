@@ -6,14 +6,7 @@ import os
 import numpy as np
 
 from Data.Spectrum import Spectrum, BkgNotInRangeError
-
-s2pi = np.sqrt(2 * np.pi)
-def gaussian(x, amplitude=1.0, center=0.0, sigma=1.0):
-    """1 dimensional gaussian:
-    gaussian(x, amplitude, center, sigma)
-    """
-    return (amplitude / (s2pi * sigma)) * np.exp(-(1.0 * x - center) ** 2 / (2 * sigma ** 2))
-
+from Data.Helper.PeakShapes import gaussian
 
 class SpectrumTest(unittest.TestCase):
     def setUp(self):
@@ -168,7 +161,7 @@ class SpectrumTest(unittest.TestCase):
         spectrum = Spectrum(x, y_measurement)
 
         auto_background_subtraction_parameters = [2, 50, 50]
-        spectrum.set_auto_background_subtraction(True, auto_background_subtraction_parameters)
+        spectrum.set_auto_background_subtraction(auto_background_subtraction_parameters)
 
         x_spec, y_spec = spectrum.data
 

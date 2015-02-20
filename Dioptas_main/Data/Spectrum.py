@@ -51,9 +51,12 @@ class Spectrum(object):
     def unset_background_spectrum(self):
         self.bkg_spectrum = None
 
-    def set_auto_background_subtraction(self, bool, parameters):
-        self.auto_background_subtraction = bool
+    def set_auto_background_subtraction(self, parameters):
+        self.auto_background_subtraction = True
         self.auto_background_subtraction_parameters = parameters
+
+    def unset_auto_background_subtraction(self):
+        self.auto_background_subtraction = False
 
     def get_auto_background_subtraction_parameters(self):
         return self.auto_background_subtraction_parameters
