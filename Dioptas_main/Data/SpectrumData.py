@@ -21,14 +21,11 @@ __author__ = 'Clemens Prescher'
 import logging
 
 logger = logging.getLogger(__name__)
-
-import os
-import numpy as np
-from scipy.interpolate import interp1d
 from copy import deepcopy
 from PyQt4 import QtCore
 
 from .HelperModule import FileNameIterator, get_base_name
+from .Spectrum import Spectrum
 
 
 class SpectrumData(QtCore.QObject):
@@ -172,7 +169,7 @@ class SpectrumData(QtCore.QObject):
             if self.bkg_ind > ind:
                 self.bkg_ind -= 1
             elif self.bkg_ind == ind:
-                self.spectrum.reset_background()
+                self.spectrum.unset_background_spectrum()
                 self.bkg_ind = -1
                 self.spectrum_changed.emit()
             self.overlay_removed.emit(ind)
@@ -245,7 +242,7 @@ class SpectrumData(QtCore.QObject):
         if self.bkg_ind >= 0:
             self.unset_overlay_as_bkg()
         self.bkg_ind = ind
-        self.spectrum.set_background(self.overlays[ind])
+        self.spectrum.set_background_spectrum(self.overlays[ind])
         self.spectrum_changed.emit()
         self.overlay_set_as_bkg.emit(ind)
 
@@ -263,7 +260,7 @@ class SpectrumData(QtCore.QObject):
         """
         previous_bkg_ind = self.bkg_ind
         self.bkg_ind = -1
-        self.spectrum.reset_background()
+        self.spectrum.unset_background_spectrum()
         self.spectrum_changed.emit()
         self.overlay_unset_as_bkg.emit(previous_bkg_ind)
 
@@ -273,107 +270,4 @@ class SpectrumData(QtCore.QObject):
         """
         return ind == self.bkg_ind and self.bkg_ind != -1
 
-
-class Spectrum(object):
-    def __init__(self, x=None, y=None, name=''):
-        if x is None:
-            self._x = np.linspace(0.1, 15, 100)
-        else:
-            self._x = x
-        if y is None:
-            self._y = np.log(self._x ** 2)
-        else:
-            self._y = y
-        self.name = name
-        self.offset = 0
-        self._scaling = 1
-        self.bkg_spectrum = None
-
-    def load(self, filename, skiprows=0):
-        try:
-            data = np.loadtxt(filename, skiprows=skiprows)
-            self._x = data.T[0]
-            self._y = data.T[1]
-            self.name = os.path.basename(filename).split('.')[:-1][0]
-
-        except ValueError:
-            print('Wrong data format for spectrum file! - ' + filename)
-            return -1
-
-    def save(self, filename, header=''):
-        data = np.dstack((self._x, self._y))
-        np.savetxt(filename, data[0], header=header)
-
-    def set_background(self, spectrum):
-        self.bkg_spectrum = spectrum
-
-    def reset_background(self):
-        self.bkg_spectrum = None
-
-    @property
-    def data(self):
-        if self.bkg_spectrum is not None:
-            # create background function
-            x_bkg, y_bkg = self.bkg_spectrum.data
-
-            if np.array_equal(x_bkg, self._x):
-                # if spectrum and bkg have the same x basis we just delete y-y_bkg
-                return self._x, self._y * self._scaling + self.offset - y_bkg
-
-            # otherwise the background will be interpolated
-            f_bkg = interp1d(x_bkg, y_bkg, kind='linear')
-
-            #find overlapping x and y values:
-            ind = np.where((self._x <= np.max(x_bkg)) & (self._x >= np.min(x_bkg)))
-            x = self._x[ind]
-            y = self._y[ind]
-
-            if len(x) == 0:
-                #if there is no overlapping between background and spectrum, raise an error
-                raise BkgNotInRangeError(self.name)
-
-            return x, y * self._scaling + self.offset - f_bkg(x)
-        else:
-            return self.original_data
-
-
-    @data.setter
-    def data(self, data):
-        (x, y) = data
-        self._x = x
-        self._y = y
-        self.scaling = 1
-        self.offset = 0
-
-    @property
-    def original_data(self):
-        return self._x, self._y * self._scaling + self.offset
-
-    @property
-    def scaling(self):
-        return self._scaling
-
-    @scaling.setter
-    def scaling(self, value):
-        if value < 0:
-            self._scaling = 0
-        else:
-            self._scaling = value
-
-
-class BkgNotInRangeError(Exception):
-    def __init__(self, spectrum_name):
-        self.spectrum_name = spectrum_name
-
-    def __str__(self):
-        return "The background range does not overlap with the Spectrum range for " + self.spectrum_name
-
-
-def test():
-    my_spectrum = Spectrum()
-    my_spectrum.save('test.txt')
-
-
-if __name__ == '__main__':
-    test()
 
