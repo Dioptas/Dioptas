@@ -108,7 +108,7 @@ if __name__ == "__main__":
     controller.image_controller.load_file('../ExampleData/Mg2SiO4_ambient_001.tif')
     controller.spectrum_controller._working_dir = '../ExampleData/spectra'
     controller.mask_data.set_dimension(controller.img_data.get_img_data().shape)
-    controller.overlay_controller.add_overlay('../ExampleData/spectra/Mg2SiO4_ambient_005.xy')
+    controller.overlay_controller.add_overlay_btn_click_callback('../ExampleData/spectra/Mg2SiO4_ambient_005.xy')
     controller.calibration_data.load('../ExampleData/LaB6_p49_001.poni')
     controller.image_controller.load_file('../ExampleData/Mg2SiO4_ambient_001.tif')
     app.exec_()
