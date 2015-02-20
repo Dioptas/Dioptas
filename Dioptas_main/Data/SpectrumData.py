@@ -127,7 +127,7 @@ class SpectrumData(QtCore.QObject):
             self.spectrum_changed.emit()
 
 
-    def set_current_spectrum_as_overlay(self):
+    def add_spectrum_as_overlay(self):
         self.overlays.append(deepcopy(self.spectrum))
 
     def add_overlay_file(self, filename):
@@ -136,18 +136,29 @@ class SpectrumData(QtCore.QObject):
 
     def set_overlay_scaling(self, ind, scaling):
         self.overlays[ind].scaling = scaling
+        if self.bkg_ind == ind:
+            self.spectrum_changed.emit()
 
     def get_overlay_scaling(self, ind):
         return self.overlays[ind].scaling
 
     def set_overlay_offset(self, ind, offset):
         self.overlays[ind].offset = offset
+        if self.bkg_ind == ind:
+            self.spectrum_changed.emit()
 
     def get_overlay_offset(self, ind):
         return self.overlays[ind].offset
 
-    def del_overlay(self, ind):
-        del self.overlays[ind]
+    def set_overlay_as_bkg(self, ind):
+        self.bkg_ind = ind
+        self.spectrum.set_background(self.overlays[ind])
+        self.spectrum_changed.emit()
+
+    def unset_overlay_as_bkg(self):
+        self.bkg_ind = -1
+        self.spectrum.reset_background()
+        self.spectrum_changed.emit()
 
 
 class Spectrum(object):
