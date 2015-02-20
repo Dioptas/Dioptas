@@ -7,6 +7,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
 
+from .Helper import extract_background
+
 
 class Spectrum(object):
     def __init__(self, x=None, y=None, name=''):
@@ -23,6 +25,8 @@ class Spectrum(object):
         self._scaling = 1
         self.smoothing = 0
         self.bkg_spectrum = None
+        self.auto_background_subtraction = False
+        self.auto_background_subtraction_parameters = [2, 50, 50]
 
     def load(self, filename, skiprows=0):
         try:
@@ -46,6 +50,13 @@ class Spectrum(object):
 
     def unset_background_spectrum(self):
         self.bkg_spectrum = None
+
+    def set_auto_background_subtraction(self, bool, parameters):
+        self.auto_background_subtraction = bool
+        self.auto_background_subtraction_parameters = parameters
+
+    def get_auto_background_subtraction_parameters(self):
+        return self.auto_background_subtraction_parameters
 
     def set_smoothing(self, amount):
         self.smoothing = amount
@@ -75,6 +86,12 @@ class Spectrum(object):
                 x, y = self._x, self._y * self._scaling + self.offset - y_bkg
         else:
             x, y = self.original_data
+
+        if self.auto_background_subtraction:
+            y -= extract_background(x, y,
+                                    self.auto_background_subtraction_parameters[0],
+                                    self.auto_background_subtraction_parameters[1],
+                                    self.auto_background_subtraction_parameters[2])
 
         if self.smoothing > 0:
             y = gaussian_filter1d(y, self.smoothing)
