@@ -138,6 +138,8 @@ class OverlayControllerTest(unittest.TestCase):
         self.view.select_overlay(0)
         QTest.mouseClick(self.view.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
+        self.assertTrue(self.view.overlay_set_as_bkg_btn.isChecked())
+
         self.assertEqual(self.spectrum_data.bkg_ind, 0)
         x, y = self.spectrum_data.spectrum.data
         self.assertEqual(np.sum(y), 0)
@@ -179,7 +181,26 @@ class OverlayControllerTest(unittest.TestCase):
         _, y = self.spectrum_data.spectrum.data
         self.assertNotEqual(np.sum(y), 0)
 
+    def test_setting_spectrum_as_bkg(self):
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        QTest.mouseClick(self.view.qa_img_set_as_background_btn, QtCore.Qt.LeftButton)
 
+        self.assertTrue(self.view.overlay_set_as_bkg_btn.isChecked())
+
+        _, y = self.spectrum_data.spectrum.data
+        self.assertEqual(np.sum(y), 0)
+
+    def test_having_overlay_as_bkg_and_deleting_it(self):
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        QTest.mouseClick(self.view.qa_img_set_as_background_btn, QtCore.Qt.LeftButton)
+
+        QTest.mouseClick(self.view.overlay_del_btn, QtCore.Qt.LeftButton)
+
+        self.assertFalse(self.view.overlay_set_as_bkg_btn.isChecked())
+        self.assertEqual(self.view.overlay_tw.rowCount(), 0)
+
+        _, y = self.spectrum_data.spectrum.data
+        self.assertNotEqual(np.sum(y), 0)
 
 
     def load_overlays(self):
