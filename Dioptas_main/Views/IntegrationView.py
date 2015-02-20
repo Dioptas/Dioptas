@@ -374,6 +374,11 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         checkbox = self.phase_show_cbs[ind]
         return checkbox.isChecked()
 
+    def get_bkg_spectrum_parameters(self):
+        smooth_width = float(self.bkg_spectrum_smooth_width_sb.value())
+        iterations = int(self.bkg_spectrum_iterations_sb.value())
+        polynomal_order = int(self.bkg_spectrum_poly_order_sb.value())
+        return smooth_width, iterations, polynomal_order
 
 class NoRectDelegate(QtGui.QItemDelegate):
     def __init__(self):
