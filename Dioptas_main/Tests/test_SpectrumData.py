@@ -43,7 +43,7 @@ class SpectrumDataTest(unittest.TestCase):
         self.spectrum_data.add_overlay(np.linspace(0, 10), np.linspace(0, 10) ** 4, 'QUADRUPOLED')
 
         self.assertTrue(len(self.spectrum_data.overlays) == 2)
-        self.spectrum_data.del_overlay(0)
+        self.spectrum_data.remove_overlay(0)
         self.assertTrue(self.spectrum_data.overlays[0].name == 'QUADRUPOLED')
 
         self.spectrum_data.add_overlay_file('Data/spec_test2.txt')

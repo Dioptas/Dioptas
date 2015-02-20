@@ -43,7 +43,7 @@ def test_phases(controller):
     controller.integration_controller.phase_controller.add_phase('ExampleData/jcpds/dac_user/fe-hcp.jcpds')
 
     controller.integration_controller.overlay_controller.add_overlay('ExampleData/Spectra/FoG_D3_003.xy')
-    controller.integration_controller.overlay_controller.del_overlay()
+    controller.integration_controller.overlay_controller.remove_overlay()
 
 
 def test_calibration(controller):
