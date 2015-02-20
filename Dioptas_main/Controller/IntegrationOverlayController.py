@@ -156,7 +156,7 @@ class IntegrationOverlayController(object):
 
         self.view.overlay_scale_sb.blockSignals(False)
         self.view.overlay_offset_sb.blockSignals(False)
-        if cur_ind == self.spectrum_data.bkg_ind and not cur_ind == -1:
+        if self.spectrum_data.overlay_is_bkg(cur_ind):
             self.view.overlay_set_as_bkg_btn.setChecked(True)
         else:
             self.view.overlay_set_as_bkg_btn.setChecked(False)
