@@ -53,8 +53,8 @@ class IntegrationBackgroundController(object):
 
     def create_signals(self):
 
-        self.connect_click_function(self.view.bkg_image_load_btn, self.load_background)
-        self.connect_click_function(self.view.bkg_image_delete_btn, self.delete_background)
+        self.connect_click_function(self.view.bkg_image_load_btn, self.load_background_image)
+        self.connect_click_function(self.view.bkg_image_delete_btn, self.remove_background_image)
 
         self.view.bkg_image_scale_step_txt.editingFinished.connect(self.update_bkg_image_scale_step)
         self.view.bkg_image_offset_step_txt.editingFinished.connect(self.update_bkg_image_offset_step)
@@ -69,7 +69,7 @@ class IntegrationBackgroundController(object):
         """
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def load_background(self, filename=None):
+    def load_background_image(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(
                 self.view, "Load an image background file",
@@ -79,7 +79,7 @@ class IntegrationBackgroundController(object):
             self.view.bkg_image_filename_lbl.setText("Loading File")
             self.img_data.load_background(filename)
 
-    def delete_background(self):
+    def remove_background_image(self):
         self.view.bkg_image_filename_lbl.setText("None")
         self.view.bkg_name_lbl.setText('')
         self.img_data.reset_background()
