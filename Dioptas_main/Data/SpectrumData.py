@@ -28,7 +28,7 @@ from scipy.interpolate import interp1d
 from copy import deepcopy
 from PyQt4 import QtCore
 
-from .HelperModule import Observable, FileNameIterator, get_base_name
+from .HelperModule import FileNameIterator, get_base_name
 
 
 class SpectrumData(QtCore.QObject):
@@ -160,6 +160,9 @@ class SpectrumData(QtCore.QObject):
         self.spectrum.reset_background()
         self.spectrum_changed.emit()
 
+    def overlay_is_bkg(self, ind):
+        return ind == self.bkg_ind and self.bkg_ind != -1
+
 
 class Spectrum(object):
     def __init__(self, x=None, y=None, name=''):
@@ -200,7 +203,7 @@ class Spectrum(object):
     @property
     def data(self):
         if self.bkg_spectrum is not None:
-            #create background function
+            # create background function
             x_bkg, y_bkg = self.bkg_spectrum.data
 
             if np.array_equal(x_bkg, self._x):
