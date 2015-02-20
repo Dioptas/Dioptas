@@ -119,7 +119,7 @@ class SpectrumWidget(QtCore.QObject):
             self.update_graph_limits()
         return color
 
-    def del_overlay(self, ind):
+    def remove_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
         self.legend.removeItem(self.overlays[ind])
         self.overlays.remove(self.overlays[ind])

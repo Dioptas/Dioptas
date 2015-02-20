@@ -33,9 +33,11 @@ from .HelperModule import FileNameIterator, get_base_name
 
 class SpectrumData(QtCore.QObject):
     spectrum_changed = QtCore.pyqtSignal()
-    overlay_changed = QtCore.pyqtSignal(int)
+    overlay_changed = QtCore.pyqtSignal(int) #changed index
     overlay_added = QtCore.pyqtSignal()
-    overlay_removed = QtCore.pyqtSignal(int)
+    overlay_removed = QtCore.pyqtSignal(int) #removed index
+    overlay_set_as_bkg = QtCore.pyqtSignal(int) # index set as background
+    overlay_unset_as_bkg = QtCore.pyqtSignal(int) # index unset os background
 
     def __init__(self):
         super(SpectrumData, self).__init__()
@@ -163,14 +165,23 @@ class SpectrumData(QtCore.QObject):
         return self.overlays[ind].offset
 
     def set_overlay_as_bkg(self, ind):
+        if self.bkg_ind>=0:
+            self.unset_overlay_as_bkg()
         self.bkg_ind = ind
         self.spectrum.set_background(self.overlays[ind])
         self.spectrum_changed.emit()
+        self.overlay_set_as_bkg.emit(ind)
+
+    def set_spectrum_as_bkg(self):
+        self.add_spectrum_as_overlay()
+        self.set_overlay_as_bkg(len(self.overlays)-1)
 
     def unset_overlay_as_bkg(self):
+        previous_bkg_ind = self.bkg_ind
         self.bkg_ind = -1
         self.spectrum.reset_background()
         self.spectrum_changed.emit()
+        self.overlay_unset_as_bkg.emit(previous_bkg_ind)
 
     def overlay_is_bkg(self, ind):
         return ind == self.bkg_ind and self.bkg_ind != -1

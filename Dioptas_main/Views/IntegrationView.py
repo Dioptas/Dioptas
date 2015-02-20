@@ -216,7 +216,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
             row = -1
         return row
 
-    def del_overlay(self, ind):
+    def remove_overlay(self, ind):
         self.overlay_tw.blockSignals(True)
         self.overlay_tw.removeRow(ind)
         self.overlay_tw.blockSignals(False)
