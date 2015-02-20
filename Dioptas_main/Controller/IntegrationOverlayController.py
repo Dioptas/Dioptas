@@ -52,9 +52,9 @@ class IntegrationOverlayController(object):
         self.create_signals()
 
     def create_signals(self):
-        self.connect_click_function(self.view.overlay_add_btn, self.add_overlay)
-        self.connect_click_function(self.view.overlay_del_btn, self.remove_overlay)
-        self.view.overlay_clear_btn.clicked.connect(self.clear_overlays)
+        self.connect_click_function(self.view.overlay_add_btn, self.add_overlay_btn_click_callback)
+        self.connect_click_function(self.view.overlay_del_btn, self.remove_overlay_btn_click_callback)
+        self.view.overlay_clear_btn.clicked.connect(self.clear_overlays_btn_click_callback)
 
         self.view.overlay_tw.currentCellChanged.connect(self.overlay_selection_changed)
         self.view.overlay_color_btn_clicked.connect(self.overlay_color_btn_clicked)
@@ -76,10 +76,13 @@ class IntegrationOverlayController(object):
         self.connect_click_function(self.view.qa_img_set_as_background_btn, self.qa_set_as_background_btn_click)
         self.connect_click_function(self.view.qa_spectrum_set_as_background_btn, self.qa_set_as_background_btn_click)
 
+        # spectrum_data signals
+        self.spectrum_data.overlay_removed.connect(self.overlay_removed)
+
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def add_overlay(self, filename=None):
+    def add_overlay_btn_click_callback(self, filename=None):
         """
 
         :param filename: filepath of an overlay file, if set to None (default value) it will open a QFileDialog to
@@ -100,15 +103,16 @@ class IntegrationOverlayController(object):
             self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
             self.working_dir['overlay'] = os.path.dirname(str(filename))
 
-    def remove_overlay(self):
+    def remove_overlay_btn_click_callback(self):
         """
         Removes the currently in the overlay table selected overlay from the table, spectrum_data and spectrum_view
         """
         cur_ind = self.view.get_selected_overlay_row()
-        if cur_ind >= 0:
-            self.spectrum_data.remove_overlay(cur_ind)
-            self.view.del_overlay(cur_ind)
-            self.view.spectrum_view.del_overlay(cur_ind)
+        self.spectrum_data.remove_overlay(cur_ind)
+
+    def overlay_removed(self, ind):
+        self.view.del_overlay(ind)
+        self.view.spectrum_view.del_overlay(ind)
 
     def add_as_overlay(self, show=True):
         """
@@ -120,12 +124,12 @@ class IntegrationOverlayController(object):
         self.view.add_overlay(get_base_name(self.spectrum_data.overlays[-1].name),
                               '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
-    def clear_overlays(self):
+    def clear_overlays_btn_click_callback(self):
         """
         removes all currently loaded overlays
         """
         while self.view.overlay_tw.rowCount() > 0:
-            self.remove_overlay()
+            self.remove_overlay_btn_click_callback()
 
     def update_overlay_scale_step(self):
         """

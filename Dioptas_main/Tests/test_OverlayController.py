@@ -51,35 +51,35 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertEqual(len(self.view.spectrum_view.overlays), 6)
         self.assertEqual(self.overlay_tw.currentRow(), 5)
 
-        self.controller.remove_overlay()
+        self.controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 5)
         self.assertEqual(len(self.spectrum_data.overlays), 5)
         self.assertEqual(len(self.view.spectrum_view.overlays), 5)
         self.assertEqual(self.overlay_tw.currentRow(), 4)
 
         self.view.select_overlay(1)
-        self.controller.remove_overlay()
+        self.controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 4)
         self.assertEqual(len(self.spectrum_data.overlays), 4)
         self.assertEqual(len(self.view.spectrum_view.overlays), 4)
         self.assertEqual(self.overlay_tw.currentRow(), 1)
 
         self.view.select_overlay(0)
-        self.controller.remove_overlay()
+        self.controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 3)
         self.assertEqual(len(self.spectrum_data.overlays), 3)
         self.assertEqual(len(self.view.spectrum_view.overlays), 3)
         self.assertEqual(self.overlay_tw.currentRow(), 0)
 
-        self.controller.remove_overlay()
-        self.controller.remove_overlay()
-        self.controller.remove_overlay()
+        self.controller.remove_overlay_btn_click_callback()
+        self.controller.remove_overlay_btn_click_callback()
+        self.controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_data.overlays), 0)
         self.assertEqual(len(self.view.spectrum_view.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
-        self.controller.remove_overlay()
+        self.controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
@@ -90,7 +90,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertEqual(len(self.spectrum_data.overlays), 12)
         self.assertEqual(len(self.view.spectrum_view.overlays), 12)
 
-        self.controller.clear_overlays()
+        self.controller.clear_overlays_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_data.overlays), 0)
         self.assertEqual(len(self.view.spectrum_view.overlays), 0)
@@ -101,7 +101,7 @@ class OverlayControllerTest(unittest.TestCase):
             self.load_overlays()
 
         self.assertEqual(self.overlay_tw.rowCount(), multiplier * 6)
-        self.controller.clear_overlays()
+        self.controller.clear_overlays_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_data.overlays), 0)
         self.assertEqual(len(self.view.spectrum_view.overlays), 0)
@@ -179,6 +179,6 @@ class OverlayControllerTest(unittest.TestCase):
         self.load_overlay('FoG_D3_006.xy')
 
     def load_overlay(self, filename):
-        self.controller.add_overlay('Data/' + filename)
+        self.controller.add_overlay_btn_click_callback('Data/' + filename)
 
 
