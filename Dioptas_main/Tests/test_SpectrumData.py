@@ -1,6 +1,7 @@
 __author__ = 'Clemens Prescher'
 
-from Data.SpectrumData import Spectrum, SpectrumData, BkgNotInRangeError
+from Data.SpectrumData import Spectrum, SpectrumData
+from Data.Spectrum import BkgNotInRangeError
 import unittest
 import numpy as np
 

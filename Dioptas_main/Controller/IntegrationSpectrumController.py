@@ -22,7 +22,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
-from Data.SpectrumData import BkgNotInRangeError
+from Data.Spectrum import BkgNotInRangeError
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
