@@ -49,9 +49,10 @@ class IntegrationBackgroundController(object):
         self.view = view
         self.img_data = img_data
         self.spectrum_data = spectrum_data
-        self.create_signals()
+        self.create_image_background_signals()
+        self.create_spectrum_background_signals()
 
-    def create_signals(self):
+    def create_image_background_signals(self):
 
         self.connect_click_function(self.view.bkg_image_load_btn, self.load_background_image)
         self.connect_click_function(self.view.bkg_image_delete_btn, self.remove_background_image)
@@ -62,6 +63,12 @@ class IntegrationBackgroundController(object):
         self.view.bkg_image_offset_sb.valueChanged.connect(self.img_data.set_background_offset)
 
         self.img_data.subscribe(self.update_background_image_filename)
+
+    def create_spectrum_background_signals(self):
+        self.view.bkg_spectrum_gb.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
+        self.view.bkg_spectrum_iterations_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
+        self.view.bkg_spectrum_poly_order_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
+        self.view.bkg_spectrum_smooth_width_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
 
     def connect_click_function(self, emitter, function):
         """
@@ -104,3 +111,17 @@ class IntegrationBackgroundController(object):
 
             self.view.bkg_image_filename_lbl.setText('None')
             self.view.bkg_name_lbl.setText('')
+
+
+    def bkg_spectrum_gb_toggled_callback(self, is_checked):
+        if is_checked:
+            bkg_spectrum_parameters = self.view.get_bkg_spectrum_parameters()
+            self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters)
+        else:
+            self.spectrum_data.unset_auto_background_subtraction()
+
+    def bkg_spectrum_parameters_changed(self):
+        bkg_spectrum_parameters = self.view.get_bkg_spectrum_parameters()
+        self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters)
+
+
