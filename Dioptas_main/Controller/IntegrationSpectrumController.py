@@ -67,21 +67,21 @@ class IntegrationSpectrumController(object):
         self.create_subscriptions()
         self.integration_unit = '2th_deg'
         self.first_plot = True
-        self.set_status()
+        self.autocreate = False
+        self.unit = pyFAI.units.TTH_DEG
 
         self.create_signals()
 
     def create_subscriptions(self):
+        # Data subscriptions
         self.img_data.subscribe(self.image_changed)
-        self.view.img_view.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.spectrum_data.spectrum_changed.connect(self.plot_spectra)
         self.spectrum_data.spectrum_changed.connect(self.autocreate_spectrum)
+
+        # Gui subscriptions
+        self.view.img_view.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.view.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
         self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
-
-    def set_status(self):
-        self.autocreate = False
-        self.unit = pyFAI.units.TTH_DEG
 
     def create_signals(self):
         self.connect_click_function(self.view.spec_autocreate_cb, self.autocreate_cb_changed)
