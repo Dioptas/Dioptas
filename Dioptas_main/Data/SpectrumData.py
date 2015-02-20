@@ -271,10 +271,17 @@ class SpectrumData(QtCore.QObject):
         return ind == self.bkg_ind and self.bkg_ind != -1
 
     def set_auto_background_subtraction(self, parameters):
+        """
+        Enables auto background extraction and removal from the data spectrum
+        :param parameters: array of parameters with [window_width, iterations, polynomial_order]
+        """
         self.spectrum.set_auto_background_subtraction(parameters)
         self.spectrum_changed.emit()
 
     def unset_auto_background_subtraction(self):
+        """
+        Disables auto background extraction and removal.
+        """
         self.spectrum.unset_auto_background_subtraction()
         self.spectrum_changed.emit()
 
