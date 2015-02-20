@@ -114,11 +114,23 @@ class OverlayControllerTest(unittest.TestCase):
         self.view.overlay_scale_sb.setValue(2.0)
         self.assertEqual(self.spectrum_data.get_overlay_scaling(2), 2)
 
+        # test if overlay is updated in spectrum
+        x, y = self.spectrum_data.overlays[2].data
+        x_spec, y_spec = self.view.spectrum_view.overlays[2].getData()
+
+        self.assertAlmostEqual(np.sum(y-y_spec), 0)
+
     def test_change_offset_in_view(self):
         self.load_overlays()
         self.view.select_overlay(3)
+
         self.view.overlay_offset_sb.setValue(100)
         self.assertEqual(self.spectrum_data.get_overlay_offset(3), 100)
+
+        x, y = self.spectrum_data.overlays[3].data
+        x_spec, y_spec = self.view.spectrum_view.overlays[3].getData()
+
+        self.assertAlmostEqual(np.sum(y-y_spec), 0)
 
     def test_setting_overlay_as_bkg(self):
         self.load_overlays()

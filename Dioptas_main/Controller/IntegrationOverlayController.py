@@ -81,6 +81,7 @@ class IntegrationOverlayController(object):
         # spectrum_data signals
         self.spectrum_data.overlay_removed.connect(self.overlay_removed)
         self.spectrum_data.overlay_added.connect(self.overlay_added)
+        self.spectrum_data.overlay_changed.connect(self.overlay_changed)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -103,6 +104,9 @@ class IntegrationOverlayController(object):
             self.working_dir['overlay'] = os.path.dirname(str(filename))
 
     def overlay_added(self):
+        """
+        callback when overlay is added to the SpectrumData
+        """
         color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
         self.view.add_overlay(self.spectrum_data.get_overlay_name(-1),
                               '#%02x%02x%02x' % (color[0], color[1], color[2]))
@@ -115,6 +119,10 @@ class IntegrationOverlayController(object):
         self.spectrum_data.remove_overlay(cur_ind)
 
     def overlay_removed(self, ind):
+        """
+        callback when overlay is removed from SpectrumData
+        :param ind: index of overlay removed
+        """
         self.view.del_overlay(ind)
         self.view.spectrum_view.del_overlay(ind)
 
@@ -182,7 +190,6 @@ class IntegrationOverlayController(object):
         """
         cur_ind = self.view.get_selected_overlay_row()
         self.spectrum_data.set_overlay_scaling(cur_ind, value)
-        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
 
     def overlay_offset_sb_changed(self, value):
         """
@@ -191,7 +198,9 @@ class IntegrationOverlayController(object):
         """
         cur_ind = self.view.get_selected_overlay_row()
         self.spectrum_data.set_overlay_offset(cur_ind, value)
-        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
+
+    def overlay_changed(self, ind):
+        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[ind], ind)
 
     def overlay_set_as_bkg_btn_clicked(self):
         """
