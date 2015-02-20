@@ -84,6 +84,11 @@ class IntegrationSpectrumController(object):
         self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
 
     def create_gui_signals(self):
+        """
+        creating callbacks for the ui controls
+        """
+
+        # file callbacks
         self.connect_click_function(self.view.spec_autocreate_cb, self.autocreate_cb_changed)
         self.connect_click_function(self.view.spec_load_btn, self.load)
         self.connect_click_function(self.view.spec_previous_btn, self.load_previous)
@@ -94,21 +99,25 @@ class IntegrationSpectrumController(object):
         self.connect_click_function(self.view.spec_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.spec_browse_by_time_rb, self.set_iteration_mode_time)
 
-        self.connect_click_function(self.view.spec_tth_btn, self.set_unit_tth)
-        self.connect_click_function(self.view.spec_q_btn, self.set_unit_q)
-        self.connect_click_function(self.view.spec_d_btn, self.set_unit_d)
-
         self.view.connect(self.view.spec_directory_txt,
                           QtCore.SIGNAL('editingFinished()'),
                           self.spec_directory_txt_changed)
 
+        # unit callbacks
+        self.connect_click_function(self.view.spec_tth_btn, self.set_unit_tth)
+        self.connect_click_function(self.view.spec_q_btn, self.set_unit_q)
+        self.connect_click_function(self.view.spec_d_btn, self.set_unit_d)
+
+        # quick actions
         self.connect_click_function(self.view.qa_img_save_spectrum_btn, self.save_spectrum)
         self.connect_click_function(self.view.qa_spectrum_save_spectrum_btn, self.save_spectrum)
 
+        # integration controls
         self.view.automatic_binning_cb.stateChanged.connect(self.automatic_binning_cb_changed)
         self.view.bin_count_txt.editingFinished.connect(self.image_changed)
         self.view.supersampling_sb.valueChanged.connect(self.supersampling_changed)
 
+        # spectrum_plot interaction
         self.view.keyPressEvent = self.key_press_event
 
     def connect_click_function(self, emitter, function):
