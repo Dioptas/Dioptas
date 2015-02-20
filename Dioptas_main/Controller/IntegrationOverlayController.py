@@ -70,14 +70,17 @@ class IntegrationOverlayController(object):
 
         # creating the quick-actions signals
 
-        self.connect_click_function(self.view.qa_img_set_as_overlay_btn, self.add_as_overlay)
-        self.connect_click_function(self.view.qa_spectrum_set_as_overlay_btn, self.add_as_overlay)
+        self.connect_click_function(self.view.qa_img_set_as_overlay_btn,
+                                    self.spectrum_data.add_spectrum_as_overlay)
+        self.connect_click_function(self.view.qa_spectrum_set_as_overlay_btn,
+                                    self.spectrum_data.add_spectrum_as_overlay)
 
         self.connect_click_function(self.view.qa_img_set_as_background_btn, self.qa_set_as_background_btn_click)
         self.connect_click_function(self.view.qa_spectrum_set_as_background_btn, self.qa_set_as_background_btn_click)
 
         # spectrum_data signals
         self.spectrum_data.overlay_removed.connect(self.overlay_removed)
+        self.spectrum_data.overlay_added.connect(self.overlay_added)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -94,14 +97,15 @@ class IntegrationOverlayController(object):
                 for filename in filenames:
                     filename = str(filename)
                     self.spectrum_data.add_overlay_file(filename)
-                    color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
-                    self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
                 self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
         else:
             self.spectrum_data.add_overlay_file(filename)
-            color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
-            self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
             self.working_dir['overlay'] = os.path.dirname(str(filename))
+
+    def overlay_added(self):
+        color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+        self.view.add_overlay(self.spectrum_data.get_overlay_name(-1),
+                              '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
     def remove_overlay_btn_click_callback(self):
         """
@@ -113,16 +117,6 @@ class IntegrationOverlayController(object):
     def overlay_removed(self, ind):
         self.view.del_overlay(ind)
         self.view.spectrum_view.del_overlay(ind)
-
-    def add_as_overlay(self, show=True):
-        """
-        Adds the currently displayed data as an individual overlay
-        :param show: boolean value whether the added overlay will be displayed in the spectrum view or not
-        """
-        self.spectrum_data.add_spectrum_as_overlay()
-        color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1], show)
-        self.view.add_overlay(get_base_name(self.spectrum_data.overlays[-1].name),
-                              '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
     def clear_overlays_btn_click_callback(self):
         """
@@ -234,7 +228,7 @@ class IntegrationOverlayController(object):
         displayed spectrum as overlay and then set it as background
         :return:
         """
-        self.add_as_overlay(True)
+        self.spectrum_data.add_spectrum_as_overlay()
         self.view.overlay_set_as_bkg_btn.setChecked(True)
         self.overlay_set_as_bkg_btn_clicked()
 

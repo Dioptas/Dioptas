@@ -33,6 +33,7 @@ from .HelperModule import FileNameIterator, get_base_name
 
 class SpectrumData(QtCore.QObject):
     spectrum_changed = QtCore.pyqtSignal()
+    overlay_added = QtCore.pyqtSignal()
     overlay_removed = QtCore.pyqtSignal(int)
 
     def __init__(self):
@@ -117,6 +118,7 @@ class SpectrumData(QtCore.QObject):
 
     def add_overlay(self, x, y, name=''):
         self.overlays.append(Spectrum(x, y, name))
+        self.overlay_added.emit()
 
     def remove_overlay(self, ind):
         if ind>=0:
@@ -131,10 +133,15 @@ class SpectrumData(QtCore.QObject):
 
     def add_spectrum_as_overlay(self):
         self.overlays.append(deepcopy(self.spectrum))
+        self.overlay_added.emit()
 
     def add_overlay_file(self, filename):
         self.overlays.append(Spectrum())
         self.overlays[-1].load(filename)
+        self.overlay_added.emit()
+
+    def get_overlay_name(self, ind):
+        return self.overlays[-1].name
 
     def set_overlay_scaling(self, ind, scaling):
         self.overlays[ind].scaling = scaling
