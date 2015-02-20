@@ -32,11 +32,6 @@ class TestBackgroundExtraction(unittest.TestCase):
         y_measurement = y_data + y_bkg
 
         y_extracted_bkg = extract_background(x, y_measurement, 1)
-        # plt.plot(x, y_data)
-        # plt.plot(x, y_bkg)
-        # plt.plot(x, y_measurement)
-        # plt.plot(x, y_extracted_bkg)
-        # plt.savefig('Results/background_subtraction.png')
         self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
 
     def test_simple_linear_background_with_multiple_peaks(self):
