@@ -281,7 +281,7 @@ class CalibrationData(object):
                                                                         filename=filename)
             except NameError:
                 self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
-                                                                        method=method,
+                                                                        method='lut',
                                                                         unit='2th_deg',
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
