@@ -2,12 +2,16 @@
 __author__ = 'Clemens Prescher'
 
 import os
+import time
 
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
 
 from .Helper import extract_background
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Spectrum(object):
@@ -91,13 +95,17 @@ class Spectrum(object):
             x, y = self.original_data
 
         if self.auto_background_subtraction:
+            t1 = time.time()
             y -= extract_background(x, y,
                                     self.auto_background_subtraction_parameters[0],
                                     self.auto_background_subtraction_parameters[1],
                                     self.auto_background_subtraction_parameters[2])
 
+            logger.info('Automatic Background extraction of {0}: {1}s.'.format(self.name, time.time() - t1))
+
         if self.smoothing > 0:
             y = gaussian_filter1d(y, self.smoothing)
+        print 'getting Spectrum'
         return x, y
 
 
