@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Fri Feb 20 17:02:42 2015
+# Created: Sat Feb 21 11:03:04 2015
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -846,7 +846,8 @@ class Ui_xrs_integration_widget(object):
         self.bkg_spectrum_smooth_width_sb.setSizeIncrement(QtCore.QSize(0, 0))
         self.bkg_spectrum_smooth_width_sb.setBaseSize(QtCore.QSize(0, 0))
         self.bkg_spectrum_smooth_width_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.bkg_spectrum_smooth_width_sb.setSingleStep(0.05)
+        self.bkg_spectrum_smooth_width_sb.setMaximum(99999.0)
+        self.bkg_spectrum_smooth_width_sb.setSingleStep(0.01)
         self.bkg_spectrum_smooth_width_sb.setProperty("value", 0.1)
         self.bkg_spectrum_smooth_width_sb.setObjectName(_fromUtf8("bkg_spectrum_smooth_width_sb"))
         self.horizontalLayout_42.addWidget(self.bkg_spectrum_smooth_width_sb)
@@ -857,7 +858,7 @@ class Ui_xrs_integration_widget(object):
         self.bkg_spectrum_iterations_sb = QtGui.QSpinBox(self.bkg_spectrum_gb)
         self.bkg_spectrum_iterations_sb.setMinimumSize(QtCore.QSize(50, 0))
         self.bkg_spectrum_iterations_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.bkg_spectrum_iterations_sb.setMaximum(100)
+        self.bkg_spectrum_iterations_sb.setMaximum(9999)
         self.bkg_spectrum_iterations_sb.setProperty("value", 50)
         self.bkg_spectrum_iterations_sb.setObjectName(_fromUtf8("bkg_spectrum_iterations_sb"))
         self.horizontalLayout_42.addWidget(self.bkg_spectrum_iterations_sb)
