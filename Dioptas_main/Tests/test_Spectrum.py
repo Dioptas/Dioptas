@@ -167,6 +167,34 @@ class SpectrumTest(unittest.TestCase):
 
         self.array_almost_equal(y_spec, y)
 
+    def test_automatic_background_subtraction_with_roi(self):
+        x = np.linspace(0, 24, 2500)
+        y = np.zeros(x.shape)
+
+        peaks = [
+            [10, 3, 0.1],
+            [12, 4, 0.1],
+            [12, 6, 0.1],
+        ]
+        for peak in peaks:
+            y += gaussian(x, peak[0], peak[1], peak[2])
+        y_bkg = x * 0.4 + 5.0
+        y_measurement = y + y_bkg
+
+        roi = [1, 23]
+
+        spectrum = Spectrum(x, y_measurement)
+
+        auto_background_subtraction_parameters = [2, 50, 50]
+        spectrum.set_auto_background_subtraction(auto_background_subtraction_parameters, roi)
+
+        x_spec, y_spec = spectrum.data
+
+        self.assertGreater(x_spec[0],1 )
+
+        # self.array_almost_equal(y_spec, y)
+
+
     def test_setting_new_data(self):
         spec = Spectrum()
         x = np.linspace(0, 10)
