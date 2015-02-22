@@ -17,7 +17,7 @@ class TestBackgroundExtraction(unittest.TestCase):
         pass
 
     def test_simple_linear_background_with_single_peak(self):
-        x = np.linspace(0, 24, 2500)
+        x = np.linspace(0, 25, 2500)
         y_data = gaussian(x, 10, 3, 0.1)
         y_bkg = x * 0.4 + 5.0
         y_measurement = y_data + y_bkg
@@ -40,7 +40,7 @@ class TestBackgroundExtraction(unittest.TestCase):
         y_bkg = x * 0.4 + 5.0
         y_measurement = y_data + y_bkg
 
-        y_extracted_bkg = extract_background(x, y_measurement, 1)
+        y_extracted_bkg = extract_background(x, y_measurement, smooth_width=0.1)
         self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
 
     def test_simple_linear_background_with_multiple_close_peaks(self):
