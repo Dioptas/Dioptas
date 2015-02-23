@@ -78,6 +78,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.bkg_image_scale_sb.setKeyboardTracking(False)
         self.bkg_image_offset_sb.setKeyboardTracking(False)
 
+        self.qa_bkg_spectrum_inspect_btn.setVisible(False)
+
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
