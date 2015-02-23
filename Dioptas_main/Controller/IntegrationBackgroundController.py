@@ -124,6 +124,7 @@ class IntegrationBackgroundController(object):
             self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
         else:
             self.view.bkg_spectrum_inspect_btn.setChecked(False)
+            self.view.spectrum_view.hide_linear_region()
             self.spectrum_data.unset_auto_background_subtraction()
 
     def bkg_spectrum_parameters_changed(self):
@@ -132,6 +133,39 @@ class IntegrationBackgroundController(object):
         self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
 
     def bkg_spectrum_inspect_btn_callback(self, checked):
+        if checked:
+            self.view.spectrum_view.show_linear_region()
+            x_min, x_max = self.view.get_bkg_spectrum_roi()
+            x_spec = self.spectrum_data.spectrum.auto_background_before_subtraction_spectrum.x
+            if x_min<x_spec[0]:
+                x_min = x_spec[0]
+            if x_max>x_spec[-1]:
+                x_max=x_spec[-1]
+            self.view.spectrum_view.set_linear_region(x_min, x_max)
+            self.view.spectrum_view.linear_region_item.sigRegionChanged.connect(
+                self.bkg_spectrum_linear_region_callback
+            )
+            self.view.bkg_spectrum_x_min_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
+            self.view.bkg_spectrum_x_max_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
+        else:
+            self.view.spectrum_view.hide_linear_region()
+            self.view.spectrum_view.linear_region_item.sigRegionChanged.disconnect(
+                self.bkg_spectrum_linear_region_callback
+            )
+
+            self.view.bkg_spectrum_x_min_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
+            self.view.bkg_spectrum_x_max_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
         self.spectrum_data.spectrum_changed.emit()
+
+    def bkg_spectrum_linear_region_callback(self):
+        x_min, x_max = self.view.spectrum_view.get_linear_region()
+        self.view.bkg_spectrum_x_min_txt.setText('{:.3f}'.format(x_min))
+        self.view.bkg_spectrum_x_max_txt.setText('{:.3f}'.format(x_max))
+        self.bkg_spectrum_parameters_changed()
+
+    def update_bkg_spectrum_linear_region(self):
+        self.view.spectrum_view.linear_region_item.blockSignals(True)
+        self.view.spectrum_view.set_linear_region(*self.view.get_bkg_spectrum_roi())
+        self.view.spectrum_view.linear_region_item.blockSignals(False)
 
 

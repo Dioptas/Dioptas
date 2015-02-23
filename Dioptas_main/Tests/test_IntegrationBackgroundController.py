@@ -64,3 +64,33 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         x_bkg, y_bkg = self.view.spectrum_view.bkg_item.getData()
         self.assertEqual(len(x_bkg), 0)
 
+    def test_spectrum_bkg_linear_region_changes_txt_fields(self):
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.view.bkg_spectrum_gb.setChecked(True)
+        self.view.bkg_spectrum_inspect_btn.toggle()
+
+        self.view.spectrum_view.set_linear_region(5, 11)
+
+        x_min = float(str(self.view.bkg_spectrum_x_min_txt.text()))
+        x_max = float(str(self.view.bkg_spectrum_x_max_txt.text()))
+
+        self.assertEqual(x_min, 5)
+        self.assertEqual(x_max, 11)
+
+    def test_spectrum_bkg_txt_fields_change_linear_regions(self):
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.view.bkg_spectrum_gb.setChecked(True)
+        self.view.bkg_spectrum_inspect_btn.toggle()
+
+        self.view.bkg_spectrum_x_min_txt.setText('5')
+        QTest.keyPress(self.view.bkg_spectrum_x_min_txt, QtCore.Qt.Key_Enter)
+        self.view.bkg_spectrum_x_max_txt.setText('11')
+        QTest.keyPress(self.view.bkg_spectrum_x_max_txt, QtCore.Qt.Key_Enter)
+
+        x_min, x_max = self.view.spectrum_view.linear_region_item.getRegion()
+
+        self.assertEqual(x_min, 5)
+        self.assertEqual(x_max, 11)
+
+
+
