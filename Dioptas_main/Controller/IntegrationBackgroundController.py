@@ -69,6 +69,8 @@ class IntegrationBackgroundController(object):
         self.view.bkg_spectrum_iterations_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
         self.view.bkg_spectrum_poly_order_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
         self.view.bkg_spectrum_smooth_width_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
+        self.view.bkg_spectrum_x_min_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
+        self.view.bkg_spectrum_x_max_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
 
     def connect_click_function(self, emitter, function):
         """
@@ -116,12 +118,14 @@ class IntegrationBackgroundController(object):
     def bkg_spectrum_gb_toggled_callback(self, is_checked):
         if is_checked:
             bkg_spectrum_parameters = self.view.get_bkg_spectrum_parameters()
-            self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters)
+            bkg_spectrum_roi = self.view.get_bkg_spectrum_roi()
+            self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
         else:
             self.spectrum_data.unset_auto_background_subtraction()
 
     def bkg_spectrum_parameters_changed(self):
         bkg_spectrum_parameters = self.view.get_bkg_spectrum_parameters()
-        self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters)
+        bkg_spectrum_roi = self.view.get_bkg_spectrum_roi()
+        self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
 
 

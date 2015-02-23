@@ -99,6 +99,9 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.oiadac_abs_length_txt.setValidator(QtGui.QDoubleValidator())
         self.oiadac_thickness_txt.setValidator(QtGui.QDoubleValidator())
 
+        self.bkg_spectrum_x_max_txt.setValidator(QtGui.QDoubleValidator())
+        self.bkg_spectrum_x_min_txt.setValidator(QtGui.QDoubleValidator())
+
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
         self.img_view.activate_vertical_line()
@@ -377,8 +380,13 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     def get_bkg_spectrum_parameters(self):
         smooth_width = float(self.bkg_spectrum_smooth_width_sb.value())
         iterations = int(self.bkg_spectrum_iterations_sb.value())
-        polynomal_order = int(self.bkg_spectrum_poly_order_sb.value())
-        return smooth_width, iterations, polynomal_order
+        polynomial_order = int(self.bkg_spectrum_poly_order_sb.value())
+        return smooth_width, iterations, polynomial_order
+
+    def get_bkg_spectrum_roi(self):
+        x_min = float(str(self.bkg_spectrum_x_min_txt.text()))
+        x_max = float(str(self.bkg_spectrum_x_max_txt.text()))
+        return x_min, x_max
 
 class NoRectDelegate(QtGui.QItemDelegate):
     def __init__(self):
