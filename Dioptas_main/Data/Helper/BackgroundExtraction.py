@@ -30,9 +30,9 @@ def extract_background(x, y, smooth_width=0.1, iterations=50, cheb_order=50):
 
     # get cheb input parameters
     x_cheb = 2. * (x - x[0]) / (x[-1] - x[0]) - 1.
-    cheb_parameters = np.polynomial.legendre.legfit(x_cheb,
+    cheb_parameters = np.polynomial.chebyshev.chebfit(x_cheb,
                                                       y_smooth,
                                                       cheb_order)
 
-    return np.polynomial.legendre.legval(x_cheb, cheb_parameters)
+    return np.polynomial.chebyshev.chebval(x_cheb, cheb_parameters)
 
