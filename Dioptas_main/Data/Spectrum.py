@@ -38,7 +38,8 @@ class Spectrum(object):
         self.auto_background_subtraction_roi = None
         self.auto_background_subtraction_parameters = [2, 50, 50]
 
-        self.auto_background_spectrum = None
+        self._auto_background_before_subtraction_spectrum = None
+        self._auto_background_spectrum = None
 
     def load(self, filename, skiprows=0):
         try:
@@ -89,7 +90,6 @@ class Spectrum(object):
         self.recalculate_spectrum()
 
     def recalculate_spectrum(self):
-
         x = self._original_x
         y = self._original_y * self._scaling + self._offset
 
@@ -122,10 +122,15 @@ class Spectrum(object):
                 x = x[ind]
                 y = y[ind]
 
-            y -= extract_background(x, y,
+            y_bkg = extract_background(x, y,
                                     self.auto_background_subtraction_parameters[0],
                                     self.auto_background_subtraction_parameters[1],
                                     self.auto_background_subtraction_parameters[2])
+            self._auto_background_before_subtraction_spectrum = Spectrum(x, y)
+            self._auto_background_spectrum = Spectrum (x, y_bkg)
+
+            y -= y_bkg
+
         if self._smoothing > 0:
             y = gaussian_filter1d(y, self._smoothing)
 
@@ -143,7 +148,7 @@ class Spectrum(object):
         (x, y) = data
         self._original_x = x
         self._original_y = y
-        self.scaling = 1
+        self._scaling = 1
         self._offset = 0
         self.recalculate_spectrum()
 
@@ -178,6 +183,14 @@ class Spectrum(object):
         else:
             self._scaling = value
         self.recalculate_spectrum()
+
+    @property
+    def auto_background_before_subtraction_spectrum(self):
+        return self._auto_background_before_subtraction_spectrum
+
+    @property
+    def auto_background_spectrum(self):
+        return self._auto_background_spectrum
 
     # Operators:
     def __sub__(self, other):
