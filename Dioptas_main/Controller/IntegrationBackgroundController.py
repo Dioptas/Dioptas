@@ -123,6 +123,7 @@ class IntegrationBackgroundController(object):
             bkg_spectrum_roi = self.view.get_bkg_spectrum_roi()
             self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
         else:
+            self.view.bkg_spectrum_inspect_btn.setChecked(False)
             self.spectrum_data.unset_auto_background_subtraction()
 
     def bkg_spectrum_parameters_changed(self):
