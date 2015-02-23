@@ -73,7 +73,8 @@ class SpectrumWidget(QtCore.QObject):
         self.phases_legend.setParentItem(self.spectrum_plot.vb)
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
 
-        self.linear_region_item = pg.LinearRegionItem([5, 20], pg.LinearRegionItem.Vertical)
+        self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
+        # self.linear_region_item.mouseDragEvent = empty_function
 
     def create_pos_line(self):
         self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5, style=QtCore.Qt.DashLine))
@@ -496,3 +497,14 @@ class PhasePlot(object):
         for ind, item in enumerate(self.line_items):
             if self.line_visible[ind]:
                 self.plot_item.removeItem(item)
+
+
+class ModifiedLinearRegionItem(pg.LinearRegionItem):
+    def __init__(self, *args, **kwargs):
+        super(ModifiedLinearRegionItem, self).__init__()
+
+    def mouseDragEvent(self, ev):
+        return
+
+    def hoverEvent(self, ev):
+        return

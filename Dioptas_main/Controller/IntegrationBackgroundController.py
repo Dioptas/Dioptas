@@ -66,13 +66,16 @@ class IntegrationBackgroundController(object):
 
     def create_spectrum_background_signals(self):
         self.view.bkg_spectrum_gb.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
+        self.view.qa_bkg_spectrum_btn.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
+
         self.view.bkg_spectrum_iterations_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
         self.view.bkg_spectrum_poly_order_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
         self.view.bkg_spectrum_smooth_width_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
         self.view.bkg_spectrum_x_min_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
         self.view.bkg_spectrum_x_max_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
 
-        self.view.bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_callback)
+        self.view.bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_toggled_callback)
+        self.view.qa_bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_toggled_callback)
 
     def connect_click_function(self, emitter, function):
         """
@@ -118,12 +121,21 @@ class IntegrationBackgroundController(object):
 
 
     def bkg_spectrum_gb_toggled_callback(self, is_checked):
+        self.view.bkg_spectrum_gb.blockSignals(True)
+        self.view.qa_bkg_spectrum_btn.blockSignals(True)
+        self.view.bkg_spectrum_gb.setChecked(is_checked)
+        self.view.qa_bkg_spectrum_btn.setChecked(is_checked)
+        self.view.bkg_spectrum_gb.blockSignals(False)
+        self.view.qa_bkg_spectrum_btn.blockSignals(False)
+        self.view.qa_bkg_spectrum_inspect_btn.setVisible(is_checked)
+
         if is_checked:
             bkg_spectrum_parameters = self.view.get_bkg_spectrum_parameters()
             bkg_spectrum_roi = self.view.get_bkg_spectrum_roi()
             self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
         else:
             self.view.bkg_spectrum_inspect_btn.setChecked(False)
+            self.view.qa_bkg_spectrum_inspect_btn.setChecked(False)
             self.view.spectrum_view.hide_linear_region()
             self.spectrum_data.unset_auto_background_subtraction()
 
@@ -132,7 +144,14 @@ class IntegrationBackgroundController(object):
         bkg_spectrum_roi = self.view.get_bkg_spectrum_roi()
         self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
 
-    def bkg_spectrum_inspect_btn_callback(self, checked):
+    def bkg_spectrum_inspect_btn_toggled_callback(self, checked):
+        self.view.bkg_spectrum_inspect_btn.blockSignals(True)
+        self.view.qa_bkg_spectrum_inspect_btn.blockSignals(True)
+        self.view.bkg_spectrum_inspect_btn.setChecked(checked)
+        self.view.qa_bkg_spectrum_inspect_btn.setChecked(checked)
+        self.view.bkg_spectrum_inspect_btn.blockSignals(False)
+        self.view.qa_bkg_spectrum_inspect_btn.blockSignals(False)
+
         if checked:
             self.view.spectrum_view.show_linear_region()
             x_min, x_max = self.view.get_bkg_spectrum_roi()
@@ -167,5 +186,3 @@ class IntegrationBackgroundController(object):
         self.view.spectrum_view.linear_region_item.blockSignals(True)
         self.view.spectrum_view.set_linear_region(*self.view.get_bkg_spectrum_roi())
         self.view.spectrum_view.linear_region_item.blockSignals(False)
-
-

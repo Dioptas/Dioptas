@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Sun Feb 22 14:52:07 2015
+# Created: Mon Feb 23 00:19:54 2015
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -1238,8 +1238,20 @@ class Ui_xrs_integration_widget(object):
         self.spec_d_btn.setFlat(True)
         self.spec_d_btn.setObjectName(_fromUtf8("spec_d_btn"))
         self.verticalLayout_15.addWidget(self.spec_d_btn)
-        spacerItem28 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        spacerItem28 = QtGui.QSpacerItem(20, 30, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
         self.verticalLayout_15.addItem(spacerItem28)
+        self.qa_bkg_spectrum_btn = QtGui.QPushButton(self.spec_btn_widget)
+        self.qa_bkg_spectrum_btn.setCheckable(True)
+        self.qa_bkg_spectrum_btn.setFlat(True)
+        self.qa_bkg_spectrum_btn.setObjectName(_fromUtf8("qa_bkg_spectrum_btn"))
+        self.verticalLayout_15.addWidget(self.qa_bkg_spectrum_btn)
+        self.qa_bkg_spectrum_inspect_btn = QtGui.QPushButton(self.spec_btn_widget)
+        self.qa_bkg_spectrum_inspect_btn.setCheckable(True)
+        self.qa_bkg_spectrum_inspect_btn.setFlat(True)
+        self.qa_bkg_spectrum_inspect_btn.setObjectName(_fromUtf8("qa_bkg_spectrum_inspect_btn"))
+        self.verticalLayout_15.addWidget(self.qa_bkg_spectrum_inspect_btn)
+        spacerItem29 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        self.verticalLayout_15.addItem(spacerItem29)
         self.horizontalLayout_31.addWidget(self.spec_btn_widget)
         self.verticalLayout_16.addWidget(self.horizontal_splitter)
         self.widget1 = QtGui.QWidget(xrs_integration_widget)
@@ -1296,8 +1308,8 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_21.addWidget(self.click_int_lbl)
         self.verticalLayout_4.addLayout(self.horizontalLayout_21)
         self.horizontalLayout_12.addWidget(self.widget_3)
-        spacerItem29 = QtGui.QSpacerItem(180, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_12.addItem(spacerItem29)
+        spacerItem30 = QtGui.QSpacerItem(180, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_12.addItem(spacerItem30)
         self.horizontalLayout_24.addWidget(self.footer_img_mouse_position_widget)
         self.verticalLayout_3 = QtGui.QVBoxLayout()
         self.verticalLayout_3.setSpacing(0)
@@ -1365,12 +1377,12 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_29.addWidget(self.click_azi_lbl)
         self.verticalLayout_3.addLayout(self.horizontalLayout_29)
         self.horizontalLayout_24.addLayout(self.verticalLayout_3)
-        spacerItem30 = QtGui.QSpacerItem(250, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_24.addItem(spacerItem30)
+        spacerItem31 = QtGui.QSpacerItem(250, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_24.addItem(spacerItem31)
         self.verticalLayout_14 = QtGui.QVBoxLayout()
         self.verticalLayout_14.setObjectName(_fromUtf8("verticalLayout_14"))
-        spacerItem31 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        self.verticalLayout_14.addItem(spacerItem31)
+        spacerItem32 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        self.verticalLayout_14.addItem(spacerItem32)
         self.bkg_name_lbl = QtGui.QLabel(self.widget1)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
@@ -1531,6 +1543,8 @@ class Ui_xrs_integration_widget(object):
         self.spec_tth_btn.setText(_translate("xrs_integration_widget", " 2θ", None))
         self.spec_q_btn.setText(_translate("xrs_integration_widget", "Q", None))
         self.spec_d_btn.setText(_translate("xrs_integration_widget", "d", None))
+        self.qa_bkg_spectrum_btn.setText(_translate("xrs_integration_widget", "Bg", None))
+        self.qa_bkg_spectrum_inspect_btn.setText(_translate("xrs_integration_widget", "I", None))
         self.mouse_x_lbl.setText(_translate("xrs_integration_widget", "X:", None))
         self.mouse_y_lbl.setText(_translate("xrs_integration_widget", "Y:", None))
         self.mouse_int_lbl.setText(_translate("xrs_integration_widget", "I:", None))
