@@ -73,6 +73,8 @@ class SpectrumWidget(QtCore.QObject):
         self.phases_legend.setParentItem(self.spectrum_plot.vb)
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
 
+        self.linear_region_item = pg.LinearRegionItem([5, 20], pg.LinearRegionItem.Vertical)
+
     def create_pos_line(self):
         self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5, style=QtCore.Qt.DashLine))
         self.spectrum_plot.addItem(self.pos_line)
@@ -203,6 +205,19 @@ class SpectrumWidget(QtCore.QObject):
             self.phases_vlines[0].set_data(positions, name)
         else:
             self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions))
+
+    def show_linear_region(self):
+        self.spectrum_plot.addItem(self.linear_region_item)
+
+    def set_linear_region(self, x_min, x_max):
+        self.linear_region_item.setRegion((x_min, x_max))
+
+    def get_linear_region(self):
+        return self.linear_region_item.getRegion()
+
+    def hide_linear_region(self):
+        self.spectrum_plot.removeItem(self.linear_region_item)
+
 
     def save_png(self, filename):
         exporter = ImageExporter(self.spectrum_plot)
