@@ -100,10 +100,10 @@ class Spectrum(object):
         if self.auto_background_subtraction:
             if self.auto_background_subtraction_roi is not None:
                 ind = (x > self.auto_background_subtraction_roi[0]) &\
-                      (x < self.auto_background_subtraction_parameters[1])
+                      (x < self.auto_background_subtraction_roi[1])
                 x = x[ind]
                 y = y[ind]
-                print ind
+
             y -= extract_background(x, y,
                                     self.auto_background_subtraction_parameters[0],
                                     self.auto_background_subtraction_parameters[1],

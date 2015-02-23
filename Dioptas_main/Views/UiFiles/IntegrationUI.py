@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Sat Feb 21 11:03:04 2015
+# Created: Sun Feb 22 14:52:07 2015
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -882,6 +882,7 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_43.addWidget(self.label_37)
         self.bkg_spectrum_x_min_txt = QtGui.QLineEdit(self.bkg_spectrum_gb)
         self.bkg_spectrum_x_min_txt.setMaximumSize(QtCore.QSize(50, 16777215))
+        self.bkg_spectrum_x_min_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.bkg_spectrum_x_min_txt.setObjectName(_fromUtf8("bkg_spectrum_x_min_txt"))
         self.horizontalLayout_43.addWidget(self.bkg_spectrum_x_min_txt)
         self.label_38 = QtGui.QLabel(self.bkg_spectrum_gb)
@@ -889,23 +890,24 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_43.addWidget(self.label_38)
         self.bkg_spectrum_x_max_txt = QtGui.QLineEdit(self.bkg_spectrum_gb)
         self.bkg_spectrum_x_max_txt.setMaximumSize(QtCore.QSize(50, 16777215))
+        self.bkg_spectrum_x_max_txt.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.bkg_spectrum_x_max_txt.setObjectName(_fromUtf8("bkg_spectrum_x_max_txt"))
         self.horizontalLayout_43.addWidget(self.bkg_spectrum_x_max_txt)
         spacerItem13 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_43.addItem(spacerItem13)
         self.verticalLayout_24.addLayout(self.horizontalLayout_43)
         self.horizontalLayout_41.addLayout(self.verticalLayout_24)
-        self.bkg_spectrum_show_both_btn = QtGui.QPushButton(self.bkg_spectrum_gb)
+        self.bkg_spectrum_inspect_btn = QtGui.QPushButton(self.bkg_spectrum_gb)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.bkg_spectrum_show_both_btn.sizePolicy().hasHeightForWidth())
-        self.bkg_spectrum_show_both_btn.setSizePolicy(sizePolicy)
-        self.bkg_spectrum_show_both_btn.setBaseSize(QtCore.QSize(0, 50))
-        self.bkg_spectrum_show_both_btn.setCheckable(True)
-        self.bkg_spectrum_show_both_btn.setFlat(True)
-        self.bkg_spectrum_show_both_btn.setObjectName(_fromUtf8("bkg_spectrum_show_both_btn"))
-        self.horizontalLayout_41.addWidget(self.bkg_spectrum_show_both_btn)
+        sizePolicy.setHeightForWidth(self.bkg_spectrum_inspect_btn.sizePolicy().hasHeightForWidth())
+        self.bkg_spectrum_inspect_btn.setSizePolicy(sizePolicy)
+        self.bkg_spectrum_inspect_btn.setBaseSize(QtCore.QSize(0, 50))
+        self.bkg_spectrum_inspect_btn.setCheckable(True)
+        self.bkg_spectrum_inspect_btn.setFlat(True)
+        self.bkg_spectrum_inspect_btn.setObjectName(_fromUtf8("bkg_spectrum_inspect_btn"))
+        self.horizontalLayout_41.addWidget(self.bkg_spectrum_inspect_btn)
         spacerItem14 = QtGui.QSpacerItem(90, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_41.addItem(spacerItem14)
         self.verticalLayout_20.addWidget(self.bkg_spectrum_gb)
@@ -1474,8 +1476,10 @@ class Ui_xrs_integration_widget(object):
         self.label_35.setText(_translate("xrs_integration_widget", "Iterations:", None))
         self.label_36.setText(_translate("xrs_integration_widget", "Poly Order:", None))
         self.label_37.setText(_translate("xrs_integration_widget", "X-range:", None))
+        self.bkg_spectrum_x_min_txt.setText(_translate("xrs_integration_widget", "0", None))
         self.label_38.setText(_translate("xrs_integration_widget", "-", None))
-        self.bkg_spectrum_show_both_btn.setText(_translate("xrs_integration_widget", "Show Both", None))
+        self.bkg_spectrum_x_max_txt.setText(_translate("xrs_integration_widget", "50", None))
+        self.bkg_spectrum_inspect_btn.setText(_translate("xrs_integration_widget", "Inspect", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.bkg_tab), _translate("xrs_integration_widget", "Bkg", None))
         self.cbn_groupbox.setTitle(_translate("xrs_integration_widget", "cBN Seat Correction", None))
         self.label_31.setText(_translate("xrs_integration_widget", "°", None))

@@ -190,7 +190,8 @@ class SpectrumTest(unittest.TestCase):
 
         x_spec, y_spec = spectrum.data
 
-        self.assertGreater(x_spec[0],1 )
+        self.assertGreater(x_spec[0],roi[0])
+        self.assertLess(x_spec[-1], roi[1])
 
         # self.array_almost_equal(y_spec, y)
 

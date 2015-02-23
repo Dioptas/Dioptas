@@ -2157,6 +2157,12 @@ QTableWidget {
                     <height>16777215</height>
                    </size>
                   </property>
+                  <property name="text">
+                   <string>0</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
                  </widget>
                 </item>
                 <item>
@@ -2173,6 +2179,12 @@ QTableWidget {
                     <width>50</width>
                     <height>16777215</height>
                    </size>
+                  </property>
+                  <property name="text">
+                   <string>50</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -2194,7 +2206,7 @@ QTableWidget {
              </layout>
             </item>
             <item>
-             <widget class="QPushButton" name="bkg_spectrum_show_both_btn">
+             <widget class="QPushButton" name="bkg_spectrum_inspect_btn">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                 <horstretch>0</horstretch>
@@ -2208,7 +2220,7 @@ QTableWidget {
                </size>
               </property>
               <property name="text">
-               <string>Show Both</string>
+               <string>Inspect</string>
               </property>
               <property name="checkable">
                <bool>true</bool>
