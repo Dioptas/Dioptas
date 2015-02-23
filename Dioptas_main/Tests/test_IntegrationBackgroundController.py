@@ -29,6 +29,7 @@ from Views.IntegrationView import IntegrationView
 from Data.SpectrumData import SpectrumData
 from Data.ImgData import ImgData
 from Controller.IntegrationBackgroundController import IntegrationBackgroundController
+from Controller.IntegrationSpectrumController import IntegrationSpectrumController
 
 class IntegrationBackgroundControllerTest(unittest.TestCase):
     def setUp(self):
@@ -36,6 +37,8 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         self.view = IntegrationView()
         self.spectrum_data = SpectrumData()
         self.img_data = ImgData()
+        self.spectrum_controller = IntegrationSpectrumController({}, self.view, self.img_data,
+                                                                   None, None, self.spectrum_data)
         self.controller = IntegrationBackgroundController({}, self.view, self.img_data, self.spectrum_data)
         self.overlay_tw = self.view.overlay_tw
 
@@ -45,8 +48,19 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
     def test_spectrum_bkg_toggle_inspect_button(self):
         self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
         self.view.bkg_spectrum_gb.setChecked(True)
-
         self.view.bkg_spectrum_inspect_btn.toggle()
-
         x_bkg, y_bkg = self.view.spectrum_view.bkg_item.getData()
         self.assertGreater(len(x_bkg), 0)
+
+        self.view.bkg_spectrum_inspect_btn.toggle()
+        x_bkg, y_bkg = self.view.spectrum_view.bkg_item.getData()
+        self.assertEqual(len(x_bkg), 0)
+
+    def test_spectrum_bkg_inspect_btn_is_untoggled_when_disabling_spectrum_gb(self):
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.view.bkg_spectrum_gb.setChecked(True)
+        self.view.bkg_spectrum_inspect_btn.toggle()
+        self.view.bkg_spectrum_gb.setChecked(False)
+        x_bkg, y_bkg = self.view.spectrum_view.bkg_item.getData()
+        self.assertEqual(len(x_bkg), 0)
+
