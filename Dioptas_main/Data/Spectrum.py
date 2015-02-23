@@ -125,17 +125,17 @@ class Spectrum(QtCore.QObject):
                 y = y - y_bkg
 
         if self.auto_background_subtraction:
+            self._auto_background_before_subtraction_spectrum = Spectrum(x, y)
             if self.auto_background_subtraction_roi is not None:
-                ind = (x > self.auto_background_subtraction_roi[0]) &\
+                ind = (x > self.auto_background_subtraction_roi[0]) & \
                       (x < self.auto_background_subtraction_roi[1])
                 x = x[ind]
                 y = y[ind]
 
             y_bkg = extract_background(x, y,
-                                    self.auto_background_subtraction_parameters[0],
-                                    self.auto_background_subtraction_parameters[1],
-                                    self.auto_background_subtraction_parameters[2])
-            self._auto_background_before_subtraction_spectrum = Spectrum(x, y)
+                                       self.auto_background_subtraction_parameters[0],
+                                       self.auto_background_subtraction_parameters[1],
+                                       self.auto_background_subtraction_parameters[2])
             self._auto_background_spectrum = Spectrum (x, y_bkg)
 
             y -= y_bkg
