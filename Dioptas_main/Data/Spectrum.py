@@ -212,6 +212,10 @@ class Spectrum(QtCore.QObject):
     def auto_background_spectrum(self):
         return self._auto_background_spectrum
 
+
+    def has_background(self):
+        return (self.background_spectrum is not None) or self.auto_background_subtraction
+
     # Operators:
     def __sub__(self, other):
         orig_x, orig_y = self.data

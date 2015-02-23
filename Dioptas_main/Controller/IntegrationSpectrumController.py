@@ -222,7 +222,7 @@ class IntegrationSpectrumController(object):
         self.image_changed()
 
     def autocreate_spectrum(self):
-        if self.spectrum_data.bkg_ind is not -1:
+        if self.spectrum_data.spectrum.has_background():
             if self.autocreate is True:
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
@@ -232,7 +232,7 @@ class IntegrationSpectrumController(object):
                         os.mkdir(directory)
                     filename = os.path.join(
                         directory,
-                        self.spectrum_data.spectrum.name + '_bkg_subtracted' + file_ending)
+                        self.spectrum_data.spectrum.name + file_ending)
                     self.save_spectrum(filename, subtract_background=True)
 
     def save_spectrum(self, filename=None, subtract_background=False):
