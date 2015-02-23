@@ -72,6 +72,8 @@ class IntegrationBackgroundController(object):
         self.view.bkg_spectrum_x_min_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
         self.view.bkg_spectrum_x_max_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
 
+        self.view.bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_callback)
+
     def connect_click_function(self, emitter, function):
         """
         Small helper function for the button-click connection.
@@ -127,5 +129,8 @@ class IntegrationBackgroundController(object):
         bkg_spectrum_parameters = self.view.get_bkg_spectrum_parameters()
         bkg_spectrum_roi = self.view.get_bkg_spectrum_roi()
         self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+
+    def bkg_spectrum_inspect_btn_callback(self, checked):
+        self.spectrum_data.spectrum_changed.emit()
 
 
