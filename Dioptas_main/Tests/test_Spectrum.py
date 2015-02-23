@@ -56,24 +56,24 @@ class SpectrumTest(unittest.TestCase):
         spectrum2 = Spectrum(x, np.sin(x))
 
         spectrum3 = spectrum1 + spectrum2
-        self.assertTrue(np.array_equal(spectrum3._y, np.sin(x) * 2))
-        self.assertTrue(np.array_equal(spectrum2._y, np.sin(x) * 1))
-        self.assertTrue(np.array_equal(spectrum1._y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 2))
+        self.assertTrue(np.array_equal(spectrum2.original_y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
 
         spectrum3 = spectrum1 + spectrum1
-        self.assertTrue(np.array_equal(spectrum3._y, np.sin(x) * 2))
-        self.assertTrue(np.array_equal(spectrum1._y, np.sin(x) * 1))
-        self.assertTrue(np.array_equal(spectrum1._y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 2))
+        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
 
         spectrum3 = spectrum2 - spectrum1
-        self.assertTrue(np.array_equal(spectrum3._y, np.sin(x) * 0))
-        self.assertTrue(np.array_equal(spectrum2._y, np.sin(x) * 1))
-        self.assertTrue(np.array_equal(spectrum1._y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 0))
+        self.assertTrue(np.array_equal(spectrum2.original_y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
 
         spectrum3 = spectrum1 - spectrum1
-        self.assertTrue(np.array_equal(spectrum3._y, np.sin(x) * 0))
-        self.assertTrue(np.array_equal(spectrum1._y, np.sin(x) * 1))
-        self.assertTrue(np.array_equal(spectrum1._y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 0))
+        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
 
     def test_plus_and_minus_operators_with_different_shapes(self):
         x = np.linspace(0, 10, 1000)
@@ -82,26 +82,26 @@ class SpectrumTest(unittest.TestCase):
         spectrum2 = Spectrum(x2, np.sin(x2))
 
         spectrum3 = spectrum1 + spectrum2
-        self.array_almost_equal(spectrum3._x, spectrum1._x)
-        self.array_almost_equal(spectrum3._y, spectrum1._y * 2, 2)
+        self.array_almost_equal(spectrum3.x, spectrum1._original_x)
+        self.array_almost_equal(spectrum3.y, spectrum1._original_y * 2, 2)
 
         spectrum3 = spectrum1 + spectrum1
-        self.array_almost_equal(spectrum3._y, np.sin(x) * 2, 2)
+        self.array_almost_equal(spectrum3.y, np.sin(x) * 2, 2)
 
         spectrum3 = spectrum1 - spectrum2
-        self.array_almost_equal(spectrum3._y, np.sin(x) * 0, 2)
+        self.array_almost_equal(spectrum3.y, np.sin(x) * 0, 2)
 
         spectrum3 = spectrum1 - spectrum1
-        self.array_almost_equal(spectrum3._y, np.sin(x) * 0, 2)
+        self.array_almost_equal(spectrum3.y, np.sin(x) * 0, 2)
 
 
-    def test_multiply_operator(self):
+    def test_multiply_with_scalar_operator(self):
         x = np.linspace(0, 10, 100)
         spectrum1 = 2 * Spectrum(x, np.sin(x))
 
         spectrum2 = 2 * Spectrum(x, np.sin(x))
 
-        self.assertTrue(np.array_equal(spectrum2._y, np.sin(x) * 2))
+        self.assertTrue(np.array_equal(spectrum2.y, np.sin(x) * 2))
 
     def test_using_background_spectrum(self):
         x = np.linspace(-5, 5, 100)
@@ -109,9 +109,9 @@ class SpectrumTest(unittest.TestCase):
         bkg_y = x
 
         spec = Spectrum(x, spec_y)
-        bkg = Spectrum(x, bkg_y)
+        background_spectrum = Spectrum(x, bkg_y)
 
-        spec.set_background_spectrum(bkg)
+        spec.background_spectrum = background_spectrum
         new_x, new_y = spec.data
 
         self.array_almost_equal(new_x, x)
@@ -124,9 +124,9 @@ class SpectrumTest(unittest.TestCase):
         bkg_y = x_bkg
 
         spec = Spectrum(x, spec_y)
-        bkg = Spectrum(x_bkg, bkg_y)
+        background_spectrum = Spectrum(x_bkg, bkg_y)
 
-        spec.set_background_spectrum(bkg)
+        spec.background_spectrum = background_spectrum
         new_x, new_y = spec.data
 
         self.array_almost_equal(new_x, x)
@@ -137,12 +137,10 @@ class SpectrumTest(unittest.TestCase):
         x2 = np.linspace(-10, -1)
 
         spec = Spectrum(x1, x1)
-        bkg = Spectrum(x2, x2)
+        background_spectrum = Spectrum(x2, x2)
 
-        spec.set_background_spectrum(bkg)
         with self.assertRaises(BkgNotInRangeError):
-            _, test = spec.data
-
+            spec.background_spectrum = background_spectrum
 
     def test_automatic_background_subtraction(self):
         x = np.linspace(0, 24, 2500)

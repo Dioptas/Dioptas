@@ -96,7 +96,7 @@ class SpectrumData(QtCore.QObject):
         if subtract_background:
             x, y = self.spectrum.data
         else:
-            x, y = self.spectrum._x, self.spectrum._y
+            x, y = self.spectrum._original_x, self.spectrum._original_y
 
         file_handle = open(filename, 'w')
         num_points = len(x)
@@ -242,7 +242,7 @@ class SpectrumData(QtCore.QObject):
         if self.bkg_ind >= 0:
             self.unset_overlay_as_bkg()
         self.bkg_ind = ind
-        self.spectrum.set_background_spectrum(self.overlays[ind])
+        self.spectrum.background_spectrum = self.overlays[ind]
         self.spectrum_changed.emit()
         self.overlay_set_as_bkg.emit(ind)
 
