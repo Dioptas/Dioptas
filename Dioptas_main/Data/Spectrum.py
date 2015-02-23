@@ -3,6 +3,8 @@ __author__ = 'Clemens Prescher'
 
 import os
 import logging
+from PyQt4 import QtCore
+
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -13,8 +15,11 @@ from .Helper import extract_background
 logger = logging.getLogger(__name__)
 
 
-class Spectrum(object):
+class Spectrum(QtCore.QObject):
+    spectrum_changed = QtCore.pyqtSignal(np.ndarray, np.ndarray)
+    
     def __init__(self, x=None, y=None, name=''):
+        super(Spectrum, self).__init__()
         if x is None:
             self._original_x = np.linspace(0.1, 15, 100)
         else:
@@ -23,7 +28,6 @@ class Spectrum(object):
             self._original_y = np.log(self._original_x ** 2) - (self._original_x * 0.2) ** 2
         else:
             self._original_y = y
-
 
         self.name = name
         self._offset = 0
@@ -65,7 +69,12 @@ class Spectrum(object):
 
     @background_spectrum.setter
     def background_spectrum(self, spectrum):
+        """
+        :param spectrum: new background spectrum
+        :type spectrum: Spectrum
+        """
         self._background_spectrum = spectrum
+        self._background_spectrum.spectrum_changed.connect(self.recalculate_spectrum)
         self.recalculate_spectrum()
 
     def unset_background_spectrum(self):
@@ -137,6 +146,8 @@ class Spectrum(object):
         self._spectrum_x = x
         self._spectrum_y = y
 
+        self.spectrum_changed.emit(self._spectrum_x, self._spectrum_y)
+
 
     @property
     def data(self):
@@ -182,6 +193,15 @@ class Spectrum(object):
             self._scaling = 0
         else:
             self._scaling = value
+        self.recalculate_spectrum()
+
+    @property
+    def offset(self):
+        return self._offset
+
+    @offset.setter
+    def offset(self, value):
+        self._offset = value
         self.recalculate_spectrum()
 
     @property
