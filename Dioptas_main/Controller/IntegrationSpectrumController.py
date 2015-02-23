@@ -65,7 +65,6 @@ class IntegrationSpectrumController(object):
         self.spectrum_data = spectrum_data
 
         self.integration_unit = '2th_deg'
-        self.first_plot = True
         self.autocreate = False
         self.unit = pyFAI.units.TTH_DEG
 
@@ -75,7 +74,7 @@ class IntegrationSpectrumController(object):
     def create_subscriptions(self):
         # Data subscriptions
         self.img_data.subscribe(self.image_changed)
-        self.spectrum_data.spectrum_changed.connect(self.plot_spectra)
+        self.spectrum_data.spectrum_changed.connect(self.plot_spectrum)
         self.spectrum_data.spectrum_changed.connect(self.autocreate_spectrum)
 
         # Gui subscriptions
@@ -188,20 +187,16 @@ class IntegrationSpectrumController(object):
             res.append('.dat')
         return res
 
-    def plot_spectra(self):
-        try:
-            x, y = self.spectrum_data.spectrum.data
-        except BkgNotInRangeError as e:
-            print(e)
-            self.reset_background(popup=True)
-            x, y = self.spectrum_data.spectrum.data
-
-        self.view.spectrum_view.plot_data(
-            x, y, self.spectrum_data.spectrum.name)
-
-        if self.first_plot:
-            self.view.spectrum_view.spectrum_plot.enableAutoRange()
-            self.first_plot = False
+    def plot_spectrum(self):
+        if self.view.bkg_spectrum_inspect_btn.isChecked():
+            self.view.spectrum_view.plot_data(
+                *self.spectrum_data.spectrum.auto_background_before_subtraction_spectrum.data,
+                name=self.spectrum_data.spectrum.name)
+            self.view.spectrum_view.plot_bkg(*self.spectrum_data.spectrum.auto_background_spectrum.data)
+        else:
+            self.view.spectrum_view.plot_data(
+                *self.spectrum_data.spectrum.data, name=self.spectrum_data.spectrum.name)
+            self.view.spectrum_view.plot_bkg([],[])
 
         # update the bkg_name
         if self.spectrum_data.bkg_ind is not -1:

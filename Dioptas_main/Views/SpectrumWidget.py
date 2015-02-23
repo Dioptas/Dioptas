@@ -63,6 +63,9 @@ class SpectrumWidget(QtCore.QObject):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
                                          pen=pg.mkPen(color=(255, 255, 255), width=2))
         self.spectrum_plot.addItem(self.plot_item)
+        self.bkg_item = pg.PlotDataItem([], [],
+                                          pen=pg.mkPen(color=(255,0,0), width=2, style=QtCore.Qt.DashLine))
+        self.spectrum_plot.addItem(self.bkg_item)
         self.legend.addItem(self.plot_item, '')
         self.plot_name = ''
         self.legend.setParentItem(self.spectrum_plot.vb)
@@ -87,6 +90,9 @@ class SpectrumWidget(QtCore.QObject):
             self.plot_name = name
         self.update_graph_limits()
         self.legend.updateSize()
+
+    def plot_bkg(self, x, y):
+        self.bkg_item.setData(x, y)
 
     def update_graph_limits(self):
         x_range = list(self.plot_item.dataBounds(0))
