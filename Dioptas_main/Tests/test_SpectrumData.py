@@ -27,7 +27,7 @@ class SpectrumDataTest(unittest.TestCase):
         self.assertTrue(self.spectrum.load('Data/test_001.tif') == -1)
 
         self.spectrum.data = (np.linspace(0, 30), np.linspace(0, 20))
-        self.spectrum.offset = 100
+        self.spectrum._offset = 100
         self.assertTrue(np.array_equal(self.spectrum.data[1], np.linspace(0, 20) + 100))
         self.assertTrue(np.array_equal(self.spectrum.data[0], np.linspace(0, 30)))
 
@@ -59,7 +59,7 @@ class SpectrumDataTest(unittest.TestCase):
         y_background = np.cos(x_background)
 
         spec = Spectrum(x_spectrum, y_spectrum)
-        spec.set_background_spectrum(Spectrum(x_background, y_background))
+        spec.background_spectrum(Spectrum(x_background, y_background))
 
         x, y = spec.data
 
@@ -79,7 +79,7 @@ class SpectrumDataTest(unittest.TestCase):
         y_background = np.cos(x_background)
 
         spec = Spectrum(x_spectrum, y_spectrum)
-        spec.set_background_spectrum(Spectrum(x_background, y_background))
+        spec.background_spectrum(Spectrum(x_background, y_background))
 
         self.assertRaises(BkgNotInRangeError)
 
