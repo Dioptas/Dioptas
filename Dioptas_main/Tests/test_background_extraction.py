@@ -3,7 +3,6 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import numpy as np
-import matplotlib.pyplot as plt
 
 from Data.Helper import extract_background
 from Data.Helper.PeakShapes import gaussian
