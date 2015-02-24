@@ -87,12 +87,12 @@ class SpectrumWidget(QtCore.QObject):
         return self.pos_line.value()
 
     def plot_data(self, x, y, name=None):
-        self.update_graph_limits(x, y)
-        self.plot_item.setData(x, y)
+        self.plot_item.setData(x,y)
         if name is not None:
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
         self.legend.updateSize()
+        self.update_graph_limits(x, y)
         self.auto_range()
 
     def auto_range(self):
@@ -107,15 +107,8 @@ class SpectrumWidget(QtCore.QObject):
         self.bkg_item.setData(x, y)
 
     def update_graph_limits(self, x=None, y = None):
-        if x is None:
-            x_range = list(self.plot_item.dataBounds(0))
-        else:
-            x_range = [np.min(x), np.max(x)]
-
-        if y is None:
-            y_range = list(self.plot_item.dataBounds(1))
-        else:
-            y_range = [np.min(y), np.max(y)]
+        x_range = list(self.plot_item.dataBounds(0))
+        y_range = list(self.plot_item.dataBounds(1))
 
         for ind, overlay in enumerate(self.overlays):
             if self.overlay_show[ind]:
