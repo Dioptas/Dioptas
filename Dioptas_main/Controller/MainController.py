@@ -33,7 +33,7 @@ from .CalibrationController import CalibrationController
 from .IntegrationController import IntegrationController
 from .MaskController import MaskController
 
-__VERSION__ = '0.2.3'
+__VERSION__ = '0.2.4d'
 
 
 class MainController(object):
@@ -89,7 +89,7 @@ class MainController(object):
         self.view.tabWidget.currentChanged.connect(self.tab_changed)
         self.view.closeEvent = self.close_event
         self.img_data.subscribe(self.set_title)
-        self.spectrum_data.subscribe(self.set_title)
+        self.spectrum_data.spectrum_changed.connect(self.set_title)
 
     def tab_changed(self, ind):
         if ind == 2:
