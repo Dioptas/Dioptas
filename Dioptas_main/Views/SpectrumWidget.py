@@ -87,19 +87,36 @@ class SpectrumWidget(QtCore.QObject):
         return self.pos_line.value()
 
     def plot_data(self, x, y, name=None):
+        self.update_graph_limits(x, y)
         self.plot_item.setData(x, y)
         if name is not None:
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
-        self.update_graph_limits()
         self.legend.updateSize()
+        self.auto_range()
+
+    def auto_range(self):
+        if self._auto_range:
+            item_list = [self.plot_item]
+            for overlay in self.overlays:
+                item_list.append(overlay)
+
+            self.view_box.autoRange(items = item_list)
 
     def plot_bkg(self, x, y):
         self.bkg_item.setData(x, y)
 
-    def update_graph_limits(self):
-        x_range = list(self.plot_item.dataBounds(0))
-        y_range = list(self.plot_item.dataBounds(1))
+    def update_graph_limits(self, x=None, y = None):
+        if x is None:
+            x_range = list(self.plot_item.dataBounds(0))
+        else:
+            x_range = [np.min(x), np.max(x)]
+
+        if y is None:
+            y_range = list(self.plot_item.dataBounds(1))
+        else:
+            y_range = [np.min(y), np.max(y)]
+
         for ind, overlay in enumerate(self.overlays):
             if self.overlay_show[ind]:
                 x_range_overlay = overlay.dataBounds(0)
@@ -115,16 +132,16 @@ class SpectrumWidget(QtCore.QObject):
 
         if x_range[1] is not None and x_range[0] is not None:
             diff = x_range[1] - x_range[0]
-            x_range = [x_range[0] - 0.02 * diff,
-                       x_range[1] + 0.02 * diff]
+            x_range = [x_range[0] - 0.05 * diff,
+                       x_range[1] + 0.05 * diff]
 
             self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
                                     minXRange=x_range[0], maxXRange=x_range[1])
 
         if y_range[1] is not None and y_range[0] is not None:
             diff = y_range[1] - y_range[0]
-            y_range = [y_range[0] - 0.02 * diff,
-                       y_range[1] + 0.02 * diff]
+            y_range = [y_range[0] - 0.05 * diff,
+                       y_range[1] + 0.05 * diff]
 
             self.view_box.setLimits(yMin=y_range[0], yMax=y_range[1],
                                     minYRange=y_range[0], maxYRange=y_range[1])
@@ -141,6 +158,7 @@ class SpectrumWidget(QtCore.QObject):
             self.spectrum_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], spectrum.name)
             self.update_graph_limits()
+        self.auto_range()
         return color
 
     def remove_overlay(self, ind):
@@ -149,26 +167,28 @@ class SpectrumWidget(QtCore.QObject):
         self.overlays.remove(self.overlays[ind])
         self.overlay_names.remove(self.overlay_names[ind])
         self.overlay_show.remove(self.overlay_show[ind])
-
         self.update_graph_limits()
+        self.auto_range()
 
     def hide_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
         self.legend.hideItem(ind + 1)
         self.overlay_show[ind] = False
-
         self.update_graph_limits()
+        self.auto_range()
 
     def show_overlay(self, ind):
         self.spectrum_plot.addItem(self.overlays[ind])
         self.legend.showItem(ind + 1)
         self.overlay_show[ind] = True
-
         self.update_graph_limits()
+        self.auto_range()
 
     def update_overlay(self, spectrum, ind):
         x, y = spectrum.data
         self.overlays[ind].setData(x, y)
+        self.update_graph_limits()
+        self.auto_range()
 
     def get_overlay_color(self, ind):
         pass
@@ -296,8 +316,7 @@ class SpectrumWidget(QtCore.QObject):
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
             if (view_range[0][1] - view_range[0][0]) > x_range:
                 self._auto_range = True
-                self.view_box.autoRange()
-                self.view_box.enableAutoRange()
+                self.auto_range()
             else:
                 self._auto_range = False
                 self.view_box.scaleBy(2)
@@ -312,9 +331,8 @@ class SpectrumWidget(QtCore.QObject):
     def myMouseDoubleClickEvent(self, ev):
         if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and
                                                       ev.modifiers() & QtCore.Qt.ControlModifier):
-            self.view_box.autoRange()
-            self.view_box.enableAutoRange()
             self._auto_range = True
+            self.auto_range()
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
     def myMouseDragEvent(self, ev, axis=None):
@@ -342,7 +360,6 @@ class SpectrumWidget(QtCore.QObject):
         else:
             if ev.isFinish():  # This is the final move in the drag; change the view scale now
                 self._auto_range = False
-                self.view_box.enableAutoRange(enable=False)
                 self.view_box.rbScaleBox.hide()
                 ax = QtCore.QRectF(pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos))
                 ax = self.view_box.childGroup.mapRectFromParent(ax)
@@ -375,9 +392,8 @@ class SpectrumWidget(QtCore.QObject):
                 y_range = np.max(curve_data[1]) - np.min(curve_data[1])
                 if (view_range[0][1] - view_range[0][0]) >= x_range and \
                         (view_range[1][1] - view_range[1][0]) >= y_range:
-                    self.view_box.autoRange()
-                    self.view_box.enableAutoRange()
                     self._auto_range = True
+                    self.auto_range()
                 else:
                     self._auto_range = False
                     pg.ViewBox.wheelEvent(self.view_box, ev)
@@ -453,7 +469,9 @@ class PhasePlot(object):
                                                y=[0, 0],
                                                pen=self.pen, antialias=False))
         self.line_visible.append(True)
+        self.plot_item.blockSignals(True)
         self.plot_item.addItem(self.line_items[-1])
+        self.plot_item.blockSignals(False)
 
     def remove_line(self, ind=-1):
         self.plot_item.removeItem(self.line_items[ind])
