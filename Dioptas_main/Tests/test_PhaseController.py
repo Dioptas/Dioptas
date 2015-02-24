@@ -5,7 +5,7 @@
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 #     (at your option) any later version.
 #
 #     This program is distributed in the hope that it will be useful,
@@ -19,42 +19,43 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import sys
-import gc
-
+import os
 
 from PyQt4 import QtGui, QtCore
+import numpy as np
+
 from PyQt4.QtTest import QTest
 from Data.ImgData import ImgData
-from Controller.MainController import MainController
-import numpy as np
+from Data.CalibrationData import CalibrationData
+from Data.SpectrumData import SpectrumData
+from Data.PhaseData import PhaseData
+from Views.IntegrationView import IntegrationView
+from Controller.IntegrationPhaseController import IntegrationPhaseController
+from Controller.IntegrationSpectrumController import IntegrationSpectrumController
 
 
 class PhaseControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.image_data = ImgData()
-        self.controller = MainController(use_settings=False)
-        self.controller.view.tabWidget.setCurrentIndex(2)
-        self.controller.calibration_controller.load_calibration(
-            'Data/LaB6_p49_40keV_006.poni')
-        self.controller.view.tabWidget.setCurrentIndex(2)
-        self.controller.calibration_controller.load_img('Data/Mg2SiO4_ambient_001.tif')
+        self.calibration_data = CalibrationData()
+        self.spectrum_data = SpectrumData()
+        self.calibration_data.load('Data/LaB6_p49_40keV_006.poni')
+        self.phase_data = PhaseData()
+        self.view = IntegrationView()
 
-        self.phase_controller = self.controller.integration_controller.phase_controller
-        self.phase_data = self.controller.phase_data
-        self.phase_view = self.controller.view.integration_widget
-        self.phase_tw = self.phase_view.phase_tw
+        self.spectrum_controller = IntegrationSpectrumController({}, self.view, self.image_data, None,
+                                                                   self.calibration_data, self.spectrum_data)
+        self.controller = IntegrationPhaseController({}, self.view, self.calibration_data, self.spectrum_data,
+                                                       self.phase_data)
+        self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+
+        self.view.spectrum_view._auto_range = True
+
+        self.phase_tw = self.view.phase_tw
 
     def tearDown(self):
-        del self.phase_tw
-        del self.phase_view
-        del self.phase_data
-        del self.controller.calibration_data.cake_geometry
-        del self.controller.calibration_data.spectrum_geometry
-        del self.controller
-        del self.image_data
         del self.app
-        gc.collect()
 
     def test_manual_deleting_phases(self):
         self.load_phases()
@@ -62,41 +63,41 @@ class PhaseControllerTest(unittest.TestCase):
 
         self.assertEqual(self.phase_tw.rowCount(), 6)
         self.assertEqual(len(self.phase_data.phases), 6)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 6)
+        self.assertEqual(len(self.view.spectrum_view.phases), 6)
         self.assertEqual(self.phase_tw.currentRow(), 5)
 
-        self.phase_controller.del_phase()
+        self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 5)
         self.assertEqual(len(self.phase_data.phases), 5)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 5)
+        self.assertEqual(len(self.view.spectrum_view.phases), 5)
         self.assertEqual(self.phase_tw.currentRow(), 4)
 
-        self.phase_view.select_phase(1)
-        self.phase_controller.del_phase()
+        self.view.select_phase(1)
+        self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 4)
         self.assertEqual(len(self.phase_data.phases), 4)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 4)
+        self.assertEqual(len(self.view.spectrum_view.phases), 4)
         self.assertEqual(self.phase_tw.currentRow(), 1)
 
-        self.phase_view.select_phase(0)
-        self.phase_controller.del_phase()
+        self.view.select_phase(0)
+        self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 3)
         self.assertEqual(len(self.phase_data.phases), 3)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 3)
+        self.assertEqual(len(self.view.spectrum_view.phases), 3)
         self.assertEqual(self.phase_tw.currentRow(), 0)
 
-        self.phase_controller.del_phase()
-        self.phase_controller.del_phase()
-        self.phase_controller.del_phase()
+        self.controller.remove_btn_click_callback()
+        self.controller.remove_btn_click_callback()
+        self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_data.phases), 0)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
+        self.assertEqual(len(self.view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
-        self.phase_controller.del_phase()
+        self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_data.phases), 0)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
+        self.assertEqual(len(self.view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
     def test_automatic_deleting_phases(self):
@@ -104,11 +105,11 @@ class PhaseControllerTest(unittest.TestCase):
         self.load_phases()
         self.assertEqual(self.phase_tw.rowCount(), 12)
         self.assertEqual(len(self.phase_data.phases), 12)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 12)
-        self.phase_controller.clear_phases()
+        self.assertEqual(len(self.view.spectrum_view.phases), 12)
+        self.controller.clear_phases()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_data.phases), 0)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
+        self.assertEqual(len(self.view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
         multiplier = 1
@@ -116,53 +117,53 @@ class PhaseControllerTest(unittest.TestCase):
             self.load_phases()
 
         self.assertEqual(self.phase_tw.rowCount(), multiplier * 6)
-        self.phase_controller.clear_phases()
+        self.controller.clear_phases()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_data.phases), 0)
-        self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
+        self.assertEqual(len(self.view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
 
     def test_pressure_change(self):
         self.load_phases()
         pressure = 200
-        self.phase_view.phase_pressure_sb.setValue(200)
+        self.view.phase_pressure_sb.setValue(200)
         for ind, phase in enumerate(self.phase_data.phases):
             self.assertEqual(phase.pressure, pressure)
-            self.assertEqual(self.phase_view.get_phase_pressure(ind), pressure)
+            self.assertEqual(self.view.get_phase_pressure(ind), pressure)
 
     def test_temperature_change(self):
         self.load_phases()
         temperature = 1500
-        self.phase_view.phase_temperature_sb.setValue(temperature)
+        self.view.phase_temperature_sb.setValue(temperature)
         for ind, phase in enumerate(self.phase_data.phases):
             if phase.has_thermal_expansion():
                 self.assertEqual(phase.temperature, temperature)
-                self.assertEqual(self.phase_view.get_phase_temperature(ind), temperature)
+                self.assertEqual(self.view.get_phase_temperature(ind), temperature)
             else:
                 self.assertEqual(phase.temperature, 298)
-                self.assertEqual(self.phase_view.get_phase_temperature(ind), None)
+                self.assertEqual(self.view.get_phase_temperature(ind), None)
 
     def test_apply_to_all_for_new_added_phase_in_table_widget(self):
         temperature = 1500
         pressure = 200
-        self.phase_view.phase_temperature_sb.setValue(temperature)
-        self.phase_view.phase_pressure_sb.setValue(pressure)
+        self.view.phase_temperature_sb.setValue(temperature)
+        self.view.phase_pressure_sb.setValue(pressure)
         self.load_phases()
         for ind, phase in enumerate(self.phase_data.phases):
             self.assertEqual(phase.pressure, pressure)
-            self.assertEqual(self.phase_view.get_phase_pressure(ind), pressure)
+            self.assertEqual(self.view.get_phase_pressure(ind), pressure)
             if phase.has_thermal_expansion():
                 self.assertEqual(phase.temperature, temperature)
-                self.assertEqual(self.phase_view.get_phase_temperature(ind), temperature)
+                self.assertEqual(self.view.get_phase_temperature(ind), temperature)
             else:
                 self.assertEqual(phase.temperature, 298)
-                self.assertEqual(self.phase_view.get_phase_temperature(ind), None)
+                self.assertEqual(self.view.get_phase_temperature(ind), None)
 
     def test_apply_to_all_for_new_added_phase_d_positions(self):
         pressure = 50
         self.load_phase('au_Anderson.jcpds')
-        self.phase_view.phase_pressure_sb.setValue(pressure)
+        self.view.phase_pressure_sb.setValue(pressure)
         self.load_phase('au_Anderson.jcpds')
 
         reflections1 = self.phase_data.get_lines_d(0)
@@ -172,9 +173,54 @@ class PhaseControllerTest(unittest.TestCase):
     def test_to_not_show_lines_in_legend(self):
         self.load_phases()
         self.phase_tw.selectRow(1)
-        QTest.mouseClick(self.phase_view.phase_del_btn, QtCore.Qt.LeftButton)
-        self.phase_view.spectrum_view.hide_phase(1)
+        QTest.mouseClick(self.view.phase_del_btn, QtCore.Qt.LeftButton)
+        self.view.spectrum_view.hide_phase(1)
 
+    def test_auto_scaling_of_lines_in_spectrum_view(self):
+        spectrum_view = self.view.spectrum_view
+
+        spectrum_view_range = spectrum_view.view_box.viewRange()
+        spectrum_y = spectrum_view.plot_item.getData()[1]
+        expected_maximum_height = np.max(spectrum_y) - spectrum_view_range[1][0]
+
+        self.load_phase('au_Anderson.jcpds')
+        phase_plot = spectrum_view.phases[0]
+        line_heights = []
+        for line in phase_plot.line_items:
+            line_data = line.getData()
+            height = line_data[1][1]-line_data[1][0]
+            line_heights.append(height)
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
+
+        spectrum_view_range = spectrum_view.view_box.viewRange()
+        spectrum_y = spectrum_view.plot_item.getData()[1]
+        expected_maximum_height = np.max(spectrum_y) - spectrum_view_range[1][0]
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
+
+    def test_line_height_in_spectrum_view_after_zooming(self):
+        spectrum_view = self.view.spectrum_view
+        self.load_phase('au_Anderson.jcpds')
+
+        spectrum_view.view_box.setRange(xRange=[17,30])
+        spectrum_view.emit_sig_range_changed()
+
+        phase_plot = spectrum_view.phases[0]
+        line_heights = []
+        for line in phase_plot.line_items:
+            line_data = line.getData()
+            if (line_data[0][0] > 17) and (line_data[0][1]<30):
+                height = line_data[1][1]-line_data[1][0]
+                line_heights.append(height)
+
+        spectrum_view_range = spectrum_view.view_box.viewRange()
+        spectrum_x, spectrum_y = spectrum_view.plot_item.getData()
+        spectrum_y_max_in_range = np.max(spectrum_y[(spectrum_x > spectrum_view_range[0][0]) &\
+            (spectrum_x<spectrum_view_range[0][1])])
+        expected_maximum_height = spectrum_y_max_in_range - spectrum_view_range[1][0]
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
 
 
     def load_phases(self):
@@ -186,5 +232,4 @@ class PhaseControllerTest(unittest.TestCase):
         self.load_phase('re.jcpds')
 
     def load_phase(self, filename):
-        self.controller.integration_controller.phase_controller.add_phase(
-            'Data/jcpds/' + filename)
+        self.controller.add_btn_click_callback(os.path.join('Data', 'jcpds', filename))
