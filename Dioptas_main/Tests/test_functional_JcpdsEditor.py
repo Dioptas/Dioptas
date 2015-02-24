@@ -378,10 +378,10 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
         self.main_controller.view.tabWidget.setCurrentIndex(2)
         self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/au_Anderson.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/mo.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/ar.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/re.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/mo.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/ar.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/re.jcpds')
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
@@ -488,10 +488,10 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
         self.main_controller.view.tabWidget.setCurrentIndex(2)
         self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/au_Anderson.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/mo.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/ar.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/re.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/mo.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/ar.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/re.jcpds')
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
@@ -566,7 +566,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
         self.main_controller.view.tabWidget.setCurrentIndex(2)
         self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/au_Anderson.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
         # change anything the names every are the same...
@@ -593,7 +593,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
         self.main_controller.view.tabWidget.setCurrentIndex(2)
         self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_phase('Data/jcpds/au_Anderson.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 

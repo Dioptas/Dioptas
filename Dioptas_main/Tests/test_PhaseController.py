@@ -65,35 +65,35 @@ class PhaseControllerTest(unittest.TestCase):
         self.assertEqual(len(self.phase_view.spectrum_view.phases), 6)
         self.assertEqual(self.phase_tw.currentRow(), 5)
 
-        self.phase_controller.del_phase()
+        self.phase_controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 5)
         self.assertEqual(len(self.phase_data.phases), 5)
         self.assertEqual(len(self.phase_view.spectrum_view.phases), 5)
         self.assertEqual(self.phase_tw.currentRow(), 4)
 
         self.phase_view.select_phase(1)
-        self.phase_controller.del_phase()
+        self.phase_controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 4)
         self.assertEqual(len(self.phase_data.phases), 4)
         self.assertEqual(len(self.phase_view.spectrum_view.phases), 4)
         self.assertEqual(self.phase_tw.currentRow(), 1)
 
         self.phase_view.select_phase(0)
-        self.phase_controller.del_phase()
+        self.phase_controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 3)
         self.assertEqual(len(self.phase_data.phases), 3)
         self.assertEqual(len(self.phase_view.spectrum_view.phases), 3)
         self.assertEqual(self.phase_tw.currentRow(), 0)
 
-        self.phase_controller.del_phase()
-        self.phase_controller.del_phase()
-        self.phase_controller.del_phase()
+        self.phase_controller.remove_btn_click_callback()
+        self.phase_controller.remove_btn_click_callback()
+        self.phase_controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_data.phases), 0)
         self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
-        self.phase_controller.del_phase()
+        self.phase_controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_data.phases), 0)
         self.assertEqual(len(self.phase_view.spectrum_view.phases), 0)
@@ -186,5 +186,5 @@ class PhaseControllerTest(unittest.TestCase):
         self.load_phase('re.jcpds')
 
     def load_phase(self, filename):
-        self.controller.integration_controller.phase_controller.add_phase(
+        self.controller.integration_controller.phase_controller.add_btn_click_callback(
             'Data/jcpds/' + filename)
