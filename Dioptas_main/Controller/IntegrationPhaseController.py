@@ -24,6 +24,7 @@ from copy import copy
 import numpy as np
 
 from PyQt4 import QtGui, QtCore
+import pyqtgraph as pg
 
 from Data.HelperModule import get_base_name
 from Data.PhaseData import PhaseLoadError
@@ -65,10 +66,10 @@ class IntegrationPhaseController(object):
         self.create_signals()
 
     def create_signals(self):
-        self.connect_click_function(self.view.phase_add_btn, self.add_phase)
-        self.connect_click_function(self.view.phase_del_btn, self.del_phase)
+        self.connect_click_function(self.view.phase_add_btn, self.add_btn_click_callback)
+        self.connect_click_function(self.view.phase_del_btn, self.remove_btn_click_callback)
         self.connect_click_function(self.view.phase_clear_btn, self.clear_phases)
-        self.connect_click_function(self.view.phase_edit_btn, self.edit_phase)
+        self.connect_click_function(self.view.phase_edit_btn, self.edit_btn_click_callback)
 
         self.view.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
         self.view.phase_temperature_step_txt.editingFinished.connect(self.update_phase_temperature_step)
@@ -82,8 +83,9 @@ class IntegrationPhaseController(object):
         self.view.phase_color_btn_clicked.connect(self.phase_color_btn_clicked)
         self.view.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
 
-        self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_phase_intensities_slot)
-        self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
+        # self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
+        self.view.spectrum_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
+        self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
         self.spectrum_data.spectrum_changed.connect(self.spectrum_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
@@ -101,7 +103,7 @@ class IntegrationPhaseController(object):
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def add_phase(self, filename=None):
+    def add_btn_click_callback(self, filename=None):
         """
         Loads a new phase from jcpds file.
         :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
@@ -183,12 +185,12 @@ class IntegrationPhaseController(object):
                                                   baseline)
         return color
 
-    def edit_phase(self):
+    def edit_btn_click_callback(self):
         cur_ind = self.view.get_selected_phase_row()
         self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
         self.jcpds_editor_controller.show_view()
 
-    def del_phase(self):
+    def remove_btn_click_callback(self):
         """
         Deletes the currently selected Phase
         """
@@ -208,10 +210,10 @@ class IntegrationPhaseController(object):
 
     def clear_phases(self):
         """
-        Delets all phases from the GUI and phase data
+        Deletes all phases from the GUI and phase data
         """
         while self.view.phase_tw.rowCount() > 0:
-            self.del_phase()
+            self.remove_btn_click_callback()
             self.jcpds_editor_controller.close_view()
 
     def update_phase_pressure_step(self):
@@ -231,13 +233,13 @@ class IntegrationPhaseController(object):
             for ind in range(len(self.phase_data.phases)):
                 self.phase_data.set_pressure(ind, np.float(val))
                 self.view.set_phase_pressure(ind, val)
-            self.update_phase_intensities()
+            self.update_all_phase_intensities()
 
         else:
             cur_ind = self.view.get_selected_phase_row()
             self.phase_data.set_pressure(cur_ind, np.float(val))
             self.view.set_phase_pressure(cur_ind, val)
-            self.update_phase_intensity(cur_ind)
+            self.update_phase_intensities(cur_ind)
 
         self.update_jcpds_editor()
 
@@ -250,12 +252,12 @@ class IntegrationPhaseController(object):
         if self.view.phase_apply_to_all_cb.isChecked():
             for ind in range(len(self.phase_data.phases)):
                 self.update_phase_temperature(ind, val)
-            self.update_phase_intensities()
+            self.update_all_phase_intensities()
 
         else:
             cur_ind = self.view.get_selected_phase_row()
             self.update_phase_temperature(cur_ind, val)
-            self.update_phase_intensity(cur_ind)
+            self.update_phase_intensities(cur_ind)
 
         self.update_jcpds_editor()
 
@@ -335,77 +337,52 @@ class IntegrationPhaseController(object):
             return 'd'
 
 
-    def spectrum_auto_btn_clicked(self):
-        """
-        Runs self.update_intensities_slot after 50 ms.
-        This is needed because the graph scaling is to slow, to call update_intensities immediately after the autoscale-btn
-        was clicked
-        """
-        QtCore.QTimer.singleShot(50, self.update_phase_intensities_slot)
-
     def spectrum_data_changed(self):
         """
         Function is called after the spectrum data has changed.
         """
         # QtGui.QApplication.processEvents()
         # self.update_phase_lines_slot()
-        QtCore.QTimer.singleShot(50, self.update_phase_lines_slot)
-
-
-    def update_phase_intensities_slot(self, *args):
-        """
-        Used as a slot when autoRange of the view is. Tries to prevent a call on autorange while updating intensities of
-        phases.
-        """
-        axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
-        auto_range = copy(self.view.spectrum_view.spectrum_plot.vb.state['autoRange'])
-
-        self.view.spectrum_view.spectrum_plot.disableAutoRange()
-        self.update_phase_intensities(axis_range)
-
-        if auto_range[0] and auto_range[1]:
-            self.view.spectrum_view.spectrum_plot.enableAutoRange()
-
-
-    def update_phase_lines_slot(self,*args):
-        self.update_phase_intensities_slot()
         self.view.spectrum_view.update_phase_line_visibilities()
 
 
-    def update_phase_intensities(self, axis_range=None):
+    def update_all_phase_intensities(self):
         """
         Updates all intensities of all phases in the spectrum view. Also checks if phase lines are still visible.
         (within range of spectrum and/or overlays
         :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
-        self.view.spectrum_view.view_box.blockSignals(True)
-        for ind in range(len(self.phase_data.phases)):
-            self.update_phase_intensity(ind, axis_range)
-        self.view.spectrum_view.view_box.blockSignals(False)
+        axis_range = self.view.spectrum_view.view_box.viewRange()
 
-    def update_phase_intensity(self, ind, axis_range=None):
+        for ind in range(len(self.phase_data.phases)):
+            self.update_phase_intensities(ind, axis_range)
+
+    def update_phase_intensities(self, ind, axis_range=None):
         """
         Updates the intensities of a specific phase with index ind.
         :param ind: Index of the phase
         :param axis_range: list/tuple of visible x_range and y_range -- ((x_min, x_max), (y_min, y_max))
         """
         if axis_range is None:
-            axis_range = self.view.spectrum_view.spectrum_plot.viewRange()
+            axis_range = self.view.spectrum_view.view_box.viewRange()
+
         x_range = axis_range[0]
         y_range = axis_range[1]
-        positions, intensities, baseline = \
-            self.phase_data.get_rescaled_reflections(
-                ind, self.spectrum_data.spectrum,
-                x_range, y_range,
-                self.calibration_data.wavelength * 1e10,
-                self.get_unit())
+        positions, intensities, baseline =  self.phase_data.get_rescaled_reflections(
+                            ind, self.spectrum_data.spectrum,
+                            x_range, y_range,
+                            self.calibration_data.wavelength * 1e10,
+                            self.get_unit()
+        )
+
         self.view.spectrum_view.update_phase_intensities(
-            ind, positions, intensities, baseline)
+            ind, positions, intensities, y_range[0])
 
     def update_cur_phase_name(self):
         cur_ind = self.view.get_selected_phase_row()
         self.view.rename_phase(cur_ind, self.phase_data.phases[cur_ind].name)
 
+    ###JCPDS editor callbacks:
     def update_jcpds_editor(self, cur_ind=None):
         if cur_ind is None:
             cur_ind = self.view.get_selected_phase_row()
@@ -423,7 +400,7 @@ class IntegrationPhaseController(object):
     def update_cur_phase_parameters(self):
         cur_ind = self.view.get_selected_phase_row()
         self.phase_data.get_lines_d(cur_ind)
-        self.update_phase_intensity(cur_ind)
+        self.update_phase_intensities(cur_ind)
         self.update_temperature_control_visibility(cur_ind)
         self.view.spectrum_view.update_phase_line_visibility(cur_ind)
 
@@ -431,7 +408,7 @@ class IntegrationPhaseController(object):
         cur_phase_ind = self.view.get_selected_phase_row()
         self.view.spectrum_view.phases[cur_phase_ind].remove_line(reflection_ind)
         self.phase_data.get_lines_d(cur_phase_ind)
-        self.update_phase_intensity(cur_phase_ind)
+        self.update_phase_intensities(cur_phase_ind)
 
     def jcpds_editor_reflection_added(self):
         cur_ind = self.view.get_selected_phase_row()
