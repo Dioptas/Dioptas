@@ -49,12 +49,13 @@ class IntegrationBackgroundController(object):
         self.view = view
         self.img_data = img_data
         self.spectrum_data = spectrum_data
-        self.create_signals()
+        self.create_image_background_signals()
+        self.create_spectrum_background_signals()
 
-    def create_signals(self):
+    def create_image_background_signals(self):
 
-        self.connect_click_function(self.view.bkg_image_load_btn, self.load_background)
-        self.connect_click_function(self.view.bkg_image_delete_btn, self.delete_background)
+        self.connect_click_function(self.view.bkg_image_load_btn, self.load_background_image)
+        self.connect_click_function(self.view.bkg_image_delete_btn, self.remove_background_image)
 
         self.view.bkg_image_scale_step_txt.editingFinished.connect(self.update_bkg_image_scale_step)
         self.view.bkg_image_offset_step_txt.editingFinished.connect(self.update_bkg_image_offset_step)
@@ -63,13 +64,26 @@ class IntegrationBackgroundController(object):
 
         self.img_data.subscribe(self.update_background_image_filename)
 
+    def create_spectrum_background_signals(self):
+        self.view.bkg_spectrum_gb.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
+        self.view.qa_bkg_spectrum_btn.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
+
+        self.view.bkg_spectrum_iterations_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
+        self.view.bkg_spectrum_poly_order_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
+        self.view.bkg_spectrum_smooth_width_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
+        self.view.bkg_spectrum_x_min_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
+        self.view.bkg_spectrum_x_max_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
+
+        self.view.bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_toggled_callback)
+        self.view.qa_bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_toggled_callback)
+
     def connect_click_function(self, emitter, function):
         """
         Small helper function for the button-click connection.
         """
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def load_background(self, filename=None):
+    def load_background_image(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(
                 self.view, "Load an image background file",
@@ -79,7 +93,7 @@ class IntegrationBackgroundController(object):
             self.view.bkg_image_filename_lbl.setText("Loading File")
             self.img_data.load_background(filename)
 
-    def delete_background(self):
+    def remove_background_image(self):
         self.view.bkg_image_filename_lbl.setText("None")
         self.view.bkg_name_lbl.setText('')
         self.img_data.reset_background()
@@ -104,3 +118,71 @@ class IntegrationBackgroundController(object):
 
             self.view.bkg_image_filename_lbl.setText('None')
             self.view.bkg_name_lbl.setText('')
+
+
+    def bkg_spectrum_gb_toggled_callback(self, is_checked):
+        self.view.bkg_spectrum_gb.blockSignals(True)
+        self.view.qa_bkg_spectrum_btn.blockSignals(True)
+        self.view.bkg_spectrum_gb.setChecked(is_checked)
+        self.view.qa_bkg_spectrum_btn.setChecked(is_checked)
+        self.view.bkg_spectrum_gb.blockSignals(False)
+        self.view.qa_bkg_spectrum_btn.blockSignals(False)
+        self.view.qa_bkg_spectrum_inspect_btn.setVisible(is_checked)
+
+        if is_checked:
+            bkg_spectrum_parameters = self.view.get_bkg_spectrum_parameters()
+            bkg_spectrum_roi = self.view.get_bkg_spectrum_roi()
+            self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+        else:
+            self.view.bkg_spectrum_inspect_btn.setChecked(False)
+            self.view.qa_bkg_spectrum_inspect_btn.setChecked(False)
+            self.view.spectrum_view.hide_linear_region()
+            self.spectrum_data.unset_auto_background_subtraction()
+
+    def bkg_spectrum_parameters_changed(self):
+        bkg_spectrum_parameters = self.view.get_bkg_spectrum_parameters()
+        bkg_spectrum_roi = self.view.get_bkg_spectrum_roi()
+        self.spectrum_data.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+
+    def bkg_spectrum_inspect_btn_toggled_callback(self, checked):
+        self.view.bkg_spectrum_inspect_btn.blockSignals(True)
+        self.view.qa_bkg_spectrum_inspect_btn.blockSignals(True)
+        self.view.bkg_spectrum_inspect_btn.setChecked(checked)
+        self.view.qa_bkg_spectrum_inspect_btn.setChecked(checked)
+        self.view.bkg_spectrum_inspect_btn.blockSignals(False)
+        self.view.qa_bkg_spectrum_inspect_btn.blockSignals(False)
+
+        if checked:
+            self.view.spectrum_view.show_linear_region()
+            x_min, x_max = self.view.get_bkg_spectrum_roi()
+            x_spec = self.spectrum_data.spectrum.auto_background_before_subtraction_spectrum.x
+            if x_min<x_spec[0]:
+                x_min = x_spec[0]
+            if x_max>x_spec[-1]:
+                x_max=x_spec[-1]
+            self.view.spectrum_view.set_linear_region(x_min, x_max)
+            self.view.spectrum_view.linear_region_item.sigRegionChanged.connect(
+                self.bkg_spectrum_linear_region_callback
+            )
+            self.view.bkg_spectrum_x_min_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
+            self.view.bkg_spectrum_x_max_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
+        else:
+            self.view.spectrum_view.hide_linear_region()
+            self.view.spectrum_view.linear_region_item.sigRegionChanged.disconnect(
+                self.bkg_spectrum_linear_region_callback
+            )
+
+            self.view.bkg_spectrum_x_min_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
+            self.view.bkg_spectrum_x_max_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
+        self.spectrum_data.spectrum_changed.emit()
+
+    def bkg_spectrum_linear_region_callback(self):
+        x_min, x_max = self.view.spectrum_view.get_linear_region()
+        self.view.bkg_spectrum_x_min_txt.setText('{:.3f}'.format(x_min))
+        self.view.bkg_spectrum_x_max_txt.setText('{:.3f}'.format(x_max))
+        self.bkg_spectrum_parameters_changed()
+
+    def update_bkg_spectrum_linear_region(self):
+        self.view.spectrum_view.linear_region_item.blockSignals(True)
+        self.view.spectrum_view.set_linear_region(*self.view.get_bkg_spectrum_roi())
+        self.view.spectrum_view.linear_region_item.blockSignals(False)

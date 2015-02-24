@@ -30,7 +30,6 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def tearDown(self):
 
         del self.integration_spectrum_controller
-        del self.integration_spectrum_controller
         del self.mask_data
         del self.img_data
         del self.calibration_data.cake_geometry
@@ -59,17 +58,17 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
         self.assertEqual(int(str(self.integration_view.bin_count_txt.text())), 2900)
-        previous_number_of_points = len(self.main_controller.spectrum_data.spectrum._x)
+        previous_number_of_points = len(self.main_controller.spectrum_data.spectrum.x)
         self.enter_value_into_text_field(self.integration_view.bin_count_txt, 2 * 2900)
 
-        self.assertAlmostEqual(len(self.main_controller.spectrum_data.spectrum._x), 2 * previous_number_of_points,
+        self.assertAlmostEqual(len(self.main_controller.spectrum_data.spectrum.x), 2 * previous_number_of_points,
                                delta=1)
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_view.automatic_binning_cb.setChecked(True)
         self.assertEqual(int(str(self.integration_view.bin_count_txt.text())), 2900)
-        self.assertEqual(len(self.main_controller.spectrum_data.spectrum._x), previous_number_of_points)
+        self.assertEqual(len(self.main_controller.spectrum_data.spectrum.x), previous_number_of_points)
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
         # Edith opens the program, calibrates everything and looks in to the options menu. She sees that there is a

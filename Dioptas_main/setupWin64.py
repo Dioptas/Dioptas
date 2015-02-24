@@ -29,13 +29,13 @@ build_exe_options = {"excludes": ["tcl", "Tcl", "Tk", "ttk", "tkinter", "pyopenc
                      "includes": ["re", "scipy.sparse.csgraph._validation", "scipy.integrate.vode", "scipy.special",
                                   "scipy.special._ufuncs", "scipy.special._ufuncs_cxx", "scipy.integrate.lsoda",
                                   "skimage._shared.geometry"],
-                     "include_files": ("Calibrants","Views/UiFiles/images", "Views/UiFiles/Icon"),
+                     "include_files": ("Calibrants"),
                      "create_shared_zip": True,
                      "compressed": True
 }
 
-bdist_mac_options = {"iconfile": "Views/UiFiles/Icon/icns/icon.icns"}
-bdist_dmg_options = {"volume_label": "DioptaKs",}
+bdist_mac_options = {"iconfile": "Views\UiFiles\Icon\icns\icon.icns"}
+bdist_dmg_options = {"volume_label": "Dioptas",}
                      # "applications-shortcut": True}
 # GUI applications require a different base on Windows (the default is for a
 # console application).
