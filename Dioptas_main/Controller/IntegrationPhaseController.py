@@ -65,10 +65,10 @@ class IntegrationPhaseController(object):
         self.create_signals()
 
     def create_signals(self):
-        self.connect_click_function(self.view.phase_add_btn, self.add_phase)
-        self.connect_click_function(self.view.phase_del_btn, self.del_phase)
+        self.connect_click_function(self.view.phase_add_btn, self.add_btn_click_callback)
+        self.connect_click_function(self.view.phase_del_btn, self.remove_btn_click_callback)
         self.connect_click_function(self.view.phase_clear_btn, self.clear_phases)
-        self.connect_click_function(self.view.phase_edit_btn, self.edit_phase)
+        self.connect_click_function(self.view.phase_edit_btn, self.edit_btn_click_callback)
 
         self.view.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
         self.view.phase_temperature_step_txt.editingFinished.connect(self.update_phase_temperature_step)
@@ -101,7 +101,7 @@ class IntegrationPhaseController(object):
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def add_phase(self, filename=None):
+    def add_btn_click_callback(self, filename=None):
         """
         Loads a new phase from jcpds file.
         :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
@@ -183,12 +183,12 @@ class IntegrationPhaseController(object):
                                                   baseline)
         return color
 
-    def edit_phase(self):
+    def edit_btn_click_callback(self):
         cur_ind = self.view.get_selected_phase_row()
         self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
         self.jcpds_editor_controller.show_view()
 
-    def del_phase(self):
+    def remove_btn_click_callback(self):
         """
         Deletes the currently selected Phase
         """
@@ -208,10 +208,10 @@ class IntegrationPhaseController(object):
 
     def clear_phases(self):
         """
-        Delets all phases from the GUI and phase data
+        Deletes all phases from the GUI and phase data
         """
         while self.view.phase_tw.rowCount() > 0:
-            self.del_phase()
+            self.remove_btn_click_callback()
             self.jcpds_editor_controller.close_view()
 
     def update_phase_pressure_step(self):
@@ -400,12 +400,13 @@ class IntegrationPhaseController(object):
                 self.calibration_data.wavelength * 1e10,
                 self.get_unit())
         self.view.spectrum_view.update_phase_intensities(
-            ind, positions, intensities, baseline)
+            ind, positions, intensities, y_range[0])
 
     def update_cur_phase_name(self):
         cur_ind = self.view.get_selected_phase_row()
         self.view.rename_phase(cur_ind, self.phase_data.phases[cur_ind].name)
 
+    ###JCPDS editor callbacks:
     def update_jcpds_editor(self, cur_ind=None):
         if cur_ind is None:
             cur_ind = self.view.get_selected_phase_row()
