@@ -78,6 +78,8 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         self.bkg_image_scale_sb.setKeyboardTracking(False)
         self.bkg_image_offset_sb.setKeyboardTracking(False)
 
+        self.qa_bkg_spectrum_inspect_btn.setVisible(False)
+
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -98,6 +100,9 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
 
         self.oiadac_abs_length_txt.setValidator(QtGui.QDoubleValidator())
         self.oiadac_thickness_txt.setValidator(QtGui.QDoubleValidator())
+
+        self.bkg_spectrum_x_max_txt.setValidator(QtGui.QDoubleValidator())
+        self.bkg_spectrum_x_min_txt.setValidator(QtGui.QDoubleValidator())
 
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
@@ -216,7 +221,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
             row = -1
         return row
 
-    def del_overlay(self, ind):
+    def remove_overlay(self, ind):
         self.overlay_tw.blockSignals(True)
         self.overlay_tw.removeRow(ind)
         self.overlay_tw.blockSignals(False)
@@ -374,6 +379,16 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
         checkbox = self.phase_show_cbs[ind]
         return checkbox.isChecked()
 
+    def get_bkg_spectrum_parameters(self):
+        smooth_width = float(self.bkg_spectrum_smooth_width_sb.value())
+        iterations = int(self.bkg_spectrum_iterations_sb.value())
+        polynomial_order = int(self.bkg_spectrum_poly_order_sb.value())
+        return smooth_width, iterations, polynomial_order
+
+    def get_bkg_spectrum_roi(self):
+        x_min = float(str(self.bkg_spectrum_x_min_txt.text()))
+        x_max = float(str(self.bkg_spectrum_x_max_txt.text()))
+        return x_min, x_max
 
 class NoRectDelegate(QtGui.QItemDelegate):
     def __init__(self):

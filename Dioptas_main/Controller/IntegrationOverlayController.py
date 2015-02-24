@@ -18,19 +18,22 @@
 
 __author__ = 'Clemens Prescher'
 import os
+
 from PyQt4 import QtGui, QtCore
 import numpy as np
-from Data.HelperModule import get_base_name
+
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from Views.IntegrationView import IntegrationView
 from Data.SpectrumData import SpectrumData
+
 
 class IntegrationOverlayController(object):
     """
     IntegrationOverlayController handles all the interaction between the Overlay controls of the integration view and
     the corresponding overlay data in the SpectrumData
     """
+
     def __init__(self, working_dir, view, spectrum_data):
         """
         :param working_dir: dictionary of working directories
@@ -47,9 +50,9 @@ class IntegrationOverlayController(object):
         self.create_signals()
 
     def create_signals(self):
-        self.connect_click_function(self.view.overlay_add_btn, self.add_overlay)
-        self.connect_click_function(self.view.overlay_del_btn, self.del_overlay)
-        self.view.overlay_clear_btn.clicked.connect(self.clear_overlays)
+        self.connect_click_function(self.view.overlay_add_btn, self.add_overlay_btn_click_callback)
+        self.connect_click_function(self.view.overlay_del_btn, self.remove_overlay_btn_click_callback)
+        self.view.overlay_clear_btn.clicked.connect(self.clear_overlays_btn_click_callback)
 
         self.view.overlay_tw.currentCellChanged.connect(self.overlay_selection_changed)
         self.view.overlay_color_btn_clicked.connect(self.overlay_color_btn_clicked)
@@ -61,81 +64,120 @@ class IntegrationOverlayController(object):
         self.view.overlay_scale_sb.valueChanged.connect(self.overlay_scale_sb_changed)
         self.view.overlay_offset_sb.valueChanged.connect(self.overlay_offset_sb_changed)
 
-        self.view.overlay_set_as_bkg_btn.clicked.connect(self.overlay_set_as_bkg_btn_clicked)
+        self.view.overlay_set_as_bkg_btn.clicked.connect(self.overlay_set_as_bkg_btn_click_callback)
 
-        # creating the quickactions signals
+        # creating the quick-actions signals
 
-        self.connect_click_function(self.view.qa_img_set_as_overlay_btn, self.set_as_overlay)
-        self.connect_click_function(self.view.qa_spectrum_set_as_overlay_btn, self.set_as_overlay)
+        self.connect_click_function(self.view.qa_img_set_as_overlay_btn,
+                                    self.spectrum_data.add_spectrum_as_overlay)
+        self.connect_click_function(self.view.qa_spectrum_set_as_overlay_btn,
+                                    self.spectrum_data.add_spectrum_as_overlay)
 
         self.connect_click_function(self.view.qa_img_set_as_background_btn, self.qa_set_as_background_btn_click)
         self.connect_click_function(self.view.qa_spectrum_set_as_background_btn, self.qa_set_as_background_btn_click)
 
+        # spectrum_data signals
+        self.spectrum_data.overlay_removed.connect(self.overlay_removed)
+        self.spectrum_data.overlay_added.connect(self.overlay_added)
+        self.spectrum_data.overlay_changed.connect(self.overlay_changed)
+        self.spectrum_data.overlay_set_as_bkg.connect(self.overlay_set_as_bkg)
+        self.spectrum_data.overlay_unset_as_bkg.connect(self.overlay_unset_as_bkg)
+
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def add_overlay(self, filename=None):
+    def add_overlay_btn_click_callback(self, filename=None):
+        """
+
+        :param filename: filepath of an overlay file, if set to None (default value) it will open a QFileDialog to
+            select a spectrum file
+        """
         if filename is None:
             filenames = QtGui.QFileDialog.getOpenFileNames(self.view, "Load Overlay(s).", self.working_dir['overlay'])
             if len(filenames):
                 for filename in filenames:
                     filename = str(filename)
                     self.spectrum_data.add_overlay_file(filename)
-                    color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
-                    self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
                 self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
         else:
             self.spectrum_data.add_overlay_file(filename)
-            color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
-            self.view.add_overlay(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
             self.working_dir['overlay'] = os.path.dirname(str(filename))
 
-    def del_overlay(self):
-        cur_ind = self.view.get_selected_overlay_row()
-        if cur_ind >= 0:
-            if self.spectrum_data.bkg_ind > cur_ind:
-                self.spectrum_data.bkg_ind -= 1
-            elif self.spectrum_data.bkg_ind == cur_ind:
-                self.spectrum_data.spectrum.reset_background()
-                self.spectrum_data.bkg_ind = -1
-                self.spectrum_data.notify()
-            self.spectrum_data.overlays.remove(self.spectrum_data.overlays[cur_ind])
-            self.view.del_overlay(cur_ind)
-            self.view.spectrum_view.del_overlay(cur_ind)
-
-    def set_as_overlay(self, show=True):
-        self.spectrum_data.set_current_spectrum_as_overlay()
-        color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1], show)
-        self.view.add_overlay(get_base_name(self.spectrum_data.overlays[-1].name),
+    def overlay_added(self):
+        """
+        callback when overlay is added to the SpectrumData
+        """
+        color = self.view.spectrum_view.add_overlay(self.spectrum_data.overlays[-1])
+        self.view.add_overlay(self.spectrum_data.get_overlay_name(-1),
                               '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
-    def clear_overlays(self):
+    def remove_overlay_btn_click_callback(self):
+        """
+        Removes the currently in the overlay table selected overlay from the table, spectrum_data and spectrum_view
+        """
+        cur_ind = self.view.get_selected_overlay_row()
+        self.spectrum_data.remove_overlay(cur_ind)
+
+    def overlay_removed(self, ind):
+        """
+        callback when overlay is removed from SpectrumData
+        :param ind: index of overlay removed
+        """
+        self.view.remove_overlay(ind)
+        self.view.spectrum_view.remove_overlay(ind)
+
+        #if no more overlays are present the set_as_bkg_btn should be unchecked
+        if self.view.overlay_tw.rowCount() == 0:
+            self.view.overlay_set_as_bkg_btn.setChecked(False)
+
+    def clear_overlays_btn_click_callback(self):
+        """
+        removes all currently loaded overlays
+        """
         while self.view.overlay_tw.rowCount() > 0:
-            self.del_overlay()
+            self.remove_overlay_btn_click_callback()
 
     def update_overlay_scale_step(self):
+        """
+        Sets the step size for scale spinbox from the step text box.
+        """
         value = np.float(self.view.overlay_scale_step_txt.text())
         self.view.overlay_scale_sb.setSingleStep(value)
 
     def update_overlay_offset_step(self):
+        """
+        Sets the step size for the offset spinbox from the offset_step text box.
+        """
         value = np.float(self.view.overlay_offset_step_txt.text())
         self.view.overlay_offset_sb.setSingleStep(value)
 
-    def overlay_selection_changed(self, row, col, prev_row, prev_col):
+    def overlay_selection_changed(self, row, *args):
+        """
+        Callback when the selected row in the overlay table is changed. It will update the scale and offset values
+        for the newly selected overlay and check whether it is set as background or not and check the
+        the set_as_bkg_btn appropriately.
+        :param row: selected row in the overlay table
+        """
         cur_ind = row
         self.view.overlay_scale_sb.blockSignals(True)
         self.view.overlay_offset_sb.blockSignals(True)
         self.view.overlay_scale_sb.setValue(self.spectrum_data.overlays[cur_ind].scaling)
         self.view.overlay_offset_sb.setValue(self.spectrum_data.overlays[cur_ind].offset)
-        # self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
+
         self.view.overlay_scale_sb.blockSignals(False)
         self.view.overlay_offset_sb.blockSignals(False)
-        if cur_ind == self.spectrum_data.bkg_ind and not cur_ind == -1:
+        if self.spectrum_data.overlay_is_bkg(cur_ind):
             self.view.overlay_set_as_bkg_btn.setChecked(True)
         else:
             self.view.overlay_set_as_bkg_btn.setChecked(False)
 
     def overlay_color_btn_clicked(self, ind, button):
+        """
+        Callback for the color buttons in the overlay table. Opens up a color dialog. The color of the overlay and
+        its respective button will be changed according to the selection
+        :param ind: overlay ind
+        :param button: button to color
+        """
         previous_color = button.palette().color(1)
         new_color = QtGui.QColorDialog.getColor(previous_color, self.view)
         if new_color.isValid():
@@ -146,56 +188,80 @@ class IntegrationOverlayController(object):
         button.setStyleSheet('background-color:' + color)
 
     def overlay_scale_sb_changed(self, value):
+        """
+        Callback for overlay_scale_sb spinbox.
+        :param value: new scale value
+        """
         cur_ind = self.view.get_selected_overlay_row()
-        self.spectrum_data.overlays[cur_ind].scaling = value
-        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
-        if self.view.overlay_set_as_bkg_btn.isChecked():
-            self.spectrum_data.notify()
+        self.spectrum_data.set_overlay_scaling(cur_ind, value)
 
     def overlay_offset_sb_changed(self, value):
+        """
+        Callback gor the overlay_offset_sb spinbox.
+        :param value: new value
+        """
         cur_ind = self.view.get_selected_overlay_row()
-        self.spectrum_data.overlays[cur_ind].offset = value
-        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[cur_ind], cur_ind)
-        if self.view.overlay_set_as_bkg_btn.isChecked():
-            self.spectrum_data.notify()
+        self.spectrum_data.set_overlay_offset(cur_ind, value)
 
-    def overlay_set_as_bkg_btn_clicked(self):
+    def overlay_changed(self, ind):
+        self.view.spectrum_view.update_overlay(self.spectrum_data.overlays[ind], ind)
+
+    def overlay_set_as_bkg_btn_click_callback(self):
+        """
+        Callback for the overlay_set_as_bkg_btn QPushButton. Will try to either set the currently selected overlay as
+        background or unset if it already. Any other overlay which was set before as bkg will
+        """
         cur_ind = self.view.get_selected_overlay_row()
-        if cur_ind is -1: #no overlay selected
+        if cur_ind is -1:  # no overlay selected
             self.view.overlay_set_as_bkg_btn.setChecked(False)
             return
 
         if not self.view.overlay_set_as_bkg_btn.isChecked():
-            #if the overlay is not currently a background
-            self.spectrum_data.bkg_ind = -1
-            self.spectrum_data.spectrum.reset_background()
-            self.view.overlay_show_cb_set_checked(cur_ind, True)
-            self.spectrum_data.notify()
+            ## if the overlay is not currently a background
+            # it will unset the current background and redisplay it in the spectrum view
+            # (which is achieved by checking the cb)
+            self.spectrum_data.unset_overlay_as_bkg()
         else:
-            #if the overlay is currently the active background
-            if self.spectrum_data.bkg_ind is not -1:
-                self.view.overlay_show_cb_set_checked(self.spectrum_data.bkg_ind, True)  #show the old overlay again
-            self.spectrum_data.bkg_ind = cur_ind
-            self.spectrum_data.spectrum.set_background(self.spectrum_data.overlays[cur_ind])
-            if self.view.overlay_show_cb_is_checked(cur_ind):
-                self.view.spectrum_view.hide_overlay(cur_ind)
+            # if the overlay is currently the active background
+            self.spectrum_data.set_overlay_as_bkg(cur_ind)
 
-                self.view.blockSignals(True)
-                self.view.overlay_show_cb_set_checked(cur_ind, False)
-                self.view.blockSignals(False)
-            self.spectrum_data.notify()
+    def overlay_set_as_bkg(self, ind):
+        cur_selected_ind = self.view.get_selected_overlay_row()
+        self.view.overlay_set_as_bkg_btn.setChecked(ind == cur_selected_ind)
+        # hide the original overlay
+        if self.view.overlay_show_cb_is_checked(ind):
+            self.view.overlay_show_cb_set_checked(ind, False)
+
+    def overlay_unset_as_bkg(self, ind):
+        self.view.overlay_show_cb_set_checked(ind, True)
+        if self.spectrum_data.bkg_ind == -1:
+            self.view.overlay_set_as_bkg_btn.setChecked(False)
+
 
     def qa_set_as_background_btn_click(self):
-        self.set_as_overlay(True)
-        self.view.overlay_set_as_bkg_btn.setChecked(True)
-        self.overlay_set_as_bkg_btn_clicked()
-
+        """
+        Callback for the quick action button "Set as Background" in image and spectrum tab. It will add the currently
+        displayed spectrum as overlay and then set it as background
+        """
+        self.spectrum_data.set_spectrum_as_bkg()
 
     def overlay_show_cb_state_changed(self, ind, state):
+        """
+        Callback for the checkboxes in the overlay tablewidget. Controls the visibility of the overlay in the spectrum
+        view
+        :param ind: index of overlay
+        :param state: boolean value whether the checkbox was checked or unchecked
+        """
         if state:
             self.view.spectrum_view.show_overlay(ind)
         else:
             self.view.spectrum_view.hide_overlay(ind)
 
     def rename_overlay(self, ind, name):
+        """
+        Callback for changing the name in the overlay tablewidget (by double clicking the name and entering a new one).
+        This will update the visible name in the spectrum view
+        :param ind: index of overlay for which the name was changed
+        :param name: new name
+        """
         self.view.spectrum_view.rename_overlay(ind, name)

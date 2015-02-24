@@ -84,7 +84,7 @@ class IntegrationPhaseController(object):
 
         self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_phase_intensities_slot)
         self.view.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.spectrum_auto_btn_clicked)
-        self.spectrum_data.subscribe(self.spectrum_data_changed)
+        self.spectrum_data.spectrum_changed.connect(self.spectrum_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
 

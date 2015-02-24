@@ -22,7 +22,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
-from Data.SpectrumData import BkgNotInRangeError
+from Data.Spectrum import BkgNotInRangeError
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -64,26 +64,30 @@ class IntegrationSpectrumController(object):
         self.calibration_data = calibration_data
         self.spectrum_data = spectrum_data
 
-        self.create_subscriptions()
         self.integration_unit = '2th_deg'
-        self.first_plot = True
-        self.set_status()
-
-        self.create_signals()
-
-    def create_subscriptions(self):
-        self.img_data.subscribe(self.image_changed)
-        self.view.img_view.roi.sigRegionChangeFinished.connect(self.image_changed)
-        self.spectrum_data.subscribe(self.plot_spectra)
-        self.spectrum_data.subscribe(self.autocreate_spectrum)
-        self.view.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
-        self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
-
-    def set_status(self):
         self.autocreate = False
         self.unit = pyFAI.units.TTH_DEG
 
-    def create_signals(self):
+        self.create_subscriptions()
+        self.create_gui_signals()
+
+    def create_subscriptions(self):
+        # Data subscriptions
+        self.img_data.subscribe(self.image_changed)
+        self.spectrum_data.spectrum_changed.connect(self.plot_spectrum)
+        self.spectrum_data.spectrum_changed.connect(self.autocreate_spectrum)
+
+        # Gui subscriptions
+        self.view.img_view.roi.sigRegionChangeFinished.connect(self.image_changed)
+        self.view.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
+        self.view.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
+
+    def create_gui_signals(self):
+        """
+        creating callbacks for the ui controls
+        """
+
+        # file callbacks
         self.connect_click_function(self.view.spec_autocreate_cb, self.autocreate_cb_changed)
         self.connect_click_function(self.view.spec_load_btn, self.load)
         self.connect_click_function(self.view.spec_previous_btn, self.load_previous)
@@ -94,21 +98,25 @@ class IntegrationSpectrumController(object):
         self.connect_click_function(self.view.spec_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.view.spec_browse_by_time_rb, self.set_iteration_mode_time)
 
-        self.connect_click_function(self.view.spec_tth_btn, self.set_unit_tth)
-        self.connect_click_function(self.view.spec_q_btn, self.set_unit_q)
-        self.connect_click_function(self.view.spec_d_btn, self.set_unit_d)
-
         self.view.connect(self.view.spec_directory_txt,
                           QtCore.SIGNAL('editingFinished()'),
                           self.spec_directory_txt_changed)
 
+        # unit callbacks
+        self.connect_click_function(self.view.spec_tth_btn, self.set_unit_tth)
+        self.connect_click_function(self.view.spec_q_btn, self.set_unit_q)
+        self.connect_click_function(self.view.spec_d_btn, self.set_unit_d)
+
+        # quick actions
         self.connect_click_function(self.view.qa_img_save_spectrum_btn, self.save_spectrum)
         self.connect_click_function(self.view.qa_spectrum_save_spectrum_btn, self.save_spectrum)
 
+        # integration controls
         self.view.automatic_binning_cb.stateChanged.connect(self.automatic_binning_cb_changed)
         self.view.bin_count_txt.editingFinished.connect(self.image_changed)
         self.view.supersampling_sb.valueChanged.connect(self.supersampling_changed)
 
+        # spectrum_plot interaction
         self.view.keyPressEvent = self.key_press_event
 
     def connect_click_function(self, emitter, function):
@@ -179,20 +187,16 @@ class IntegrationSpectrumController(object):
             res.append('.dat')
         return res
 
-    def plot_spectra(self):
-        try:
-            x, y = self.spectrum_data.spectrum.data
-        except BkgNotInRangeError as e:
-            print(e)
-            self.reset_background(popup=True)
-            x, y = self.spectrum_data.spectrum.data
-
-        self.view.spectrum_view.plot_data(
-            x, y, self.spectrum_data.spectrum.name)
-
-        if self.first_plot:
-            self.view.spectrum_view.spectrum_plot.enableAutoRange()
-            self.first_plot = False
+    def plot_spectrum(self):
+        if self.view.bkg_spectrum_inspect_btn.isChecked():
+            self.view.spectrum_view.plot_data(
+                *self.spectrum_data.spectrum.auto_background_before_subtraction_spectrum.data,
+                name=self.spectrum_data.spectrum.name)
+            self.view.spectrum_view.plot_bkg(*self.spectrum_data.spectrum.auto_background_spectrum.data)
+        else:
+            self.view.spectrum_view.plot_data(
+                *self.spectrum_data.spectrum.data, name=self.spectrum_data.spectrum.name)
+            self.view.spectrum_view.plot_bkg([],[])
 
         # update the bkg_name
         if self.spectrum_data.bkg_ind is not -1:
@@ -203,7 +207,7 @@ class IntegrationSpectrumController(object):
     def reset_background(self, popup=True):
         self.view.overlay_show_cb_set_checked(self.spectrum_data.bkg_ind, True)  # show the old overlay again
         self.spectrum_data.bkg_ind = -1
-        self.spectrum_data.spectrum.reset_background()
+        self.spectrum_data.spectrum.unset_background_spectrum()
         self.view.overlay_set_as_bkg_btn.setChecked(False)
 
     def automatic_binning_cb_changed(self):
@@ -218,7 +222,7 @@ class IntegrationSpectrumController(object):
         self.image_changed()
 
     def autocreate_spectrum(self):
-        if self.spectrum_data.bkg_ind is not -1:
+        if self.spectrum_data.spectrum.has_background():
             if self.autocreate is True:
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
@@ -228,7 +232,7 @@ class IntegrationSpectrumController(object):
                         os.mkdir(directory)
                     filename = os.path.join(
                         directory,
-                        self.spectrum_data.spectrum.name + '_bkg_subtracted' + file_ending)
+                        self.spectrum_data.spectrum.name + file_ending)
                     self.save_spectrum(filename, subtract_background=True)
 
     def save_spectrum(self, filename=None, subtract_background=False):

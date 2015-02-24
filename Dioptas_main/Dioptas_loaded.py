@@ -42,8 +42,8 @@ def test_phases(controller):
     controller.integration_controller.phase_controller.add_phase('ExampleData/jcpds/dac_user/ar.jcpds')
     controller.integration_controller.phase_controller.add_phase('ExampleData/jcpds/dac_user/fe-hcp.jcpds')
 
-    controller.integration_controller.overlay_controller.add_overlay('ExampleData/Spectra/FoG_D3_003.xy')
-    controller.integration_controller.overlay_controller.del_overlay()
+    controller.integration_controller.overlay_controller.add_overlay_btn_click_callback('ExampleData/Spectra/FoG_D3_003.xy')
+    controller.integration_controller.overlay_controller.remove_overlay_btn_click_callback()
 
 
 def test_calibration(controller):
@@ -77,7 +77,7 @@ def load_overlays(controller):
     load_overlay(controller, 'FoG_D3_001.xy')
 
 def load_overlay(controller, filename):
-    controller.integration_controller.overlay_controller.add_overlay(
+    controller.integration_controller.overlay_controller.add_overlay_btn_click_callback(
         'ExampleData/Spectra/' + filename)
 
 if __name__ == "__main__":

@@ -63,12 +63,18 @@ class SpectrumWidget(QtCore.QObject):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
                                          pen=pg.mkPen(color=(255, 255, 255), width=2))
         self.spectrum_plot.addItem(self.plot_item)
+        self.bkg_item = pg.PlotDataItem([], [],
+                                          pen=pg.mkPen(color=(255,0,0), width=2, style=QtCore.Qt.DashLine))
+        self.spectrum_plot.addItem(self.bkg_item)
         self.legend.addItem(self.plot_item, '')
         self.plot_name = ''
         self.legend.setParentItem(self.spectrum_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
         self.phases_legend.setParentItem(self.spectrum_plot.vb)
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
+
+        self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
+        # self.linear_region_item.mouseDragEvent = empty_function
 
     def create_pos_line(self):
         self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5, style=QtCore.Qt.DashLine))
@@ -87,6 +93,9 @@ class SpectrumWidget(QtCore.QObject):
             self.plot_name = name
         self.update_graph_limits()
         self.legend.updateSize()
+
+    def plot_bkg(self, x, y):
+        self.bkg_item.setData(x, y)
 
     def update_graph_limits(self):
         x_range = list(self.plot_item.dataBounds(0))
@@ -119,7 +128,7 @@ class SpectrumWidget(QtCore.QObject):
             self.update_graph_limits()
         return color
 
-    def del_overlay(self, ind):
+    def remove_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
         self.legend.removeItem(self.overlays[ind])
         self.overlays.remove(self.overlays[ind])
@@ -197,6 +206,19 @@ class SpectrumWidget(QtCore.QObject):
             self.phases_vlines[0].set_data(positions, name)
         else:
             self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions))
+
+    def show_linear_region(self):
+        self.spectrum_plot.addItem(self.linear_region_item)
+
+    def set_linear_region(self, x_min, x_max):
+        self.linear_region_item.setRegion((x_min, x_max))
+
+    def get_linear_region(self):
+        return self.linear_region_item.getRegion()
+
+    def hide_linear_region(self):
+        self.spectrum_plot.removeItem(self.linear_region_item)
+
 
     def save_png(self, filename):
         exporter = ImageExporter(self.spectrum_plot)
@@ -475,3 +497,14 @@ class PhasePlot(object):
         for ind, item in enumerate(self.line_items):
             if self.line_visible[ind]:
                 self.plot_item.removeItem(item)
+
+
+class ModifiedLinearRegionItem(pg.LinearRegionItem):
+    def __init__(self, *args, **kwargs):
+        super(ModifiedLinearRegionItem, self).__init__()
+
+    def mouseDragEvent(self, ev):
+        return
+
+    def hoverEvent(self, ev):
+        return
