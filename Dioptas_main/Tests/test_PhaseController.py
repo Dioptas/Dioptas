@@ -199,6 +199,30 @@ class PhaseControllerTest(unittest.TestCase):
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
 
+    def test_line_height_in_spectrum_view_after_zooming(self):
+        spectrum_view = self.view.spectrum_view
+        self.load_phase('au_Anderson.jcpds')
+
+        spectrum_view.view_box.setRange(xRange=[17,30])
+        spectrum_view.emit_sig_range_changed()
+
+        phase_plot = spectrum_view.phases[0]
+        line_heights = []
+        for line in phase_plot.line_items:
+            line_data = line.getData()
+            if (line_data[0][0] > 17) and (line_data[0][1]<30):
+                height = line_data[1][1]-line_data[1][0]
+                line_heights.append(height)
+
+        spectrum_view_range = spectrum_view.view_box.viewRange()
+        spectrum_x, spectrum_y = spectrum_view.plot_item.getData()
+        spectrum_y_max_in_range = np.max(spectrum_y[(spectrum_x > spectrum_view_range[0][0]) &\
+            (spectrum_x<spectrum_view_range[0][1])])
+        expected_maximum_height = spectrum_y_max_in_range - spectrum_view_range[1][0]
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
+
+
     def load_phases(self):
         self.load_phase('ar.jcpds')
         self.load_phase('ag.jcpds')
