@@ -84,8 +84,7 @@ class PhaseData(Observable):
         for ind in range(len(self.phases)):
             self.get_lines_d(ind)
 
-    def get_rescaled_reflections(self, ind, spectrum, x_range,
-                            y_range, wavelength, unit='tth'):
+    def get_phase_line_positions(self, ind, unit, wavelength):
         positions = self.reflections[ind][:, 0]
         if unit is 'q' or unit is 'tth':
             positions = 2 * \
@@ -93,29 +92,32 @@ class PhaseData(Observable):
             if unit == 'q':
                 positions = 4 * np.pi / wavelength * \
                             np.sin(positions / 360 * np.pi)
+        return positions
 
+    def get_phase_line_intensities(self, ind, positions, spectrum, x_range, y_range):
         x, y = spectrum.data
-        max_intensity = np.min(
-            [np.max(y[np.where((x > x_range[0]) &
-                               (x < x_range[1]))]), y_range[1]])
-        baseline = y_range[0] + 0.05 * (y_range[1] - y_range[0])
-        if baseline < 0:
-            baseline = 0
+        max_spectrum_intensity = np.min([np.max(y[(x > x_range[0]) & (x < x_range[1])]), y_range[1]])
 
-        intensities = self.reflections[ind][:, 1]
-
+        baseline = y_range[0]
+        phase_line_intensities = self.reflections[ind][:, 1]
         # search for reflections within current spectrum view range
-        intensities_for_scaling = intensities[
-            np.where((positions > x_range[0]) &
-                     (positions < x_range[1]))]
+        phase_line_intensities_in_range = phase_line_intensities[(positions > x_range[0]) & (positions < x_range[1])]
+
         # rescale intensity based on the lines visible
-        if len(intensities_for_scaling):
-            scale_factor = (max_intensity - baseline) / \
-                           np.max(intensities_for_scaling)
+        if len(phase_line_intensities_in_range):
+            scale_factor = (max_spectrum_intensity - baseline) / \
+                           np.max(phase_line_intensities_in_range)
         else:
             scale_factor = 1
         if scale_factor <= 0:
             scale_factor = 0.01
 
-        intensities = scale_factor * self.reflections[ind][:, 1] + baseline
+        phase_line_intensities = scale_factor * self.reflections[ind][:, 1]+baseline
+        return phase_line_intensities, baseline
+
+    def get_rescaled_reflections(self, ind, spectrum, x_range,
+                            y_range, wavelength, unit='tth'):
+        positions = self.get_phase_line_positions(ind, unit, wavelength)
+
+        intensities, baseline = self.get_phase_line_intensities(ind, positions, spectrum, x_range, y_range)
         return positions, intensities, baseline

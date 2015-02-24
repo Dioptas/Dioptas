@@ -31,6 +31,7 @@ from Data.SpectrumData import SpectrumData
 from Data.PhaseData import PhaseData
 from Views.IntegrationView import IntegrationView
 from Controller.IntegrationPhaseController import IntegrationPhaseController
+from Controller.IntegrationSpectrumController import IntegrationSpectrumController
 
 
 class PhaseControllerTest(unittest.TestCase):
@@ -42,9 +43,15 @@ class PhaseControllerTest(unittest.TestCase):
         self.calibration_data.load('Data/LaB6_p49_40keV_006.poni')
         self.phase_data = PhaseData()
         self.view = IntegrationView()
+
+        self.spectrum_controller = IntegrationSpectrumController({}, self.view, self.image_data, None,
+                                                                   self.calibration_data, self.spectrum_data)
         self.controller = IntegrationPhaseController({}, self.view, self.calibration_data, self.spectrum_data,
                                                        self.phase_data)
         self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+
+        self.view.spectrum_view._auto_range = True
+
         self.phase_tw = self.view.phase_tw
 
     def tearDown(self):
@@ -169,6 +176,29 @@ class PhaseControllerTest(unittest.TestCase):
         QTest.mouseClick(self.view.phase_del_btn, QtCore.Qt.LeftButton)
         self.view.spectrum_view.hide_phase(1)
 
+    def test_auto_scaling_of_lines_in_spectrum_view(self):
+        spectrum_view = self.view.spectrum_view
+
+        spectrum_view_range = spectrum_view.view_box.viewRange()
+        spectrum_y = spectrum_view.plot_item.getData()[1]
+        expected_maximum_height = np.max(spectrum_y) - spectrum_view_range[1][0]
+
+        self.load_phase('au_Anderson.jcpds')
+        phase_plot = spectrum_view.phases[0]
+        line_heights = []
+        for line in phase_plot.line_items:
+            line_data = line.getData()
+            height = line_data[1][1]-line_data[1][0]
+            line_heights.append(height)
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
+
+        spectrum_view_range = spectrum_view.view_box.viewRange()
+        spectrum_y = spectrum_view.plot_item.getData()[1]
+        expected_maximum_height = np.max(spectrum_y) - spectrum_view_range[1][0]
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
+
     def load_phases(self):
         self.load_phase('ar.jcpds')
         self.load_phase('ag.jcpds')
@@ -178,4 +208,4 @@ class PhaseControllerTest(unittest.TestCase):
         self.load_phase('re.jcpds')
 
     def load_phase(self, filename):
-        self.controller.add_btn_click_callback('Data/jcpds/' + filename)
+        self.controller.add_btn_click_callback(os.path.join('Data', 'jcpds', filename))
