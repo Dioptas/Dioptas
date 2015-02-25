@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Mon Feb 23 00:19:54 2015
+# Created: Tue Feb 24 20:13:12 2015
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -1220,7 +1220,7 @@ class Ui_xrs_integration_widget(object):
         self.spec_btn_widget.setObjectName(_fromUtf8("spec_btn_widget"))
         self.verticalLayout_15 = QtGui.QVBoxLayout(self.spec_btn_widget)
         self.verticalLayout_15.setSpacing(4)
-        self.verticalLayout_15.setContentsMargins(0, 4, 4, 0)
+        self.verticalLayout_15.setContentsMargins(0, 4, 4, 4)
         self.verticalLayout_15.setObjectName(_fromUtf8("verticalLayout_15"))
         self.spec_tth_btn = QtGui.QPushButton(self.spec_btn_widget)
         self.spec_tth_btn.setCheckable(True)
@@ -1252,6 +1252,12 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_15.addWidget(self.qa_bkg_spectrum_inspect_btn)
         spacerItem29 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout_15.addItem(spacerItem29)
+        self.spec_auto_range_btn = QtGui.QPushButton(self.spec_btn_widget)
+        self.spec_auto_range_btn.setCheckable(True)
+        self.spec_auto_range_btn.setChecked(True)
+        self.spec_auto_range_btn.setFlat(True)
+        self.spec_auto_range_btn.setObjectName(_fromUtf8("spec_auto_range_btn"))
+        self.verticalLayout_15.addWidget(self.spec_auto_range_btn)
         self.horizontalLayout_31.addWidget(self.spec_btn_widget)
         self.verticalLayout_16.addWidget(self.horizontal_splitter)
         self.widget1 = QtGui.QWidget(xrs_integration_widget)
@@ -1543,8 +1549,9 @@ class Ui_xrs_integration_widget(object):
         self.spec_tth_btn.setText(_translate("xrs_integration_widget", " 2θ", None))
         self.spec_q_btn.setText(_translate("xrs_integration_widget", "Q", None))
         self.spec_d_btn.setText(_translate("xrs_integration_widget", "d", None))
-        self.qa_bkg_spectrum_btn.setText(_translate("xrs_integration_widget", "Bg", None))
+        self.qa_bkg_spectrum_btn.setText(_translate("xrs_integration_widget", "BG", None))
         self.qa_bkg_spectrum_inspect_btn.setText(_translate("xrs_integration_widget", "I", None))
+        self.spec_auto_range_btn.setText(_translate("xrs_integration_widget", "A", None))
         self.mouse_x_lbl.setText(_translate("xrs_integration_widget", "X:", None))
         self.mouse_y_lbl.setText(_translate("xrs_integration_widget", "Y:", None))
         self.mouse_int_lbl.setText(_translate("xrs_integration_widget", "I:", None))
