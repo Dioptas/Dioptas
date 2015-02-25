@@ -107,6 +107,7 @@ class IntegrationSpectrumController(object):
         self.connect_click_function(self.view.spec_q_btn, self.set_unit_q)
         self.connect_click_function(self.view.spec_d_btn, self.set_unit_d)
 
+
         # quick actions
         self.connect_click_function(self.view.qa_img_save_spectrum_btn, self.save_spectrum)
         self.connect_click_function(self.view.qa_spectrum_save_spectrum_btn, self.save_spectrum)
@@ -118,6 +119,10 @@ class IntegrationSpectrumController(object):
 
         # spectrum_plot interaction
         self.view.keyPressEvent = self.key_press_event
+
+        # spectrum_plot auto range functions
+        self.connect_click_function(self.view.spec_auto_range_btn, self.spec_auto_range_btn_click_callback)
+        self.view.spectrum_view.auto_range_status_changed.connect(self.view.spec_auto_range_btn.setChecked)
 
     def connect_click_function(self, emitter, function):
         self.view.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -381,6 +386,9 @@ class IntegrationSpectrumController(object):
         if np.min(spectrum_x) < old_x_axis_range[0] or np.max(spectrum_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
             self.view.spectrum_view.spectrum_plot.setRange(xRange=new_x_axis_range, padding=0)
+
+    def spec_auto_range_btn_click_callback(self):
+        self.view.spectrum_view.auto_range = self.view.spec_auto_range_btn.isChecked()
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.view.spectrum_view.pos_line.getPos()[0]
