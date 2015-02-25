@@ -3243,8 +3243,14 @@ QTableWidget {
            </item>
            <item>
             <widget class="QPushButton" name="qa_bkg_spectrum_btn">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
              <property name="text">
-              <string>BG</string>
+              <string>bg</string>
              </property>
              <property name="checkable">
               <bool>true</bool>
@@ -3257,7 +3263,7 @@ QTableWidget {
            <item>
             <widget class="QPushButton" name="qa_bkg_spectrum_inspect_btn">
              <property name="text">
-              <string>I</string>
+              <string>i</string>
              </property>
              <property name="checkable">
               <bool>true</bool>
