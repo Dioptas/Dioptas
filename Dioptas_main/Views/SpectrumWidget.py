@@ -55,6 +55,7 @@ class SpectrumWidget(QtCore.QObject):
     def create_graphics(self):
         self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
         self.spectrum_plot.setLabel('bottom', u'2θ', u'°')
+        self.spectrum_plot.enableAutoRange(False)
         self.view_box = self.spectrum_plot.vb
         self.legend = LegendItem(horSpacing=20, box=False, verSpacing=-3, labelAlignment='right', showLines=False)
         self.phases_legend = LegendItem(horSpacing=20, box=False, verSpacing=-3, labelAlignment='left', showLines=False)
@@ -92,21 +93,12 @@ class SpectrumWidget(QtCore.QObject):
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
         self.legend.updateSize()
-        self.update_graph_limits(x, y)
-        self.auto_range()
-
-    def auto_range(self):
-        if self._auto_range:
-            item_list = [self.plot_item]
-            for overlay in self.overlays:
-                item_list.append(overlay)
-
-            self.view_box.autoRange(items = item_list)
+        self.update_graph_range()
 
     def plot_bkg(self, x, y):
         self.bkg_item.setData(x, y)
 
-    def update_graph_limits(self, x=None, y = None):
+    def update_graph_range(self):
         x_range = list(self.plot_item.dataBounds(0))
         y_range = list(self.plot_item.dataBounds(1))
 
@@ -124,22 +116,26 @@ class SpectrumWidget(QtCore.QObject):
                     y_range[1] = y_range_overlay[1]
 
         if x_range[1] is not None and x_range[0] is not None:
+            padding = self.view_box.suggestPadding(0)
             diff = x_range[1] - x_range[0]
-            x_range = [x_range[0] - 0.05 * diff,
-                       x_range[1] + 0.05 * diff]
+            x_range = [x_range[0] - padding * diff,
+                       x_range[1] + padding * diff]
 
-            self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1],
-                                    minXRange=x_range[0], maxXRange=x_range[1])
+            self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1], maxXRange=diff * (1+2*padding))
+
+            if self._auto_range:
+                self.view_box.setRange(xRange=x_range, padding=0)
 
         if y_range[1] is not None and y_range[0] is not None:
+            padding = self.view_box.suggestPadding(1)
             diff = y_range[1] - y_range[0]
-            y_range = [y_range[0] - 0.05 * diff,
-                       y_range[1] + 0.05 * diff]
+            y_range = [y_range[0] - padding * diff,
+                       y_range[1] + padding * diff]
 
-            self.view_box.setLimits(yMin=y_range[0], yMax=y_range[1],
-                                    minYRange=y_range[0], maxYRange=y_range[1])
+            self.view_box.setLimits(yMin=y_range[0], yMax=y_range[1], maxYRange=diff * (1+2*padding))
 
-
+            if self._auto_range:
+                self.view_box.setRange(yRange=y_range, padding=0)
 
     def add_overlay(self, spectrum, show=True):
         x, y = spectrum.data
@@ -150,8 +146,7 @@ class SpectrumWidget(QtCore.QObject):
         if show:
             self.spectrum_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], spectrum.name)
-            self.update_graph_limits()
-        self.auto_range()
+            self.update_graph_range()
         return color
 
     def remove_overlay(self, ind):
@@ -160,31 +155,24 @@ class SpectrumWidget(QtCore.QObject):
         self.overlays.remove(self.overlays[ind])
         self.overlay_names.remove(self.overlay_names[ind])
         self.overlay_show.remove(self.overlay_show[ind])
-        self.update_graph_limits()
-        self.auto_range()
+        self.update_graph_range()
 
     def hide_overlay(self, ind):
         self.spectrum_plot.removeItem(self.overlays[ind])
         self.legend.hideItem(ind + 1)
         self.overlay_show[ind] = False
-        self.update_graph_limits()
-        self.auto_range()
+        self.update_graph_range()
 
     def show_overlay(self, ind):
         self.spectrum_plot.addItem(self.overlays[ind])
         self.legend.showItem(ind + 1)
         self.overlay_show[ind] = True
-        self.update_graph_limits()
-        self.auto_range()
+        self.update_graph_range()
 
     def update_overlay(self, spectrum, ind):
         x, y = spectrum.data
         self.overlays[ind].setData(x, y)
-        self.update_graph_limits()
-        self.auto_range()
-
-    def get_overlay_color(self, ind):
-        pass
+        self.update_graph_range()
 
     def set_overlay_color(self, ind, color):
         self.overlays[ind].setPen(pg.mkPen(color=color, width=1.5))
@@ -309,7 +297,7 @@ class SpectrumWidget(QtCore.QObject):
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
             if (view_range[0][1] - view_range[0][0]) > x_range:
                 self._auto_range = True
-                self.auto_range()
+                self.update_graph_range()
             else:
                 self._auto_range = False
                 self.view_box.scaleBy(2)
@@ -325,7 +313,7 @@ class SpectrumWidget(QtCore.QObject):
         if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and
                                                       ev.modifiers() & QtCore.Qt.ControlModifier):
             self._auto_range = True
-            self.auto_range()
+            self.update_graph_range()
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
     def myMouseDragEvent(self, ev, axis=None):
@@ -386,7 +374,7 @@ class SpectrumWidget(QtCore.QObject):
                 if (view_range[0][1] - view_range[0][0]) >= x_range and \
                         (view_range[1][1] - view_range[1][0]) >= y_range:
                     self._auto_range = True
-                    self.auto_range()
+                    self.update_graph_range()
                 else:
                     self._auto_range = False
                     pg.ViewBox.wheelEvent(self.view_box, ev)
