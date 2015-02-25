@@ -37,6 +37,7 @@ class SpectrumWidget(QtCore.QObject):
     mouse_moved = QtCore.pyqtSignal(float, float)
     mouse_left_clicked = QtCore.pyqtSignal(float, float)
     range_changed = QtCore.pyqtSignal(list)
+    auto_range_status_changed = QtCore.pyqtSignal(bool)
 
     def __init__(self, pg_layout):
         super(SpectrumWidget, self).__init__()
@@ -77,6 +78,18 @@ class SpectrumWidget(QtCore.QObject):
 
         self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
         # self.linear_region_item.mouseDragEvent = empty_function
+
+    @property
+    def auto_range(self):
+        return self._auto_range
+
+    @auto_range.setter
+    def auto_range(self, value):
+        if self._auto_range is not value:
+            self._auto_range = value
+            self.auto_range_status_changed.emit(value)
+        if self._auto_range is True:
+            self.update_graph_range()
 
     def create_pos_line(self):
         self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5, style=QtCore.Qt.DashLine))
@@ -124,7 +137,7 @@ class SpectrumWidget(QtCore.QObject):
 
             self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1])
 
-            if self._auto_range:
+            if self.auto_range:
                 self.view_box.setRange(xRange=x_range, padding=0)
 
         if y_range[1] is not None and y_range[0] is not None:
@@ -135,8 +148,9 @@ class SpectrumWidget(QtCore.QObject):
 
             self.view_box.setLimits(yMin=y_range[0], yMax=y_range[1])
 
-            if self._auto_range:
+            if self.auto_range:
                 self.view_box.setRange(yRange=y_range, padding=0)
+
 
     def add_overlay(self, spectrum, show=True):
         x, y = spectrum.data
@@ -297,10 +311,9 @@ class SpectrumWidget(QtCore.QObject):
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
             if (view_range[0][1] - view_range[0][0]) > x_range:
-                self._auto_range = True
-                self.update_graph_range()
+                self.auto_range = True
             else:
-                self._auto_range = False
+                self.auto_range = False
                 self.view_box.scaleBy(2)
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
         elif ev.button() == QtCore.Qt.LeftButton:
@@ -313,8 +326,7 @@ class SpectrumWidget(QtCore.QObject):
     def myMouseDoubleClickEvent(self, ev):
         if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and
                                                       ev.modifiers() & QtCore.Qt.ControlModifier):
-            self._auto_range = True
-            self.update_graph_range()
+            self.auto_range = True
             self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
     def myMouseDragEvent(self, ev, axis=None):
@@ -341,7 +353,7 @@ class SpectrumWidget(QtCore.QObject):
                 self.emit_sig_range_changed()
         else:
             if ev.isFinish():  # This is the final move in the drag; change the view scale now
-                self._auto_range = False
+                self.auto_range = False
                 self.view_box.rbScaleBox.hide()
                 ax = QtCore.QRectF(pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos))
                 ax = self.view_box.childGroup.mapRectFromParent(ax)
@@ -363,21 +375,20 @@ class SpectrumWidget(QtCore.QObject):
         if ev.delta() > 0:
             pg.ViewBox.wheelEvent(self.view_box, ev, axis)
 
-            self._auto_range = False
+            self.auto_range = False
             # axis_range = self.spectrum_plot.viewRange()
             # self.range_changed.emit(axis_range)
         else:
-            if self._auto_range is not True:
+            if self.auto_range is not True:
                 view_range = np.array(self.view_box.viewRange())
                 curve_data = self.plot_item.getData()
                 x_range = np.max(curve_data[0]) - np.min(curve_data[0])
                 y_range = np.max(curve_data[1]) - np.min(curve_data[1])
                 if (view_range[0][1] - view_range[0][0]) >= x_range and \
                         (view_range[1][1] - view_range[1][0]) >= y_range:
-                    self._auto_range = True
-                    self.update_graph_range()
+                    self.auto_range = True
                 else:
-                    self._auto_range = False
+                    self.auto_range = False
                     pg.ViewBox.wheelEvent(self.view_box, ev)
         self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
 
