@@ -122,7 +122,7 @@ class SpectrumWidget(QtCore.QObject):
             x_range = [x_range[0] - padding * diff,
                        x_range[1] + padding * diff]
 
-            self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1], maxXRange=diff * (1+2*padding))
+            self.view_box.setLimits(xMin=x_range[0], xMax=x_range[1])
 
             if self._auto_range:
                 self.view_box.setRange(xRange=x_range, padding=0)
@@ -133,7 +133,7 @@ class SpectrumWidget(QtCore.QObject):
             y_range = [y_range[0] - padding * diff,
                        y_range[1] + padding * diff]
 
-            self.view_box.setLimits(yMin=y_range[0], yMax=y_range[1], maxYRange=diff * (1+2*padding))
+            self.view_box.setLimits(yMin=y_range[0], yMax=y_range[1])
 
             if self._auto_range:
                 self.view_box.setRange(yRange=y_range, padding=0)
