@@ -179,8 +179,8 @@ class SpectrumData(QtCore.QObject):
         Adds the current data spectrum as overlay to the list of overlays
         """
         current_spectrum = deepcopy(self.spectrum)
-        overlay_spectrum = Spectrum(current_spectrum.original_x,
-                                    current_spectrum.original_y,
+        overlay_spectrum = Spectrum(current_spectrum.x,
+                                    current_spectrum.y,
                                     current_spectrum.name)
         self.overlays.append(overlay_spectrum)
         self.overlay_added.emit()
