@@ -37,22 +37,41 @@ def extra_datas(mydir):
     extra_datas = []
     for f in files:
         extra_datas.append((f, f, 'DATA'))
-
     return extra_datas
 ###########################################
 
 a.datas += extra_datas('Calibrants')
+a.datas += [('pyFAI/calibration/__init__.py', 'Calibrants/__init__.py', 'DATA')]
+
+
+
+
+from sys import platform as _platform
+platform = ''
+
+if _platform == "linux" or _platform == "linux2":
+    platform = "Linux"
+    name = "Dioptas"
+elif _platform == "win32" or _platform == "cygwin":
+    platform = "Win64"
+    name = "Dioptas.exe"
+elif _platform == "darwin":
+    platform = "Mac64"
+    name = "Dioptas"
+
+__VERSION__ = '0.2.4d'
 
 
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
           a.scripts,
           exclude_binaries=True,
-          name='Dioptas.exe',
+          name=name,
           debug=False,
           strip=None,
           upx=True,
           console=False )
+
 
 coll = COLLECT(exe,
                a.binaries,
@@ -60,4 +79,9 @@ coll = COLLECT(exe,
                a.datas,
                strip=None,
                upx=True,
-               name='Dioptas_Win64_0.2.4d')
+               name='Dioptas_{}_{}'.format(platform, __VERSION__))
+
+if _platform == "darwin":
+    app = BUNDLE(coll,
+                 name='Dioptas.app',
+                 icon='Views/UiFiles/Icon/icns/icon.icns')
