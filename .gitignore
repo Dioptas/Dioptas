@@ -20,6 +20,7 @@ cloc-1.62.pl
 *.psd
 *.jcpds
 *.chi
+*.so
 
 log.txt
 .ipynb_checkpoints/
