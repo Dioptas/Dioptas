@@ -33,7 +33,7 @@ from .HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
 from model.ImgCorrection import ImgCorrectionManager
 
 
-class ImgData(Observable):
+class ImgModel(Observable):
     """
     Main Image handling class. Supports several features:
         - loading image files in any format using fabio
@@ -55,7 +55,7 @@ class ImgData(Observable):
         Defines all object variables and creates a dummy image.
         :return:
         """
-        super(ImgData, self).__init__()
+        super(ImgModel, self).__init__()
         self.filename = ''
         self.img_transformations = []
         self.supersampling_factor = 1

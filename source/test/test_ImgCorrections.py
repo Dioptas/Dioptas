@@ -138,9 +138,9 @@ class CbnCorrectionTest(unittest.TestCase):
         self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)
 
 
-from model.CalibrationData import CalibrationData
-from model.ImgData import ImgData
-from model.MaskData import MaskData
+from model.CalibrationModel import CalibrationModel
+from model.ImgModel import ImgModel
+from model.MaskModel import MaskModel
 from lmfit import Parameters, minimize, report_fit
 from scipy.ndimage import gaussian_filter1d
 import os
@@ -151,11 +151,11 @@ import matplotlib.pyplot as plt
 class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
     def setUp(self):
         # creating Data objects
-        self.img_data = ImgData()
+        self.img_data = ImgModel()
         self.img_data.load("Data/CbnCorrectionOptimization/Mg2SiO4_091.tif")
-        self.calibration_data = CalibrationData(self.img_data)
+        self.calibration_data = CalibrationModel(self.img_data)
         self.calibration_data.load("Data/CbnCorrectionOptimization/LaB6_40keV side.poni")
-        self.mask_data = MaskData()
+        self.mask_data = MaskModel()
         self.mask_data.load_mask("Data/CbnCorrectionOptimization/Mg2SiO4_91_combined.mask")
 
         #creating the ObliqueAngleDetectorAbsorptionCorrection

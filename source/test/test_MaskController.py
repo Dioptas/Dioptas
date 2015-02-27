@@ -12,8 +12,8 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 
-from model.ImgData import ImgData
-from model.MaskData import MaskData
+from model.ImgModel import ImgModel
+from model.MaskModel import MaskModel
 from controller.MaskController import MaskController
 from widgets.MaskView import MaskView
 
@@ -22,8 +22,8 @@ class MaskControllerTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.working_dir = {}
 
-        self.img_data = ImgData()
-        self.mask_data = MaskData()
+        self.img_data = ImgModel()
+        self.mask_data = MaskModel()
         self.mask_view = MaskView()
         self.mask_controller = MaskController(self.working_dir, self.mask_view, self.img_data, self.mask_data)
 

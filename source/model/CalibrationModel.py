@@ -36,7 +36,7 @@ from copy import copy
 import calibrants
 
 
-class CalibrationData(object):
+class CalibrationModel(object):
     def __init__(self, img_data=None):
         self.img_data = img_data
         self.points = []

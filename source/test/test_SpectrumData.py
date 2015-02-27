@@ -3,7 +3,7 @@ __author__ = 'Clemens Prescher'
 import unittest
 import numpy as np
 
-from model.SpectrumData import Spectrum, SpectrumData
+from model.SpectrumModel import Spectrum, SpectrumModel
 from model.Spectrum import BkgNotInRangeError
 from model.Helper.PeakShapes import gaussian
 
@@ -13,7 +13,7 @@ class SpectrumDataTest(unittest.TestCase):
         self.x = np.linspace(0.1, 15, 100)
         self.y = np.sin(self.x)
         self.spectrum = Spectrum(self.x, self.y)
-        self.spectrum_data = SpectrumData()
+        self.spectrum_data = SpectrumModel()
 
     def test_spectrum_class(self):
         self.spectrum.save('Data/spec_test.txt')

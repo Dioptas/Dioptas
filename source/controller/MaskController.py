@@ -28,8 +28,8 @@ import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.MaskView import MaskView
-from model.ImgData import ImgData
-from model.MaskData import MaskData
+from model.ImgModel import ImgModel
+from model.MaskModel import MaskModel
 
 class MaskController(object):
     def __init__(self, working_dir, view, img_data, mask_data):

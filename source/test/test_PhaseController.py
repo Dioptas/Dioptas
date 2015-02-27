@@ -25,10 +25,10 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 from PyQt4.QtTest import QTest
 
-from model.ImgData import ImgData
-from model.CalibrationData import CalibrationData
-from model.SpectrumData import SpectrumData
-from model.PhaseData import PhaseData
+from model.ImgModel import ImgModel
+from model.CalibrationModel import CalibrationModel
+from model.SpectrumModel import SpectrumModel
+from model.PhaseModel import PhaseModel
 from widgets.IntegrationView import IntegrationView
 from controller.IntegrationPhaseController import IntegrationPhaseController
 from controller.Integration import SpectrumController
@@ -37,11 +37,11 @@ from controller.Integration import SpectrumController
 class PhaseControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-        self.image_data = ImgData()
-        self.calibration_data = CalibrationData()
-        self.spectrum_data = SpectrumData()
+        self.image_data = ImgModel()
+        self.calibration_data = CalibrationModel()
+        self.spectrum_data = SpectrumModel()
         self.calibration_data.load('Data/LaB6_p49_40keV_006.poni')
-        self.phase_data = PhaseData()
+        self.phase_data = PhaseModel()
         self.view = IntegrationView()
 
         self.spectrum_controller = SpectrumController({}, self.view, self.image_data, None,

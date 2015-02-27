@@ -28,7 +28,7 @@ from .HelperModule import FileNameIterator, get_base_name
 from .Spectrum import Spectrum
 
 
-class SpectrumData(QtCore.QObject):
+class SpectrumModel(QtCore.QObject):
     """
     Main Spectrum handling class. Supporting several features:
       - loading spectra from any tabular source (readable by numpy)
@@ -46,7 +46,7 @@ class SpectrumData(QtCore.QObject):
     overlay_unset_as_bkg = QtCore.pyqtSignal(int)  # index unset os background
 
     def __init__(self):
-        super(SpectrumData, self).__init__()
+        super(SpectrumModel, self).__init__()
         self.spectrum = Spectrum()
         self.overlays = []
         self.phases = []

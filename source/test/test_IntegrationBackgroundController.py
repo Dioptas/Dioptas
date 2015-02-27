@@ -25,8 +25,8 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from widgets.IntegrationView import IntegrationView
-from model.SpectrumData import SpectrumData
-from model.ImgData import ImgData
+from model.SpectrumModel import SpectrumModel
+from model.ImgModel import ImgModel
 from controller.IntegrationBackgroundController import IntegrationBackgroundController
 from controller.Integration import SpectrumController
 
@@ -35,8 +35,8 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.view = IntegrationView()
-        self.spectrum_data = SpectrumData()
-        self.img_data = ImgData()
+        self.spectrum_data = SpectrumModel()
+        self.img_data = ImgModel()
         self.spectrum_controller = SpectrumController({}, self.view, self.img_data,
                                                                    None, None, self.spectrum_data)
         self.controller = IntegrationBackgroundController({}, self.view, self.img_data, self.spectrum_data)

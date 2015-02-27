@@ -5,14 +5,14 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 
-from model.CalibrationData import CalibrationData
-from model.ImgData import ImgData
+from model.CalibrationModel import CalibrationModel
+from model.ImgModel import ImgModel
 import gc
 
 class MaskUnitTest(unittest.TestCase):
     def setUp(self):
-        self.img_data = ImgData()
-        self.calibration_data = CalibrationData(self.img_data)
+        self.img_data = ImgModel()
+        self.calibration_data = CalibrationModel(self.img_data)
 
     def tearDown(self):
         del self.img_data
