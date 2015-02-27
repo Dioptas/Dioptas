@@ -29,6 +29,8 @@ from widgets.IntegrationWidget import IntegrationWidget
 from model import SpectrumModel
 from controller.integration import OverlayController
 
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
 
 class OverlayControllerTest(unittest.TestCase):
     def setUp(self):
@@ -134,7 +136,7 @@ class OverlayControllerTest(unittest.TestCase):
 
     def test_setting_overlay_as_bkg(self):
         self.load_overlays()
-        self.spectrum_model.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
@@ -146,7 +148,7 @@ class OverlayControllerTest(unittest.TestCase):
 
     def test_setting_overlay_as_bkg_and_changing_scale(self):
         self.load_overlays()
-        self.spectrum_model.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
@@ -157,7 +159,7 @@ class OverlayControllerTest(unittest.TestCase):
 
     def test_setting_overlay_as_bkg_and_changing_offset(self):
         self.load_overlays()
-        self.spectrum_model.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
@@ -167,7 +169,7 @@ class OverlayControllerTest(unittest.TestCase):
 
     def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(self):
         self.load_overlays()
-        self.spectrum_model.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
@@ -176,13 +178,14 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertEqual(np.sum(y), 0)
 
         self.widget.select_overlay(1)
+        self.widget.overlay_scale_sb.setValue(2)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         _, y = self.spectrum_model.spectrum.data
         self.assertNotEqual(np.sum(y), 0)
 
     def test_setting_spectrum_as_bkg(self):
-        self.spectrum_model.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
         QTest.mouseClick(self.widget.qa_img_set_as_background_btn, QtCore.Qt.LeftButton)
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
@@ -191,7 +194,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertEqual(np.sum(y), 0)
 
     def test_having_overlay_as_bkg_and_deleting_it(self):
-        self.spectrum_model.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
+        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
         QTest.mouseClick(self.widget.qa_img_set_as_background_btn, QtCore.Qt.LeftButton)
 
         QTest.mouseClick(self.widget.overlay_del_btn, QtCore.Qt.LeftButton)
@@ -204,14 +207,14 @@ class OverlayControllerTest(unittest.TestCase):
 
 
     def load_overlays(self):
-        self.load_overlay('FoG_D3_001.xy')
-        self.load_overlay('FoG_D3_002.xy')
-        self.load_overlay('FoG_D3_003.xy')
-        self.load_overlay('FoG_D3_004.xy')
-        self.load_overlay('FoG_D3_005.xy')
-        self.load_overlay('FoG_D3_006.xy')
+        self.load_overlay('spectrum_001.xy')
+        self.load_overlay('spectrum_001.xy')
+        self.load_overlay('spectrum_001.xy')
+        self.load_overlay('spectrum_001.xy')
+        self.load_overlay('spectrum_001.xy')
+        self.load_overlay('spectrum_001.xy')
 
     def load_overlay(self, filename):
-        self.overlay_controller.add_overlay_btn_click_callback('Data/' + filename)
+        self.overlay_controller.add_overlay_btn_click_callback(os.path.join(data_path, filename))
 
 
