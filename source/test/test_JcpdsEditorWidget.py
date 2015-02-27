@@ -17,18 +17,24 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Clemens Prescher'
 import unittest
-from model.Helper import jcpds
-from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 from PyQt4 import QtGui
 import sys
 import gc
+import os
+
+from model.Helper import jcpds
+from widgets.JcpdsEditorWidget import JcpdsEditorWidget
+
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
+jcpds_path = os.path.join(data_path, 'jcpds')
 
 class JcpdsEditorTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.jcpds = jcpds()
         self.jcpds.compute_v0()
-        self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
+        self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         self.jcpds_editor_widget = JcpdsEditorWidget()
         self.jcpds_editor_widget.show_jcpds(self.jcpds, wavelength=0.31)
