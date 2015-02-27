@@ -26,7 +26,7 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from model.jcpds import jcpds
-from model.CalibrationData import CalibrationData
+from model.CalibrationModel import CalibrationModel
 from controller.Integration import JcpdsEditorController
 from controller.MainController import MainController
 
@@ -40,7 +40,7 @@ def calculate_cubic_d_spacing(h, k, l, a):
 class JcpdsEditorFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-        self.calibration_data = CalibrationData()
+        self.calibration_data = CalibrationModel()
         self.jcpds = jcpds()
 
     def tearDown(self):

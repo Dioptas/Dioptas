@@ -2,10 +2,10 @@ __author__ = 'Clemens Prescher'
 
 import os
 import gc
-from model.SpectrumData import Spectrum, SpectrumData
-from model.ImgData import ImgData
-from model.CalibrationData import CalibrationData
-from model.MaskData import MaskData
+from model.SpectrumModel import Spectrum, SpectrumModel
+from model.ImgModel import ImgModel
+from model.CalibrationModel import CalibrationModel
+from model.MaskModel import MaskModel
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,13 +13,13 @@ import matplotlib.pyplot as plt
 
 class CombinedDataTest(unittest.TestCase):
     def setUp(self):
-        self.img_data = ImgData()
+        self.img_data = ImgModel()
         self.img_data.load('Data/Mg2SiO4_ambient_001.tif')
-        self.calibration_data = CalibrationData(self.img_data)
+        self.calibration_data = CalibrationModel(self.img_data)
         self.calibration_data.load('Data/calibration.poni')
-        self.mask_data = MaskData()
+        self.mask_data = MaskModel()
         self.mask_data.mask_ellipse(500, 500, 100, 100)
-        self.spectrum_data = SpectrumData()
+        self.spectrum_data = SpectrumModel()
 
     def tearDown(self):
         del self.calibration_data.cake_geometry

@@ -7,12 +7,12 @@ import sys
 import os
 import numpy as np
 
-from model.MaskData import MaskData
+from model.MaskModel import MaskModel
 
 
 class MaskUnitTest(unittest.TestCase):
     def setUp(self):
-        self.mask_data = MaskData()
+        self.mask_data = MaskModel()
         self.img = np.zeros((10, 10))
         self.mask_data.set_dimension(self.img.shape)
 

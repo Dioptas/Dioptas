@@ -28,9 +28,9 @@ import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.CalibrationView import CalibrationView
-from model.ImgData import ImgData
-from model.MaskData import MaskData
-from model.CalibrationData import CalibrationData
+from model.ImgModel import ImgModel
+from model.MaskModel import MaskModel
+from model.CalibrationModel import CalibrationModel
 
 class CalibrationController(object):
     """

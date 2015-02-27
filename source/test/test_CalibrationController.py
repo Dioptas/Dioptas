@@ -8,9 +8,9 @@ import gc
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from model.ImgData import ImgData
-from model.MaskData import MaskData
-from model.CalibrationData import CalibrationData
+from model.ImgModel import ImgModel
+from model.MaskModel import MaskModel
+from model.CalibrationModel import CalibrationModel
 from controller.CalibrationController import CalibrationController
 from widgets.CalibrationView import CalibrationView
 
@@ -18,9 +18,9 @@ from widgets.CalibrationView import CalibrationView
 class CalibrationControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-        self.img_data = ImgData()
-        self.mask_data = MaskData()
-        self.calibration_data = CalibrationData(self.img_data)
+        self.img_data = ImgModel()
+        self.mask_data = MaskModel()
+        self.calibration_data = CalibrationModel(self.img_data)
         self.calibration_data._calibrants_working_dir = 'Data/Calibrants'
         self.calibration_view = CalibrationView()
 

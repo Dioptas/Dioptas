@@ -3,13 +3,13 @@ __author__ = 'Clemens Prescher'
 import unittest
 import gc
 
-from model.ImgData import *
+from model.ImgModel import *
 import numpy as np
 
 
 class ImgDataTest(unittest.TestCase):
     def setUp(self):
-        self.data = ImgData()
+        self.data = ImgModel()
         self.data.load('Data/test_001.tif')
 
     def tearDown(self):

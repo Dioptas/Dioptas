@@ -24,11 +24,11 @@ import xml.etree.cElementTree as ET
 from PyQt4 import QtGui, QtCore
 
 from widgets.MainView import MainView
-from model.ImgData import ImgData
-from model.MaskData import MaskData
-from model.SpectrumData import SpectrumData
-from model.CalibrationData import CalibrationData
-from model.PhaseData import PhaseData
+from model.ImgModel import ImgModel
+from model.MaskModel import MaskModel
+from model.SpectrumModel import SpectrumModel
+from model.CalibrationModel import CalibrationModel
+from model.PhaseModel import PhaseModel
 from . import CalibrationController
 from .integration import IntegrationController
 from .MaskController import MaskController
@@ -46,11 +46,11 @@ class MainController(object):
 
         self.view = MainView()
         #create data
-        self.img_data = ImgData()
-        self.calibration_data = CalibrationData(self.img_data)
-        self.mask_data = MaskData()
-        self.spectrum_data = SpectrumData()
-        self.phase_data = PhaseData()
+        self.img_data = ImgModel()
+        self.calibration_data = CalibrationModel(self.img_data)
+        self.mask_data = MaskModel()
+        self.spectrum_data = SpectrumModel()
+        self.phase_data = PhaseModel()
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',

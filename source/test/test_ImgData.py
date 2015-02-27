@@ -10,13 +10,13 @@ import numpy as np
 import gc
 import matplotlib.pyplot as plt
 
-from model.ImgData import ImgData
+from model.ImgModel import ImgModel
 from model.ImgCorrection import DummyCorrection
 
 
 class ImgDataUnitTest(unittest.TestCase):
     def setUp(self):
-        self.img_data = ImgData()
+        self.img_data = ImgModel()
         self.img_data.load('Data/Mg2SiO4_ambient_001.tif')
 
     def tearDown(self):

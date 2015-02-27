@@ -29,7 +29,7 @@ import time
 from sys import getsizeof
 
 
-class MaskData(object):
+class MaskModel(object):
     def __init__(self, mask_dimension=(2048, 2048)):
         self.mask_dimension = mask_dimension
         self.supersampling_factor = 1
