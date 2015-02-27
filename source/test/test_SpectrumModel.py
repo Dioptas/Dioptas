@@ -1,14 +1,18 @@
 __author__ = 'Clemens Prescher'
 
 import unittest
+import os
 import numpy as np
 
 from model.SpectrumModel import Spectrum, SpectrumModel
 from model.Helper.Spectrum import BkgNotInRangeError
 from model.Helper.PeakShapes import gaussian
 
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
 
 class SpectrumDataTest(unittest.TestCase):
+    # TODO: needs to be rewritten to be more in small units etc.
     def setUp(self):
         self.x = np.linspace(0.1, 15, 100)
         self.y = np.sin(self.x)
@@ -16,15 +20,15 @@ class SpectrumDataTest(unittest.TestCase):
         self.spectrum_model = SpectrumModel()
 
     def test_spectrum_class(self):
-        self.spectrum.save('Data/spec_test.txt')
-        self.spectrum.save('Data/spec_test2.txt',
+        self.spectrum.save(os.path.join(data_path, 'spec_test.txt'))
+        self.spectrum.save(os.path.join(data_path, 'spec_test2.txt'),
                            header='This is not only ridiculous\n but more and more '
                                   'challenging...')
-        self.spectrum.load('Data/spec_test.txt', 0)
-        self.spectrum.load('Data/spec_test2.txt', 0)
+        self.spectrum.load(os.path.join(data_path, 'spec_test.txt'), 0)
+        self.spectrum.load(os.path.join(data_path, 'spec_test2.txt'), 0)
 
         self.assertTrue(np.array_equal(self.spectrum.data[0], np.linspace(0.1, 15, 100)))
-        self.assertTrue(self.spectrum.load('Data/test_001.tif') == -1)
+        self.assertTrue(self.spectrum.load(os.path.join(data_path, 'image_001.tif')) == -1)
 
         self.spectrum.data = (np.linspace(0, 30), np.linspace(0, 20))
         self.spectrum.offset = 100
@@ -40,6 +44,9 @@ class SpectrumDataTest(unittest.TestCase):
         self.spectrum.scaling = -100
         self.assertTrue(np.array_equal(self.spectrum.data[1], np.zeros(self.spectrum.data[0].shape)))
 
+        os.remove(os.path.join(data_path, 'spec_test.txt'))
+        os.remove(os.path.join(data_path, 'spec_test2.txt'))
+
     def test_spectrum_data_class(self):
         self.spectrum_model.set_spectrum(np.linspace(0, 10), np.linspace(0, 10) ** 2, 'SQUARED')
         self.spectrum_model.add_overlay(np.linspace(0, 10), np.linspace(0, 10) ** 3, 'CUBED')
@@ -49,8 +56,8 @@ class SpectrumDataTest(unittest.TestCase):
         self.spectrum_model.remove_overlay(0)
         self.assertTrue(self.spectrum_model.overlays[0].name == 'QUADRUPOLED')
 
-        self.spectrum_model.add_overlay_file('Data/spec_test2.txt')
-        self.assertTrue(self.spectrum_model.overlays[-1].name == 'spec_test2')
+        self.spectrum_model.add_overlay_file(os.path.join(data_path, 'spectrum_001.xy'))
+        self.assertEqual(self.spectrum_model.overlays[-1].name, 'spectrum_001')
 
     def test_background_spectrum(self):
         x_spectrum = np.linspace(0,100,1001)
