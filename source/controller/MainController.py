@@ -44,13 +44,13 @@ class MainController(object):
     def __init__(self, use_settings=True):
         self.use_settings = use_settings
 
-        self.view = MainWidget()
+        self.widget = MainWidget()
         #create data
-        self.img_data = ImgModel()
-        self.calibration_data = CalibrationModel(self.img_data)
-        self.mask_data = MaskModel()
-        self.spectrum_data = SpectrumModel()
-        self.phase_data = PhaseModel()
+        self.img_model = ImgModel()
+        self.calibration_model = CalibrationModel(self.img_model)
+        self.mask_model = MaskModel()
+        self.spectrum_model = SpectrumModel()
+        self.phase_model = PhaseModel()
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
@@ -61,41 +61,41 @@ class MainController(object):
             self.load_settings()
         #create controller
         self.calibration_controller = CalibrationController(self.working_directories,
-                                                            self.view.calibration_widget,
-                                                            self.img_data,
-                                                            self.mask_data,
-                                                            self.calibration_data)
+                                                            self.widget.calibration_widget,
+                                                            self.img_model,
+                                                            self.mask_model,
+                                                            self.calibration_model)
         self.mask_controller = MaskController(self.working_directories,
-                                              self.view.mask_widget,
-                                              self.img_data,
-                                              self.mask_data)
+                                              self.widget.mask_widget,
+                                              self.img_model,
+                                              self.mask_model)
         self.integration_controller = IntegrationController(self.working_directories,
-                                                            self.view.integration_widget,
-                                                            self.img_data,
-                                                            self.mask_data,
-                                                            self.calibration_data,
-                                                            self.spectrum_data,
-                                                            self.phase_data)
+                                                            self.widget.integration_widget,
+                                                            self.img_model,
+                                                            self.mask_model,
+                                                            self.calibration_model,
+                                                            self.spectrum_model,
+                                                            self.phase_model)
         self.create_signals()
         self.set_title()
 
     def show_window(self):
-        self.view.show()
-        self.view.setWindowState(self.view.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        self.view.activateWindow()
-        self.view.raise_()
+        self.widget.show()
+        self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.widget.activateWindow()
+        self.widget.raise_()
 
     def create_signals(self):
-        self.view.tabWidget.currentChanged.connect(self.tab_changed)
-        self.view.closeEvent = self.close_event
-        self.img_data.subscribe(self.set_title)
-        self.spectrum_data.spectrum_changed.connect(self.set_title)
+        self.widget.tabWidget.currentChanged.connect(self.tab_changed)
+        self.widget.closeEvent = self.close_event
+        self.img_model.subscribe(self.set_title)
+        self.spectrum_model.spectrum_changed.connect(self.set_title)
 
     def tab_changed(self, ind):
         if ind == 2:
-            self.mask_data.set_supersampling()
+            self.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
-            self.integration_controller.view.calibration_lbl.setText(self.calibration_data.calibration_name)
+            self.integration_controller.view.calibration_lbl.setText(self.calibration_model.calibration_name)
             auto_scale_previous = self.integration_controller.image_controller._auto_scale
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()
@@ -112,13 +112,13 @@ class MainController(object):
                 pass
 
     def set_title(self):
-        img_filename = os.path.basename(self.img_data.filename)
-        spec_filename = os.path.basename(self.spectrum_data.spectrum_filename)
-        calibration_name = self.calibration_data.calibration_name
+        img_filename = os.path.basename(self.img_model.filename)
+        spec_filename = os.path.basename(self.spectrum_model.spectrum_filename)
+        calibration_name = self.calibration_model.calibration_name
         str = 'Dioptas ' + __VERSION__
         if img_filename is '' and spec_filename is '':
-            self.view.setWindowTitle(str + u' - © 2014 C. Prescher')
-            self.view.integration_widget.img_frame.setWindowTitle(str + u' - © 2014 C. Prescher')
+            self.widget.setWindowTitle(str + u' - © 2014 C. Prescher')
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2014 C. Prescher')
             return
 
         if img_filename is not '' or spec_filename is not '':
@@ -133,8 +133,8 @@ class MainController(object):
             str += ', calibration: ' + calibration_name
         str += ']'
         str += u' - © 2014 C. Prescher'
-        self.view.setWindowTitle(str)
-        self.view.integration_widget.img_frame.setWindowTitle(str)
+        self.widget.setWindowTitle(str)
+        self.widget.integration_widget.img_frame.setWindowTitle(str)
 
     def load_settings(self):
         if os.path.exists(self.settings_directory):
@@ -156,7 +156,7 @@ class MainController(object):
             filenames = root.find("filenames")
             calibration_path=filenames.find("calibration").text
             if os.path.exists(str(calibration_path)):
-                self.calibration_data.load(calibration_path)
+                self.calibration_model.load(calibration_path)
 
     def save_settings(self):
         if not os.path.exists(self.settings_directory):
@@ -175,7 +175,7 @@ class MainController(object):
         root = ET.Element("DioptasSettings")
         filenames = ET.SubElement(root, "filenames")
         calibration_filename = ET.SubElement(filenames, "calibration")
-        calibration_filename.text = self.calibration_data.filename
+        calibration_filename.text = self.calibration_model.filename
         tree = ET.ElementTree(root)
         tree.write(os.path.join(self.settings_directory, "settings.xml"))
 
