@@ -32,7 +32,7 @@ install:
 #    - cd ../pyFAI
 #    - python setup.py install
 
-#    - cd ../
+    - cd ../
 
 script:
     - cd source/test
