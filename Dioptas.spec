@@ -30,7 +30,7 @@ a = Analysis([os.path.join(folder,'Dioptas.py')],
 
 
 ##### include mydir in distribution #######
-def extra_datas(mydir):
+def extra_datas(dest_directory, source_directory):
     def rec_glob(p, files):
         import os
         import glob
@@ -39,14 +39,15 @@ def extra_datas(mydir):
                 files.append(d)
             rec_glob("%s/*" % d, files)
     files = []
-    rec_glob("%s/*" % mydir, files)
+    rec_glob("%s/*" % source_directory, files)
     extra_datas = []
     for f in files:
-        extra_datas.append((f, f, 'DATA'))
+        extra_datas.append((os.path.join(dest_directory, os.path.basename(f)),
+                            os.path.join(source_directory, os.path.basename(f)), 'DATA'))
     return extra_datas
 ###########################################
 
-a.datas += extra_datas('calibrants')
+a.datas += extra_datas('calibrants', 'source/calibrants')
 a.datas += [('pyFAI/calibration/__init__.py', 'source/calibrants/__init__.py', 'DATA')]
 
 
