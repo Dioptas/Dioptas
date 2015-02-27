@@ -23,16 +23,16 @@ before_install:
 
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose pyqt scikit-image
-    - pip install lmfit pyqtgraph Pillow
 
     #installing fabio and pyFAI
     - cd fabio
     - python setup.py install
 
-    - cd ../pyFAI
-    - python setup.py install
+    - pip install lmfit pyqtgraph Pillow pyFAI
+#    - cd ../pyFAI
+#    - python setup.py install
 
-    - cd ../
+#    - cd ../
 
 script:
     - cd source/test
