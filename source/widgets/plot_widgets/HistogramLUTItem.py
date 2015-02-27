@@ -45,7 +45,7 @@ import pyqtgraph.graphicsItems.GradientEditorItem
 pyqtgraph.graphicsItems.GradientEditorItem.Gradients['grey_inverse'] = \
     {'ticks': [(0.0, (255, 255, 255, 255)), (1.0, (0, 0, 0, 255))], 'mode': 'rgb'}
 
-class HorHistogramLUTItem(GraphicsWidget):
+class HistogramLUTItem(GraphicsWidget):
     """
     This is a graphicsWidget which provides controls for adjusting the display of an image.
     Includes:

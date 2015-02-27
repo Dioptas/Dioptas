@@ -26,7 +26,7 @@ from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from PyQt4 import QtCore, QtGui
 
-from .HorHistogramLUTItem import HorHistogramLUTItem
+from .HistogramLUTItem import HistogramLUTItem
 
 
 class ImgWidget(QtCore.QObject):
@@ -54,7 +54,7 @@ class ImgWidget(QtCore.QObject):
             #create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
-            self.img_histogram_LUT = HorHistogramLUTItem(self.data_img_item)
+            self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
             self.pg_layout.addItem(self.img_histogram_LUT, 0, 0)
 
         elif self.orientation == 'vertical':
@@ -62,7 +62,7 @@ class ImgWidget(QtCore.QObject):
             #create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
-            self.img_histogram_LUT = HorHistogramLUTItem(self.data_img_item, orientation='vertical')
+            self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
             # self.img_histogram_LUT.axis.hide()
             self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
 
