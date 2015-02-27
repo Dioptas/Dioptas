@@ -121,11 +121,13 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.calibrate()
         self.calibration_model.integrate_1d()
         self.calibration_model.integrate_2d()
-        self.calibration_controller.load_img('Data/CeO2_Pilatus1M.tif')
+        self.calibration_controller.load_img(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.calibration_model.integrate_1d()
         self.calibration_model.integrate_2d()
 
     def test_loading_and_saving_of_calibration_files(self):
-        self.calibration_controller.load_calibration('Data/calibration.poni')
-        self.calibration_controller.save_calibration('Data/calibration.poni')
+        self.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.calibration_controller.save_calibration(os.path.join(data_path, 'calibration.poni'))
+        self.assertTrue(os.path.exists(os.path.join(data_path, 'calibration.poni')))
+        os.remove(os.path.join(data_path, 'calibration.poni'))
 
