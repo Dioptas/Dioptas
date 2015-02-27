@@ -22,15 +22,15 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
-from Data.Spectrum import BkgNotInRangeError
+from model.Spectrum import BkgNotInRangeError
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from Views.IntegrationView import IntegrationView
-from Data.ImgData import ImgData
-from Data.MaskData import MaskData
-from Data.CalibrationData import CalibrationData
-from Data.SpectrumData import SpectrumData
+from widgets.IntegrationView import IntegrationView
+from model.ImgData import ImgData
+from model.MaskData import MaskData
+from model.CalibrationData import CalibrationData
+from model.SpectrumData import SpectrumData
 
 
 class IntegrationSpectrumController(object):

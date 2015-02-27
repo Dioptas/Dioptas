@@ -12,10 +12,10 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 
-from Data.ImgData import ImgData
-from Data.MaskData import MaskData
-from Controller.MaskController import MaskController
-from Views.MaskView import MaskView
+from model.ImgData import ImgData
+from model.MaskData import MaskData
+from controller.MaskController import MaskController
+from widgets.MaskView import MaskView
 
 class MaskControllerTest(unittest.TestCase):
     def setUp(self):

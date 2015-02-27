@@ -19,7 +19,7 @@
 __author__ = 'Clemens Prescher'
 
 from .HelperModule import Observable
-from Data.jcpds import jcpds
+from .jcpds import jcpds
 import numpy as np
 
 class PhaseLoadError(Exception):

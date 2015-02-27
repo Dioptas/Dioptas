@@ -5,8 +5,8 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 
-from Data.CalibrationData import CalibrationData
-from Data.ImgData import ImgData
+from model.CalibrationData import CalibrationData
+from model.ImgData import ImgData
 import gc
 
 class MaskUnitTest(unittest.TestCase):

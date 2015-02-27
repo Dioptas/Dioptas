@@ -27,10 +27,10 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from Views.CalibrationView import CalibrationView
-from Data.ImgData import ImgData
-from Data.MaskData import MaskData
-from Data.CalibrationData import CalibrationData
+from widgets.CalibrationView import CalibrationView
+from model.ImgData import ImgData
+from model.MaskData import MaskData
+from model.CalibrationData import CalibrationData
 
 class CalibrationController(object):
     """

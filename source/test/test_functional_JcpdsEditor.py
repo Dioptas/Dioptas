@@ -21,10 +21,10 @@ import numpy as np
 import os
 import gc
 
-from Data.jcpds import jcpds
-from Data.CalibrationData import CalibrationData
-from Controller.JcpdsEditorController import JcpdsEditorController
-from Controller.MainController import MainController
+from model.jcpds import jcpds
+from model.CalibrationData import CalibrationData
+from controller.JcpdsEditorController import JcpdsEditorController
+from controller.MainController import MainController
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 import sys

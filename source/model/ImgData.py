@@ -27,10 +27,10 @@ import numpy as np
 import random
 import fabio
 from PIL import Image
-from Data.HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
+from .HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator, gauss_function
 
-from Data.ImgCorrection import ImgCorrectionManager
+from model.ImgCorrection import ImgCorrectionManager
 
 
 class ImgData(Observable):

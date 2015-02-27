@@ -28,19 +28,19 @@ pg.setConfigOption('background', 'k')
 pg.setConfigOption('foreground', 'w')
 pg.setConfigOption('antialias', True)
 
-from Controller.IntegrationOverlayController import IntegrationOverlayController
-from Controller.IntegrationImageController import IntegrationImageController
-from Controller.IntegrationSpectrumController import IntegrationSpectrumController
-from Controller.IntegrationPhaseController import IntegrationPhaseController
-from Controller.IntegrationBackgroundController import IntegrationBackgroundController
+from controller.IntegrationOverlayController import IntegrationOverlayController
+from controller.IntegrationImageController import IntegrationImageController
+from controller.IntegrationSpectrumController import IntegrationSpectrumController
+from controller.IntegrationPhaseController import IntegrationPhaseController
+from controller.IntegrationBackgroundController import IntegrationBackgroundController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from Views.IntegrationView import IntegrationView
-from Data.ImgData import ImgData
-from Data.MaskData import MaskData
-from Data.CalibrationData import CalibrationData
-from Data.SpectrumData import SpectrumData
-from Data.PhaseData import PhaseData
+from widgets.IntegrationView import IntegrationView
+from model.ImgData import ImgData
+from model.MaskData import MaskData
+from model.CalibrationData import CalibrationData
+from model.SpectrumData import SpectrumData
+from model.PhaseData import PhaseData
 
 
 class IntegrationController(object):

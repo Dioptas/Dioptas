@@ -4,8 +4,8 @@ __author__ = 'Clemens Prescher'
 import unittest
 import numpy as np
 
-from Data.Helper import extract_background
-from Data.Helper.PeakShapes import gaussian
+from model.Helper import extract_background
+from model.Helper.PeakShapes import gaussian
 
 
 class TestBackgroundExtraction(unittest.TestCase):

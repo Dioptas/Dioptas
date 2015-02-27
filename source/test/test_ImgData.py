@@ -10,8 +10,8 @@ import numpy as np
 import gc
 import matplotlib.pyplot as plt
 
-from Data.ImgData import ImgData
-from Data.ImgCorrection import DummyCorrection
+from model.ImgData import ImgData
+from model.ImgCorrection import DummyCorrection
 
 
 class ImgDataUnitTest(unittest.TestCase):

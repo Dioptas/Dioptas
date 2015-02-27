@@ -21,14 +21,14 @@ import os
 from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
-from Data.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+from model.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from Views.IntegrationView import IntegrationView
-from Data.ImgData import ImgData
-from Data.SpectrumData import SpectrumData
-from Data.MaskData import MaskData
-from Data.CalibrationData import CalibrationData
+from widgets.IntegrationView import IntegrationView
+from model.ImgData import ImgData
+from model.SpectrumData import SpectrumData
+from model.MaskData import MaskData
+from model.CalibrationData import CalibrationData
 
 
 class IntegrationImageController(object):

@@ -25,11 +25,11 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from Views.IntegrationView import IntegrationView
-from Data.SpectrumData import SpectrumData
-from Data.ImgData import ImgData
-from Controller.IntegrationBackgroundController import IntegrationBackgroundController
-from Controller.IntegrationSpectrumController import IntegrationSpectrumController
+from widgets.IntegrationView import IntegrationView
+from model.SpectrumData import SpectrumData
+from model.ImgData import ImgData
+from controller.IntegrationBackgroundController import IntegrationBackgroundController
+from controller.IntegrationSpectrumController import IntegrationSpectrumController
 
 class IntegrationBackgroundControllerTest(unittest.TestCase):
     def setUp(self):

@@ -31,9 +31,9 @@ from pyFAI.blob_detection import BlobDetection
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
-from Data.HelperModule import get_base_name
+from .HelperModule import get_base_name
 from copy import copy
-import Calibrants
+import calibrants
 
 
 class CalibrationData(object):
@@ -58,7 +58,7 @@ class CalibrationData(object):
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
-        self._calibrants_working_dir = os.path.dirname(Calibrants.__file__)
+        self._calibrants_working_dir = os.path.dirname(calibrants.__file__)
 
         self.cake_img = np.zeros((2048, 2048))
         self.tth = np.linspace(0, 25)

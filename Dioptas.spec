@@ -16,8 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-a = Analysis(['Dioptas.py'],
-             pathex=['C:\\Github\\Dioptas\\Dioptas_main'],
+import os
+
+folder = 'source'
+
+
+
+a = Analysis([os.path.join(folder,'Dioptas.py')],
+             pathex=['source'],
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
              hookspath=None,
              runtime_hooks=None)
@@ -40,8 +46,8 @@ def extra_datas(mydir):
     return extra_datas
 ###########################################
 
-a.datas += extra_datas('Calibrants')
-a.datas += [('pyFAI/calibration/__init__.py', 'Calibrants/__init__.py', 'DATA')]
+a.datas += extra_datas('calibrants')
+a.datas += [('pyFAI/calibration/__init__.py', 'source/calibrants/__init__.py', 'DATA')]
 
 
 
@@ -84,4 +90,4 @@ coll = COLLECT(exe,
 if _platform == "darwin":
     app = BUNDLE(coll,
                  name='Dioptas.app',
-                 icon='Views/UiFiles/Icon/icns/icon.icns')
+                 icon='source/widgets/UiFiles/Icon/icns/icon.icns')

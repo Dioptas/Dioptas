@@ -23,13 +23,13 @@ from functools import wraps
 import numpy as np
 
 from PyQt4 import QtGui, QtCore
-from Data.jcpds import jcpds
+from model.jcpds import jcpds
 
-from Views.JcpdsEditorWidget import JcpdsEditorWidget
+from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from Data.CalibrationData import CalibrationData
-from Data.jcpds import jcpds
+from model.jcpds import jcpds
+from model.CalibrationData import CalibrationData
 
 
 class JcpdsEditorController(QtCore.QObject):

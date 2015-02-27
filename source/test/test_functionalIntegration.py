@@ -9,7 +9,7 @@ import gc
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from Controller.MainController import MainController
+from controller.MainController import MainController
 
 
 class IntegrationFunctionalTest(unittest.TestCase):

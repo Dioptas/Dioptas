@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from PyQt4 import QtGui, QtCore
-from Controller.MainController import MainController
+from controller.MainController import MainController
 
 class SaveSettingsTest(unittest.TestCase):
     def setUp(self):

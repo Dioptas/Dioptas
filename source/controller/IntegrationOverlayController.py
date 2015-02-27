@@ -24,8 +24,8 @@ import numpy as np
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from Views.IntegrationView import IntegrationView
-from Data.SpectrumData import SpectrumData
+from widgets.IntegrationView import IntegrationView
+from model.SpectrumData import SpectrumData
 
 
 class IntegrationOverlayController(object):

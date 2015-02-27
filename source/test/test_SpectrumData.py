@@ -3,9 +3,9 @@ __author__ = 'Clemens Prescher'
 import unittest
 import numpy as np
 
-from Data.SpectrumData import Spectrum, SpectrumData
-from Data.Spectrum import BkgNotInRangeError
-from Data.Helper.PeakShapes import gaussian
+from model.SpectrumData import Spectrum, SpectrumData
+from model.Spectrum import BkgNotInRangeError
+from model.Helper.PeakShapes import gaussian
 
 
 class SpectrumDataTest(unittest.TestCase):
