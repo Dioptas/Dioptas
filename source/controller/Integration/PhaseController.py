@@ -204,7 +204,7 @@ class PhaseController(object):
                 if cur_ind>=0:
                     self.jcpds_editor_controller.show_phase(self.phase_data.phases[cur_ind])
                 else:
-                    self.jcpds_editor_controller.view.close()
+                    self.jcpds_editor_controller.widget.close()
 
 
     def clear_phases(self):
@@ -385,7 +385,7 @@ class PhaseController(object):
     def update_jcpds_editor(self, cur_ind=None):
         if cur_ind is None:
             cur_ind = self.view.get_selected_phase_row()
-        if self.jcpds_editor_controller.view.isVisible():
+        if self.jcpds_editor_controller.widget.isVisible():
             self.jcpds_editor_controller.update_phase_view(self.phase_data.phases[cur_ind])
 
     def jcpds_editor_reload_phase(self, jcpds):

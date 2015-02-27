@@ -110,7 +110,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.calibration_model.spectrum_geometry.wavelength = 0.31
 
         self.jcpds_controller = JcpdsEditorController('Data/jcpds', self.calibration_model, self.jcpds)
-        self.jcpds_view = self.jcpds_controller.view
+        self.jcpds_view = self.jcpds_controller.widget
 
         # Erwin immediately sees the filename in the explorer
         self.assertEqual(str(self.jcpds_view.filename_txt.text()),
@@ -267,7 +267,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
         self.jcpds_controller = JcpdsEditorController('Data/jcpds/', jcpds_phase=self.jcpds)
-        self.jcpds_view = self.jcpds_controller.view
+        self.jcpds_view = self.jcpds_controller.widget
 
         # he sees that there are 13 reflections predefined in the table
 
@@ -345,7 +345,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.jcpds.load_file('Data/jcpds/au_mal_anders.jcpds')
         self.jcpds_controller = JcpdsEditorController('Data/jcpds/', jcpds_phase=self.jcpds)
-        self.jcpds_view = self.jcpds_controller.view
+        self.jcpds_view = self.jcpds_controller.widget
         self.assertEqual(float(str(self.jcpds_view.lattice_a_sb.text())), 4.0786)
         self.assertEqual(float(str(self.jcpds_view.lattice_b_sb.text())), 4.0786)
         self.assertEqual(float(str(self.jcpds_view.lattice_c_sb.text())), 4.0786)
@@ -386,7 +386,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_view = self.jcpds_editor_controller.view
+        self.jcpds_view = self.jcpds_editor_controller.widget
 
         self.phase_controller.view.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
@@ -496,7 +496,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_view = self.jcpds_editor_controller.view
+        self.jcpds_view = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
@@ -574,7 +574,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_view = self.jcpds_editor_controller.view
+        self.jcpds_view = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
@@ -600,7 +600,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_view = self.jcpds_editor_controller.view
+        self.jcpds_view = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
