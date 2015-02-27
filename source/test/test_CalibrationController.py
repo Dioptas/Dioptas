@@ -25,10 +25,10 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_widget = CalibrationWidget()
         self.working_dir = {}
         self.calibration_controller = CalibrationController(working_dir=self.working_dir,
-                                                            img_data=self.img_model,
-                                                            mask_data=self.mask_model,
-                                                            view=self.calibration_widget,
-                                                            calibration_data=self.calibration_model)
+                                                            img_model=self.img_model,
+                                                            mask_model=self.mask_model,
+                                                            widget=self.calibration_widget,
+                                                            calibration_model=self.calibration_model)
 
     def tearDown(self):
         del self.app
