@@ -38,8 +38,8 @@ class BackgroundController(object):
         """
         :param working_dir: dictionary with working directories (uses the 'image' key) for the background image
         :param widget: IntegrationWidget
-        :param img_model: Reference to the ImgData object
-        :param spectrum_model: Reference to the spectrum_data object
+        :param img_model: Reference to the ImgModel object
+        :param spectrum_model: Reference to the SpectrumModel object
 
         :type widget: IntegrationWidget
         :type img_model: ImgModel
