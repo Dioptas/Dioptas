@@ -215,3 +215,7 @@ class SpectrumTest(unittest.TestCase):
         spec = Spectrum(x, y)
 
         self.assertEqual(len(spec), 234)
+
+
+if __name__ == '__main__':
+    unittest.main()

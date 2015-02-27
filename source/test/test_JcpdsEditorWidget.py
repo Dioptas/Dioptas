@@ -97,4 +97,5 @@ class JcpdsEditorTest(unittest.TestCase):
         self.assertEqual(float(str(self.jcpds_editor_widget.eos_dKpdT_txt.text())),
                          self.jcpds.dk0pdt)
 
-
+if __name__ == '__main__':
+    unittest.main()

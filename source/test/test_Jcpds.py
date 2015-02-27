@@ -77,3 +77,7 @@ class JcpdsUnitTest(unittest.TestCase):
         self.assertTrue(self.jcpds.modified)
         self.assertEqual(os.path.join(jcpds_path, 'au_Anderson.jcpds*'), self.jcpds.filename)
         self.assertEqual('au_Anderson*', self.jcpds.name)
+
+
+if __name__ == '__main__':
+    unittest.main()

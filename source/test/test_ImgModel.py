@@ -166,7 +166,7 @@ class ImgDataUnitTest(unittest.TestCase):
         self.assertTrue(self.img_model._img_corrections.has_items())
 
 
-        self.img_model.load('Data/CeO2_Pilatus1M.tif')
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.assertFalse(self.img_model.has_corrections())
 
     def test_adding_several_absorption_corrections(self):
@@ -263,3 +263,6 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_model.reset_img_transformations()
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), pre_transformed_data))
 
+
+if __name__ == '__main__':
+    unittest.main()

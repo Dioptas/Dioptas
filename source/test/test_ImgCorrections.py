@@ -308,3 +308,8 @@ class ObliqueAngleDetectorAbsorptionCorrectionTest(unittest.TestCase):
         oblique_correction_data = oblique_correction.get_data()
         self.assertGreater(np.sum(oblique_correction_data), 0)
         self.assertEqual(oblique_correction_data.shape, self.dummy_img.shape)
+        del oblique_correction
+
+
+if __name__ == '__main__':
+    unittest.main()
