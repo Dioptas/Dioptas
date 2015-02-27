@@ -78,11 +78,6 @@ class IntegrationController(object):
 
         self.create_sub_controller()
 
-        self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        self.widget.activateWindow()
-        self.widget.raise_()
-
-
     def create_sub_controller(self):
         """
         Creates the sub controller with the appropriate data.
@@ -101,16 +96,3 @@ class IntegrationController(object):
 
         self.background_controller = BackgroundController(self.working_dir, self.widget,
                                                                      self.img_model, self.spectrum_model)
-
-
-if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
-    controller = IntegrationController({'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
-                                        'phase': ''})
-    controller.image_controller.load_file('../ExampleData/Mg2SiO4_ambient_001.tif')
-    controller.spectrum_controller._working_dir = '../ExampleData/spectra'
-    controller.mask_model.set_dimension(controller.img_model.get_img_data().shape)
-    controller.overlay_controller.add_overlay_btn_click_callback('../ExampleData/spectra/Mg2SiO4_ambient_005.xy')
-    controller.calibration_model.load('../ExampleData/LaB6_p49_001.poni')
-    controller.image_controller.load_file('../ExampleData/Mg2SiO4_ambient_001.tif')
-    app.exec_()
