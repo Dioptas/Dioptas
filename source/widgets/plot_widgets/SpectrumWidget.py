@@ -21,7 +21,7 @@ from __future__ import absolute_import, print_function
 
 __author__ = 'Clemens Prescher'
 import pyqtgraph as pg
-from .ExLegendItem import LegendItem
+from widgets.plot_widgets.ExLegendItem import LegendItem
 import numpy as np
 from model.Helper.HelperModule import calculate_color
 from PyQt4 import QtCore

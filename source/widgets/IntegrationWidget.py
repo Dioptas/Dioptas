@@ -24,8 +24,8 @@ from PyQt4 import QtGui, QtCore
 from functools import partial
 
 from .UiFiles.IntegrationUI import Ui_xrs_integration_widget
-from .ImgWidget import IntegrationImgView
-from .SpectrumWidget import SpectrumWidget
+from widgets.plot_widgets.ImgWidget import IntegrationImgView
+from widgets.plot_widgets import SpectrumWidget
 
 
 class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
