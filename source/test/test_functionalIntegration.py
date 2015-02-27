@@ -10,25 +10,37 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from controller.MainController import MainController
+from controller.integration import IntegrationController
+from model import ImgModel, CalibrationModel, MaskModel, SpectrumModel, PhaseModel
+from widgets.IntegrationWidget import IntegrationWidget
 
 
 class IntegrationFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-        self.main_controller = MainController(use_settings=False)
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.integration_widget = self.main_controller.integration_controller.widget
-        self.calibration_model = self.main_controller.calibration_model
-        self.img_model = self.main_controller.img_model
-        self.mask_model = self.main_controller.mask_model
+        self.img_model = ImgModel()
+        self.mask_model = MaskModel()
+        self.spectrum_model = SpectrumModel()
+        self.calibration_model = CalibrationModel(self.img_model)
+        self.phase_model = PhaseModel()
 
-        self.integration_spectrum_controller = self.main_controller.integration_controller.spectrum_controller
-        self.integration_image_controller = self.main_controller.integration_controller.image_controller
+        self.integration_widget = IntegrationWidget()
+
+        self.integration_controller = IntegrationController({},
+                                                              widget=self.integration_widget,
+                                                              img_model=self.img_model,
+                                                              mask_model=self.mask_model,
+                                                              calibration_model=self.calibration_model,
+                                                              spectrum_model=self.spectrum_model,
+                                                              phase_model=self.phase_model)
+        self.calibration_model.load('Data/LaB6_p49_40keV_006.poni')
+        self.img_model.load('Data/LaB6_p49_40keV_006.tif')
+
+
+        self.integration_spectrum_controller = self.integration_controller.spectrum_controller
+        self.integration_image_controller = self.integration_controller.image_controller
 
     def tearDown(self):
-
         del self.integration_spectrum_controller
         del self.mask_model
         del self.img_model
@@ -36,7 +48,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         del self.calibration_model.spectrum_geometry
         del self.calibration_model
         del self.integration_widget
-        del self.main_controller
+        del self.integration_controller
         del self.app
         gc.collect()
 
@@ -50,7 +62,6 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # Edith wants to change the number of integration bins in order to see the effect of binning onto her line
         # shape. She sees that there is an option in the X tab and deselects automatic and sees that the sbinbox
         # becomes editable.
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(4)
         self.assertFalse(self.integration_widget.bin_count_txt.isEnabled())
         self.integration_widget.automatic_binning_cb.setChecked(False)
         self.assertTrue(self.integration_widget.bin_count_txt.isEnabled())
@@ -58,22 +69,21 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
         self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 2900)
-        previous_number_of_points = len(self.main_controller.spectrum_model.spectrum.x)
+        previous_number_of_points = len(self.spectrum_model.spectrum.x)
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * 2900)
 
-        self.assertAlmostEqual(len(self.main_controller.spectrum_model.spectrum.x), 2 * previous_number_of_points,
+        self.assertAlmostEqual(len(self.spectrum_model.spectrum.x), 2 * previous_number_of_points,
                                delta=1)
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
         self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 2900)
-        self.assertEqual(len(self.main_controller.spectrum_model.spectrum.x), previous_number_of_points)
+        self.assertEqual(len(self.spectrum_model.spectrum.x), previous_number_of_points)
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
         # Edith opens the program, calibrates everything and looks in to the options menu. She sees that there is a
         # miraculous parameter called supersampling. It is currently set to 1 which seems to be normal
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(4)
         self.assertEqual(self.integration_widget.supersampling_sb.value(), 1)
 
         # then she sets it to two and she sees that the number of spectrum bin changes and that the spectrum looks
@@ -91,16 +101,15 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.assertEqual(self.calibration_model.cake_geometry.pixel1, px1)
         self.assertEqual(self.calibration_model.cake_geometry.pixel2, px2)
 
-        self.assertEqual(self.img_model.img_data.shape[0], 2*img_shape[0])
-        self.assertEqual(self.img_model.img_data.shape[1], 2*img_shape[0])
+        self.assertEqual(self.img_model.img_data.shape[0], 2 * img_shape[0])
+        self.assertEqual(self.img_model.img_data.shape[1], 2 * img_shape[0])
 
         self.mask_model.load_mask('Data/test.mask')
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
 
     def test_saving_image(self):
-        #Tests if the image save procedures are working for the different possible file endings
-        self.main_controller.widget.show()
+        # Tests if the image save procedures are working for the different possible file endings
         self.integration_image_controller.save_img('Data/Test_img.png')
         self.integration_image_controller.save_img('Data/Test_img.tiff')
 
@@ -111,8 +120,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         os.remove('Data/Test_img.tiff')
 
     def test_saving_spectrum(self):
-        self.main_controller.widget.show()
-        #Tests if the spectrum save procedures is are working for all fileendings
+        # Tests if the spectrum save procedures is are working for all fileendings
         def save_spectra_test_for_size_and_delete(self):
             self.integration_spectrum_controller.save_spectrum('Data/Test_spec.xy')
             self.integration_spectrum_controller.save_spectrum('Data/Test_spec.chi')
