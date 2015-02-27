@@ -3,6 +3,7 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import sys
+import os
 import gc
 
 from PyQt4 import QtGui, QtCore
@@ -15,13 +16,16 @@ from controller.CalibrationController import CalibrationController
 from widgets.CalibrationWidget import CalibrationWidget
 
 
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
+
 class CalibrationControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
-        self.calibration_model._calibrants_working_dir = 'Data/Calibrants'
+        self.calibration_model._calibrants_working_dir = os.path.join(data_path, 'calibrants')
         self.calibration_widget = CalibrationWidget()
         self.working_dir = {}
         self.calibration_controller = CalibrationController(working_dir=self.working_dir,
@@ -36,33 +40,10 @@ class CalibrationControllerTest(unittest.TestCase):
         del self.calibration_model.spectrum_geometry
         del self.calibration_model
         del self.app
+        gc.collect()
 
-    def test_automatic_calibration1(self):
-        self.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.calibration_controller.search_peaks(1179.6, 1129.4)
-        self.calibration_controller.search_peaks(1268.5, 1119.8)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
-        self.calibration_controller.widget.sv_distance_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('79')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('79')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
-        self.calibration_controller.calibrate()
-        self.calibration_controller.widget.cake_view.set_vertical_line_pos(1419.8, 653.4)
-
-    def test_automatic_calibration2(self):
-        self.calibration_controller.load_img('Data/LaB6_WOS_30keV_005.tif')
-        self.calibration_controller.search_peaks(1245.2, 1919.3)
-        self.calibration_controller.search_peaks(1334.0, 1823.7)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')
-        self.calibration_controller.widget.sv_distance_txt.setText('500')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
-        self.calibration_controller.calibrate()
-        self.calibration_controller.widget.cake_view.set_vertical_line_pos(206.5, 171.6)
-
-    def test_automatic_calibration3(self):
-        self.calibration_controller.load_img('Data/CeO2_Oct24_2014_001_0000.tif')
+    def load_pilatus_1M_and_pick_peaks(self):
+        self.calibration_controller.load_img('Data/CeO2_Pilatus1M.tif')
         QTest.mouseClick(self.calibration_widget.automatic_peak_num_inc_cb, QtCore.Qt.LeftButton)
 
         self.assertFalse(self.calibration_widget.automatic_peak_num_inc_cb.isChecked())
@@ -79,6 +60,35 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.widget.sv_pixel_height_txt.setText('172')
         self.calibration_controller.widget.calibrant_cb.setCurrentIndex(4)
 
+        self.mask_model.set_dimension(self.img_model.img_data.shape)
+
+    def test_automatic_calibration1(self):
+        self.calibration_controller.load_img(os.path.join(data_path,'LaB6_40keV_MarCCD.tif'))
+        self.calibration_controller.search_peaks(1179.6, 1129.4)
+        self.calibration_controller.search_peaks(1268.5, 1119.8)
+        self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
+        self.calibration_controller.widget.sv_distance_txt.setText('200')
+        self.calibration_controller.widget.sv_pixel_width_txt.setText('79')
+        self.calibration_controller.widget.sv_pixel_height_txt.setText('79')
+        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
+        self.calibration_controller.calibrate()
+        self.calibration_controller.widget.cake_view.set_vertical_line_pos(1419.8, 653.4)
+
+    def test_automatic_calibration2(self):
+        self.calibration_controller.load_img(os.path.join(data_path,'LaB6_OffCenter_PE.tif'))
+        self.calibration_controller.search_peaks(1245.2, 1919.3)
+        self.calibration_controller.search_peaks(1334.0, 1823.7)
+        self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')
+        self.calibration_controller.widget.sv_distance_txt.setText('500')
+        self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
+        self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
+        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
+        self.calibration_controller.calibrate()
+        self.calibration_controller.widget.cake_view.set_vertical_line_pos(206.5, 171.6)
+
+    def test_automatic_calibration3(self):
+        self.load_pilatus_1M_and_pick_peaks()
+
         start_values = self.calibration_widget.get_start_values()
         self.assertAlmostEqual(start_values['wavelength'], 0.406626e-10)
         self.assertAlmostEqual(start_values['pixel_height'], 172e-6)
@@ -92,27 +102,13 @@ class CalibrationControllerTest(unittest.TestCase):
         self.assertAlmostEqual(calibration_parameter['dist'], .2086, places=4)
 
     def test_automatic_calibration_with_supersampling(self):
-        self.calibration_controller.load_img('Data/LaB6_WOS_30keV_005.tif')
-        self.calibration_controller.search_peaks(1245.2, 1919.3)
-        self.calibration_controller.search_peaks(1334.0, 1823.7)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')
-        self.calibration_controller.widget.sv_distance_txt.setText('500')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
+        self.load_pilatus_1M_and_pick_peaks()
         self.img_model.set_supersampling(2)
         self.calibration_model.set_supersampling(2)
         self.calibration_controller.calibrate()
 
     def test_automatic_calibration_with_supersampling_and_mask(self):
-        self.calibration_controller.load_img('Data/LaB6_WOS_30keV_005.tif')
-        self.calibration_controller.search_peaks(1245.2, 1919.3)
-        self.calibration_controller.search_peaks(1334.0, 1823.7)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')
-        self.calibration_controller.widget.sv_distance_txt.setText('500')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
+        self.load_pilatus_1M_and_pick_peaks()
         self.img_model.set_supersampling(2)
         self.mask_model.mask_below_threshold(self.img_model._img_data, 1)
         self.mask_model.set_supersampling(2)
@@ -121,16 +117,7 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.calibrate()
 
     def test_calibrating_one_image_size_and_loading_different_image_size(self):
-        self.calibration_controller.load_img('Data/LaB6_WOS_30keV_005.tif')
-        self.calibration_controller.search_peaks(1245.2, 1919.3)
-        self.calibration_controller.search_peaks(1334.0, 1823.7)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')
-        self.calibration_controller.widget.sv_distance_txt.setText('500')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
-        self.calibration_controller.widget.options_automatic_refinement_cb.setChecked(False)
-        self.calibration_controller.widget.use_mask_cb.setChecked(True)
+        self.load_pilatus_1M_and_pick_peaks()
         self.calibration_controller.calibrate()
         self.calibration_model.integrate_1d()
         self.calibration_model.integrate_2d()
