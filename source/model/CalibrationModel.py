@@ -19,10 +19,11 @@
 __author__ = 'Clemens Prescher'
 
 import os
-import numpy as np
 import time
-
 import logging
+
+import numpy as np
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,7 @@ from pyFAI.blob_detection import BlobDetection
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
-from .HelperModule import get_base_name
-from copy import copy
+from model.Helper.HelperModule import get_base_name
 import calibrants
 
 

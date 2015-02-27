@@ -2,10 +2,11 @@
 __author__ = 'Clemens Prescher'
 
 import unittest
-import numpy as np
 import gc
 
-from model.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, ObliqueAngleDetectorAbsorptionCorrection
+import numpy as np
+
+from model.Helper.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, ObliqueAngleDetectorAbsorptionCorrection
 
 
 class DummyCorrection(ImgCorrectionInterface):
@@ -88,7 +89,7 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
 
 
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-from model.ImgCorrection import CbnCorrection
+from model.Helper.ImgCorrection import CbnCorrection
 
 
 class CbnCorrectionTest(unittest.TestCase):

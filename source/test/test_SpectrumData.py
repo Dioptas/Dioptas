@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 
 from model.SpectrumModel import Spectrum, SpectrumModel
-from model.Spectrum import BkgNotInRangeError
+from model.Helper.Spectrum import BkgNotInRangeError
 from model.Helper.PeakShapes import gaussian
 
 

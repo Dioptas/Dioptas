@@ -17,7 +17,7 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Clemens Prescher'
 import unittest
-from model.jcpds import jcpds
+from model.Helper import jcpds
 from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 from PyQt4 import QtGui
 import sys

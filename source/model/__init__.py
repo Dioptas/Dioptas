@@ -17,3 +17,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Doomgoroth'
+
+from CalibrationModel import CalibrationModel
+from ImgModel import ImgModel
+from MaskModel import MaskModel
+from PhaseModel import PhaseModel
+from SpectrumModel import SpectrumModel

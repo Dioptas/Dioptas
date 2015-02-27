@@ -2,3 +2,6 @@
 __author__ = 'Clemens Prescher'
 
 from BackgroundExtraction import extract_background
+
+from Spectrum import Spectrum
+from jcpds import jcpds

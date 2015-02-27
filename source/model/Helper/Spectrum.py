@@ -10,7 +10,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
 
-from .Helper import extract_background
+from model.Helper import extract_background
 
 logger = logging.getLogger(__name__)
 

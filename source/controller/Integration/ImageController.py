@@ -18,17 +18,20 @@
 
 __author__ = 'Clemens Prescher'
 import os
+
 from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
-from model.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+
+from model.Helper.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationView import IntegrationView
-from model.ImgData import ImgData
-from model.SpectrumData import SpectrumData
-from model.MaskData import MaskData
-from model.CalibrationData import CalibrationData
+from model.ImgModel import ImgModel
+from model.SpectrumModel import SpectrumModel
+from model.MaskModel import MaskModel
+from model.CalibrationModel import CalibrationModel
 
 
 class ImageController(object):
@@ -48,10 +51,10 @@ class ImageController(object):
         :param calibration_data: Reference to CalibrationData object
 
         :type view: IntegrationView
-        :type img_data: ImgData
-        :type mask_data: MaskData
-        :type spectrum_data: SpectrumData
-        :type calibration_data: CalibrationData
+        :type img_data: ImgModel
+        :type mask_data: MaskModel
+        :type spectrum_data: SpectrumModel
+        :type calibration_data: CalibrationModel
         """
         self.working_dir = working_dir
         self.view = view

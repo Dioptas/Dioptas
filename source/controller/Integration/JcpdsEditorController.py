@@ -23,13 +23,13 @@ from functools import wraps
 import numpy as np
 
 from PyQt4 import QtGui, QtCore
-from model.jcpds import jcpds
+from model.Helper import jcpds
 
 from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from model.jcpds import jcpds
-from model.CalibrationData import CalibrationData
+from model.Helper.jcpds import jcpds
+from model.CalibrationModel import CalibrationModel
 
 
 class JcpdsEditorController(QtCore.QObject):
@@ -53,7 +53,7 @@ class JcpdsEditorController(QtCore.QObject):
         :param calibration_data: Reference to CalibrationData object
         :param jcpds_phase: Reference to JcpdsPhase object
 
-        :type calibration_data: CalibrationData
+        :type calibration_data: CalibrationModel
         :type jcpds_phase: jcpds
         """
         super(JcpdsEditorController, self).__init__()

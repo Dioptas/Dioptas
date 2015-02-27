@@ -30,8 +30,8 @@ from model.CalibrationModel import CalibrationModel
 from model.SpectrumModel import SpectrumModel
 from model.PhaseModel import PhaseModel
 from widgets.IntegrationView import IntegrationView
-from controller.IntegrationPhaseController import IntegrationPhaseController
-from controller.Integration import SpectrumController
+from controller.integration import PhaseController
+from controller.integration import SpectrumController
 
 
 class PhaseControllerTest(unittest.TestCase):
@@ -46,7 +46,7 @@ class PhaseControllerTest(unittest.TestCase):
 
         self.spectrum_controller = SpectrumController({}, self.view, self.image_data, None,
                                                                    self.calibration_data, self.spectrum_data)
-        self.controller = IntegrationPhaseController({}, self.view, self.calibration_data, self.spectrum_data,
+        self.controller = PhaseController({}, self.view, self.calibration_data, self.spectrum_data,
                                                        self.phase_data)
         self.spectrum_data.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
 

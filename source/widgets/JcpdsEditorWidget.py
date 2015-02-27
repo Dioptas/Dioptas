@@ -18,11 +18,10 @@
 
 __author__ = 'Clemens Prescher'
 
-import numpy as np
 from PyQt4 import QtCore, QtGui
 
 from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
-from model.HelperModule import convert_d_to_two_theta
+from model.Helper.HelperModule import convert_d_to_two_theta
 
 
 class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
