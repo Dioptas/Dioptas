@@ -388,8 +388,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_view = self.jcpds_editor_controller.widget
 
-        self.phase_controller.view.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
         QtGui.QApplication.processEvents()
         self.assertTrue(self.jcpds_view.isActiveWindow())
 
@@ -397,20 +397,20 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.enter_value_into_spinbox(self.jcpds_view.lattice_a_sb, 10.4)
 
-        self.assertAlmostEqual(self.phase_controller.phase_data.phases[0].a0, 10.4)
+        self.assertAlmostEqual(self.phase_controller.phase_model.phases[0].a0, 10.4)
         QTest.mouseClick(self.jcpds_view.cancel_btn, QtCore.Qt.LeftButton)
 
-        self.assertNotAlmostEqual(self.phase_controller.phase_data.phases[0].a0, 10.4)
+        self.assertNotAlmostEqual(self.phase_controller.phase_model.phases[0].a0, 10.4)
 
         # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click another
         # phase --  so he just selects it without closing and reopening the editor
         # and magically the new parameters show up
 
-        self.phase_controller.view.phase_tw.selectRow(1)
-        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.widget.phase_tw.selectRow(1)
+        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
         QtGui.QApplication.processEvents()
 
-        self.phase_controller.view.phase_tw.selectRow(2)
+        self.phase_controller.widget.phase_tw.selectRow(2)
         self.assertTrue(float(str(self.jcpds_view.lattice_a_sb.text())), 5.51280)  # Argon lattice parameter
 
         # Now he changes the lattice parameter and wants to see if there is any change in the line position in the graph
@@ -461,7 +461,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         # he decides to change temperature value and play with all equation of state parameters
         self.enter_value_into_text_field(self.jcpds_view.eos_alphaT_txt, 6.234e-5)
-        self.assertEqual(self.phase_controller.phase_data.phases[2].alpha_t0, 6.234e-5)
+        self.assertEqual(self.phase_controller.phase_model.phases[2].alpha_t0, 6.234e-5)
 
         self.main_controller.integration_controller.widget.phase_temperature_sb.setValue(1300)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
@@ -500,8 +500,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
-        self.phase_controller.view.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
         QtGui.QApplication.processEvents()
 
         self.assertEqual(self.jcpds_view.reflection_table.rowCount(), 13)
@@ -579,12 +579,12 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
-        self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0, 2).text()))
-        self.phase_controller.view.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
+        self.phase_controller.widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
         QtGui.QApplication.processEvents()
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
-        self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0, 2).text()))
+        self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
 
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
@@ -604,8 +604,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
-        self.phase_controller.view.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
         QtGui.QApplication.processEvents()
 
         # he looks at the jcpds_editor and sees that there are not only hkl and intensity values for each reflection but
@@ -632,7 +632,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         #then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
         # values
 
-        self.phase_controller.view.phase_pressure_sb.setValue(30)
+        self.phase_controller.widget.phase_pressure_sb.setValue(30)
         for row_ind in xrange(13):
             self.assertNotEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 5))
             self.assertNotAlmostEqual(self.get_reflection_table_value(row_ind, 6),
