@@ -43,7 +43,7 @@ class CalibrationControllerTest(unittest.TestCase):
         gc.collect()
 
     def load_pilatus_1M_and_pick_peaks(self):
-        self.calibration_controller.load_img('Data/CeO2_Pilatus1M.tif')
+        self.calibration_controller.load_img(os.path.join(data_path,'CeO2_Pilatus1M.tif'))
         QTest.mouseClick(self.calibration_widget.automatic_peak_num_inc_cb, QtCore.Qt.LeftButton)
 
         self.assertFalse(self.calibration_widget.automatic_peak_num_inc_cb.isChecked())
@@ -131,3 +131,6 @@ class CalibrationControllerTest(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(data_path, 'calibration.poni')))
         os.remove(os.path.join(data_path, 'calibration.poni'))
 
+
+if __name__ == '__main__':
+    unittest.main()

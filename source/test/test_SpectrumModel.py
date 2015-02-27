@@ -115,10 +115,5 @@ class SpectrumDataTest(unittest.TestCase):
         self.assertAlmostEqual(np.sum(y_spec- y),0)
 
 
-
-
-
-
-
-
-
+if __name__ == '__main__':
+    unittest.main()

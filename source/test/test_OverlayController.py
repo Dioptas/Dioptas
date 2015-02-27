@@ -218,3 +218,5 @@ class OverlayControllerTest(unittest.TestCase):
         self.overlay_controller.add_overlay_btn_click_callback(os.path.join(data_path, filename))
 
 
+if __name__ == '__main__':
+    unittest.main()

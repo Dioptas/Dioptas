@@ -235,3 +235,6 @@ class PhaseControllerTest(unittest.TestCase):
 
     def load_phase(self, filename):
         self.controller.add_btn_click_callback(os.path.join(jcpds_path, filename))
+
+if __name__ == '__main__':
+    unittest.main()

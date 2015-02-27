@@ -31,3 +31,7 @@ class CalibrationModelTest(unittest.TestCase):
 
         self.calibration_model.load(os.path.join(data_path,'LaB6_40keV_MarCCD.poni'))
         self.assertEqual(self.calibration_model.spectrum_geometry.pixel1, 0.000079)
+
+
+if __name__ == '__main__':
+    unittest.main()

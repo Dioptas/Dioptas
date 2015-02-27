@@ -75,3 +75,6 @@ class MaskControllerTest(unittest.TestCase):
         QTest.mouseClick(self.mask_widget.shrink_btn, QtCore.Qt.LeftButton)
         self.assertTrue(np.array_equal(previous_mask, self.mask_model._mask_data))
 
+
+if __name__ == '__main__':
+    unittest.main()

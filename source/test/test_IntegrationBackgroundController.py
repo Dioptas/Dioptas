@@ -95,4 +95,5 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         self.assertEqual(x_max, 11)
 
 
-
+if __name__ == '__main__':
+    unittest.main()
