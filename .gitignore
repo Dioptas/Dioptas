@@ -27,7 +27,6 @@ log.txt
 .idea
 Testing Ideas/
 data/
-source/Tests/Data
 _build/
 *.logoist
 # Build results
