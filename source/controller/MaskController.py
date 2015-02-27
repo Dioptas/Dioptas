@@ -27,7 +27,7 @@ import numpy as np
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.MaskView import MaskView
+from widgets.MaskWidget import MaskWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 

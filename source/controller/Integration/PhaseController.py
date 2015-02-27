@@ -30,7 +30,7 @@ from .JcpdsEditorController import JcpdsEditorController
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationView import IntegrationView
+from widgets.IntegrationWidget import IntegrationWidget
 from model.CalibrationModel import CalibrationModel
 from model.SpectrumModel import SpectrumModel
 from model.PhaseModel import PhaseModel
@@ -50,7 +50,7 @@ class PhaseController(object):
         :param spectrum_data: reference to SpectrumData object
         :param phase_data: reference to PhaseData object
 
-        :type view: IntegrationView
+        :type view: IntegrationWidget
         :type calibration_data: CalibrationModel
         :type spectrum_data: SpectrumModel
         :type phase_data: PhaseModel

@@ -27,9 +27,9 @@ from .UiFiles.MaskUI import Ui_xrs_mask_widget
 from .ImgWidget import MaskImgWidget
 
 
-class MaskView(QtGui.QWidget, Ui_xrs_mask_widget):
+class MaskWidget(QtGui.QWidget, Ui_xrs_mask_widget):
     def __init__(self):
-        super(MaskView, self).__init__(None)
+        super(MaskWidget, self).__init__(None)
         self.setupUi(self)
         #self.splitter.setStretchFactor(0, 1)
         self.img_view = MaskImgWidget(self.img_pg_layout)

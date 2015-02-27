@@ -24,7 +24,7 @@ import numpy as np
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationView import IntegrationView
+from widgets.IntegrationWidget import IntegrationWidget
 from model.SpectrumModel import SpectrumModel
 
 
@@ -40,7 +40,7 @@ class OverlayController(object):
         :param view: Reference to IntegrationView object
         :param spectrum_data: Reference to SpectrumData object
 
-        :type view: IntegrationView
+        :type view: IntegrationWidget
         :type spectrum_data: SpectrumModel
         """
         self.working_dir = working_dir

@@ -23,7 +23,7 @@ import xml.etree.cElementTree as ET
 
 from PyQt4 import QtGui, QtCore
 
-from widgets.MainView import MainView
+from widgets.MainWidget import MainWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.SpectrumModel import SpectrumModel
@@ -44,7 +44,7 @@ class MainController(object):
     def __init__(self, use_settings=True):
         self.use_settings = use_settings
 
-        self.view = MainView()
+        self.view = MainWidget()
         #create data
         self.img_data = ImgModel()
         self.calibration_data = CalibrationModel(self.img_data)

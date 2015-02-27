@@ -29,7 +29,7 @@ from model.ImgModel import ImgModel
 from model.CalibrationModel import CalibrationModel
 from model.SpectrumModel import SpectrumModel
 from model.PhaseModel import PhaseModel
-from widgets.IntegrationView import IntegrationView
+from widgets.IntegrationWidget import IntegrationWidget
 from controller.integration import PhaseController
 from controller.integration import SpectrumController
 
@@ -42,7 +42,7 @@ class PhaseControllerTest(unittest.TestCase):
         self.spectrum_data = SpectrumModel()
         self.calibration_data.load('Data/LaB6_p49_40keV_006.poni')
         self.phase_data = PhaseModel()
-        self.view = IntegrationView()
+        self.view = IntegrationWidget()
 
         self.spectrum_controller = SpectrumController({}, self.view, self.image_data, None,
                                                                    self.calibration_data, self.spectrum_data)

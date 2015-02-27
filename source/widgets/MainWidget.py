@@ -27,19 +27,19 @@ from PyQt4 import QtGui
 
 from .UiFiles.MainUI import Ui_mainView
 
-from .MaskView import MaskView
-from .IntegrationView import IntegrationView
-from .CalibrationView import CalibrationView
+from .MaskWidget import MaskWidget
+from .IntegrationWidget import IntegrationWidget
+from .CalibrationWidget import CalibrationWidget
 
 
-class MainView(QtGui.QWidget, Ui_mainView):
+class MainWidget(QtGui.QWidget, Ui_mainView):
     def __init__(self):
-        super(MainView, self).__init__(None)
+        super(MainWidget, self).__init__(None)
         self.setupUi(self)
 
-        self.calibration_widget = CalibrationView()
-        self.mask_widget = MaskView()
-        self.integration_widget = IntegrationView()
+        self.calibration_widget = CalibrationWidget()
+        self.mask_widget = MaskWidget()
+        self.integration_widget = IntegrationWidget()
 
         self.calibration_layout = QtGui.QHBoxLayout()
         self.calibration_layout.setContentsMargins(0, 0, 0, 0)
@@ -70,6 +70,6 @@ class MainView(QtGui.QWidget, Ui_mainView):
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
-    view = MainView()
+    view = MainWidget()
     view.show()
     app.exec_()

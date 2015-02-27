@@ -26,7 +26,7 @@ from model.Helper.Spectrum import BkgNotInRangeError
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationView import IntegrationView
+from widgets.IntegrationWidget import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
@@ -50,7 +50,7 @@ class SpectrumController(object):
         :param calibration_data: reference to CalibrationData object
         :param spectrum_data: reference to SpectrumData object
 
-        :type view: IntegrationView
+        :type view: IntegrationWidget
         :type img_data: ImgModel
         :type mask_data: MaskModel
         :type calibration_data: CalibrationModel

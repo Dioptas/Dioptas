@@ -28,7 +28,7 @@ from .ImgWidget import IntegrationImgView
 from .SpectrumWidget import SpectrumWidget
 
 
-class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
+class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
     overlay_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
     overlay_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
     overlay_name_changed = QtCore.pyqtSignal(int, str)
@@ -36,7 +36,7 @@ class IntegrationView(QtGui.QWidget, Ui_xrs_integration_widget):
     phase_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
 
     def __init__(self):
-        super(IntegrationView, self).__init__()
+        super(IntegrationWidget, self).__init__()
         self.setupUi(self)
 
         self.tabWidget.setCurrentIndex(0)
