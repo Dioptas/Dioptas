@@ -33,13 +33,16 @@ from widgets.IntegrationWidget import IntegrationWidget
 from controller.integration import PhaseController
 from controller.integration import SpectrumController
 
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
+jcpds_path = os.path.join(data_path, 'jcpds')
 
 class PhaseControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.image_model = ImgModel()
         self.calibration_model = CalibrationModel()
-        self.calibration_model.load('Data/LaB6_p49_40keV_006.poni')
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.spectrum_model = SpectrumModel()
         self.phase_model = PhaseModel()
         self.widget = IntegrationWidget()
@@ -50,8 +53,7 @@ class PhaseControllerTest(unittest.TestCase):
                                                                    self.calibration_model, self.spectrum_model)
         self.controller = PhaseController({}, self.widget, self.calibration_model, self.spectrum_model,
                                                        self.phase_model)
-        self.spectrum_model.load_spectrum(os.path.join('Data', 'FoG_D3_001.xy'))
-
+        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
 
 
     def tearDown(self):
@@ -232,4 +234,4 @@ class PhaseControllerTest(unittest.TestCase):
         self.load_phase('re.jcpds')
 
     def load_phase(self, filename):
-        self.controller.add_btn_click_callback(os.path.join('Data', 'jcpds', filename))
+        self.controller.add_btn_click_callback(os.path.join(jcpds_path, filename))
