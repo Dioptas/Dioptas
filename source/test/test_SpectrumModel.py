@@ -13,7 +13,7 @@ class SpectrumDataTest(unittest.TestCase):
         self.x = np.linspace(0.1, 15, 100)
         self.y = np.sin(self.x)
         self.spectrum = Spectrum(self.x, self.y)
-        self.spectrum_data = SpectrumModel()
+        self.spectrum_model = SpectrumModel()
 
     def test_spectrum_class(self):
         self.spectrum.save('Data/spec_test.txt')
@@ -41,16 +41,16 @@ class SpectrumDataTest(unittest.TestCase):
         self.assertTrue(np.array_equal(self.spectrum.data[1], np.zeros(self.spectrum.data[0].shape)))
 
     def test_spectrum_data_class(self):
-        self.spectrum_data.set_spectrum(np.linspace(0, 10), np.linspace(0, 10) ** 2, 'SQUARED')
-        self.spectrum_data.add_overlay(np.linspace(0, 10), np.linspace(0, 10) ** 3, 'CUBED')
-        self.spectrum_data.add_overlay(np.linspace(0, 10), np.linspace(0, 10) ** 4, 'QUADRUPOLED')
+        self.spectrum_model.set_spectrum(np.linspace(0, 10), np.linspace(0, 10) ** 2, 'SQUARED')
+        self.spectrum_model.add_overlay(np.linspace(0, 10), np.linspace(0, 10) ** 3, 'CUBED')
+        self.spectrum_model.add_overlay(np.linspace(0, 10), np.linspace(0, 10) ** 4, 'QUADRUPOLED')
 
-        self.assertTrue(len(self.spectrum_data.overlays) == 2)
-        self.spectrum_data.remove_overlay(0)
-        self.assertTrue(self.spectrum_data.overlays[0].name == 'QUADRUPOLED')
+        self.assertTrue(len(self.spectrum_model.overlays) == 2)
+        self.spectrum_model.remove_overlay(0)
+        self.assertTrue(self.spectrum_model.overlays[0].name == 'QUADRUPOLED')
 
-        self.spectrum_data.add_overlay_file('Data/spec_test2.txt')
-        self.assertTrue(self.spectrum_data.overlays[-1].name == 'spec_test2')
+        self.spectrum_model.add_overlay_file('Data/spec_test2.txt')
+        self.assertTrue(self.spectrum_model.overlays[-1].name == 'spec_test2')
 
     def test_background_spectrum(self):
         x_spectrum = np.linspace(0,100,1001)
@@ -98,12 +98,12 @@ class SpectrumDataTest(unittest.TestCase):
         y_bkg = x * 0.4 + 5.0
         y_measurement = y + y_bkg
 
-        self.spectrum_data.set_spectrum(x, y_measurement)
+        self.spectrum_model.set_spectrum(x, y_measurement)
 
         auto_background_subtraction_parameters = [2, 50, 50]
-        self.spectrum_data.set_auto_background_subtraction(auto_background_subtraction_parameters)
+        self.spectrum_model.set_auto_background_subtraction(auto_background_subtraction_parameters)
 
-        x_spec, y_spec = self.spectrum_data.spectrum.data
+        x_spec, y_spec = self.spectrum_model.spectrum.data
 
         self.assertAlmostEqual(np.sum(y_spec- y),0)
 
