@@ -4,10 +4,13 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
-from PyQt4 import QtGui, QtCore
+import os
+from PyQt4 import QtGui
+
 from controller.MainController import MainController
+
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, os.pardir, 'data')
 
 class SaveSettingsTest(unittest.TestCase):
     def setUp(self):
@@ -27,7 +30,7 @@ class SaveSettingsTest(unittest.TestCase):
 
     def test_calibration_data(self):
         self.create_controller_and_data()
-        self.calibration_data.load("Data/calibration.poni")
+        self.calibration_data.load(os.path.join(data_path, "LaB6_40keV_MarCCD.poni"))
 
         center_x = self.calibration_data.spectrum_geometry.poni1
 
