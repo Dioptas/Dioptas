@@ -373,9 +373,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # Erwin opens up the program, loads image and calibration and some phases
 
         self.main_controller = MainController()
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
+        self.main_controller.calibration_controller.load_calibration('Data/LaB6_40keV_MarCCD.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.main_controller.calibration_controller.load_img('Data/LaB6_40keV_MarCCD.tif')
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
@@ -483,9 +483,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # jcpds editor for the first phase. He sees that everything seems to be correct
 
         self.main_controller = MainController()
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
+        self.main_controller.calibration_controller.load_calibration('Data/LaB6_40keV_MarCCD.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.main_controller.calibration_controller.load_img('Data/LaB6_40keV_MarCCD.tif')
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
@@ -561,9 +561,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
     def test_phase_name_difference_after_modified(self):
         self.main_controller = MainController(use_settings=False)
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
+        self.main_controller.calibration_controller.load_calibration('Data/LaB6_40keV_MarCCD.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.main_controller.calibration_controller.load_img('Data/LaB6_40keV_MarCCD.tif')
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
@@ -588,9 +588,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
         self.main_controller = MainController(use_settings=False)
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
+        self.main_controller.calibration_controller.load_calibration('Data/LaB6_40keV_MarCCD.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
+        self.main_controller.calibration_controller.load_img('Data/LaB6_40keV_MarCCD.tif')
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
