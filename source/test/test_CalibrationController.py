@@ -31,6 +31,10 @@ class CalibrationControllerTest(unittest.TestCase):
                                                             calibration_model=self.calibration_model)
 
     def tearDown(self):
+        del self.img_model
+        del self.calibration_model.cake_geometry
+        del self.calibration_model.spectrum_geometry
+        del self.calibration_model
         del self.app
 
     def test_automatic_calibration1(self):
@@ -88,26 +92,26 @@ class CalibrationControllerTest(unittest.TestCase):
         self.assertAlmostEqual(calibration_parameter['dist'], .2086, places=4)
 
     def test_automatic_calibration_with_supersampling(self):
-        self.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.calibration_controller.search_peaks(1179.6, 1129.4)
-        self.calibration_controller.search_peaks(1268.5, 1119.8)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
-        self.calibration_controller.widget.sv_distance_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('79')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('79')
+        self.calibration_controller.load_img('Data/LaB6_WOS_30keV_005.tif')
+        self.calibration_controller.search_peaks(1245.2, 1919.3)
+        self.calibration_controller.search_peaks(1334.0, 1823.7)
+        self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')
+        self.calibration_controller.widget.sv_distance_txt.setText('500')
+        self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
+        self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
         self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
         self.img_model.set_supersampling(2)
         self.calibration_model.set_supersampling(2)
         self.calibration_controller.calibrate()
 
     def test_automatic_calibration_with_supersampling_and_mask(self):
-        self.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.calibration_controller.search_peaks(1179.6, 1129.4)
-        self.calibration_controller.search_peaks(1268.5, 1119.8)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
-        self.calibration_controller.widget.sv_distance_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('79')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('79')
+        self.calibration_controller.load_img('Data/LaB6_WOS_30keV_005.tif')
+        self.calibration_controller.search_peaks(1245.2, 1919.3)
+        self.calibration_controller.search_peaks(1334.0, 1823.7)
+        self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')
+        self.calibration_controller.widget.sv_distance_txt.setText('500')
+        self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
+        self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
         self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
         self.img_model.set_supersampling(2)
         self.mask_model.mask_below_threshold(self.img_model._img_data, 1)
@@ -117,13 +121,13 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.calibrate()
 
     def test_calibrating_one_image_size_and_loading_different_image_size(self):
-        self.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.calibration_controller.search_peaks(1179.6, 1129.4)
-        self.calibration_controller.search_peaks(1268.5, 1119.8)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
-        self.calibration_controller.widget.sv_distance_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('79')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('79')
+        self.calibration_controller.load_img('Data/LaB6_WOS_30keV_005.tif')
+        self.calibration_controller.search_peaks(1245.2, 1919.3)
+        self.calibration_controller.search_peaks(1334.0, 1823.7)
+        self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')
+        self.calibration_controller.widget.sv_distance_txt.setText('500')
+        self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
+        self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
         self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
         self.calibration_controller.widget.options_automatic_refinement_cb.setChecked(False)
         self.calibration_controller.widget.use_mask_cb.setChecked(True)
