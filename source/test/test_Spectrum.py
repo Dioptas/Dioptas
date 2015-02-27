@@ -9,6 +9,9 @@ from model.Helper.Spectrum import BkgNotInRangeError
 from model.Helper import Spectrum
 from model.Helper.PeakShapes import gaussian
 
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
+
 class SpectrumTest(unittest.TestCase):
     def setUp(self):
         pass
@@ -22,11 +25,11 @@ class SpectrumTest(unittest.TestCase):
     def array_not_almost_equal(self, array1, array2, places=7):
         self.assertNotAlmostEqual(np.sum(array1 - array2), 0, places=places)
 
-    def test_loading_chi_files(self):
+    def test_loading_chi_file(self):
         spec = Spectrum()
         x, y = spec.data
 
-        spec.load('Data/dummy.chi'),
+        spec.load(os.path.join(data_path,'spectrum_001.chi'))
         new_x, new_y = spec.data
 
         self.assertNotEqual(len(x), len(new_x))
@@ -34,22 +37,23 @@ class SpectrumTest(unittest.TestCase):
 
     def test_loading_invalid_file(self):
         spec = Spectrum()
-        self.assertEqual(-1, spec.load("Data/wrong_file_format.txt"))
+        self.assertEqual(-1, spec.load(os.path.join(data_path,'wrong_file_format.txt')))
 
     def test_saving_a_file(self):
         x = np.linspace(-5, 5, 100)
         y = x ** 2
         spec = Spectrum(x, y)
-        spec.save("test.dat")
+        filename = os.path.join(data_path, "test.dat")
+        spec.save(filename)
 
         spec2 = Spectrum()
-        spec2.load("test.dat")
+        spec2.load(filename)
 
         spec2_x, spec2_y = spec2.data
         self.array_almost_equal(spec2_x, x)
         self.array_almost_equal(spec2_y, y)
 
-        os.remove("test.dat")
+        os.remove(filename)
 
     def test_plus_and_minus_operators(self):
         x = np.linspace(0, 10, 100)
