@@ -18,11 +18,11 @@ class SaveSettingsTest(unittest.TestCase):
 
     def create_controller_and_data(self):
         self.controller = MainController()
-        self.img_data = self.controller.img_data
-        self.mask_data = self.controller.mask_data
-        self.calibration_data = self.controller.calibration_data
-        self.spectrum_data = self.controller.spectrum_data
-        self.phase_data = self.controller.phase_data
+        self.img_data = self.controller.img_model
+        self.mask_data = self.controller.mask_model
+        self.calibration_data = self.controller.calibration_model
+        self.spectrum_data = self.controller.spectrum_model
+        self.phase_data = self.controller.phase_model
 
 
     def test_calibration_data(self):

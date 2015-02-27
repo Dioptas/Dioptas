@@ -55,12 +55,12 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
             pass
 
         try:
-            del self.main_controller.calibration_data.cake_geometry
+            del self.main_controller.calibration_model.cake_geometry
         except:
             pass
 
         try:
-            del self.main_controller.calibration_data.spectrum_geometry
+            del self.main_controller.calibration_model.spectrum_geometry
         except:
             pass
         del self.app
@@ -377,8 +377,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.main_controller.view.tabWidget.setCurrentIndex(2)
-        self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+        self.main_controller.widget.tabWidget.setCurrentIndex(2)
+        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/mo.jcpds')
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/ar.jcpds')
@@ -487,8 +487,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.main_controller.view.tabWidget.setCurrentIndex(2)
-        self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+        self.main_controller.widget.tabWidget.setCurrentIndex(2)
+        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/mo.jcpds')
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/ar.jcpds')
@@ -497,7 +497,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_view = self.jcpds_editor_controller.view
-        self.jcpds_phase = self.main_controller.phase_data.phases[0]
+        self.jcpds_phase = self.main_controller.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
 
         self.phase_controller.view.phase_tw.selectRow(0)
@@ -565,8 +565,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.main_controller.view.tabWidget.setCurrentIndex(2)
-        self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+        self.main_controller.widget.tabWidget.setCurrentIndex(2)
+        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
@@ -575,7 +575,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_view = self.jcpds_editor_controller.view
-        self.jcpds_phase = self.main_controller.phase_data.phases[0]
+        self.jcpds_phase = self.main_controller.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
 
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
@@ -592,8 +592,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
-        self.main_controller.view.tabWidget.setCurrentIndex(2)
-        self.main_controller.view.integration_widget.tabWidget.setCurrentIndex(3)
+        self.main_controller.widget.tabWidget.setCurrentIndex(2)
+        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
@@ -601,7 +601,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_view = self.jcpds_editor_controller.view
-        self.jcpds_phase = self.main_controller.phase_data.phases[0]
+        self.jcpds_phase = self.main_controller.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
 
         self.phase_controller.view.phase_tw.selectRow(0)
