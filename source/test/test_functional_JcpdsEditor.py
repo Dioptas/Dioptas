@@ -40,17 +40,17 @@ def calculate_cubic_d_spacing(h, k, l, a):
 class JcpdsEditorFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-        self.calibration_data = CalibrationModel()
+        self.calibration_model = CalibrationModel()
         self.jcpds = jcpds()
 
     def tearDown(self):
         try:
-            del self.calibration_data.cake_geometry
+            del self.calibration_model.cake_geometry
         except:
             pass
 
         try:
-            del self.calibration_data.spectrum_geometry
+            del self.calibration_model.spectrum_geometry
         except:
             pass
 
@@ -64,7 +64,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         except:
             pass
         del self.app
-        del self.calibration_data
+        del self.calibration_model
         del self.jcpds
         gc.collect()
 
@@ -107,9 +107,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # and wants to edit the parameters
         self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
 
-        self.calibration_data.spectrum_geometry.wavelength = 0.31
+        self.calibration_model.spectrum_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds', self.calibration_data, self.jcpds)
+        self.jcpds_controller = JcpdsEditorController('Data/jcpds', self.calibration_model, self.jcpds)
         self.jcpds_view = self.jcpds_controller.view
 
         # Erwin immediately sees the filename in the explorer
