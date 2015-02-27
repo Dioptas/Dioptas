@@ -19,7 +19,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_calibration('Data/LaB6_p49_40keV_006.poni', update_all=False)
         self.main_controller.calibration_controller.load_img('Data/LaB6_p49_40keV_006.tif')
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.integration_widget = self.main_controller.integration_controller.view
+        self.integration_widget = self.main_controller.integration_controller.widget
         self.calibration_model = self.main_controller.calibration_model
         self.img_model = self.main_controller.img_model
         self.mask_model = self.main_controller.mask_model
