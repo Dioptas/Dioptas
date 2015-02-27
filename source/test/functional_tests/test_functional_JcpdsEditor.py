@@ -31,6 +31,11 @@ from controller.integration import JcpdsEditorController
 from controller import MainController
 
 
+
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, os.pardir, 'data')
+jcpds_path = os.path.join(data_path, 'jcpds')
+
 def calculate_cubic_d_spacing(h, k, l, a):
     d_squared_inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
     return np.sqrt(1. / d_squared_inv)
@@ -104,16 +109,16 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
     def test_correctly_displays_parameters_and_can_be_edited(self):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
         # and wants to edit the parameters
-        self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
+        self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         self.calibration_model.spectrum_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds', self.calibration_model, self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, self.calibration_model, self.jcpds)
         self.jcpds_view = self.jcpds_controller.widget
 
         # Erwin immediately sees the filename in the explorer
         self.assertEqual(str(self.jcpds_view.filename_txt.text()),
-                         'Data/jcpds/au_Anderson.jcpds')
+                         os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         # and the comment from which paper the data was derived
         self.assertEqual(str(self.jcpds_view.comments_txt.text()),
@@ -263,9 +268,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
         # and wants to look for the reflections entered
         self.jcpds = jcpds()
-        self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
+        self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, jcpds_phase=self.jcpds)
         self.jcpds_view = self.jcpds_controller.widget
 
         # he sees that there are 13 reflections predefined in the table
@@ -335,15 +340,15 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual(self.jcpds.comments[0], 'HAHA this is a phase you will never see in your spectrum')
 
         # then he sees the save_as button and is happy to save his non-sense for later users
-        filename = 'Data/jcpds/au_mal_anders.jcpds'
+        filename = os.path.join(jcpds_path,'au_mal_anders.jcpds')
         self.jcpds_controller.save_as_btn_clicked(filename)
         self.assertTrue(os.path.exists(filename))
 
         # he decides to change the lattice parameter and then reload the file to see if everything is ok
         self.enter_value_into_spinbox(self.jcpds_view.lattice_a_sb, 10)
 
-        self.jcpds.load_file('Data/jcpds/au_mal_anders.jcpds')
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', jcpds_phase=self.jcpds)
+        self.jcpds.load_file(filename)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, jcpds_phase=self.jcpds)
         self.jcpds_view = self.jcpds_controller.widget
         self.assertEqual(float(str(self.jcpds_view.lattice_a_sb.text())), 4.0786)
         self.assertEqual(float(str(self.jcpds_view.lattice_b_sb.text())), 4.0786)
@@ -363,25 +368,30 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.insert_reflection_table_value(2, 2, 1)
         self.insert_reflection_table_value(2, 3, 20)
 
-        filename = 'Data/jcpds/au_mal_anders_vers2.jcpds'
+        filename = os.path.join(jcpds_path, 'au_mal_anders_vers2.jcpds')
         self.jcpds_controller.save_as_btn_clicked(filename)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController('Data/jcpds/', self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, jcpds_phase=self.jcpds)
 
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
         # Erwin opens up the program, loads image and calibration and some phases
 
         self.main_controller = MainController()
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_40keV_MarCCD.poni', update_all=False)
+        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
+                                                                     update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_40keV_MarCCD.tif')
+        self.main_controller.calibration_controller.load_img(os.path.join(data_path,'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/mo.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/ar.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/re.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path, 'mo.jcpds'))
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path, 'ar.jcpds'))
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path, 're.jcpds'))
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
@@ -483,15 +493,20 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # jcpds editor for the first phase. He sees that everything seems to be correct
 
         self.main_controller = MainController()
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_40keV_MarCCD.poni', update_all=False)
+        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
+                                                                     update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_40keV_MarCCD.tif')
+        self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/mo.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/ar.jcpds')
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/re.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path,'au_Anderson.jcpds'))
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path,'mo.jcpds'))
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path,'ar.jcpds'))
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path,'re.jcpds'))
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
@@ -561,12 +576,14 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
     def test_phase_name_difference_after_modified(self):
         self.main_controller = MainController(use_settings=False)
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_40keV_MarCCD.poni', update_all=False)
+        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path,'LaB6_40keV_MarCCD.poni'),
+                                                                     update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_40keV_MarCCD.tif')
+        self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
         # change anything the names every are the same...
@@ -588,12 +605,14 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
         self.main_controller = MainController(use_settings=False)
-        self.main_controller.calibration_controller.load_calibration('Data/LaB6_40keV_MarCCD.poni', update_all=False)
+        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path,'LaB6_40keV_MarCCD.poni'),
+                                                                     update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img('Data/LaB6_40keV_MarCCD.tif')
+        self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback('Data/jcpds/au_Anderson.jcpds')
+        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
+            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
