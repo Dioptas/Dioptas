@@ -19,8 +19,12 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import gc
+import os
 from model.Helper import jcpds
 
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
+jcpds_path = os.path.join(data_path, 'jcpds')
 
 class JcpdsUnitTest(unittest.TestCase):
     def setUp(self):
@@ -67,9 +71,9 @@ class JcpdsUnitTest(unittest.TestCase):
         self.assertEqual(self.jcpds.a0, 3)
         self.jcpds.modified = False
 
-        self.jcpds.load_file('Data/jcpds/au_Anderson.jcpds')
+        self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
         self.assertFalse(self.jcpds.modified)
         self.jcpds.k0 = 200
         self.assertTrue(self.jcpds.modified)
-        self.assertEqual('Data/jcpds/au_Anderson.jcpds*', self.jcpds.filename)
+        self.assertEqual(os.path.join(jcpds_path, 'au_Anderson.jcpds*'), self.jcpds.filename)
         self.assertEqual('au_Anderson*', self.jcpds.name)
