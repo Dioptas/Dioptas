@@ -50,57 +50,57 @@ class IntegrationController(object):
     This controller hosts all the Subcontroller of the integration tab.
     """
 
-    def __init__(self, working_dir, view, img_data, mask_data=None, calibration_data=None, spectrum_data=None,
-                 phase_data=None):
+    def __init__(self, working_dir, widget, img_model, mask_model=None, calibration_model=None, spectrum_model=None,
+                 phase_model=None):
         """
         :param working_dir: dictionary of working directories
-        :param view: Reference to an IntegrationView
-        :param img_data: reference to ImgData object
-        :param mask_data: reference to MaskData object
-        :param calibration_data: reference to CalibrationData object
-        :param spectrum_data: reference to SpectrumData object
-        :param phase_data: reference to PhaseData object
+        :param widget: Reference to an IntegrationWidget
+        :param img_model: reference to ImgModel object
+        :param mask_model: reference to MaskModel object
+        :param calibration_model: reference to CalibrationModel object
+        :param spectrum_model: reference to SpectrumModel object
+        :param phase_model: reference to PhaseModel object
 
-        :type view: IntegrationWidget
-        :type img_data: ImgModel
-        :type mask_data: MaskModel
-        :type calibration_data: CalibrationModel
-        :type spectrum_data: SpectrumModel
-        :type phase_data: PhaseModel
+        :type widget: IntegrationWidget
+        :type img_model: ImgModel
+        :type mask_model: MaskModel
+        :type calibration_model: CalibrationModel
+        :type spectrum_model: SpectrumModel
+        :type phase_model: PhaseModel
         """
         self.working_dir = working_dir
-        self.view = view
-        self.img_data = img_data
-        self.mask_data = mask_data
-        self.calibration_data = calibration_data
-        self.spectrum_data = spectrum_data
-        self.phase_data = phase_data
+        self.widget = widget
+        self.img_model = img_model
+        self.mask_model = mask_model
+        self.calibration_model = calibration_model
+        self.spectrum_model = spectrum_model
+        self.phase_model = phase_model
 
         self.create_sub_controller()
 
-        self.view.setWindowState(self.view.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        self.view.activateWindow()
-        self.view.raise_()
+        self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.widget.activateWindow()
+        self.widget.raise_()
 
 
     def create_sub_controller(self):
         """
         Creates the sub controller with the appropriate data.
         """
-        self.spectrum_controller = SpectrumController(self.working_dir, self.view, self.img_data,
-                                                                 self.mask_data,
-                                                                 self.calibration_data, self.spectrum_data)
-        self.image_controller = ImageController(self.working_dir, self.view, self.img_data,
-                                                           self.mask_data, self.spectrum_data,
-                                                           self.calibration_data)
+        self.spectrum_controller = SpectrumController(self.working_dir, self.widget, self.img_model,
+                                                                 self.mask_model,
+                                                                 self.calibration_model, self.spectrum_model)
+        self.image_controller = ImageController(self.working_dir, self.widget, self.img_model,
+                                                           self.mask_model, self.spectrum_model,
+                                                           self.calibration_model)
 
-        self.overlay_controller = OverlayController(self.working_dir, self.view, self.spectrum_data)
+        self.overlay_controller = OverlayController(self.working_dir, self.widget, self.spectrum_model)
 
-        self.phase_controller = PhaseController(self.working_dir, self.view, self.calibration_data,
-                                                           self.spectrum_data, self.phase_data)
+        self.phase_controller = PhaseController(self.working_dir, self.widget, self.calibration_model,
+                                                           self.spectrum_model, self.phase_model)
 
-        self.background_controller = BackgroundController(self.working_dir, self.view,
-                                                                     self.img_data, self.spectrum_data)
+        self.background_controller = BackgroundController(self.working_dir, self.widget,
+                                                                     self.img_model, self.spectrum_model)
 
 
 if __name__ == "__main__":
@@ -109,8 +109,8 @@ if __name__ == "__main__":
                                         'phase': ''})
     controller.image_controller.load_file('../ExampleData/Mg2SiO4_ambient_001.tif')
     controller.spectrum_controller._working_dir = '../ExampleData/spectra'
-    controller.mask_data.set_dimension(controller.img_data.get_img_data().shape)
+    controller.mask_model.set_dimension(controller.img_model.get_img_data().shape)
     controller.overlay_controller.add_overlay_btn_click_callback('../ExampleData/spectra/Mg2SiO4_ambient_005.xy')
-    controller.calibration_data.load('../ExampleData/LaB6_p49_001.poni')
+    controller.calibration_model.load('../ExampleData/LaB6_p49_001.poni')
     controller.image_controller.load_file('../ExampleData/Mg2SiO4_ambient_001.tif')
     app.exec_()

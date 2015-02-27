@@ -95,7 +95,7 @@ class MainController(object):
         if ind == 2:
             self.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
-            self.integration_controller.view.calibration_lbl.setText(self.calibration_model.calibration_name)
+            self.integration_controller.widget.calibration_lbl.setText(self.calibration_model.calibration_name)
             auto_scale_previous = self.integration_controller.image_controller._auto_scale
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()

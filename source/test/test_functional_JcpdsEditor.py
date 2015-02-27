@@ -91,7 +91,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         item.setText(str(value))
 
     def get_phase_line_position(self, phase_ind, line_ind):
-        return self.main_controller.integration_controller.view.spectrum_view.phases[phase_ind]. \
+        return self.main_controller.integration_controller.widget.spectrum_view.phases[phase_ind]. \
             line_items[line_ind].getData()[0][0]
 
     def compare_line_position(self, prev_line_pos, phase_ind, line_ind):
@@ -450,7 +450,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         # then he increases the pressure and sees the line moving, but he realizes that the equation of state may 
         # be wrong so he decides to change the parameters in the jcpds-editor
-        self.main_controller.integration_controller.view.phase_pressure_sb.setValue(10)
+        self.main_controller.integration_controller.widget.phase_pressure_sb.setValue(10)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.eos_K_txt, 120)
@@ -463,7 +463,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.enter_value_into_text_field(self.jcpds_view.eos_alphaT_txt, 6.234e-5)
         self.assertEqual(self.phase_controller.phase_data.phases[2].alpha_t0, 6.234e-5)
 
-        self.main_controller.integration_controller.view.phase_temperature_sb.setValue(1300)
+        self.main_controller.integration_controller.widget.phase_temperature_sb.setValue(1300)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_view.eos_alphaT_txt, 10.234e-5)
@@ -498,7 +498,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_view = self.jcpds_editor_controller.view
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
-        self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
         self.phase_controller.view.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
@@ -576,7 +576,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_view = self.jcpds_editor_controller.view
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
-        self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
         self.assertEqual('au_Anderson', str(self.phase_controller.view.phase_tw.item(0, 2).text()))
@@ -602,7 +602,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_view = self.jcpds_editor_controller.view
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
-        self.jcpds_in_spec = self.main_controller.integration_controller.view.spectrum_view.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
 
         self.phase_controller.view.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.view.phase_edit_btn, QtCore.Qt.LeftButton)
