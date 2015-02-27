@@ -27,7 +27,7 @@ from model.Helper.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorp
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationView import IntegrationView
+from widgets.IntegrationWidget import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.SpectrumModel import SpectrumModel
 from model.MaskModel import MaskModel
@@ -50,7 +50,7 @@ class ImageController(object):
         :param spectrum_data: Reference to SpectrumData object
         :param calibration_data: Reference to CalibrationData object
 
-        :type view: IntegrationView
+        :type view: IntegrationWidget
         :type img_data: ImgModel
         :type mask_data: MaskModel
         :type spectrum_data: SpectrumModel

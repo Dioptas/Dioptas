@@ -15,7 +15,7 @@ from PyQt4.QtTest import QTest
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from controller.MaskController import MaskController
-from widgets.MaskView import MaskView
+from widgets.MaskWidget import MaskWidget
 
 class MaskControllerTest(unittest.TestCase):
     def setUp(self):
@@ -24,7 +24,7 @@ class MaskControllerTest(unittest.TestCase):
 
         self.img_data = ImgModel()
         self.mask_data = MaskModel()
-        self.mask_view = MaskView()
+        self.mask_view = MaskWidget()
         self.mask_controller = MaskController(self.working_dir, self.mask_view, self.img_data, self.mask_data)
 
     def tearDown(self):

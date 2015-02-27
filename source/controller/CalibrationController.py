@@ -27,7 +27,7 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.CalibrationView import CalibrationView
+from widgets.CalibrationWidget import CalibrationWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel

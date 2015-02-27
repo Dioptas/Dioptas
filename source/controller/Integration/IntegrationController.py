@@ -37,7 +37,7 @@ from .PhaseController import PhaseController
 from .BackgroundController import BackgroundController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationView import IntegrationView
+from widgets.IntegrationWidget import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
@@ -61,7 +61,7 @@ class IntegrationController(object):
         :param spectrum_data: reference to SpectrumData object
         :param phase_data: reference to PhaseData object
 
-        :type view: IntegrationView
+        :type view: IntegrationWidget
         :type img_data: ImgModel
         :type mask_data: MaskModel
         :type calibration_data: CalibrationModel

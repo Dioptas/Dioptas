@@ -25,7 +25,7 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from widgets.IntegrationView import IntegrationView
+from widgets.IntegrationWidget import IntegrationWidget
 from model import SpectrumModel
 from controller.integration import OverlayController
 
@@ -33,7 +33,7 @@ from controller.integration import OverlayController
 class OverlayControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
-        self.view = IntegrationView()
+        self.view = IntegrationWidget()
         self.spectrum_data = SpectrumModel()
         self.controller = OverlayController({}, self.view, self.spectrum_data)
         self.overlay_tw = self.view.overlay_tw

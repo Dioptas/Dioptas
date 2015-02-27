@@ -28,9 +28,9 @@ from .ImgWidget import MaskImgWidget, CalibrationCakeWidget
 from .SpectrumWidget import SpectrumWidget
 
 
-class CalibrationView(QtGui.QWidget, Ui_XrsCalibrationWidget):
+class CalibrationWidget(QtGui.QWidget, Ui_XrsCalibrationWidget):
     def __init__(self):
-        super(CalibrationView, self).__init__(None)
+        super(CalibrationWidget, self).__init__(None)
         self.setupUi(self)
         self.splitter.setStretchFactor(0, 2)
 

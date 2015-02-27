@@ -12,7 +12,7 @@ from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
 from controller.CalibrationController import CalibrationController
-from widgets.CalibrationView import CalibrationView
+from widgets.CalibrationWidget import CalibrationWidget
 
 
 class CalibrationControllerTest(unittest.TestCase):
@@ -22,7 +22,7 @@ class CalibrationControllerTest(unittest.TestCase):
         self.mask_data = MaskModel()
         self.calibration_data = CalibrationModel(self.img_data)
         self.calibration_data._calibrants_working_dir = 'Data/Calibrants'
-        self.calibration_view = CalibrationView()
+        self.calibration_view = CalibrationWidget()
 
         self.working_dir = {}
 
