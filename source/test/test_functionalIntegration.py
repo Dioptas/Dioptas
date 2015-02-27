@@ -33,8 +33,8 @@ class IntegrationFunctionalTest(unittest.TestCase):
                                                               calibration_model=self.calibration_model,
                                                               spectrum_model=self.spectrum_model,
                                                               phase_model=self.phase_model)
-        self.calibration_model.load('Data/LaB6_p49_40keV_006.poni')
-        self.img_model.load('Data/LaB6_p49_40keV_006.tif')
+        self.calibration_model.load('Data/CeO2_Pilatus1M.poni')
+        self.img_model.load('Data/CeO2_Pilatus1M.tif')
 
 
         self.integration_spectrum_controller = self.integration_controller.spectrum_controller
@@ -68,9 +68,9 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
-        self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 2900)
+        self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 1512)
         previous_number_of_points = len(self.spectrum_model.spectrum.x)
-        self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * 2900)
+        self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * 1512)
 
         self.assertAlmostEqual(len(self.spectrum_model.spectrum.x), 2 * previous_number_of_points,
                                delta=1)
@@ -78,7 +78,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
-        self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 2900)
+        self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 1512)
         self.assertEqual(len(self.spectrum_model.spectrum.x), previous_number_of_points)
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
@@ -102,7 +102,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.assertEqual(self.calibration_model.cake_geometry.pixel2, px2)
 
         self.assertEqual(self.img_model.img_data.shape[0], 2 * img_shape[0])
-        self.assertEqual(self.img_model.img_data.shape[1], 2 * img_shape[0])
+        self.assertEqual(self.img_model.img_data.shape[1], 2 * img_shape[1])
 
         self.mask_model.load_mask('Data/test.mask')
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
