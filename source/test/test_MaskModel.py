@@ -3,12 +3,13 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import gc
-import sys
 import os
 import numpy as np
 
 from model.MaskModel import MaskModel
 
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
 
 class MaskModelTest(unittest.TestCase):
     def setUp(self):
@@ -88,14 +89,13 @@ class MaskModelTest(unittest.TestCase):
 
         mask_array = np.copy(self.mask_model.get_img())
 
-        self.mask_model.save_mask("Data/test.mask")
-        self.mask_model.load_mask("Data/test.mask")
+        filename = os.path.join(data_path, 'dummy.mask')
+
+        self.mask_model.save_mask(filename)
+        self.mask_model.load_mask(filename)
 
         self.assertTrue(np.array_equal(mask_array, self.mask_model.get_img()))
-
-
-        #loading an old style mask (text file with zeros and ones...)
-        self.mask_model.load_mask("Data/test1.mask")
+        os.remove(filename)
 
 
 
