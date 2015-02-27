@@ -117,8 +117,8 @@ class MainController(object):
         calibration_name = self.calibration_model.calibration_name
         str = 'Dioptas ' + __VERSION__
         if img_filename is '' and spec_filename is '':
-            self.widget.setWindowTitle(str + u' - © 2014 C. Prescher')
-            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2014 C. Prescher')
+            self.widget.setWindowTitle(str + u' - © 2015 C. Prescher')
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2015 C. Prescher')
             return
 
         if img_filename is not '' or spec_filename is not '':
