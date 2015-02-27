@@ -36,7 +36,6 @@ def calculate_cubic_d_spacing(h, k, l, a):
     return np.sqrt(1. / d_squared_inv)
 
 
-@unittest.skip("HMMMMMM")
 class JcpdsEditorFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
