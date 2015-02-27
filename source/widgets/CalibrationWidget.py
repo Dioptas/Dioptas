@@ -24,8 +24,8 @@ import os
 from PyQt4 import QtGui
 
 from .UiFiles.CalibrationUI import Ui_XrsCalibrationWidget
-from .ImgWidget import MaskImgWidget, CalibrationCakeWidget
-from .SpectrumWidget import SpectrumWidget
+from widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
+from .plot_widgets import SpectrumWidget
 
 
 class CalibrationWidget(QtGui.QWidget, Ui_XrsCalibrationWidget):

@@ -24,7 +24,7 @@ from PyQt4 import QtGui
 
 
 from .UiFiles.MaskUI import Ui_xrs_mask_widget
-from .ImgWidget import MaskImgWidget
+from widgets.plot_widgets.ImgWidget import MaskImgWidget
 
 
 class MaskWidget(QtGui.QWidget, Ui_xrs_mask_widget):
