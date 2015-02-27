@@ -31,7 +31,7 @@ from model.MaskData import MaskData
 from model.CalibrationData import CalibrationData
 
 
-class IntegrationImageController(object):
+class ImageController(object):
     """
     The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
     well as interaction with the image_view.

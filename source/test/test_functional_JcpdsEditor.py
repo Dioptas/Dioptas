@@ -17,17 +17,18 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = 'Clemens Prescher'
 import unittest
-import numpy as np
 import os
 import gc
+import sys
+
+import numpy as np
+from PyQt4 import QtGui, QtCore
+from PyQt4.QtTest import QTest
 
 from model.jcpds import jcpds
 from model.CalibrationData import CalibrationData
-from controller.JcpdsEditorController import JcpdsEditorController
+from controller.Integration import JcpdsEditorController
 from controller.MainController import MainController
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
-import sys
 
 
 def calculate_cubic_d_spacing(h, k, l, a):

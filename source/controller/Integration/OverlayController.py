@@ -28,7 +28,7 @@ from widgets.IntegrationView import IntegrationView
 from model.SpectrumData import SpectrumData
 
 
-class IntegrationOverlayController(object):
+class OverlayController(object):
     """
     IntegrationOverlayController handles all the interaction between the Overlay controls of the integration view and
     the corresponding overlay data in the SpectrumData

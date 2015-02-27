@@ -19,8 +19,10 @@
 
 __author__ = 'Clemens Prescher'
 import sys
+
 from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
+
 
 pg.setConfigOption('useOpenGL', False)
 pg.setConfigOption('leftButtonPan', False)
@@ -28,11 +30,11 @@ pg.setConfigOption('background', 'k')
 pg.setConfigOption('foreground', 'w')
 pg.setConfigOption('antialias', True)
 
-from controller.IntegrationOverlayController import IntegrationOverlayController
-from controller.IntegrationImageController import IntegrationImageController
-from controller.IntegrationSpectrumController import IntegrationSpectrumController
-from controller.IntegrationPhaseController import IntegrationPhaseController
-from controller.IntegrationBackgroundController import IntegrationBackgroundController
+from .OverlayController import OverlayController
+from .ImageController import ImageController
+from .SpectrumController import SpectrumController
+from .PhaseController import PhaseController
+from .BackgroundController import BackgroundController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationView import IntegrationView
@@ -85,19 +87,19 @@ class IntegrationController(object):
         """
         Creates the sub controller with the appropriate data.
         """
-        self.spectrum_controller = IntegrationSpectrumController(self.working_dir, self.view, self.img_data,
+        self.spectrum_controller = SpectrumController(self.working_dir, self.view, self.img_data,
                                                                  self.mask_data,
                                                                  self.calibration_data, self.spectrum_data)
-        self.image_controller = IntegrationImageController(self.working_dir, self.view, self.img_data,
+        self.image_controller = ImageController(self.working_dir, self.view, self.img_data,
                                                            self.mask_data, self.spectrum_data,
                                                            self.calibration_data)
 
-        self.overlay_controller = IntegrationOverlayController(self.working_dir, self.view, self.spectrum_data)
+        self.overlay_controller = OverlayController(self.working_dir, self.view, self.spectrum_data)
 
-        self.phase_controller = IntegrationPhaseController(self.working_dir, self.view, self.calibration_data,
+        self.phase_controller = PhaseController(self.working_dir, self.view, self.calibration_data,
                                                            self.spectrum_data, self.phase_data)
 
-        self.background_controller = IntegrationBackgroundController(self.working_dir, self.view,
+        self.background_controller = BackgroundController(self.working_dir, self.view,
                                                                      self.img_data, self.spectrum_data)
 
 

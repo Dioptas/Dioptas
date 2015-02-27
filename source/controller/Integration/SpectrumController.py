@@ -33,7 +33,7 @@ from model.CalibrationData import CalibrationData
 from model.SpectrumData import SpectrumData
 
 
-class IntegrationSpectrumController(object):
+class SpectrumController(object):
     """
     IntegrationSpectrumController handles all the interaction from the IntegrationView with the spectrum data.
     It manages the auto integration of image files to spectra in addition to spectrum browsing and changing of units
