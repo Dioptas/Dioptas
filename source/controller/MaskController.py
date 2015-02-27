@@ -60,8 +60,6 @@ class MaskController(object):
 
         self.img_model.subscribe(self.update_mask_dimension)
 
-        self.raise_window()
-
     def raise_window(self):
         self.widget.show()
         self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
