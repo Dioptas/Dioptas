@@ -139,9 +139,9 @@ class IntegrationFunctionalTest(unittest.TestCase):
             os.remove('Data/Test_spec.svg')
 
         save_spectra_test_for_size_and_delete(self)
-        QTest.mouseClick(self.integration_spectrum_controller.view.spec_q_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.integration_spectrum_controller.widget.spec_q_btn, QtCore.Qt.LeftButton)
         save_spectra_test_for_size_and_delete(self)
-        QTest.mouseClick(self.integration_spectrum_controller.view.spec_d_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.integration_spectrum_controller.widget.spec_d_btn, QtCore.Qt.LeftButton)
         save_spectra_test_for_size_and_delete(self)
 
     def test_undocking_and_docking_img_frame(self):
