@@ -17,16 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = 'Clemens Prescher'
-import numpy as np
-import pyqtgraph as pg
-from PyQt4 import QtGui
 from collections import deque
+
+import numpy as np
 import skimage.draw
 from PIL import Image
-from .cosmics import cosmicsimage
 
-import time
-from sys import getsizeof
+from model.Helper.cosmics import cosmicsimage
 
 
 class MaskModel(object):

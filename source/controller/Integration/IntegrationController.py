@@ -38,11 +38,11 @@ from .BackgroundController import BackgroundController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationView import IntegrationView
-from model.ImgData import ImgData
-from model.MaskData import MaskData
-from model.CalibrationData import CalibrationData
-from model.SpectrumData import SpectrumData
-from model.PhaseData import PhaseData
+from model.ImgModel import ImgModel
+from model.MaskModel import MaskModel
+from model.CalibrationModel import CalibrationModel
+from model.SpectrumModel import SpectrumModel
+from model.PhaseModel import PhaseModel
 
 
 class IntegrationController(object):
@@ -62,11 +62,11 @@ class IntegrationController(object):
         :param phase_data: reference to PhaseData object
 
         :type view: IntegrationView
-        :type img_data: ImgData
-        :type mask_data: MaskData
-        :type calibration_data: CalibrationData
-        :type spectrum_data: SpectrumData
-        :type phase_data: PhaseData
+        :type img_data: ImgModel
+        :type mask_data: MaskModel
+        :type calibration_data: CalibrationModel
+        :type spectrum_data: SpectrumModel
+        :type phase_data: PhaseModel
         """
         self.working_dir = working_dir
         self.view = view

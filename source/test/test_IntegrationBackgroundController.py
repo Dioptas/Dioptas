@@ -25,10 +25,10 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from widgets.IntegrationView import IntegrationView
-from model.SpectrumModel import SpectrumModel
-from model.ImgModel import ImgModel
-from controller.IntegrationBackgroundController import IntegrationBackgroundController
-from controller.Integration import SpectrumController
+from model import SpectrumModel
+from model import ImgModel
+from controller.integration import BackgroundController
+from controller.integration import SpectrumController
 
 
 class IntegrationBackgroundControllerTest(unittest.TestCase):
@@ -39,7 +39,7 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         self.img_data = ImgModel()
         self.spectrum_controller = SpectrumController({}, self.view, self.img_data,
                                                                    None, None, self.spectrum_data)
-        self.controller = IntegrationBackgroundController({}, self.view, self.img_data, self.spectrum_data)
+        self.controller = BackgroundController({}, self.view, self.img_data, self.spectrum_data)
         self.overlay_tw = self.view.overlay_tw
 
     def tearDown(self):

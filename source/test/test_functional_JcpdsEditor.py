@@ -25,10 +25,10 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from model.jcpds import jcpds
+from model.Helper import jcpds
 from model.CalibrationModel import CalibrationModel
-from controller.Integration import JcpdsEditorController
-from controller.MainController import MainController
+from controller.integration import JcpdsEditorController
+from controller import MainController
 
 
 def calculate_cubic_d_spacing(h, k, l, a):

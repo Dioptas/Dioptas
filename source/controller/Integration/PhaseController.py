@@ -24,16 +24,16 @@ import os
 import numpy as np
 from PyQt4 import QtGui, QtCore
 
-from model.HelperModule import get_base_name
-from model.PhaseData import PhaseLoadError
+from model.Helper.HelperModule import get_base_name
+from model.PhaseModel import PhaseLoadError
 from .JcpdsEditorController import JcpdsEditorController
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationView import IntegrationView
-from model.CalibrationData import CalibrationData
-from model.SpectrumData import SpectrumData
-from model.PhaseData import PhaseData
+from model.CalibrationModel import CalibrationModel
+from model.SpectrumModel import SpectrumModel
+from model.PhaseModel import PhaseModel
 
 class PhaseController(object):
     """
@@ -51,9 +51,9 @@ class PhaseController(object):
         :param phase_data: reference to PhaseData object
 
         :type view: IntegrationView
-        :type calibration_data: CalibrationData
-        :type spectrum_data: SpectrumData
-        :type phase_data: PhaseData
+        :type calibration_data: CalibrationModel
+        :type spectrum_data: SpectrumModel
+        :type phase_data: PhaseModel
         """
         self.working_dir = working_dir
         self.view = view

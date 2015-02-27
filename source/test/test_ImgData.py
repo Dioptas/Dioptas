@@ -5,13 +5,12 @@ __author__ = 'Clemens Prescher'
 __author__ = 'Clemens Prescher'
 
 import unittest
-import time
-import numpy as np
 import gc
-import matplotlib.pyplot as plt
+
+import numpy as np
 
 from model.ImgModel import ImgModel
-from model.ImgCorrection import DummyCorrection
+from model.Helper.ImgCorrection import DummyCorrection
 
 
 class ImgDataUnitTest(unittest.TestCase):

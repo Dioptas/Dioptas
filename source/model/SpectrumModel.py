@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 from copy import deepcopy
 from PyQt4 import QtCore
 
-from .HelperModule import FileNameIterator, get_base_name
-from .Spectrum import Spectrum
+from model.Helper.HelperModule import FileNameIterator, get_base_name
+from model.Helper import Spectrum
 
 
 class SpectrumModel(QtCore.QObject):

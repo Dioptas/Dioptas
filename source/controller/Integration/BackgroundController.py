@@ -23,8 +23,8 @@ import numpy as np
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from model.SpectrumData import SpectrumData
-from model.ImgData import ImgData
+from model.SpectrumModel import SpectrumModel
+from model.ImgModel import ImgModel
 from widgets.IntegrationView import IntegrationView
 
 
@@ -42,8 +42,8 @@ class BackgroundController(object):
         :param spectrum_data: Reference to the spectrum_data object
 
         :type view: IntegrationView
-        :type img_data: ImgData
-        :type spectrum_data: SpectrumData
+        :type img_data: ImgModel
+        :type spectrum_data: SpectrumModel
         """
         self.working_dir = working_dir
         self.view = view

@@ -24,13 +24,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 import numpy as np
-import random
 import fabio
 from PIL import Image
-from .HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
-    FileNameIterator, gauss_function
+from model.Helper.HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
+    FileNameIterator
 
-from model.ImgCorrection import ImgCorrectionManager
+from model.Helper.ImgCorrection import ImgCorrectionManager
 
 
 class ImgModel(Observable):

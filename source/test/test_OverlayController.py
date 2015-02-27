@@ -26,8 +26,8 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from widgets.IntegrationView import IntegrationView
-from model.SpectrumModel import SpectrumModel
-from controller.Integration import OverlayController
+from model import SpectrumModel
+from controller.integration import OverlayController
 
 
 class OverlayControllerTest(unittest.TestCase):
