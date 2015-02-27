@@ -27,7 +27,7 @@ from PyQt4.QtTest import QTest
 
 from widgets.IntegrationView import IntegrationView
 from model.SpectrumData import SpectrumData
-from controller.IntegrationOverlayController import IntegrationOverlayController
+from controller.Integration import OverlayController
 
 
 class OverlayControllerTest(unittest.TestCase):
@@ -35,7 +35,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.view = IntegrationView()
         self.spectrum_data = SpectrumData()
-        self.controller = IntegrationOverlayController({}, self.view, self.spectrum_data)
+        self.controller = OverlayController({}, self.view, self.spectrum_data)
         self.overlay_tw = self.view.overlay_tw
 
     def tearDown(self):

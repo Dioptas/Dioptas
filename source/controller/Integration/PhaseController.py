@@ -20,15 +20,14 @@
 __author__ = 'Clemens Prescher'
 
 import os
-from copy import copy
-import numpy as np
 
+import numpy as np
 from PyQt4 import QtGui, QtCore
-import pyqtgraph as pg
 
 from model.HelperModule import get_base_name
 from model.PhaseData import PhaseLoadError
 from .JcpdsEditorController import JcpdsEditorController
+
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationView import IntegrationView
@@ -36,7 +35,7 @@ from model.CalibrationData import CalibrationData
 from model.SpectrumData import SpectrumData
 from model.PhaseData import PhaseData
 
-class IntegrationPhaseController(object):
+class PhaseController(object):
     """
     IntegrationPhaseController handles all the interaction between the phase controls in the IntegrationView and the
     PhaseData object. It needs the SpectrumData object to properly handle the rescaling of the phase intensities in

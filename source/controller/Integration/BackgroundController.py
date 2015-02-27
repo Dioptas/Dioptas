@@ -28,7 +28,7 @@ from model.ImgData import ImgData
 from widgets.IntegrationView import IntegrationView
 
 
-class IntegrationBackgroundController(object):
+class BackgroundController(object):
     """
     The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
     well as interaction with the image_view.

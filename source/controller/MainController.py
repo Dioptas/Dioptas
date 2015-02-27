@@ -29,8 +29,8 @@ from model.MaskData import MaskData
 from model.SpectrumData import SpectrumData
 from model.CalibrationData import CalibrationData
 from model.PhaseData import PhaseData
-from .CalibrationController import CalibrationController
-from .IntegrationController import IntegrationController
+from . import CalibrationController
+from .integration import IntegrationController
 from .MaskController import MaskController
 
 __VERSION__ = '0.2.4d'
