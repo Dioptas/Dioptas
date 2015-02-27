@@ -1,11 +1,9 @@
 # -*- coding: utf8 -*-
 __author__ = 'Clemens Prescher'
 
-
-__author__ = 'Clemens Prescher'
-
 import unittest
 import gc
+import os
 
 import numpy as np
 
@@ -13,10 +11,13 @@ from model.ImgModel import ImgModel
 from model.Helper.ImgCorrection import DummyCorrection
 
 
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, 'data')
+
 class ImgDataUnitTest(unittest.TestCase):
     def setUp(self):
         self.img_model = ImgModel()
-        self.img_model.load('Data/Mg2SiO4_ambient_001.tif')
+        self.img_model.load(os.path.join(data_path, 'image_001.tif'))
 
     def tearDown(self):
         del self.img_model
@@ -45,8 +46,8 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_model.load_next_file()
         self.second_image = np.copy(self.img_model.get_img_data())
 
-        self.img_model.load('Data/Mg2SiO4_ambient_001.tif')
-        self.img_model.load_background('Data/Mg2SiO4_ambient_002.tif')
+        self.img_model.load(os.path.join(data_path, 'image_001.tif'))
+        self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
 
         self.assertFalse(np.array_equal(self.first_image, self.img_model.get_img_data()))
 
@@ -54,7 +55,7 @@ class ImgDataUnitTest(unittest.TestCase):
         self.assertEqual(np.sum(self.img_model.get_img_data()), 0)
 
     def test_background_subtraction_with_supersampling(self):
-        self.img_model.load_background('Data/Mg2SiO4_ambient_002.tif')
+        self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
 
         self.img_model.set_supersampling(2)
         self.img_model.get_img_data()
@@ -66,7 +67,7 @@ class ImgDataUnitTest(unittest.TestCase):
 
     def test_background_subtraction_with_transformation(self):
 
-        self.img_model.load_background('Data/Mg2SiO4_ambient_002.tif')
+        self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
         original_img = np.copy(self.img_model._img_data)
         original_background = np.copy(self.img_model._background_data)
 
@@ -91,13 +92,13 @@ class ImgDataUnitTest(unittest.TestCase):
                                        flipped_img_background_subtracted))
         self.assertEqual(np.sum(np.flipud(original_img_background_subtracted)-flipped_img_background_subtracted), 0)
 
-        self.img_model.load('Data/Mg2SiO4_ambient_002.tif')
+        self.img_model.load(os.path.join(data_path, 'image_002.tif'))
         self.perform_transformations_tests()
 
 
     def test_background_subtraction_with_supersampling_and_image_transformation(self):
-        self.img_model.load_background('Data/Mg2SiO4_ambient_002.tif')
-        self.img_model.load('Data/Mg2SiO4_ambient_002.tif')
+        self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
+        self.img_model.load(os.path.join(data_path, 'image_002.tif'))
 
         self.img_model.set_supersampling(2)
         self.assertEqual(self.img_model.get_img_data().shape, (4096, 4096))
@@ -109,13 +110,13 @@ class ImgDataUnitTest(unittest.TestCase):
 
         self.perform_transformations_tests()
 
-        self.img_model.load('Data/Mg2SiO4_ambient_002.tif')
+        self.img_model.load(os.path.join(data_path, 'image_002.tif'))
         self.assertEqual(self.img_model.get_img_data().shape, (6144, 6144))
 
         self.perform_transformations_tests()
 
     def test_background_scaling_and_offset(self):
-        self.img_model.load_background('Data/Mg2SiO4_ambient_002.tif')
+        self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
 
         #assure that everything is correct before
         self.assertTrue(np.array_equal(self.img_model.get_img_data(),
@@ -139,13 +140,13 @@ class ImgDataUnitTest(unittest.TestCase):
                                        self.img_model._img_data-(2.3*self.img_model._background_data+100)))
 
     def test_background_with_different_shape(self):
-        self.img_model.load_background('Data/CeO2_Pilatus1M.tif')
+        self.img_model.load_background(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.assertEqual(self.img_model._background_data, None)
 
-        self.img_model.load_background('Data/Mg2SiO4_ambient_002.tif')
+        self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
         self.assertTrue(self.img_model._background_data is not None)
 
-        self.img_model.load('Data/CeO2_Pilatus1M.tif')
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.assertEqual(self.img_model._background_data, None)
 
     def test_absorption_correction_with_supersampling(self):
@@ -182,11 +183,14 @@ class ImgDataUnitTest(unittest.TestCase):
 
 
     def test_saving_data(self):
-        self.img_model.load('Data/Mg2SiO4_ambient_001.tif')
-        self.img_model.save('Data/TestSaving.tif')
+        self.img_model.load(os.path.join(data_path, 'image_001.tif'))
+        filename = os.path.join(data_path, 'test.tif')
+        self.img_model.save(filename)
         first_img_array = np.copy(self.img_model._img_data)
-        self.img_model.load('Data/TestSaving.tif')
+        self.img_model.load(filename)
         self.assertTrue(np.array_equal(first_img_array, self.img_model._img_data))
+        self.assertTrue(os.path.exists(filename))
+        os.remove(filename)
 
 
     def test_rotation(self):
@@ -224,7 +228,7 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_model.rotate_img_m90()
         self.img_model.flip_img_horizontally()
         transformed_data = self.img_model.get_img_data()
-        self.img_model.load('Data/test_001.tif')
+        self.img_model.load(os.path.join(data_path, 'image_001.tif'))
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), transformed_data))
         self.img_model.reset_img_transformations()
 
