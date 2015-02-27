@@ -7,7 +7,7 @@ import sys
 import os
 import numpy as np
 
-from Data.MaskData import MaskData
+from model.MaskData import MaskData
 
 
 class MaskUnitTest(unittest.TestCase):

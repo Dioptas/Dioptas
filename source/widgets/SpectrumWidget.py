@@ -24,7 +24,7 @@ import time
 import pyqtgraph as pg
 from .ExLegendItem import LegendItem
 import numpy as np
-from Data.HelperModule import calculate_color
+from model.HelperModule import calculate_color
 from PyQt4 import QtCore, QtGui
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter

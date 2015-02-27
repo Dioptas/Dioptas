@@ -5,8 +5,8 @@ import os
 
 import numpy as np
 
-from Data.Spectrum import Spectrum, BkgNotInRangeError
-from Data.Helper.PeakShapes import gaussian
+from model.Spectrum import Spectrum, BkgNotInRangeError
+from model.Helper.PeakShapes import gaussian
 
 class SpectrumTest(unittest.TestCase):
     def setUp(self):

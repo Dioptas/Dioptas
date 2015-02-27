@@ -23,12 +23,12 @@ import xml.etree.cElementTree as ET
 
 from PyQt4 import QtGui, QtCore
 
-from Views.MainView import MainView
-from Data.ImgData import ImgData
-from Data.MaskData import MaskData
-from Data.SpectrumData import SpectrumData
-from Data.CalibrationData import CalibrationData
-from Data.PhaseData import PhaseData
+from widgets.MainView import MainView
+from model.ImgData import ImgData
+from model.MaskData import MaskData
+from model.SpectrumData import SpectrumData
+from model.CalibrationData import CalibrationData
+from model.PhaseData import PhaseData
 from .CalibrationController import CalibrationController
 from .IntegrationController import IntegrationController
 from .MaskController import MaskController

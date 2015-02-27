@@ -8,11 +8,11 @@ import gc
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from Data.ImgData import ImgData
-from Data.MaskData import MaskData
-from Data.CalibrationData import CalibrationData
-from Controller.CalibrationController import CalibrationController
-from Views.CalibrationView import CalibrationView
+from model.ImgData import ImgData
+from model.MaskData import MaskData
+from model.CalibrationData import CalibrationData
+from controller.CalibrationController import CalibrationController
+from widgets.CalibrationView import CalibrationView
 
 
 class CalibrationControllerTest(unittest.TestCase):

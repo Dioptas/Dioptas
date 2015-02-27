@@ -26,15 +26,15 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 
-from Data.HelperModule import get_base_name
-from Data.PhaseData import PhaseLoadError
+from model.HelperModule import get_base_name
+from model.PhaseData import PhaseLoadError
 from .JcpdsEditorController import JcpdsEditorController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from Views.IntegrationView import IntegrationView
-from Data.CalibrationData import CalibrationData
-from Data.SpectrumData import SpectrumData
-from Data.PhaseData import PhaseData
+from widgets.IntegrationView import IntegrationView
+from model.CalibrationData import CalibrationData
+from model.SpectrumData import SpectrumData
+from model.PhaseData import PhaseData
 
 class IntegrationPhaseController(object):
     """

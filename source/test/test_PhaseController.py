@@ -25,13 +25,13 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 
 from PyQt4.QtTest import QTest
-from Data.ImgData import ImgData
-from Data.CalibrationData import CalibrationData
-from Data.SpectrumData import SpectrumData
-from Data.PhaseData import PhaseData
-from Views.IntegrationView import IntegrationView
-from Controller.IntegrationPhaseController import IntegrationPhaseController
-from Controller.IntegrationSpectrumController import IntegrationSpectrumController
+from model.ImgData import ImgData
+from model.CalibrationData import CalibrationData
+from model.SpectrumData import SpectrumData
+from model.PhaseData import PhaseData
+from widgets.IntegrationView import IntegrationView
+from controller.IntegrationPhaseController import IntegrationPhaseController
+from controller.IntegrationSpectrumController import IntegrationSpectrumController
 
 
 class PhaseControllerTest(unittest.TestCase):

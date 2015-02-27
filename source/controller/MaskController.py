@@ -27,9 +27,9 @@ import numpy as np
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from Views.MaskView import MaskView
-from Data.ImgData import ImgData
-from Data.MaskData import MaskData
+from widgets.MaskView import MaskView
+from model.ImgData import ImgData
+from model.MaskData import MaskData
 
 class MaskController(object):
     def __init__(self, working_dir, view, img_data, mask_data):

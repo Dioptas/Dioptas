@@ -19,7 +19,7 @@ __author__ = 'Clemens Prescher'
 
 import unittest
 import gc
-from Data.jcpds import jcpds
+from model.jcpds import jcpds
 
 class JcpdsUnitTest(unittest.TestCase):
     def setUp(self):

@@ -2,10 +2,10 @@ __author__ = 'Clemens Prescher'
 
 import os
 import gc
-from Data.SpectrumData import Spectrum, SpectrumData
-from Data.ImgData import ImgData
-from Data.CalibrationData import CalibrationData
-from Data.MaskData import MaskData
+from model.SpectrumData import Spectrum, SpectrumData
+from model.ImgData import ImgData
+from model.CalibrationData import CalibrationData
+from model.MaskData import MaskData
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt

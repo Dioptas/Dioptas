@@ -3,7 +3,7 @@ __author__ = 'Clemens Prescher'
 import unittest
 import gc
 
-from Data.ImgData import *
+from model.ImgData import *
 import numpy as np
 
 
