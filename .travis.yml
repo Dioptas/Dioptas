@@ -35,5 +35,5 @@ install:
     - cd ../
 
 script:
-    - cd Dioptas_main/Tests
+    - cd source/test
     - nosetests
