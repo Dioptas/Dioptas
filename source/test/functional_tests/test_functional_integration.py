@@ -157,4 +157,5 @@ class IntegrationFunctionalTest(unittest.TestCase):
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
 
-
+if __name__ == '__main__':
+    unittest.main()

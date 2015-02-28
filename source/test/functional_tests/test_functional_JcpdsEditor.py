@@ -664,3 +664,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertNotEqual(float(self.jcpds_view.lattice_eos_c_txt.text()), self.jcpds_view.lattice_c_sb.value())
         self.assertNotEqual(float(self.jcpds_view.lattice_eos_volume_txt.text()),
                          float(self.jcpds_view.lattice_volume_txt.text()))
+
+
+if __name__ == '__main__':
+    unittest.main()

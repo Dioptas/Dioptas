@@ -40,5 +40,5 @@ class SaveSettingsTest(unittest.TestCase):
         self.assertEqual(self.calibration_data.spectrum_geometry.poni1, center_x)
 
 
-
-
+if __name__ == '__main__':
+    unittest.main()
