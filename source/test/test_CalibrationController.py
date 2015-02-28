@@ -54,11 +54,13 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.search_peaks(387.395462348, 390.987901686)
         self.calibration_controller.search_peaks(367.94835605, 554.290314848)
 
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.406626')
-        self.calibration_controller.widget.sv_distance_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('172')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('172')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(4)
+        self.calibration_widget.sv_wavelength_txt.setText('0.406626')
+        self.calibration_widget.sv_distance_txt.setText('200')
+        self.calibration_widget.sv_pixel_width_txt.setText('172')
+        self.calibration_widget.sv_pixel_height_txt.setText('172')
+        calibrant_index = self.calibration_widget.calibrant_cb.findText('CeO2')
+        print calibrant_index
+        self.calibration_widget.calibrant_cb.setCurrentIndex(calibrant_index)
 
         self.mask_model.set_dimension(self.img_model.img_data.shape)
 
@@ -70,7 +72,8 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.widget.sv_distance_txt.setText('200')
         self.calibration_controller.widget.sv_pixel_width_txt.setText('79')
         self.calibration_controller.widget.sv_pixel_height_txt.setText('79')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
+        calibrant_index = self.calibration_widget.calibrant_cb.findText('LaB6')
+        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
         self.calibration_controller.calibrate()
         self.calibration_controller.widget.cake_view.set_vertical_line_pos(1419.8, 653.4)
 
@@ -82,7 +85,8 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.widget.sv_distance_txt.setText('500')
         self.calibration_controller.widget.sv_pixel_width_txt.setText('200')
         self.calibration_controller.widget.sv_pixel_height_txt.setText('200')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(7)
+        calibrant_index = self.calibration_widget.calibrant_cb.findText('LaB6')
+        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
         self.calibration_controller.calibrate()
         self.calibration_controller.widget.cake_view.set_vertical_line_pos(206.5, 171.6)
 
