@@ -36,4 +36,4 @@ install:
 
 script:
     - cd source/test
-    - nosetests
+    - python run_tests.py
