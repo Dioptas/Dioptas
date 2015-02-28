@@ -59,7 +59,6 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_widget.sv_pixel_width_txt.setText('172')
         self.calibration_widget.sv_pixel_height_txt.setText('172')
         calibrant_index = self.calibration_widget.calibrant_cb.findText('CeO2')
-        print calibrant_index
         self.calibration_widget.calibrant_cb.setCurrentIndex(calibrant_index)
 
         self.mask_model.set_dimension(self.img_model.img_data.shape)
