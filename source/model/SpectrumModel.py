@@ -118,6 +118,9 @@ class SpectrumModel(QtCore.QObject):
                 file_handle.write('{0:.9E}  {1:.9E}\n'.format(x[ind], y[ind]))
         file_handle.close()
 
+    def get_spectrum(self):
+        return self.spectrum
+
     def load_next_file(self):
         """
         Loads the next file from a sequel of filenames (e.g. *_001.xy --> *_002.xy)
@@ -173,6 +176,18 @@ class SpectrumModel(QtCore.QObject):
                 self.bkg_ind = -1
                 self.spectrum_changed.emit()
             self.overlay_removed.emit(ind)
+
+    def get_overlay(self, ind):
+        """
+        :param ind: overlay ind
+        :return: returns overlay if existent or None if it does not exist
+        :type return: Spectrum
+        """
+        try:
+            return self.overlays[ind]
+        except IndexError:
+            return None
+
 
     def add_spectrum_as_overlay(self):
         """
