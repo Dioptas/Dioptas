@@ -273,13 +273,13 @@ class ImageController(object):
 
     def _set_up_multiple_file_integration(self):
         self.img_model.turn_off_notification()
-        self.spectrum_model.turn_off_notification()
+        self.spectrum_model.blockSignals(False)
         if self.widget.autoprocess_cb.isChecked():
             self._stop_auto_process()
 
     def _tear_down_multiple_file_integration(self):
         self.img_model.turn_on_notification()
-        self.spectrum_model.turn_on_notification()
+        self.spectrum_model.blockSignals(True)
         if self.widget.autoprocess_cb.isChecked():
             self._start_auto_process()
         self.img_model.notify()
