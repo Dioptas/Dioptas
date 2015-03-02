@@ -157,7 +157,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
 
-    def test_loading_several_images(self):
+    def test_loading_multiple_images_and_batch_integrate_them(self):
         self.integration_widget.spec_autocreate_cb.setChecked(True)
         self.assertTrue(self.integration_widget.spec_autocreate_cb.isChecked())
         self.integration_image_controller.load_file([os.path.join(data_path, 'image_001.tif'),
