@@ -27,7 +27,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
         self.integration_widget = IntegrationWidget()
 
-        self.integration_controller = IntegrationController({},
+        self.integration_controller = IntegrationController({'spectrum': data_path},
                                                               widget=self.integration_widget,
                                                               img_model=self.img_model,
                                                               mask_model=self.mask_model,
@@ -156,6 +156,17 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def test_undocking_and_docking_img_frame(self):
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
+
+    def test_loading_several_images(self):
+        self.integration_widget.spec_autocreate_cb.setChecked(True)
+        self.assertTrue(self.integration_widget.spec_autocreate_cb.isChecked())
+        self.integration_image_controller.load_file([os.path.join(data_path, 'image_001.tif'),
+                                                     os.path.join(data_path, 'image_002.tif')])
+        self.assertTrue(os.path.exists(os.path.join(data_path, 'image_001.xy')))
+        self.assertTrue(os.path.exists(os.path.join(data_path, 'image_002.xy')))
+        os.remove(os.path.join(data_path, 'image_001.xy'))
+        os.remove(os.path.join(data_path, 'image_002.xy'))
+
 
 if __name__ == '__main__':
     unittest.main()
