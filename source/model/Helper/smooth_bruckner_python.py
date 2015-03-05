@@ -35,7 +35,4 @@ def smooth_bruckner(y, smooth_points, iterations):
             else:
                 #shifting average by one index
                 window_avg += (y[i+N+1]-y[i - N])/window_size
-
-    print np.sum(y)
-
     return y[N:N + N_data]
