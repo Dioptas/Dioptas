@@ -7,6 +7,7 @@ import numpy as np
 try:
     from smooth_bruckner import smooth_bruckner
 except ImportError, e:
+    print(e)
     logger.warning("Could not import the Fortran version of smooth_bruckner. Using python implementation instead. Please"
                  " run 'f2py -c -m smooth_bruckner smooth_bruckner.f95' in the Data/Helper folder for faster"
                  " implementation")
