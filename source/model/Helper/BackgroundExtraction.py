@@ -5,13 +5,13 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 try:
-    from smooth_bruckner import smooth_bruckner
+    from .smooth_bruckner import smooth_bruckner
 except ImportError, e:
     print(e)
     logger.warning("Could not import the Fortran version of smooth_bruckner. Using python implementation instead. Please"
                  " run 'f2py -c -m smooth_bruckner smooth_bruckner.f95' in the Data/Helper folder for faster"
                  " implementation")
-    from smooth_bruckner_python import smooth_bruckner
+    from .smooth_bruckner_python import smooth_bruckner
 
 
 def extract_background(x, y, smooth_width=0.1, iterations=50, cheb_order=50):
@@ -28,7 +28,6 @@ def extract_background(x, y, smooth_width=0.1, iterations=50, cheb_order=50):
     smooth_points = int((float(smooth_width) / (x[1] - x[0])))
 
     y_smooth = smooth_bruckner(y, smooth_points, iterations)
-
     # get cheb input parameters
     x_cheb = 2. * (x - x[0]) / (x[-1] - x[0]) - 1.
     cheb_parameters = np.polynomial.chebyshev.chebfit(x_cheb,
