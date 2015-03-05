@@ -149,6 +149,7 @@ class SpectrumWidget(QtCore.QObject):
 
             if self.auto_range:
                 self.view_box.setRange(yRange=y_range, padding=0)
+        self.emit_sig_range_changed()
 
 
     def add_overlay(self, spectrum, show=True):
@@ -314,7 +315,7 @@ class SpectrumWidget(QtCore.QObject):
             else:
                 self.auto_range = False
                 self.view_box.scaleBy(2)
-            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
+            self.emit_sig_range_changed()
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())
             pos = self.plot_item.mapFromScene(2 * ev.pos() - pos)
@@ -326,7 +327,7 @@ class SpectrumWidget(QtCore.QObject):
         if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and
                                                       ev.modifiers() & QtCore.Qt.ControlModifier):
             self.auto_range = True
-            self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
+            self.emit_sig_range_changed()
 
     def myMouseDragEvent(self, ev, axis=None):
         # most of this code is copied behavior mouse drag from the original code
@@ -359,7 +360,7 @@ class SpectrumWidget(QtCore.QObject):
                 self.view_box.showAxRect(ax)
                 self.view_box.axHistoryPointer += 1
                 self.view_box.axHistory = self.view_box.axHistory[:self.view_box.axHistoryPointer] + [ax]
-                self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
+                self.emit_sig_range_changed()
             else:
                 # update shape of scale box
                 self.view_box.updateScaleBox(ev.buttonDownPos(), ev.pos())
@@ -377,6 +378,7 @@ class SpectrumWidget(QtCore.QObject):
             self.auto_range = False
             # axis_range = self.spectrum_plot.viewRange()
             # self.range_changed.emit(axis_range)
+            self.emit_sig_range_changed()
         else:
             if self.auto_range is not True:
                 view_range = np.array(self.view_box.viewRange())
@@ -389,7 +391,7 @@ class SpectrumWidget(QtCore.QObject):
                 else:
                     self.auto_range = False
                     pg.ViewBox.wheelEvent(self.view_box, ev)
-        self.view_box.sigRangeChangedManually.emit(self.view_box.state['mouseEnabled'])
+            self.emit_sig_range_changed()
 
 
 class PhaseLinesPlot(object):

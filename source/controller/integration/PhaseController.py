@@ -81,8 +81,8 @@ class PhaseController(object):
         self.widget.phase_color_btn_clicked.connect(self.phase_color_btn_clicked)
         self.widget.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
 
-        # self.view.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
-        self.widget.spectrum_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
+        self.widget.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
+        # self.widget.spectrum_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
         self.widget.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
         self.spectrum_model.spectrum_changed.connect(self.spectrum_data_changed)
 
