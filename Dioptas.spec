@@ -76,6 +76,7 @@ a.datas = [x for x in a.datas if not "docutils" in x[0]]
 a.datas = [x for x in a.datas if not "pytz" in x[0]]
 a.datas = [x for x in a.datas if not "lib{}".format(os.path.sep) in x[0]]
 a.datas = [x for x in a.datas if not "include" in x[0]]
+a.datas = [x for x in a.datas if not "sphinx" in x[0]]
 
 
 from sys import platform as _platform
