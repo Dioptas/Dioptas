@@ -33,8 +33,29 @@ from . import CalibrationController
 from .integration import IntegrationController
 from .MaskController import MaskController
 
-__VERSION__ = '0.2.4d'
+from . import versioneer
 
+versioneer.VCS = 'git'
+versioneer.versionfile_source = ''
+versioneer.versionfile_build = ''
+versioneer.tag_prefix = ''
+versioneer.parentdir_prefix = ''
+
+def get_version():
+    version = versioneer.get_version()
+    if version not in __name__:
+        write_version_file(version)
+        return version
+    else:
+        import _version
+        return _version.__version__
+
+def write_version_file(version_str):
+    path = os.path.dirname(__file__)
+    with open(os.path.join(path, '_version.py'), 'w') as f:
+        f.write('__version__="{}"'.format(version_str))
+
+__version__ = get_version()
 
 class MainController(object):
     """
@@ -115,7 +136,7 @@ class MainController(object):
         img_filename = os.path.basename(self.img_model.filename)
         spec_filename = os.path.basename(self.spectrum_model.spectrum_filename)
         calibration_name = self.calibration_model.calibration_name
-        str = 'Dioptas ' + __VERSION__
+        str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':
             self.widget.setWindowTitle(str + u' - © 2015 C. Prescher')
             self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2015 C. Prescher')

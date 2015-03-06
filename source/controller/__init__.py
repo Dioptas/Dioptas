@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Doomgoroth'
+__author__ = 'Clemens Prescher'
 
-from CalibrationController import CalibrationController
-from MainController import MainController
-from MaskController import MaskController
+from .CalibrationController import CalibrationController
+from .MainController import MainController
+from .MaskController import MaskController
