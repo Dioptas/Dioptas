@@ -51,6 +51,27 @@ a.datas += extra_datas('calibrants', 'source/calibrants')
 a.datas += [('pyFAI/calibration/__init__.py', 'source/calibrants/__init__.py', 'DATA')]
 
 
+# remove packages which are not needed Dioptas
+a.binaries = [x for x in a.binaries if not x[0].startswith("matplotlib")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("zmq")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("IPython")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("docutils")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("pytz")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("wx")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("libQtWebKit")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("libQtDesigner")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("PySide")]
+a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
+
+
+a.datas = [x for x in a.datas if not "IPython" in x[0]]
+a.datas = [x for x in a.datas if not "matplotlib" in x[0]]
+a.datas = [x for x in a.datas if not "mpl-data" in x[0]]
+a.datas = [x for x in a.datas if not "_MEI" in x[0]]
+a.datas = [x for x in a.datas if not "docutils" in x[0]]
+a.datas = [x for x in a.datas if not "pytz" in x[0]]
+a.datas = [x for x in a.datas if not "lib{}".format(os.path.sep) in x[0]]
+a.datas = [x for x in a.datas if not "include" in x[0]]
 
 
 from sys import platform as _platform
@@ -90,5 +111,5 @@ coll = COLLECT(exe,
 
 if _platform == "darwin":
     app = BUNDLE(coll,
-                 name='Dioptas.app',
+                 name='Dioptas_{}.app'.format(__VERSION__),
                  icon='source/widgets/UiFiles/Icon/icns/icon.icns')
