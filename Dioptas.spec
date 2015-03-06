@@ -82,7 +82,7 @@ from sys import platform as _platform
 platform = ''
 
 if _platform == "linux" or _platform == "linux2":
-    platform = "Linux"
+    platform = "Linux64"
     name = "Dioptas"
 elif _platform == "win32" or _platform == "cygwin":
     platform = "Win64"
