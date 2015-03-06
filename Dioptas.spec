@@ -20,13 +20,17 @@ import os
 
 folder = 'source'
 
-
-
 a = Analysis([os.path.join(folder,'Dioptas.py')],
              pathex=['source'],
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
              hookspath=None,
              runtime_hooks=None)
+
+import sys
+sys.path.append(a.pathex[0])
+
+from controller.MainController import get_version
+version = get_version()
 
 
 ##### include mydir in distribution #######
@@ -87,9 +91,6 @@ elif _platform == "darwin":
     platform = "Mac64"
     name = "Dioptas"
 
-__VERSION__ = '0.2.4d'
-
-
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
           a.scripts,
@@ -107,9 +108,9 @@ coll = COLLECT(exe,
                a.datas,
                strip=None,
                upx=True,
-               name='Dioptas_{}_{}'.format(platform, __VERSION__))
+               name='Dioptas_{}_{}'.format(platform, version))
 
 if _platform == "darwin":
     app = BUNDLE(coll,
-                 name='Dioptas_{}.app'.format(__VERSION__),
+                 name='Dioptas_{}.app'.format(version),
                  icon='source/widgets/UiFiles/Icon/icns/icon.icns')

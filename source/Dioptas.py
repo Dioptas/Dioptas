@@ -24,7 +24,9 @@ from PyQt4 import QtGui
 import logging
 logging.basicConfig(level=logging.INFO)
 
-from controller.MainController import MainController
+from controller.MainController import MainController, get_version
+
+print(get_version())
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)

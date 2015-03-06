@@ -23,12 +23,12 @@ cloc-1.62.pl
 *.so
 
 log.txt
-.ipynb_checkpoints/
 .idea
-Testing Ideas/
 data/
 _build/
 *.logoist
+_version.py
+
 # Build results
 
 [Dd]ebug/
