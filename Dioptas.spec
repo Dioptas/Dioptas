@@ -18,10 +18,10 @@
 
 import os
 
-folder = 'source'
+folder = 'dioptas'
 
 a = Analysis([os.path.join(folder,'Dioptas.py')],
-             pathex=['source'],
+             pathex=[folder],
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
              hookspath=None,
              runtime_hooks=None)
