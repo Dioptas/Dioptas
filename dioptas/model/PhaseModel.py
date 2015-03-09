@@ -98,7 +98,10 @@ class PhaseModel(Observable):
 
     def get_phase_line_intensities(self, ind, positions, spectrum, x_range, y_range):
         x, y = spectrum.data
-        max_spectrum_intensity = np.min([np.max(y[(x > x_range[0]) & (x < x_range[1])]), y_range[1]])
+        if len(y) is not 0:
+            max_spectrum_intensity = np.min([np.max(y[(x > x_range[0]) & (x < x_range[1])]), y_range[1]])
+        else:
+            max_spectrum_intensity = 1
 
         baseline = y_range[0]
         phase_line_intensities = self.reflections[ind][:, 1]
