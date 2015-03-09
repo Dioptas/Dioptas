@@ -84,7 +84,6 @@ class ImgModel(Observable):
     def _create_dummy_img(self):
         self._img_data = np.zeros((2048, 2048))
 
-
     def load(self, filename):
         """
         Loads an image file in any format known by fabIO. Automatically performs all previous img transformations,
