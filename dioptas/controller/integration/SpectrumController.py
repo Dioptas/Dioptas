@@ -283,12 +283,14 @@ class SpectrumController(object):
             self.widget.spec_previous_btn.setEnabled(True)
 
     def load_previous(self):
-        self.spectrum_model.load_previous_file()
+        step = int(str(self.widget.spec_browse_step_txt.text()))
+        self.spectrum_model.load_previous_file(step=step)
         self.widget.spec_filename_txt.setText(
             os.path.basename(self.spectrum_model.spectrum_filename))
 
     def load_next(self):
-        self.spectrum_model.load_next_file()
+        step = int(str(self.widget.spec_browse_step_txt.text()))
+        self.spectrum_model.load_next_file(step=step)
         self.widget.spec_filename_txt.setText(
             os.path.basename(self.spectrum_model.spectrum_filename))
 
