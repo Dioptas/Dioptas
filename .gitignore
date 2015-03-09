@@ -28,6 +28,7 @@ data/
 _build/
 *.logoist
 _version.py
+install.sh
 
 # Build results
 
