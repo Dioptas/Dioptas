@@ -549,17 +549,17 @@ QTableWidget {
         <bool>true</bool>
        </property>
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
-         <string>Img</string>
+         <string>Image</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_11">
          <property name="spacing">
@@ -569,7 +569,7 @@ QTableWidget {
           <number>8</number>
          </property>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_18">
+          <layout class="QHBoxLayout" name="horizontalLayout_18" stretch="0,1">
            <item>
             <widget class="QGroupBox" name="groupBox">
              <layout class="QVBoxLayout" name="verticalLayout">
@@ -587,14 +587,14 @@ QTableWidget {
                 <item>
                  <widget class="QPushButton" name="load_img_btn">
                   <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
                   </property>
                   <property name="minimumSize">
                    <size>
-                    <width>75</width>
+                    <width>0</width>
                     <height>0</height>
                    </size>
                   </property>
@@ -605,7 +605,7 @@ QTableWidget {
                    </size>
                   </property>
                   <property name="text">
-                   <string>Load</string>
+                   <string>Load Image(s)</string>
                   </property>
                   <property name="flat">
                    <bool>true</bool>
@@ -616,7 +616,7 @@ QTableWidget {
                  <widget class="QPushButton" name="prev_img_btn">
                   <property name="minimumSize">
                    <size>
-                    <width>50</width>
+                    <width>35</width>
                     <height>0</height>
                    </size>
                   </property>
@@ -635,10 +635,26 @@ QTableWidget {
                  </widget>
                 </item>
                 <item>
+                 <widget class="QLineEdit" name="image_browse_step_txt">
+                  <property name="maximumSize">
+                   <size>
+                    <width>25</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>1</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <widget class="QPushButton" name="next_img_btn">
                   <property name="minimumSize">
                    <size>
-                    <width>50</width>
+                    <width>35</width>
                     <height>0</height>
                    </size>
                   </property>
@@ -836,16 +852,22 @@ QTableWidget {
        </widget>
        <widget class="QWidget" name="spectra_tab">
         <attribute name="title">
-         <string>Spec</string>
+         <string>Pattern</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_18">
          <property name="margin">
           <number>8</number>
          </property>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_11">
+          <layout class="QHBoxLayout" name="horizontalLayout_11" stretch="0,1">
            <item>
             <widget class="QGroupBox" name="groupBox_2">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <layout class="QVBoxLayout" name="verticalLayout_2">
               <property name="spacing">
                <number>5</number>
@@ -863,20 +885,26 @@ QTableWidget {
                 </property>
                 <item>
                  <widget class="QPushButton" name="spec_load_btn">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
                   <property name="minimumSize">
                    <size>
-                    <width>75</width>
+                    <width>0</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>75</width>
+                    <width>16643457</width>
                     <height>16777215</height>
                    </size>
                   </property>
                   <property name="text">
-                   <string>Load</string>
+                   <string>Load Pattern</string>
                   </property>
                   <property name="flat">
                    <bool>true</bool>
@@ -887,7 +915,7 @@ QTableWidget {
                  <widget class="QPushButton" name="spec_previous_btn">
                   <property name="minimumSize">
                    <size>
-                    <width>10</width>
+                    <width>35</width>
                     <height>0</height>
                    </size>
                   </property>
@@ -906,7 +934,29 @@ QTableWidget {
                  </widget>
                 </item>
                 <item>
+                 <widget class="QLineEdit" name="spec_browse_step_txt">
+                  <property name="maximumSize">
+                   <size>
+                    <width>25</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>1</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <widget class="QPushButton" name="spec_next_btn">
+                  <property name="minimumSize">
+                   <size>
+                    <width>35</width>
+                    <height>0</height>
+                   </size>
+                  </property>
                   <property name="maximumSize">
                    <size>
                     <width>50</width>
@@ -927,6 +977,12 @@ QTableWidget {
                <layout class="QHBoxLayout" name="horizontalLayout">
                 <item>
                  <widget class="QRadioButton" name="spec_browse_by_name_rb">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
                   <property name="text">
                    <string>By Name</string>
                   </property>
@@ -937,6 +993,12 @@ QTableWidget {
                 </item>
                 <item>
                  <widget class="QRadioButton" name="spec_browse_by_time_rb">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
                   <property name="text">
                    <string>By Time</string>
                   </property>
@@ -944,6 +1006,12 @@ QTableWidget {
                 </item>
                 <item>
                  <widget class="QCheckBox" name="spec_autocreate_cb">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
                   <property name="text">
                    <string>autocreate</string>
                   </property>
@@ -1019,7 +1087,7 @@ QTableWidget {
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_22">
                <property name="spacing">
-                <number>-1</number>
+                <number>6</number>
                </property>
                <item>
                 <widget class="QPushButton" name="qa_spectrum_save_spectrum_btn">
@@ -1125,6 +1193,18 @@ QTableWidget {
             <layout class="QHBoxLayout" name="horizontalLayout_3">
              <item>
               <widget class="QPushButton" name="overlay_add_btn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>150</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="text">
                 <string>Add</string>
                </property>
@@ -1135,6 +1215,18 @@ QTableWidget {
              </item>
              <item>
               <widget class="QPushButton" name="overlay_del_btn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>150</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="text">
                 <string>Delete</string>
                </property>
@@ -1145,6 +1237,18 @@ QTableWidget {
              </item>
              <item>
               <widget class="QPushButton" name="overlay_clear_btn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>150</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="text">
                 <string>Clear </string>
                </property>
@@ -1152,6 +1256,19 @@ QTableWidget {
                 <bool>true</bool>
                </property>
               </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_20">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </item>
@@ -1443,12 +1560,24 @@ QTableWidget {
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_8">
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="0,0,0,0">
+            <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="0,0,0,0,0">
              <property name="spacing">
               <number>8</number>
              </property>
              <item>
               <widget class="QPushButton" name="phase_add_btn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>150</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="text">
                 <string>Add</string>
                </property>
@@ -1459,6 +1588,18 @@ QTableWidget {
              </item>
              <item>
               <widget class="QPushButton" name="phase_edit_btn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>150</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="text">
                 <string>Edit</string>
                </property>
@@ -1469,6 +1610,18 @@ QTableWidget {
              </item>
              <item>
               <widget class="QPushButton" name="phase_del_btn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>150</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="text">
                 <string>Delete</string>
                </property>
@@ -1479,6 +1632,18 @@ QTableWidget {
              </item>
              <item>
               <widget class="QPushButton" name="phase_clear_btn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>150</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="text">
                 <string>Clear</string>
                </property>
@@ -1486,6 +1651,19 @@ QTableWidget {
                 <bool>true</bool>
                </property>
               </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_21">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </item>
