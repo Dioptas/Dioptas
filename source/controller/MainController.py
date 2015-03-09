@@ -41,6 +41,7 @@ versioneer.versionfile_build = ''
 versioneer.tag_prefix = ''
 versioneer.parentdir_prefix = ''
 
+
 def get_version():
     version = versioneer.get_version()
     if version not in __name__:
@@ -50,12 +51,14 @@ def get_version():
         import _version
         return _version.__version__
 
+
 def write_version_file(version_str):
     path = os.path.dirname(__file__)
     with open(os.path.join(path, '_version.py'), 'w') as f:
         f.write('__version__="{}"'.format(version_str))
 
 __version__ = get_version()
+
 
 class MainController(object):
     """
