@@ -365,10 +365,12 @@ class ImageController(object):
         self._auto_scale = auto_scale_save
 
     def load_next_img(self):
-        self.img_model.load_next_file()
+        step = int(str(self.widget.image_browse_step_txt.text()))
+        self.img_model.load_next_file(step=step)
 
     def load_previous_img(self):
-        self.img_model.load_previous_file()
+        step = int(str(self.widget.image_browse_step_txt.text()))
+        self.img_model.load_previous_file(step=step)
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.img_model.filename)

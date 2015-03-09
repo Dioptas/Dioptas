@@ -167,13 +167,13 @@ class ImgModel(Observable):
         self._calculate_img_data()
         self.notify()
 
-    def load_next_file(self):
-        next_file_name = self.file_name_iterator.get_next_filename(self.file_iteration_mode)
+    def load_next_file(self, step=1):
+        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step)
         if next_file_name is not None:
             self.load(next_file_name)
 
-    def load_previous_file(self):
-        previous_file_name = self.file_name_iterator.get_previous_filename(self.file_iteration_mode)
+    def load_previous_file(self, step=1):
+        previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode, step=step)
         if previous_file_name is not None:
             self.load(previous_file_name)
 
