@@ -11,7 +11,7 @@ before_install:
     - ./miniconda.sh -b
     - export PATH=/home/travis/miniconda3/bin:$PATH
     - conda update --yes conda
-    - export PYTHONPATH=$PWD/diokptas:$PYTHONPATH
+    - export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
 
     #clonine the used repositories
     - git clone https://github.com/kif/fabio
