@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
 #     GSECARS, University of Chicago
 #
 #     This program is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
+
 class JcpdsUnitTest(unittest.TestCase):
     def setUp(self):
         self.jcpds = jcpds()
@@ -35,13 +36,13 @@ class JcpdsUnitTest(unittest.TestCase):
         gc.collect()
 
     def test_sorting_of_reflections(self):
-        self.jcpds.add_reflection(1,0,0, 100, 4.0)
-        self.jcpds.add_reflection(1,2,0, 90, 2.0)
-        self.jcpds.add_reflection(2,2,0, 23, 3.0)
-        self.jcpds.add_reflection(5,2,1, 50, 6.0)
-        self.jcpds.add_reflection(3,2,2, 10, 41.0)
-        self.jcpds.add_reflection(4,3,0, 30, 1.0)
-        self.jcpds.add_reflection(2,2,5, 2 , 0.3)
+        self.jcpds.add_reflection(1, 0, 0, 100, 4.0)
+        self.jcpds.add_reflection(1, 2, 0, 90, 2.0)
+        self.jcpds.add_reflection(2, 2, 0, 23, 3.0)
+        self.jcpds.add_reflection(5, 2, 1, 50, 6.0)
+        self.jcpds.add_reflection(3, 2, 2, 10, 41.0)
+        self.jcpds.add_reflection(4, 3, 0, 30, 1.0)
+        self.jcpds.add_reflection(2, 2, 5, 2, 0.3)
 
         self.jcpds.sort_reflections_by_h()
         self.assertEqual(self.jcpds.reflections[0].d0, 4.0)
