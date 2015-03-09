@@ -94,12 +94,10 @@ class FileNameIterator(QtCore.QObject):
         return file_list
 
     def is_correct_file_type(self, filename):
-        is_correct_ending = False
         for ending in self.acceptable_file_endings:
             if filename.endswith(ending):
-                is_correct_ending = True
-                break
-        return is_correct_ending
+                return True
+        return False
 
     def _order_file_list(self):
         t1 = time.time()
@@ -112,7 +110,10 @@ class FileNameIterator(QtCore.QObject):
         self.file_list = self._get_files_list()
         self._order_file_list()
 
-    def get_next_filename(self, mode='number'):
+    def get_next_filename(self, step=1, filename=None, mode='number'):
+        if filename is not None:
+            self.complete_path = filename
+
         if self.complete_path is None:
             return None
         if mode == 'time':
@@ -120,7 +121,7 @@ class FileNameIterator(QtCore.QObject):
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
             # cur_ind = self.ordered_file_list.index(self.complete_path)
             try:
-                self.complete_path = self.ordered_file_list[cur_ind + 1][1]
+                self.complete_path = self.ordered_file_list[cur_ind + step][1]
                 return self.complete_path
             except IndexError:
                 return None
@@ -135,7 +136,7 @@ class FileNameIterator(QtCore.QObject):
             file_base_str = filename[:-len(file_number_str)]
 
             format_str = '0' + str(len(file_number_str)) + 'd'
-            number_str = ("{0:" + format_str + '}').format(file_number + 1)
+            number_str = ("{0:" + format_str + '}').format(file_number + step)
             new_file_name = file_base_str + number_str + '.' + file_type_str
             new_complete_path = os.path.join(directory, new_file_name)
             if os.path.exists(new_complete_path):
@@ -143,7 +144,7 @@ class FileNameIterator(QtCore.QObject):
                 return new_complete_path
             return None
 
-    def get_previous_filename(self, mode='number'):
+    def get_previous_filename(self, step=1, mode='number'):
         """
         Tries to get the previous filename.
 
@@ -161,7 +162,7 @@ class FileNameIterator(QtCore.QObject):
             # cur_ind = self.ordered_file_list.index(self.complete_path)
             if cur_ind > 0:
                 try:
-                    self.complete_path = self.ordered_file_list[cur_ind - 1][1]
+                    self.complete_path = self.ordered_file_list[cur_ind - step][1]
                     return self.complete_path
                 except IndexError:
                     return None
@@ -175,7 +176,7 @@ class FileNameIterator(QtCore.QObject):
                 return None
             file_base_str = filename[:-len(file_number_str)]
             format_str = '0' + str(len(file_number_str)) + 'd'
-            number_str = ("{0:" + format_str + '}').format(file_number - 1)
+            number_str = ("{0:" + format_str + '}').format(file_number - step)
             new_file_name = file_base_str + number_str + '.' + file_type_str
 
             new_complete_path = os.path.join(directory, new_file_name)
@@ -184,7 +185,7 @@ class FileNameIterator(QtCore.QObject):
                 return new_complete_path
 
             format_str = '0' + str(len(file_number_str) - 1) + 'd'
-            number_str = ("{0:" + format_str + '}').format(file_number - 1)
+            number_str = ("{0:" + format_str + '}').format(file_number - step)
             new_file_name = file_base_str + number_str + '.' + file_type_str
 
             new_complete_path = os.path.join(directory, new_file_name)
