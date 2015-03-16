@@ -3038,7 +3038,7 @@ QTableWidget {
                  </size>
                 </property>
                 <property name="text">
-                 <string>14.05</string>
+                 <string>21.1</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
