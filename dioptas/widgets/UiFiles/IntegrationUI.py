@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Sun Mar 15 02:16:46 2015
+# Created: Sun Mar 15 19:53:25 2015
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -1698,7 +1698,7 @@ class Ui_xrs_integration_widget(object):
         self.label_12.setText(_translate("xrs_integration_widget", "Anvil d:", None))
         self.cbn_anvil_al_txt.setText(_translate("xrs_integration_widget", "13.7", None))
         self.label_41.setText(_translate("xrs_integration_widget", "Seat AL:", None))
-        self.cbn_seat_al_txt.setText(_translate("xrs_integration_widget", "14.05", None))
+        self.cbn_seat_al_txt.setText(_translate("xrs_integration_widget", "21.1", None))
         self.oiadac_groupbox.setTitle(_translate("xrs_integration_widget", "Oblique Incidence Angle Detector Absorption Correction", None))
         self.label_22.setText(_translate("xrs_integration_widget", "um", None))
         self.label_21.setText(_translate("xrs_integration_widget", "Abs. Length:", None))

@@ -93,7 +93,7 @@ class ImageController(object):
             auto_scale = self._auto_scale
 
         self.widget.img_view.plot_image(self.img_model.get_img(),
-                                      False)
+                                        False)
 
         if auto_scale:
             self.widget.img_view.auto_range()
@@ -180,13 +180,14 @@ class ImageController(object):
         self.widget.cbn_tilt_rotation_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.widget.cbn_center_offset_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.widget.cbn_center_offset_angle_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.widget.cbn_anvil_al_txt.editingFinished.connect(self.cbn_groupbox_changed)
+        self.widget.cbn_seat_al_txt.editingFinished.connect(self.cbn_groupbox_changed)
         self.connect_click_function(self.widget.cbn_plot_correction_btn, self.cbn_plot_correction_btn_clicked)
 
         self.connect_click_function(self.widget.oiadac_groupbox, self.oiadac_groupbox_changed)
         self.widget.oiadac_thickness_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
-
 
         self.create_auto_process_signal()
 
@@ -231,7 +232,7 @@ class ImageController(object):
             return  # abort file processing if no directory was selected
 
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
-                                                        len(filenames))
+                                                          len(filenames))
         self._set_up_multiple_file_integration()
 
         for ind in range(len(filenames)):
@@ -668,8 +669,8 @@ class ImageController(object):
         self.widget.autoprocess_cb.clicked.connect(self.auto_process_cb_click)
         self.autoprocess_timer.setInterval(50)
         self.widget.connect(self.autoprocess_timer,
-                          QtCore.SIGNAL('timeout()'),
-                          self.check_files)
+                            QtCore.SIGNAL('timeout()'),
+                            self.check_files)
 
     def auto_process_cb_click(self):
         if self.widget.autoprocess_cb.isChecked():
@@ -760,6 +761,8 @@ class ImageController(object):
             tilt_rotation = float(str(self.widget.cbn_tilt_rotation_txt.text()))
             center_offset = float(str(self.widget.cbn_center_offset_txt.text()))
             center_offset_angle = float(str(self.widget.cbn_center_offset_angle_txt.text()))
+            seat_absorption_length = float(str(self.widget.cbn_seat_al_txt.text()))
+            anvil_absorption_length = float(str(self.widget.cbn_anvil_al_txt.text()))
 
             tth_array = 180.0 / np.pi * self.calibration_model.spectrum_geometry.ttha
             azi_array = 180.0 / np.pi * self.calibration_model.spectrum_geometry.chia
@@ -768,16 +771,18 @@ class ImageController(object):
             t1 = time.time()
 
             cbn_correction = CbnCorrection(
-                tth_array = tth_array,
-                azi_array = azi_array,
-                diamond_thickness= diamond_thickness,
+                tth_array=tth_array,
+                azi_array=azi_array,
+                diamond_thickness=diamond_thickness,
                 seat_thickness=seat_thickness,
                 small_cbn_seat_radius=inner_seat_radius,
                 large_cbn_seat_radius=outer_seat_radius,
                 tilt=tilt,
                 tilt_rotation=tilt_rotation,
-                center_offset= center_offset,
-                center_offset_angle= center_offset_angle
+                center_offset=center_offset,
+                center_offset_angle=center_offset_angle,
+                cbn_abs_length=seat_absorption_length,
+                diamond_abs_length=anvil_absorption_length
             )
             print "Time needed for correction calculation: {0}".format(time.time() - t1)
             try:
@@ -792,7 +797,7 @@ class ImageController(object):
     def cbn_plot_correction_btn_clicked(self):
         if str(self.widget.cbn_plot_correction_btn.text()) == 'Plot':
             self.widget.img_view.plot_image(self.img_model._img_corrections.get_correction("cbn").get_data(),
-                                          True)
+                                            True)
             self.widget.cbn_plot_correction_btn.setText('Back')
             self.widget.oiadac_plot_btn.setText('Plot')
         else:
@@ -808,10 +813,10 @@ class ImageController(object):
             self.widget.oiadac_groupbox.setChecked(False)
             QtGui.QMessageBox.critical(
                 self.widget,
-               'ERROR',
-               'Please calibrate the geometry first or load an existent calibration file. ' + \
-               'The oblique incidence angle detector absorption correction needs a calibrated' + \
-               'geometry.'
+                'ERROR',
+                'Please calibrate the geometry first or load an existent calibration file. ' + \
+                'The oblique incidence angle detector absorption correction needs a calibrated' + \
+                'geometry.'
             )
             return
 
@@ -848,7 +853,7 @@ class ImageController(object):
     def oiadac_plot_btn_clicked(self):
         if str(self.widget.oiadac_plot_btn.text()) == 'Plot':
             self.widget.img_view.plot_image(self.img_model._img_corrections.get_correction("oiadac").get_data(),
-                                          True)
+                                            True)
             self.widget.oiadac_plot_btn.setText('Back')
             self.widget.cbn_plot_correction_btn.setText('Plot')
         else:
