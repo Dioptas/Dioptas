@@ -4,6 +4,7 @@ __author__ = 'Clemens Prescher'
 import unittest
 import gc
 import os
+from PyQt4 import QtGui
 
 import numpy as np
 
@@ -14,12 +15,15 @@ from model.Helper.ImgCorrection import DummyCorrection
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 
+
 class ImgDataUnitTest(unittest.TestCase):
     def setUp(self):
+        self.app = QtGui.QApplication([])
         self.img_model = ImgModel()
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))
 
     def tearDown(self):
+        del self.app
         del self.img_model
         gc.collect()
 
