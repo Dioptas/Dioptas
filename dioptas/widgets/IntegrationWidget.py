@@ -104,6 +104,9 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
         self.bkg_spectrum_x_max_txt.setValidator(QtGui.QDoubleValidator())
         self.bkg_spectrum_x_min_txt.setValidator(QtGui.QDoubleValidator())
 
+        self.spec_browse_step_txt.setValidator(QtGui.QIntValidator())
+        self.image_browse_step_txt.setValidator(QtGui.QIntValidator())
+
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
         self.img_view.activate_vertical_line()

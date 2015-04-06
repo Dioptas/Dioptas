@@ -336,57 +336,40 @@ def calculate_cbn_absorption_correction(tth_array, azi_array,
     #r2 - large radius
     #tilt - tilting angle of DAC
 
-    diam = diamond_thickness
-    ds = seat_thickness
-    r1 = small_cbn_seat_radius
-    r2 = large_cbn_seat_radius
     tilt = -tilt
 
-    t = tth_array
-    a = azi_array
-
-    scor = 0
     dtor = np.pi / 180.0
 
     # ;calculate 2-theta limit for seat
-    ts1 = 180 / np.pi * np.arctan(r1 / diam)
-    ts2 = 180 / np.pi * np.arctan(r2 / (diam + ds))
-    tseat = 180 / np.pi * np.arctan((r2 - r1) / ds)
+    ts1 = 180 / np.pi * np.arctan(small_cbn_seat_radius / diamond_thickness)
+    ts2 = 180 / np.pi * np.arctan(large_cbn_seat_radius / (diamond_thickness + seat_thickness))
+    tseat = 180 / np.pi * np.arctan((large_cbn_seat_radius - small_cbn_seat_radius) / seat_thickness)
     tcell = 180 / np.pi * np.arctan(((19. - 7) / 2) / 15.)
-    tc1 = 180 / np.pi * np.arctan((7. / 2) / (diam + ds))
-    tc2 = 180 / np.pi * np.arctan((19. / 2) / (diam + ds + 10.))
-    print 'ts1=', ts1, '  ts2=', ts2, '  tseat=', tseat, '   tcell=', tc1, tc2, tcell
+    tc1 = 180 / np.pi * np.arctan((7. / 2) / (diamond_thickness + seat_thickness))
+    tc2 = 180 / np.pi * np.arctan((19. / 2) / (diamond_thickness + seat_thickness + 10.))
 
-
-    # rut=np.sqrt((1-np.tan(dtor*tilt)*np.cos(dtor*a))**2+(np.tan(dtor*tilt)*np.sin(dtor*a))**2)
-    #
-    # tt=t+180/np.pi*np.arctan(1.-rut)
-
-    #my first version (equivalent to vitalis equations!!!
-    # tt=np.abs(t+np.cos(np.pi/180.*a)*tilt)
 
     #final good version:
-    tt = np.sqrt(t ** 2 + tilt ** 2 - 2 * t * tilt * np.cos(dtor * (a+tilt_rotation)))
+    tt = np.sqrt(tth_array ** 2 + tilt ** 2 - 2 * tth_array * tilt * np.cos(dtor * (azi_array+tilt_rotation)))
 
     # ;absorption by diamond
-    c = diam / np.cos(dtor * tt)
+    c = diamond_thickness / np.cos(dtor * tt)
     ac = np.exp(-0.215680897 * 3.516 * c / 10)
 
 
     # ;absorption by conic part of seat
     if (ts2 >= ts1):
-        deltar = (c * np.sin(dtor * tt) - r1).clip(min=0)
+        deltar = (c * np.sin(dtor * tt) - small_cbn_seat_radius).clip(min=0)
         cc = deltar * np.sin(dtor * (90 - tseat)) / np.sin(dtor * (tseat - tt.clip(max=ts2)))
         acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
         accc = (acc - 1.) * (np.logical_and(tt >= ts1, tt <= ts2)) + 1
         # ;absorption by seat
-        ccs = ds / np.cos(dtor * tt)
         accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
         accsc = (accs - 1.) * (tt >= ts2) + 1
 
     else:
         print 'in the else path'
-        delta = ((diam + ds) * np.tan(dtor * tt) - r2).clip(min=0)
+        delta = ((diamond_thickness + seat_thickness) * np.tan(dtor * tt) - large_cbn_seat_radius).clip(min=0)
 
         cc = delta * np.sin(dtor * (90 + tseat)) / np.sin(dtor * (tt.clip(max < ts1) - tseat))
 
@@ -394,7 +377,7 @@ def calculate_cbn_absorption_correction(tth_array, azi_array,
 
         accc = (acc - 1.) * (np.logical_and(tt >= ts2, tt <= ts1)) + 1
         # ;absorption by seat
-        ccs = ds / np.cos(dtor * tt)
+        ccs = seat_thickness / np.cos(dtor * tt)
         accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
         accsc = (accs - 1.) * (tt >= ts1) + 1
     cor = ac * accc * accsc
