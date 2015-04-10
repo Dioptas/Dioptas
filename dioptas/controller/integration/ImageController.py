@@ -18,6 +18,7 @@
 
 __author__ = 'Clemens Prescher'
 import os
+import time
 
 from PyQt4 import QtGui, QtCore
 import numpy as np
@@ -63,7 +64,6 @@ class ImageController(object):
         self.spectrum_model = spectrum_model
         self.calibration_model = calibration_data
 
-        self._auto_scale = True
         self.img_mode = 'Image'
         self.img_docked = True
         self.use_mask = False
@@ -86,11 +86,11 @@ class ImageController(object):
         """
         Plots the current image loaded in self.img_data.
         :param auto_scale:
-            Determines if intensities should be auto-scaled. If value is None it will use the parameter saved in the
+            Determines if intensities shouldk be auto-scaled. If value is None it will use the parameter saved in the
             Object (self._auto_scale)
         """
         if auto_scale is None:
-            auto_scale = self._auto_scale
+            auto_scale = self.widget.img_autoscale_btn.isChecked()
 
         self.widget.img_view.plot_image(self.img_model.get_img(),
                                         False)
@@ -106,7 +106,8 @@ class ImageController(object):
             object (self._auto_scale)
         """
         if auto_scale is None:
-            auto_scale = self._auto_scale
+            auto_scale = self.widget.img_autoscale_btn.isChecked()
+
         self.widget.img_view.plot_image(self.calibration_model.cake_img)
         if auto_scale:
             self.widget.img_view.auto_range()
@@ -132,16 +133,6 @@ class ImageController(object):
         else:
             self.widget.img_view.set_color([255, 0, 0, 255])
 
-    def change_img_levels_mode(self):
-        """
-        Sets the img intensity scaling mode according to the option selection in the GUI.
-        """
-        self.widget.img_view.img_histogram_LUT.percentageLevel = self.widget.img_levels_percentage_rb.isChecked()
-        self.widget.img_view.img_histogram_LUT.old_hist_x_range = self.widget.img_view.img_histogram_LUT.hist_x_range
-        if self.widget.img_levels_autoscale_rb.isChecked():
-            self._auto_scale = True
-        else:
-            self._auto_scale = False
 
     def create_signals(self):
         """
@@ -157,9 +148,6 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.widget.mask_transparent_cb, self.change_mask_colormap)
-        self.connect_click_function(self.widget.img_levels_autoscale_rb, self.change_img_levels_mode)
-        self.connect_click_function(self.widget.img_levels_absolute_rb, self.change_img_levels_mode)
-        self.connect_click_function(self.widget.img_levels_percentage_rb, self.change_img_levels_mode)
 
         self.connect_click_function(self.widget.img_roi_btn, self.change_roi_mode)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
@@ -360,10 +348,7 @@ class ImageController(object):
     def change_mask_mode(self):
         self.use_mask = not self.use_mask
         self.plot_mask()
-        auto_scale_save = self._auto_scale
-        self._auto_scale = False
         self.img_model.notify()
-        self._auto_scale = auto_scale_save
 
     def load_next_img(self):
         step = int(str(self.widget.image_browse_step_txt.text()))
@@ -451,11 +436,7 @@ class ImageController(object):
                 self.widget.img_view.activate_roi()
             else:
                 self.widget.img_view.deactivate_roi()
-
-        auto_scale_save = self._auto_scale
-        self._auto_scale = False
         self.img_model.notify()
-        self._auto_scale = auto_scale_save
 
     def change_view_mode(self):
         self.img_mode = self.widget.img_mode_btn.text()
@@ -766,11 +747,8 @@ class ImageController(object):
 
             tth_array = 180.0 / np.pi * self.calibration_model.spectrum_geometry.ttha
             azi_array = 180.0 / np.pi * self.calibration_model.spectrum_geometry.chia
-            import time
 
-            t1 = time.time()
-
-            cbn_correction = CbnCorrection(
+            new_cbn_correction = CbnCorrection(
                 tth_array=tth_array,
                 azi_array=azi_array,
                 diamond_thickness=diamond_thickness,
@@ -784,15 +762,17 @@ class ImageController(object):
                 cbn_abs_length=seat_absorption_length,
                 diamond_abs_length=anvil_absorption_length
             )
-            print "Time needed for correction calculation: {0}".format(time.time() - t1)
-            try:
-                self.img_model.delete_img_correction("cbn")
-            except KeyError:
-                pass
-            self.img_model.add_img_correction(cbn_correction, "cbn")
+            if not new_cbn_correction == self.img_model.get_img_correction("cbn"):
+                t1 = time.time()
+                new_cbn_correction.update()
+                print "Time needed for correction calculation: {0}".format(time.time() - t1)
+                try:
+                    self.img_model.delete_img_correction("cbn")
+                except KeyError:
+                    pass
+                self.img_model.add_img_correction(new_cbn_correction, "cbn")
         else:
             self.img_model.delete_img_correction("cbn")
-
 
     def cbn_plot_correction_btn_clicked(self):
         if str(self.widget.cbn_plot_correction_btn.text()) == 'Plot':
