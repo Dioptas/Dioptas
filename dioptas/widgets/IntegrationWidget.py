@@ -41,11 +41,12 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
 
         self.tabWidget.setCurrentIndex(0)
 
-        self.horizontal_splitter.setStretchFactor(5, 0)
-        self.horizontal_splitter.setSizes([500, 200])
+        self.horizontal_splitter.setStretchFactor(0, 1)
+        self.horizontal_splitter.setStretchFactor(1, 1)
+        self.horizontal_splitter.setSizes([500, 500])
         self.vertical_splitter.setStretchFactor(0, 0)
         self.vertical_splitter.setStretchFactor(1, 1)
-        self.vertical_splitter.setSizes([100, 700])
+        self.vertical_splitter.setSizes([50, 700])
 
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
         self.img_pg_layout.ci.layout.setContentsMargins(10, 10, 10, 5)
@@ -79,6 +80,8 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
         self.bkg_image_offset_sb.setKeyboardTracking(False)
 
         self.qa_bkg_spectrum_inspect_btn.setVisible(False)
+
+        self.mask_transparent_cb.setVisible(False)
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
@@ -182,7 +185,6 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
     # ###############################################################################################
     # Now comes all the overlay tw stuff
     ################################################################################################
-
 
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()
@@ -328,7 +330,6 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
         name_item = self.phase_tw.item(ind, 2)
         name_item.setText(name)
 
-
     def set_phase_temperature(self, ind, T):
         temperature_item = self.phase_tw.item(ind, 4)
         temperature_item.setText("{0} K".format(T))
@@ -367,7 +368,6 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
 
         self.spectrum_view.rename_phase(ind, parameter_str+name_str)
 
-
     def phase_color_btn_click(self, button):
         self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
 
@@ -392,6 +392,7 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
         x_min = float(str(self.bkg_spectrum_x_min_txt.text()))
         x_max = float(str(self.bkg_spectrum_x_max_txt.text()))
         return x_min, x_max
+
 
 class NoRectDelegate(QtGui.QItemDelegate):
     def __init__(self):

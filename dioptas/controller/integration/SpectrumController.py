@@ -108,8 +108,7 @@ class SpectrumController(object):
 
 
         # quick actions
-        self.connect_click_function(self.widget.qa_img_save_spectrum_btn, self.save_spectrum)
-        self.connect_click_function(self.widget.qa_spectrum_save_spectrum_btn, self.save_spectrum)
+        self.connect_click_function(self.widget.qa_save_spectrum_btn, self.save_spectrum)
 
         # integration controls
         self.widget.automatic_binning_cb.stateChanged.connect(self.automatic_binning_cb_changed)

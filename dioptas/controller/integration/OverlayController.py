@@ -68,13 +68,8 @@ class OverlayController(object):
 
         # creating the quick-actions signals
 
-        self.connect_click_function(self.widget.qa_img_set_as_overlay_btn,
-                                    self.spectrum_model.add_spectrum_as_overlay)
-        self.connect_click_function(self.widget.qa_spectrum_set_as_overlay_btn,
-                                    self.spectrum_model.add_spectrum_as_overlay)
-
-        self.connect_click_function(self.widget.qa_img_set_as_background_btn, self.qa_set_as_background_btn_click)
-        self.connect_click_function(self.widget.qa_spectrum_set_as_background_btn, self.qa_set_as_background_btn_click)
+        self.connect_click_function(self.widget.qa_set_as_overlay_btn, self.spectrum_model.add_spectrum_as_overlay)
+        self.connect_click_function(self.widget.qa_set_as_background_btn, self.qa_set_as_background_btn_click)
 
         # spectrum_data signals
         self.spectrum_model.overlay_removed.connect(self.overlay_removed)
