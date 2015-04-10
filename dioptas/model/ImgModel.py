@@ -403,6 +403,9 @@ class ImgModel(Observable):
         self._calculate_img_data()
         self.notify()
 
+    def get_img_correction(self, name):
+        return self._img_corrections.get_correction(name)
+
     def delete_img_correction(self, name=None):
         self._img_corrections.delete(name)
         self._calculate_img_data()
