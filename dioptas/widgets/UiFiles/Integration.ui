@@ -10,16 +10,14 @@
     <x>0</x>
     <y>0</y>
     <width>1503</width>
-    <height>823</height>
+    <height>822</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">
-
-#img_frame, #spec_container_widget, #spec_btn_widget, #frame_img_positions_widget,
+   <string notr="true">#img_frame, #spec_container_widget, #spec_btn_widget, #frame_img_positions_widget,
 #frame_img_positions_widget QLabel{
 	background: black;
 }
@@ -74,7 +72,9 @@ QTableWidget {
      </property>
      <widget class="QFrame" name="img_frame">
       <property name="styleSheet">
-       <string notr="true"/>
+       <string notr="true">QCheckBox {
+	background: black;
+}</string>
       </property>
       <property name="frameShadow">
        <enum>QFrame::Sunken</enum>
@@ -501,7 +501,11 @@ QTableWidget {
           </widget>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_25"/>
+          <widget class="QCheckBox" name="mask_transparent_cb">
+           <property name="text">
+            <string>trans</string>
+           </property>
+          </widget>
          </item>
          <item>
           <spacer name="horizontalSpacer_9">
@@ -520,6 +524,12 @@ QTableWidget {
           <widget class="QPushButton" name="img_autoscale_btn">
            <property name="text">
             <string>AutoScale</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
            <property name="flat">
             <bool>true</bool>
@@ -561,7 +571,7 @@ QTableWidget {
         </size>
        </property>
        <property name="currentIndex">
-        <number>5</number>
+        <number>6</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
@@ -3231,129 +3241,6 @@ QTableWidget {
          <property name="bottomMargin">
           <number>8</number>
          </property>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_19">
-           <property name="spacing">
-            <number>5</number>
-           </property>
-           <item>
-            <widget class="QGroupBox" name="groupBox">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>43</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>50</height>
-              </size>
-             </property>
-             <property name="title">
-              <string>Mask</string>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_14">
-              <property name="spacing">
-               <number>14</number>
-              </property>
-              <property name="leftMargin">
-               <number>8</number>
-              </property>
-              <property name="topMargin">
-               <number>8</number>
-              </property>
-              <property name="rightMargin">
-               <number>13</number>
-              </property>
-              <property name="bottomMargin">
-               <number>8</number>
-              </property>
-              <item>
-               <widget class="QCheckBox" name="mask_transparent_cb">
-                <property name="text">
-                 <string>Transparent</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="groupBox_2">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>43</height>
-              </size>
-             </property>
-             <property name="title">
-              <string>Levels</string>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_15">
-              <property name="spacing">
-               <number>8</number>
-              </property>
-              <property name="margin">
-               <number>8</number>
-              </property>
-              <item>
-               <widget class="QRadioButton" name="img_levels_autoscale_rb">
-                <property name="text">
-                 <string>AutoScale</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QRadioButton" name="img_levels_absolute_rb">
-                <property name="text">
-                 <string>Absolute</string>
-                </property>
-                <property name="checked">
-                 <bool>false</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QRadioButton" name="img_levels_percentage_rb">
-                <property name="text">
-                 <string>Percentage</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </item>
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_20">
            <item>
