@@ -133,7 +133,6 @@ class ImageController(object):
         else:
             self.widget.img_view.set_color([255, 0, 0, 255])
 
-
     def create_signals(self):
         """
         Creates all the connections of the GUI elements.
@@ -152,12 +151,11 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_roi_btn, self.change_roi_mode)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
-        self.connect_click_function(self.widget.img_autoscale_btn, self.widget.img_view.auto_range)
+        self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
 
-        self.connect_click_function(self.widget.qa_img_save_img_btn, self.save_img)
-
-        self.connect_click_function(self.widget.img_load_calibration_btn, self.load_calibration)
+        self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
+        self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
 
         self.connect_click_function(self.widget.cbn_groupbox, self.cbn_groupbox_changed)
         self.widget.cbn_diamond_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
@@ -347,6 +345,7 @@ class ImageController(object):
 
     def change_mask_mode(self):
         self.use_mask = not self.use_mask
+        self.widget.mask_transparent_cb.setVisible(not self.widget.mask_transparent_cb.isVisible())
         self.plot_mask()
         self.img_model.notify()
 
@@ -455,6 +454,10 @@ class ImageController(object):
                     self.widget.img_view.activate_roi()
                 self._update_image_scatter_pos()
                 self.widget.img_mode_btn.setText('Cake')
+
+    def img_autoscale_btn_clicked(self):
+        if self.widget.img_autoscale_btn.isChecked():
+            self.widget.img_view.auto_range()
 
     def img_dock_btn_clicked(self):
         self.img_docked = not self.img_docked
@@ -786,7 +789,6 @@ class ImageController(object):
                 self.plot_cake(True)
             elif self.img_mode == 'Image':
                 self.plot_img(True)
-
 
     def oiadac_groupbox_changed(self):
         if not self.calibration_model.is_calibrated:
