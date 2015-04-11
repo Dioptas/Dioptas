@@ -134,6 +134,7 @@ class CbnCorrectionTest(unittest.TestCase):
                                        large_cbn_seat_radius=1.95,
                                        tilt=0,
                                        tilt_rotation=0)
+        cbn_correction.update()
         cbn_correction_data = cbn_correction.get_data()
         self.assertGreater(np.sum(cbn_correction_data), 0)
         self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)

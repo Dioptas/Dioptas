@@ -186,7 +186,7 @@ class OverlayControllerTest(unittest.TestCase):
 
     def test_setting_spectrum_as_bkg(self):
         self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
-        QTest.mouseClick(self.widget.qa_img_set_as_background_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 
@@ -195,7 +195,7 @@ class OverlayControllerTest(unittest.TestCase):
 
     def test_having_overlay_as_bkg_and_deleting_it(self):
         self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
-        QTest.mouseClick(self.widget.qa_img_set_as_background_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
 
         QTest.mouseClick(self.widget.overlay_del_btn, QtCore.Qt.LeftButton)
 
