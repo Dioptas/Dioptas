@@ -56,7 +56,7 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
         self.img_frame_position = QtCore.QPoint(0, 0)
 
         self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
-        self.spectrum_pg_layout.ci.layout.setContentsMargins(10, 10, 0, 10)
+        self.spectrum_pg_layout.ci.layout.setContentsMargins(5, 0, 0, 5)
 
         self.set_validator()
 
