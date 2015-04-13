@@ -20,15 +20,16 @@ cloc-1.62.pl
 *.psd
 *.jcpds
 *.chi
+*.so
 
 log.txt
-.ipynb_checkpoints/
 .idea
-Testing Ideas/
-Dioptas_main/ExampleData
-Dioptas_main/Tests/Data
+data/
 _build/
 *.logoist
+_version.py
+install.sh
+
 # Build results
 
 [Dd]ebug/

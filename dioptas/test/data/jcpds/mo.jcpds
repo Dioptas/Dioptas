@@ -1,0 +1,14 @@
+VERSION: 4
+COMMENT: Molibdenum (JCPDS 42-1120, EOS from Hixson and Fritz, 1992)
+K0:       267.000
+K0P:       3.86000
+SYMMETRY: CUBIC
+A:      3.14720
+ALPHAT:      0.000000
+DIHKL:   2.2247    100.    1.00    1.00    0.00
+DIHKL:   1.5738     16.    2.00    0.00    0.00
+DIHKL:   1.2847     31.    2.00    1.00    1.00
+DIHKL:   1.1129      9.    2.00    2.00    0.00
+DIHKL:   0.9953     14.    3.00    1.00    0.00
+DIHKL:   0.9085      3.    2.00    2.00    2.00
+DIHKL:   0.8411     24.    3.00    2.00    1.00

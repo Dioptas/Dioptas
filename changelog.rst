@@ -1,3 +1,15 @@
+0.2.4 (stable 04/13/2015)
+-------------------------
+    - Gui reorganization in the integration view: (1) autoscale button and transparent mask button are now shown within
+      the image view. (2) the quick action buttons save image, save spectrum etc. are now shown in the spectrum widget
+    - New Feature: automatic background subtraction under BKG tab in the integration window. can also be accessed from
+      the bg button in the spectrum widget. By pressing inspect it shows both the original spectrum and background
+      within the limits for the extraction process. Please adjust the parameters according to your data.
+    - File browsing step can now be modified to be different from 1 by entering an integer in the step text field
+      below the arrows.
+    - The absorption lengths for the diamond and seat corrections can now be adjusted. (They should be chosen according
+      to the energy used for the XRD experiment)
+
 0.2.3 (stable 12/09/2014)
 -------------------------
     - Dioptas now saves the calibration when closing and will automatically open after restarting the program
