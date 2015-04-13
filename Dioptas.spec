@@ -51,8 +51,8 @@ def extra_datas(dest_directory, source_directory):
     return extra_datas
 ###########################################
 
-a.datas += extra_datas('calibrants', 'source/calibrants')
-a.datas += [('pyFAI/calibration/__init__.py', 'source/calibrants/__init__.py', 'DATA')]
+a.datas += extra_datas('calibrants', 'dioptas/calibrants')
+a.datas += [('pyFAI/calibration/__init__.py', 'dioptas/calibrants/__init__.py', 'DATA')]
 
 
 # remove packages which are not needed Dioptas
@@ -114,4 +114,4 @@ coll = COLLECT(exe,
 if _platform == "darwin":
     app = BUNDLE(coll,
                  name='Dioptas_{}.app'.format(version),
-                 icon='source/widgets/UiFiles/Icon/icns/icon.icns')
+                 icon='dioptas/widgets/UiFiles/Icon/icns/icon.icns')
