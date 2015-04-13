@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Fri Apr 10 16:43:23 2015
+# Created: Mon Apr 13 14:02:25 2015
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -964,7 +964,7 @@ class Ui_xrs_integration_widget(object):
         self.bkg_spectrum_iterations_sb.setMinimumSize(QtCore.QSize(50, 0))
         self.bkg_spectrum_iterations_sb.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.bkg_spectrum_iterations_sb.setMaximum(9999)
-        self.bkg_spectrum_iterations_sb.setProperty("value", 50)
+        self.bkg_spectrum_iterations_sb.setProperty("value", 150)
         self.bkg_spectrum_iterations_sb.setObjectName(_fromUtf8("bkg_spectrum_iterations_sb"))
         self.horizontalLayout_42.addWidget(self.bkg_spectrum_iterations_sb)
         self.label_36 = QtGui.QLabel(self.bkg_spectrum_gb)
@@ -1522,7 +1522,7 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_16.addWidget(self.widget2)
 
         self.retranslateUi(xrs_integration_widget)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(4)
         QtCore.QMetaObject.connectSlotsByName(xrs_integration_widget)
 
     def retranslateUi(self, xrs_integration_widget):
