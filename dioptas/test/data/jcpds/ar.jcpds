@@ -1,0 +1,12 @@
+VERSION: 4
+COMMENT: Argon FCC (made by Shim, EOS from Finger et al and Ross et al)
+K0:       1.95000
+K0P:       7.07000
+SYMMETRY: CUBIC
+A:      5.51280
+ALPHAT:      0.000000
+DIHKL:   3.1828    100.    1.00    1.00    1.00
+DIHKL:   2.7564     40.    2.00    0.00    0.00
+DIHKL:   1.9491     25.    2.00    2.00    0.00
+DIHKL:   1.6622     30.    3.00    1.00    1.00
+DIHKL:   1.5914     12.    2.00    2.00    2.00

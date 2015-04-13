@@ -1,0 +1,44 @@
+# -*- coding: utf8 -*-
+__author__ = 'Clemens Prescher'
+
+
+import unittest
+import sys
+import os
+from PyQt4 import QtGui
+
+from controller.MainController import MainController
+
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, os.pardir, 'data')
+
+class SaveSettingsTest(unittest.TestCase):
+    def setUp(self):
+        self.app = QtGui.QApplication(sys.argv)
+
+    def tearDown(self):
+        del self.app
+
+    def create_controller_and_data(self):
+        self.controller = MainController()
+        self.img_data = self.controller.img_model
+        self.mask_data = self.controller.mask_model
+        self.calibration_data = self.controller.calibration_model
+        self.spectrum_data = self.controller.spectrum_model
+        self.phase_data = self.controller.phase_model
+
+
+    def test_calibration_data(self):
+        self.create_controller_and_data()
+        self.calibration_data.load(os.path.join(data_path, "LaB6_40keV_MarCCD.poni"))
+
+        center_x = self.calibration_data.spectrum_geometry.poni1
+
+        self.controller.save_settings()
+        self.create_controller_and_data()
+
+        self.assertEqual(self.calibration_data.spectrum_geometry.poni1, center_x)
+
+
+if __name__ == '__main__':
+    unittest.main()
