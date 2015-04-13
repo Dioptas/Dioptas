@@ -252,7 +252,7 @@ class CalibrationModel(object):
         self.spectrum_geometry.reset()
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='csr_ocl'):
+                     unit='2th_deg', method='csr'):
         if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
