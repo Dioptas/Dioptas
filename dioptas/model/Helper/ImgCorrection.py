@@ -2,7 +2,6 @@
 __author__ = 'Clemens Prescher'
 
 import numpy as np
-import time
 
 
 class ImgCorrectionManager(object):
@@ -86,7 +85,7 @@ class CbnCorrection(ImgCorrectionInterface):
         self._tilt = tilt
         self._tilt_rotation = tilt_rotation
         self._diamond_abs_length = diamond_abs_length
-        self._cbn_abs_length = cbn_abs_length
+        self._seat_abs_length = cbn_abs_length
         self._center_offset = center_offset
         self._center_offset_angle = center_offset_angle
 
@@ -112,44 +111,73 @@ class CbnCorrection(ImgCorrectionInterface):
         r1 = self._small_cbn_seat_radius
         r2 = self._large_cbn_seat_radius
         tilt = -self._tilt * dtor
-        tilt_rotation = self._tilt_rotation * dtor
+        tilt_rotation = self._tilt_rotation * dtor+np.pi/2
         center_offset_angle = self._center_offset_angle * dtor
 
-        t = self._tth_array * dtor
-        a = self._azi_array * dtor
+        two_theta = self._tth_array * dtor
+        azi = self._azi_array * dtor
 
+        # calculate radius of the cone for each pixel specific to a center_offset and rotation angle
         if self._center_offset != 0:
-            beta = a - np.arcsin(
-                self._center_offset * np.sin((np.pi - (a + center_offset_angle))) / r1) + center_offset_angle
+            beta = azi - np.arcsin(
+                self._center_offset * np.sin((np.pi - (azi + center_offset_angle))) / r1) + center_offset_angle
             r1 = np.sqrt(r1 ** 2 + self._center_offset ** 2 - 2 * r1 * self._center_offset * np.cos(beta))
             r2 = np.sqrt(r2 ** 2 + self._center_offset ** 2 - 2 * r2 * self._center_offset * np.cos(beta))
 
 
-        # ;calculate 2-theta limit for seat
+
+        #defining rotation matrices for the diamond anvil cell
+        Rx = np.matrix([[1, 0, 0],
+                       [0, np.cos(tilt_rotation), -np.sin(tilt_rotation)],
+                       [0, np.sin(tilt_rotation), np.cos(tilt_rotation)]])
+
+        Ry = np.matrix([[np.cos(tilt), 0, np.sin(tilt)],
+                       [0            , 1, 0],
+                       [-np.sin(tilt), 0, np.cos(tilt)]])
+
+
+        dac_vector = np.array(Rx*Ry*np.matrix([1,0,0]).T)
+
+        # calculating a diffraction vector for each pixel
+        diffraction_vec = np.array([np.cos(two_theta),
+                                    np.cos(azi) * np.sin(two_theta),
+                                    np.sin(azi) * np.sin(two_theta)])
+
+        # angle between diffraction vector and diamond anvil cell vector based on dot product:
+        tt = np.arccos(dot_product(dac_vector,diffraction_vec)/\
+                       (vector_len(dac_vector)*vector_len(diffraction_vec)))
+
+        # calculate path through diamond its absorption
+        path_diamond = diam / np.cos(tt)
+        abs_diamond = np.exp(-path_diamond / self._diamond_abs_length)
+
+        # define the different regions for the absorption in the seat
+        # region 2 is partial absorption (in the cone) and region 3 is complete absorbtion
         ts1 = np.arctan(r1 / diam)
         ts2 = np.arctan(r2 / (diam + ds))
         tseat = np.arctan((r2 - r1) / ds)
 
-        tt = np.sqrt(t ** 2 + tilt ** 2 - 2 * t * tilt * np.cos(a + tilt_rotation))
+        region2 = np.logical_and(tt>ts1, tt<ts2)
+        region3 = tt>=ts2
 
-        # ;absorption by diamond
-        c = diam / np.cos(tt)
-        # old version from Vitali
-        ac = np.exp(-c / self._diamond_abs_length)
+        # calculate the paths through each region
+        path_seat = np.zeros(tt.shape)
+        if self._center_offset != 0:
+            deltar = diam * np.tan(tt[region2]) - r1[region2]
+            alpha = np.pi/2.-tseat[region2]
+            gamma = np.pi-(alpha+tt[region2]+np.pi/2)
+        else:
+            deltar = diam * np.tan(tt[region2]) - r1
+            alpha = np.pi/2.-tseat
+            gamma = np.pi-(alpha+tt[region2]+np.pi/2)
 
-        # # ;absorption by conic part of seat
-        deltar = (c * np.sin(tt) - r1).clip(min=0)
+        path_seat[region2] = deltar*np.sin(alpha)/np.sin(gamma)
+        path_seat[region3] = ds/np.cos(tt[region3])
 
-        cc = deltar * np.sin(np.pi - tseat) / (np.sin(tseat - tt.clip(max=ts2)) * np.tan(tseat))
+        abs_seat = np.exp(-path_seat / self._seat_abs_length)
 
-        acc = np.exp(-cc / self._cbn_abs_length)
-        accc = (acc - 1.) * (np.logical_and(tt >= ts1, tt <= ts2)) + 1
-
-        ccs = ds / np.cos(tt)
-        accs = np.exp(-ccs / self._cbn_abs_length)
-        accsc = (accs - 1.) * (tt >= ts2) + 1
-
-        self._data = ac * accc * accsc
+        #combine both, diamond and seat absorption correction
+        self._data = abs_diamond * abs_seat
 
     def __eq__(self, other):
         if not isinstance(other, CbnCorrection):
@@ -168,7 +196,7 @@ class CbnCorrection(ImgCorrectionInterface):
             return False
         if self._diamond_abs_length != other._diamond_abs_length:
             return False
-        if self._cbn_abs_length != other._cbn_abs_length:
+        if self._seat_abs_length != other._seat_abs_length:
             return False
         if self._center_offset != other._center_offset:
             return False
@@ -228,3 +256,10 @@ class DummyCorrection(ImgCorrectionInterface):
 
     def shape(self):
         return self._shape
+
+
+def vector_len(vec):
+    return np.sqrt(vec[0]**2+vec[1]**2+vec[2]**2)
+
+def dot_product(vec1, vec2):
+    return vec1[0]*vec2[0]+vec1[1]*vec2[1]+vec1[2]*vec2[2]
