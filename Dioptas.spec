@@ -83,14 +83,20 @@ from sys import platform as _platform
 platform = ''
 
 if _platform == "linux" or _platform == "linux2":
-    platform = "Linux64"
+    platform = "Linux"
     name = "Dioptas"
 elif _platform == "win32" or _platform == "cygwin":
-    platform = "Win64"
+    platform = "Win"
     name = "Dioptas.exe"
 elif _platform == "darwin":
-    platform = "Mac64"
+    platform = "Mac"
     name = "Dioptas"
+
+# checking wether the platform is 64 or 32 bit
+if sys.maxsize > 2**32:
+    platform+="64"
+else:
+    platform+="32"
 
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
