@@ -855,4 +855,5 @@ class ImageController(object):
             self.widget.oiadac_groupbox.setChecked(False)
             QtGui.QMessageBox.critical(self.widget,
                                        'ERROR',
-                                       'Due to a change in image dimensions the corrections have been removed')
+                                       'Due to a change in image dimensions the absorption '+
+                                       'corrections have been removed')
