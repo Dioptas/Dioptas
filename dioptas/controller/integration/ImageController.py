@@ -71,7 +71,6 @@ class ImageController(object):
 
         self.autoprocess_timer = QtCore.QTimer(self.widget)
 
-        self.widget.show()
         self.initialize()
         self.img_model.subscribe(self.update_img)
         self.create_signals()
