@@ -18,6 +18,7 @@ for test_file in test_files:
     print("##############################")
     print("##############################")
     print("Running: " + "python {}".format(test_file))
+    print("##############################")
     exit_code = call("python {}".format(test_file), shell=True)
     exit_codes.append(exit_code)
 
