@@ -110,6 +110,8 @@ class IntegrationFunctionalTest(unittest.TestCase):
         QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
 
     def test_saving_image(self):
+        # the widget has to be shown to be able to save the image:
+        self.integration_widget.show()
         # Tests if the image save procedures are working for the different possible file endings
         self.integration_image_controller.save_img(os.path.join(data_path, 'Test_img.png'))
         self.integration_image_controller.save_img(os.path.join(data_path, 'Test_img.tiff'))
@@ -121,6 +123,8 @@ class IntegrationFunctionalTest(unittest.TestCase):
         os.remove(os.path.join(data_path, 'Test_img.tiff'))
 
     def test_saving_spectrum(self):
+        # the widget has to be shown to be able to save the image:
+        self.integration_widget.show()
         # Tests if the spectrum save procedures is are working for all fileendings
         def save_spectra_test_for_size_and_delete(self):
             self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.xy'))
