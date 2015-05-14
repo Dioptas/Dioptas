@@ -28,7 +28,7 @@ install:
     - cd fabio
     - python setup.py install
 
-    - pip install lmfit pyqtgraph Pillow pyFAI
+    - pip install lmfit pyqtgraph Pillow pyFAI mock
 #    - cd ../pyFAI
 #    - python setup.py install
 
