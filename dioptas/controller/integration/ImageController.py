@@ -240,13 +240,6 @@ class ImageController(object):
         self._tear_down_multiple_file_integration()
         progress_dialog.close()
 
-    def _check_absorption_correction_shape(self):
-        if self.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
-            self.widget.cbn_groupbox.setChecked(False)
-            self.widget.oiadac_groupbox.setChecked(False)
-            QtGui.QMessageBox.critical(self.widget,
-                                       'ERROR',
-                                       'Due to a change in image dimensions the corrections have been removed')
 
     def _get_spectrum_working_directory(self):
         if self.widget.spec_autocreate_cb.isChecked():
@@ -855,3 +848,11 @@ class ImageController(object):
                 self.plot_cake(True)
             elif self.img_mode == 'Image':
                 self.plot_img(True)
+
+    def _check_absorption_correction_shape(self):
+        if self.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
+            self.widget.cbn_groupbox.setChecked(False)
+            self.widget.oiadac_groupbox.setChecked(False)
+            QtGui.QMessageBox.critical(self.widget,
+                                       'ERROR',
+                                       'Due to a change in image dimensions the corrections have been removed')
