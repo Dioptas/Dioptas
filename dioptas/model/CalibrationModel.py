@@ -19,6 +19,7 @@
 __author__ = 'Clemens Prescher'
 
 import os
+import sys
 import time
 import logging
 
@@ -77,7 +78,7 @@ class CalibrationModel(object):
             array of points found
         """
         massif = Massif(self.img_data._img_data)
-        cur_peak_points = massif.find_peaks([x, y])
+        cur_peak_points = massif.find_peaks([x, y], stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
@@ -193,7 +194,9 @@ class CalibrationModel(object):
 
         keep = int(np.ceil(np.sqrt(size2)))
         try:
+            sys.stdout = DummyStdOut
             res = self.peak_search_algorithm.peaks_from_area(mask2, Imin=mean - std, keep=keep)
+            sys.stdout = sys.__stdout__
         except IndexError:
             res = []
 
@@ -497,3 +500,9 @@ class CalibrationModel(object):
     @property
     def wavelength(self):
         return self.spectrum_geometry.wavelength
+
+
+class DummyStdOut(object):
+    @classmethod
+    def write(self, *args, **kwargs):
+        pass
