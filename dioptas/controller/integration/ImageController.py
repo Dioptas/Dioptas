@@ -275,12 +275,23 @@ class ImageController(object):
         file_endings = self._get_spectrum_file_endings()
         for file_ending in file_endings:
             filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
-            print filename
             self.spectrum_model.set_spectrum(x, y, filename, unit=self.get_integration_unit())
             if file_ending == '.xy':
                 self.spectrum_model.save_spectrum(filename, header=self._create_spectrum_header())
             else:
                 self.spectrum_model.save_spectrum(filename)
+
+            # save the background subtracted filename
+            if self.spectrum_model.spectrum.has_background():
+                directory = os.path.join(working_directory, 'bkg_subtracted')
+                if not os.path.exists(directory):
+                    os.mkdir(directory)
+                filename = os.path.join(directory,self.spectrum_model.spectrum.name + file_ending)
+                if file_ending == '.xy':
+                    self.spectrum_model.save_spectrum(filename, header=self._create_spectrum_header(),
+                                                      subtract_background=True)
+                else:
+                    self.spectrum_model.save_spectrum(filename, subtract_background=True)
 
     def _create_spectrum_header(self):
         header = self.calibration_model.create_file_header()
