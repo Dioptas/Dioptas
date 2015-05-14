@@ -22,7 +22,7 @@ before_install:
     - sh -e /etc/init.d/xvfb start
 
 install:
-    - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose pyqt scikit-image
+    - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose pyqt scikit-image cython
 
     #installing fabio and pyFAI
     - cd fabio
