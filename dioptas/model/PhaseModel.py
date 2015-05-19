@@ -38,13 +38,18 @@ class PhaseModel(Observable):
         self.phases = []
         self.reflections = []
 
-    def add_phase(self, filename):
+    def add_jcpds(self, filename):
         try:
-            if filename.endswith(".jcpds"):
-                jcpds_object = jcpds()
-                jcpds_object.load_file(filename)
-            elif filename.endswith(".cif"):
-                jcpds_object = read_cif(filename)
+            jcpds_object = jcpds()
+            jcpds_object.load_file(filename)
+            self.phases.append(jcpds_object)
+            self.reflections.append([])
+        except (ZeroDivisionError, UnboundLocalError, ValueError):
+            raise PhaseLoadError(filename)
+
+    def add_cif(self, filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
+        try:
+            jcpds_object = read_cif(filename, intensity_cutoff, minimum_d_spacing)
             self.phases.append(jcpds_object)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError):
