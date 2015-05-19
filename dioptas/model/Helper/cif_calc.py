@@ -9,8 +9,11 @@ from pymatgen.analysis.diffraction.xrd import XRDCalculator
 
 from .jcpds import jcpds
 
+def read_cif(filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
+    structure = _read_cif(filename)
+    return convert_structure_to_jcpds(structure, intensity_cutoff, minimum_d_spacing)
 
-def read_cif(filename):
+def _read_cif(filename):
     """
     Reads in a cif file and converts it to structure object containing all the information from the cif
     :param filename: cif filename

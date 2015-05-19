@@ -22,6 +22,7 @@ import numpy as np
 
 from model.Helper.HelperModule import Observable
 from model.Helper import jcpds
+from model.Helper.cif_calc import read_cif
 
 
 class PhaseLoadError(Exception):
@@ -38,9 +39,12 @@ class PhaseModel(Observable):
         self.reflections = []
 
     def add_phase(self, filename):
-        jcpds_object = jcpds()
         try:
-            jcpds_object.load_file(filename)
+            if filename.endswith(".jcpds"):
+                jcpds_object = jcpds()
+                jcpds_object.load_file(filename)
+            elif filename.endswith(".cif"):
+                jcpds_object = read_cif(filename)
             self.phases.append(jcpds_object)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError):

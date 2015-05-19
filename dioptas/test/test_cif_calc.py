@@ -15,11 +15,11 @@ from model.Helper.jcpds import jcpds
 
 class CifCalcTest(unittest.TestCase):
     def test_read_cif_file(self):
-        structure = cif.read_cif(cif_path)
+        structure = cif._read_cif(cif_path)
         self.assertIsNotNone(structure)
 
     def test_convert_structure_to_jcpds_file(self):
-        structure = cif.read_cif(cif_path)
+        structure = cif._read_cif(cif_path)
         jcpds_obj = cif.convert_structure_to_jcpds(structure)
         self.assertIsNotNone(structure)
         self.assertIsInstance(jcpds_obj, jcpds)
