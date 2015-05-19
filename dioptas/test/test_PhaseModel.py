@@ -15,7 +15,7 @@ class PhaseModelTest(unittest.TestCase):
         self.phase_model = PhaseModel()
 
     def test_read_cif_file(self):
-        self.phase_model.add_phase(cif_path)
+        self.phase_model.add_jcpds(cif_path)
         self.assertGreater(len(self.phase_model.phases), 0)
 
         print(self.phase_model.phases[0].a0)
