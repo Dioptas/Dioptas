@@ -14,15 +14,11 @@ import model.Helper.cif_calc as cif
 from model.Helper.jcpds import jcpds
 
 class CifCalcTest(unittest.TestCase):
-    def test_read_cif_file(self):
-        structure = cif._read_cif(cif_path)
-        self.assertIsNotNone(structure)
-
     def test_convert_structure_to_jcpds_file(self):
-        structure = cif._read_cif(cif_path)
-        jcpds_obj = cif.convert_structure_to_jcpds(structure)
-        self.assertIsNotNone(structure)
+        jcpds_obj = cif.read_cif(cif_path)
         self.assertIsInstance(jcpds_obj, jcpds)
+        self.assertEqual(jcpds_obj.name, "test*")
+        self.assertEqual(jcpds_obj.comments[0], "Composition: Fe3C")
 
         self.assertEqual(jcpds_obj.a0, 4.5152)
         self.assertEqual(jcpds_obj.b0, 5.0807)

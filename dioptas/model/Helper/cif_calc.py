@@ -2,6 +2,7 @@
 __author__ = 'Clemens Prescher'
 
 import numpy as np
+import os
 
 from pymatgen.core.structure import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
@@ -10,22 +11,8 @@ from pymatgen.analysis.diffraction.xrd import XRDCalculator
 from .jcpds import jcpds
 
 def read_cif(filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
-    structure = _read_cif(filename)
-    return convert_structure_to_jcpds(structure, intensity_cutoff, minimum_d_spacing)
-
-def _read_cif(filename):
     """
-    Reads in a cif file and converts it to structure object containing all the information from the cif
-    :param filename: cif filename
-    :return: structure object (see pymatgen library)
-    """
-    struct = Structure.from_file(filename)
-    return struct
-
-
-def convert_structure_to_jcpds(structure, intensity_cutoff = 0.5, minimum_d_spacing=0.5):
-    """
-    Converts a pymatgen structure into a jcpds object. The X-ray reflections are calculated based on atomic positions,
+    Reads in a cif file and converts it into a jcpds object. The X-ray reflections are calculated based on atomic positions,
     whereby the saved reflections have to have relative intensities above the an intensity cutoff.
     :param structure: pymatgen structure object e.g. obtained from read_cif
     :param intensity_cutoff: only reflections with relative intensities above this value are included in the jcpds
@@ -33,7 +20,11 @@ def convert_structure_to_jcpds(structure, intensity_cutoff = 0.5, minimum_d_spac
     :return: jcpds object
     :type structure: Structure
     """
+    structure = Structure.from_file(filename)
     jcpds_obj = jcpds()
+    jcpds_obj._filename = filename
+    jcpds_obj._name = ''.join(os.path.basename(filename).split('.')[:-1])
+    jcpds_obj.comments.append("Composition: {}".format(structure.composition.reduced_formula))
 
     # getting the lattice parameter right:
     jcpds_obj.a0 = structure.lattice.a
