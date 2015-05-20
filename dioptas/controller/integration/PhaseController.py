@@ -31,7 +31,7 @@ from .JcpdsEditorController import JcpdsEditorController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationWidget import IntegrationWidget
-from widgets.UtilityWidgets import CifConversionParametersWidget
+from widgets.UtilityWidgets import CifConversionParametersDialog
 from model.CalibrationModel import CalibrationModel
 from model.SpectrumModel import SpectrumModel
 from model.PhaseModel import PhaseModel
@@ -57,7 +57,7 @@ class PhaseController(object):
         """
         self.working_dir = working_dir
         self.widget = widget
-        self.cif_conversion_widget = CifConversionParametersWidget(self.widget)
+        self.cif_conversion_dialog = CifConversionParametersDialog(self.widget)
         self.calibration_model = calibration_model
         self.spectrum_model = spectrum_model
         self.phase_model = phase_model
@@ -146,10 +146,10 @@ class PhaseController(object):
             if filename.endswith("jcpds"):
                 self.phase_model.add_jcpds(filename)
             elif filename.endswith(".cif"):
-                self.cif_conversion_widget.exec_()
+                self.cif_conversion_dialog.exec_()
                 self.phase_model.add_cif(filename,
-                                        self.cif_conversion_widget.int_cutoff,
-                                        self.cif_conversion_widget.min_d_spacing)
+                                        self.cif_conversion_dialog.int_cutoff,
+                                        self.cif_conversion_dialog.min_d_spacing)
 
             if self.widget.phase_apply_to_all_cb.isChecked():
                 pressure = np.float(self.widget.phase_pressure_sb.value())
