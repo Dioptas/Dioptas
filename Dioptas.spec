@@ -51,8 +51,35 @@ def extra_datas(dest_directory, source_directory):
     return extra_datas
 ###########################################
 
-a.datas += extra_datas('calibrants', 'dioptas/calibrants')
+# from distutils.sysconfig import get_python_lib
+# site_packages_path = get_python_lib()
+
+import site
+site_packages_path = site.getsitepackages()[0]
+
+## extra files for getting things to work
 a.datas += [('pyFAI/calibration/__init__.py', 'dioptas/calibrants/__init__.py', 'DATA')]
+a.datas += [('widgets/stylesheet.qss', 'dioptas/widgets/stylesheet.qss', 'DATA')]
+
+
+a.datas += extra_datas('calibrants', 'dioptas/calibrants')
+
+## getting the data for pymatgen
+a.datas += [('pymatgen/core/periodic_table.json',
+             os.path.join(site_packages_path, 'pymatgen/core/periodic_table.json'),
+             'DATA')]
+a.datas += [('pymatgen/core/func_groups.json',
+             os.path.join(site_packages_path, 'pymatgen/core/func_groups.json'),
+             'DATA')]
+a.datas += [('pymatgen/core/bond_lengths.json', os.path.join(site_packages_path, 'pymatgen/core/bond_lengths.json'),
+             'DATA')]
+a.datas += [('pymatgen/symmetry/symm_data.yaml',
+             os.path.join(site_packages_path, 'pymatgen/symmetry/symm_data.yaml'),
+             'DATA')]
+a.datas += [('pymatgen/analysis/diffraction/atomic_scattering_params.json',
+             os.path.join(site_packages_path, 'pymatgen/analysis/diffraction/atomic_scattering_params.json'),
+             'DATA')]
+
 
 
 # remove packages which are not needed Dioptas
