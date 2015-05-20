@@ -7,9 +7,9 @@ import os
 widget_path = os.path.dirname(__file__)
 
 
-class CifConversionParametersWidget(QtGui.QDialog):
+class CifConversionParametersDialog(QtGui.QDialog):
     def __init__(self, parent):
-        super(CifConversionParametersWidget, self).__init__()
+        super(CifConversionParametersDialog, self).__init__()
 
         self._parent = parent
         self.create_widgets()
@@ -78,12 +78,12 @@ class CifConversionParametersWidget(QtGui.QDialog):
           #moving conversion widget into the center of
         parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
         self.move(parent_center.x()-101,parent_center.y()-48)
-        super(CifConversionParametersWidget, self).exec_()
+        super(CifConversionParametersDialog, self).exec_()
 
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    widget = CifConversionParametersWidget(None)
+    widget = CifConversionParametersDialog(None)
     widget.show()
     widget.raise_()
     app.exec_()
