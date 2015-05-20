@@ -56,7 +56,7 @@ class CifConversionParametersWidget(QtGui.QDialog):
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
-        file = open(os.path.join(widget_path, "stylesheet.css"))
+        file = open(os.path.join(widget_path, "stylesheet.qss"))
         stylesheet = file.read()
         self.setStyleSheet(stylesheet)
         file.close()
