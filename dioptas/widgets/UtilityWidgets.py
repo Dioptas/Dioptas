@@ -8,9 +8,10 @@ widget_path = os.path.dirname(__file__)
 
 
 class CifConversionParametersWidget(QtGui.QDialog):
-    def __init__(self):
+    def __init__(self, parent):
         super(CifConversionParametersWidget, self).__init__()
 
+        self._parent = parent
         self.create_widgets()
         self.layout_widgets()
         self.style_widgets()
@@ -61,6 +62,7 @@ class CifConversionParametersWidget(QtGui.QDialog):
         self.setStyleSheet(stylesheet)
         file.close()
 
+
     def connect_widgets(self):
         self.ok_btn.clicked.connect(self.accept)
 
@@ -71,6 +73,12 @@ class CifConversionParametersWidget(QtGui.QDialog):
     @property
     def min_d_spacing(self):
         return float(str(self.min_d_spacing_txt.text()))
+
+    def exec_(self):
+          #moving conversion widget into the center of
+        parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
+        self.move(parent_center.x()-101,parent_center.y()-48)
+        super(CifConversionParametersWidget, self).exec_()
 
 
 if __name__ == '__main__':

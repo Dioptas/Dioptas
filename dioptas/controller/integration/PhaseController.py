@@ -57,7 +57,7 @@ class PhaseController(object):
         """
         self.working_dir = working_dir
         self.widget = widget
-        self.cif_conversion_widget = CifConversionParametersWidget()
+        self.cif_conversion_widget = CifConversionParametersWidget(self.widget)
         self.calibration_model = calibration_model
         self.spectrum_model = spectrum_model
         self.phase_model = phase_model
