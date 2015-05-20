@@ -1,14 +1,15 @@
 # -*- coding: utf8 -*-
 __author__ = 'Clemens Prescher'
 
-import numpy as np
 import os
 
+import numpy as np
 from pymatgen.core.structure import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.analysis.diffraction.xrd import XRDCalculator
 
 from .jcpds import jcpds
+
 
 def read_cif(filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
     """
@@ -37,13 +38,13 @@ def read_cif(filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
     jcpds_obj.symmetry = get_symmetry_from_space_group_number(SpacegroupAnalyzer(structure).get_spacegroup_number())
 
     xrd_analyzer = XRDCalculator(wavelength=0.4)
-    max_two_theta = 2*np.arcsin(0.4/(2.*minimum_d_spacing))/np.pi*180
+    max_two_theta = 2 * np.arcsin(0.4 / (2. * minimum_d_spacing)) / np.pi * 180
     xrd_reflections = xrd_analyzer.get_xrd_data(structure, two_theta_range=(0, max_two_theta))
     for reflection in xrd_reflections:
         h, k, l = reflection[2].keys()[0]
         intensity = reflection[1]
         d_spacing = reflection[3]
-        if intensity>=intensity_cutoff:
+        if intensity >= intensity_cutoff:
             jcpds_obj.add_reflection(h, k, l, intensity, d_spacing)
     return jcpds_obj
 

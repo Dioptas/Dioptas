@@ -4,14 +4,13 @@ __author__ = 'Clemens Prescher'
 import unittest
 import os
 
-import numpy as np
-
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 cif_path = os.path.join(data_path, "test.cif")
 
-import model.Helper.cif_calc as cif
+import model.Helper.cif as cif
 from model.Helper.jcpds import jcpds
+
 
 class CifCalcTest(unittest.TestCase):
     def test_convert_structure_to_jcpds_file(self):
