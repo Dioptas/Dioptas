@@ -10,6 +10,7 @@ cif_path = os.path.join(data_path, "test.cif")
 
 from model.PhaseModel import PhaseModel
 
+
 class PhaseModelTest(unittest.TestCase):
     def setUp(self):
         self.phase_model = PhaseModel()
@@ -19,4 +20,3 @@ class PhaseModelTest(unittest.TestCase):
         self.assertGreater(len(self.phase_model.phases), 0)
 
         print(self.phase_model.phases[0].a0)
-
