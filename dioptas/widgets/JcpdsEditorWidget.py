@@ -71,7 +71,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.blockAllSignals(True)
 
         self.filename_txt.setText(jcpds_phase.filename)
-        self.comments_txt.setText(jcpds_phase.comments[0])
+        self.comments_txt.setText("/n".join(jcpds_phase.comments))
 
         self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.symmetry.lower()))
         self.update_spinbox_enable(jcpds_phase.symmetry)

@@ -65,6 +65,9 @@ class jcpds_reflection:
         self.k = k
         self.l = l
 
+    def __str__(self):
+        return "{:2d},{:2d},{:2d}\t{:.2f}\t{:.3f}".format(self.h, self.k, self.l, self.intensity, self.d0)
+
 
 class jcpds(object):
     def __init__(self):
