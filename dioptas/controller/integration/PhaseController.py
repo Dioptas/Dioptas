@@ -61,7 +61,7 @@ class PhaseController(object):
         self.calibration_model = calibration_model
         self.spectrum_model = spectrum_model
         self.phase_model = phase_model
-        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.calibration_model)
+        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.calibration_model)
         self.phase_lw_items = []
         self.create_signals()
 
