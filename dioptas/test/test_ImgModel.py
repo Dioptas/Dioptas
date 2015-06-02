@@ -267,6 +267,10 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_model.reset_img_transformations()
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), pre_transformed_data))
 
+    def test_loading_a_tagged_tif_file_and_retrieving_info_string(self):
+        self.img_model.load(os.path.join(data_path, "attrib.tif"))
+        self.assertIn("areaDetector", self.img_model.file_info)
+
 
 if __name__ == '__main__':
     unittest.main()

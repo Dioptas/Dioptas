@@ -94,10 +94,13 @@ class ImgModel(Observable):
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
+
+            im = Image.open(filename)
+            self.file_info = self._get_file_info(im)
+            self._img_data = np.array(im)[::-1]
+        except AttributeError:
             self._img_data_fabio = fabio.open(filename)
             self._img_data = self._img_data_fabio.data[::-1]
-        except AttributeError:
-            self._img_data = np.array(Image.open(filename))[::-1]
         self.file_name_iterator.update_filename(filename)
 
         self._perform_img_transformations()
@@ -416,3 +419,22 @@ class ImgModel(Observable):
         :return: Whether the ImgData object has active absorption corrections or not
         """
         return self._img_corrections.has_items()
+
+    def _get_file_info(self, image):
+        """
+        reads the file info from tif_tags and returns a file info
+        """
+        result = ""
+        tags = image.tag
+        useful_keys = []
+        for key in tags.keys():
+            if key>300:
+                useful_keys.append(key)
+
+        useful_keys.sort()
+        for key in useful_keys:
+            if isinstance(tags[key], basestring):
+                new_line = str(tags[key])+"\n"
+                new_line = new_line.replace(":", ":\t", 1)
+                result += new_line
+        return result
