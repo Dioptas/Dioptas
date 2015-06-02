@@ -582,13 +582,13 @@ QTableWidget {
         </size>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="image_tab">
         <attribute name="title">
          <string>Image</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_11" stretch="0,1">
+        <layout class="QVBoxLayout" name="verticalLayout_11" stretch="0,0,1">
          <property name="spacing">
           <number>8</number>
          </property>
@@ -809,6 +809,33 @@ QTableWidget {
               </widget>
              </item>
             </layout>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_11">
+           <property name="leftMargin">
+            <number>10</number>
+           </property>
+           <item>
+            <widget class="QPushButton" name="file_info_btn">
+             <property name="text">
+              <string>File Info</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </item>
