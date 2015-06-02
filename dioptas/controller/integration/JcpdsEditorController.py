@@ -47,7 +47,7 @@ class JcpdsEditorController(QtCore.QObject):
 
     phase_modified = QtCore.pyqtSignal()
 
-    def __init__(self, working_dir, calibration_model=None, jcpds_phase=None):
+    def __init__(self, working_dir, parent_widget, calibration_model=None, jcpds_phase=None):
         """
         :param working_dir: dictionary of working directories
         :param calibration_model: Reference to CalibrationData object
@@ -57,7 +57,7 @@ class JcpdsEditorController(QtCore.QObject):
         :type jcpds_phase: jcpds
         """
         super(JcpdsEditorController, self).__init__()
-        self.widget = JcpdsEditorWidget()
+        self.widget = JcpdsEditorWidget(parent_widget)
         self.working_dir = working_dir
         self.calibration_model = calibration_model
         self.active = False
