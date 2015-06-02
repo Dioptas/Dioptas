@@ -26,6 +26,7 @@ from functools import partial
 from .UiFiles.IntegrationUI import Ui_xrs_integration_widget
 from widgets.plot_widgets.ImgWidget import IntegrationImgView
 from widgets.plot_widgets import SpectrumWidget
+from .FileInfoWidget import FileInfoWidget
 
 
 class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
@@ -82,6 +83,8 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
         self.qa_bkg_spectrum_inspect_btn.setVisible(False)
 
         self.mask_transparent_cb.setVisible(False)
+
+        self.file_info_widget = FileInfoWidget(self)
 
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
