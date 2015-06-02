@@ -51,11 +51,8 @@ def extra_datas(dest_directory, source_directory):
     return extra_datas
 ###########################################
 
-# from distutils.sysconfig import get_python_lib
-# site_packages_path = get_python_lib()
-
-import site
-site_packages_path = site.getsitepackages()[0]
+from distutils.sysconfig import get_python_lib
+site_packages_path = get_python_lib()
 
 ## extra files for getting things to work
 a.datas += [('pyFAI/calibration/__init__.py', 'dioptas/calibrants/__init__.py', 'DATA')]
