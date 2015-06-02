@@ -77,6 +77,8 @@ class ImgModel(Observable):
         self._background_scaling = 1
         self._background_offset = 0
 
+        self.file_info = ''
+
         self._img_corrections = ImgCorrectionManager()
 
         self._create_dummy_img()
