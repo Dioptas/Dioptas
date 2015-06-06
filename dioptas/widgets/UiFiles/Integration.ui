@@ -1562,6 +1562,9 @@ QTableWidget {
                    <property name="text">
                     <string>Waterfall</string>
                    </property>
+                   <property name="flat">
+                    <bool>true</bool>
+                   </property>
                   </widget>
                  </item>
                  <item>
@@ -1591,6 +1594,9 @@ QTableWidget {
                   <widget class="QPushButton" name="reset_waterfall_btn">
                    <property name="text">
                     <string>Reset</string>
+                   </property>
+                   <property name="flat">
+                    <bool>true</bool>
                    </property>
                   </widget>
                  </item>
