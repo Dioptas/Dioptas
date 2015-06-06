@@ -113,7 +113,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.calibration_model.spectrum_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, self.calibration_model, self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None,  self.calibration_model, self.jcpds)
         self.jcpds_view = self.jcpds_controller.widget
 
         # Erwin immediately sees the filename in the explorer
@@ -270,7 +270,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds = jcpds()
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, jcpds_phase=self.jcpds)
         self.jcpds_view = self.jcpds_controller.widget
 
         # he sees that there are 13 reflections predefined in the table
@@ -348,7 +348,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.enter_value_into_spinbox(self.jcpds_view.lattice_a_sb, 10)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, jcpds_phase=self.jcpds)
         self.jcpds_view = self.jcpds_controller.widget
         self.assertEqual(float(str(self.jcpds_view.lattice_a_sb.text())), 4.0786)
         self.assertEqual(float(str(self.jcpds_view.lattice_b_sb.text())), 4.0786)
@@ -372,7 +372,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_controller.save_as_btn_clicked(filename)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, jcpds_phase=self.jcpds)
 
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
         # Erwin opens up the program, loads image and calibration and some phases
