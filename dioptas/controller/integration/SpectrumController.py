@@ -122,6 +122,9 @@ class SpectrumController(object):
         self.connect_click_function(self.widget.spec_auto_range_btn, self.spec_auto_range_btn_click_callback)
         self.widget.spectrum_view.auto_range_status_changed.connect(self.widget.spec_auto_range_btn.setChecked)
 
+        # spectrum_plot antialias
+        self.widget.antialias_btn.toggled.connect(self.widget.spectrum_view.set_antialias)
+
     def connect_click_function(self, emitter, function):
         self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 

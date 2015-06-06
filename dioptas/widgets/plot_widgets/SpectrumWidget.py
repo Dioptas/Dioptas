@@ -196,6 +196,11 @@ class SpectrumWidget(QtCore.QObject):
     def rename_overlay(self, ind, name):
         self.legend.renameItem(ind + 1, name)
 
+    def set_antialias(self, value):
+        for overlay in self.overlays:
+            overlay.opts['antialias'] = value
+            overlay.updateItems()
+
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
         return self.phases[-1].color
