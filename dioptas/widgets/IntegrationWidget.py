@@ -91,6 +91,7 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
         self.overlay_scale_step_txt.setValidator(QtGui.QDoubleValidator())
         self.overlay_offset_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.waterfall_separation_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
         self.bin_count_txt.setValidator(QtGui.QIntValidator())

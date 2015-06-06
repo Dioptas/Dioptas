@@ -205,6 +205,21 @@ class OverlayControllerTest(unittest.TestCase):
         _, y = self.spectrum_model.spectrum.data
         self.assertNotEqual(np.sum(y), 0)
 
+    def test_overlay_waterfall(self):
+        self.load_overlays()
+        self.widget.waterfall_separation_txt.setText("10")
+        QTest.mouseClick(self.widget.waterfall_btn, QtCore.Qt.LeftButton)
+
+        self.assertEqual(self.spectrum_model.overlays[5].offset, -10)
+        self.assertEqual(self.spectrum_model.overlays[4].offset, -20)
+
+
+        QTest.mouseClick(self.widget.reset_waterfall_btn, QtCore.Qt.LeftButton)
+
+        self.assertEqual(self.spectrum_model.overlays[5].offset, 0)
+
+
+
 
     def load_overlays(self):
         self.load_overlay('spectrum_001.xy')
