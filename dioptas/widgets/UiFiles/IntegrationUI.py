@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Fri Jun  5 21:21:02 2015
+# Created: Fri Jun  5 23:08:49 2015
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -675,6 +675,7 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_14 = QtGui.QHBoxLayout()
         self.horizontalLayout_14.setObjectName(_fromUtf8("horizontalLayout_14"))
         self.waterfall_btn = QtGui.QPushButton(self.overlay_tab)
+        self.waterfall_btn.setFlat(True)
         self.waterfall_btn.setObjectName(_fromUtf8("waterfall_btn"))
         self.horizontalLayout_14.addWidget(self.waterfall_btn)
         self.waterfall_separation_txt = QtGui.QLineEdit(self.overlay_tab)
@@ -684,6 +685,7 @@ class Ui_xrs_integration_widget(object):
         spacerItem10 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_14.addItem(spacerItem10)
         self.reset_waterfall_btn = QtGui.QPushButton(self.overlay_tab)
+        self.reset_waterfall_btn.setFlat(True)
         self.reset_waterfall_btn.setObjectName(_fromUtf8("reset_waterfall_btn"))
         self.horizontalLayout_14.addWidget(self.reset_waterfall_btn)
         self.verticalLayout_5.addLayout(self.horizontalLayout_14)
