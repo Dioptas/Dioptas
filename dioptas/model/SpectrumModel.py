@@ -306,4 +306,14 @@ class SpectrumModel(QtCore.QObject):
         self.spectrum.unset_auto_background_subtraction()
         self.spectrum_changed.emit()
 
+    def overlay_waterfall(self, separation):
+        for ind in range(len(self.overlays)):
+            self.overlays[-(ind+1)].offset = -(ind+1)*separation
+            self.overlay_changed.emit(len(self.overlays)-(ind+1))
+
+    def reset_overlay_offsets(self):
+        for overlay in self.overlays:
+            overlay.offset = 0
+
+
 
