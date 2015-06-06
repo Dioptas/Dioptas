@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'Integration.ui'
 #
-# Created: Tue Jun  2 15:06:05 2015
+# Created: Fri Jun  5 21:05:51 2015
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -1378,6 +1378,14 @@ class Ui_xrs_integration_widget(object):
         self.verticalLayout_15.addWidget(self.qa_bkg_spectrum_inspect_btn)
         spacerItem32 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout_15.addItem(spacerItem32)
+        self.antialias_btn = QtGui.QPushButton(self.ver_spec_btn_widget)
+        self.antialias_btn.setCheckable(True)
+        self.antialias_btn.setChecked(True)
+        self.antialias_btn.setFlat(True)
+        self.antialias_btn.setObjectName(_fromUtf8("antialias_btn"))
+        self.verticalLayout_15.addWidget(self.antialias_btn)
+        spacerItem33 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        self.verticalLayout_15.addItem(spacerItem33)
         self.spec_auto_range_btn = QtGui.QPushButton(self.ver_spec_btn_widget)
         self.spec_auto_range_btn.setCheckable(True)
         self.spec_auto_range_btn.setChecked(True)
@@ -1442,8 +1450,8 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_21.addWidget(self.click_int_lbl)
         self.verticalLayout_4.addLayout(self.horizontalLayout_21)
         self.horizontalLayout_12.addWidget(self.widget_3)
-        spacerItem33 = QtGui.QSpacerItem(180, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_12.addItem(spacerItem33)
+        spacerItem34 = QtGui.QSpacerItem(180, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_12.addItem(spacerItem34)
         self.horizontalLayout_24.addWidget(self.footer_img_mouse_position_widget)
         self.verticalLayout_3 = QtGui.QVBoxLayout()
         self.verticalLayout_3.setSpacing(0)
@@ -1511,12 +1519,12 @@ class Ui_xrs_integration_widget(object):
         self.horizontalLayout_29.addWidget(self.click_azi_lbl)
         self.verticalLayout_3.addLayout(self.horizontalLayout_29)
         self.horizontalLayout_24.addLayout(self.verticalLayout_3)
-        spacerItem34 = QtGui.QSpacerItem(250, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_24.addItem(spacerItem34)
+        spacerItem35 = QtGui.QSpacerItem(250, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_24.addItem(spacerItem35)
         self.verticalLayout_14 = QtGui.QVBoxLayout()
         self.verticalLayout_14.setObjectName(_fromUtf8("verticalLayout_14"))
-        spacerItem35 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        self.verticalLayout_14.addItem(spacerItem35)
+        spacerItem36 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        self.verticalLayout_14.addItem(spacerItem36)
         self.bkg_name_lbl = QtGui.QLabel(self.widget2)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
@@ -1680,6 +1688,7 @@ class Ui_xrs_integration_widget(object):
         self.spec_d_btn.setText(_translate("xrs_integration_widget", "d", None))
         self.qa_bkg_spectrum_btn.setText(_translate("xrs_integration_widget", "bg", None))
         self.qa_bkg_spectrum_inspect_btn.setText(_translate("xrs_integration_widget", "i", None))
+        self.antialias_btn.setText(_translate("xrs_integration_widget", "AA", None))
         self.spec_auto_range_btn.setText(_translate("xrs_integration_widget", "A", None))
         self.mouse_x_lbl.setText(_translate("xrs_integration_widget", "X:", None))
         self.mouse_y_lbl.setText(_translate("xrs_integration_widget", "Y:", None))
