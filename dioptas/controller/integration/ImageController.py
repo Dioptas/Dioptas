@@ -856,3 +856,65 @@ class ImageController(object):
                                        'ERROR',
                                        'Due to a change in image dimensions the absorption '+
                                        'corrections have been removed')
+            
+
+class NewFileInDirectoryWatcher(QtCore.QObject):
+
+    file_added = QtCore.pyqtSignal(str)
+
+    def __init__(self, path = None, file_types = None):
+        super(NewFileInDirectoryWatcher, self).__init__()
+
+        self._file_system_watcher = QtCore.QFileSystemWatcher()
+        if path is None:
+            path = os.getcwd()
+        self._file_system_watcher.addPath(path)
+        self._files_in_path = os.listdir(path)
+
+        self._file_system_watcher.directoryChanged.connect(self.directory_changed)
+        self._file_system_watcher.blockSignals(True)
+        self._file_update_timer = QtCore.QTimer()
+        self._file_update_timer.setSingleShot(True)
+        self._file_update_timer.timeout.connect(self.directory_changed)
+
+        if file_types is None:
+            self.file_types = set([])
+        else:
+            self.file_types = set(file_types)
+
+    @property
+    def path(self):
+        return self._file_system_watcher.directories()[0]
+
+    @path.setter
+    def path(self, new_path):
+        self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
+        self._file_system_watcher.addPath(new_path)
+        self._files_in_path = os.listdir(new_path)
+
+    def activate(self):
+        self._file_system_watcher.blockSignals(False)
+
+    def deactivate(self):
+        self._file_system_watcher.blockSignals(True)
+
+    def directory_changed(self):
+        files_now = os.listdir(self.path)
+        files_added = [f for f in files_now if not f in self._files_in_path]
+
+        if len(files_added) > 0:
+            new_file_path = os.path.join(str(self.path), files_added[-1])
+
+            valid_file = False
+            for file_type in self.file_types:
+                if new_file_path.endswith(file_type):
+                    valid_file = True
+                    break
+
+            file_info = os.stat(new_file_path)
+            if file_info.st_size > 100:
+                if valid_file:
+                    self.file_added.emit(new_file_path)
+            else:
+                self._file_update_timer.start(5)
+            self._files_path = files_now
