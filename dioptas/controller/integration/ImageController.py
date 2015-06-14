@@ -27,6 +27,7 @@ from PIL import Image
 from model.Helper.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationWidget import IntegrationWidget
 from model.ImgModel import ImgModel
@@ -202,11 +203,12 @@ class ImageController(object):
             if isinstance(filenames, str):
                 filenames = [filenames]
 
+            elif isinstance(filenames, QtCore.QString):
+                filenames = [str(filenames)]
+
         if filenames is not None and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))
-            self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
-            self._file_system_watcher.addPath(self.working_dir['image'])
-            self._files_in_working_dir = os.listdir(self.working_dir['image'])
+            self._directory_watcher.path = self.working_dir['image']
 
             if len(filenames) == 1:
                 self.img_model.load(str(filenames[0]))
@@ -246,7 +248,6 @@ class ImageController(object):
         self._tear_down_multiple_file_integration()
         progress_dialog.close()
 
-
     def _get_spectrum_working_directory(self):
         if self.widget.spec_autocreate_cb.isChecked():
             working_directory = self.working_dir['spectrum']
@@ -281,7 +282,7 @@ class ImageController(object):
                 directory = os.path.join(working_directory, 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
-                filename = os.path.join(directory,self.spectrum_model.spectrum.name + file_ending)
+                filename = os.path.join(directory, self.spectrum_model.spectrum.name + file_ending)
                 if file_ending == '.xy':
                     self.spectrum_model.save_spectrum(filename, header=self._create_spectrum_header(),
                                                       subtract_background=True)
@@ -660,44 +661,19 @@ class ImageController(object):
             self.img_model.notify()
 
     def create_autoprocess_system(self):
-        self._file_system_watcher = QtCore.QFileSystemWatcher()
-        self._file_system_watcher.addPath(os.getcwd())
-        self._file_system_watcher.directoryChanged.connect(self.new_file_in_directory)
-        self._file_system_watcher.blockSignals(True)
-        self._file_update_timer = QtCore.QTimer()
-        self._file_update_timer.setSingleShot(True)
-        self._file_update_timer.timeout.connect(self.new_file_in_directory)
-        self._files_in_working_dir = []
+        self._directory_watcher = NewFileInDirectoryWatcher(
+            file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                        '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                        '.mccd', '.mar3450', '.pnm']
+        )
 
-    def new_file_in_directory(self):
-        files_now = os.listdir(self.working_dir['image'])
-        files_added = [f for f in files_now if not f in self._files_in_working_dir]
-
-        if len(files_added) > 0:
-            new_file_path = os.path.join(self.working_dir['image'], files_added[-1])
-
-            acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml',
-                                       '.cbf', '.kccd', '.msk', '.spr', '.tif',
-                                       '.mccd', '.mar3450', '.pnm']
-            read_file = False
-            for ending in acceptable_file_endings:
-                if new_file_path.endswith(ending):
-                    read_file = True
-                    break
-
-            file_info = os.stat(new_file_path)
-            if file_info.st_size > 100:
-                if read_file:
-                    self.load_file(new_file_path)
-            else:
-                self._file_update_timer.start(5)
-            self._files_in_working_dir = files_now
+        self._directory_watcher.file_added.connect(self.load_file)
 
     def auto_process_cb_click(self):
         if self.widget.autoprocess_cb.isChecked():
-            self._file_system_watcher.blockSignals(False)
+            self._directory_watcher.activate()
         else:
-            self._file_system_watcher.blockSignals(True)
+            self._directory_watcher.deactivate()
 
     def save_img(self, filename=None):
         if filename is None:
@@ -854,15 +830,14 @@ class ImageController(object):
             self.widget.oiadac_groupbox.setChecked(False)
             QtGui.QMessageBox.critical(self.widget,
                                        'ERROR',
-                                       'Due to a change in image dimensions the absorption '+
+                                       'Due to a change in image dimensions the absorption ' +
                                        'corrections have been removed')
-            
+
 
 class NewFileInDirectoryWatcher(QtCore.QObject):
-
     file_added = QtCore.pyqtSignal(str)
 
-    def __init__(self, path = None, file_types = None):
+    def __init__(self, path=None, file_types=None, activate=False):
         super(NewFileInDirectoryWatcher, self).__init__()
 
         self._file_system_watcher = QtCore.QFileSystemWatcher()
@@ -872,7 +847,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         self._files_in_path = os.listdir(path)
 
         self._file_system_watcher.directoryChanged.connect(self.directory_changed)
-        self._file_system_watcher.blockSignals(True)
+        self._file_system_watcher.blockSignals(~activate)
         self._file_update_timer = QtCore.QTimer()
         self._file_update_timer.setSingleShot(True)
         self._file_update_timer.timeout.connect(self.directory_changed)
