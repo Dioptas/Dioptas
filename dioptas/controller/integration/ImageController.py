@@ -42,27 +42,27 @@ class ImageController(object):
     """
 
     def __init__(self, working_dir, widget, img_model, mask_model, spectrum_model,
-                 calibration_data):
+                 calibration_model):
         """
         :param working_dir: dictionary of working directories
         :param widget: Reference to IntegrationView
         :param img_model: Reference to ImgModel object
         :param mask_model: Reference to MaskModel object
         :param spectrum_model: Reference to SpectrumModel object
-        :param calibration_data: Reference to CalibrationModel object
+        :param calibration_model: Reference to CalibrationModel object
 
         :type widget: IntegrationWidget
         :type img_model: ImgModel
         :type mask_model: MaskModel
         :type spectrum_model: SpectrumModel
-        :type calibration_data: CalibrationModel
+        :type calibration_model: CalibrationModel
         """
         self.working_dir = working_dir
         self.widget = widget
         self.img_model = img_model
         self.mask_model = mask_model
         self.spectrum_model = spectrum_model
-        self.calibration_model = calibration_data
+        self.calibration_model = calibration_model
 
         self.img_mode = 'Image'
         self.img_docked = True
@@ -175,7 +175,9 @@ class ImageController(object):
         self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
-        self.create_auto_process_signal()
+        # self.create_auto_process_signal()
+        self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
+        self.create_autoprocess_system()
 
     def connect_click_function(self, emitter, function):
         """
@@ -202,6 +204,10 @@ class ImageController(object):
 
         if filenames is not None and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))
+            self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
+            self._file_system_watcher.addPath(self.working_dir['image'])
+            self._files_in_working_dir = os.listdir(self.working_dir['image'])
+
             if len(filenames) == 1:
                 self.img_model.load(str(filenames[0]))
             else:
@@ -254,14 +260,10 @@ class ImageController(object):
     def _set_up_multiple_file_integration(self):
         self.img_model.turn_off_notification()
         self.spectrum_model.blockSignals(True)
-        if self.widget.autoprocess_cb.isChecked():
-            self._stop_auto_process()
 
     def _tear_down_multiple_file_integration(self):
         self.img_model.turn_on_notification()
         self.spectrum_model.blockSignals(False)
-        if self.widget.autoprocess_cb.isChecked():
-            self._start_auto_process()
         self.img_model.notify()
 
     def _save_spectrum(self, base_filename, working_directory, x, y):
@@ -657,52 +659,45 @@ class ImageController(object):
                 self.calibration_model.calibration_name)
             self.img_model.notify()
 
-    def create_auto_process_signal(self):
-        self.widget.autoprocess_cb.clicked.connect(self.auto_process_cb_click)
-        self.autoprocess_timer.setInterval(50)
-        self.widget.connect(self.autoprocess_timer,
-                            QtCore.SIGNAL('timeout()'),
-                            self.check_files)
+    def create_autoprocess_system(self):
+        self._file_system_watcher = QtCore.QFileSystemWatcher()
+        self._file_system_watcher.addPath(os.getcwd())
+        self._file_system_watcher.directoryChanged.connect(self.new_file_in_directory)
+        self._file_system_watcher.blockSignals(True)
+        self._file_update_timer = QtCore.QTimer()
+        self._file_update_timer.setSingleShot(True)
+        self._file_update_timer.timeout.connect(self.new_file_in_directory)
+        self._files_in_working_dir = []
 
-    def auto_process_cb_click(self):
-        if self.widget.autoprocess_cb.isChecked():
-            self._start_auto_process()
-        else:
-            self._stop_auto_process()
+    def new_file_in_directory(self):
+        files_now = os.listdir(self.working_dir['image'])
+        files_added = [f for f in files_now if not f in self._files_in_working_dir]
 
-    def _start_auto_process(self):
-        self._files_before = dict(
-            [(f, None) for f in os.listdir(self.working_dir['image'])])
-        self.autoprocess_timer.start()
+        if len(files_added) > 0:
+            new_file_path = os.path.join(self.working_dir['image'], files_added[-1])
 
-    def _stop_auto_process(self):
-        self.autoprocess_timer.stop()
-
-    def check_files(self):
-        self.autoprocess_timer.blockSignals(True)
-        self._files_now = dict(
-            [(f, None) for f in os.listdir(self.working_dir['image'])])
-        self._files_added = [
-            f for f in self._files_now if not f in self._files_before]
-        self._files_removed = [
-            f for f in self._files_before if not f in self._files_now]
-        if len(self._files_added) > 0:
-            new_file_str = self._files_added[-1]
-            path = os.path.join(self.working_dir['image'], new_file_str)
             acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml',
                                        '.cbf', '.kccd', '.msk', '.spr', '.tif',
                                        '.mccd', '.mar3450', '.pnm']
             read_file = False
             for ending in acceptable_file_endings:
-                if path.endswith(ending):
+                if new_file_path.endswith(ending):
                     read_file = True
                     break
-            file_info = os.stat(path)
+
+            file_info = os.stat(new_file_path)
             if file_info.st_size > 100:
                 if read_file:
-                    self.load_file(path)
-                self._files_before = self._files_now
-        self.autoprocess_timer.blockSignals(False)
+                    self.load_file(new_file_path)
+            else:
+                self._file_update_timer.start(5)
+            self._files_in_working_dir = files_now
+
+    def auto_process_cb_click(self):
+        if self.widget.autoprocess_cb.isChecked():
+            self._file_system_watcher.blockSignals(False)
+        else:
+            self._file_system_watcher.blockSignals(True)
 
     def save_img(self, filename=None):
         if filename is None:
