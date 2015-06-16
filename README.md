@@ -22,9 +22,9 @@ Requirements
 
 <b>optional:</b>
 
-    * pyopencl
-    * fftw3
-    * pymatgen
+    * pyopencl (increasing pyFAI integration speed)
+    * fftw3 (increasing pyFAI instegration speed)
+    * pymatgen (enables to import cif files as phases)
 
 It is known to run on Windows, Mac and Linux. For optimal usage on a windows machine it should be run with 64 bit
 python. When used with 32 bit Dioptas occasionally crashes because of limited memory allocation possibilities.
