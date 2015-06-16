@@ -1,7 +1,8 @@
 Dioptas
 ======
 
-A GUI program for fast analysis of powder X-ray diffraction Images. It provides the capability of calibrating, creating masks, having spectrum overlays and showing phase lines.
+A GUI program for fast analysis of powder X-ray diffraction Images. It provides the capability of calibrating, 
+creating masks, having pattern overlays and showing phase lines.
 
 Maintainer
 ----------
@@ -23,8 +24,10 @@ Requirements
 
     * pyopencl
     * fftw3
+    * pymatgen
 
-It is known to run on Windows, Mac and Linux. For optimal usage on a windows machine it should be run with 64 bit python.
+It is known to run on Windows, Mac and Linux. For optimal usage on a windows machine it should be run with 64 bit
+python. When used with 32 bit Dioptas occasionally crashes because of limited memory allocation possibilities.
 
 Installation
 ------------
@@ -41,16 +44,13 @@ Visual Studio (not the express edition), the Windows Software Development Kit ve
 
 #### OS X ####
 
-Python and the other required packages can be installed by using a package manager like macports. For pyFAI, fabio, and 
-pyqtgraph please refer to their installation instructions. (Please note to install pyFAI on Mac you have to use the
-gcc compiler, therefore use: *sudo CC=gcc python setup.py install* for the installation and please make sure that gcc
-is not linked to clang, before...)
+Python and the other required packages can be installed by using a package manager like macports or also use a 
+ distribution like anaconda or enthought. All required libraries can be installed using pip package manager.
 
 #### Linux ####
 
-Except for pyFAI, fabio and and pyqtgraph all packeges can be installed using the normal package manager (e.g. apt-get 
-or pip). The installation for the other 3 modules is described on their respective website. The installation should be
-straight forward as on Linux gcc is the standard compiler.
+All packages can be installed using the normal package manager (e.g. apt-get or pip). The .travis.yml file gives a 
+list of detailed instructions to install a small anaconda distribution specifically for usage with Dioptas.
 
 Running the Program
 ------------------
