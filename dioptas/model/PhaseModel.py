@@ -22,15 +22,24 @@ import numpy as np
 
 from model.Helper.HelperModule import Observable
 from model.Helper import jcpds
-from model.Helper.cif import read_cif
+try:
+    from model.Helper.cif import read_cif
+except ImportError:
+    read_cif = None
 
 
 class PhaseLoadError(Exception):
     def __init__(self, filename):
+        super(PhaseLoadError, self).__init__()
         self.filename = filename
 
     def __repr__(self):
         return "Could not load {0} as jcpds file".format(self.filename)
+
+class PymatgenNotInstalledError(Exception):
+    def __init__(self, filename):
+       super(PymatgenNotInstalledError, self).__init__()
+       self.filename = filename
 
 class PhaseModel(Observable):
     def __init__(self):
@@ -54,6 +63,8 @@ class PhaseModel(Observable):
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
+        except TypeError:
+            raise PymatgenNotInstalledError(filename)
 
     def del_phase(self, ind):
         del self.phases[ind]
