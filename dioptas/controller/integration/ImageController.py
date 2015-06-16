@@ -835,9 +835,25 @@ class ImageController(object):
 
 
 class NewFileInDirectoryWatcher(QtCore.QObject):
+    """
+    This class watches a given filepath for any new files with a given file extension added to it.
+
+    Typical usage::
+        def callback_fcn(path):
+            print(path)
+
+        watcher = NewFileInDirectoryWatcher(example_path, file_types = ['.tif', '.tiff'])
+        watcher.file_added.connect(callback_fcn)
+
+    """
     file_added = QtCore.pyqtSignal(str)
 
     def __init__(self, path=None, file_types=None, activate=False):
+        """
+        :param path: path to folder which will be watched
+        :param file_types: list of file types which will be watched for, e.g. ['.tif', '.jpeg]
+        :param activate: whether or not the Watcher will already emit signals
+        """
         super(NewFileInDirectoryWatcher, self).__init__()
 
         self._file_system_watcher = QtCore.QFileSystemWatcher()
@@ -846,11 +862,11 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         self._file_system_watcher.addPath(path)
         self._files_in_path = os.listdir(path)
 
-        self._file_system_watcher.directoryChanged.connect(self.directory_changed)
+        self._file_system_watcher.directoryChanged.connect(self._directory_changed)
         self._file_system_watcher.blockSignals(~activate)
 
         self._file_changed_watcher = QtCore.QFileSystemWatcher()
-        self._file_changed_watcher.fileChanged.connect(self.file_changed)
+        self._file_changed_watcher.fileChanged.connect(self._file_changed)
 
         if file_types is None:
             self.file_types = set([])
@@ -868,12 +884,24 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         self._files_in_path = os.listdir(new_path)
 
     def activate(self):
+        """
+        activates the watcher to emit signals when a new file is added
+        """
         self._file_system_watcher.blockSignals(False)
 
     def deactivate(self):
+        """
+        deactivates the watcher so it will not emit a signal when a new file is added
+        """
         self._file_system_watcher.blockSignals(True)
 
-    def directory_changed(self):
+    def _directory_changed(self):
+        """
+        internal function which determines whether the change in directory is an actual new file. If a new file was
+        detected it looks if it has the right extension and checks the file size. When the file is not completely
+        written yet it watches it for changes and will call the _file_changed function which wil acctually emit the
+        signal.
+        """
         files_now = os.listdir(self.path)
         files_added = [f for f in files_now if not f in self._files_in_path]
 
@@ -892,15 +920,21 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
                     break
 
             if valid_file:
-                file_info = os.stat(new_file_path)
-                print file_info
-                if file_info.st_size > 100:
+                if os.stat(new_file_path).st_size > 100:
                     self.file_added.emit(new_file_path)
                 else:
                     self._file_changed_watcher.addPath(new_file_path)
             self._files_in_path = files_now
 
-    def file_changed(self, path):
+    def _file_changed(self, path):
+        """
+        internal function callback for the file_changed_watcher. The watcher is invoked if a new file is detected but
+        the file is still below 100 bytes (basically only the file handle created, and no data yet). The _file_changed
+        callback function is then invoked when the data is completely written into the file. To ensure that everything
+        is correct this function also checks whether the file is above 100 byte after the system sends a file changed
+        signal.
+        :param path: file path of the watched file
+        """
         file_info = os.stat(path)
         if file_info.st_size > 100:
             self.file_added.emit(path)
