@@ -25,7 +25,7 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 
 from model.Helper.HelperModule import get_base_name
-from model.PhaseModel import PhaseLoadError
+from model.PhaseModel import PhaseLoadError, PymatgenNotInstalledError
 from .JcpdsEditorController import JcpdsEditorController
 
 
@@ -167,8 +167,14 @@ class PhaseController(object):
             self.widget.set_phase_pressure(len(self.phase_model.phases)-1, pressure)
             self.update_phase_temperature(len(self.phase_model.phases)-1, temperature)
         except PhaseLoadError as e:
-            self.widget.show_error_msg('Could not load:\n\n{0}.\n\nPlease check if the format of the input file is correct.'.\
+            self.widget.show_error_msg('Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'.\
                                     format(e.filename))
+        except PymatgenNotInstalledError as e:
+            print e.filename
+            self.widget.show_error_msg(
+                "Could not load:\n\n{}.\n\n".format(e.filename) +
+                "In order to be able to open cif files please install\nthe pymatgen library.")
+
 
     def add_phase_plot(self):
         """
