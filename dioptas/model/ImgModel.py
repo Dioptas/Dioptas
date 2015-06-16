@@ -100,7 +100,7 @@ class ImgModel(Observable):
             im = Image.open(filename)
             self.file_info = self._get_file_info(im)
             self._img_data = np.array(im)[::-1]
-        except AttributeError:
+        except IOError:
             self._img_data_fabio = fabio.open(filename)
             self._img_data = self._img_data_fabio.data[::-1]
         self.file_name_iterator.update_filename(filename)

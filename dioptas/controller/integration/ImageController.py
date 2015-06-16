@@ -848,9 +848,9 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
 
         self._file_system_watcher.directoryChanged.connect(self.directory_changed)
         self._file_system_watcher.blockSignals(~activate)
-        self._file_update_timer = QtCore.QTimer()
-        self._file_update_timer.setSingleShot(True)
-        self._file_update_timer.timeout.connect(self.directory_changed)
+
+        self._file_changed_watcher = QtCore.QFileSystemWatcher()
+        self._file_changed_watcher.fileChanged.connect(self.file_changed)
 
         if file_types is None:
             self.file_types = set([])
@@ -880,16 +880,28 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         if len(files_added) > 0:
             new_file_path = os.path.join(str(self.path), files_added[-1])
 
+            # abort if the new_file added is actually a directory...
+            if os.path.isdir(new_file_path):
+                self._files_in_path = files_now
+                return
+
             valid_file = False
             for file_type in self.file_types:
                 if new_file_path.endswith(file_type):
                     valid_file = True
                     break
 
-            file_info = os.stat(new_file_path)
-            if file_info.st_size > 100:
-                if valid_file:
+            if valid_file:
+                file_info = os.stat(new_file_path)
+                print file_info
+                if file_info.st_size > 100:
                     self.file_added.emit(new_file_path)
-            else:
-                self._file_update_timer.start(5)
-            self._files_path = files_now
+                else:
+                    self._file_changed_watcher.addPath(new_file_path)
+            self._files_in_path = files_now
+
+    def file_changed(self, path):
+        file_info = os.stat(path)
+        if file_info.st_size > 100:
+            self.file_added.emit(path)
+            self._file_changed_watcher.removePath(path)
