@@ -13,26 +13,13 @@ before_install:
     - conda update --yes conda
     - export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
 
-    #clonine the used repositories
-    - git clone https://github.com/kif/fabio
-    - git clone https://github.com/kif/pyFAI
-
     #start x-server
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
 
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
-
-    #installing fabio and pyFAI
-    - cd fabio
-    - python setup.py install
-
-    - pip install lmfit pyqtgraph Pillow pyFAI mock pymatgen
-#    - cd ../pyFAI
-#    - python setup.py install
-
-    - cd ../
+    - pip install lmfit pyqtgraph Pillow fabio pyFAI mock pymatgen
 
 script:
     - cd dioptas/test
