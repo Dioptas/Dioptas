@@ -18,6 +18,7 @@
 __author__ = 'Clemens Prescher'
 
 import unittest
+import mock
 import sys
 import os
 
@@ -42,7 +43,8 @@ class PhaseControllerTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.image_model = ImgModel()
         self.calibration_model = CalibrationModel()
-        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.calibration_model.is_calibrated = True
+        self.calibration_model.spectrum_geometry.wavelength = 0.31E-10
         self.spectrum_model = SpectrumModel()
         self.phase_model = PhaseModel()
         self.widget = IntegrationWidget()
@@ -53,7 +55,7 @@ class PhaseControllerTest(unittest.TestCase):
                                                                    self.calibration_model, self.spectrum_model)
         self.controller = PhaseController({}, self.widget, self.calibration_model, self.spectrum_model,
                                                        self.phase_model)
-        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
+        self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
 
 
     def tearDown(self):
