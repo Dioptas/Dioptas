@@ -5,6 +5,7 @@ import glob
 from subprocess import call
 import sys
 import os
+import time
 
 folders = ['', 'functional_tests/']
 test_files = []
@@ -21,6 +22,7 @@ for test_file in test_files:
     print("##############################")
     exit_code = call("python {}".format(test_file), shell=True)
     exit_codes.append(exit_code)
+    time.sleep(2)
 
 
 script_exit_code = 0
