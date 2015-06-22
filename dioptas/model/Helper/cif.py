@@ -41,7 +41,11 @@ def read_cif(filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
     max_two_theta = 2 * np.arcsin(0.4 / (2. * minimum_d_spacing)) / np.pi * 180
     xrd_reflections = xrd_analyzer.get_xrd_data(structure, two_theta_range=(0, max_two_theta))
     for reflection in xrd_reflections:
-        h, k, l = reflection[2].keys()[0]
+        miller_indices = reflection[2].keys()[0]
+        if len(miller_indices) == 4:
+            h, k, _, l = miller_indices
+        else:
+            h, k, l = miller_indices
         intensity = reflection[1]
         d_spacing = reflection[3]
         if intensity >= intensity_cutoff:
