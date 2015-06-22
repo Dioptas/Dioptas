@@ -61,9 +61,11 @@ class PhaseModel(Observable):
             jcpds_object = read_cif(filename, intensity_cutoff, minimum_d_spacing)
             self.phases.append(jcpds_object)
             self.reflections.append([])
-        except (ZeroDivisionError, UnboundLocalError, ValueError):
+        except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
+            print(e)
             raise PhaseLoadError(filename)
-        except TypeError:
+        except TypeError as e:
+            print(e)
             raise PymatgenNotInstalledError(filename)
 
     def del_phase(self, ind):
