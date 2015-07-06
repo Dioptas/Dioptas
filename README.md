@@ -32,6 +32,17 @@ python. When used with 32 bit Dioptas occasionally crashes because of limited me
 Installation
 ------------
 
+###Executables
+
+Executable versions for Windows, Mac OsX and Linux (all 64bit) can be downloaded from:
+
+[http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/](http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/)
+
+###Code
+
+In order to make changes to the source code yourself or always get the latest development versions you need to install
+the required python packages on your machine.
+
 #### Windows ####
 
 The easiest way to obtain almost all required packages is to install WinPython 64 bit or the Anaconda 64 bit python
