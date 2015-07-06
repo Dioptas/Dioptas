@@ -66,6 +66,8 @@ def get_symmetry_from_space_group_number(number):
         return "TRIGONAL"
     if number_between(number, 168, 194):
         return "HEXAGONAL"
+    if number in (196, 201, 202, 203, 209, 210, 216, 219, 225, 226, 227, 228):
+        return "RHOMBOHEDRAL"
     if number_between(number, 195, 230):
         return "CUBIC"
     return None
