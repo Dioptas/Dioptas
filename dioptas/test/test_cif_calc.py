@@ -8,6 +8,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 cif_path = os.path.join(data_path, "test.cif")
 cif_path_hcp = os.path.join(data_path, "hcp.cif")
+cif_path_fcc = os.path.join(data_path, "fcc2.cif")
 
 import model.Helper.cif as cif
 from model.Helper.jcpds import jcpds
@@ -42,4 +43,10 @@ class CifCalcTest(unittest.TestCase):
         self.assertEqual(cif.get_symmetry_from_space_group_number(0), None)
 
     def test_reading_hcp_cif_files(self):
-        jcpds_obj = cif.read_cif(cif_path_hcp)
+        cif.read_cif(cif_path_hcp)
+
+    def test_reading_fcc_cif_files(self):
+
+        for i in range(195, 231):
+            filename = os.path.join(data_path, str(i)+".cif")
+            jcpds_obj = cif.read_cif(filename)
