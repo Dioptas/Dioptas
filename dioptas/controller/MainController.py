@@ -19,6 +19,8 @@
 
 import os
 import csv
+from sys import platform as _platform
+
 import xml.etree.cElementTree as ET
 
 from PyQt4 import QtGui, QtCore
@@ -108,9 +110,11 @@ class MainController(object):
         Displays the main window on the screen and makes it active.
         """
         self.widget.show()
-        self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        self.widget.activateWindow()
-        self.widget.raise_()
+
+        if _platform == "darwin":
+            self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+            self.widget.activateWindow()
+            self.widget.raise_()
 
     def create_signals(self):
         """
