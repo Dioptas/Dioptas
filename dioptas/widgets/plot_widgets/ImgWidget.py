@@ -84,12 +84,22 @@ class ImgWidget(QtCore.QObject):
         exporter.export(filename)
 
     def auto_range(self):
-        hist_x, hist_y = self.data_img_item.getHistogram()
-        ind = np.where(np.cumsum(hist_y) < (0.996 * np.sum(hist_y)))
-        if len(ind[0]):
-            self.img_histogram_LUT.setLevels(np.min(np.min(self.img_data)), hist_x[ind[0][-1]])
+        hist_x, hist_y = self.img_histogram_LUT.hist_x, self.img_histogram_LUT.hist_y
+
+        hist_y_cumsum = np.cumsum(hist_y)
+        hist_y_sum = np.sum(hist_y)
+
+        max_ind = np.where(hist_y_cumsum < (0.996 * hist_y_sum))
+        min_ind = np.where(hist_y_cumsum > (0.05 * hist_y_sum))
+
+        min_level = hist_x[min_ind[0][1]]
+
+        if len(max_ind[0]):
+            max_level = hist_x[max_ind[0][-1]]
         else:
-            self.img_histogram_LUT.setLevels(np.min(np.min(self.img_data)), 0.5 * np.max(hist_x))
+            max_level = 0.5 * np.max(hist_x)
+
+        self.img_histogram_LUT.setLevels(min_level, max_level)
 
     def add_scatter_data(self, x, y):
         self.img_scatter_plot_item.addPoints(x=y, y=x)
