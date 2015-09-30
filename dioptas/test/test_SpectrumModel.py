@@ -5,9 +5,9 @@ import os
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from model.SpectrumModel import Spectrum, SpectrumModel
-from model.Helper.Spectrum import BkgNotInRangeError
-from model.Helper.PeakShapes import gaussian
+from model.SpectrumModel import Pattern, SpectrumModel
+from model.util.Pattern import BkgNotInRangeError
+from model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
@@ -17,7 +17,7 @@ class SpectrumModelTest(unittest.TestCase):
     def setUp(self):
         self.x = np.linspace(0.1, 15, 100)
         self.y = np.sin(self.x)
-        self.spectrum = Spectrum(self.x, self.y)
+        self.spectrum = Pattern(self.x, self.y)
         self.spectrum_model = SpectrumModel()
 
     def test_set_spectrum(self):

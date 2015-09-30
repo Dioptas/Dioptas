@@ -24,7 +24,7 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
 
-from model.Helper.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+from model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 
 

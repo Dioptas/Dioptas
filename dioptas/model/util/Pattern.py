@@ -10,16 +10,16 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
 
-from model.Helper import extract_background
+from model.util import extract_background
 
 logger = logging.getLogger(__name__)
 
 
-class Spectrum(QtCore.QObject):
+class Pattern(QtCore.QObject):
     spectrum_changed = QtCore.pyqtSignal(np.ndarray, np.ndarray)
     
     def __init__(self, x=None, y=None, name=''):
-        super(Spectrum, self).__init__()
+        super(Pattern, self).__init__()
         if x is None:
             self._original_x = np.linspace(0.1, 15, 100)
         else:
@@ -71,7 +71,7 @@ class Spectrum(QtCore.QObject):
     def background_spectrum(self, spectrum):
         """
         :param spectrum: new background spectrum
-        :type spectrum: Spectrum
+        :type spectrum: Pattern
         """
         self._background_spectrum = spectrum
         self._background_spectrum.spectrum_changed.connect(self.recalculate_spectrum)
@@ -125,7 +125,7 @@ class Spectrum(QtCore.QObject):
                 y = y - y_bkg
 
         if self.auto_background_subtraction:
-            self._auto_background_before_subtraction_spectrum = Spectrum(x, y)
+            self._auto_background_before_subtraction_spectrum = Pattern(x, y)
             if self.auto_background_subtraction_roi is not None:
                 ind = (x > self.auto_background_subtraction_roi[0]) & \
                       (x < self.auto_background_subtraction_roi[1])
@@ -136,7 +136,7 @@ class Spectrum(QtCore.QObject):
                                        self.auto_background_subtraction_parameters[0],
                                        self.auto_background_subtraction_parameters[1],
                                        self.auto_background_subtraction_parameters[2])
-            self._auto_background_spectrum = Spectrum (x, y_bkg)
+            self._auto_background_spectrum = Pattern (x, y_bkg)
 
             y -= y_bkg
 
@@ -233,9 +233,9 @@ class Spectrum(QtCore.QObject):
             if len(x) == 0:
                 # if there is no overlapping between background and spectrum, raise an error
                 raise BkgNotInRangeError(self.name)
-            return Spectrum(x, y - other_fcn(x))
+            return Pattern(x, y - other_fcn(x))
         else:
-            return Spectrum(orig_x, orig_y - other_y)
+            return Pattern(orig_x, orig_y - other_y)
 
     def __add__(self, other):
         orig_x, orig_y = self.data
@@ -253,13 +253,13 @@ class Spectrum(QtCore.QObject):
             if len(x) == 0:
                 # if there is no overlapping between background and spectrum, raise an error
                 raise BkgNotInRangeError(self.name)
-            return Spectrum(x, y + other_fcn(x))
+            return Pattern(x, y + other_fcn(x))
         else:
-            return Spectrum(orig_x, orig_y + other_y)
+            return Pattern(orig_x, orig_y + other_y)
 
     def __rmul__(self, other):
         orig_x, orig_y = self.data
-        return Spectrum(orig_x, orig_y * other)
+        return Pattern(orig_x, orig_y * other)
 
     def __len__(self):
         return len(self._original_x)

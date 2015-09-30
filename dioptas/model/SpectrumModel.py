@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 from copy import deepcopy
 from PyQt4 import QtCore
 
-from model.Helper.HelperModule import FileNameIterator, get_base_name
-from model.Helper import Spectrum
+from model.util.HelperModule import FileNameIterator, get_base_name
+from model.util import Pattern
 
 
 class SpectrumModel(QtCore.QObject):
@@ -47,7 +47,7 @@ class SpectrumModel(QtCore.QObject):
 
     def __init__(self):
         super(SpectrumModel, self).__init__()
-        self.spectrum = Spectrum()
+        self.spectrum = Pattern()
         self.overlays = []
         self.phases = []
 
@@ -159,7 +159,7 @@ class SpectrumModel(QtCore.QObject):
         :param y: y-values
         :param name: name of overlay to be used for displaying etc.
         """
-        self.overlays.append(Spectrum(x, y, name))
+        self.overlays.append(Pattern(x, y, name))
         self.overlay_added.emit()
 
     def remove_overlay(self, ind):
@@ -181,7 +181,7 @@ class SpectrumModel(QtCore.QObject):
         """
         :param ind: overlay ind
         :return: returns overlay if existent or None if it does not exist
-        :type return: Spectrum
+        :type return: Pattern
         """
         try:
             return self.overlays[ind]
@@ -194,7 +194,7 @@ class SpectrumModel(QtCore.QObject):
         Adds the current data spectrum as overlay to the list of overlays
         """
         current_spectrum = deepcopy(self.spectrum)
-        overlay_spectrum = Spectrum(current_spectrum.x,
+        overlay_spectrum = Pattern(current_spectrum.x,
                                     current_spectrum.y,
                                     current_spectrum.name)
         self.overlays.append(overlay_spectrum)
@@ -205,7 +205,7 @@ class SpectrumModel(QtCore.QObject):
         Reads a 2-column (x,y) text file and adds it as overlay to the list of overlays
         :param filename: path of the file to be loaded
         """
-        self.overlays.append(Spectrum())
+        self.overlays.append(Pattern())
         self.overlays[-1].load(filename)
         self.overlay_added.emit()
 

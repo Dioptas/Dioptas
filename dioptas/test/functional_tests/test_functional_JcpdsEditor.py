@@ -25,7 +25,7 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from model.Helper import jcpds
+from model.util import jcpds
 from model.CalibrationModel import CalibrationModel
 from controller.integration import JcpdsEditorController
 from controller import MainController

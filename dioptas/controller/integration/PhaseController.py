@@ -24,7 +24,7 @@ import os
 import numpy as np
 from PyQt4 import QtGui, QtCore
 
-from model.Helper.HelperModule import get_base_name
+from model.util.HelperModule import get_base_name
 from model.PhaseModel import PhaseLoadError, PymatgenNotInstalledError
 from .JcpdsEditorController import JcpdsEditorController
 

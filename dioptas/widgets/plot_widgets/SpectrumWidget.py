@@ -23,7 +23,7 @@ __author__ = 'Clemens Prescher'
 import pyqtgraph as pg
 from widgets.plot_widgets.ExLegendItem import LegendItem
 import numpy as np
-from model.Helper.HelperModule import calculate_color
+from model.util.HelperModule import calculate_color
 from PyQt4 import QtCore
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter

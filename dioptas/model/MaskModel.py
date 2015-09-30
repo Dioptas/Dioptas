@@ -23,7 +23,7 @@ import numpy as np
 import skimage.draw
 from PIL import Image
 
-from model.Helper.cosmics import cosmicsimage
+from model.util.cosmics import cosmicsimage
 
 
 class MaskModel(object):

@@ -127,11 +127,11 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.integration_widget.show()
         # Tests if the spectrum save procedures is are working for all fileendings
         def save_spectra_test_for_size_and_delete(self):
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.xy'))
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.chi'))
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.dat'))
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.png'))
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.svg'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.xy'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.chi'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.dat'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.png'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.svg'))
 
             self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_spec.xy')))
             self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_spec.chi')))
