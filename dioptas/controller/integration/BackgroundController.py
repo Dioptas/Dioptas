@@ -62,7 +62,7 @@ class BackgroundController(object):
         self.widget.bkg_image_scale_sb.valueChanged.connect(self.img_model.set_background_scaling)
         self.widget.bkg_image_offset_sb.valueChanged.connect(self.img_model.set_background_offset)
 
-        self.img_model.subscribe(self.update_background_image_filename)
+        self.img_model.img_changed.connect(self.update_background_image_filename)
 
     def create_spectrum_background_signals(self):
         self.widget.bkg_spectrum_gb.toggled.connect(self.bkg_spectrum_gb_toggled_callback)

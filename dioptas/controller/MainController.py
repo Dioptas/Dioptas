@@ -123,7 +123,7 @@ class MainController(object):
         """
         self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
-        self.img_model.subscribe(self.update_title)
+        self.img_model.img_changed.connect(self.update_title)
         self.spectrum_model.pattern_changed.connect(self.update_title)
 
     def tab_changed(self, ind):

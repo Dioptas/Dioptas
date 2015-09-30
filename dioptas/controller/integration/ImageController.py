@@ -73,7 +73,7 @@ class ImageController(object):
         self.autoprocess_timer = QtCore.QTimer(self.widget)
 
         self.initialize()
-        self.img_model.subscribe(self.update_img)
+        self.img_model.img_changed.connect(self.update_img)
         self.create_signals()
         self.create_mouse_behavior()
 
@@ -265,7 +265,7 @@ class ImageController(object):
     def _tear_down_multiple_file_integration(self):
         self.img_model.turn_on_notification()
         self.spectrum_model.blockSignals(False)
-        self.img_model.notify()
+        self.img_model.img_changed.emit()
 
     def _save_spectrum(self, base_filename, working_directory, x, y):
         file_endings = self._get_spectrum_file_endings()
@@ -357,7 +357,7 @@ class ImageController(object):
         self.use_mask = not self.use_mask
         self.widget.mask_transparent_cb.setVisible(not self.widget.mask_transparent_cb.isVisible())
         self.plot_mask()
-        self.img_model.notify()
+        self.img_model.img_changed.emit()
 
     def load_next_img(self):
         step = int(str(self.widget.image_browse_step_txt.text()))
@@ -446,7 +446,7 @@ class ImageController(object):
                 self.widget.img_view.activate_roi()
             else:
                 self.widget.img_view.deactivate_roi()
-        self.img_model.notify()
+        self.img_model.img_changed.emit()
 
     def change_view_mode(self):
         self.img_mode = self.widget.img_mode_btn.text()
@@ -658,7 +658,7 @@ class ImageController(object):
             self.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.calibration_model.calibration_name)
-            self.img_model.notify()
+            self.img_model.img_changed.emit()
 
     def create_autoprocess_system(self):
         self._directory_watcher = NewFileInDirectoryWatcher(

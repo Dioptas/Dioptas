@@ -24,15 +24,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 import numpy as np
-import fabio
 from PIL import Image
-from model.util.HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
+from PyQt4 import QtCore
+
+import fabio
+
+from model.util.HelperModule import  rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
 
 from model.util.ImgCorrection import ImgCorrectionManager
 
 
-class ImgModel(Observable):
+class ImgModel(QtCore.QObject):
     """
     Main Image handling class. Supports several features:
         - loading image files in any format using fabio
@@ -49,6 +52,8 @@ class ImgModel(Observable):
 
     The function will be called every time the img_data has changed.
     """
+    img_changed = QtCore.pyqtSignal()
+
     def __init__(self):
         """
         Defines all object variables and creates a dummy image.
@@ -107,7 +112,8 @@ class ImgModel(Observable):
 
         self._perform_img_transformations()
         self._calculate_img_data()
-        self.notify()
+
+        self.img_changed.emit()
 
     def save(self, filename):
         try:
@@ -133,7 +139,8 @@ class ImgModel(Observable):
 
         self._perform_background_transformations()
         self._calculate_img_data()
-        self.notify()
+
+        self.img_changed.emit()
 
     def _image_and_background_shape_equal(self):
         """
@@ -157,7 +164,7 @@ class ImgModel(Observable):
 
     def reset_background(self):
         self._reset_background()
-        self.notify()
+        self.img_changed.emit()
 
     def has_background(self):
         return self._background_data is not None
@@ -165,12 +172,12 @@ class ImgModel(Observable):
     def set_background_scaling(self, value):
         self._background_scaling = value
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def set_background_offset(self, value):
         self._background_offset = value
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def load_next_file(self, step=1):
         next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step)
@@ -293,7 +300,7 @@ class ImgModel(Observable):
         self.img_transformations.append(rotate_matrix_p90)
 
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def rotate_img_m90(self):
         """
@@ -307,7 +314,7 @@ class ImgModel(Observable):
         self.img_transformations.append(rotate_matrix_m90)
 
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def flip_img_horizontally(self):
         """
@@ -321,7 +328,7 @@ class ImgModel(Observable):
         self.img_transformations.append(np.fliplr)
 
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def flip_img_vertically(self):
         """
@@ -335,7 +342,7 @@ class ImgModel(Observable):
         self.img_transformations.append(np.flipud)
 
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def reset_img_transformations(self):
         """
@@ -357,7 +364,7 @@ class ImgModel(Observable):
                     self._background_data = transformation(self._background_data)
         self.img_transformations = []
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def _perform_img_transformations(self):
         """
@@ -406,7 +413,7 @@ class ImgModel(Observable):
     def add_img_correction(self, correction, name=None):
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def get_img_correction(self, name):
         return self._img_corrections.get_correction(name)
@@ -414,7 +421,7 @@ class ImgModel(Observable):
     def delete_img_correction(self, name=None):
         self._img_corrections.delete(name)
         self._calculate_img_data()
-        self.notify()
+        self.img_changed.emit()
 
     def has_corrections(self):
         """

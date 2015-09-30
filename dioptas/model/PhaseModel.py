@@ -41,7 +41,7 @@ class PymatgenNotInstalledError(Exception):
        super(PymatgenNotInstalledError, self).__init__()
        self.filename = filename
 
-class PhaseModel(Observable):
+class PhaseModel(object):
     def __init__(self):
         super(PhaseModel, self).__init__()
         self.phases = []
