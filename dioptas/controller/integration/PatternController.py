@@ -72,7 +72,7 @@ class PatternController(object):
 
     def create_subscriptions(self):
         # Data subscriptions
-        self.img_model.subscribe(self.image_changed)
+        self.img_model.img_changed.connect(self.image_changed)
         self.spectrum_model.pattern_changed.connect(self.plot_pattern)
         self.spectrum_model.pattern_changed.connect(self.autocreate_spectrum)
 
