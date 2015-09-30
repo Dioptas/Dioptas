@@ -20,10 +20,10 @@ __author__ = 'Clemens Prescher'
 
 import numpy as np
 
-from model.Helper.HelperModule import Observable
-from model.Helper import jcpds
+from model.util.HelperModule import Observable
+from model.util import jcpds
 try:
-    from model.Helper.cif import read_cif
+    from model.util.cif import read_cif
 except ImportError:
     read_cif = None
 

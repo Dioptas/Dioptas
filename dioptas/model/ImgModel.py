@@ -26,10 +26,10 @@ logger = logging.getLogger(__name__)
 import numpy as np
 import fabio
 from PIL import Image
-from model.Helper.HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
+from model.util.HelperModule import Observable, rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
 
-from model.Helper.ImgCorrection import ImgCorrectionManager
+from model.util.ImgCorrection import ImgCorrectionManager
 
 
 class ImgModel(Observable):

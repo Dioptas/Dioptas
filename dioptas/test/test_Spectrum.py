@@ -5,9 +5,9 @@ import os
 
 import numpy as np
 
-from model.Helper.Spectrum import BkgNotInRangeError
-from model.Helper import Spectrum
-from model.Helper.PeakShapes import gaussian
+from model.util.Pattern import BkgNotInRangeError
+from model.util import Pattern
+from model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
@@ -26,7 +26,7 @@ class SpectrumTest(unittest.TestCase):
         self.assertNotAlmostEqual(np.sum(array1 - array2), 0, places=places)
 
     def test_loading_chi_file(self):
-        spec = Spectrum()
+        spec = Pattern()
         x, y = spec.data
 
         spec.load(os.path.join(data_path,'spectrum_001.chi'))
@@ -36,17 +36,17 @@ class SpectrumTest(unittest.TestCase):
         self.assertNotEqual(len(y), len(new_y))
 
     def test_loading_invalid_file(self):
-        spec = Spectrum()
+        spec = Pattern()
         self.assertEqual(-1, spec.load(os.path.join(data_path,'wrong_file_format.txt')))
 
     def test_saving_a_file(self):
         x = np.linspace(-5, 5, 100)
         y = x ** 2
-        spec = Spectrum(x, y)
+        spec = Pattern(x, y)
         filename = os.path.join(data_path, "test.dat")
         spec.save(filename)
 
-        spec2 = Spectrum()
+        spec2 = Pattern()
         spec2.load(filename)
 
         spec2_x, spec2_y = spec2.data
@@ -57,8 +57,8 @@ class SpectrumTest(unittest.TestCase):
 
     def test_plus_and_minus_operators(self):
         x = np.linspace(0, 10, 100)
-        spectrum1 = Spectrum(x, np.sin(x))
-        spectrum2 = Spectrum(x, np.sin(x))
+        spectrum1 = Pattern(x, np.sin(x))
+        spectrum2 = Pattern(x, np.sin(x))
 
         spectrum3 = spectrum1 + spectrum2
         self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 2))
@@ -83,8 +83,8 @@ class SpectrumTest(unittest.TestCase):
     def test_plus_and_minus_operators_with_different_shapes(self):
         x = np.linspace(0, 10, 1000)
         x2 = np.linspace(0, 12, 1300)
-        spectrum1 = Spectrum(x, np.sin(x))
-        spectrum2 = Spectrum(x2, np.sin(x2))
+        spectrum1 = Pattern(x, np.sin(x))
+        spectrum2 = Pattern(x2, np.sin(x2))
 
         spectrum3 = spectrum1 + spectrum2
         self.array_almost_equal(spectrum3.x, spectrum1._original_x)
@@ -102,9 +102,9 @@ class SpectrumTest(unittest.TestCase):
 
     def test_multiply_with_scalar_operator(self):
         x = np.linspace(0, 10, 100)
-        spectrum1 = 2 * Spectrum(x, np.sin(x))
+        spectrum1 = 2 * Pattern(x, np.sin(x))
 
-        spectrum2 = 2 * Spectrum(x, np.sin(x))
+        spectrum2 = 2 * Pattern(x, np.sin(x))
 
         self.assertTrue(np.array_equal(spectrum2.y, np.sin(x) * 2))
 
@@ -113,8 +113,8 @@ class SpectrumTest(unittest.TestCase):
         spec_y = x ** 2
         bkg_y = x
 
-        spec = Spectrum(x, spec_y)
-        background_spectrum = Spectrum(x, bkg_y)
+        spec = Pattern(x, spec_y)
+        background_spectrum = Pattern(x, bkg_y)
 
         spec.background_spectrum = background_spectrum
         new_x, new_y = spec.data
@@ -128,8 +128,8 @@ class SpectrumTest(unittest.TestCase):
         x_bkg = np.linspace(-5, 5, 99)
         bkg_y = x_bkg
 
-        spec = Spectrum(x, spec_y)
-        background_spectrum = Spectrum(x_bkg, bkg_y)
+        spec = Pattern(x, spec_y)
+        background_spectrum = Pattern(x_bkg, bkg_y)
 
         spec.background_spectrum = background_spectrum
         new_x, new_y = spec.data
@@ -141,8 +141,8 @@ class SpectrumTest(unittest.TestCase):
         x1 = np.linspace(0, 10)
         x2 = np.linspace(-10, -1)
 
-        spec = Spectrum(x1, x1)
-        background_spectrum = Spectrum(x2, x2)
+        spec = Pattern(x1, x1)
+        background_spectrum = Pattern(x2, x2)
 
         with self.assertRaises(BkgNotInRangeError):
             spec.background_spectrum = background_spectrum
@@ -161,7 +161,7 @@ class SpectrumTest(unittest.TestCase):
         y_bkg = x * 0.4 + 5.0
         y_measurement = y + y_bkg
 
-        spectrum = Spectrum(x, y_measurement)
+        spectrum = Pattern(x, y_measurement)
 
         auto_background_subtraction_parameters = [2, 50, 50]
         spectrum.set_auto_background_subtraction(auto_background_subtraction_parameters)
@@ -186,7 +186,7 @@ class SpectrumTest(unittest.TestCase):
 
         roi = [1, 23]
 
-        spectrum = Spectrum(x, y_measurement)
+        spectrum = Pattern(x, y_measurement)
 
         auto_background_subtraction_parameters = [2, 50, 50]
         spectrum.set_auto_background_subtraction(auto_background_subtraction_parameters, roi)
@@ -200,7 +200,7 @@ class SpectrumTest(unittest.TestCase):
 
 
     def test_setting_new_data(self):
-        spec = Spectrum()
+        spec = Pattern()
         x = np.linspace(0, 10)
         y = np.sin(x)
         spec.data = x, y
@@ -212,7 +212,7 @@ class SpectrumTest(unittest.TestCase):
     def test_using_len(self):
         x = np.linspace(0,10,234)
         y = x**2
-        spec = Spectrum(x, y)
+        spec = Pattern(x, y)
 
         self.assertEqual(len(spec), 234)
 

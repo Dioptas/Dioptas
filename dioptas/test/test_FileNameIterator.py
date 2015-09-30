@@ -3,7 +3,7 @@ import unittest
 import os
 from PyQt4 import QtGui
 
-from model.Helper.HelperModule import FileNameIterator
+from model.util.HelperModule import FileNameIterator
 
 
 unittest_path = os.path.dirname(__file__)

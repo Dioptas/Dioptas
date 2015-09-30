@@ -9,7 +9,7 @@ try:
 except ImportError, e:
     print(e)
     logger.warning("Could not import the Fortran version of smooth_bruckner. Using python implementation instead. Please"
-                 " run 'f2py -c -m smooth_bruckner smooth_bruckner.f95' in the Data/Helper folder for faster"
+                 " run 'f2py -c -m smooth_bruckner smooth_bruckner.f95' in the model/util folder for faster"
                  " implementation")
     from .smooth_bruckner_python import smooth_bruckner
 

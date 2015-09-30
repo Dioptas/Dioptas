@@ -22,7 +22,7 @@ __author__ = 'Clemens Prescher'
 import os
 from PyQt4 import QtGui, QtCore
 import pyFAI
-from model.Helper.Spectrum import BkgNotInRangeError
+from model.util.Pattern import BkgNotInRangeError
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -108,7 +108,7 @@ class SpectrumController(object):
 
 
         # quick actions
-        self.connect_click_function(self.widget.qa_save_spectrum_btn, self.save_spectrum)
+        self.connect_click_function(self.widget.qa_save_spectrum_btn, self.save_pattern)
 
         # integration controls
         self.widget.automatic_binning_cb.stateChanged.connect(self.automatic_binning_cb_changed)
@@ -171,7 +171,7 @@ class SpectrumController(object):
                             self.working_dir['spectrum'],
                             os.path.basename(
                                 str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
-                    self.save_spectrum(filename)
+                    self.save_pattern(filename)
                 self.widget.spec_next_btn.setEnabled(True)
                 self.widget.spec_previous_btn.setEnabled(True)
                 self.widget.spec_filename_txt.setText(os.path.basename(filename))
@@ -239,13 +239,13 @@ class SpectrumController(object):
                     filename = os.path.join(
                         directory,
                         self.spectrum_model.spectrum.name + file_ending)
-                    self.save_spectrum(filename, subtract_background=True)
+                    self.save_pattern(filename, subtract_background=True)
 
-    def save_spectrum(self, filename=None, subtract_background=False):
+    def save_pattern(self, filename=None, subtract_background=False):
         if filename is None:
             save_file_dialog = QtGui.QFileDialog()
             save_file_dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
-            save_file_dialog.setWindowTitle("Save Spectrum Data.")
+            save_file_dialog.setWindowTitle("Save Pattern Data or Image.")
             save_file_dialog.setNameFilters(['Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg);; Data (*.xy)'])
             save_file_dialog.selectFile(os.path.join(self.working_dir['spectrum'],
                                                      '.'.join(self.img_model.filename.split('.')[:-1])))

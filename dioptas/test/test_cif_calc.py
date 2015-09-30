@@ -10,8 +10,8 @@ cif_path = os.path.join(data_path, "test.cif")
 cif_path_hcp = os.path.join(data_path, "hcp.cif")
 cif_path_fcc = os.path.join(data_path, "fcc2.cif")
 
-import model.Helper.cif as cif
-from model.Helper.jcpds import jcpds
+import model.util.cif as cif
+from model.util.jcpds import jcpds
 
 
 class CifCalcTest(unittest.TestCase):

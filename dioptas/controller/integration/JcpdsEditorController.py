@@ -19,16 +19,15 @@
 __author__ = 'Clemens Prescher'
 
 from copy import deepcopy
-from functools import wraps
 import numpy as np
 
 from PyQt4 import QtGui, QtCore
-from model.Helper import jcpds
+from model.util import jcpds
 
 from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from model.Helper.jcpds import jcpds
+from model.util.jcpds import jcpds
 from model.CalibrationModel import CalibrationModel
 
 
