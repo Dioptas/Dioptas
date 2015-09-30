@@ -19,7 +19,11 @@ before_install:
 
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
-    - pip install lmfit pyqtgraph Pillow fabio pyFAI mock pymatgen
+    - pip install lmfit pyqtgraph Pillow fabio mock pymatgen
+    - git clone https://github.com/kif/pyFAI.git
+    - cd pyFAI
+    - python setup.py install
+    - cd ..
 
 script:
     - cd dioptas/test
