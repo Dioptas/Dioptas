@@ -26,7 +26,7 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from widgets.IntegrationWidget import IntegrationWidget
-from model import SpectrumModel
+from model import PatternModel
 from controller.integration import OverlayController
 
 unittest_path = os.path.dirname(__file__)
@@ -36,7 +36,7 @@ class OverlayControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
         self.widget = IntegrationWidget()
-        self.spectrum_model = SpectrumModel()
+        self.spectrum_model = PatternModel()
         self.overlay_controller = OverlayController({}, self.widget, self.spectrum_model)
         self.overlay_tw = self.widget.overlay_tw
 
@@ -136,65 +136,65 @@ class OverlayControllerTest(unittest.TestCase):
 
     def test_setting_overlay_as_bkg(self):
         self.load_overlays()
-        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
+        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 
         self.assertEqual(self.spectrum_model.bkg_ind, 0)
-        x, y = self.spectrum_model.spectrum.data
+        x, y = self.spectrum_model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
     def test_setting_overlay_as_bkg_and_changing_scale(self):
         self.load_overlays()
-        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
+        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         self.widget.overlay_scale_sb.setValue(2)
-        _, y = self.spectrum_model.spectrum.data
-        _, y_original = self.spectrum_model.spectrum.data
+        _, y = self.spectrum_model.pattern.data
+        _, y_original = self.spectrum_model.pattern.data
         self.assertEqual(np.sum(y-y_original), 0)
 
     def test_setting_overlay_as_bkg_and_changing_offset(self):
         self.load_overlays()
-        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
+        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         self.widget.overlay_offset_sb.setValue(100)
-        _, y = self.spectrum_model.spectrum.data
+        _, y = self.spectrum_model.pattern.data
         self.assertEqual(np.sum(y), -100*y.size)
 
     def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(self):
         self.load_overlays()
-        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
+        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
 
-        _, y = self.spectrum_model.spectrum.data
+        _, y = self.spectrum_model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
         self.widget.select_overlay(1)
         self.widget.overlay_scale_sb.setValue(2)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
-        _, y = self.spectrum_model.spectrum.data
+        _, y = self.spectrum_model.pattern.data
         self.assertNotEqual(np.sum(y), 0)
 
     def test_setting_spectrum_as_bkg(self):
-        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
+        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 
-        _, y = self.spectrum_model.spectrum.data
+        _, y = self.spectrum_model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
     def test_having_overlay_as_bkg_and_deleting_it(self):
-        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
+        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
 
         QTest.mouseClick(self.widget.overlay_del_btn, QtCore.Qt.LeftButton)
@@ -202,7 +202,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertFalse(self.widget.overlay_set_as_bkg_btn.isChecked())
         self.assertEqual(self.widget.overlay_tw.rowCount(), 0)
 
-        _, y = self.spectrum_model.spectrum.data
+        _, y = self.spectrum_model.pattern.data
         self.assertNotEqual(np.sum(y), 0)
 
     def test_overlay_waterfall(self):

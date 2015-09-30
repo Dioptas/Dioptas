@@ -22,4 +22,4 @@ from CalibrationModel import CalibrationModel
 from ImgModel import ImgModel
 from MaskModel import MaskModel
 from PhaseModel import PhaseModel
-from SpectrumModel import SpectrumModel
+from PatternModel import PatternModel

@@ -10,7 +10,7 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from controller.integration import IntegrationController
-from model import ImgModel, CalibrationModel, MaskModel, SpectrumModel, PhaseModel
+from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
 from widgets.IntegrationWidget import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
@@ -21,7 +21,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
-        self.spectrum_model = SpectrumModel()
+        self.spectrum_model = PatternModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.phase_model = PhaseModel()
 
@@ -70,17 +70,17 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
         self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 1512)
-        previous_number_of_points = len(self.spectrum_model.spectrum.x)
+        previous_number_of_points = len(self.spectrum_model.pattern.x)
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * 1512)
 
-        self.assertAlmostEqual(len(self.spectrum_model.spectrum.x), 2 * previous_number_of_points,
+        self.assertAlmostEqual(len(self.spectrum_model.pattern.x), 2 * previous_number_of_points,
                                delta=1)
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
         self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 1512)
-        self.assertEqual(len(self.spectrum_model.spectrum.x), previous_number_of_points)
+        self.assertEqual(len(self.spectrum_model.pattern.x), previous_number_of_points)
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
         # Edith opens the program, calibrates everything and looks in to the options menu. She sees that there is a

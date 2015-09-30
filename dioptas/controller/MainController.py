@@ -28,7 +28,7 @@ from PyQt4 import QtGui, QtCore
 from widgets.MainWidget import MainWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.CalibrationModel import CalibrationModel
 from model.PhaseModel import PhaseModel
 from . import CalibrationController
@@ -75,7 +75,7 @@ class MainController(object):
         self.img_model = ImgModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.mask_model = MaskModel()
-        self.spectrum_model = SpectrumModel()
+        self.spectrum_model = PatternModel()
         self.phase_model = PhaseModel()
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
@@ -124,7 +124,7 @@ class MainController(object):
         self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
         self.img_model.subscribe(self.update_title)
-        self.spectrum_model.spectrum_changed.connect(self.update_title)
+        self.spectrum_model.pattern_changed.connect(self.update_title)
 
     def tab_changed(self, ind):
         """
@@ -156,7 +156,7 @@ class MainController(object):
         image or spectrum filenames loaded and the current calibration name.
         """
         img_filename = os.path.basename(self.img_model.filename)
-        spec_filename = os.path.basename(self.spectrum_model.spectrum_filename)
+        spec_filename = os.path.basename(self.spectrum_model.pattern_filename)
         calibration_name = self.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':

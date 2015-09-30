@@ -23,7 +23,7 @@ import numpy as np
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.ImgModel import ImgModel
 from widgets.IntegrationWidget import IntegrationWidget
 
@@ -43,7 +43,7 @@ class BackgroundController(object):
 
         :type widget: IntegrationWidget
         :type img_model: ImgModel
-        :type spectrum_model: SpectrumModel
+        :type spectrum_model: PatternModel
         """
         self.working_dir = working_dir
         self.widget = widget
@@ -155,7 +155,7 @@ class BackgroundController(object):
         if checked:
             self.widget.spectrum_view.show_linear_region()
             x_min, x_max = self.widget.get_bkg_spectrum_roi()
-            x_spec = self.spectrum_model.spectrum.auto_background_before_subtraction_spectrum.x
+            x_spec = self.spectrum_model.pattern.auto_background_before_subtraction_spectrum.x
             if x_min<x_spec[0]:
                 x_min = x_spec[0]
             if x_max>x_spec[-1]:
@@ -174,7 +174,7 @@ class BackgroundController(object):
 
             self.widget.bkg_spectrum_x_min_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
             self.widget.bkg_spectrum_x_max_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
-        self.spectrum_model.spectrum_changed.emit()
+        self.spectrum_model.pattern_changed.emit()
 
     def bkg_spectrum_linear_region_callback(self):
         x_min, x_max = self.widget.spectrum_view.get_linear_region()

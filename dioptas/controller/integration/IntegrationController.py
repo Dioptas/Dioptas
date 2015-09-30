@@ -32,7 +32,7 @@ pg.setConfigOption('antialias', True)
 
 from .OverlayController import OverlayController
 from .ImageController import ImageController
-from .SpectrumController import SpectrumController
+from .PatternController import PatternController
 from .PhaseController import PhaseController
 from .BackgroundController import BackgroundController
 
@@ -41,7 +41,7 @@ from widgets.IntegrationWidget import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.PhaseModel import PhaseModel
 
 
@@ -65,7 +65,7 @@ class IntegrationController(object):
         :type img_model: ImgModel
         :type mask_model: MaskModel
         :type calibration_model: CalibrationModel
-        :type spectrum_model: SpectrumModel
+        :type spectrum_model: PatternModel
         :type phase_model: PhaseModel
         """
         self.working_dir = working_dir
@@ -82,7 +82,7 @@ class IntegrationController(object):
         """
         Creates the sub controller with the appropriate data.
         """
-        self.spectrum_controller = SpectrumController(self.working_dir, self.widget, self.img_model,
+        self.spectrum_controller = PatternController(self.working_dir, self.widget, self.img_model,
                                                                  self.mask_model,
                                                                  self.calibration_model, self.spectrum_model)
         self.image_controller = ImageController(self.working_dir, self.widget, self.img_model,

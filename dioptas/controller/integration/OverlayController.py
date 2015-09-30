@@ -25,7 +25,7 @@ import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationWidget import IntegrationWidget
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 
 
 class OverlayController(object):
@@ -41,7 +41,7 @@ class OverlayController(object):
         :param spectrum_model: Reference to SpectrumModel object
 
         :type widget: IntegrationWidget
-        :type spectrum_model: SpectrumModel
+        :type spectrum_model: PatternModel
         """
         self.working_dir = working_dir
         self.widget = widget

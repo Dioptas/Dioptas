@@ -33,7 +33,7 @@ from .JcpdsEditorController import JcpdsEditorController
 from widgets.IntegrationWidget import IntegrationWidget
 from widgets.UtilityWidgets import CifConversionParametersDialog
 from model.CalibrationModel import CalibrationModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.PhaseModel import PhaseModel
 
 class PhaseController(object):
@@ -52,7 +52,7 @@ class PhaseController(object):
 
         :type widget: IntegrationWidget
         :type calibration_model: CalibrationModel
-        :type spectrum_model: SpectrumModel
+        :type spectrum_model: PatternModel
         :type phase_model: PhaseModel
         """
         self.working_dir = working_dir
@@ -86,7 +86,7 @@ class PhaseController(object):
         self.widget.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
         # self.widget.spectrum_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
         self.widget.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
-        self.spectrum_model.spectrum_changed.connect(self.spectrum_data_changed)
+        self.spectrum_model.pattern_changed.connect(self.spectrum_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
 
@@ -178,7 +178,7 @@ class PhaseController(object):
 
     def add_phase_plot(self):
         """
-        Adds a phase to the Spectrum view.
+        Adds a phase to the Pattern view.
         :return:
         """
         axis_range = self.widget.spectrum_view.spectrum_plot.viewRange()
@@ -186,7 +186,7 @@ class PhaseController(object):
         y_range = axis_range[1]
         positions, intensities, baseline = \
             self.phase_model.get_rescaled_reflections(
-                -1, self.spectrum_model.spectrum,
+                -1, self.spectrum_model.pattern,
                 x_range, y_range,
                 self.calibration_model.wavelength * 1e10,
                 self.get_unit())
@@ -380,7 +380,7 @@ class PhaseController(object):
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline =  self.phase_model.get_rescaled_reflections(
-                            ind, self.spectrum_model.spectrum,
+                            ind, self.spectrum_model.pattern,
                             x_range, y_range,
                             self.calibration_model.wavelength * 1e10,
                             self.get_unit()

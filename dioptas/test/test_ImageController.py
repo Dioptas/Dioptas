@@ -12,7 +12,7 @@ from controller.integration.ImageController import ImageController
 
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.CalibrationModel import CalibrationModel
 
 from widgets.IntegrationWidget import IntegrationWidget
@@ -27,7 +27,7 @@ class ImageControllerTest(unittest.TestCase):
         self.widget = IntegrationWidget()
         self.image_model = ImgModel()
         self.mask_model = MaskModel()
-        self.spectrum_model = SpectrumModel()
+        self.spectrum_model = PatternModel()
         self.calibration_model = CalibrationModel(self.image_model)
 
         self.controller = ImageController(
