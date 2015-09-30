@@ -28,9 +28,9 @@ from model.util.HelperModule import FileNameIterator, get_base_name
 from model.util import Pattern
 
 
-class SpectrumModel(QtCore.QObject):
+class PatternModel(QtCore.QObject):
     """
-    Main Spectrum handling class. Supporting several features:
+    Main Pattern handling class. Supporting several features:
       - loading spectra from any tabular source (readable by numpy)
       - having overlays
       - setting overlays as background
@@ -38,7 +38,7 @@ class SpectrumModel(QtCore.QObject):
 
     all changes to the internal data throw pyqtSignals.
     """
-    spectrum_changed = QtCore.pyqtSignal()
+    pattern_changed = QtCore.pyqtSignal()
     overlay_changed = QtCore.pyqtSignal(int)  # changed index
     overlay_added = QtCore.pyqtSignal()
     overlay_removed = QtCore.pyqtSignal(int)  # removed index
@@ -46,8 +46,8 @@ class SpectrumModel(QtCore.QObject):
     overlay_unset_as_bkg = QtCore.pyqtSignal(int)  # index unset os background
 
     def __init__(self):
-        super(SpectrumModel, self).__init__()
-        self.spectrum = Pattern()
+        super(PatternModel, self).__init__()
+        self.pattern = Pattern()
         self.overlays = []
         self.phases = []
 
@@ -55,9 +55,9 @@ class SpectrumModel(QtCore.QObject):
         self.file_name_iterator = FileNameIterator()
 
         self.bkg_ind = -1
-        self.spectrum_filename = ''
+        self.pattern_filename = ''
 
-    def set_spectrum(self, x, y, filename='', unit=''):
+    def set_pattern(self, x, y, filename='', unit=''):
         """
         set the current data spectrum.
         :param x: x-values
@@ -65,28 +65,28 @@ class SpectrumModel(QtCore.QObject):
         :param filename: name for the spectrum, defaults to ''
         :param unit: unit for the x values
         """
-        self.spectrum_filename = filename
-        self.spectrum.data = (x, y)
-        self.spectrum.name = get_base_name(filename)
+        self.pattern_filename = filename
+        self.pattern.data = (x, y)
+        self.pattern.name = get_base_name(filename)
         self.unit = unit
-        self.spectrum_changed.emit()
+        self.pattern_changed.emit()
 
-    def load_spectrum(self, filename):
+    def load_pattern(self, filename):
         """
         Loads a spectrum from a tabular spectrum file (2 column txt file)
         :param filename: filename of the data file
         """
         logger.info("Load spectrum: {0}".format(filename))
-        self.spectrum_filename = filename
+        self.pattern_filename = filename
 
         skiprows = 0
         if filename.endswith('.chi'):
             skiprows = 4
-        self.spectrum.load(filename, skiprows)
+        self.pattern.load(filename, skiprows)
         self.file_name_iterator.update_filename(filename)
-        self.spectrum_changed.emit()
+        self.pattern_changed.emit()
 
-    def save_spectrum(self, filename, header=None, subtract_background=False):
+    def save_pattern(self, filename, header=None, subtract_background=False):
         """
         Saves the current data spectrum.
         :param filename: where to save
@@ -94,9 +94,9 @@ class SpectrumModel(QtCore.QObject):
         :param subtract_background: whether or not the background set will be used for saving or not
         """
         if subtract_background:
-            x, y = self.spectrum.data
+            x, y = self.pattern.data
         else:
-            x, y = self.spectrum._original_x, self.spectrum._original_y
+            x, y = self.pattern._original_x, self.pattern._original_y
 
         file_handle = open(filename, 'w')
         num_points = len(x)
@@ -119,7 +119,7 @@ class SpectrumModel(QtCore.QObject):
         file_handle.close()
 
     def get_spectrum(self):
-        return self.spectrum
+        return self.pattern
 
     def load_next_file(self, step=1):
         """
@@ -128,7 +128,7 @@ class SpectrumModel(QtCore.QObject):
         """
         next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step)
         if next_file_name is not None:
-            self.load_spectrum(next_file_name)
+            self.load_pattern(next_file_name)
             return True
         return False
 
@@ -139,7 +139,7 @@ class SpectrumModel(QtCore.QObject):
         """
         next_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode, step=step)
         if next_file_name is not None:
-            self.load_spectrum(next_file_name)
+            self.load_pattern(next_file_name)
             return True
         return False
 
@@ -172,9 +172,9 @@ class SpectrumModel(QtCore.QObject):
             if self.bkg_ind > ind:
                 self.bkg_ind -= 1
             elif self.bkg_ind == ind:
-                self.spectrum.unset_background_spectrum()
+                self.pattern.unset_background_spectrum()
                 self.bkg_ind = -1
-                self.spectrum_changed.emit()
+                self.pattern_changed.emit()
             self.overlay_removed.emit(ind)
 
     def get_overlay(self, ind):
@@ -193,7 +193,7 @@ class SpectrumModel(QtCore.QObject):
         """
         Adds the current data spectrum as overlay to the list of overlays
         """
-        current_spectrum = deepcopy(self.spectrum)
+        current_spectrum = deepcopy(self.pattern)
         overlay_spectrum = Pattern(current_spectrum.x,
                                     current_spectrum.y,
                                     current_spectrum.name)
@@ -224,7 +224,7 @@ class SpectrumModel(QtCore.QObject):
         self.overlays[ind].scaling = scaling
         self.overlay_changed.emit(ind)
         if self.bkg_ind == ind:
-            self.spectrum_changed.emit()
+            self.pattern_changed.emit()
 
     def get_overlay_scaling(self, ind):
         """
@@ -243,7 +243,7 @@ class SpectrumModel(QtCore.QObject):
         self.overlays[ind].offset = offset
         self.overlay_changed.emit(ind)
         if self.bkg_ind == ind:
-            self.spectrum_changed.emit()
+            self.pattern_changed.emit()
 
     def get_overlay_offset(self, ind):
         """
@@ -261,8 +261,8 @@ class SpectrumModel(QtCore.QObject):
         if self.bkg_ind >= 0:
             self.unset_overlay_as_bkg()
         self.bkg_ind = ind
-        self.spectrum.background_spectrum = self.overlays[ind]
-        self.spectrum_changed.emit()
+        self.pattern.background_pattern = self.overlays[ind]
+        self.pattern_changed.emit()
         self.overlay_set_as_bkg.emit(ind)
 
     def set_spectrum_as_bkg(self):
@@ -279,8 +279,8 @@ class SpectrumModel(QtCore.QObject):
         """
         previous_bkg_ind = self.bkg_ind
         self.bkg_ind = -1
-        self.spectrum.unset_background_spectrum()
-        self.spectrum_changed.emit()
+        self.pattern.unset_background_spectrum()
+        self.pattern_changed.emit()
         self.overlay_unset_as_bkg.emit(previous_bkg_ind)
 
     def overlay_is_bkg(self, ind):
@@ -296,15 +296,15 @@ class SpectrumModel(QtCore.QObject):
         :param roi: array of size two with [xmin, xmax] specifying the range for which the background subtraction
         will be performed
         """
-        self.spectrum.set_auto_background_subtraction(parameters, roi)
-        self.spectrum_changed.emit()
+        self.pattern.set_auto_background_subtraction(parameters, roi)
+        self.pattern_changed.emit()
 
     def unset_auto_background_subtraction(self):
         """
         Disables auto background extraction and removal.
         """
-        self.spectrum.unset_auto_background_subtraction()
-        self.spectrum_changed.emit()
+        self.pattern.unset_auto_background_subtraction()
+        self.pattern_changed.emit()
 
     def overlay_waterfall(self, separation):
         offset = 0

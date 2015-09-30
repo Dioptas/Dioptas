@@ -7,4 +7,4 @@ from IntegrationController import IntegrationController
 from JcpdsEditorController import JcpdsEditorController
 from OverlayController import OverlayController
 from PhaseController import PhaseController
-from SpectrumController import SpectrumController
+from PatternController import PatternController

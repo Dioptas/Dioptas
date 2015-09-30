@@ -706,7 +706,7 @@ class Ui_XrsCalibrationWidget(object):
         XrsCalibrationWidget.setWindowTitle(_translate("XrsCalibrationWidget", "XRS Calibration", None))
         self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab), _translate("XrsCalibrationWidget", "Image", None))
         self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_2), _translate("XrsCalibrationWidget", "Cake", None))
-        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_3), _translate("XrsCalibrationWidget", "Spectrum", None))
+        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_3), _translate("XrsCalibrationWidget", "Pattern", None))
         self.integrate_btn.setText(_translate("XrsCalibrationWidget", "Calibrate", None))
         self.refine_btn.setText(_translate("XrsCalibrationWidget", "Refine", None))
         self.pos_lbl.setText(_translate("XrsCalibrationWidget", "Position", None))

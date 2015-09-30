@@ -116,7 +116,7 @@ class SpectrumTest(unittest.TestCase):
         spec = Pattern(x, spec_y)
         background_spectrum = Pattern(x, bkg_y)
 
-        spec.background_spectrum = background_spectrum
+        spec.background_pattern = background_spectrum
         new_x, new_y = spec.data
 
         self.array_almost_equal(new_x, x)
@@ -131,7 +131,7 @@ class SpectrumTest(unittest.TestCase):
         spec = Pattern(x, spec_y)
         background_spectrum = Pattern(x_bkg, bkg_y)
 
-        spec.background_spectrum = background_spectrum
+        spec.background_pattern = background_spectrum
         new_x, new_y = spec.data
 
         self.array_almost_equal(new_x, x)
@@ -145,7 +145,7 @@ class SpectrumTest(unittest.TestCase):
         background_spectrum = Pattern(x2, x2)
 
         with self.assertRaises(BkgNotInRangeError):
-            spec.background_spectrum = background_spectrum
+            spec.background_pattern = background_spectrum
 
     def test_automatic_background_subtraction(self):
         x = np.linspace(0, 24, 2500)
@@ -161,12 +161,12 @@ class SpectrumTest(unittest.TestCase):
         y_bkg = x * 0.4 + 5.0
         y_measurement = y + y_bkg
 
-        spectrum = Pattern(x, y_measurement)
+        pattern = Pattern(x, y_measurement)
 
         auto_background_subtraction_parameters = [2, 50, 50]
-        spectrum.set_auto_background_subtraction(auto_background_subtraction_parameters)
+        pattern.set_auto_background_subtraction(auto_background_subtraction_parameters)
 
-        x_spec, y_spec = spectrum.data
+        x_spec, y_spec = pattern.data
 
         self.array_almost_equal(y_spec, y)
 
@@ -186,12 +186,12 @@ class SpectrumTest(unittest.TestCase):
 
         roi = [1, 23]
 
-        spectrum = Pattern(x, y_measurement)
+        pattern = Pattern(x, y_measurement)
 
         auto_background_subtraction_parameters = [2, 50, 50]
-        spectrum.set_auto_background_subtraction(auto_background_subtraction_parameters, roi)
+        pattern.set_auto_background_subtraction(auto_background_subtraction_parameters, roi)
 
-        x_spec, y_spec = spectrum.data
+        x_spec, y_spec = pattern.data
 
         self.assertGreater(x_spec[0],roi[0])
         self.assertLess(x_spec[-1], roi[1])

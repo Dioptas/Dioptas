@@ -118,8 +118,8 @@ class PhaseModel(Observable):
                             np.sin(positions / 360 * np.pi)
         return positions
 
-    def get_phase_line_intensities(self, ind, positions, spectrum, x_range, y_range):
-        x, y = spectrum.data
+    def get_phase_line_intensities(self, ind, positions, pattern, x_range, y_range):
+        x, y = pattern.data
         if len(y) is not 0:
             max_spectrum_intensity = np.min([np.max(y[(x > x_range[0]) & (x < x_range[1])]), y_range[1]])
         else:
@@ -142,9 +142,9 @@ class PhaseModel(Observable):
         phase_line_intensities = scale_factor * self.reflections[ind][:, 1]+baseline
         return phase_line_intensities, baseline
 
-    def get_rescaled_reflections(self, ind, spectrum, x_range,
+    def get_rescaled_reflections(self, ind, pattern, x_range,
                             y_range, wavelength, unit='tth'):
         positions = self.get_phase_line_positions(ind, unit, wavelength)
 
-        intensities, baseline = self.get_phase_line_intensities(ind, positions, spectrum, x_range, y_range)
+        intensities, baseline = self.get_phase_line_intensities(ind, positions, pattern, x_range, y_range)
         return positions, intensities, baseline

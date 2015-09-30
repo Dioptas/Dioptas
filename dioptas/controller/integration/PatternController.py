@@ -30,10 +30,10 @@ from widgets.IntegrationWidget import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 
 
-class SpectrumController(object):
+class PatternController(object):
     """
     IntegrationSpectrumController handles all the interaction from the IntegrationView with the spectrum data.
     It manages the auto integration of image files to spectra in addition to spectrum browsing and changing of units
@@ -53,7 +53,7 @@ class SpectrumController(object):
         :type img_model: ImgModel
         :type mask_model: MaskModel
         :type calibration_model: CalibrationModel
-        :type spectrum_model: SpectrumModel
+        :type spectrum_model: PatternModel
         """
 
         self.working_dir = working_dir
@@ -73,8 +73,8 @@ class SpectrumController(object):
     def create_subscriptions(self):
         # Data subscriptions
         self.img_model.subscribe(self.image_changed)
-        self.spectrum_model.spectrum_changed.connect(self.plot_spectrum)
-        self.spectrum_model.spectrum_changed.connect(self.autocreate_spectrum)
+        self.spectrum_model.pattern_changed.connect(self.plot_pattern)
+        self.spectrum_model.pattern_changed.connect(self.autocreate_spectrum)
 
         # Gui subscriptions
         self.widget.img_view.roi.sigRegionChangeFinished.connect(self.image_changed)
@@ -160,7 +160,7 @@ class SpectrumController(object):
             x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit, num_points=num_points)
             self.widget.bin_count_txt.setText(str(self.calibration_model.num_points))
 
-            self.spectrum_model.set_spectrum(x, y, self.img_model.filename, unit=self.integration_unit)
+            self.spectrum_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)
 
             if self.autocreate:
                 filename = self.img_model.filename
@@ -193,15 +193,15 @@ class SpectrumController(object):
             res.append('.dat')
         return res
 
-    def plot_spectrum(self):
+    def plot_pattern(self):
         if self.widget.bkg_spectrum_inspect_btn.isChecked():
             self.widget.spectrum_view.plot_data(
-                *self.spectrum_model.spectrum.auto_background_before_subtraction_spectrum.data,
-                name=self.spectrum_model.spectrum.name)
-            self.widget.spectrum_view.plot_bkg(*self.spectrum_model.spectrum.auto_background_spectrum.data)
+                *self.spectrum_model.pattern.auto_background_before_subtraction_spectrum.data,
+                name=self.spectrum_model.pattern.name)
+            self.widget.spectrum_view.plot_bkg(*self.spectrum_model.pattern.auto_background_pattern.data)
         else:
             self.widget.spectrum_view.plot_data(
-                *self.spectrum_model.spectrum.data, name=self.spectrum_model.spectrum.name)
+                *self.spectrum_model.pattern.data, name=self.spectrum_model.pattern.name)
             self.widget.spectrum_view.plot_bkg([],[])
 
         # update the bkg_name
@@ -213,7 +213,7 @@ class SpectrumController(object):
     def reset_background(self, popup=True):
         self.widget.overlay_show_cb_set_checked(self.spectrum_model.bkg_ind, True)  # show the old overlay again
         self.spectrum_model.bkg_ind = -1
-        self.spectrum_model.spectrum.unset_background_spectrum()
+        self.spectrum_model.pattern.unset_background_spectrum()
         self.widget.overlay_set_as_bkg_btn.setChecked(False)
 
     def automatic_binning_cb_changed(self):
@@ -228,7 +228,7 @@ class SpectrumController(object):
         self.image_changed()
 
     def autocreate_spectrum(self):
-        if self.spectrum_model.spectrum.has_background():
+        if self.spectrum_model.pattern.has_background():
             if self.autocreate is True:
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
@@ -238,7 +238,7 @@ class SpectrumController(object):
                         os.mkdir(directory)
                     filename = os.path.join(
                         directory,
-                        self.spectrum_model.spectrum.name + file_ending)
+                        self.spectrum_model.pattern.name + file_ending)
                     self.save_pattern(filename, subtract_background=True)
 
     def save_pattern(self, filename=None, subtract_background=False):
@@ -270,11 +270,11 @@ class SpectrumController(object):
                 header = header.replace('\r\n', '\n')
                 header += '\n#\n# ' + self.integration_unit + '\t I'
 
-                self.spectrum_model.save_spectrum(filename, header, subtract_background)
+                self.spectrum_model.save_pattern(filename, header, subtract_background)
             elif filename.endswith('.chi'):
-                self.spectrum_model.save_spectrum(filename, subtract_background=subtract_background)
+                self.spectrum_model.save_pattern(filename, subtract_background=subtract_background)
             elif filename.endswith('.dat'):
-                self.spectrum_model.save_spectrum(filename, subtract_background=subtract_background)
+                self.spectrum_model.save_pattern(filename, subtract_background=subtract_background)
             elif filename.endswith('.png'):
                 self.widget.spectrum_view.save_png(filename)
             elif filename.endswith('.svg'):
@@ -289,7 +289,7 @@ class SpectrumController(object):
             self.working_dir['spectrum'] = os.path.dirname(filename)
             self.widget.spec_filename_txt.setText(os.path.basename(filename))
             self.widget.spec_directory_txt.setText(os.path.dirname(filename))
-            self.spectrum_model.load_spectrum(filename)
+            self.spectrum_model.load_pattern(filename)
             self.widget.spec_next_btn.setEnabled(True)
             self.widget.spec_previous_btn.setEnabled(True)
 
@@ -297,20 +297,20 @@ class SpectrumController(object):
         step = int(str(self.widget.spec_browse_step_txt.text()))
         self.spectrum_model.load_previous_file(step=step)
         self.widget.spec_filename_txt.setText(
-            os.path.basename(self.spectrum_model.spectrum_filename))
+            os.path.basename(self.spectrum_model.pattern_filename))
 
     def load_next(self):
         step = int(str(self.widget.spec_browse_step_txt.text()))
         self.spectrum_model.load_next_file(step=step)
         self.widget.spec_filename_txt.setText(
-            os.path.basename(self.spectrum_model.spectrum_filename))
+            os.path.basename(self.spectrum_model.pattern_filename))
 
     def autocreate_cb_changed(self):
         self.autocreate = self.widget.spec_autocreate_cb.isChecked()
 
 
     def filename_txt_changed(self):
-        current_filename = os.path.basename(self.spectrum_model.spectrum_filename)
+        current_filename = os.path.basename(self.spectrum_model.pattern_filename)
         current_directory = str(self.widget.spec_directory_txt.text())
         new_filename = str(self.widget.spec_filename_txt.text())
         if os.path.isfile(os.path.join(current_directory, new_filename)):
@@ -394,7 +394,7 @@ class SpectrumController(object):
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.spectrum_view.spectrum_plot.viewRange()[0]
-        spectrum_x = self.spectrum_model.spectrum.data[0]
+        spectrum_x = self.spectrum_model.pattern.data[0]
         if np.min(spectrum_x) < old_x_axis_range[0] or np.max(spectrum_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
             self.widget.spectrum_view.spectrum_plot.setRange(xRange=new_x_axis_range, padding=0)
@@ -520,7 +520,7 @@ class SpectrumController(object):
     def key_press_event(self, ev):
         if (ev.key() == QtCore.Qt.Key_Left) or (ev.key() == QtCore.Qt.Key_Right):
             pos = self.widget.spectrum_view.get_pos_line()
-            step = np.min(np.diff(self.spectrum_model.spectrum.data[0]))
+            step = np.min(np.diff(self.spectrum_model.pattern.data[0]))
             if ev.modifiers() & QtCore.Qt.ControlModifier:
                 step /= 20.
             elif ev.modifiers() & QtCore.Qt.ShiftModifier:

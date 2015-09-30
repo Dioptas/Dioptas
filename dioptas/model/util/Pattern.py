@@ -33,7 +33,7 @@ class Pattern(QtCore.QObject):
         self._offset = 0
         self._scaling = 1
         self._smoothing = 0
-        self._background_spectrum = None
+        self._background_pattern = None
 
         self._spectrum_x = self._original_x
         self._spectrum_y = self._original_y
@@ -53,7 +53,7 @@ class Pattern(QtCore.QObject):
             self._original_x = data.T[0]
             self._original_y = data.T[1]
             self.name = os.path.basename(filename).split('.')[:-1][0]
-            self.recalculate_spectrum()
+            self.recalculate_pattern()
 
         except ValueError:
             print('Wrong data format for spectrum file! - ' + filename)
@@ -64,47 +64,47 @@ class Pattern(QtCore.QObject):
         np.savetxt(filename, data[0], header=header)
 
     @property
-    def background_spectrum(self):
-        return self._background_spectrum
+    def background_pattern(self):
+        return self._background_pattern
 
-    @background_spectrum.setter
-    def background_spectrum(self, spectrum):
+    @background_pattern.setter
+    def background_pattern(self, pattern):
         """
-        :param spectrum: new background spectrum
-        :type spectrum: Pattern
+        :param pattern: new background spectrum
+        :type pattern: Pattern
         """
-        self._background_spectrum = spectrum
-        self._background_spectrum.spectrum_changed.connect(self.recalculate_spectrum)
-        self.recalculate_spectrum()
+        self._background_pattern = pattern
+        self._background_pattern.spectrum_changed.connect(self.recalculate_pattern)
+        self.recalculate_pattern()
 
     def unset_background_spectrum(self):
-        self._background_spectrum = None
-        self.recalculate_spectrum()
+        self._background_pattern = None
+        self.recalculate_pattern()
 
     def set_auto_background_subtraction(self, parameters, roi=None):
         self.auto_background_subtraction = True
         self.auto_background_subtraction_parameters = parameters
         self.auto_background_subtraction_roi = roi
-        self.recalculate_spectrum()
+        self.recalculate_pattern()
 
     def unset_auto_background_subtraction(self):
         self.auto_background_subtraction = False
-        self.recalculate_spectrum()
+        self.recalculate_pattern()
 
     def get_auto_background_subtraction_parameters(self):
         return self.auto_background_subtraction_parameters
 
     def set_smoothing(self, amount):
         self._smoothing = amount
-        self.recalculate_spectrum()
+        self.recalculate_pattern()
 
-    def recalculate_spectrum(self):
+    def recalculate_pattern(self):
         x = self._original_x
         y = self._original_y * self._scaling + self._offset
 
-        if self._background_spectrum is not None:
+        if self._background_pattern is not None:
             # create background function
-            x_bkg, y_bkg = self._background_spectrum.data
+            x_bkg, y_bkg = self._background_pattern.data
 
             if not np.array_equal(x_bkg, self._original_x):
                 # the background will be interpolated
@@ -161,7 +161,7 @@ class Pattern(QtCore.QObject):
         self._original_y = y
         self._scaling = 1
         self._offset = 0
-        self.recalculate_spectrum()
+        self.recalculate_pattern()
 
     @property
     def x(self):
@@ -193,7 +193,7 @@ class Pattern(QtCore.QObject):
             self._scaling = 0
         else:
             self._scaling = value
-        self.recalculate_spectrum()
+        self.recalculate_pattern()
 
     @property
     def offset(self):
@@ -202,19 +202,19 @@ class Pattern(QtCore.QObject):
     @offset.setter
     def offset(self, value):
         self._offset = value
-        self.recalculate_spectrum()
+        self.recalculate_pattern()
 
     @property
     def auto_background_before_subtraction_spectrum(self):
         return self._auto_background_before_subtraction_spectrum
 
     @property
-    def auto_background_spectrum(self):
+    def auto_background_pattern(self):
         return self._auto_background_spectrum
 
 
     def has_background(self):
-        return (self.background_spectrum is not None) or self.auto_background_subtraction
+        return (self.background_pattern is not None) or self.auto_background_subtraction
 
     # Operators:
     def __sub__(self, other):
@@ -266,8 +266,8 @@ class Pattern(QtCore.QObject):
 
 
 class BkgNotInRangeError(Exception):
-    def __init__(self, spectrum_name):
-        self.spectrum_name = spectrum_name
+    def __init__(self, pattern_name):
+        self.pattern_name = pattern_name
 
     def __str__(self):
-        return "The background range does not overlap with the Spectrum range for " + self.spectrum_name
+        return "The background range does not overlap with the Pattern range for " + self.pattern_name

@@ -152,15 +152,15 @@ class SpectrumWidget(QtCore.QObject):
         self.emit_sig_range_changed()
 
 
-    def add_overlay(self, spectrum, show=True):
-        x, y = spectrum.data
+    def add_overlay(self, pattern, show=True):
+        x, y = pattern.data
         color = calculate_color(len(self.overlays) + 1)
         self.overlays.append(pg.PlotDataItem(x, y, pen=pg.mkPen(color=color, width=1.5)))
-        self.overlay_names.append(spectrum.name)
+        self.overlay_names.append(pattern.name)
         self.overlay_show.append(True)
         if show:
             self.spectrum_plot.addItem(self.overlays[-1])
-            self.legend.addItem(self.overlays[-1], spectrum.name)
+            self.legend.addItem(self.overlays[-1], pattern.name)
             self.update_graph_range()
         return color
 
@@ -184,8 +184,8 @@ class SpectrumWidget(QtCore.QObject):
         self.overlay_show[ind] = True
         self.update_graph_range()
 
-    def update_overlay(self, spectrum, ind):
-        x, y = spectrum.data
+    def update_overlay(self, pattern, ind):
+        x, y = pattern.data
         self.overlays[ind].setData(x, y)
         self.update_graph_range()
 

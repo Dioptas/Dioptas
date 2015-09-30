@@ -11,7 +11,7 @@ import numpy as np
 from PyQt4 import QtGui
 
 from controller.integration import IntegrationController
-from model import ImgModel, CalibrationModel, MaskModel, SpectrumModel, PhaseModel
+from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
 from widgets.IntegrationWidget import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
@@ -22,7 +22,7 @@ class IntegrationControllerTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
-        self.spectrum_model = SpectrumModel()
+        self.spectrum_model = PatternModel()
 
         # setting up the calibration model but mocking the integration for speed
         self.calibration_model = CalibrationModel(self.img_model)
