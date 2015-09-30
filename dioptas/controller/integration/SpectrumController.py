@@ -243,12 +243,21 @@ class SpectrumController(object):
 
     def save_spectrum(self, filename=None, subtract_background=False):
         if filename is None:
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Spectrum Data.",
-                                                             self.working_dir['spectrum'],
-                                                             (
-                                                                 'Data (*.xy);; Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg)')))
+            save_file_dialog = QtGui.QFileDialog()
+            save_file_dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+            save_file_dialog.setWindowTitle("Save Spectrum Data.")
+            save_file_dialog.setNameFilters(['Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg);; Data (*.xy)'])
+            save_file_dialog.selectFile(os.path.join(self.working_dir['spectrum'],
+                                                     '.'.join(self.img_model.filename.split('.')[:-1])))
+
+            if save_file_dialog.exec_():
+                filename = str(save_file_dialog.selectedFiles()[0])
+            else:
+                filename = ''
+            # filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Spectrum Data.",
+            #                                                  self.working_dir['spectrum'],
+            #                                                  ('Data (*.xy);; Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg)')))
             subtract_background = True  # when manually saving the spectrum the background will be automatically
-            # subtracted
 
         if filename is not '':
             print(filename)
