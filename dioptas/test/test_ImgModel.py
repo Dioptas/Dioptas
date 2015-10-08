@@ -16,7 +16,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 
 
-class ImgDataUnitTest(unittest.TestCase):
+class ImgModelTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication([])
         self.img_model = ImgModel()
@@ -154,11 +154,11 @@ class ImgDataUnitTest(unittest.TestCase):
         self.assertEqual(self.img_model._background_data, None)
 
     def test_absorption_correction_with_supersampling(self):
-        original_image = np.copy(self.img_model.get_img_data())
+        original_image = np.copy(self.img_model._img_data)
         dummy_correction = DummyCorrection(self.img_model.get_img_data().shape, 0.6)
 
         self.img_model.add_img_correction(dummy_correction, "Dummy 1")
-        self.assertAlmostEqual(np.sum(original_image)/0.6, np.sum(self.img_model.get_img_data()), places=4)
+        self.assertAlmostEqual(np.sum(original_image/0.6), np.sum(self.img_model.get_img_data()), places=4)
 
         self.img_model.set_supersampling(2)
         self.img_model.get_img_data()
