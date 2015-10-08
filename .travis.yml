@@ -18,12 +18,15 @@ before_install:
     - sh -e /etc/init.d/xvfb start
 
 install:
-    - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
-    - pip install lmfit pyqtgraph Pillow fabio mock pymatgen
+    - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
+    - pip install lmfit pyqtgraph fabio mock pymatgen
     - git clone https://github.com/kif/pyFAI.git
     - cd pyFAI
     - python setup.py install
     - cd ..
+    - cd dioptas/model/util/
+    - f2py -c -m smooth_bruckner smooth_bruckner.f95
+    - cd ../../../
 
 script:
     - cd dioptas/test
