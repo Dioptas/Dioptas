@@ -18,14 +18,14 @@
 
 __author__ = 'Clemens Prescher'
 
-import numpy as np
 import os
-from PyQt4 import QtCore, QtGui
-from stat import S_ISREG, ST_MTIME, ST_MODE, ST_CTIME
-from copy import deepcopy
+import re
+import time
+
+import numpy as np
+from PyQt4 import QtCore
 from colorsys import hsv_to_rgb
 
-import time
 
 
 class FileNameIterator(QtCore.QObject):
@@ -81,6 +81,29 @@ class FileNameIterator(QtCore.QObject):
         self.file_list = self._get_files_list()
         self._order_file_list()
 
+    def _iterate_file_number(self, path, step):
+        directory, file_str = os.path.split(path)
+        pattern = re.compile(r'\d+')
+
+        match_iterator = pattern.finditer(file_str)
+
+        for match in reversed(list(match_iterator)):
+            number_span = match.span()
+            left_ind = number_span[0]
+            right_ind = number_span[1]
+            number=int(file_str[left_ind:right_ind])+step
+            new_file_str = "{left_str}{number:0{len}}{right_str}".format(
+                left_str=file_str[:left_ind],
+                number=number,
+                len=right_ind - left_ind,
+                right_str=file_str[right_ind:]
+            )
+            new_complete_path = os.path.join(directory, new_file_str)
+            if os.path.exists(new_complete_path):
+                self.complete_path = new_complete_path
+                return new_complete_path
+        return None
+
     def get_next_filename(self, step=1, filename=None, mode='number'):
         if filename is not None:
             self.complete_path = filename
@@ -97,23 +120,7 @@ class FileNameIterator(QtCore.QObject):
             except IndexError:
                 return None
         elif mode == 'number':
-            directory, file_str = os.path.split(self.complete_path)
-            filename, file_type_str = file_str.split('.')
-            file_number_str = FileNameIterator._get_ending_number(filename)
-            try:
-                file_number = int(file_number_str)
-            except ValueError:
-                return None
-            file_base_str = filename[:-len(file_number_str)]
-
-            format_str = '0' + str(len(file_number_str)) + 'd'
-            number_str = ("{0:" + format_str + '}').format(file_number + step)
-            new_file_name = file_base_str + number_str + '.' + file_type_str
-            new_complete_path = os.path.join(directory, new_file_name)
-            if os.path.exists(new_complete_path):
-                self.complete_path = new_complete_path
-                return new_complete_path
-            return None
+            return self._iterate_file_number(self.complete_path, step)
 
     def get_previous_filename(self, step=1, mode='number'):
         """
@@ -138,32 +145,7 @@ class FileNameIterator(QtCore.QObject):
                 except IndexError:
                     return None
         elif mode == 'number':
-            directory, file_str = os.path.split(self.complete_path)
-            filename, file_type_str = file_str.split('.')
-            file_number_str = FileNameIterator._get_ending_number(filename)
-            try:
-                file_number = int(file_number_str)
-            except ValueError:
-                return None
-            file_base_str = filename[:-len(file_number_str)]
-            format_str = '0' + str(len(file_number_str)) + 'd'
-            number_str = ("{0:" + format_str + '}').format(file_number - step)
-            new_file_name = file_base_str + number_str + '.' + file_type_str
-
-            new_complete_path = os.path.join(directory, new_file_name)
-            if os.path.exists(new_complete_path):
-                self.complete_path = new_complete_path
-                return new_complete_path
-
-            format_str = '0' + str(len(file_number_str) - 1) + 'd'
-            number_str = ("{0:" + format_str + '}').format(file_number - step)
-            new_file_name = file_base_str + number_str + '.' + file_type_str
-
-            new_complete_path = os.path.join(directory, new_file_name)
-            if os.path.exists(new_complete_path):
-                self.complete_path = new_complete_path
-                return new_complete_path
-            return None
+            return self._iterate_file_number(self.complete_path, -step)
 
     def update_filename(self, new_filename):
         self.complete_path = os.path.abspath(new_filename)
@@ -206,15 +188,6 @@ class FileNameIterator(QtCore.QObject):
             else:
                 self.ordered_file_list.append((creation_time, filename))
 
-
-    @staticmethod
-    def _get_ending_number(basename):
-        res = ''
-        for char in reversed(basename):
-            if char.isdigit():
-                res += char
-            else:
-                return res[::-1]
 
 def rotate_matrix_m90(matrix):
     return np.rot90(matrix, -1)
