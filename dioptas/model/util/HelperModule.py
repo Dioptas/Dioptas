@@ -216,45 +216,6 @@ class FileNameIterator(QtCore.QObject):
             else:
                 return res[::-1]
 
-
-class SignalFrequencyLimiter(object):
-    def __init__(self, connect_function, callback_function, time=100, disconnect_function=None):
-        """
-        Limits the frequency of callback_function calls.
-
-        :param connect_function:
-            function which connects the callback to the signal. For qt signal it would be "signal.connect"
-        :param callback_function:
-            callback function responding to the signal
-        :param time:
-            time in milliseconds between each new callback_function call
-        :param disconnect_function:
-            function for disconnecting the callback function
-        """
-        self.connect_function = connect_function
-        self.disconnect_function = disconnect_function
-        self.callback_function = callback_function
-        self.update_timer = QtCore.QTimer()
-        self.update_timer.setInterval(time)
-        self.update_timer.timeout.connect(self.timer_function)
-        self.connect_function(self.update_vars)
-        self.update_function = None
-        self.update_timer.start(time)
-
-    def update_vars(self, *args):
-        self.vars = args
-        self.update_function = self.callback_function
-
-    def timer_function(self):
-        if self.update_function is not None:
-            if self.disconnect_function is not None:
-                self.disconnect_function(self.update_vars)
-            self.update_function(*self.vars)
-            self.update_function = None
-            if self.disconnect_function is not None:
-                self.connect_function(self.update_vars)
-
-
 def rotate_matrix_m90(matrix):
     return np.rot90(matrix, -1)
 
@@ -277,85 +238,6 @@ def calculate_color(ind):
     return np.array(hsv_to_rgb(h, s, v)) * 255
 
 
-def gauss_function(x, int, hwhm, center):
-    return int * np.exp(-(x - float(center)) ** 2 / (2 * hwhm ** 2))
-
-
-def save_chi_file(filename, unit, x, y):
-    file_handle = open(filename, 'w')
-    num_points = len(x)
-
-    file_handle.write(filename + '\n')
-    file_handle.write(unit + '\n\n')
-    file_handle.write("       {0}\n".format(num_points))
-    for ind in xrange(num_points):
-        file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
-    file_handle.close()
-
-
 def convert_d_to_two_theta(d, wavelength):
     return np.arcsin(wavelength / (2 * d)) / np.pi * 360
 
-
-def calculate_cbn_absorption_correction(tth_array, azi_array,
-                                        diamond_thickness, seat_thickness,
-                                        small_cbn_seat_radius, large_cbn_seat_radius,
-                                        tilt=0, tilt_rotation=0):
-    #diam - diamond thickness
-    #ds - seat thickness
-    #r1 - small radius
-    #r2 - large radius
-    #tilt - tilting angle of DAC
-
-    tilt = -tilt
-
-    dtor = np.pi / 180.0
-
-    # ;calculate 2-theta limit for seat
-    ts1 = 180 / np.pi * np.arctan(small_cbn_seat_radius / diamond_thickness)
-    ts2 = 180 / np.pi * np.arctan(large_cbn_seat_radius / (diamond_thickness + seat_thickness))
-    tseat = 180 / np.pi * np.arctan((large_cbn_seat_radius - small_cbn_seat_radius) / seat_thickness)
-    tcell = 180 / np.pi * np.arctan(((19. - 7) / 2) / 15.)
-    tc1 = 180 / np.pi * np.arctan((7. / 2) / (diamond_thickness + seat_thickness))
-    tc2 = 180 / np.pi * np.arctan((19. / 2) / (diamond_thickness + seat_thickness + 10.))
-
-
-    #final good version:
-    tt = np.sqrt(tth_array ** 2 + tilt ** 2 - 2 * tth_array * tilt * np.cos(dtor * (azi_array+tilt_rotation)))
-
-    # ;absorption by diamond
-    c = diamond_thickness / np.cos(dtor * tt)
-    ac = np.exp(-0.215680897 * 3.516 * c / 10)
-
-
-    # ;absorption by conic part of seat
-    if (ts2 >= ts1):
-        deltar = (c * np.sin(dtor * tt) - small_cbn_seat_radius).clip(min=0)
-        cc = deltar * np.sin(dtor * (90 - tseat)) / np.sin(dtor * (tseat - tt.clip(max=ts2)))
-        acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
-        accc = (acc - 1.) * (np.logical_and(tt >= ts1, tt <= ts2)) + 1
-        # ;absorption by seat
-        accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
-        accsc = (accs - 1.) * (tt >= ts2) + 1
-
-    else:
-        print 'in the else path'
-        delta = ((diamond_thickness + seat_thickness) * np.tan(dtor * tt) - large_cbn_seat_radius).clip(min=0)
-
-        cc = delta * np.sin(dtor * (90 + tseat)) / np.sin(dtor * (tt.clip(max < ts1) - tseat))
-
-        acc = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * cc / 10)
-
-        accc = (acc - 1.) * (np.logical_and(tt >= ts2, tt <= ts1)) + 1
-        # ;absorption by seat
-        ccs = seat_thickness / np.cos(dtor * tt)
-        accs = np.exp(-(0.183873713 + 0.237310767) / 2 * 3.435 * ccs / 10)
-        accsc = (accs - 1.) * (tt >= ts1) + 1
-    cor = ac * accc * accsc
-
-    return cor
-
-
-if __name__ == '__main__':
-    tth = np.linspace(0, 30, 1000)
-    cor = calculate_cbn_absorption_correction(tth, 0, 2.3, 5.3, .4, 1.95)
