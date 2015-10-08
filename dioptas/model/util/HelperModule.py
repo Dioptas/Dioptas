@@ -27,7 +27,6 @@ from PyQt4 import QtCore
 from colorsys import hsv_to_rgb
 
 
-
 class FileNameIterator(QtCore.QObject):
     # TODO create an File Index and then just get the next files according to this.
     # Otherwise searching a network is always to slow...
@@ -91,7 +90,7 @@ class FileNameIterator(QtCore.QObject):
             number_span = match.span()
             left_ind = number_span[0]
             right_ind = number_span[1]
-            number=int(file_str[left_ind:right_ind])+step
+            number = int(file_str[left_ind:right_ind]) + step
             new_file_str = "{left_str}{number:0{len}}{right_str}".format(
                 left_str=file_str[:left_ind],
                 number=number,
@@ -213,4 +212,3 @@ def calculate_color(ind):
 
 def convert_d_to_two_theta(d, wavelength):
     return np.arcsin(wavelength / (2 * d)) / np.pi * 360
-
