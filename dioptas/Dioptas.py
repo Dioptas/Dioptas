@@ -21,12 +21,10 @@ from __future__ import absolute_import
 __author__ = 'Clemens Prescher'
 import sys
 from PyQt4 import QtGui
-import logging
-logging.basicConfig(level=logging.INFO)
 
 from controller.MainController import MainController, get_version
 
-print(get_version())
+print("Dioptas {}".format(get_version()))
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
