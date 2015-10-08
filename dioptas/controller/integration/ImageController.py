@@ -259,11 +259,11 @@ class ImageController(object):
         return working_directory
 
     def _set_up_multiple_file_integration(self):
-        self.img_model.turn_off_notification()
+        self.img_model.blockSignals(True)
         self.spectrum_model.blockSignals(True)
 
     def _tear_down_multiple_file_integration(self):
-        self.img_model.turn_on_notification()
+        self.img_model.blockSignals(False)
         self.spectrum_model.blockSignals(False)
         self.img_model.img_changed.emit()
 
