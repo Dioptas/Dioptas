@@ -173,7 +173,6 @@ class OverlayControllerTest(unittest.TestCase):
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
-
         _, y = self.spectrum_model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
@@ -213,13 +212,9 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertEqual(self.spectrum_model.overlays[5].offset, -10)
         self.assertEqual(self.spectrum_model.overlays[4].offset, -20)
 
-
         QTest.mouseClick(self.widget.reset_waterfall_btn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.spectrum_model.overlays[5].offset, 0)
-
-
-
 
     def load_overlays(self):
         self.load_overlay('spectrum_001.xy')
