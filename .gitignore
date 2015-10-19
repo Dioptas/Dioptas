@@ -21,6 +21,7 @@ cloc-1.62.pl
 *.jcpds
 *.chi
 *.so
+*.pyd
 
 log.txt
 .idea
