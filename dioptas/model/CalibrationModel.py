@@ -402,7 +402,6 @@ class CalibrationModel(object):
         return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
 
     def set_fit2d(self, fit2d_parameter):
-        print fit2d_parameter
         self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
                                         centerX=fit2d_parameter['centerX'],
                                         centerY=fit2d_parameter['centerY'],

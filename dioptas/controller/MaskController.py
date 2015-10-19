@@ -309,7 +309,6 @@ class MaskController(object):
                                                                'the same shape. Mask could not be added.')
 
     def plot_mask(self):
-        print np.max(self.mask_model.get_img())
         self.widget.img_view.plot_mask(self.mask_model.get_img())
 
     def key_press_event(self, ev):

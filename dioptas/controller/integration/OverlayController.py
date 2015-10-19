@@ -204,7 +204,6 @@ class OverlayController(object):
     def overlay_changed(self, ind):
         self.widget.spectrum_view.update_overlay(self.spectrum_model.overlays[ind], ind)
         cur_ind = self.widget.get_selected_overlay_row()
-        print cur_ind, ind
         if ind == cur_ind:
             self.widget.overlay_offset_sb.blockSignals(True)
             self.widget.overlay_scale_sb.blockSignals(True)
