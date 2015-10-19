@@ -1,4 +1,4 @@
-0.2.5 (development 06/16/2015)
+0.2.5 (development 10/19/2015)
 ------------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
@@ -6,6 +6,7 @@
       setup writes extra information as tags into the tif file such as position or exposure time etc.
     - The overlay tab has a new waterfall feature which automatically creates a waterfall plot with a given offset of
       all loaded overlays, whereby the most recent one is closest to the current integrated pattern.
+    - the selected region and image shading is now synchronized between the calibration, mask and image view
 
 Bugfixes:
     - autoprocessing of files, i.e. automatically loading newly collected files should now be much more reliable and
