@@ -105,6 +105,8 @@ class MainController(object):
         self.create_signals()
         self.update_title()
 
+        self.current_tab_index = 0
+
     def show_window(self):
         """
         Displays the main window on the screen and makes it active.
@@ -133,6 +135,19 @@ class MainController(object):
         :param ind: index for the tab selected (2 - integration, 1 = mask, 0 - calibration)
         :return:
         """
+        old_index = self.current_tab_index
+        self.current_tab_index = ind
+
+        # get the old view range
+        view_range = None
+        if old_index == 0: # calibration tab
+            view_range = self.widget.calibration_widget.img_view.img_view_box.targetRange()
+        elif old_index == 1: # mask tab
+            view_range = self.widget.mask_widget.img_view.img_view_box.targetRange()
+        elif old_index == 2:
+            view_range = self.widget.integration_widget.img_view.img_view_box.targetRange()
+
+        # update the GUI
         if ind == 2: # integration tab
             self.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
@@ -140,15 +155,18 @@ class MainController(object):
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()
             self.integration_controller.image_controller.update_img()
+            self.widget.integration_widget.img_view.set_range(x_range = view_range[0], y_range = view_range[1])
         elif ind == 1: # mask tab
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
+            self.widget.mask_widget.img_view.set_range(x_range = view_range[0], y_range = view_range[1])
         elif ind == 0: # calibration tab
             self.calibration_controller.plot_mask()
             try:
                 self.calibration_controller.update_calibration_parameter_in_view()
             except (TypeError, AttributeError):
                 pass
+            self.widget.calibration_widget.img_view.set_range(x_range = view_range[0], y_range = view_range[1])
 
     def update_title(self):
         """

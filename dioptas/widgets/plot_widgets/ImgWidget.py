@@ -83,6 +83,18 @@ class ImgWidget(QtCore.QObject):
         exporter.parameters()['width'] = 2048
         exporter.export(filename)
 
+    def set_range(self, x_range, y_range):
+        img_bounds = self.img_view_box.childrenBoundingRect()
+        if x_range[0]<=img_bounds.left() and \
+            x_range[1]>=img_bounds.right() and \
+            y_range[0]<=img_bounds.bottom() and \
+            y_range[1]>=img_bounds.top():
+            self.img_view_box.autoRange()
+            return
+        self.img_view_box.setRange(xRange=x_range, yRange=y_range)
+
+
+
     def auto_range(self):
         hist_x, hist_y = self.img_histogram_LUT.hist_x, self.img_histogram_LUT.hist_y
 
