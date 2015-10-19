@@ -273,6 +273,10 @@ class HistogramLUTItem(GraphicsWidget):
     def getLevels(self):
         return self.region.getRegion()
 
+    def getExpLevels(self):
+        rgn = self.getLevels()
+        return np.exp(rgn[0]), np.exp(rgn[1])
+
     def setLevels(self, mn, mx):
         self.region.setRegion([mn, mx])
 
