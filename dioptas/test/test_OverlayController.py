@@ -215,6 +215,7 @@ class OverlayControllerTest(unittest.TestCase):
         QTest.mouseClick(self.widget.reset_waterfall_btn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.spectrum_model.overlays[5].offset, 0)
+        self.assertEqual(self.spectrum_model.overlays[5].offset, 0)
 
     def load_overlays(self):
         self.load_overlay('spectrum_001.xy')

@@ -315,8 +315,9 @@ class PatternModel(QtCore.QObject):
                 self.overlay_changed.emit(len(self.overlays) - (ind + 1))
 
     def reset_overlay_offsets(self):
-        for overlay in self.overlays:
+        for ind, overlay in enumerate(self.overlays):
             overlay.offset = 0
+            self.overlay_changed.emit(ind)
 
 
 
