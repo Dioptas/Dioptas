@@ -57,10 +57,6 @@ class MaskController(object):
         self.circle = None
         self.polygon = None
         self.point = None
-
-        self.img_model.subscribe(self.update_mask_dimension)
-
-    def raise_window(self):
         self.widget.show()
         self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.widget.activateWindow()
@@ -70,6 +66,9 @@ class MaskController(object):
         self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def create_signals(self):
+
+        self.img_model.img_changed.connect(self.update_mask_dimension)
+
         self.connect_click_function(self.widget.circle_btn, self.activate_circle_btn)
         self.connect_click_function(self.widget.rectangle_btn, self.activate_rectangle_btn)
         self.connect_click_function(self.widget.polygon_btn, self.activate_polygon_btn)
@@ -310,7 +309,6 @@ class MaskController(object):
                                                                'the same shape. Mask could not be added.')
 
     def plot_mask(self):
-        print np.max(self.mask_model.get_img())
         self.widget.img_view.plot_mask(self.mask_model.get_img())
 
     def key_press_event(self, ev):

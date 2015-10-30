@@ -22,20 +22,16 @@ from __future__ import absolute_import
 GraphicsWidget displaying an image histogram along with gradient editor. Can be used to adjust the appearance of images.
 """
 
-from pyqtgraph.Qt import QtGui, QtCore
-import pyqtgraph.functions as fn
+from pyqtgraph.Qt import QtGui
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
 from pyqtgraph.graphicsItems.GradientEditorItem import *
 from pyqtgraph.graphicsItems.LinearRegionItem import *
 from pyqtgraph.graphicsItems.PlotDataItem import *
-from pyqtgraph.graphicsItems.AxisItem import *
-from pyqtgraph.graphicsItems.GridItem import *
 from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
-import pyqtgraph.debug as debug
 
 
 __all__ = ['HistogramLUTItem']
@@ -44,6 +40,9 @@ __all__ = ['HistogramLUTItem']
 import pyqtgraph.graphicsItems.GradientEditorItem
 pyqtgraph.graphicsItems.GradientEditorItem.Gradients['grey_inverse'] = \
     {'ticks': [(0.0, (255, 255, 255, 255)), (1.0, (0, 0, 0, 255))], 'mode': 'rgb'}
+
+#sedt the error handling for numpy
+np.seterr(divide='ignore', invalid='ignore')
 
 class HistogramLUTItem(GraphicsWidget):
     """
@@ -59,7 +58,7 @@ class HistogramLUTItem(GraphicsWidget):
     sigLevelsChanged = QtCore.pyqtSignal(object)
     sigLevelChangeFinished = QtCore.pyqtSignal(object)
 
-    def __init__(self, image=None, fillHistogram=False, orientation='horizontal'):
+    def __init__(self, image=None, fillHistogram=False, orientation='horizontal', autoLevel=None):
         """
         If *image* (ImageItem) is provided, then the control will be automatically linked to the image and changes to the control will be immediately reflected in the image's appearance.
         By default, the histogram is rendered with a fill. For performance, set *fillHistogram* = False.
@@ -70,7 +69,7 @@ class HistogramLUTItem(GraphicsWidget):
         self.first_image = True
         self.percentageLevel = False
         self.orientation = orientation
-        self.range = None
+        self.autoLevel = autoLevel
 
         self.layout = QtGui.QGraphicsGridLayout()
         self.setLayout(self.layout)
@@ -251,38 +250,32 @@ class HistogramLUTItem(GraphicsWidget):
         self.update()
 
     def imageChanged(self, autoRange=False):
-        prof = debug.Profiler('HistogramLUTItem.imageChanged', disabled=True)
-        h = list(self.imageItem.getHistogram(bins=1000))
+        hist_x, hist_y = list(self.imageItem.getHistogram(bins=1000))
+        self.hist_x = hist_x
+        self.hist_y = hist_y
 
-        prof.mark('get histogram')
-        if h[0] is None:
+        if hist_x is None:
             return
 
-        h[1][1:] = np.log(h[1][1:])
-        h[0][1:] = np.log(h[0][1:])
+        hist_y_log = np.log(hist_y[1:])
+        hist_x_log = np.log(hist_x[1:])
 
-        h[0][0] = 0
-        h[1][0] = h[1][1]
+        plot_range = [0, 0.12*np.max(hist_y_log)]
+
         if self.orientation == 'horizontal':
-            self.plot.setData(h[0], h[1])
+            self.plot.setData(hist_x_log, hist_y_log)
+            self.vb.setRange(yRange=plot_range)
         elif self.orientation == 'vertical':
-            self.plot.setData(h[1], h[0])
+            self.plot.setData(hist_y_log, hist_x_log)
+            self.vb.setRange(xRange=plot_range)
 
-        self.hist_x_range = np.max(h[0]) - np.min(h[0])
-        # if self.percentageLevel:
-        # if self.first_image:
-        #         self.region.setRegion([h[0, 0], h[0, -1]])
-        #         self.old_hist_x_range = self.hist_x_range
-        #         self.first_image = False
-        #     else:
-        #         region_fraction = np.array(self.region.getRegion()) / self.old_hist_x_range
-        #         self.region.setRegion(region_fraction * self.hist_x_range)
-        #         self.old_hist_x_range = self.hist_x_range
-        #
-        #         #self.vb.setRange(yRange=[0, 1.2 * np.max(h[1])])
 
     def getLevels(self):
         return self.region.getRegion()
+
+    def getExpLevels(self):
+        rgn = self.getLevels()
+        return np.exp(rgn[0]), np.exp(rgn[1])
 
     def setLevels(self, mn, mx):
         self.region.setRegion([mn, mx])

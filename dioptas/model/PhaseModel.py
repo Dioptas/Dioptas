@@ -20,31 +20,52 @@ __author__ = 'Clemens Prescher'
 
 import numpy as np
 
-from model.Helper.HelperModule import Observable
-from model.Helper import jcpds
+from model.util import jcpds
+try:
+    from model.util.cif import read_cif
+except ImportError:
+    read_cif = None
 
 
 class PhaseLoadError(Exception):
     def __init__(self, filename):
+        super(PhaseLoadError, self).__init__()
         self.filename = filename
 
     def __repr__(self):
         return "Could not load {0} as jcpds file".format(self.filename)
 
-class PhaseModel(Observable):
+class PymatgenNotInstalledError(Exception):
+    def __init__(self, filename):
+       super(PymatgenNotInstalledError, self).__init__()
+       self.filename = filename
+
+class PhaseModel(object):
     def __init__(self):
         super(PhaseModel, self).__init__()
         self.phases = []
         self.reflections = []
 
-    def add_phase(self, filename):
-        jcpds_object = jcpds()
+    def add_jcpds(self, filename):
         try:
+            jcpds_object = jcpds()
             jcpds_object.load_file(filename)
             self.phases.append(jcpds_object)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
+
+    def add_cif(self, filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
+        try:
+            jcpds_object = read_cif(filename, intensity_cutoff, minimum_d_spacing)
+            self.phases.append(jcpds_object)
+            self.reflections.append([])
+        except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
+            print(e)
+            raise PhaseLoadError(filename)
+        except TypeError as e:
+            print(e)
+            raise PymatgenNotInstalledError(filename)
 
     def del_phase(self, ind):
         del self.phases[ind]
@@ -96,8 +117,8 @@ class PhaseModel(Observable):
                             np.sin(positions / 360 * np.pi)
         return positions
 
-    def get_phase_line_intensities(self, ind, positions, spectrum, x_range, y_range):
-        x, y = spectrum.data
+    def get_phase_line_intensities(self, ind, positions, pattern, x_range, y_range):
+        x, y = pattern.data
         if len(y) is not 0:
             max_spectrum_intensity = np.min([np.max(y[(x > x_range[0]) & (x < x_range[1])]), y_range[1]])
         else:
@@ -120,9 +141,9 @@ class PhaseModel(Observable):
         phase_line_intensities = scale_factor * self.reflections[ind][:, 1]+baseline
         return phase_line_intensities, baseline
 
-    def get_rescaled_reflections(self, ind, spectrum, x_range,
+    def get_rescaled_reflections(self, ind, pattern, x_range,
                             y_range, wavelength, unit='tth'):
         positions = self.get_phase_line_positions(ind, unit, wavelength)
 
-        intensities, baseline = self.get_phase_line_intensities(ind, positions, spectrum, x_range, y_range)
+        intensities, baseline = self.get_phase_line_intensities(ind, positions, pattern, x_range, y_range)
         return positions, intensities, baseline

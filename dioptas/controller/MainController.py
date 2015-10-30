@@ -19,6 +19,8 @@
 
 import os
 import csv
+from sys import platform as _platform
+
 import xml.etree.cElementTree as ET
 
 from PyQt4 import QtGui, QtCore
@@ -26,7 +28,7 @@ from PyQt4 import QtGui, QtCore
 from widgets.MainWidget import MainWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.CalibrationModel import CalibrationModel
 from model.PhaseModel import PhaseModel
 from . import CalibrationController
@@ -62,7 +64,7 @@ __version__ = get_version()
 
 class MainController(object):
     """
-    Creates a the main controller for Dioptas. Loads all the data objects and connects them with the other controllers
+    Creates a the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
     """
 
     def __init__(self, use_settings=True):
@@ -73,7 +75,7 @@ class MainController(object):
         self.img_model = ImgModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.mask_model = MaskModel()
-        self.spectrum_model = SpectrumModel()
+        self.spectrum_model = PatternModel()
         self.phase_model = PhaseModel()
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
@@ -83,7 +85,7 @@ class MainController(object):
 
         if use_settings:
             self.load_settings()
-        #create controller
+
         self.calibration_controller = CalibrationController(self.working_directories,
                                                             self.widget.calibration_widget,
                                                             self.img_model,
@@ -101,41 +103,85 @@ class MainController(object):
                                                             self.spectrum_model,
                                                             self.phase_model)
         self.create_signals()
-        self.set_title()
+        self.update_title()
+
+        self.current_tab_index = 0
 
     def show_window(self):
+        """
+        Displays the main window on the screen and makes it active.
+        """
         self.widget.show()
-        self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        self.widget.activateWindow()
-        self.widget.raise_()
+
+        if _platform == "darwin":
+            self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+            self.widget.activateWindow()
+            self.widget.raise_()
 
     def create_signals(self):
+        """
+        Creates subscriptions for changing tabs and also newly loaded files which will update the title of the main
+                window.
+        """
         self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
-        self.img_model.subscribe(self.set_title)
-        self.spectrum_model.spectrum_changed.connect(self.set_title)
+        self.img_model.img_changed.connect(self.update_title)
+        self.spectrum_model.pattern_changed.connect(self.update_title)
 
     def tab_changed(self, ind):
-        if ind == 2:
+        """
+        Function which is called when a tab has been selected (calibration, mask, or integration). Performs
+        needed initialization tasks.
+        :param ind: index for the tab selected (2 - integration, 1 = mask, 0 - calibration)
+        :return:
+        """
+        old_index = self.current_tab_index
+        self.current_tab_index = ind
+
+        # get the old view range
+        old_view_range = None
+        old_hist_levels = None
+        if old_index == 0: # calibration tab
+            old_view_range = self.widget.calibration_widget.img_view.img_view_box.targetRange()
+            old_hist_levels = self.widget.calibration_widget.img_view.img_histogram_LUT.getExpLevels()
+        elif old_index == 1: # mask tab
+            old_view_range = self.widget.mask_widget.img_view.img_view_box.targetRange()
+            old_hist_levels = self.widget.mask_widget.img_view.img_histogram_LUT.getExpLevels()
+        elif old_index == 2:
+            old_view_range = self.widget.integration_widget.img_view.img_view_box.targetRange()
+            old_hist_levels = self.widget.integration_widget.img_view.img_histogram_LUT.getExpLevels()
+
+        # update the GUI
+        if ind == 2: # integration tab
             self.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(self.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()
             self.integration_controller.image_controller.update_img()
-        elif ind == 1:
+            self.widget.integration_widget.img_view.set_range(x_range = old_view_range[0], y_range = old_view_range[1])
+            self.widget.integration_widget.img_view.img_histogram_LUT.setLevels(*old_hist_levels)
+        elif ind == 1: # mask tab
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
-        elif ind == 0:
+            self.widget.mask_widget.img_view.set_range(x_range = old_view_range[0], y_range = old_view_range[1])
+            self.widget.mask_widget.img_view.img_histogram_LUT.setLevels(*old_hist_levels)
+        elif ind == 0: # calibration tab
             self.calibration_controller.plot_mask()
             try:
                 self.calibration_controller.update_calibration_parameter_in_view()
             except (TypeError, AttributeError):
                 pass
+            self.widget.calibration_widget.img_view.set_range(x_range = old_view_range[0], y_range = old_view_range[1])
+            self.widget.calibration_widget.img_view.img_histogram_LUT.setLevels(*old_hist_levels)
 
-    def set_title(self):
+    def update_title(self):
+        """
+        Updates the title bar of the main window. The title bar will always show the current version of Dioptas, the
+        image or spectrum filenames loaded and the current calibration name.
+        """
         img_filename = os.path.basename(self.img_model.filename)
-        spec_filename = os.path.basename(self.spectrum_model.spectrum_filename)
+        spec_filename = os.path.basename(self.spectrum_model.pattern_filename)
         calibration_name = self.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':
@@ -159,11 +205,17 @@ class MainController(object):
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 
     def load_settings(self):
+        """
+        Loads previously saved Dioptas settings.
+        """
         if os.path.exists(self.settings_directory):
             self.load_directories()
             self.load_xml_settings()
 
     def load_directories(self):
+        """
+        Loads previously used Dioptas directory paths.
+        """
         working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
         if os.path.exists(working_directories_path):
             reader = csv.reader(open(working_directories_path, 'r'))
@@ -171,6 +223,10 @@ class MainController(object):
 
 
     def load_xml_settings(self):
+        """
+        Loads previously used Dioptas settings. Currently this is only the calibration.
+        :return:
+        """
         xml_settings_path = os.path.join(self.settings_directory, "settings.xml")
         if os.path.exists(xml_settings_path):
             tree = ET.parse(xml_settings_path)
@@ -181,12 +237,20 @@ class MainController(object):
                 self.calibration_model.load(calibration_path)
 
     def save_settings(self):
+        """
+        Saves current settings of Dioptas in the users directory.
+        """
         if not os.path.exists(self.settings_directory):
             os.mkdir(self.settings_directory)
         self.save_directories()
         self.save_xml_settings()
 
     def save_directories(self):
+        """
+        Currently used working directories for images, spectra, etc. are saved as csv file in the users directory for
+        reuse when Dioptas is started again
+        """
+
         working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
         writer = csv.writer(open(working_directories_path, 'w'))
         for key, value in list(self.working_directories.items()):
@@ -194,6 +258,10 @@ class MainController(object):
             writer.writerow([key, value])
 
     def save_xml_settings(self):
+        """
+        Currently used settings of Dioptas are saved in to an xml file in the users directory for reuse when Dioptas is
+        started again. Right now this is only saving the calibration filename.
+        """
         root = ET.Element("DioptasSettings")
         filenames = ET.SubElement(root, "filenames")
         calibration_filename = ET.SubElement(filenames, "calibration")
@@ -202,6 +270,9 @@ class MainController(object):
         tree.write(os.path.join(self.settings_directory, "settings.xml"))
 
     def close_event(self, _):
+        """
+        Intervention of the Dioptas close event to save settings before closing the Program.
+        """
         if self.use_settings:
             self.save_settings()
         QtGui.QApplication.closeAllWindows()

@@ -25,7 +25,7 @@ import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationWidget import IntegrationWidget
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 
 
 class OverlayController(object):
@@ -41,7 +41,7 @@ class OverlayController(object):
         :param spectrum_model: Reference to SpectrumModel object
 
         :type widget: IntegrationWidget
-        :type spectrum_model: SpectrumModel
+        :type spectrum_model: PatternModel
         """
         self.working_dir = working_dir
         self.widget = widget
@@ -63,6 +63,9 @@ class OverlayController(object):
         self.widget.overlay_offset_step_txt.editingFinished.connect(self.update_overlay_offset_step)
         self.widget.overlay_scale_sb.valueChanged.connect(self.overlay_scale_sb_changed)
         self.widget.overlay_offset_sb.valueChanged.connect(self.overlay_offset_sb_changed)
+
+        self.widget.waterfall_btn.clicked.connect(self.overlay_waterfall_btn_click_callback)
+        self.widget.reset_waterfall_btn.clicked.connect(self.spectrum_model.reset_overlay_offsets)
 
         self.widget.overlay_set_as_bkg_btn.clicked.connect(self.overlay_set_as_bkg_btn_click_callback)
 
@@ -200,6 +203,19 @@ class OverlayController(object):
 
     def overlay_changed(self, ind):
         self.widget.spectrum_view.update_overlay(self.spectrum_model.overlays[ind], ind)
+        cur_ind = self.widget.get_selected_overlay_row()
+        if ind == cur_ind:
+            self.widget.overlay_offset_sb.blockSignals(True)
+            self.widget.overlay_scale_sb.blockSignals(True)
+            self.widget.overlay_offset_sb.setValue(self.spectrum_model.get_overlay_offset(ind))
+            self.widget.overlay_scale_sb.setValue(self.spectrum_model.get_overlay_scaling(ind))
+            self.widget.overlay_offset_sb.blockSignals(False)
+            self.widget.overlay_scale_sb.blockSignals(False)
+
+    def overlay_waterfall_btn_click_callback(self):
+        separation = float(str(self.widget.waterfall_separation_txt.text()))
+        self.spectrum_model.overlay_waterfall(separation)
+
 
     def overlay_set_as_bkg_btn_click_callback(self):
         """

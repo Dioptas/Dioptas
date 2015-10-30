@@ -24,15 +24,16 @@ import os
 import numpy as np
 from PyQt4 import QtGui, QtCore
 
-from model.Helper.HelperModule import get_base_name
-from model.PhaseModel import PhaseLoadError
+from model.util.HelperModule import get_base_name
+from model.PhaseModel import PhaseLoadError, PymatgenNotInstalledError
 from .JcpdsEditorController import JcpdsEditorController
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationWidget import IntegrationWidget
+from widgets.UtilityWidgets import CifConversionParametersDialog
 from model.CalibrationModel import CalibrationModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.PhaseModel import PhaseModel
 
 class PhaseController(object):
@@ -51,15 +52,16 @@ class PhaseController(object):
 
         :type widget: IntegrationWidget
         :type calibration_model: CalibrationModel
-        :type spectrum_model: SpectrumModel
+        :type spectrum_model: PatternModel
         :type phase_model: PhaseModel
         """
         self.working_dir = working_dir
         self.widget = widget
+        self.cif_conversion_dialog = CifConversionParametersDialog(self.widget)
         self.calibration_model = calibration_model
         self.spectrum_model = spectrum_model
         self.phase_model = phase_model
-        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.calibration_model)
+        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.calibration_model)
         self.phase_lw_items = []
         self.create_signals()
 
@@ -84,7 +86,7 @@ class PhaseController(object):
         self.widget.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
         # self.widget.spectrum_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
         self.widget.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
-        self.spectrum_model.spectrum_changed.connect(self.spectrum_data_changed)
+        self.spectrum_model.pattern_changed.connect(self.spectrum_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
 
@@ -141,7 +143,13 @@ class PhaseController(object):
 
     def _add_phase(self, filename):
         try:
-            self.phase_model.add_phase(filename)
+            if filename.endswith("jcpds"):
+                self.phase_model.add_jcpds(filename)
+            elif filename.endswith(".cif"):
+                self.cif_conversion_dialog.exec_()
+                self.phase_model.add_cif(filename,
+                                        self.cif_conversion_dialog.int_cutoff,
+                                        self.cif_conversion_dialog.min_d_spacing)
 
             if self.widget.phase_apply_to_all_cb.isChecked():
                 pressure = np.float(self.widget.phase_pressure_sb.value())
@@ -159,12 +167,17 @@ class PhaseController(object):
             self.widget.set_phase_pressure(len(self.phase_model.phases)-1, pressure)
             self.update_phase_temperature(len(self.phase_model.phases)-1, temperature)
         except PhaseLoadError as e:
-            self.widget.show_error_msg('Could not load:\n\n{0}.\n\nPlease check if the format of the input file is correct.'.\
+            self.widget.show_error_msg('Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'.\
                                     format(e.filename))
+        except PymatgenNotInstalledError as e:
+            self.widget.show_error_msg(
+                "Could not load:\n\n{}.\n\n".format(e.filename) +
+                "In order to be able to open cif files please install\nthe pymatgen library.")
+
 
     def add_phase_plot(self):
         """
-        Adds a phase to the Spectrum view.
+        Adds a phase to the Pattern view.
         :return:
         """
         axis_range = self.widget.spectrum_view.spectrum_plot.viewRange()
@@ -172,7 +185,7 @@ class PhaseController(object):
         y_range = axis_range[1]
         positions, intensities, baseline = \
             self.phase_model.get_rescaled_reflections(
-                -1, self.spectrum_model.spectrum,
+                -1, self.spectrum_model.pattern,
                 x_range, y_range,
                 self.calibration_model.wavelength * 1e10,
                 self.get_unit())
@@ -366,7 +379,7 @@ class PhaseController(object):
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline =  self.phase_model.get_rescaled_reflections(
-                            ind, self.spectrum_model.spectrum,
+                            ind, self.spectrum_model.pattern,
                             x_range, y_range,
                             self.calibration_model.wavelength * 1e10,
                             self.get_unit()

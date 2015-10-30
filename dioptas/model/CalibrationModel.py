@@ -19,6 +19,7 @@
 __author__ = 'Clemens Prescher'
 
 import os
+import sys
 import time
 import logging
 
@@ -32,7 +33,7 @@ from pyFAI.blob_detection import BlobDetection
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
-from model.Helper.HelperModule import get_base_name
+from model.util.HelperModule import get_base_name
 import calibrants
 
 
@@ -77,7 +78,7 @@ class CalibrationModel(object):
             array of points found
         """
         massif = Massif(self.img_data._img_data)
-        cur_peak_points = massif.find_peaks([x, y])
+        cur_peak_points = massif.find_peaks([x, y], stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
@@ -193,7 +194,9 @@ class CalibrationModel(object):
 
         keep = int(np.ceil(np.sqrt(size2)))
         try:
+            sys.stdout = DummyStdOut
             res = self.peak_search_algorithm.peaks_from_area(mask2, Imin=mean - std, keep=keep)
+            sys.stdout = sys.__stdout__
         except IndexError:
             res = []
 
@@ -399,7 +402,6 @@ class CalibrationModel(object):
         return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
 
     def set_fit2d(self, fit2d_parameter):
-        print fit2d_parameter
         self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
                                         centerX=fit2d_parameter['centerX'],
                                         centerY=fit2d_parameter['centerY'],
@@ -497,3 +499,9 @@ class CalibrationModel(object):
     @property
     def wavelength(self):
         return self.spectrum_geometry.wavelength
+
+
+class DummyStdOut(object):
+    @classmethod
+    def write(self, *args, **kwargs):
+        pass

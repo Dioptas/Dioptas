@@ -9,14 +9,14 @@ from PyQt4 import QtGui
 import numpy as np
 
 from model.ImgModel import ImgModel
-from model.Helper.ImgCorrection import DummyCorrection
+from model.util.ImgCorrection import DummyCorrection
 
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 
 
-class ImgDataUnitTest(unittest.TestCase):
+class ImgModelTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication([])
         self.img_model = ImgModel()
@@ -154,11 +154,11 @@ class ImgDataUnitTest(unittest.TestCase):
         self.assertEqual(self.img_model._background_data, None)
 
     def test_absorption_correction_with_supersampling(self):
-        original_image = np.copy(self.img_model.get_img_data())
+        original_image = np.copy(self.img_model._img_data)
         dummy_correction = DummyCorrection(self.img_model.get_img_data().shape, 0.6)
 
         self.img_model.add_img_correction(dummy_correction, "Dummy 1")
-        self.assertAlmostEqual(np.sum(original_image)/0.6, np.sum(self.img_model.get_img_data()), places=4)
+        self.assertAlmostEqual(np.sum(original_image/0.6), np.sum(self.img_model.get_img_data()), places=4)
 
         self.img_model.set_supersampling(2)
         self.img_model.get_img_data()
@@ -266,6 +266,10 @@ class ImgDataUnitTest(unittest.TestCase):
         self.img_model.flip_img_horizontally()
         self.img_model.reset_img_transformations()
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), pre_transformed_data))
+
+    def test_loading_a_tagged_tif_file_and_retrieving_info_string(self):
+        self.img_model.load(os.path.join(data_path, "attrib.tif"))
+        self.assertIn("areaDetector", self.img_model.file_info)
 
 
 if __name__ == '__main__':

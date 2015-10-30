@@ -24,13 +24,14 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
 
-from model.Helper.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+from model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+
 
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationWidget import IntegrationWidget
 from model.ImgModel import ImgModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
 
@@ -42,27 +43,27 @@ class ImageController(object):
     """
 
     def __init__(self, working_dir, widget, img_model, mask_model, spectrum_model,
-                 calibration_data):
+                 calibration_model):
         """
         :param working_dir: dictionary of working directories
         :param widget: Reference to IntegrationView
         :param img_model: Reference to ImgModel object
         :param mask_model: Reference to MaskModel object
         :param spectrum_model: Reference to SpectrumModel object
-        :param calibration_data: Reference to CalibrationModel object
+        :param calibration_model: Reference to CalibrationModel object
 
         :type widget: IntegrationWidget
         :type img_model: ImgModel
         :type mask_model: MaskModel
-        :type spectrum_model: SpectrumModel
-        :type calibration_data: CalibrationModel
+        :type spectrum_model: PatternModel
+        :type calibration_model: CalibrationModel
         """
         self.working_dir = working_dir
         self.widget = widget
         self.img_model = img_model
         self.mask_model = mask_model
         self.spectrum_model = spectrum_model
-        self.calibration_model = calibration_data
+        self.calibration_model = calibration_model
 
         self.img_mode = 'Image'
         self.img_docked = True
@@ -71,9 +72,8 @@ class ImageController(object):
 
         self.autoprocess_timer = QtCore.QTimer(self.widget)
 
-        self.widget.show()
         self.initialize()
-        self.img_model.subscribe(self.update_img)
+        self.img_model.img_changed.connect(self.update_img)
         self.create_signals()
         self.create_mouse_behavior()
 
@@ -143,6 +143,7 @@ class ImageController(object):
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.connect_click_function(self.widget.img_directory_btn, self.img_directory_btn_click)
+        self.connect_click_function(self.widget.file_info_btn, self.show_file_info)
 
         self.connect_click_function(self.widget.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
@@ -175,7 +176,9 @@ class ImageController(object):
         self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
-        self.create_auto_process_signal()
+        # self.create_auto_process_signal()
+        self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
+        self.create_autoprocess_system()
 
     def connect_click_function(self, emitter, function):
         """
@@ -200,8 +203,13 @@ class ImageController(object):
             if isinstance(filenames, str):
                 filenames = [filenames]
 
+            elif isinstance(filenames, QtCore.QString):
+                filenames = [str(filenames)]
+
         if filenames is not None and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))
+            self._directory_watcher.path = self.working_dir['image']
+
             if len(filenames) == 1:
                 self.img_model.load(str(filenames[0]))
             else:
@@ -240,14 +248,6 @@ class ImageController(object):
         self._tear_down_multiple_file_integration()
         progress_dialog.close()
 
-    def _check_absorption_correction_shape(self):
-        if self.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
-            self.widget.cbn_groupbox.setChecked(False)
-            self.widget.oiadac_groupbox.setChecked(False)
-            QtGui.QMessageBox.critical(self.widget,
-                                       'ERROR',
-                                       'Due to a change in image dimensions the corrections have been removed')
-
     def _get_spectrum_working_directory(self):
         if self.widget.spec_autocreate_cb.isChecked():
             working_directory = self.working_dir['spectrum']
@@ -259,28 +259,35 @@ class ImageController(object):
         return working_directory
 
     def _set_up_multiple_file_integration(self):
-        self.img_model.turn_off_notification()
+        self.img_model.blockSignals(True)
         self.spectrum_model.blockSignals(True)
-        if self.widget.autoprocess_cb.isChecked():
-            self._stop_auto_process()
 
     def _tear_down_multiple_file_integration(self):
-        self.img_model.turn_on_notification()
+        self.img_model.blockSignals(False)
         self.spectrum_model.blockSignals(False)
-        if self.widget.autoprocess_cb.isChecked():
-            self._start_auto_process()
-        self.img_model.notify()
+        self.img_model.img_changed.emit()
 
     def _save_spectrum(self, base_filename, working_directory, x, y):
         file_endings = self._get_spectrum_file_endings()
         for file_ending in file_endings:
             filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
-            print filename
-            self.spectrum_model.set_spectrum(x, y, filename, unit=self.get_integration_unit())
+            self.spectrum_model.set_pattern(x, y, filename, unit=self.get_integration_unit())
             if file_ending == '.xy':
-                self.spectrum_model.save_spectrum(filename, header=self._create_spectrum_header())
+                self.spectrum_model.save_pattern(filename, header=self._create_spectrum_header())
             else:
-                self.spectrum_model.save_spectrum(filename)
+                self.spectrum_model.save_pattern(filename)
+
+            # save the background subtracted filename
+            if self.spectrum_model.pattern.has_background():
+                directory = os.path.join(working_directory, 'bkg_subtracted')
+                if not os.path.exists(directory):
+                    os.mkdir(directory)
+                filename = os.path.join(directory, self.spectrum_model.pattern.name + file_ending)
+                if file_ending == '.xy':
+                    self.spectrum_model.save_pattern(filename, header=self._create_spectrum_header(),
+                                                      subtract_background=True)
+                else:
+                    self.spectrum_model.save_pattern(filename, subtract_background=True)
 
     def _create_spectrum_header(self):
         header = self.calibration_model.create_file_header()
@@ -297,6 +304,9 @@ class ImageController(object):
         if self.widget.spectrum_header_dat_cb.isChecked():
             res.append('.dat')
         return res
+
+    def show_file_info(self):
+        self.widget.file_info_widget.raise_widget()
 
     def get_integration_unit(self):
         if self.widget.spec_tth_btn.isChecked():
@@ -347,7 +357,7 @@ class ImageController(object):
         self.use_mask = not self.use_mask
         self.widget.mask_transparent_cb.setVisible(not self.widget.mask_transparent_cb.isVisible())
         self.plot_mask()
-        self.img_model.notify()
+        self.img_model.img_changed.emit()
 
     def load_next_img(self):
         step = int(str(self.widget.image_browse_step_txt.text()))
@@ -394,6 +404,7 @@ class ImageController(object):
     def update_img(self, reset_img_levels=None):
         self.widget.img_filename_txt.setText(os.path.basename(self.img_model.filename))
         self.widget.img_directory_txt.setText(os.path.dirname(self.img_model.filename))
+        self.widget.file_info_widget.text_lbl.setText(self.img_model.file_info)
         self.widget.cbn_plot_correction_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
 
@@ -435,7 +446,7 @@ class ImageController(object):
                 self.widget.img_view.activate_roi()
             else:
                 self.widget.img_view.deactivate_roi()
-        self.img_model.notify()
+        self.img_model.img_changed.emit()
 
     def change_view_mode(self):
         self.img_mode = self.widget.img_mode_btn.text()
@@ -647,54 +658,22 @@ class ImageController(object):
             self.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.calibration_model.calibration_name)
-            self.img_model.notify()
+            self.img_model.img_changed.emit()
 
-    def create_auto_process_signal(self):
-        self.widget.autoprocess_cb.clicked.connect(self.auto_process_cb_click)
-        self.autoprocess_timer.setInterval(50)
-        self.widget.connect(self.autoprocess_timer,
-                            QtCore.SIGNAL('timeout()'),
-                            self.check_files)
+    def create_autoprocess_system(self):
+        self._directory_watcher = NewFileInDirectoryWatcher(
+            file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                        '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                        '.mccd', '.mar3450', '.pnm']
+        )
+
+        self._directory_watcher.file_added.connect(self.load_file)
 
     def auto_process_cb_click(self):
         if self.widget.autoprocess_cb.isChecked():
-            self._start_auto_process()
+            self._directory_watcher.activate()
         else:
-            self._stop_auto_process()
-
-    def _start_auto_process(self):
-        self._files_before = dict(
-            [(f, None) for f in os.listdir(self.working_dir['image'])])
-        self.autoprocess_timer.start()
-
-    def _stop_auto_process(self):
-        self.autoprocess_timer.stop()
-
-    def check_files(self):
-        self.autoprocess_timer.blockSignals(True)
-        self._files_now = dict(
-            [(f, None) for f in os.listdir(self.working_dir['image'])])
-        self._files_added = [
-            f for f in self._files_now if not f in self._files_before]
-        self._files_removed = [
-            f for f in self._files_before if not f in self._files_now]
-        if len(self._files_added) > 0:
-            new_file_str = self._files_added[-1]
-            path = os.path.join(self.working_dir['image'], new_file_str)
-            acceptable_file_endings = ['.img', '.sfrm', '.dm3', '.edf', '.xml',
-                                       '.cbf', '.kccd', '.msk', '.spr', '.tif',
-                                       '.mccd', '.mar3450', '.pnm']
-            read_file = False
-            for ending in acceptable_file_endings:
-                if path.endswith(ending):
-                    read_file = True
-                    break
-            file_info = os.stat(path)
-            if file_info.st_size > 100:
-                if read_file:
-                    self.load_file(path)
-                self._files_before = self._files_now
-        self.autoprocess_timer.blockSignals(False)
+            self._directory_watcher.deactivate()
 
     def save_img(self, filename=None):
         if filename is None:
@@ -844,3 +823,119 @@ class ImageController(object):
                 self.plot_cake(True)
             elif self.img_mode == 'Image':
                 self.plot_img(True)
+
+    def _check_absorption_correction_shape(self):
+        if self.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
+            self.widget.cbn_groupbox.setChecked(False)
+            self.widget.oiadac_groupbox.setChecked(False)
+            QtGui.QMessageBox.critical(self.widget,
+                                       'ERROR',
+                                       'Due to a change in image dimensions the absorption ' +
+                                       'corrections have been removed')
+
+
+class NewFileInDirectoryWatcher(QtCore.QObject):
+    """
+    This class watches a given filepath for any new files with a given file extension added to it.
+
+    Typical usage::
+        def callback_fcn(path):
+            print(path)
+
+        watcher = NewFileInDirectoryWatcher(example_path, file_types = ['.tif', '.tiff'])
+        watcher.file_added.connect(callback_fcn)
+
+    """
+    file_added = QtCore.pyqtSignal(str)
+
+    def __init__(self, path=None, file_types=None, activate=False):
+        """
+        :param path: path to folder which will be watched
+        :param file_types: list of file types which will be watched for, e.g. ['.tif', '.jpeg]
+        :param activate: whether or not the Watcher will already emit signals
+        """
+        super(NewFileInDirectoryWatcher, self).__init__()
+
+        self._file_system_watcher = QtCore.QFileSystemWatcher()
+        if path is None:
+            path = os.getcwd()
+        self._file_system_watcher.addPath(path)
+        self._files_in_path = os.listdir(path)
+
+        self._file_system_watcher.directoryChanged.connect(self._directory_changed)
+        self._file_system_watcher.blockSignals(~activate)
+
+        self._file_changed_watcher = QtCore.QFileSystemWatcher()
+        self._file_changed_watcher.fileChanged.connect(self._file_changed)
+
+        if file_types is None:
+            self.file_types = set([])
+        else:
+            self.file_types = set(file_types)
+
+    @property
+    def path(self):
+        return self._file_system_watcher.directories()[0]
+
+    @path.setter
+    def path(self, new_path):
+        self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
+        self._file_system_watcher.addPath(new_path)
+        self._files_in_path = os.listdir(new_path)
+
+    def activate(self):
+        """
+        activates the watcher to emit signals when a new file is added
+        """
+        self._file_system_watcher.blockSignals(False)
+
+    def deactivate(self):
+        """
+        deactivates the watcher so it will not emit a signal when a new file is added
+        """
+        self._file_system_watcher.blockSignals(True)
+
+    def _directory_changed(self):
+        """
+        internal function which determines whether the change in directory is an actual new file. If a new file was
+        detected it looks if it has the right extension and checks the file size. When the file is not completely
+        written yet it watches it for changes and will call the _file_changed function which wil acctually emit the
+        signal.
+        """
+        files_now = os.listdir(self.path)
+        files_added = [f for f in files_now if not f in self._files_in_path]
+
+        if len(files_added) > 0:
+            new_file_path = os.path.join(str(self.path), files_added[-1])
+
+            # abort if the new_file added is actually a directory...
+            if os.path.isdir(new_file_path):
+                self._files_in_path = files_now
+                return
+
+            valid_file = False
+            for file_type in self.file_types:
+                if new_file_path.endswith(file_type):
+                    valid_file = True
+                    break
+
+            if valid_file:
+                if os.stat(new_file_path).st_size > 100:
+                    self.file_added.emit(new_file_path)
+                else:
+                    self._file_changed_watcher.addPath(new_file_path)
+            self._files_in_path = files_now
+
+    def _file_changed(self, path):
+        """
+        internal function callback for the file_changed_watcher. The watcher is invoked if a new file is detected but
+        the file is still below 100 bytes (basically only the file handle created, and no data yet). The _file_changed
+        callback function is then invoked when the data is completely written into the file. To ensure that everything
+        is correct this function also checks whether the file is above 100 byte after the system sends a file changed
+        signal.
+        :param path: file path of the watched file
+        """
+        file_info = os.stat(path)
+        if file_info.st_size > 100:
+            self.file_added.emit(path)
+            self._file_changed_watcher.removePath(path)
