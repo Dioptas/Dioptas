@@ -19,6 +19,10 @@
 from __future__ import absolute_import
 
 __author__ = 'Clemens Prescher'
+
+import os
+os.environ['QT_GRAPHICSSYSTEM']='native'
+
 import sys
 from PyQt4 import QtGui
 
