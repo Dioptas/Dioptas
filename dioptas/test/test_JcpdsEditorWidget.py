@@ -22,7 +22,7 @@ import sys
 import gc
 import os
 
-from model.Helper import jcpds
+from model.util import jcpds
 from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 
 unittest_path = os.path.dirname(__file__)

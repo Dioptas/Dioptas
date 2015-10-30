@@ -60,7 +60,6 @@ class CalibrationController(object):
         self.mask_model = mask_model
         self.calibration_model = calibration_model
 
-        self.img_model.subscribe(self.plot_image)
         self.widget.set_start_values(self.calibration_model.start_values)
         self._first_plot = True
         self.create_signals()
@@ -72,6 +71,8 @@ class CalibrationController(object):
         """
         Connects the GUI signals to the appropriate Controller methods.
         """
+        self.img_model.img_changed.connect(self.plot_image)
+
         self.create_transformation_signals()
         self.create_update_signals()
         self.create_mouse_signals()

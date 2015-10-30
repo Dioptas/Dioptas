@@ -18,6 +18,7 @@
 __author__ = 'Clemens Prescher'
 
 import unittest
+import mock
 import sys
 import os
 
@@ -27,11 +28,11 @@ from PyQt4.QtTest import QTest
 
 from model.ImgModel import ImgModel
 from model.CalibrationModel import CalibrationModel
-from model.SpectrumModel import SpectrumModel
+from model.PatternModel import PatternModel
 from model.PhaseModel import PhaseModel
 from widgets.IntegrationWidget import IntegrationWidget
 from controller.integration import PhaseController
-from controller.integration import SpectrumController
+from controller.integration import PatternController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
@@ -42,18 +43,19 @@ class PhaseControllerTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.image_model = ImgModel()
         self.calibration_model = CalibrationModel()
-        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
-        self.spectrum_model = SpectrumModel()
+        self.calibration_model.is_calibrated = True
+        self.calibration_model.spectrum_geometry.wavelength = 0.31E-10
+        self.spectrum_model = PatternModel()
         self.phase_model = PhaseModel()
         self.widget = IntegrationWidget()
         self.widget.spectrum_view._auto_range = True
         self.phase_tw = self.widget.phase_tw
 
-        self.spectrum_controller = SpectrumController({}, self.widget, self.image_model, None,
+        self.spectrum_controller = PatternController({}, self.widget, self.image_model, None,
                                                                    self.calibration_model, self.spectrum_model)
         self.controller = PhaseController({}, self.widget, self.calibration_model, self.spectrum_model,
                                                        self.phase_model)
-        self.spectrum_model.load_spectrum(os.path.join(data_path, 'spectrum_001.xy'))
+        self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
 
 
     def tearDown(self):

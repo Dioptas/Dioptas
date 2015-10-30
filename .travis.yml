@@ -13,26 +13,25 @@ before_install:
     - conda update --yes conda
     - export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
 
-    #clonine the used repositories
-    - git clone https://github.com/kif/fabio
-    - git clone https://github.com/kif/pyFAI
-
     #start x-server
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
 
+addons:
+  apt:
+    packages:
+      - gfortran
+
 install:
-    - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy pandas matplotlib dateutil nose pyqt scikit-image
-
-    #installing fabio and pyFAI
-    - cd fabio
+    - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
+    - pip install lmfit pyqtgraph fabio mock pymatgen
+    - git clone https://github.com/kif/pyFAI.git
+    - cd pyFAI
     - python setup.py install
-
-    - pip install lmfit pyqtgraph Pillow pyFAI
-#    - cd ../pyFAI
-#    - python setup.py install
-
-    - cd ../
+    - cd ..
+    - cd dioptas/model/util/
+    - f2py -c -m smooth_bruckner smooth_bruckner.f95
+    - cd ../../../
 
 script:
     - cd dioptas/test

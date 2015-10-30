@@ -1,3 +1,18 @@
+0.2.5 (development 10/19/2015)
+------------------------------
+    - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
+      automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
+    - Dioptas can now load tiff tags and display them in a separate window. This is very practical if the beamline
+      setup writes extra information as tags into the tif file such as position or exposure time etc.
+    - The overlay tab has a new waterfall feature which automatically creates a waterfall plot with a given offset of
+      all loaded overlays, whereby the most recent one is closest to the current integrated pattern.
+    - the selected region and image shading is now synchronized between the calibration, mask and image view
+
+Bugfixes:
+    - autoprocessing of files, i.e. automatically loading newly collected files should now be much more reliable and
+      especially the check for new files takes much less network bandwidth
+
+
 0.2.4 (stable 04/13/2015)
 -------------------------
     - Gui reorganization in the integration view: (1) autoscale button and transparent mask button are now shown within

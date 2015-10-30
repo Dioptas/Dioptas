@@ -19,16 +19,15 @@
 __author__ = 'Clemens Prescher'
 
 from copy import deepcopy
-from functools import wraps
 import numpy as np
 
 from PyQt4 import QtGui, QtCore
-from model.Helper import jcpds
+from model.util import jcpds
 
 from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from model.Helper.jcpds import jcpds
+from model.util.jcpds import jcpds
 from model.CalibrationModel import CalibrationModel
 
 
@@ -47,7 +46,7 @@ class JcpdsEditorController(QtCore.QObject):
 
     phase_modified = QtCore.pyqtSignal()
 
-    def __init__(self, working_dir, calibration_model=None, jcpds_phase=None):
+    def __init__(self, working_dir, parent_widget, calibration_model=None, jcpds_phase=None):
         """
         :param working_dir: dictionary of working directories
         :param calibration_model: Reference to CalibrationData object
@@ -57,7 +56,7 @@ class JcpdsEditorController(QtCore.QObject):
         :type jcpds_phase: jcpds
         """
         super(JcpdsEditorController, self).__init__()
-        self.widget = JcpdsEditorWidget()
+        self.widget = JcpdsEditorWidget(parent_widget)
         self.working_dir = working_dir
         self.calibration_model = calibration_model
         self.active = False

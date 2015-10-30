@@ -21,7 +21,7 @@ __author__ = 'Clemens Prescher'
 from PyQt4 import QtCore, QtGui
 
 from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
-from model.Helper.HelperModule import convert_d_to_two_theta
+from model.util.HelperModule import convert_d_to_two_theta
 
 
 class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
@@ -71,7 +71,7 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.blockAllSignals(True)
 
         self.filename_txt.setText(jcpds_phase.filename)
-        self.comments_txt.setText(jcpds_phase.comments[0])
+        self.comments_txt.setText("/n".join(jcpds_phase.comments))
 
         self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.symmetry.lower()))
         self.update_spinbox_enable(jcpds_phase.symmetry)

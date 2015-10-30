@@ -6,7 +6,7 @@ import gc
 
 import numpy as np
 
-from model.Helper.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, ObliqueAngleDetectorAbsorptionCorrection
+from model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, ObliqueAngleDetectorAbsorptionCorrection
 
 
 class DummyCorrection(ImgCorrectionInterface):
@@ -89,7 +89,7 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
 
 
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-from model.Helper.ImgCorrection import CbnCorrection
+from model.util.ImgCorrection import CbnCorrection
 
 
 class CbnCorrectionTest(unittest.TestCase):

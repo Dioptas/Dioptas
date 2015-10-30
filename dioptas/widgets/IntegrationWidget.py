@@ -26,6 +26,7 @@ from functools import partial
 from .UiFiles.IntegrationUI import Ui_xrs_integration_widget
 from widgets.plot_widgets.ImgWidget import IntegrationImgView
 from widgets.plot_widgets import SpectrumWidget
+from .FileInfoWidget import FileInfoWidget
 
 
 class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
@@ -83,11 +84,14 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
 
         self.mask_transparent_cb.setVisible(False)
 
+        self.file_info_widget = FileInfoWidget(self)
+
     def set_validator(self):
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
         self.overlay_scale_step_txt.setValidator(QtGui.QDoubleValidator())
         self.overlay_offset_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.waterfall_separation_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_pressure_step_txt.setValidator(QtGui.QDoubleValidator())
         self.phase_temperature_step_txt.setValidator(QtGui.QDoubleValidator())
         self.bin_count_txt.setValidator(QtGui.QIntValidator())

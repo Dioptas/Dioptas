@@ -10,7 +10,7 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from controller.integration import IntegrationController
-from model import ImgModel, CalibrationModel, MaskModel, SpectrumModel, PhaseModel
+from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
 from widgets.IntegrationWidget import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
@@ -21,7 +21,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.app = QtGui.QApplication(sys.argv)
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
-        self.spectrum_model = SpectrumModel()
+        self.spectrum_model = PatternModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.phase_model = PhaseModel()
 
@@ -70,17 +70,17 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
         self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 1512)
-        previous_number_of_points = len(self.spectrum_model.spectrum.x)
+        previous_number_of_points = len(self.spectrum_model.pattern.x)
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * 1512)
 
-        self.assertAlmostEqual(len(self.spectrum_model.spectrum.x), 2 * previous_number_of_points,
+        self.assertAlmostEqual(len(self.spectrum_model.pattern.x), 2 * previous_number_of_points,
                                delta=1)
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
         self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 1512)
-        self.assertEqual(len(self.spectrum_model.spectrum.x), previous_number_of_points)
+        self.assertEqual(len(self.spectrum_model.pattern.x), previous_number_of_points)
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
         # Edith opens the program, calibrates everything and looks in to the options menu. She sees that there is a
@@ -110,6 +110,8 @@ class IntegrationFunctionalTest(unittest.TestCase):
         QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
 
     def test_saving_image(self):
+        # the widget has to be shown to be able to save the image:
+        self.integration_widget.show()
         # Tests if the image save procedures are working for the different possible file endings
         self.integration_image_controller.save_img(os.path.join(data_path, 'Test_img.png'))
         self.integration_image_controller.save_img(os.path.join(data_path, 'Test_img.tiff'))
@@ -121,13 +123,15 @@ class IntegrationFunctionalTest(unittest.TestCase):
         os.remove(os.path.join(data_path, 'Test_img.tiff'))
 
     def test_saving_spectrum(self):
+        # the widget has to be shown to be able to save the image:
+        self.integration_widget.show()
         # Tests if the spectrum save procedures is are working for all fileendings
         def save_spectra_test_for_size_and_delete(self):
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.xy'))
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.chi'))
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.dat'))
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.png'))
-            self.integration_spectrum_controller.save_spectrum(os.path.join(data_path, 'Test_spec.svg'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.xy'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.chi'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.dat'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.png'))
+            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.svg'))
 
             self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_spec.xy')))
             self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_spec.chi')))

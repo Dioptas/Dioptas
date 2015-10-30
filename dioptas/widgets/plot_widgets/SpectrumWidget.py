@@ -23,7 +23,7 @@ __author__ = 'Clemens Prescher'
 import pyqtgraph as pg
 from widgets.plot_widgets.ExLegendItem import LegendItem
 import numpy as np
-from model.Helper.HelperModule import calculate_color
+from model.util.HelperModule import calculate_color
 from PyQt4 import QtCore
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
@@ -152,15 +152,15 @@ class SpectrumWidget(QtCore.QObject):
         self.emit_sig_range_changed()
 
 
-    def add_overlay(self, spectrum, show=True):
-        x, y = spectrum.data
+    def add_overlay(self, pattern, show=True):
+        x, y = pattern.data
         color = calculate_color(len(self.overlays) + 1)
         self.overlays.append(pg.PlotDataItem(x, y, pen=pg.mkPen(color=color, width=1.5)))
-        self.overlay_names.append(spectrum.name)
+        self.overlay_names.append(pattern.name)
         self.overlay_show.append(True)
         if show:
             self.spectrum_plot.addItem(self.overlays[-1])
-            self.legend.addItem(self.overlays[-1], spectrum.name)
+            self.legend.addItem(self.overlays[-1], pattern.name)
             self.update_graph_range()
         return color
 
@@ -184,8 +184,8 @@ class SpectrumWidget(QtCore.QObject):
         self.overlay_show[ind] = True
         self.update_graph_range()
 
-    def update_overlay(self, spectrum, ind):
-        x, y = spectrum.data
+    def update_overlay(self, pattern, ind):
+        x, y = pattern.data
         self.overlays[ind].setData(x, y)
         self.update_graph_range()
 
@@ -195,6 +195,11 @@ class SpectrumWidget(QtCore.QObject):
 
     def rename_overlay(self, ind, name):
         self.legend.renameItem(ind + 1, name)
+
+    def set_antialias(self, value):
+        for overlay in self.overlays:
+            overlay.opts['antialias'] = value
+            overlay.updateItems()
 
     def add_phase(self, name, positions, intensities, baseline):
         self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
