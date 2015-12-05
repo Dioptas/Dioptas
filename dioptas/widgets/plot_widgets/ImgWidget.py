@@ -300,8 +300,9 @@ class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
         self.img_view_box.setAspectLocked(True)
 
     def create_circle_scatter_item(self):
-        self.circle_plot_item = pg.ScatterPlotItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1), size=0.4,
-                                                   brush=pg.mkBrush('g'))
+        #self.circle_plot_item = pg.ScatterPlotItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1), size=0.4,
+        #                                           brush=pg.mkBrush('g'))#
+        self.circle_plot_item = pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1))
         self.img_view_box.addItem(self.circle_plot_item)
 
     def set_circle_scatter_tth(self, tth, level):
