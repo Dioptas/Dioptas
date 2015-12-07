@@ -491,7 +491,7 @@ class ImageController(object):
 
     def _update_image_scatter_pos(self):
         cur_tth = self.get_current_spectrum_tth()
-        self.widget.img_view.set_circle_scatter_tth(
+        self.widget.img_view.set_circle_line(
             self.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
 
     def get_current_spectrum_tth(self):
@@ -589,7 +589,7 @@ class ImageController(object):
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
                     return
                 tth = self.calibration_model.get_two_theta_img(x, y)
-                self.widget.img_view.set_circle_scatter_tth(
+                self.widget.img_view.set_circle_line(
                     self.calibration_model.get_two_theta_array(), tth)
             else:  # in the case of whatever
                 tth = 0

@@ -476,7 +476,7 @@ class PatternController(object):
 
     def set_image_line_position(self, tth):
         if self.calibration_model.is_calibrated:
-            self.widget.img_view.set_circle_scatter_tth(
+            self.widget.img_view.set_circle_line(
                 self.calibration_model.get_two_theta_array(), tth / 180 * np.pi)
 
     def show_spectrum_mouse_position(self, x, y):
