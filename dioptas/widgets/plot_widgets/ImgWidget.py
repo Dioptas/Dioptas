@@ -24,6 +24,7 @@ __author__ = 'Clemens Prescher'
 import pyqtgraph as pg
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
+from scipy.spatial import ConvexHull
 from PyQt4 import QtCore, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
@@ -307,7 +308,9 @@ class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
 
     def set_circle_scatter_tth(self, tth, level):
         data = marchingsquares.isocontour(tth, level)
-        self.circle_plot_item.setData(x=data[:, 0], y=data[:, 1])
+        hull = ConvexHull(data)
+        hull_indices = np.hstack((hull.vertices, hull.vertices[1]))
+        self.circle_plot_item.setData(x=data[hull_indices, 0], y=data[hull_indices, 1])
 
     def activate_circle_scatter(self):
         self.img_view_box.addItem(self.circle_plot_item)
