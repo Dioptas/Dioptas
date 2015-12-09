@@ -24,6 +24,7 @@ __author__ = 'Clemens Prescher'
 import pyqtgraph as pg
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
+from scipy.spatial import ConvexHull
 from PyQt4 import QtCore, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
@@ -300,13 +301,47 @@ class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
         self.img_view_box.setAspectLocked(True)
 
     def create_circle_scatter_item(self):
-        self.circle_plot_item = pg.ScatterPlotItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1), size=0.4,
-                                                   brush=pg.mkBrush('g'))
-        self.img_view_box.addItem(self.circle_plot_item)
+        # creates several PlotDataItems as line items, to be filled with the current clicked position
+        # this needs to be several because the lines can be interrupted by the edges of the image, otherwise
+        # they would always create straight line around the image
+        self.circle_plot_items = []
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        for plot_item in self.circle_plot_items:
+            self.img_view_box.addItem(plot_item)
 
-    def set_circle_scatter_tth(self, tth, level):
-        data = marchingsquares.isocontour(tth, level)
-        self.circle_plot_item.setData(x=data[:, 0], y=data[:, 1])
+    def set_circle_line(self, tth, cur_tth):
+        """
+        sets the circle plot items to a specfic two theta (tth) value
+        :param tth: array of twotheta for the image
+        :param cur_tth: two theta value for the line
+        """
+        data = marchingsquares.isocontour(tth, cur_tth)
+        hull = ConvexHull(data)
+        hull_indices = np.hstack((hull.vertices, hull.vertices[1]))
+        x = data[hull_indices, 0]
+        y = data[hull_indices, 1]
+        distance_between_points = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
+
+        key_indices = np.argwhere(distance_between_points>5*np.mean(distance_between_points))
+
+        #delete old graphs
+        for plot_item in self.circle_plot_items:
+            plot_item.setData(x=[], y=[])
+
+        cur_data_ind = 0
+        plot_ind = 0
+        for ind, key_index in enumerate(key_indices):
+            x_plot = x[cur_data_ind:key_index]
+            y_plot = y[cur_data_ind:key_index]
+            if len(x_plot)>0:
+                self.circle_plot_items[plot_ind].setData(x=x_plot, y=y_plot)
+                plot_ind+=1
+            cur_data_ind = key_index+1
+        self.circle_plot_items[-1].setData(x=x[cur_data_ind:-1], y=y[cur_data_ind:-1])
 
     def activate_circle_scatter(self):
         self.img_view_box.addItem(self.circle_plot_item)
