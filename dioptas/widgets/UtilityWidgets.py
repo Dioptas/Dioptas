@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
 
 from PyQt4 import QtCore, QtGui
 import os
@@ -11,6 +10,7 @@ class CifConversionParametersDialog(QtGui.QDialog):
     """
     Dialog which is asking for Intensity Cutoff and minimum d-spacing when loading cif files.
     """
+
     def __init__(self, parent):
         super(CifConversionParametersDialog, self).__init__()
 
@@ -74,7 +74,6 @@ class CifConversionParametersDialog(QtGui.QDialog):
         self.setStyleSheet(stylesheet)
         file.close()
 
-
     def _connect_widgets(self):
         """
         Connecting actions to slots.
@@ -100,7 +99,7 @@ class CifConversionParametersDialog(QtGui.QDialog):
         Overwriting the dialog exec_ function to center the widget in the parent window before execution.
         """
         parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
-        self.move(parent_center.x()-101,parent_center.y()-48)
+        self.move(parent_center.x() - 101, parent_center.y() - 48)
         super(CifConversionParametersDialog, self).exec_()
 
 

@@ -18,8 +18,6 @@
 
 from __future__ import absolute_import
 
-__author__ = 'Clemens Prescher'
-
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.LabelItem import LabelItem
 from pyqtgraph.Qt import QtGui, QtCore
@@ -47,8 +45,8 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
 
     """
 
-    def __init__(self, size=None, offset=None, horSpacing=25, verSpacing=0, box=True, labelAlignment = 'center',
-                 showLines = True):
+    def __init__(self, size=None, offset=None, horSpacing=25, verSpacing=0, box=True, labelAlignment='center',
+                 showLines=True):
         """
         ==============  ===============================================================
         **Arguments:**
@@ -91,7 +89,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         self.box = box
         self.label_alignment = labelAlignment
         self.showLines = showLines
-        #A numItems variable needs to be introduced, because chaining removeItem and addItem function in random order,
+        # A numItems variable needs to be introduced, because chaining removeItem and addItem function in random order,
         # will otherwise lead to writing in the same layout row. Idea here is to always insert LabelItems on larger
         # and larger layout row numbers. The GraphicsGridlayout item will not care about empty rows.
         self.numItems = 0
@@ -127,7 +125,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         color = pen.color()
         color_str = color.name()
 
-        #create label with same color
+        # create label with same color
         label = LabelItem()
         label.setAttr('color', str(color_str[1:]))
         label.setAttr('justify', self.label_alignment)
@@ -172,7 +170,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
                 self.updateSize()  # redraq box
                 del self.hiddenFlag[ind]
                 return
-            ind+=1
+            ind += 1
 
         for ind, item in enumerate(self.plotItems):
             if item == name:
@@ -189,7 +187,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
                 self.updateSize()
                 del self.hiddenFlag[ind]
 
-    def hideItem(self,ind):
+    def hideItem(self, ind):
         sample_item, label_item = self.legendItems[ind]
         if not self.hiddenFlag[ind]:
             if self.showLines:
@@ -221,11 +219,10 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         label_item.setText(name)
         self.updateSize()
 
-
     def updateSize(self):
         if self.size is not None:
             return
-        #we only need to set geometry to 0, as now the horizontal and vertical spacing is set in
+        # we only need to set geometry to 0, as now the horizontal and vertical spacing is set in
         # __init__.
         self.setGeometry(0, 0, 0, 0)
 
@@ -252,6 +249,7 @@ class ItemSample(GraphicsWidget):
 
     This may be subclassed to draw custom graphics in a Legend.
     """
+
     ## Todo: make this more generic; let each item decide how it should be represented.
     def __init__(self, item):
         GraphicsWidget.__init__(self)
@@ -261,7 +259,7 @@ class ItemSample(GraphicsWidget):
         return QtCore.QRectF(0, 0, 20, 20)
 
     def paint(self, p, *args):
-        #p.setRenderHint(p.Antialiasing)  # only if the data is antialiased.
+        # p.setRenderHint(p.Antialiasing)  # only if the data is antialiased.
         opts = self.item.opts
 
         if opts.get('fillLevel', None) is not None and opts.get('fillBrush', None) is not None:
@@ -284,4 +282,3 @@ class ItemSample(GraphicsWidget):
 
             p.translate(10, 10)
             path = drawSymbol(p, symbol, size, pen, brush)
-

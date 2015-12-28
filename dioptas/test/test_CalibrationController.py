@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-__author__ = 'Clemens Prescher'
 
 import unittest
 import sys
@@ -15,9 +14,9 @@ from model.CalibrationModel import CalibrationModel
 from controller.CalibrationController import CalibrationController
 from widgets.CalibrationWidget import CalibrationWidget
 
-
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
+
 
 class CalibrationControllerTest(unittest.TestCase):
     def setUp(self):
@@ -43,7 +42,7 @@ class CalibrationControllerTest(unittest.TestCase):
         gc.collect()
 
     def load_pilatus_1M_and_pick_peaks(self):
-        self.calibration_controller.load_img(os.path.join(data_path,'CeO2_Pilatus1M.tif'))
+        self.calibration_controller.load_img(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         QTest.mouseClick(self.calibration_widget.automatic_peak_num_inc_cb, QtCore.Qt.LeftButton)
 
         self.assertFalse(self.calibration_widget.automatic_peak_num_inc_cb.isChecked())
@@ -64,7 +63,7 @@ class CalibrationControllerTest(unittest.TestCase):
         self.mask_model.set_dimension(self.img_model.img_data.shape)
 
     def test_automatic_calibration1(self):
-        self.calibration_controller.load_img(os.path.join(data_path,'LaB6_40keV_MarCCD.tif'))
+        self.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.calibration_controller.search_peaks(1179.6, 1129.4)
         self.calibration_controller.search_peaks(1268.5, 1119.8)
         self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
@@ -77,7 +76,7 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.widget.cake_view.set_vertical_line_pos(1419.8, 653.4)
 
     def test_automatic_calibration2(self):
-        self.calibration_controller.load_img(os.path.join(data_path,'LaB6_OffCenter_PE.tif'))
+        self.calibration_controller.load_img(os.path.join(data_path, 'LaB6_OffCenter_PE.tif'))
         self.calibration_controller.search_peaks(1245.2, 1919.3)
         self.calibration_controller.search_peaks(1334.0, 1823.7)
         self.calibration_controller.widget.sv_wavelength_txt.setText('0.3344')

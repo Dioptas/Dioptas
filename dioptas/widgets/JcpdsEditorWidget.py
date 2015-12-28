@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
-
 from PyQt4 import QtCore, QtGui
 
 from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
@@ -274,10 +272,12 @@ class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
         self.reflection_table.setItem(new_row_ind, 2, CenteredQTableWidgetItem(str('{0:g}'.format(l))))
         self.reflection_table.setItem(new_row_ind, 3, CenteredQTableWidgetItem(str('{0:g}'.format(intensity))))
         if two_theta is None or two_theta_0 is None:
-            self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d0))))
+            self.reflection_table.setItem(new_row_ind, 4,
+                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d0))))
             self.reflection_table.setItem(new_row_ind, 5, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d))))
         else:
-            self.reflection_table.setItem(new_row_ind, 4, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d0))))
+            self.reflection_table.setItem(new_row_ind, 4,
+                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d0))))
             self.reflection_table.setItem(new_row_ind, 5,
                                           CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(two_theta_0))))
             self.reflection_table.setItem(new_row_ind, 6, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d))))
@@ -377,4 +377,3 @@ class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
     def __init__(self, value):
         super(CenteredNonEditableQTableWidgetItem, self).__init__(value)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-

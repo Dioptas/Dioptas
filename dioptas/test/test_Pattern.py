@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
+
 import unittest
 import os
 
@@ -11,6 +11,7 @@ from model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
+
 
 class SpectrumTest(unittest.TestCase):
     def setUp(self):
@@ -29,7 +30,7 @@ class SpectrumTest(unittest.TestCase):
         spec = Pattern()
         x, y = spec.data
 
-        spec.load(os.path.join(data_path,'spectrum_001.chi'))
+        spec.load(os.path.join(data_path, 'spectrum_001.chi'))
         new_x, new_y = spec.data
 
         self.assertNotEqual(len(x), len(new_x))
@@ -37,7 +38,7 @@ class SpectrumTest(unittest.TestCase):
 
     def test_loading_invalid_file(self):
         spec = Pattern()
-        self.assertEqual(-1, spec.load(os.path.join(data_path,'wrong_file_format.txt')))
+        self.assertEqual(-1, spec.load(os.path.join(data_path, 'wrong_file_format.txt')))
 
     def test_saving_a_file(self):
         x = np.linspace(-5, 5, 100)
@@ -98,7 +99,6 @@ class SpectrumTest(unittest.TestCase):
 
         spectrum3 = spectrum1 - spectrum1
         self.array_almost_equal(spectrum3.y, np.sin(x) * 0, 2)
-
 
     def test_multiply_with_scalar_operator(self):
         x = np.linspace(0, 10, 100)
@@ -193,11 +193,10 @@ class SpectrumTest(unittest.TestCase):
 
         x_spec, y_spec = pattern.data
 
-        self.assertGreater(x_spec[0],roi[0])
+        self.assertGreater(x_spec[0], roi[0])
         self.assertLess(x_spec[-1], roi[1])
 
         # self.array_almost_equal(y_spec, y)
-
 
     def test_setting_new_data(self):
         spec = Pattern()
@@ -210,8 +209,8 @@ class SpectrumTest(unittest.TestCase):
         self.array_almost_equal(new_y, y)
 
     def test_using_len(self):
-        x = np.linspace(0,10,234)
-        y = x**2
+        x = np.linspace(0, 10, 234)
+        y = x ** 2
         spec = Pattern(x, y)
 
         self.assertEqual(len(spec), 234)

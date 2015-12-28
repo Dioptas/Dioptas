@@ -1,12 +1,12 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
 
 import unittest
 import gc
 
 import numpy as np
 
-from model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, ObliqueAngleDetectorAbsorptionCorrection
+from model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
+    ObliqueAngleDetectorAbsorptionCorrection
 
 
 class DummyCorrection(ImgCorrectionInterface):
@@ -68,14 +68,14 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
         self.corrections.add(DummyCorrection((2048, 2048), 5), "oblique angle Correction")
         self.assertEqual(np.mean(self.corrections.get_data()), 3 * 5)
 
-        #delete the first by name
+        # delete the first by name
         self.corrections.delete("cbn Correction")
         self.assertEqual(np.mean(self.corrections.get_data()), 5)
 
-        #trying to delete non existent name will result in KeyError
+        # trying to delete non existent name will result in KeyError
         self.assertRaises(KeyError, self.corrections.delete, "blub")
 
-        #just deleting something, when all corrections have a name will not change anything
+        # just deleting something, when all corrections have a name will not change anything
         self.corrections.delete()
         self.assertEqual(np.mean(self.corrections.get_data()), 5)
 
@@ -121,7 +121,7 @@ class CbnCorrectionTest(unittest.TestCase):
 
     def tearDown(self):
         del self.tth_array
-        del self. azi_array
+        del self.azi_array
         del self.dummy_img
         del self.geometry
         gc.collect()
@@ -160,7 +160,7 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
         self.mask_data = MaskModel()
         self.mask_data.load_mask("Data/CbnCorrectionOptimization/Mg2SiO4_91_combined.mask")
 
-        #creating the ObliqueAngleDetectorAbsorptionCorrection
+        # creating the ObliqueAngleDetectorAbsorptionCorrection
         _, fit2d_parameter = self.calibration_data.get_calibration_parameter()
         detector_tilt = fit2d_parameter['tilt']
         detector_tilt_rotation = fit2d_parameter['tiltPlanRotation']
@@ -169,18 +169,17 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
         self.azi_array = self.calibration_data.spectrum_geometry.chiArray((2048, 2048))
 
         self.oiadac_correction = ObliqueAngleDetectorAbsorptionCorrection(
-            self.tth_array, self.azi_array,
-            detector_thickness=40,
-            absorption_length=465.5,
-            tilt=detector_tilt,
-            rotation=detector_tilt_rotation,
+                self.tth_array, self.azi_array,
+                detector_thickness=40,
+                absorption_length=465.5,
+                tilt=detector_tilt,
+                rotation=detector_tilt_rotation,
         )
         self.img_data.add_img_correction(self.oiadac_correction, "oiadac")
 
     def tearDown(self):
         del self.calibration_data.cake_geometry
         del self.calibration_data.spectrum_geometry
-
 
     def test_the_world(self):
         params = Parameters()
@@ -199,15 +198,15 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
 
         def fcn2min(params):
             cbn_correction = CbnCorrection(
-                tth_array=self.tth_array,
-                azi_array=self.azi_array,
-                diamond_thickness=params['diamond_thickness'].value,
-                seat_thickness=params['seat_thickness'].value,
-                small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
-                large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
-                tilt=params['tilt'].value,
-                tilt_rotation=params['tilt_rotation'].value,
-                cbn_abs_length=params["cbn_abs_length"].value
+                    tth_array=self.tth_array,
+                    azi_array=self.azi_array,
+                    diamond_thickness=params['diamond_thickness'].value,
+                    seat_thickness=params['seat_thickness'].value,
+                    small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
+                    large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
+                    tilt=params['tilt'].value,
+                    tilt_rotation=params['tilt_rotation'].value,
+                    cbn_abs_length=params["cbn_abs_length"].value
             )
             self.img_data.add_img_correction(cbn_correction, "cbn")
             tth, int = self.calibration_data.integrate_1d(mask=self.mask_data.get_mask())
@@ -219,22 +218,20 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
         def output_values(param1, iteration, residual):
             report_fit(param1)
 
-
         result = minimize(fcn2min, params, iter_cb=output_values)
         report_fit(params)
 
-
         # plotting result:
         cbn_correction = CbnCorrection(
-            tth_array=self.tth_array,
-            azi_array=self.azi_array,
-            diamond_thickness=params['diamond_thickness'].value,
-            seat_thickness=params['seat_thickness'].value,
-            small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
-            large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
-            tilt=params['tilt'].value,
-            tilt_rotation=params['tilt_rotation'].value,
-            cbn_abs_length=params['cbn_abs_length'].value
+                tth_array=self.tth_array,
+                azi_array=self.azi_array,
+                diamond_thickness=params['diamond_thickness'].value,
+                seat_thickness=params['seat_thickness'].value,
+                small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
+                large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
+                tilt=params['tilt'].value,
+                tilt_rotation=params['tilt_rotation'].value,
+                cbn_abs_length=params['cbn_abs_length'].value
         )
         self.img_data.add_img_correction(cbn_correction, "cbn")
         tth, int = self.calibration_data.integrate_1d(mask=self.mask_data.get_mask())
@@ -299,12 +296,12 @@ class ObliqueAngleDetectorAbsorptionCorrectionTest(unittest.TestCase):
 
     def test_that_it_is_correctly_calculating(self):
         oblique_correction = ObliqueAngleDetectorAbsorptionCorrection(
-            tth_array=self.tth_array,
-            azi_array=self.azi_array,
-            detector_thickness=40,
-            absorption_length=465.5,
-            tilt=self.tilt,
-            rotation=self.rotation
+                tth_array=self.tth_array,
+                azi_array=self.azi_array,
+                detector_thickness=40,
+                absorption_length=465.5,
+                tilt=self.tilt,
+                rotation=self.rotation
         )
         oblique_correction_data = oblique_correction.get_data()
         self.assertGreater(np.sum(oblique_correction_data), 0)

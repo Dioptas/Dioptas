@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
-
 import sys
 import os
 
@@ -25,11 +23,11 @@ from PyQt4 import QtGui, QtCore
 
 import numpy as np
 
-
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.MaskWidget import MaskWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
+
 
 class MaskController(object):
     def __init__(self, working_dir, widget, img_model, mask_model):
@@ -96,7 +94,6 @@ class MaskController(object):
 
         self.widget.keyPressEvent = self.key_press_event
 
-
     def update_mask_dimension(self):
         self.mask_model.set_dimension(self.img_model._img_data.shape)
 
@@ -122,7 +119,6 @@ class MaskController(object):
             self.point = None
         except AttributeError:
             pass
-
 
     def activate_circle_btn(self):
         if self.widget.circle_btn.isChecked():
@@ -242,7 +238,6 @@ class MaskController(object):
         self.widget.img_view.img_view_box.removeItem(self.polygon)
         self.polygon = None
 
-
     def below_thresh_btn_click(self):
         thresh = np.float64(self.widget.below_thresh_txt.text())
         self.mask_model.mask_below_threshold(self.img_model.get_img(), thresh)
@@ -292,8 +287,9 @@ class MaskController(object):
             if self.mask_model.load_mask(filename):
                 self.plot_mask()
             else:
-                QtGui.QMessageBox.critical(self.widget, 'Error', 'Image data and mask data in selected file do not have '
-                                                               'the same shape. Mask could not be loaded.')
+                QtGui.QMessageBox.critical(self.widget, 'Error',
+                                           'Image data and mask data in selected file do not have '
+                                           'the same shape. Mask could not be loaded.')
 
     def add_mask_btn_click(self, filename=None):
         if filename is None:
@@ -305,8 +301,9 @@ class MaskController(object):
             if self.mask_model.add_mask(filename):
                 self.plot_mask()
             else:
-                QtGui.QMessageBox.critical(self.widget, 'Error', 'Image data and mask data in selected file do not have '
-                                                               'the same shape. Mask could not be added.')
+                QtGui.QMessageBox.critical(self.widget, 'Error',
+                                           'Image data and mask data in selected file do not have '
+                                           'the same shape. Mask could not be added.')
 
     def plot_mask(self):
         self.widget.img_view.plot_mask(self.mask_model.get_img())
@@ -319,17 +316,16 @@ class MaskController(object):
                 self.widget.point_size_sb.setValue(self.widget.point_size_sb.value() - 1)
 
         if ev.modifiers() == QtCore.Qt.ControlModifier:
-            if ev.key() == 90:  #for pressing z
+            if ev.key() == 90:  # for pressing z
                 self.undo_btn_click()
-            elif ev.key() == 89:  #for pressing y
+            elif ev.key() == 89:  # for pressing y
                 self.redo_btn_click()
-            elif ev.key() == 83:  #for pressing s
+            elif ev.key() == 83:  # for pressing s
                 self.save_mask_btn_click()
-            elif ev.key == 79:  #for pressing o
+            elif ev.key == 79:  # for pressing o
                 self.load_mask_btn_click()
-            elif ev.key == 65: # for pressing a
+            elif ev.key == 65:  # for pressing a
                 self.add_mask_btn_click()
-
 
     def mask_rb_click(self):
         self.mask_model.set_mode(True)
@@ -346,11 +342,11 @@ class MaskController(object):
         self.widget.img_view.set_color([255, 0, 0, 100])
         self.plot_mask()
 
-
     def show_img_mouse_position(self, x, y):
         try:
             if x > 0 and y > 0:
-                str = "x: %8.1f   y: %8.1f   I: %6.f" % (x, y, self.widget.img_view.img_data.T[np.floor(x), np.floor(y)])
+                str = "x: %8.1f   y: %8.1f   I: %6.f" % (
+                x, y, self.widget.img_view.img_data.T[np.floor(x), np.floor(y)])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):

@@ -16,12 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
 import os
 
 from PyQt4 import QtGui, QtCore
 import numpy as np
-
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationWidget import IntegrationWidget
@@ -107,7 +105,7 @@ class OverlayController(object):
         """
         color = self.widget.spectrum_view.add_overlay(self.spectrum_model.overlays[-1])
         self.widget.add_overlay(self.spectrum_model.get_overlay_name(-1),
-                              '#%02x%02x%02x' % (color[0], color[1], color[2]))
+                                '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
     def remove_overlay_btn_click_callback(self):
         """
@@ -124,7 +122,7 @@ class OverlayController(object):
         self.widget.remove_overlay(ind)
         self.widget.spectrum_view.remove_overlay(ind)
 
-        #if no more overlays are present the set_as_bkg_btn should be unchecked
+        # if no more overlays are present the set_as_bkg_btn should be unchecked
         if self.widget.overlay_tw.rowCount() == 0:
             self.widget.overlay_set_as_bkg_btn.setChecked(False)
 
@@ -216,7 +214,6 @@ class OverlayController(object):
         separation = float(str(self.widget.waterfall_separation_txt.text()))
         self.spectrum_model.overlay_waterfall(separation)
 
-
     def overlay_set_as_bkg_btn_click_callback(self):
         """
         Callback for the overlay_set_as_bkg_btn QPushButton. Will try to either set the currently selected overlay as
@@ -247,7 +244,6 @@ class OverlayController(object):
         self.widget.overlay_show_cb_set_checked(ind, True)
         if self.spectrum_model.bkg_ind == -1:
             self.widget.overlay_set_as_bkg_btn.setChecked(False)
-
 
     def qa_set_as_background_btn_click(self):
         """
