@@ -339,10 +339,12 @@ class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
         self.circle_plot_items[-1].setData(x=x[cur_data_ind:-1], y=y[cur_data_ind:-1])
 
     def activate_circle_scatter(self):
-        self.img_view_box.addItem(self.circle_plot_item)
+        for plot_item in self.circle_plot_items:
+            self.img_view_box.addItem(plot_item)
 
     def deactivate_circle_scatter(self):
-        self.img_view_box.removeItem(self.circle_plot_item)
+        for plot_item in self.circle_plot_items:
+            self.img_view_box.removeItem(plot_item)
 
     def create_roi_item(self):
         self.roi = MyROI([20, 20], [500, 500], pen=pg.mkPen(color=(0, 255, 0), size=2))
