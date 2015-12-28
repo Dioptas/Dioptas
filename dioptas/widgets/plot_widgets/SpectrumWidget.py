@@ -18,8 +18,6 @@
 
 from __future__ import absolute_import, print_function
 
-
-__author__ = 'Clemens Prescher'
 import pyqtgraph as pg
 from widgets.plot_widgets.ExLegendItem import LegendItem
 import numpy as np
@@ -27,6 +25,7 @@ from model.util.HelperModule import calculate_color
 from PyQt4 import QtCore
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
+
 
 # TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show,
 # should probably a class, making it more readable
@@ -66,7 +65,7 @@ class SpectrumWidget(QtCore.QObject):
                                          pen=pg.mkPen(color=(255, 255, 255), width=2))
         self.spectrum_plot.addItem(self.plot_item)
         self.bkg_item = pg.PlotDataItem([], [],
-                                          pen=pg.mkPen(color=(255,0,0), width=2, style=QtCore.Qt.DashLine))
+                                        pen=pg.mkPen(color=(255, 0, 0), width=2, style=QtCore.Qt.DashLine))
         self.spectrum_plot.addItem(self.bkg_item)
         self.legend.addItem(self.plot_item, '')
         self.plot_name = ''
@@ -101,7 +100,7 @@ class SpectrumWidget(QtCore.QObject):
         return self.pos_line.value()
 
     def plot_data(self, x, y, name=None):
-        self.plot_item.setData(x,y)
+        self.plot_item.setData(x, y)
         if name is not None:
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
@@ -150,7 +149,6 @@ class SpectrumWidget(QtCore.QObject):
             if self.auto_range:
                 self.view_box.setRange(yRange=y_range, padding=0)
         self.emit_sig_range_changed()
-
 
     def add_overlay(self, pattern, show=True):
         x, y = pattern.data
@@ -255,7 +253,6 @@ class SpectrumWidget(QtCore.QObject):
     def hide_linear_region(self):
         self.spectrum_plot.removeItem(self.linear_region_item)
 
-
     def save_png(self, filename):
         exporter = ImageExporter(self.spectrum_plot)
         exporter.export(filename)
@@ -311,7 +308,7 @@ class SpectrumWidget(QtCore.QObject):
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and
-                 ev.modifiers() & QtCore.Qt.ControlModifier):
+                         ev.modifiers() & QtCore.Qt.ControlModifier):
             view_range = np.array(self.view_box.viewRange()) * 2
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
@@ -330,7 +327,7 @@ class SpectrumWidget(QtCore.QObject):
 
     def myMouseDoubleClickEvent(self, ev):
         if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and
-                                                      ev.modifiers() & QtCore.Qt.ControlModifier):
+                                                              ev.modifiers() & QtCore.Qt.ControlModifier):
             self.auto_range = True
             self.emit_sig_range_changed()
 
@@ -344,7 +341,7 @@ class SpectrumWidget(QtCore.QObject):
 
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and
-                 ev.modifiers() & QtCore.Qt.ControlModifier):
+                         ev.modifiers() & QtCore.Qt.ControlModifier):
             # determine the amount of translation
             tr = dif
             tr = self.view_box.mapToView(tr) - self.view_box.mapToView(pg.Point(0, 0))
@@ -391,7 +388,7 @@ class SpectrumWidget(QtCore.QObject):
                 x_range = np.max(curve_data[0]) - np.min(curve_data[0])
                 y_range = np.max(curve_data[1]) - np.min(curve_data[1])
                 if (view_range[0][1] - view_range[0][0]) >= x_range and \
-                        (view_range[1][1] - view_range[1][0]) >= y_range:
+                                (view_range[1][1] - view_range[1][0]) >= y_range:
                     self.auto_range = True
                 else:
                     self.auto_range = False
@@ -400,7 +397,6 @@ class SpectrumWidget(QtCore.QObject):
 
 
 class PhaseLinesPlot(object):
-
     def __init__(self, plot_item, positions=None, name='Dummy',
                  pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine)):
         self.plot_item = plot_item

@@ -1,16 +1,14 @@
-__author__ = 'Clemens Prescher'
-
 import unittest
 import os
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from model.PatternModel import Pattern, PatternModel
-from model.util.Pattern import BkgNotInRangeError
 from model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
+
 
 class PatternModelTest(unittest.TestCase):
     # TODO: needs to be rewritten to be more in small units etc.
@@ -54,10 +52,8 @@ class PatternModelTest(unittest.TestCase):
         self.pattern_model.add_spectrum_as_overlay()
         self.assertEqual(len(self.pattern_model.overlays), 1)
 
-
         assert_array_almost_equal(self.pattern_model.get_overlay(0).x, self.pattern_model.pattern.x)
         assert_array_almost_equal(self.pattern_model.get_overlay(0).y, self.pattern_model.pattern.y)
-
 
     def test_auto_background_subtraction(self):
         x = np.linspace(0, 24, 2500)
@@ -67,7 +63,7 @@ class PatternModelTest(unittest.TestCase):
             [10, 3, 0.1],
             [12, 4, 0.1],
             [12, 6, 0.1],
-            ]
+        ]
         for peak in peaks:
             y += gaussian(x, peak[0], peak[1], peak[2])
         y_bkg = x * 0.4 + 5.0
@@ -80,7 +76,7 @@ class PatternModelTest(unittest.TestCase):
 
         x_spec, y_spec = self.pattern_model.pattern.data
 
-        self.assertAlmostEqual(np.sum(y_spec- y),0)
+        self.assertAlmostEqual(np.sum(y_spec - y), 0)
 
 
 if __name__ == '__main__':

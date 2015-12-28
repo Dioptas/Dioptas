@@ -15,7 +15,6 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-__author__ = 'Clemens Prescher'
 
 import unittest
 import os
@@ -31,6 +30,7 @@ from controller.integration import OverlayController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
+
 
 class OverlayControllerTest(unittest.TestCase):
     def setUp(self):
@@ -120,7 +120,7 @@ class OverlayControllerTest(unittest.TestCase):
         x, y = self.spectrum_model.overlays[2].data
         x_spec, y_spec = self.widget.spectrum_view.overlays[2].getData()
 
-        self.assertAlmostEqual(np.sum(y-y_spec), 0)
+        self.assertAlmostEqual(np.sum(y - y_spec), 0)
 
     def test_change_offset_in_view(self):
         self.load_overlays()
@@ -132,7 +132,7 @@ class OverlayControllerTest(unittest.TestCase):
         x, y = self.spectrum_model.overlays[3].data
         x_spec, y_spec = self.widget.spectrum_view.overlays[3].getData()
 
-        self.assertAlmostEqual(np.sum(y-y_spec), 0)
+        self.assertAlmostEqual(np.sum(y - y_spec), 0)
 
     def test_setting_overlay_as_bkg(self):
         self.load_overlays()
@@ -155,7 +155,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.widget.overlay_scale_sb.setValue(2)
         _, y = self.spectrum_model.pattern.data
         _, y_original = self.spectrum_model.pattern.data
-        self.assertEqual(np.sum(y-y_original), 0)
+        self.assertEqual(np.sum(y - y_original), 0)
 
     def test_setting_overlay_as_bkg_and_changing_offset(self):
         self.load_overlays()
@@ -165,7 +165,7 @@ class OverlayControllerTest(unittest.TestCase):
 
         self.widget.overlay_offset_sb.setValue(100)
         _, y = self.spectrum_model.pattern.data
-        self.assertEqual(np.sum(y), -100*y.size)
+        self.assertEqual(np.sum(y), -100 * y.size)
 
     def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(self):
         self.load_overlays()

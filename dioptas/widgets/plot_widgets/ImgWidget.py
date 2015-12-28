@@ -18,9 +18,6 @@
 
 from __future__ import absolute_import
 
-
-__author__ = 'Clemens Prescher'
-
 import pyqtgraph as pg
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
@@ -48,11 +45,11 @@ class ImgWidget(QtCore.QObject):
         self.mask_data = None
 
     def create_graphics(self):
-        #self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
+        # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         if self.orientation == 'horizontal':
 
             self.img_view_box = self.pg_layout.addViewBox(1, 0)
-            #create the item handling the Data img
+            # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
@@ -60,7 +57,7 @@ class ImgWidget(QtCore.QObject):
 
         elif self.orientation == 'vertical':
             self.img_view_box = self.pg_layout.addViewBox(0, 0)
-            #create the item handling the Data img
+            # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
@@ -86,15 +83,13 @@ class ImgWidget(QtCore.QObject):
 
     def set_range(self, x_range, y_range):
         img_bounds = self.img_view_box.childrenBoundingRect()
-        if x_range[0]<=img_bounds.left() and \
-            x_range[1]>=img_bounds.right() and \
-            y_range[0]<=img_bounds.bottom() and \
-            y_range[1]>=img_bounds.top():
+        if x_range[0] <= img_bounds.left() and \
+                        x_range[1] >= img_bounds.right() and \
+                        y_range[0] <= img_bounds.bottom() and \
+                        y_range[1] >= img_bounds.top():
             self.img_view_box.autoRange()
             return
         self.img_view_box.setRange(xRange=x_range, yRange=y_range)
-
-
 
     def auto_range(self):
         hist_x, hist_y = self.img_histogram_LUT.hist_x, self.img_histogram_LUT.hist_y
@@ -131,7 +126,7 @@ class ImgWidget(QtCore.QObject):
         self.mouse_moved.emit(pos.x(), pos.y())
 
     def modify_mouse_behavior(self):
-        #different mouse handlers
+        # different mouse handlers
         self.img_view_box.setMouseMode(self.img_view_box.RectMode)
 
         self.pg_layout.scene().sigMouseMoved.connect(self.mouseMoved)
@@ -168,7 +163,7 @@ class ImgWidget(QtCore.QObject):
             self.mouse_left_double_clicked.emit(pos.x(), pos.y())
 
     def myMouseDragEvent(self, ev, axis=None):
-        #most of this code is copied behavior of left click mouse drag from the original code
+        # most of this code is copied behavior of left click mouse drag from the original code
         ev.accept()
         pos = ev.pos()
         lastPos = ev.lastPos()
@@ -183,7 +178,7 @@ class ImgWidget(QtCore.QObject):
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and \
                              ev.modifiers() & QtCore.Qt.ControlModifier):
-            #determine the amount of translation
+            # determine the amount of translation
             tr = dif * mask
             tr = self.img_view_box.mapToView(tr) - self.img_view_box.mapToView(pg.Point(0, 0))
             x = tr.x()
@@ -193,9 +188,9 @@ class ImgWidget(QtCore.QObject):
             self.img_view_box.sigRangeChangedManually.emit(self.img_view_box.state['mouseEnabled'])
         else:
             if ev.isFinish():  ## This is the final move in the drag; change the view scale now
-                #print "finish"
+                # print "finish"
                 self.img_view_box.rbScaleBox.hide()
-                #ax = QtCore.QRectF(Point(self.pressPos), Point(self.mousePos))
+                # ax = QtCore.QRectF(Point(self.pressPos), Point(self.mousePos))
                 ax = QtCore.QRectF(pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos))
                 ax = self.img_view_box.childGroup.mapRectFromParent(ax)
                 self.img_view_box.showAxRect(ax)
@@ -324,11 +319,11 @@ class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
         hull_indices = np.hstack((hull.vertices, hull.vertices[1]))
         x = data[hull_indices, 0]
         y = data[hull_indices, 1]
-        distance_between_points = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
+        distance_between_points = np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2)
 
-        key_indices = np.argwhere(distance_between_points>5*np.mean(distance_between_points))
+        key_indices = np.argwhere(distance_between_points > 5 * np.mean(distance_between_points))
 
-        #delete old graphs
+        # delete old graphs
         for plot_item in self.circle_plot_items:
             plot_item.setData(x=[], y=[])
 
@@ -337,10 +332,10 @@ class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
         for ind, key_index in enumerate(key_indices):
             x_plot = x[cur_data_ind:key_index]
             y_plot = y[cur_data_ind:key_index]
-            if len(x_plot)>0:
+            if len(x_plot) > 0:
                 self.circle_plot_items[plot_ind].setData(x=x_plot, y=y_plot)
-                plot_ind+=1
-            cur_data_ind = key_index+1
+                plot_ind += 1
+            cur_data_ind = key_index + 1
         self.circle_plot_items[-1].setData(x=x[cur_data_ind:-1], y=y[cur_data_ind:-1])
 
     def activate_circle_scatter(self):
@@ -502,7 +497,6 @@ class RoiShade(object):
         self.active = False
         self.create_rect()
 
-
     def create_rect(self):
         color = QtGui.QColor(0, 0, 0, 100)
         self.left_rect = QtGui.QGraphicsRectItem()
@@ -518,7 +512,6 @@ class RoiShade(object):
         self.bottom_rect = QtGui.QGraphicsRectItem()
         self.bottom_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.bottom_rect.setBrush(QtGui.QBrush(color))
-
 
     def update_rects(self):
         roi_rect = self.roi.parentBounds()
@@ -545,8 +538,3 @@ class RoiShade(object):
             self.view_box.removeItem(self.top_rect)
             self.view_box.removeItem(self.bottom_rect)
             self.active = False
-
-
-
-
-

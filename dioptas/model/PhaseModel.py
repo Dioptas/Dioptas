@@ -16,11 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
-
 import numpy as np
 
 from model.util import jcpds
+
 try:
     from model.util.cif import read_cif
 except ImportError:
@@ -35,10 +34,12 @@ class PhaseLoadError(Exception):
     def __repr__(self):
         return "Could not load {0} as jcpds file".format(self.filename)
 
+
 class PymatgenNotInstalledError(Exception):
     def __init__(self, filename):
-       super(PymatgenNotInstalledError, self).__init__()
-       self.filename = filename
+        super(PymatgenNotInstalledError, self).__init__()
+        self.filename = filename
+
 
 class PhaseModel(object):
     def __init__(self):
@@ -138,11 +139,11 @@ class PhaseModel(object):
         if scale_factor <= 0:
             scale_factor = 0.01
 
-        phase_line_intensities = scale_factor * self.reflections[ind][:, 1]+baseline
+        phase_line_intensities = scale_factor * self.reflections[ind][:, 1] + baseline
         return phase_line_intensities, baseline
 
     def get_rescaled_reflections(self, ind, pattern, x_range,
-                            y_range, wavelength, unit='tth'):
+                                 y_range, wavelength, unit='tth'):
         positions = self.get_phase_line_positions(ind, unit, wavelength)
 
         intensities, baseline = self.get_phase_line_intensities(ind, positions, pattern, x_range, y_range)

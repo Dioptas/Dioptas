@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
+
 import os
 import time
 
@@ -25,8 +25,6 @@ import numpy as np
 from PIL import Image
 
 from model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
-
-
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.IntegrationWidget import IntegrationWidget
@@ -121,7 +119,7 @@ class ImageController(object):
             self.widget.img_view.plot_mask(self.mask_model.get_img())
         else:
             self.widget.img_view.plot_mask(
-                np.zeros(self.mask_model.get_img().shape))
+                    np.zeros(self.mask_model.get_img().shape))
 
     def change_mask_colormap(self):
         """
@@ -196,8 +194,8 @@ class ImageController(object):
     def load_file(self, filenames=None):
         if filenames is None:
             filenames = list(QtGui.QFileDialog.getOpenFileNames(
-                self.widget, "Load image data file(s)",
-                self.working_dir['image']))
+                    self.widget, "Load image data file(s)",
+                    self.working_dir['image']))
 
         else:
             if isinstance(filenames, str):
@@ -254,8 +252,8 @@ class ImageController(object):
         else:
             # if there is no working directory selected A file dialog opens up to choose a directory...
             working_directory = str(QtGui.QFileDialog.getExistingDirectory(
-                self.widget, "Please choose the output directory for the integrated spectra.",
-                self.working_dir['spectrum']))
+                    self.widget, "Please choose the output directory for the integrated spectra.",
+                    self.working_dir['spectrum']))
         return working_directory
 
     def _set_up_multiple_file_integration(self):
@@ -285,7 +283,7 @@ class ImageController(object):
                 filename = os.path.join(directory, self.spectrum_model.pattern.name + file_ending)
                 if file_ending == '.xy':
                     self.spectrum_model.save_pattern(filename, header=self._create_spectrum_header(),
-                                                      subtract_background=True)
+                                                     subtract_background=True)
                 else:
                     self.spectrum_model.save_pattern(filename, subtract_background=True)
 
@@ -392,9 +390,9 @@ class ImageController(object):
 
     def img_directory_btn_click(self):
         directory = str(QtGui.QFileDialog.getExistingDirectory(
-            self.widget,
-            "Please choose the image working directory.",
-            self.working_dir['image']))
+                self.widget,
+                "Please choose the image working directory.",
+                self.working_dir['image']))
         if directory is not '':
             if self.widget.autoprocess_cb.isChecked():
                 self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
@@ -430,7 +428,7 @@ class ImageController(object):
             self.calibration_model.integrate_2d(mask)
             self.plot_cake()
             self.widget.img_view.plot_mask(
-                np.zeros(self.mask_model.get_img().shape))
+                    np.zeros(self.mask_model.get_img().shape))
             self.widget.img_view.activate_vertical_line()
             self.widget.img_view.img_view_box.setAspectLocked(False)
         elif self.img_mode == 'Image':
@@ -492,7 +490,7 @@ class ImageController(object):
     def _update_image_scatter_pos(self):
         cur_tth = self.get_current_spectrum_tth()
         self.widget.img_view.set_circle_line(
-            self.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
+                self.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
 
     def get_current_spectrum_tth(self):
         cur_pos = self.widget.spectrum_view.pos_line.getPos()[0]
@@ -590,7 +588,7 @@ class ImageController(object):
                     return
                 tth = self.calibration_model.get_two_theta_img(x, y)
                 self.widget.img_view.set_circle_line(
-                    self.calibration_model.get_two_theta_array(), tth)
+                        self.calibration_model.get_two_theta_array(), tth)
             else:  # in the case of whatever
                 tth = 0
 
@@ -628,7 +626,7 @@ class ImageController(object):
             tth = value
         elif previous_unit == 'q_A^-1':
             tth = np.arcsin(
-                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
+                    value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
         elif previous_unit == 'd_A':
             tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
         else:
@@ -649,22 +647,22 @@ class ImageController(object):
     def load_calibration(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(
-                self.widget, "Load calibration...",
-                self.working_dir[
-                    'calibration'],
-                '*.poni'))
+                    self.widget, "Load calibration...",
+                    self.working_dir[
+                        'calibration'],
+                    '*.poni'))
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
-                self.calibration_model.calibration_name)
+                    self.calibration_model.calibration_name)
             self.img_model.img_changed.emit()
 
     def create_autoprocess_system(self):
         self._directory_watcher = NewFileInDirectoryWatcher(
-            file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
-                        '.cbf', '.kccd', '.msk', '.spr', '.tif',
-                        '.mccd', '.mar3450', '.pnm']
+                file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                            '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                            '.mccd', '.mar3450', '.pnm']
         )
 
         self._directory_watcher.file_added.connect(self.load_file)
@@ -731,18 +729,18 @@ class ImageController(object):
             azi_array = 180.0 / np.pi * self.calibration_model.spectrum_geometry.chia
 
             new_cbn_correction = CbnCorrection(
-                tth_array=tth_array,
-                azi_array=azi_array,
-                diamond_thickness=diamond_thickness,
-                seat_thickness=seat_thickness,
-                small_cbn_seat_radius=inner_seat_radius,
-                large_cbn_seat_radius=outer_seat_radius,
-                tilt=tilt,
-                tilt_rotation=tilt_rotation,
-                center_offset=center_offset,
-                center_offset_angle=center_offset_angle,
-                cbn_abs_length=seat_absorption_length,
-                diamond_abs_length=anvil_absorption_length
+                    tth_array=tth_array,
+                    azi_array=azi_array,
+                    diamond_thickness=diamond_thickness,
+                    seat_thickness=seat_thickness,
+                    small_cbn_seat_radius=inner_seat_radius,
+                    large_cbn_seat_radius=outer_seat_radius,
+                    tilt=tilt,
+                    tilt_rotation=tilt_rotation,
+                    center_offset=center_offset,
+                    center_offset_angle=center_offset_angle,
+                    cbn_abs_length=seat_absorption_length,
+                    diamond_abs_length=anvil_absorption_length
             )
             if not new_cbn_correction == self.img_model.get_img_correction("cbn"):
                 t1 = time.time()
@@ -773,11 +771,11 @@ class ImageController(object):
         if not self.calibration_model.is_calibrated:
             self.widget.oiadac_groupbox.setChecked(False)
             QtGui.QMessageBox.critical(
-                self.widget,
-                'ERROR',
-                'Please calibrate the geometry first or load an existent calibration file. ' + \
-                'The oblique incidence angle detector absorption correction needs a calibrated' + \
-                'geometry.'
+                    self.widget,
+                    'ERROR',
+                    'Please calibrate the geometry first or load an existent calibration file. ' + \
+                    'The oblique incidence angle detector absorption correction needs a calibrated' + \
+                    'geometry.'
             )
             return
 
@@ -796,11 +794,11 @@ class ImageController(object):
             t1 = time.time()
 
             oiadac_correction = ObliqueAngleDetectorAbsorptionCorrection(
-                tth_array, azi_array,
-                detector_thickness=detector_thickness,
-                absorption_length=absorption_length,
-                tilt=detector_tilt,
-                rotation=detector_tilt_rotation,
+                    tth_array, azi_array,
+                    detector_thickness=detector_thickness,
+                    absorption_length=absorption_length,
+                    tilt=detector_tilt,
+                    rotation=detector_tilt_rotation,
             )
             print "Time needed for correction calculation: {0}".format(time.time() - t1)
             try:

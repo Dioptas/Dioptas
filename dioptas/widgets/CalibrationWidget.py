@@ -18,8 +18,6 @@
 
 from __future__ import absolute_import
 
-__author__ = 'Clemens Prescher'
-
 import os
 from PyQt4 import QtGui
 
@@ -100,7 +98,6 @@ class CalibrationWidget(QtGui.QWidget, Ui_XrsCalibrationWidget):
         self.set_pyFAI_parameter(pyFAI_parameter)
         self.set_fit2d_parameter(fit2d_parameter)
 
-
     def set_pyFAI_parameter(self, pyFAI_parameter):
         self.pf_distance_txt.setText('%.6f' % (pyFAI_parameter['dist'] * 1000))
         self.pf_poni1_txt.setText('%.6f' % (pyFAI_parameter['poni1']))
@@ -122,7 +119,6 @@ class CalibrationWidget(QtGui.QWidget, Ui_XrsCalibrationWidget):
                            'pixel1': float(self.pf_pixel_width_txt.text()) / 1e6,
                            'pixel2': float(self.pf_pixel_height_txt.text()) / 1e6}
         return pyFAI_parameter
-
 
     def set_fit2d_parameter(self, fit2d_parameter):
         self.f2_distance_txt.setText('%.4f' % (fit2d_parameter['directDist']))

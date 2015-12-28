@@ -15,7 +15,6 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-__author__ = 'Clemens Prescher'
 
 import unittest
 import os
@@ -33,6 +32,7 @@ from controller.integration import PatternController
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 
+
 class IntegrationBackgroundControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
@@ -40,7 +40,7 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         self.spectrum_model = PatternModel()
         self.img_model = ImgModel()
         self.spectrum_controller = PatternController({}, self.widget, self.img_model,
-                                                                   None, None, self.spectrum_model)
+                                                     None, None, self.spectrum_model)
         self.background_controller = BackgroundController({}, self.widget, self.img_model, self.spectrum_model)
         self.overlay_tw = self.widget.overlay_tw
 
