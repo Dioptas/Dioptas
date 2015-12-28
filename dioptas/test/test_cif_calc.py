@@ -44,7 +44,7 @@ class CifCalcTest(unittest.TestCase):
     def test_reading_hcp_cif_files(self):
         cif.read_cif(cif_path_hcp)
 
-    def test_reading_fcc_cif_files(self):
-        for i in range(195, 231):
-            filename = os.path.join(data_path, str(i) + ".cif")
-            jcpds_obj = cif.read_cif(filename)
+    # def test_reading_fcc_cif_files(self):
+    #     for i in range(195, 231):
+    #         filename = os.path.join(data_path, str(i) + ".cif")
+    #         jcpds_obj = cif.read_cif(filename)
