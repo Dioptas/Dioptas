@@ -22,6 +22,8 @@ cloc-1.62.pl
 *.chi
 *.so
 *.pyd
+*.so.dSYM
+*.ui.autosave
 
 log.txt
 .idea
