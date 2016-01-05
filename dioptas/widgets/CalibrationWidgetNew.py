@@ -83,7 +83,10 @@ class CalibrationControlWidget(QtGui.QWidget):
 
         self.toolbox = QtGui.QToolBox()
         self.calibration_parameter_widget = CalibrationParameterWidget()
+        self.pyfai_parameters_widget = PyfaiParametersWidget()
+
         self.toolbox.addItem(self.calibration_parameter_widget, "Calibration Parameter")
+        self.toolbox.addItem(self.pyfai_parameters_widget, 'pyFAI Parameters')
         self._layout.addWidget(self.toolbox)
 
         self.setLayout(self._layout)
@@ -238,6 +241,70 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self.number_of_rings_txt = QtGui.QSpinBox()
         self.number_of_rings_txt.setValue(15)
         self._layout.addWidget(self.number_of_rings_txt)
+
+        self.setLayout(self._layout)
+
+
+class PyfaiParametersWidget(QtGui.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(PyfaiParametersWidget, self).__init__(*args, **kwargs)
+
+        self._layout = QtGui.QGridLayout()
+
+        self._layout.addWidget(LabelAlignRight('Distance:'), 0, 0)
+        self.distance_txt = NumberTextField()
+        self.distance_cb = QtGui.QCheckBox()
+        self.distance_cb.setChecked(True)
+        self._layout.addWidget(self.distance_txt, 0, 1)
+        self._layout.addWidget(QtGui.QLabel('mm'), 0, 2)
+        self._layout.addWidget(self.distance_cb, 0, 3)
+
+        self._layout.addWidget(LabelAlignRight('Wavelength:'), 1, 0)
+        self.wavelength_txt = NumberTextField()
+        self.wavelength_cb = QtGui.QCheckBox()
+        self._layout.addWidget(self.wavelength_txt, 1, 1)
+        self._layout.addWidget(QtGui.QLabel('A'), 1, 2)
+        self._layout.addWidget(self.wavelength_cb, 1, 3)
+
+        self._layout.addWidget(LabelAlignRight('Polarization:'), 2, 0)
+        self.polarization_txt = NumberTextField()
+        self._layout.addWidget(self.polarization_txt, 2, 1)
+
+        self._layout.addWidget(LabelAlignRight('PONI:'), 3, 0)
+        self.poni1_txt = NumberTextField()
+        self._layout.addWidget(self.poni1_txt, 3, 1)
+        self._layout.addWidget(QtGui.QLabel('m'), 3, 2)
+
+        self.poni2_txt = NumberTextField()
+        self._layout.addWidget(self.poni2_txt, 4, 1)
+        self._layout.addWidget(QtGui.QLabel('m'), 4, 2)
+
+        self._layout.addWidget(LabelAlignRight('Rotations'), 5, 0)
+        self.rotation1_txt = NumberTextField()
+        self.rotation2_txt = NumberTextField()
+        self.rotation3_txt = NumberTextField()
+        self._layout.addWidget(self.rotation1_txt, 5, 1)
+        self._layout.addWidget(self.rotation2_txt, 6, 1)
+        self._layout.addWidget(self.rotation3_txt, 7, 1)
+        self._layout.addWidget(QtGui.QLabel('rad'), 5, 2)
+        self._layout.addWidget(QtGui.QLabel('rad'), 6, 2)
+        self._layout.addWidget(QtGui.QLabel('rad'), 7, 2)
+
+        self._layout.addWidget(LabelAlignRight('Pixel width:'), 8, 0)
+        self.pixel_width_txt = NumberTextField()
+        self._layout.addWidget(self.pixel_width_txt, 8, 1)
+        self._layout.addWidget(QtGui.QLabel('um'))
+
+        self._layout.addWidget(LabelAlignRight('Pixel height:'), 9, 0)
+        self.pixel_height_txt = NumberTextField()
+        self._layout.addWidget(self.pixel_height_txt, 9, 1)
+        self._layout.addWidget(QtGui.QLabel('um'))
+
+        self.update_btn = QtGui.QPushButton('update')
+        self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
+
+        self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding),
+                             11, 0, 1, 4)
 
         self.setLayout(self._layout)
 
