@@ -1,3 +1,5 @@
+import os
+
 from PyQt4 import QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
@@ -20,6 +22,83 @@ class CalibrationWidgetNew(QtGui.QWidget):
         self._layout = QtGui.QHBoxLayout()
         self._layout.addWidget(self._main_splitter)
         self.setLayout(self._layout)
+
+    def set_img_filename(self, filename):
+        self.filename_txt.setText(os.path.basename(filename))
+
+    def set_start_values(self, start_values):
+        sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
+        sv_gb.distance_txt.setText('%.3f' % (start_values['dist'] * 1000))
+        sv_gb.wavelength_txt.setText('%.6f' % (start_values['wavelength'] * 1e10))
+        sv_gb.polarization_txt.setText('%.3f' % (start_values['polarization_factor']))
+        sv_gb.pixel_height_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
+        sv_gb.pixel_width_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
+        return start_values
+
+    def get_start_values(self):
+        sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
+        start_values = {'dist': float(sv_gb.distance_txt.text()) * 1e-3,
+                        'wavelength': float(sv_gb.wavelength_txt.text()) * 1e-10,
+                        'pixel_width': float(sv_gb.pixel_width_txt.text()) * 1e-6,
+                        'pixel_height': float(sv_gb.pixel_height_txt.text()) * 1e-6,
+                        'polarization_factor': float(sv_gb.polarization_txt.text())}
+        return start_values
+
+    def set_calibration_parameters(self, pyFAI_parameter, fit2d_parameter):
+        self.set_pyFAI_parameter(pyFAI_parameter)
+        self.set_fit2d_parameter(fit2d_parameter)
+
+    def set_pyFAI_parameter(self, pyFAI_parameter):
+        pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
+        pyfai_widget.distance_txt.setText('%.6f' % (pyFAI_parameter['dist'] * 1000))
+        pyfai_widget.poni1_txt.setText('%.6f' % (pyFAI_parameter['poni1']))
+        pyfai_widget.poni2_txt.setText('%.6f' % (pyFAI_parameter['poni2']))
+        pyfai_widget.rotation1_txt.setText('%.8f' % (pyFAI_parameter['rot1']))
+        pyfai_widget.rotation2_txt.setText('%.8f' % (pyFAI_parameter['rot2']))
+        pyfai_widget.rotation3_txt.setText('%.8f' % (pyFAI_parameter['rot3']))
+        pyfai_widget.wavelength_txt.setText('%.6f' % (pyFAI_parameter['wavelength'] * 1e10))
+        pyfai_widget.polarization_txt.setText('%.3f' % (pyFAI_parameter['polarization_factor']))
+        pyfai_widget.pixel_width_txt.setText('%.4f' % (pyFAI_parameter['pixel1'] * 1e6))
+        pyfai_widget.pixel_height_txt.setText('%.4f' % (pyFAI_parameter['pixel2'] * 1e6))
+
+    def get_pyFAI_parameter(self):
+        pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
+        pyFAI_parameter = {'dist': float(pyfai_widget.distance_txt.text()) / 1000,
+                           'poni1': float(pyfai_widget.poni1_txt.text()),
+                           'poni2': float(pyfai_widget.poni2_txt.text()),
+                           'rot1': float(pyfai_widget.rotation1_txt.text()),
+                           'rot2': float(pyfai_widget.rotation2_txt.text()),
+                           'rot3': float(pyfai_widget.rotation3_txt.text()),
+                           'wavelength': float(pyfai_widget.wavelength_txt.text()) / 1e10,
+                           'polarization_factor': float(pyfai_widget.polarization_txt.text()),
+                           'pixel1': float(pyfai_widget.pixel_width_txt.text()) / 1e6,
+                           'pixel2': float(pyfai_widget.pixel_height_txt.text()) / 1e6}
+        return pyFAI_parameter
+
+    def set_fit2d_parameter(self, fit2d_parameter):
+        fit2d_widget = self.calibration_control_widget.fit2d_parameters_widget
+        fit2d_widget.distance_txt.setText('%.4f' % (fit2d_parameter['directDist']))
+        fit2d_widget.center_x_txt.setText('%.3f' % (fit2d_parameter['centerX']))
+        fit2d_widget.center_y_txt.setText('%.3f' % (fit2d_parameter['centerY']))
+        fit2d_widget.tilt_txt.setText('%.6f' % (fit2d_parameter['tilt']))
+        fit2d_widget.rotation_txt.setText('%.6f' % (fit2d_parameter['tiltPlanRotation']))
+        fit2d_widget.wavelength_txt.setText('%.4f' % (fit2d_parameter['wavelength'] * 1e10))
+        fit2d_widget.polarization_txt.setText('%.3f' % (fit2d_parameter['polarization_factor']))
+        fit2d_widget.pixel_width_txt.setText('%.4f' % (fit2d_parameter['pixelX']))
+        fit2d_widget.pixel_height_txt.setText('%.4f' % (fit2d_parameter['pixelY']))
+
+    def get_fit2d_parameter(self):
+        fit2d_widget = self.calibration_control_widget.fit2d_parameters_widget
+        fit2d_parameter = {'directDist': float(fit2d_widget.distance_txt.text()),
+                           'centerX': float(fit2d_widget.center_x_txt.text()),
+                           'centerY': float(self.f2_center_y_txt.text()),
+                           'tilt': float(fit2d_widget.tilt_txt.text()),
+                           'tiltPlanRotation': float(fit2d_widget.rotation_txt.text()),
+                           'wavelength': float(fit2d_widget.wavelength_txt.text()) / 1e10,
+                           'polarization_factor': float(fit2d_widget.polarization_txt.text()),
+                           'pixelX': float(fit2d_widget.pixel_width_txt.text()),
+                           'pixelY': float(fit2d_widget.pixel_height_txt.text())}
+        return fit2d_parameter
 
 
 class CalibrationDisplayWidget(QtGui.QWidget):
