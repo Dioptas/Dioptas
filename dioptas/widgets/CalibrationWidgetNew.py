@@ -96,42 +96,42 @@ class CalibrationParameterWidget(QtGui.QWidget):
         self._layout = QtGui.QGridLayout()
 
         self.start_values_gb = QtGui.QGroupBox('Start values')
-        self._gb_layout = QtGui.QGridLayout()
+        self._start_values_gb_layout = QtGui.QGridLayout()
 
-        self._gb_layout.addWidget(LabelAlignRight('Distance:'), 0, 0)
+        self._start_values_gb_layout.addWidget(LabelAlignRight('Distance:'), 0, 0)
         self.distance_txt = NumberTextField('200')
         self.distance_cb = QtGui.QCheckBox()
         self.distance_cb.setChecked(True)
-        self._gb_layout.addWidget(self.distance_txt, 0, 1)
-        self._gb_layout.addWidget(QtGui.QLabel('mm'), 0, 2)
-        self._gb_layout.addWidget(self.distance_cb, 0, 3)
+        self._start_values_gb_layout.addWidget(self.distance_txt, 0, 1)
+        self._start_values_gb_layout.addWidget(QtGui.QLabel('mm'), 0, 2)
+        self._start_values_gb_layout.addWidget(self.distance_cb, 0, 3)
 
-        self._gb_layout.addWidget(LabelAlignRight('Wavelength:'), 1, 0)
+        self._start_values_gb_layout.addWidget(LabelAlignRight('Wavelength:'), 1, 0)
         self.wavelength_txt = NumberTextField('0.3344')
         self.wavelength_cb = QtGui.QCheckBox()
-        self._gb_layout.addWidget(self.wavelength_txt, 1, 1)
-        self._gb_layout.addWidget(QtGui.QLabel('A'), 1, 2)
-        self._gb_layout.addWidget(self.wavelength_cb, 1, 3)
+        self._start_values_gb_layout.addWidget(self.wavelength_txt, 1, 1)
+        self._start_values_gb_layout.addWidget(QtGui.QLabel('A'), 1, 2)
+        self._start_values_gb_layout.addWidget(self.wavelength_cb, 1, 3)
 
-        self._gb_layout.addWidget(LabelAlignRight('Polarization:'), 2, 0)
+        self._start_values_gb_layout.addWidget(LabelAlignRight('Polarization:'), 2, 0)
         self.polarization_txt = NumberTextField('0.99')
-        self._gb_layout.addWidget(self.polarization_txt, 2, 1)
+        self._start_values_gb_layout.addWidget(self.polarization_txt, 2, 1)
 
-        self._gb_layout.addWidget(LabelAlignRight('Pixel width:'), 3, 0)
+        self._start_values_gb_layout.addWidget(LabelAlignRight('Pixel width:'), 3, 0)
         self.pixel_width_txt = NumberTextField('72')
-        self._gb_layout.addWidget(self.pixel_width_txt, 3, 1)
-        self._gb_layout.addWidget(QtGui.QLabel('um'))
+        self._start_values_gb_layout.addWidget(self.pixel_width_txt, 3, 1)
+        self._start_values_gb_layout.addWidget(QtGui.QLabel('um'))
 
-        self._gb_layout.addWidget(LabelAlignRight('Pixel height:'), 4, 0)
+        self._start_values_gb_layout.addWidget(LabelAlignRight('Pixel height:'), 4, 0)
         self.pixel_height_txt = NumberTextField('72')
-        self._gb_layout.addWidget(self.pixel_height_txt, 4, 1)
-        self._gb_layout.addWidget(QtGui.QLabel('um'))
+        self._start_values_gb_layout.addWidget(self.pixel_height_txt, 4, 1)
+        self._start_values_gb_layout.addWidget(QtGui.QLabel('um'))
 
-        self._gb_layout.addWidget(LabelAlignRight('Calibrant:'), 5, 0)
+        self._start_values_gb_layout.addWidget(LabelAlignRight('Calibrant:'), 5, 0)
         self.calibrant_cb = QtGui.QComboBox()
-        self._gb_layout.addWidget(self.calibrant_cb, 5, 1, 1, 2)
+        self._start_values_gb_layout.addWidget(self.calibrant_cb, 5, 1, 1, 2)
 
-        self.start_values_gb.setLayout(self._gb_layout)
+        self.start_values_gb.setLayout(self._start_values_gb_layout)
 
         self._layout.addWidget(self.start_values_gb, 0, 0, 1, 2)
 
@@ -148,6 +148,34 @@ class CalibrationParameterWidget(QtGui.QWidget):
         self.reset_transformations_btn = QtGui.QPushButton('Reset transformations')
         self._layout.addWidget(self.reset_transformations_btn, 3, 0, 1, 2)
 
+        self.peak_selection_gb = QtGui.QGroupBox('Peak Selection')
+        self._peak_selection_grid_layout = QtGui.QGridLayout()
+        self._peak_selection_grid_layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
+                                                                     QtGui.QSizePolicy.Minimum), 0, 0)
+        self._peak_selection_grid_layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
+        self.peak_num_sb = QtGui.QSpinBox()
+        self._peak_selection_grid_layout.addWidget(self.peak_num_sb, 0, 3)
+        self._peak_selection_grid_layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
+                                                                   QtGui.QSizePolicy.Minimum), 1, 0, 1, 2)
+        self.automatic_peak_num_inc_cb = QtGui.QCheckBox('automatic increase')
+        self.automatic_peak_num_inc_cb.setChecked(True)
+        self._peak_selection_grid_layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
+
+        self.automatic_peak_search_rb = QtGui.QRadioButton('automatic peak search')
+        self.select_peak_rb = QtGui.QRadioButton('single peak search')
+        self._peak_selection_grid_layout.addWidget(self.automatic_peak_search_rb, 2, 0, 1, 4)
+        self._peak_selection_grid_layout.addWidget(self.select_peak_rb, 3, 0, 1, 4)
+
+        self._peak_selection_grid_layout.addWidget(LabelAlignRight('Search size:'), 4, 0)
+        self.search_size_sb = QtGui.QSpinBox()
+        self._peak_selection_grid_layout.addWidget(self.search_size_sb, 4, 1)
+        self._peak_selection_grid_layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
+                                                                   QtGui.QSizePolicy.Minimum), 4, 2, 1, 2)
+
+
+        self.peak_selection_gb.setLayout(self._peak_selection_grid_layout)
+
+        self._layout.addWidget(self.peak_selection_gb, 4, 0, 1, 2)
         self.setLayout(self._layout)
 
 
