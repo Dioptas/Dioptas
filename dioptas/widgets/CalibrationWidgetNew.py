@@ -23,6 +23,65 @@ class CalibrationWidgetNew(QtGui.QWidget):
         self._layout.addWidget(self._main_splitter)
         self.setLayout(self._layout)
 
+        self.create_shortcuts()
+
+    def create_shortcuts(self):
+        self.load_img_btn = self.calibration_control_widget.load_img_btn
+        self.load_next_img_btn = self.calibration_control_widget.load_next_img_btn
+        self.load_previous_img_btn = self.calibration_control_widget.load_previous_img_btn
+        self.filename_txt = self.calibration_control_widget.filename_txt
+
+        self.save_calibration_btn = self.calibration_control_widget.save_calibration_btn
+        self.load_calibration_btn = self.calibration_control_widget.load_calibration_btn
+
+        self.integrate_btn = self.calibration_display_widget.calibrate_btn
+        self.refine_btn = self.calibration_display_widget.refine_btn
+        self.pos_lbl = self.calibration_display_widget.position_lbl
+
+        self.tab_widget = self.calibration_display_widget.tab_widget
+        self.ToolBox = self.calibration_control_widget.toolbox
+
+        sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
+        self.rotate_m90_btn = sv_gb.rotate_m90_btn
+        self.rotate_p90_btn = sv_gb.rotate_p90_btn
+        self.invert_horizontal_btn = sv_gb.flip_horizontal_btn
+        self.invert_vertical_btn = sv_gb.flip_vertical_btn
+        self.reset_transformations_btn = sv_gb.reset_transformations_btn
+        self.calibrant_cb = sv_gb.calibrant_cb
+
+        refinement_options_gb = self.calibration_control_widget.calibration_parameters_widget.refinement_options_gb
+        self.use_mask_cb = refinement_options_gb.use_mask_cb
+        self.mask_transparent_cb = refinement_options_gb.mask_transparent_cb
+        self.options_automatic_refinement_cb = refinement_options_gb.automatic_refinement_cb
+        self.options_num_rings_sb = refinement_options_gb.number_of_rings_sb
+        self.options_peaksearch_algorithm_cb = refinement_options_gb.peak_search_algorithm_cb
+        self.options_delta_tth_txt = refinement_options_gb.delta_tth_txt
+        self.options_intensity_mean_factor_sb = refinement_options_gb.intensity_mean_factor_sb
+        self.options_intensity_limit_txt = refinement_options_gb.intensity_limit_txt
+
+        peak_selection_gb = self.calibration_control_widget.calibration_parameters_widget.peak_selection_gb
+        self.peak_num_sb = peak_selection_gb.peak_num_sb
+        self.automatic_peak_search_rb = peak_selection_gb.automatic_peak_search_rb
+        self.select_peak_rb = peak_selection_gb.select_peak_rb
+        self.search_size_sb = peak_selection_gb.search_size_sb
+        self.automatic_peak_num_inc_cb = peak_selection_gb.automatic_peak_num_inc_cb
+        self.clear_peaks_btn = peak_selection_gb.clear_peaks_btn
+
+        self.f2_update_btn = self.calibration_control_widget.fit2d_parameters_widget.update_btn
+        self.pf_update_btn = self.calibration_control_widget.pyfai_parameters_widget.update_btn
+
+        self.f2_wavelength_cb = self.calibration_control_widget.fit2d_parameters_widget.wavelength_cb
+        self.pf_wavelength_cb = self.calibration_control_widget.pyfai_parameters_widget.wavelength_cb
+        self.sv_wavelength_cb = sv_gb.wavelength_cb
+
+        self.f2_distance_cb = self.calibration_control_widget.fit2d_parameters_widget.distance_cb
+        self.pf_distance_cb = self.calibration_control_widget.pyfai_parameters_widget.distance_cb
+        self.sv_distance_cb = sv_gb.distance_cb
+
+        self.img_view = self.calibration_display_widget.img_widget
+        self.cake_view = self.calibration_display_widget.cake_widget
+        self.spectrum_view = self.calibration_display_widget.spectrum_widget
+
     def set_img_filename(self, filename):
         self.filename_txt.setText(os.path.basename(filename))
 
@@ -48,22 +107,22 @@ class CalibrationWidgetNew(QtGui.QWidget):
         self.set_pyFAI_parameter(pyFAI_parameter)
         self.set_fit2d_parameter(fit2d_parameter)
 
-    def set_pyFAI_parameter(self, pyFAI_parameter):
+    def set_pyFAI_parameter(self, pyfai_parameter):
         pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
-        pyfai_widget.distance_txt.setText('%.6f' % (pyFAI_parameter['dist'] * 1000))
-        pyfai_widget.poni1_txt.setText('%.6f' % (pyFAI_parameter['poni1']))
-        pyfai_widget.poni2_txt.setText('%.6f' % (pyFAI_parameter['poni2']))
-        pyfai_widget.rotation1_txt.setText('%.8f' % (pyFAI_parameter['rot1']))
-        pyfai_widget.rotation2_txt.setText('%.8f' % (pyFAI_parameter['rot2']))
-        pyfai_widget.rotation3_txt.setText('%.8f' % (pyFAI_parameter['rot3']))
-        pyfai_widget.wavelength_txt.setText('%.6f' % (pyFAI_parameter['wavelength'] * 1e10))
-        pyfai_widget.polarization_txt.setText('%.3f' % (pyFAI_parameter['polarization_factor']))
-        pyfai_widget.pixel_width_txt.setText('%.4f' % (pyFAI_parameter['pixel1'] * 1e6))
-        pyfai_widget.pixel_height_txt.setText('%.4f' % (pyFAI_parameter['pixel2'] * 1e6))
+        pyfai_widget.distance_txt.setText('%.6f' % (pyfai_parameter['dist'] * 1000))
+        pyfai_widget.poni1_txt.setText('%.6f' % (pyfai_parameter['poni1']))
+        pyfai_widget.poni2_txt.setText('%.6f' % (pyfai_parameter['poni2']))
+        pyfai_widget.rotation1_txt.setText('%.8f' % (pyfai_parameter['rot1']))
+        pyfai_widget.rotation2_txt.setText('%.8f' % (pyfai_parameter['rot2']))
+        pyfai_widget.rotation3_txt.setText('%.8f' % (pyfai_parameter['rot3']))
+        pyfai_widget.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
+        pyfai_widget.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
+        pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
+        pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
 
     def get_pyFAI_parameter(self):
         pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
-        pyFAI_parameter = {'dist': float(pyfai_widget.distance_txt.text()) / 1000,
+        pyfai_parameter = {'dist': float(pyfai_widget.distance_txt.text()) / 1000,
                            'poni1': float(pyfai_widget.poni1_txt.text()),
                            'poni2': float(pyfai_widget.poni2_txt.text()),
                            'rot1': float(pyfai_widget.rotation1_txt.text()),
@@ -73,7 +132,7 @@ class CalibrationWidgetNew(QtGui.QWidget):
                            'polarization_factor': float(pyfai_widget.polarization_txt.text()),
                            'pixel1': float(pyfai_widget.pixel_width_txt.text()) / 1e6,
                            'pixel2': float(pyfai_widget.pixel_height_txt.text()) / 1e6}
-        return pyFAI_parameter
+        return pyfai_parameter
 
     def set_fit2d_parameter(self, fit2d_parameter):
         fit2d_widget = self.calibration_control_widget.fit2d_parameters_widget
@@ -158,8 +217,8 @@ class CalibrationControlWidget(QtGui.QWidget):
 
         self._layout.addLayout(self._file_layout)
 
-        self.file_name_txt = QtGui.QLineEdit()
-        self._layout.addWidget(self.file_name_txt)
+        self.filename_txt = QtGui.QLineEdit()
+        self._layout.addWidget(self.filename_txt)
 
         self.toolbox = QtGui.QToolBox()
         self.calibration_parameters_widget = CalibrationParameterWidget()
@@ -170,6 +229,13 @@ class CalibrationControlWidget(QtGui.QWidget):
         self.toolbox.addItem(self.pyfai_parameters_widget, 'pyFAI Parameters')
         self.toolbox.addItem(self.fit2d_parameters_widget, 'Fit2d Parameters')
         self._layout.addWidget(self.toolbox)
+
+        self._bottom_layout = QtGui.QHBoxLayout()
+        self.load_calibration_btn = QtGui.QPushButton('Load Calibration')
+        self.save_calibration_btn = QtGui.QPushButton('Save Calibration')
+        self._bottom_layout.addWidget(self.load_calibration_btn)
+        self._bottom_layout.addWidget(self.save_calibration_btn)
+        self._layout.addLayout(self._bottom_layout)
 
         self.setLayout(self._layout)
 
@@ -262,7 +328,10 @@ class PeakSelectionGroupBox(QtGui.QGroupBox):
                                                QtGui.QSizePolicy.Minimum), 0, 0)
         self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
         self.peak_num_sb = SpinBoxAlignRight()
+        self.peak_num_sb.setValue(1)
+        self.peak_num_sb.setMinimum(1)
         self._layout.addWidget(self.peak_num_sb, 0, 3)
+
         self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
                                                QtGui.QSizePolicy.Minimum), 1, 0, 1, 2)
         self.automatic_peak_num_inc_cb = QtGui.QCheckBox('automatic increase')
@@ -270,13 +339,16 @@ class PeakSelectionGroupBox(QtGui.QGroupBox):
         self._layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
 
         self.automatic_peak_search_rb = QtGui.QRadioButton('automatic peak search')
+        self.automatic_peak_search_rb.setChecked(True)
         self.select_peak_rb = QtGui.QRadioButton('single peak search')
         self._layout.addWidget(self.automatic_peak_search_rb, 2, 0, 1, 4)
         self._layout.addWidget(self.select_peak_rb, 3, 0, 1, 4)
 
         self._layout.addWidget(LabelAlignRight('Search size:'), 4, 0)
         self.search_size_sb = SpinBoxAlignRight()
-        self._layout.addWidget(self.search_size_sb, 4, 1)
+        self.search_size_sb.setValue(10)
+        self.search_size_sb.setMaximumWidth(50)
+        self._layout.addWidget(self.search_size_sb, 4, 1, 1, 2)
         self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
                                                QtGui.QSizePolicy.Minimum), 4, 2, 1, 2)
 
@@ -293,6 +365,7 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self._layout = QtGui.QGridLayout()
 
         self.automatic_refinement_cb = QtGui.QCheckBox('automatic refinement')
+        self.automatic_refinement_cb.setChecked(True)
         self._layout.addWidget(self.automatic_refinement_cb, 0, 0, 1, 2)
 
         self.use_mask_cb = QtGui.QCheckBox('use mask')
@@ -319,10 +392,10 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self.intensity_limit_txt = NumberTextField('55000')
         self._layout.addWidget(self.intensity_limit_txt, 5, 1)
 
-        self._layout.addWidget(LabelAlignRight('Number of rings:'))
-        self.number_of_rings_txt = DoubleSpinBoxAlignRight()
-        self.number_of_rings_txt.setValue(15)
-        self._layout.addWidget(self.number_of_rings_txt)
+        self._layout.addWidget(LabelAlignRight('Number of rings:'), 6, 0)
+        self.number_of_rings_sb = SpinBoxAlignRight()
+        self.number_of_rings_sb.setValue(15)
+        self._layout.addWidget(self.number_of_rings_sb, 6, 1)
 
         self.setLayout(self._layout)
 
@@ -465,7 +538,7 @@ class NumberTextField(QtGui.QLineEdit):
 class LabelAlignRight(QtGui.QLabel):
     def __init__(self, *args, **kwargs):
         super(LabelAlignRight, self).__init__(*args, **kwargs)
-        self.setAlignment(QtCore.Qt.AlignRight)
+        self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
 class CleanLooksComboBox(QtGui.QComboBox):
