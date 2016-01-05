@@ -15,6 +15,7 @@ class CalibrationWidgetNew(QtGui.QWidget):
         self._main_splitter = QtGui.QSplitter()
         self._main_splitter.addWidget(self.calibration_display_widget)
         self._main_splitter.addWidget(self.calibration_control_widget)
+        self._main_splitter.setStretchFactor(0, 2)
 
         self._layout = QtGui.QHBoxLayout()
         self._layout.addWidget(self._main_splitter)
@@ -82,11 +83,13 @@ class CalibrationControlWidget(QtGui.QWidget):
         self._layout.addWidget(self.file_name_txt)
 
         self.toolbox = QtGui.QToolBox()
-        self.calibration_parameter_widget = CalibrationParameterWidget()
+        self.calibration_parameters_widget = CalibrationParameterWidget()
         self.pyfai_parameters_widget = PyfaiParametersWidget()
+        self.fit2d_parameters_widget = Fit2dParametersWidget()
 
-        self.toolbox.addItem(self.calibration_parameter_widget, "Calibration Parameter")
+        self.toolbox.addItem(self.calibration_parameters_widget, "Calibration Parameters")
         self.toolbox.addItem(self.pyfai_parameters_widget, 'pyFAI Parameters')
+        self.toolbox.addItem(self.fit2d_parameters_widget, 'Fit2d Parameters')
         self._layout.addWidget(self.toolbox)
 
         self.setLayout(self._layout)
@@ -147,7 +150,7 @@ class StartValuesGroupBox(QtGui.QGroupBox):
         self._grid_layout1.addWidget(QtGui.QLabel('um'))
 
         self._grid_layout1.addWidget(LabelAlignRight('Calibrant:'), 5, 0)
-        self.calibrant_cb = QtGui.QComboBox()
+        self.calibrant_cb = CleanLooksComboBox()
         self._grid_layout1.addWidget(self.calibrant_cb, 5, 1, 1, 2)
 
         self._grid_layout2 = QtGui.QGridLayout()
@@ -179,7 +182,7 @@ class PeakSelectionGroupBox(QtGui.QGroupBox):
         self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
                                                QtGui.QSizePolicy.Minimum), 0, 0)
         self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
-        self.peak_num_sb = QtGui.QSpinBox()
+        self.peak_num_sb = SpinBoxAlignRight()
         self._layout.addWidget(self.peak_num_sb, 0, 3)
         self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
                                                QtGui.QSizePolicy.Minimum), 1, 0, 1, 2)
@@ -193,7 +196,7 @@ class PeakSelectionGroupBox(QtGui.QGroupBox):
         self._layout.addWidget(self.select_peak_rb, 3, 0, 1, 4)
 
         self._layout.addWidget(LabelAlignRight('Search size:'), 4, 0)
-        self.search_size_sb = QtGui.QSpinBox()
+        self.search_size_sb = SpinBoxAlignRight()
         self._layout.addWidget(self.search_size_sb, 4, 1)
         self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
                                                QtGui.QSizePolicy.Minimum), 4, 2, 1, 2)
@@ -220,7 +223,7 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self._layout.addWidget(self.mask_transparent_cb, 1, 1)
 
         self._layout.addWidget(LabelAlignRight('Peak Search Algorithm:'), 2, 0)
-        self.peak_search_algorithm_cb = QtGui.QComboBox()
+        self.peak_search_algorithm_cb = CleanLooksComboBox()
         self.peak_search_algorithm_cb.addItems(['Massif', 'Blob'])
         self._layout.addWidget(self.peak_search_algorithm_cb, 2, 1)
 
@@ -229,7 +232,7 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self._layout.addWidget(self.delta_tth_txt, 3, 1)
 
         self._layout.addWidget(LabelAlignRight('Intensity Mean Factor:'), 4, 0)
-        self.intensity_mean_factor_sb = QtGui.QDoubleSpinBox()
+        self.intensity_mean_factor_sb = DoubleSpinBoxAlignRight()
         self.intensity_mean_factor_sb.setValue(3.0)
         self._layout.addWidget(self.intensity_mean_factor_sb, 4, 1)
 
@@ -238,7 +241,7 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self._layout.addWidget(self.intensity_limit_txt, 5, 1)
 
         self._layout.addWidget(LabelAlignRight('Number of rings:'))
-        self.number_of_rings_txt = QtGui.QSpinBox()
+        self.number_of_rings_txt = DoubleSpinBoxAlignRight()
         self.number_of_rings_txt.setValue(15)
         self._layout.addWidget(self.number_of_rings_txt)
 
@@ -309,6 +312,70 @@ class PyfaiParametersWidget(QtGui.QWidget):
         self.setLayout(self._layout)
 
 
+class Fit2dParametersWidget(QtGui.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(Fit2dParametersWidget, self).__init__(*args, **kwargs)
+
+        self._layout = QtGui.QGridLayout()
+
+        self._layout.addWidget(LabelAlignRight('Distance:'), 0, 0)
+        self.distance_txt = NumberTextField()
+        self.distance_cb = QtGui.QCheckBox()
+        self.distance_cb.setChecked(True)
+        self._layout.addWidget(self.distance_txt, 0, 1)
+        self._layout.addWidget(QtGui.QLabel('mm'), 0, 2)
+        self._layout.addWidget(self.distance_cb, 0, 3)
+
+        self._layout.addWidget(LabelAlignRight('Wavelength:'), 1, 0)
+        self.wavelength_txt = NumberTextField()
+        self.wavelength_cb = QtGui.QCheckBox()
+        self._layout.addWidget(self.wavelength_txt, 1, 1)
+        self._layout.addWidget(QtGui.QLabel('A'), 1, 2)
+        self._layout.addWidget(self.wavelength_cb, 1, 3)
+
+        self._layout.addWidget(LabelAlignRight('Polarization:'), 2, 0)
+        self.polarization_txt = NumberTextField()
+        self._layout.addWidget(self.polarization_txt, 2, 1)
+
+        self._layout.addWidget(LabelAlignRight('Center X:'), 3, 0)
+        self.center_x_txt = NumberTextField()
+        self._layout.addWidget(self.center_x_txt, 3, 1)
+        self._layout.addWidget(QtGui.QLabel('px'), 3, 2)
+
+        self._layout.addWidget(LabelAlignRight('Center Y:'), 4, 0)
+        self.center_y_txt = NumberTextField()
+        self._layout.addWidget(self.center_y_txt, 4, 1)
+        self._layout.addWidget(QtGui.QLabel('px'), 4, 2)
+
+        self._layout.addWidget(LabelAlignRight('Rotation:'), 5, 0)
+        self.rotation_txt = NumberTextField()
+        self._layout.addWidget(self.rotation_txt, 5, 1)
+        self._layout.addWidget(QtGui.QLabel('deg'), 5, 2)
+
+        self._layout.addWidget(LabelAlignRight('Tilt:'), 6, 0)
+        self.tilt_txt = NumberTextField()
+        self._layout.addWidget(self.tilt_txt, 6, 1)
+        self._layout.addWidget(QtGui.QLabel('deg'), 6, 2)
+
+        self._layout.addWidget(LabelAlignRight('Pixel width:'), 8, 0)
+        self.pixel_width_txt = NumberTextField()
+        self._layout.addWidget(self.pixel_width_txt, 8, 1)
+        self._layout.addWidget(QtGui.QLabel('um'))
+
+        self._layout.addWidget(LabelAlignRight('Pixel height:'), 9, 0)
+        self.pixel_height_txt = NumberTextField()
+        self._layout.addWidget(self.pixel_height_txt, 9, 1)
+        self._layout.addWidget(QtGui.QLabel('um'))
+
+        self.update_btn = QtGui.QPushButton('update')
+        self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
+
+        self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding),
+                             11, 0, 1, 4)
+
+        self.setLayout(self._layout)
+
+
 class NumberTextField(QtGui.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(NumberTextField, self).__init__(*args, **kwargs)
@@ -319,6 +386,26 @@ class NumberTextField(QtGui.QLineEdit):
 class LabelAlignRight(QtGui.QLabel):
     def __init__(self, *args, **kwargs):
         super(LabelAlignRight, self).__init__(*args, **kwargs)
+        self.setAlignment(QtCore.Qt.AlignRight)
+
+
+class CleanLooksComboBox(QtGui.QComboBox):
+    cleanlooks = QtGui.QStyleFactory.create('cleanlooks')
+
+    def __init__(self, *args, **kwargs):
+        super(CleanLooksComboBox, self).__init__(*args, **kwargs)
+        self.setStyle(CleanLooksComboBox.cleanlooks)
+
+
+class SpinBoxAlignRight(QtGui.QSpinBox):
+    def __init__(self, *args, **kwargs):
+        super(SpinBoxAlignRight, self).__init__(*args, **kwargs)
+        self.setAlignment(QtCore.Qt.AlignRight)
+
+
+class DoubleSpinBoxAlignRight(QtGui.QDoubleSpinBox):
+    def __init__(self, *args, **kwargs):
+        super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
 
 
