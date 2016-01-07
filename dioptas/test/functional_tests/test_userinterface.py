@@ -1,4 +1,4 @@
-__author__ = 'Clemens Prescher'
+
 
 import unittest
 import sys

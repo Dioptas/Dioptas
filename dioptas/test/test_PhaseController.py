@@ -15,10 +15,8 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-__author__ = 'Clemens Prescher'
 
 import unittest
-import mock
 import sys
 import os
 
@@ -38,6 +36,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
+
 class PhaseControllerTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication(sys.argv)
@@ -52,11 +51,10 @@ class PhaseControllerTest(unittest.TestCase):
         self.phase_tw = self.widget.phase_tw
 
         self.spectrum_controller = PatternController({}, self.widget, self.image_model, None,
-                                                                   self.calibration_model, self.spectrum_model)
+                                                     self.calibration_model, self.spectrum_model)
         self.controller = PhaseController({}, self.widget, self.calibration_model, self.spectrum_model,
-                                                       self.phase_model)
+                                          self.phase_model)
         self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
-
 
     def tearDown(self):
         del self.app
@@ -127,7 +125,6 @@ class PhaseControllerTest(unittest.TestCase):
         self.assertEqual(len(self.widget.spectrum_view.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
-
     def test_pressure_change(self):
         self.load_phases()
         pressure = 200
@@ -192,7 +189,7 @@ class PhaseControllerTest(unittest.TestCase):
         line_heights = []
         for line in phase_plot.line_items:
             line_data = line.getData()
-            height = line_data[1][1]-line_data[1][0]
+            height = line_data[1][1] - line_data[1][0]
             line_heights.append(height)
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
@@ -207,25 +204,24 @@ class PhaseControllerTest(unittest.TestCase):
         spectrum_view = self.widget.spectrum_view
         self.load_phase('au_Anderson.jcpds')
 
-        spectrum_view.view_box.setRange(xRange=[17,30])
+        spectrum_view.view_box.setRange(xRange=[17, 30])
         spectrum_view.emit_sig_range_changed()
 
         phase_plot = spectrum_view.phases[0]
         line_heights = []
         for line in phase_plot.line_items:
             line_data = line.getData()
-            if (line_data[0][0] > 17) and (line_data[0][1]<30):
-                height = line_data[1][1]-line_data[1][0]
+            if (line_data[0][0] > 17) and (line_data[0][1] < 30):
+                height = line_data[1][1] - line_data[1][0]
                 line_heights.append(height)
 
         spectrum_view_range = spectrum_view.view_box.viewRange()
         spectrum_x, spectrum_y = spectrum_view.plot_item.getData()
-        spectrum_y_max_in_range = np.max(spectrum_y[(spectrum_x > spectrum_view_range[0][0]) &\
-            (spectrum_x<spectrum_view_range[0][1])])
+        spectrum_y_max_in_range = np.max(spectrum_y[(spectrum_x > spectrum_view_range[0][0]) & \
+                                                    (spectrum_x < spectrum_view_range[0][1])])
         expected_maximum_height = spectrum_y_max_in_range - spectrum_view_range[1][0]
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
-
 
     def load_phases(self):
         self.load_phase('ar.jcpds')
@@ -237,6 +233,7 @@ class PhaseControllerTest(unittest.TestCase):
 
     def load_phase(self, filename):
         self.controller.add_btn_click_callback(os.path.join(jcpds_path, filename))
+
 
 if __name__ == '__main__':
     unittest.main()

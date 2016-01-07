@@ -18,15 +18,14 @@
 
 from __future__ import absolute_import
 
-__author__ = 'Clemens Prescher'
 import sys
 from PyQt4 import QtGui
 import logging
-logging.basicConfig(level=logging.INFO)
 
 from controller.MainController import MainController, get_version
 from widgets.FileInfoWidget import FileInfoWidget
 
+logging.basicConfig(level=logging.INFO)
 print(get_version())
 
 if __name__ == "__main__":
@@ -45,4 +44,3 @@ if __name__ == "__main__":
     file_info_widget.raise_widget()
     app.exec_()
     del app
-

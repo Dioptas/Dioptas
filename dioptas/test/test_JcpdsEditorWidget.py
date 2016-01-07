@@ -15,7 +15,7 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-__author__ = 'Clemens Prescher'
+
 import unittest
 from PyQt4 import QtGui
 import sys
@@ -28,6 +28,7 @@ from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
 jcpds_path = os.path.join(data_path, 'jcpds')
+
 
 class JcpdsEditorTest(unittest.TestCase):
     def setUp(self):
@@ -60,7 +61,7 @@ class JcpdsEditorTest(unittest.TestCase):
         self.assertEqual(self.jcpds_editor_widget.lattice_c_sb.value(),
                          self.jcpds.c0)
         self.assertAlmostEqual(float(str(self.jcpds_editor_widget.lattice_volume_txt.text())),
-                         self.jcpds.v0, delta=0.0001)
+                               self.jcpds.v0, delta=0.0001)
 
         self.assertEqual(float(str(self.jcpds_editor_widget.lattice_eos_a_txt.text())),
                          self.jcpds.a)
@@ -77,7 +78,7 @@ class JcpdsEditorTest(unittest.TestCase):
                          self.jcpds.gamma0)
 
         self.assertEqual(self.jcpds_editor_widget.lattice_ab_sb.value(),
-                         self.jcpds.a0/float(self.jcpds.b0))
+                         self.jcpds.a0 / float(self.jcpds.b0))
         self.assertEqual(self.jcpds_editor_widget.lattice_ca_sb.value(),
                          1)
         self.assertEqual(self.jcpds_editor_widget.lattice_cb_sb.value(),
@@ -96,6 +97,7 @@ class JcpdsEditorTest(unittest.TestCase):
                          self.jcpds.dk0dt)
         self.assertEqual(float(str(self.jcpds_editor_widget.eos_dKpdT_txt.text())),
                          self.jcpds.dk0pdt)
+
 
 if __name__ == '__main__':
     unittest.main()

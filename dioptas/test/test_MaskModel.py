@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
 
 import unittest
 import gc
@@ -10,6 +9,7 @@ from model.MaskModel import MaskModel
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
+
 
 class MaskModelTest(unittest.TestCase):
     def setUp(self):
@@ -75,10 +75,10 @@ class MaskModelTest(unittest.TestCase):
 
         self.mask_model.clear_mask()
 
-        self.mask_model._mask_data[4,4] = 1
-        self.mask_model._mask_data[5,4] = 1
-        self.mask_model._mask_data[5,5] = 1
-        self.mask_model._mask_data[4,5] = 1
+        self.mask_model._mask_data[4, 4] = 1
+        self.mask_model._mask_data[5, 4] = 1
+        self.mask_model._mask_data[5, 5] = 1
+        self.mask_model._mask_data[4, 5] = 1
         self.mask_model.shrink()
 
         self.assertEqual(np.sum(self.mask_model._mask_data), 0)

@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
 
 import unittest
 import numpy as np
@@ -60,6 +59,7 @@ class TestBackgroundExtraction(unittest.TestCase):
 
         y_extracted_bkg = extract_background(x, y_measurement, 1)
         self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -18,8 +18,6 @@
 
 from __future__ import absolute_import
 
-__author__ = 'Clemens Prescher'
-
 from PyQt4 import QtGui, QtCore
 from functools import partial
 
@@ -151,7 +149,7 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
             self.footer_img_mouse_position_widget.show()
             self.frame_img_positions_widget.hide()
 
-            #remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
+            # remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
             self.vertical_splitter.setParent(self)
 
             self.img_frame.setParent(self.horizontal_splitter)
@@ -165,14 +163,14 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
 
     def get_progress_dialog(self, msg, title, num_points):
         progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
-                                                num_points,  self)
+                                                num_points, self)
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         progress_dialog.move(
-            self.spectrum_view.pg_layout.x() + self.spectrum_view.pg_layout.size().width() / 2.0 - \
-            progress_dialog.size().width() / 2.0,
-            self.spectrum_view.pg_layout.y() + self.spectrum_view.pg_layout.size().height() / 2.0 -
-            progress_dialog.size().height() / 2.0)
+                self.spectrum_view.pg_layout.x() + self.spectrum_view.pg_layout.size().width() / 2.0 - \
+                progress_dialog.size().width() / 2.0,
+                self.spectrum_view.pg_layout.y() + self.spectrum_view.pg_layout.size().height() / 2.0 -
+                progress_dialog.size().height() / 2.0)
         progress_dialog.show()
         return progress_dialog
 
@@ -361,16 +359,16 @@ class IntegrationWidget(QtGui.QWidget, Ui_xrs_integration_widget):
         pressure = self.get_phase_pressure(ind)
         temperature = self.get_phase_temperature(ind)
 
-        name_str = str(self.phase_tw.item(ind,2).text())
+        name_str = str(self.phase_tw.item(ind, 2).text())
         parameter_str = ''
 
         if self.show_parameter_in_spectrum:
             if pressure > 0:
                 parameter_str += '{0} GPa '.format(pressure)
-            if temperature !=0 and temperature!=298 and temperature is not None:
+            if temperature != 0 and temperature != 298 and temperature is not None:
                 parameter_str += '{0} K '.format(temperature)
 
-        self.spectrum_view.rename_phase(ind, parameter_str+name_str)
+        self.spectrum_view.rename_phase(ind, parameter_str + name_str)
 
     def phase_color_btn_click(self, button):
         self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)

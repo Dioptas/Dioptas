@@ -16,12 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
-__author__ = 'Clemens Prescher'
 import os
-from copy import copy
-
 from PyQt4 import QtGui, QtCore
 
 import numpy as np
@@ -31,6 +26,7 @@ from widgets.CalibrationWidget import CalibrationWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
+
 
 class CalibrationController(object):
     """
@@ -66,7 +62,6 @@ class CalibrationController(object):
         self.plot_image()
         self.load_calibrants_list()
 
-
     def create_signals(self):
         """
         Connects the GUI signals to the appropriate Controller methods.
@@ -101,7 +96,6 @@ class CalibrationController(object):
 
         self.widget.use_mask_cb.stateChanged.connect(self.plot_mask)
         self.widget.mask_transparent_cb.stateChanged.connect(self.mask_transparent_status_changed)
-
 
     def create_transformation_signals(self):
         """
@@ -231,8 +225,9 @@ class CalibrationController(object):
             wavelength = start_values['wavelength']
 
         self.calibration_model.calibrant.setWavelength_change2th(wavelength)
-        self.widget.spectrum_view.plot_vertical_lines(np.array(self.calibration_model.calibrant.get_2th()) / np.pi * 180,
-                                                    name=self._calibrants_file_names_list[current_index])
+        self.widget.spectrum_view.plot_vertical_lines(
+                np.array(self.calibration_model.calibrant.get_2th()) / np.pi * 180,
+                name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -331,7 +326,6 @@ class CalibrationController(object):
 
         self.calibration_model.fit_distance = value
 
-
     def calibrate(self):
         """
         Performs calibration based on the previously inputted/searched peaks and start values.
@@ -392,7 +386,7 @@ class CalibrationController(object):
 
         progress_dialog = self.create_progress_dialog("Refining Calibration.", 'Abort', num_rings)
         self.clear_peaks_btn_click()
-        self.load_calibrant(wavelength_from='pyFAI')  #load right calibration file
+        self.load_calibrant(wavelength_from='pyFAI')  # load right calibration file
 
         # get options
         algorithm = str(self.widget.options_peaksearch_algorithm_cb.currentText())
@@ -423,7 +417,7 @@ class CalibrationController(object):
         refinement_canceled = False
         for i in range(num_rings - 2):
             points = self.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
-                                                                intensity_max, mask)
+                                                                 intensity_max, mask)
             self.widget.peak_num_sb.setValue(i + 4)
             if len(self.calibration_model.points):
                 self.plot_points(points)
@@ -445,7 +439,7 @@ class CalibrationController(object):
         if not refinement_canceled:
             self.update_all()
 
-    def load_calibration(self, filename=None, update_all = True):
+    def load_calibration(self, filename=None, update_all=True):
         """
         Loads a '*.poni' file and updates the calibration data class
         :param filename:
@@ -501,7 +495,7 @@ class CalibrationController(object):
 
         self.widget.spectrum_view.plot_data(self.calibration_model.tth, self.calibration_model.int)
         self.widget.spectrum_view.plot_vertical_lines(np.array(self.calibration_model.calibrant.get_2th()) /
-                                                    np.pi * 180)
+                                                      np.pi * 180)
         self.widget.spectrum_view.view_box.autoRange()
         if self.widget.tab_widget.currentIndex() == 0:
             self.widget.tab_widget.setCurrentIndex(1)

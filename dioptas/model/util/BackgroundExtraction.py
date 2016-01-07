@@ -1,16 +1,19 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
+
 import logging
+
 logger = logging.getLogger(__name__)
 
 import numpy as np
+
 try:
     from .smooth_bruckner import smooth_bruckner
 except ImportError, e:
     print(e)
-    logger.warning("Could not import the Fortran version of smooth_bruckner. Using python implementation instead. Please"
-                 " run 'f2py -c -m smooth_bruckner smooth_bruckner.f95' in the model/util folder for faster"
-                 " implementation")
+    logger.warning(
+        "Could not import the Fortran version of smooth_bruckner. Using python implementation instead. Please"
+        " run 'f2py -c -m smooth_bruckner smooth_bruckner.f95' in the model/util folder for faster"
+        " implementation")
     from .smooth_bruckner_python import smooth_bruckner
 
 
@@ -35,4 +38,3 @@ def extract_background(x, y, smooth_width=0.1, iterations=50, cheb_order=50):
                                                       cheb_order)
 
     return np.polynomial.chebyshev.chebval(x_cheb, cheb_parameters)
-

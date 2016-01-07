@@ -16,12 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-__author__ = 'Clemens Prescher'
-
 import logging
-
-logger = logging.getLogger(__name__)
 
 import numpy as np
 from PIL import Image
@@ -33,6 +28,8 @@ from model.util.HelperModule import  rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
 
 from model.util.ImgCorrection import ImgCorrectionManager
+
+logger = logging.getLogger(__name__)
 
 
 class ImgModel(QtCore.QObject):
