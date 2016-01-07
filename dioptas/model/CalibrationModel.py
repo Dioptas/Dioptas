@@ -16,18 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
-
 import os
 import sys
 import time
 import logging
 
 import numpy as np
-
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 from pyFAI.massif import Massif
 from pyFAI.blob_detection import BlobDetection
@@ -36,6 +30,9 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
 from model.util.HelperModule import get_base_name
 import calibrants
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class CalibrationModel(object):
@@ -152,7 +149,6 @@ class CalibrationModel(object):
             self.peak_search_algorithm.process()
         else:
             return
-
 
     def search_peaks_on_ring(self, peak_index, delta_tth=0.1, min_mean_factor=1,
                              upper_limit=55000, mask=None):
@@ -365,7 +361,7 @@ class CalibrationModel(object):
 
     def calculate_number_of_spectrum_points(self, max_dist_factor=1.5):
         # calculates the number of points for an integrated spectrum, based on the distance of the beam center to the the
-        #image corners. Maximum value is determined by the shape of the image.
+        # image corners. Maximum value is determined by the shape of the image.
         fit2d_parameter = self.spectrum_geometry.getFit2D()
         center_x = fit2d_parameter['centerX']
         center_y = fit2d_parameter['centerY']

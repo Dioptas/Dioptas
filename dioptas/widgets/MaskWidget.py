@@ -18,10 +18,7 @@
 
 from __future__ import absolute_import
 
-__author__ = 'Clemens Prescher'
-
 from PyQt4 import QtGui
-
 
 from .UiFiles.MaskUI import Ui_xrs_mask_widget
 from widgets.plot_widgets.ImgWidget import MaskImgWidget
@@ -31,7 +28,7 @@ class MaskWidget(QtGui.QWidget, Ui_xrs_mask_widget):
     def __init__(self):
         super(MaskWidget, self).__init__(None)
         self.setupUi(self)
-        #self.splitter.setStretchFactor(0, 1)
+        # self.splitter.setStretchFactor(0, 1)
         self.img_view = MaskImgWidget(self.img_pg_layout)
         self.set_validator()
 

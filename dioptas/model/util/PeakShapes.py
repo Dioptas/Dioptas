@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
+
 import numpy as np
 
 s2pi = np.sqrt(2 * np.pi)

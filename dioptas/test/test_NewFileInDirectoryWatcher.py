@@ -1,23 +1,21 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
 
 import unittest
 import os
 import shutil
 
-from PyQt4 import QtCore, QtGui
+from PyQt4 import QtGui
 from mock import MagicMock
 
 from controller.integration.ImageController import NewFileInDirectoryWatcher
 
-
 unittest_data_path = os.path.join(os.path.dirname(__file__), 'data')
 
-class NewFileInDirectoryWatcherTest(unittest.TestCase):
 
+class NewFileInDirectoryWatcherTest(unittest.TestCase):
     def setUp(self):
         self.app = QtGui.QApplication([])
-        self.directory_watcher = NewFileInDirectoryWatcher(path = None)
+        self.directory_watcher = NewFileInDirectoryWatcher(path=None)
 
     def tearDown(self):
         del self.app

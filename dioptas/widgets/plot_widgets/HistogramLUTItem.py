@@ -18,31 +18,27 @@
 
 from __future__ import absolute_import
 
-"""
-GraphicsWidget displaying an image histogram along with gradient editor. Can be used to adjust the appearance of images.
-"""
-
 from pyqtgraph.Qt import QtGui
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
 from pyqtgraph.graphicsItems.GradientEditorItem import *
 from pyqtgraph.graphicsItems.LinearRegionItem import *
 from pyqtgraph.graphicsItems.PlotDataItem import *
+import pyqtgraph.graphicsItems.GradientEditorItem
 from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
 
-
 __all__ = ['HistogramLUTItem']
 
-#add grey_inverse to the list of color gradients:
-import pyqtgraph.graphicsItems.GradientEditorItem
+# add grey_inverse to the list of color gradients:
 pyqtgraph.graphicsItems.GradientEditorItem.Gradients['grey_inverse'] = \
     {'ticks': [(0.0, (255, 255, 255, 255)), (1.0, (0, 0, 0, 255))], 'mode': 'rgb'}
 
-#sedt the error handling for numpy
+# set the error handling for numpy
 np.seterr(divide='ignore', invalid='ignore')
+
 
 class HistogramLUTItem(GraphicsWidget):
     """
@@ -106,9 +102,8 @@ class HistogramLUTItem(GraphicsWidget):
         self.vb.addItem(self.region)
         self.vb.setMenuEnabled(False)
 
-
-        #self.grid = GridItem()
-        #self.vb.addItem(self.grid)
+        # self.grid = GridItem()
+        # self.vb.addItem(self.grid)
 
         self.gradient.sigGradientChanged.connect(self.gradientChanged)
         self.region.sigRegionChanged.connect(self.regionChanging)
@@ -130,7 +125,7 @@ class HistogramLUTItem(GraphicsWidget):
 
         if image is not None:
             self.setImageItem(image)
-            #self.setSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
+            # self.setSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
 
         self.vb.mouseClickEvent = self.empty_function
         self.vb.mouseDragEvent = self.empty_function
@@ -144,8 +139,8 @@ class HistogramLUTItem(GraphicsWidget):
         else:
             self.plot.setFillLevel(None)
 
-            #def sizeHint(self, *args):
-            #return QtCore.QSizeF(115, 200)
+            # def sizeHint(self, *args):
+            # return QtCore.QSizeF(115, 200)
 
     def paint(self, p, *args):
         pen = self.region.lines[0].pen
@@ -172,7 +167,6 @@ class HistogramLUTItem(GraphicsWidget):
                 p.drawLine(gradRect.topLeft(), gradRect.topRight())
                 p.drawLine(gradRect.bottomLeft(), gradRect.bottomRight())
 
-
     def setHistogramRange(self, mn, mx, padding=0.1):
         """Set the Y range on the histogram plot. This disables auto-scaling."""
         self.vb.enableAutoRange(self.vb.YAxis, False)
@@ -180,37 +174,37 @@ class HistogramLUTItem(GraphicsWidget):
             self.vb.setXRange(mn, mx, padding)
         elif self.orientation == 'vertical':
             self.vb.setYrange(mn, mx, padding)
-            #mn -= d*padding
-            #mx += d*padding
-            #self.range = [mn,mx]
-            #self.updateRange()
-            #self.vb.setMouseEnabled(False, True)
-            #self.region.setBounds([mn,mx])
+            # mn -= d*padding
+            # mx += d*padding
+            # self.range = [mn,mx]
+            # self.updateRange()
+            # self.vb.setMouseEnabled(False, True)
+            # self.region.setBounds([mn,mx])
 
     def autoHistogramRange(self):
         """Enable auto-scaling on the histogram plot."""
         self.vb.enableAutoRange(self.vb.XAxis, True)
         self.vb.enableAutoRange(self.vb.YAxis, True)
-        #self.range = None
-        #self.updateRange()
-        #self.vb.setMouseEnabled(False, False)
+        # self.range = None
+        # self.updateRange()
+        # self.vb.setMouseEnabled(False, False)
 
-        #def updateRange(self):
-        #self.vb.autoRange()
-        #if self.range is not None:
-        #self.vb.setYRange(*self.range)
-        #vr = self.vb.viewRect()
+        # def updateRange(self):
+        # self.vb.autoRange()
+        # if self.range is not None:
+        # self.vb.setYRange(*self.range)
+        # vr = self.vb.viewRect()
 
-        #self.region.setBounds([vr.top(), vr.bottom()])
+        # self.region.setBounds([vr.top(), vr.bottom()])
 
     def setImageItem(self, img):
         self.imageItem = img
         img.sigImageChanged.connect(self.imageChanged)
         img.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
-        #self.gradientChanged()
+        # self.gradientChanged()
         self.regionChanged()
         self.imageChanged()
-        #self.vb.autoRange()
+        # self.vb.autoRange()
 
     def viewRangeChanged(self):
         self.update()
@@ -218,13 +212,13 @@ class HistogramLUTItem(GraphicsWidget):
     def gradientChanged(self):
         if self.imageItem is not None:
             if self.gradient.isLookupTrivial():
-                self.imageItem.setLookupTable(None)  #lambda x: x.astype(np.uint8))
+                self.imageItem.setLookupTable(None)  # lambda x: x.astype(np.uint8))
             else:
                 self.imageItem.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
 
         self.lut = None
-        #if self.imageItem is not None:
-        #self.imageItem.setLookupTable(self.gradient.getLookupTable(512))
+        # if self.imageItem is not None:
+        # self.imageItem.setLookupTable(self.gradient.getLookupTable(512))
         self.sigLookupTableChanged.emit(self)
 
     def getLookupTable(self, img=None, n=None, alpha=None):
@@ -238,10 +232,10 @@ class HistogramLUTItem(GraphicsWidget):
         return self.lut
 
     def regionChanged(self):
-        #if self.imageItem is not None:
-        #self.imageItem.setLevels(self.region.getRegion())
+        # if self.imageItem is not None:
+        # self.imageItem.setLevels(self.region.getRegion())
         self.sigLevelChangeFinished.emit(self)
-        #self.update()
+        # self.update()
 
     def regionChanging(self):
         if self.imageItem is not None:
@@ -260,7 +254,7 @@ class HistogramLUTItem(GraphicsWidget):
         hist_y_log = np.log(hist_y[1:])
         hist_x_log = np.log(hist_x[1:])
 
-        plot_range = [0, 0.12*np.max(hist_y_log)]
+        plot_range = [0, 0.12 * np.max(hist_y_log)]
 
         if self.orientation == 'horizontal':
             self.plot.setData(hist_x_log, hist_y_log)
@@ -268,7 +262,6 @@ class HistogramLUTItem(GraphicsWidget):
         elif self.orientation == 'vertical':
             self.plot.setData(hist_y_log, hist_x_log)
             self.vb.setRange(xRange=plot_range)
-
 
     def getLevels(self):
         return self.region.getRegion()
@@ -291,9 +284,9 @@ class LogarithmRegionItem(LinearRegionItem):
     def getRegion(self):
         """Return the values at the edges of the region."""
         # if self.orientation[0] == 'h':
-        #r = (self.bounds.top(), self.bounds.bottom())
-        #else:
-        #r = (self.bounds.left(), self.bounds.right())
+        # r = (self.bounds.top(), self.bounds.bottom())
+        # else:
+        # r = (self.bounds.left(), self.bounds.right())
         r = [(self.lines[0].value()), (self.lines[1].value())]
         return (min(r), max(r))
 

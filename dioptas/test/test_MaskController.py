@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-__author__ = 'Clemens Prescher'
 
 import unittest
 import sys
@@ -17,6 +16,7 @@ from widgets.MaskWidget import MaskWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')
+
 
 class MaskControllerTest(unittest.TestCase):
     def setUp(self):
@@ -66,7 +66,7 @@ class MaskControllerTest(unittest.TestCase):
         self.assertEqual(self.get_file_size(filename), self.get_file_size(os.path.join(data_path, 'test.mask')))
 
     def test_grow_and_shrinking(self):
-        self.mask_model.mask_ellipse(100,100,20,20)
+        self.mask_model.mask_ellipse(100, 100, 20, 20)
         previous_mask = np.copy(self.mask_model._mask_data)
 
         QTest.mouseClick(self.mask_widget.grow_btn, QtCore.Qt.LeftButton)

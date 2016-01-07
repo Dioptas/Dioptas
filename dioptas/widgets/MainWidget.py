@@ -18,12 +18,8 @@
 
 from __future__ import absolute_import
 
-
-__author__ = 'Clemens Prescher'
-
 import sys
 from PyQt4 import QtGui
-
 
 from .UiFiles.MainUI import Ui_mainView
 
@@ -62,10 +58,10 @@ class MainWidget(QtGui.QWidget, Ui_mainView):
         from sys import platform
         if platform == "darwin":
             self.tabWidget.setStyleSheet(
-                "QDoubleSpinBox, QSpinBox {padding-right: -8px;}")
+                    "QDoubleSpinBox, QSpinBox {padding-right: -8px;}")
         else:
             self.tabWidget.setStyleSheet(
-                "QDoubleSpinBox, QSpinBox {padding-right: -3px;}")
+                    "QDoubleSpinBox, QSpinBox {padding-right: -3px;}")
 
 
 if __name__ == "__main__":
