@@ -27,6 +27,7 @@ import numpy as np
 
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 from pyFAI.massif import Massif
 from pyFAI.blob_detection import BlobDetection
