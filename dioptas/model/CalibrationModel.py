@@ -32,6 +32,7 @@ from model.util.HelperModule import get_base_name
 import calibrants
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class CalibrationModel(object):
