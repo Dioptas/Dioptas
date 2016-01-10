@@ -437,6 +437,9 @@ class ImageController(object):
             self.widget.img_view.deactivate_vertical_line()
             self.widget.img_view.img_view_box.setAspectLocked(True)
 
+        # update the window due to some errors on mac when using macports
+        self.widget.parent().parent().parent().parent().update()
+
     def change_roi_mode(self):
         self.roi_active = not self.roi_active
         if self.img_mode == 'Image':
