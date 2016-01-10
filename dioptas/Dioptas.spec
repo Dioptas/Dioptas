@@ -1,7 +1,6 @@
-# -*- mode: python -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# University of Cologne, Institute for Geology and Mineralogy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,70 +15,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-
-folder = 'dioptas'
-
-a = Analysis([os.path.join(folder,'Dioptas.py')],
-             pathex=[folder],
-             hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
-             hookspath=None,
-             runtime_hooks=None)
-
+block_cipher = None
 import sys
-sys.path.append(a.pathex[0])
+import os
+folder = os.getcwd()
 
-from controller.MainController import get_version
-version = get_version()
-
-
-##### include mydir in distribution #######
-def extra_datas(dest_directory, source_directory):
-    def rec_glob(p, files):
-        import os
-        import glob
-        for d in glob.glob(p):
-            if os.path.isfile(d):
-                files.append(d)
-            rec_glob("%s/*" % d, files)
-    files = []
-    rec_glob("%s/*" % source_directory, files)
-    extra_datas = []
-    for f in files:
-        extra_datas.append((os.path.join(dest_directory, os.path.basename(f)),
-                            os.path.join(source_directory, os.path.basename(f)), 'DATA'))
-    return extra_datas
-###########################################
 
 from distutils.sysconfig import get_python_lib
 site_packages_path = get_python_lib()
 
-## extra files for getting things to work
-a.datas += [('pyFAI/calibration/__init__.py', 'dioptas/calibrants/__init__.py', 'DATA')]
-a.datas += [('widgets/stylesheet.qss', 'dioptas/widgets/stylesheet.qss', 'DATA')]
+extra_datas = [
+    (os.path.join(site_packages_path, "pyFAI/calibration"), "pyFAI/calibration"),
+    (os.path.join(site_packages_path, "pymatgen/core/*.json"), "pymatgen/core"),
+    (os.path.join(site_packages_path, 'pymatgen/symmetry/symm_data.yaml'), "pymatgen/symmetry"),
+    (os.path.join(site_packages_path, 'pymatgen/analysis/diffraction/atomic_scattering_params.json'),
+     "pymatgen/analysis/diffraction"),
+]
 
+a = Analysis(['Dioptas.py'],
+             pathex=[folder],
+             binaries=None,
+             datas=extra_datas,
+             hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
+             hookspath=[],
+             runtime_hooks=[],
+             excludes=[],
+             win_no_prefer_redirects=False,
+             win_private_assemblies=False,
+             cipher=block_cipher)
 
-a.datas += extra_datas('calibrants', 'dioptas/calibrants')
-
-## getting the data for pymatgen
-a.datas += [('pymatgen/core/periodic_table.json',
-             os.path.join(site_packages_path, 'pymatgen/core/periodic_table.json'),
-             'DATA')]
-a.datas += [('pymatgen/core/func_groups.json',
-             os.path.join(site_packages_path, 'pymatgen/core/func_groups.json'),
-             'DATA')]
-a.datas += [('pymatgen/core/bond_lengths.json', os.path.join(site_packages_path, 'pymatgen/core/bond_lengths.json'),
-             'DATA')]
-a.datas += [('pymatgen/symmetry/symm_data.yaml',
-             os.path.join(site_packages_path, 'pymatgen/symmetry/symm_data.yaml'),
-             'DATA')]
-a.datas += [('pymatgen/analysis/diffraction/atomic_scattering_params.json',
-             os.path.join(site_packages_path, 'pymatgen/analysis/diffraction/atomic_scattering_params.json'),
-             'DATA')]
-
-
-
-# remove packages which are not needed Dioptas
+# remove packages which are not needed by Dioptas
 a.binaries = [x for x in a.binaries if not x[0].startswith("matplotlib")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("zmq")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("IPython")]
@@ -102,7 +67,6 @@ a.datas = [x for x in a.datas if not "lib{}".format(os.path.sep) in x[0]]
 a.datas = [x for x in a.datas if not "include" in x[0]]
 a.datas = [x for x in a.datas if not "sphinx" in x[0]]
 
-
 from sys import platform as _platform
 platform = ''
 
@@ -122,22 +86,27 @@ if sys.maxsize > 2**32:
 else:
     platform+="32"
 
-pyz = PYZ(a.pure)
+# getting the current version of Dioptas
+from controller.MainController import get_version
+version = get_version()
+
+
+pyz = PYZ(a.pure, a.zipped_data,
+             cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
           exclude_binaries=True,
           name=name,
           debug=False,
-          strip=None,
+          strip=False,
           upx=True,
           console=False )
-
 
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
                a.datas,
-               strip=None,
+               strip=False,
                upx=True,
                name='Dioptas_{}_{}'.format(platform, version))
 
