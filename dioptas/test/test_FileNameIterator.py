@@ -9,12 +9,10 @@ data_path = os.path.join(unittest_path, 'data')
 
 
 class FileNameIteratorTest(unittest.TestCase):
-    def setUp(self):
-        self.app = QtGui.QApplication([])
-        self.filename_iterator = FileNameIterator()
+    app = QtGui.QApplication([])
 
-    def tearDown(self):
-        del self.app
+    def setUp(self):
+        self.filename_iterator = FileNameIterator()
 
     def test_get_next_filename_with_existent_file(self):
         filename = 'image_001.tif'

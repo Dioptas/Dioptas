@@ -18,7 +18,6 @@
 
 import unittest
 from PyQt4 import QtGui
-import sys
 import gc
 import os
 
@@ -31,8 +30,9 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class JcpdsEditorTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.jcpds = jcpds()
         self.jcpds.compute_v0()
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
@@ -44,7 +44,6 @@ class JcpdsEditorTest(unittest.TestCase):
         del self.jcpds
         self.jcpds_editor_widget.close()
         del self.jcpds_editor_widget
-        del self.app
         gc.collect()
 
     def test_filename_and_comment_are_shown_correctly(self):

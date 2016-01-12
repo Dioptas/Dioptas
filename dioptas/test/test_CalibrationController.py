@@ -19,8 +19,10 @@ data_path = os.path.join(unittest_path, 'data')
 
 
 class CalibrationControllerTest(unittest.TestCase):
+
+    app = QtGui.QApplication(sys.argv)
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
@@ -32,13 +34,13 @@ class CalibrationControllerTest(unittest.TestCase):
                                                             mask_model=self.mask_model,
                                                             widget=self.calibration_widget,
                                                             calibration_model=self.calibration_model)
+        print 'lets go'
 
     def tearDown(self):
         del self.img_model
         del self.calibration_model.cake_geometry
         del self.calibration_model.spectrum_geometry
         del self.calibration_model
-        del self.app
         gc.collect()
 
     def load_pilatus_1M_and_pick_peaks(self):

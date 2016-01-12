@@ -34,8 +34,9 @@ data_path = os.path.join(unittest_path, 'data')
 
 
 class IntegrationBackgroundControllerTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.widget = IntegrationWidget()
         self.spectrum_model = PatternModel()
         self.img_model = ImgModel()
@@ -43,9 +44,6 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
                                                      None, None, self.spectrum_model)
         self.background_controller = BackgroundController({}, self.widget, self.img_model, self.spectrum_model)
         self.overlay_tw = self.widget.overlay_tw
-
-    def tearDown(self):
-        del self.app
 
     def test_spectrum_bkg_toggle_inspect_button(self):
         self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))

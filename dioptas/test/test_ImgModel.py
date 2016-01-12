@@ -15,13 +15,13 @@ data_path = os.path.join(unittest_path, 'data')
 
 
 class ImgModelTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication([])
         self.img_model = ImgModel()
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))
 
     def tearDown(self):
-        del self.app
         del self.img_model
         gc.collect()
 

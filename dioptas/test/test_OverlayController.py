@@ -33,8 +33,9 @@ data_path = os.path.join(unittest_path, 'data')
 
 
 class OverlayControllerTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.widget = IntegrationWidget()
         self.spectrum_model = PatternModel()
         self.overlay_controller = OverlayController({}, self.widget, self.spectrum_model)
