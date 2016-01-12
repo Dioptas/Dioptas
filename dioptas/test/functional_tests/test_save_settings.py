@@ -3,7 +3,6 @@
 
 
 import unittest
-import sys
 import os
 from PyQt4 import QtGui
 
@@ -13,11 +12,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
 class SaveSettingsTest(unittest.TestCase):
-    def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
-
-    def tearDown(self):
-        del self.app
+    app = QtGui.QApplication([])
 
     def create_controller_and_data(self):
         self.controller = MainController()

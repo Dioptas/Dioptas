@@ -2,7 +2,6 @@
 
 
 import unittest
-import sys
 import os
 import gc
 
@@ -17,8 +16,9 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
 class IntegrationFunctionalTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.spectrum_model = PatternModel()
@@ -50,7 +50,6 @@ class IntegrationFunctionalTest(unittest.TestCase):
         del self.calibration_model
         del self.integration_widget
         del self.integration_controller
-        del self.app
         gc.collect()
 
     def enter_value_into_text_field(self, text_field, value):

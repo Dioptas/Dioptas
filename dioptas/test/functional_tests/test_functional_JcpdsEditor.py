@@ -42,8 +42,9 @@ def calculate_cubic_d_spacing(h, k, l, a):
 
 
 class JcpdsEditorFunctionalTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.calibration_model = CalibrationModel()
         self.jcpds = jcpds()
 
@@ -67,7 +68,6 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
             del self.main_controller.calibration_model.spectrum_geometry
         except:
             pass
-        del self.app
         del self.calibration_model
         del self.jcpds
         gc.collect()
@@ -385,13 +385,13 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+                os.path.join(jcpds_path, 'au_Anderson.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'mo.jcpds'))
+                os.path.join(jcpds_path, 'mo.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'ar.jcpds'))
+                os.path.join(jcpds_path, 'ar.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 're.jcpds'))
+                os.path.join(jcpds_path, 're.jcpds'))
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
@@ -500,13 +500,13 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path,'au_Anderson.jcpds'))
+                os.path.join(jcpds_path,'au_Anderson.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path,'mo.jcpds'))
+                os.path.join(jcpds_path,'mo.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path,'ar.jcpds'))
+                os.path.join(jcpds_path,'ar.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path,'re.jcpds'))
+                os.path.join(jcpds_path,'re.jcpds'))
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
@@ -583,7 +583,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+                os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
         # change anything the names every are the same...
@@ -612,7 +612,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+                os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
@@ -654,8 +654,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         for row_ind in xrange(13):
             self.assertNotEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 5))
             self.assertNotAlmostEqual(self.get_reflection_table_value(row_ind, 6),
-                                   self.convert_d_to_twotheta(self.jcpds_phase.reflections[row_ind].d0, 0.31),
-                                   delta=0.0001)
+                                      self.convert_d_to_twotheta(self.jcpds_phase.reflections[row_ind].d0, 0.31),
+                                      delta=0.0001)
             self.assertNotEqual(self.get_reflection_table_value(row_ind,6),
                                 self.get_reflection_table_value(row_ind,7))
 
@@ -663,7 +663,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertNotEqual(float(self.jcpds_view.lattice_eos_b_txt.text()), self.jcpds_view.lattice_b_sb.value())
         self.assertNotEqual(float(self.jcpds_view.lattice_eos_c_txt.text()), self.jcpds_view.lattice_c_sb.value())
         self.assertNotEqual(float(self.jcpds_view.lattice_eos_volume_txt.text()),
-                         float(self.jcpds_view.lattice_volume_txt.text()))
+                            float(self.jcpds_view.lattice_volume_txt.text()))
 
 
 if __name__ == '__main__':

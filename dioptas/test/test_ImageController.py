@@ -20,8 +20,9 @@ unittest_data_path = os.path.join(os.path.dirname(__file__), 'data')
 
 
 class ImageControllerTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication([])
         self.working_dir = {'image': ''}
 
         self.widget = IntegrationWidget()
@@ -39,7 +40,6 @@ class ImageControllerTest(unittest.TestCase):
                 calibration_model=self.calibration_model)
 
     def tearDown(self):
-        del self.app
         if os.path.exists(os.path.join(unittest_data_path, 'image_003.tif')):
             os.remove(os.path.join(unittest_data_path, 'image_003.tif'))
 

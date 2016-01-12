@@ -19,8 +19,9 @@ data_path = os.path.join(unittest_path, 'data')
 
 
 class MaskControllerTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.working_dir = {}
 
         self.img_model = ImgModel()
@@ -34,7 +35,6 @@ class MaskControllerTest(unittest.TestCase):
         self.mask_widget.close()
         del self.mask_widget
         del self.mask_controller
-        del self.app
         gc.collect()
 
     def get_file_size(self, filename):

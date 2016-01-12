@@ -2,7 +2,6 @@
 
 import unittest
 import mock
-import sys
 import os
 
 import numpy as np
@@ -18,8 +17,9 @@ data_path = os.path.join(unittest_path, 'data')
 
 
 class IntegrationControllerTest(unittest.TestCase):
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.spectrum_model = PatternModel()

@@ -14,11 +14,6 @@ data_path = os.path.join(unittest_path, 'data')
 
 
 class SpectrumTest(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def array_almost_equal(self, array1, array2, places=7):
         self.assertAlmostEqual(np.sum(array1 - array2), 0, places=places)

@@ -17,7 +17,6 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-import sys
 import os
 
 from PyQt4 import QtGui, QtCore
@@ -38,8 +37,10 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class PhaseControllerTest(unittest.TestCase):
+
+    app = QtGui.QApplication([])
+
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.image_model = ImgModel()
         self.calibration_model = CalibrationModel()
         self.calibration_model.is_calibrated = True
@@ -55,9 +56,6 @@ class PhaseControllerTest(unittest.TestCase):
         self.controller = PhaseController({}, self.widget, self.calibration_model, self.spectrum_model,
                                           self.phase_model)
         self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
-
-    def tearDown(self):
-        del self.app
 
     def test_manual_deleting_phases(self):
         self.load_phases()
