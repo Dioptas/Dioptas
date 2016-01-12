@@ -438,7 +438,13 @@ class ImageController(object):
             self.widget.img_view.img_view_box.setAspectLocked(True)
 
         # update the window due to some errors on mac when using macports
-        self.widget.parent().parent().parent().parent().update()
+        self._get_master_parent().update()
+
+    def _get_master_parent(self):
+        maset_widget_parent = self.widget
+        while maset_widget_parent.parent():
+            maset_widget_parent = maset_widget_parent.parent()
+        return maset_widget_parent
 
     def change_roi_mode(self):
         self.roi_active = not self.roi_active
