@@ -3,6 +3,8 @@
 import unittest
 import os
 
+import numpy as np
+
 from model.CalibrationModel import CalibrationModel
 from model.ImgModel import ImgModel
 import gc
@@ -37,6 +39,29 @@ class CalibrationModelTest(unittest.TestCase):
         self.assertEqual(len(self.calibration_model.points), 6)
         for points in self.calibration_model.points:
             self.assertGreater(len(points), 0)
+
+    def test_find_peak(self):
+        """
+        Tests the find_peak function for several maxima and pick points
+
+        """
+        points_and_pick_points = [
+            [[30, 50], [31, 49]],
+            [[30, 50], [34, 46]],
+            [[5, 5],  [3, 3]],
+            [[298, 298], [299, 299]]
+        ]
+
+        for data in points_and_pick_points:
+            self.img_model._img_data = np.zeros((300, 300))
+
+            point = data[0]
+            pick_point = data[1]
+            self.img_model._img_data[point[0], point[1]] = 100
+
+            peak_point = self.calibration_model.find_peak(pick_point[0], pick_point[1], 10, 0)
+            self.assertEqual(peak_point[0][0], point[0])
+            self.assertEqual(peak_point[0][1], point[1])
 
     def load_pilatus_1M_and_find_peaks(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
