@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 import unittest
+from mock import MagicMock
 import gc
 import os
 from PyQt4 import QtGui
@@ -11,12 +12,12 @@ from model.ImgModel import ImgModel
 from model.util.ImgCorrection import DummyCorrection
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
+
+app = QtGui.QApplication([])
 
 
 class ImgModelTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.img_model = ImgModel()
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))
@@ -37,6 +38,12 @@ class ImgModelTest(unittest.TestCase):
         self.assertEqual(np.sum(np.absolute(self.img_model.get_img_data())), 0)
         self.img_model.reset_img_transformations()
         self.assertEqual(np.sum(np.absolute(self.img_model.get_img_data())), 0)
+
+    def test_load_emits_signal(self):
+        callback_fcn = MagicMock()
+        self.img_model.img_changed.connect(callback_fcn)
+        self.img_model.load(os.path.join(data_path, 'image_001.tif'))
+        callback_fcn.assert_called_once_with()
 
     def test_flipping_images(self):
         original_image = np.copy(self.img_model._img_data)
@@ -190,33 +197,33 @@ class ImgModelTest(unittest.TestCase):
         self.assertTrue(os.path.exists(filename))
         os.remove(filename)
 
-    def test_rotation(self):
+    def test_negative_rotation(self):
         pre_transformed_data = self.img_model.get_img_data()
         self.img_model.rotate_img_m90()
         self.img_model.rotate_img_m90()
         self.img_model.rotate_img_m90()
         self.img_model.rotate_img_m90()
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), pre_transformed_data))
-        self.img_model.reset_img_transformations()
 
+    def test_combined_rotation(self):
         pre_transformed_data = self.img_model.get_img_data()
         self.img_model.rotate_img_m90()
         self.img_model.rotate_img_p90()
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), pre_transformed_data))
-        self.img_model.reset_img_transformations()
 
+    def test_flip_img_horizontally(self):
         pre_transformed_data = self.img_model.get_img_data()
         self.img_model.flip_img_horizontally()
         self.img_model.flip_img_horizontally()
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), pre_transformed_data))
-        self.img_model.reset_img_transformations()
 
+    def test_flip_img_vertically(self):
         pre_transformed_data = self.img_model.get_img_data()
         self.img_model.flip_img_vertically()
         self.img_model.flip_img_vertically()
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), pre_transformed_data))
-        self.img_model.reset_img_transformations()
 
+    def test_combined_rotation_and_flipping(self):
         self.img_model.flip_img_vertically()
         self.img_model.flip_img_horizontally()
         self.img_model.rotate_img_m90()
@@ -227,8 +234,8 @@ class ImgModelTest(unittest.TestCase):
         transformed_data = self.img_model.get_img_data()
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), transformed_data))
-        self.img_model.reset_img_transformations()
 
+    def test_reset_img_transformation(self):
         pre_transformed_data = self.img_model.get_img_data()
         self.img_model.rotate_img_m90()
         self.img_model.reset_img_transformations()
