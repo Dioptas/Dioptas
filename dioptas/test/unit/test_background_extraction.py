@@ -23,16 +23,35 @@ from model.util.PeakShapes import gaussian
 
 
 class TestBackgroundExtraction(unittest.TestCase):
+    """
+    Tests the Background extraction module in the model.util package
+    """
     def test_simple_linear_background_with_single_peak(self):
+        """
+        Here we produce a Gaussian peak on a linear background, and test if the background subtraction algorithm
+        can find the correct background.
+        """
+
+        # Gaussian
         x = np.linspace(0, 25, 2500)
         y_data = gaussian(x, 10, 3, 0.1)
+
+        # linear background
         y_bkg = x * 0.4 + 5.0
+
+        # combination
         y_measurement = y_data + y_bkg
 
         y_extracted_bkg = extract_background(x, y_measurement, 1)
         self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
 
     def test_simple_linear_background_with_multiple_peaks(self):
+        """
+        Here we produce several Gaussian peaks on top of a linear background and test if the background subtraction
+        algorithm can find the correct background.
+        """
+
+        # produce peaks
         x = np.linspace(0, 24, 2500)
         y_data = np.zeros(x.shape)
 
@@ -44,13 +63,23 @@ class TestBackgroundExtraction(unittest.TestCase):
         for peak in peaks:
             y_data += gaussian(x, peak[0], peak[1], peak[2])
 
+
+        # linear background
         y_bkg = x * 0.4 + 5.0
+
+        # combination
         y_measurement = y_data + y_bkg
 
         y_extracted_bkg = extract_background(x, y_measurement, 0.3)
         self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
 
     def test_simple_linear_background_with_multiple_close_peaks(self):
+        """
+        Here we produce several close overlapping peaks on top of a linear background and check whether the background
+        algorithm finds the correct background
+        """
+
+        # produce peaks
         x = np.linspace(0, 24, 2500)
         y_data = np.zeros(x.shape)
 
@@ -62,7 +91,10 @@ class TestBackgroundExtraction(unittest.TestCase):
         for peak in peaks:
             y_data += gaussian(x, peak[0], peak[1], peak[2])
 
+        # background
         y_bkg = x * 0.4 + 5.0
+
+        # combination
         y_measurement = y_data + y_bkg
 
         y_extracted_bkg = extract_background(x, y_measurement, 1)
