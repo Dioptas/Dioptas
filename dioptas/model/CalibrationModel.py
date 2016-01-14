@@ -380,6 +380,10 @@ class CalibrationModel(object):
         return int(max_dist * max_dist_factor)
 
     def load(self, filename):
+        """
+        Loads a calibration file and and sets all the calibration parameter.
+        :param filename: filename for a *.poni calibration file
+        """
         self.spectrum_geometry = AzimuthalIntegrator()
         self.spectrum_geometry.load(filename)
         self.orig_pixel1 = self.spectrum_geometry.pixel1
@@ -391,6 +395,10 @@ class CalibrationModel(object):
         self.set_supersampling()
 
     def save(self, filename):
+        """
+        Saves the current calibration parameters into a a text file. Default extension is
+        *.poni
+        """
         self.cake_geometry.save(filename)
         self.calibration_name = get_base_name(filename)
         self.filename = filename
@@ -399,6 +407,11 @@ class CalibrationModel(object):
         return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
 
     def set_fit2d(self, fit2d_parameter):
+        """
+        Reads in a dictionary with fit2d parameters where the fields of the dictionary are:
+        'directDist', 'centerX', 'centerY', 'tilt', 'tiltPlanRotation', 'pixelX', pixelY',
+        'polarization_factor', 'wavelength'
+        """
         self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
                                         centerX=fit2d_parameter['centerX'],
                                         centerY=fit2d_parameter['centerY'],
@@ -415,6 +428,11 @@ class CalibrationModel(object):
         self.set_supersampling()
 
     def set_pyFAI(self, pyFAI_parameter):
+        """
+        Reads in a dictionary with pyFAI parameters where the fields of dictionary are:
+        'dist', 'poni1', 'poni2', 'rot1', 'rot2', 'rot3', 'pixel1', 'pixel2', 'wavelength',
+        'polarization_factor'
+        """
         self.spectrum_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
                                         poni1=pyFAI_parameter['poni1'],
                                         poni2=pyFAI_parameter['poni2'],
@@ -432,6 +450,16 @@ class CalibrationModel(object):
         self.set_supersampling()
 
     def set_supersampling(self, factor=None):
+        """
+        Sets the supersampling to a specific factor. Whereby the factor determines in how many artificial pixel the
+        original pixel is split. (factor^2)
+
+        factor  n_pixel
+        1       1
+        2       4
+        3       9
+        4       16
+        """
         if factor is None:
             factor = self.supersampling_factor
         self.spectrum_geometry.pixel1 = self.orig_pixel1 / float(factor)
