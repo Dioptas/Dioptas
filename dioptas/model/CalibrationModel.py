@@ -36,8 +36,8 @@ logger.setLevel(logging.INFO)
 
 
 class CalibrationModel(object):
-    def __init__(self, img_data=None):
-        self.img_data = img_data
+    def __init__(self, img_model=None):
+        self.img_model = img_model
         self.points = []
         self.points_index = []
         self.spectrum_geometry = AzimuthalIntegrator()
@@ -75,7 +75,7 @@ class CalibrationModel(object):
         :return:
             array of points found
         """
-        massif = Massif(self.img_data._img_data)
+        massif = Massif(self.img_model._img_data)
         cur_peak_points = massif.find_peaks([x, y], stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
@@ -90,18 +90,22 @@ class CalibrationModel(object):
         :param y:
             y-coordinate in pixel - should be form original image (not supersampled y-coordinate)
         :param search_size:
-            the amount of pixels in all direction in which the algorithm searches for the maximum peak
+            the length of the search rectangle in pixels in all direction in which the algorithm searches for
+            the maximum peak
         :param peak_ind:
             peak/ring index to which the found points will be added
         :return:
             point found (as array)
         """
         left_ind = np.round(x - search_size * 0.5)
+        if left_ind < 0:
+            left_ind = 0
         top_ind = np.round(y - search_size * 0.5)
-        x_ind, y_ind = np.where(self.img_data._img_data[left_ind:(left_ind + search_size),
-                                top_ind:(top_ind + search_size)] == \
-                                self.img_data._img_data[left_ind:(left_ind + search_size),
-                                top_ind:(top_ind + search_size)].max())
+        if top_ind < 0:
+            top_ind = 0
+        search_array = self.img_model.img_data[left_ind:(left_ind + search_size),
+                                                top_ind:(top_ind + search_size)]
+        x_ind, y_ind = np.where(search_array == search_array.max())
         x_ind = x_ind[0] + left_ind
         y_ind = y_ind[0] + top_ind
         self.points.append(np.array([x_ind, y_ind]))
@@ -140,12 +144,12 @@ class CalibrationModel(object):
         """
 
         if algorithm == 'Massif':
-            self.peak_search_algorithm = Massif(self.img_data._img_data)
+            self.peak_search_algorithm = Massif(self.img_model._img_data)
         elif algorithm == 'Blob':
             if mask is not None:
-                self.peak_search_algorithm = BlobDetection(self.img_data._img_data * mask)
+                self.peak_search_algorithm = BlobDetection(self.img_model._img_data * mask)
             else:
-                self.peak_search_algorithm = BlobDetection(self.img_data._img_data)
+                self.peak_search_algorithm = BlobDetection(self.img_model._img_data)
             self.peak_search_algorithm.process()
         else:
             return
@@ -165,7 +169,7 @@ class CalibrationModel(object):
 
         # get the calculated two theta values for the whole image
         if self.spectrum_geometry._ttha is None:
-            tth_array = self.spectrum_geometry.twoThetaArray(self.img_data._img_data.shape)
+            tth_array = self.spectrum_geometry.twoThetaArray(self.img_model._img_data.shape)
         else:
             tth_array = self.spectrum_geometry._ttha
 
@@ -178,15 +182,15 @@ class CalibrationModel(object):
             mask = ring_mask
 
         # calculate the mean and standard deviation of this area
-        sub_data = np.array(self.img_data._img_data.ravel()[np.where(mask.ravel())], dtype=np.float64)
+        sub_data = np.array(self.img_model._img_data.ravel()[np.where(mask.ravel())], dtype=np.float64)
         sub_data[np.where(sub_data > upper_limit)] = np.NaN
         mean = np.nanmean(sub_data)
         std = np.nanstd(sub_data)
 
         # set the threshold into the mask (don't detect very low intensity peaks)
         threshold = min_mean_factor * mean + std
-        mask2 = np.logical_and(self.img_data._img_data > threshold, mask)
-        mask2[np.where(self.img_data._img_data > upper_limit)] = False
+        mask2 = np.logical_and(self.img_model._img_data > threshold, mask)
+        mask2[np.where(self.img_model._img_data > upper_limit)] = False
         size2 = mask2.sum(dtype=int)
 
         keep = int(np.ceil(np.sqrt(size2)))
@@ -253,12 +257,12 @@ class CalibrationModel(object):
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
                      unit='2th_deg', method='csr'):
-        if np.sum(mask) == self.img_data.img_data.shape[0] * self.img_data.img_data.shape[1]:
+        if np.sum(mask) == self.img_model.img_data.shape[0] * self.img_model.img_data.shape[1]:
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
         if self.spectrum_geometry._polarization is not None:
-            if self.img_data.img_data.shape != self.spectrum_geometry._polarization.shape:
+            if self.img_model.img_data.shape != self.spectrum_geometry._polarization.shape:
                 # resetting the integrator if the polarization correction matrix has not the correct shape
                 self.spectrum_geometry.reset()
 
@@ -273,14 +277,14 @@ class CalibrationModel(object):
 
         if unit is 'd_A':
             try:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                         method=method,
                                                                         unit='2th_deg',
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
             except NameError:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                         method='csr',
                                                                         unit='2th_deg',
                                                                         mask=mask,
@@ -290,20 +294,20 @@ class CalibrationModel(object):
             self.int = self.int
         else:
             try:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                         method=method,
                                                                         unit=unit,
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
             except NameError:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_data.img_data, num_points,
+                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                         method='csr',
                                                                         unit=unit,
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
-        logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
+        logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
 
         ind = np.where((self.int > 0) & (~np.isnan(self.int)))
         self.tth = self.tth[ind]
@@ -315,16 +319,16 @@ class CalibrationModel(object):
             polarization_factor = self.polarization_factor
 
         if self.cake_geometry._polarization is not None:
-            if self.img_data.img_data.shape != self.cake_geometry._polarization.shape:
+            if self.img_model.img_data.shape != self.cake_geometry._polarization.shape:
                 # resetting the integrator if the polarization correction matrix has not the same shape as the image
                 self.cake_geometry.reset()
 
         t1 = time.time()
 
-        res = self.cake_geometry.integrate2d(self.img_data._img_data, dimensions[0], dimensions[1], method=method,
+        res = self.cake_geometry.integrate2d(self.img_model._img_data, dimensions[0], dimensions[1], method=method,
                                              mask=mask,
                                              unit=unit, polarization_factor=polarization_factor)
-        logger.info('2d integration of {0}: {1}s.'.format(os.path.basename(self.img_data.filename), time.time() - t1))
+        logger.info('2d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
         self.cake_img = res[0]
         self.cake_tth = res[1]
         self.cake_azi = res[2]
@@ -365,7 +369,7 @@ class CalibrationModel(object):
         fit2d_parameter = self.spectrum_geometry.getFit2D()
         center_x = fit2d_parameter['centerX']
         center_y = fit2d_parameter['centerY']
-        width, height = self.img_data.img_data.shape
+        width, height = self.img_model.img_data.shape
 
         if center_x < width and center_x > 0:
             side1 = np.max([abs(width - center_x), center_x])
