@@ -75,7 +75,6 @@ class CalibrationControllerTest(unittest.TestCase):
         self.calibration_controller.widget.use_mask_cb.setChecked(True)
         self.calibration_controller.calibrate()
 
-
     def test_loading_and_saving_of_calibration_files(self):
         self.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.calibration_controller.save_calibration(os.path.join(data_path, 'calibration.poni'))
