@@ -9,7 +9,7 @@ import gc
 
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 
 class CalibrationModelTest(unittest.TestCase):
     def setUp(self):
