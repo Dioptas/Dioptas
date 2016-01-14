@@ -46,7 +46,7 @@ class CalibrationModelTest(unittest.TestCase):
         self.img_model.set_supersampling(2)
         self.calibration_model.set_supersampling(2)
         self.calibration_model.calibrate()
-        self.assertAlmostEqual(normal_poni1, self.calibration_model.spectrum_geometry.poni1)
+        self.assertAlmostEqual(normal_poni1, self.calibration_model.spectrum_geometry.poni1, places=5)
 
     def load_pilatus_1M_and_find_peaks(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
