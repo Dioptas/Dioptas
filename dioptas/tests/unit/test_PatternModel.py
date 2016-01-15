@@ -7,7 +7,7 @@ from model.PatternModel import Pattern, PatternModel
 from model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 
 
 class PatternModelTest(unittest.TestCase):

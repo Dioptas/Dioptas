@@ -13,8 +13,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class SpectrumTest(unittest.TestCase):
-
+class PatternTest(unittest.TestCase):
     def array_almost_equal(self, array1, array2, places=7):
         self.assertAlmostEqual(np.sum(array1 - array2), 0, places=places)
 
