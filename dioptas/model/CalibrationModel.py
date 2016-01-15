@@ -176,7 +176,9 @@ class CalibrationModel(object):
                                 for larger minimum value and lower for lower minimum value. Therefore, a smaller
                                 number is more prone to picking up noise. typical values like between 1 and 3.
         :param upper_limit: maximum intensity for the peaks to be picked
-        :param mask: in case the image has to be masked from certain areas, it need to be given here. Default is zero.
+        :param mask: in case the image has to be masked from certain areas, it need to be given here. Default is None.
+                     The mask should be given as an 2d array with the same dimensions as the image, where 1 denotes a
+                     masked pixel and all others should be 0.
         """
         self.reset_supersampling()
         if not self.is_calibrated:
