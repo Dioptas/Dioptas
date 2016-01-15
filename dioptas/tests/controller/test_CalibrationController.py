@@ -17,13 +17,14 @@ from widgets.CalibrationWidget import CalibrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
-if QtGui.QApplication.instance() is None:
-    app = QtGui.QApplication([])
-else:
-    app = QtGui.QApplication.instance()
+app = QtGui.QApplication([])
+
+# mocking the functions which will block the unittest for some reason...
+QtGui.QApplication.processEvents = MagicMock()
+app.processEvents = MagicMock()
+QtGui.QProgressDialog.setValue = MagicMock()
 
 class TestCalibrationController(unittest.TestCase):
-
     def setUp(self):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
@@ -42,10 +43,10 @@ class TestCalibrationController(unittest.TestCase):
 
     def tearDown(self):
         del self.img_model
+        del self.mask_model
         del self.calibration_model.cake_geometry
         del self.calibration_model.spectrum_geometry
         del self.calibration_model
-        gc.collect()
 
     def test_automatic_calibration(self):
         self.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
@@ -61,11 +62,11 @@ class TestCalibrationController(unittest.TestCase):
         QTest.mouseClick(self.calibration_widget.integrate_btn, QtCore.Qt.LeftButton)
         self.calibration_model.integrate_1d.assert_called_once_with()
         self.calibration_model.integrate_2d.assert_called_once_with()
+        self.assertEqual(QtGui.QProgressDialog.setValue.call_count, 15)
 
         calibration_parameter = self.calibration_model.get_calibration_parameter()[0]
         self.assertAlmostEqual(calibration_parameter['dist'], .1967, places=4)
 
-    @unittest.skip('')
     def test_loading_and_saving_of_calibration_files(self):
         self.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.calibration_controller.save_calibration(os.path.join(data_path, 'calibration.poni'))
