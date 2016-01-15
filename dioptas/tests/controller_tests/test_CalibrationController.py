@@ -47,6 +47,7 @@ class TestCalibrationController(unittest.TestCase):
         del self.calibration_model.cake_geometry
         del self.calibration_model.spectrum_geometry
         del self.calibration_model
+        gc.collect()
 
     def test_automatic_calibration(self):
         self.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))

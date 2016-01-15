@@ -18,6 +18,7 @@
 
 import unittest
 import os
+import gc
 
 from PyQt4 import QtGui, QtCore
 import numpy as np
@@ -63,6 +64,7 @@ class PhaseControllerTest(unittest.TestCase):
         self.widget.close()
         del self.widget
         del self.controller
+        gc.collect()
 
     def test_manual_deleting_phases(self):
         self.load_phases()

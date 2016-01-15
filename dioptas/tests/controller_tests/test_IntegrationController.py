@@ -3,6 +3,7 @@
 import unittest
 import mock
 import os
+import gc
 
 import numpy as np
 
@@ -51,6 +52,7 @@ class IntegrationControllerTest(unittest.TestCase):
         del self.widget
         del self.integration_controller
         del self.image_controller
+        gc.collect()
 
     def _setup_batch_integration(self):
         # setting up filenames and working directories

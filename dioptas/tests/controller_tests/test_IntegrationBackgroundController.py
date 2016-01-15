@@ -19,6 +19,7 @@
 import unittest
 from mock import MagicMock
 import os
+import gc
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
@@ -50,6 +51,7 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         del self.spectrum_model
         del self.img_model
         del self.widget
+        gc.collect()
 
     def test_spectrum_bkg_toggle_inspect_button(self):
         self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
