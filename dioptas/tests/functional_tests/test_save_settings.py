@@ -1,9 +1,11 @@
 # -*- coding: utf8 -*-
 
-
-
 import unittest
+from mock import MagicMock
 import os
+
+import numpy as np
+
 from PyQt4 import QtGui
 
 from controller.MainController import MainController
@@ -11,28 +13,32 @@ from controller.MainController import MainController
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
+app = QtGui.QApplication([])
+
+
 class SaveSettingsTest(unittest.TestCase):
-    app = QtGui.QApplication([])
 
     def create_controller_and_data(self):
         self.controller = MainController()
-        self.img_data = self.controller.img_model
-        self.mask_data = self.controller.mask_model
-        self.calibration_data = self.controller.calibration_model
-        self.spectrum_data = self.controller.spectrum_model
-        self.phase_data = self.controller.phase_model
+        self.img_model = self.controller.img_model
+        self.mask_model = self.controller.mask_model
+        self.calibration_model = self.controller.calibration_model
+        self.calibration_model.integrate_1d = MagicMock(return_value = (self.calibration_model.tth,
+                                                           self.calibration_model.int))
+        self.spectrum_model = self.controller.spectrum_model
+        self.phase_model = self.controller.phase_model
 
 
     def test_calibration_data(self):
         self.create_controller_and_data()
-        self.calibration_data.load(os.path.join(data_path, "LaB6_40keV_MarCCD.poni"))
+        self.calibration_model.load(os.path.join(data_path, "LaB6_40keV_MarCCD.poni"))
 
-        center_x = self.calibration_data.spectrum_geometry.poni1
+        center_x = self.calibration_model.spectrum_geometry.poni1
 
         self.controller.save_settings()
         self.create_controller_and_data()
 
-        self.assertEqual(self.calibration_data.spectrum_geometry.poni1, center_x)
+        self.assertEqual(self.calibration_model.spectrum_geometry.poni1, center_x)
 
 
 if __name__ == '__main__':
