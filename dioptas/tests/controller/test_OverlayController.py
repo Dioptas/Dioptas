@@ -29,12 +29,12 @@ from model import PatternModel
 from controller.integration import OverlayController
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
+
+app = QtGui.QApplication([])
 
 
 class OverlayControllerTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.widget = IntegrationWidget()
         self.spectrum_model = PatternModel()
@@ -44,7 +44,6 @@ class OverlayControllerTest(unittest.TestCase):
     def tearDown(self):
         del self.overlay_tw
         del self.overlay_controller
-        del self.app
 
     def test_manual_deleting_overlays(self):
         self.load_overlays()
