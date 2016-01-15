@@ -1,0 +1,19 @@
+VERSION:   4
+COMMENT: HAHA this is a phase you will never see in your spectrum
+K0:       166.65
+K0P:      5.4823
+DK0DT:    0.0
+DK0PDT:   0.0
+SYMMETRY: CUBIC
+A:        4.0786
+B:        4.0786
+C:        4.0786
+ALPHA:    90.0
+BETA:     90.0
+GAMMA:    90.0
+VOLUME:   67.8474211077
+ALPHAT:   4.26e-05
+DALPHADT: 0.0
+DIHKL:    4.0786	100	1	0	0
+DIHKL:    4.0786	50	0	1	0
+DIHKL:    4.0786	20	0	0	1
