@@ -38,7 +38,6 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 app = QtGui.QApplication([])
 
 
-
 class PhaseControllerTest(unittest.TestCase):
     def setUp(self):
         self.image_model = ImgModel()
@@ -61,6 +60,7 @@ class PhaseControllerTest(unittest.TestCase):
         del self.calibration_model
         del self.spectrum_model
         del self.phase_model
+        self.widget.close()
         del self.widget
         del self.controller
 
