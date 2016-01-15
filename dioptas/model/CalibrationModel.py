@@ -68,6 +68,7 @@ class CalibrationModel(object):
         self.cake_img = np.zeros((2048, 2048))
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
+        self.num_points = len(self.int)
 
         self.peak_search_algorithm = None
 

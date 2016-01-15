@@ -514,7 +514,7 @@ class ImageController(object):
         return cur_tth
 
     def show_img_mouse_position(self, x, y):
-        img_shape = self.img_model.get_img().shape
+        img_shape = self.img_model.img_data.shape
         if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
@@ -592,7 +592,7 @@ class ImageController(object):
                 y = np.array([y])
                 tth = self.calibration_model.get_two_theta_cake(y) / 180 * np.pi
             elif self.img_mode == 'Image':  # image mode
-                img_shape = self.img_model.get_img().shape
+                img_shape = self.img_model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
                     return
                 tth = self.calibration_model.get_two_theta_img(x, y)
