@@ -30,12 +30,12 @@ from controller.integration import BackgroundController
 from controller.integration import PatternController
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
+
+app = QtGui.QApplication([])
 
 
 class IntegrationBackgroundControllerTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.widget = IntegrationWidget()
         self.spectrum_model = PatternModel()
@@ -44,6 +44,11 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
                                                      None, None, self.spectrum_model)
         self.background_controller = BackgroundController({}, self.widget, self.img_model, self.spectrum_model)
         self.overlay_tw = self.widget.overlay_tw
+
+    def tearDown(self):
+        del self.spectrum_model
+        del self.img_model
+        del self.widget
 
     def test_spectrum_bkg_toggle_inspect_button(self):
         self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
