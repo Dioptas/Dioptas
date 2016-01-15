@@ -5,12 +5,11 @@ from PyQt4 import QtGui
 from model.util.HelperModule import FileNameIterator
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 
+app = QtGui.QApplication([])
 
 class FileNameIteratorTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.filename_iterator = FileNameIterator()
 
@@ -42,7 +41,8 @@ class FileNameIteratorTest(unittest.TestCase):
 
         self.filename_iterator.update_filename(file_path1)
         new_filename = self.filename_iterator.get_next_filename()
-        self.assertEqual(new_filename, file_path2)
+        self.assertEqual(os.path.abspath(new_filename),
+                         os.path.abspath(file_path2))
 
         os.remove(file_path1)
         os.remove(file_path2)
@@ -61,7 +61,8 @@ class FileNameIteratorTest(unittest.TestCase):
 
         self.filename_iterator.update_filename(file_path1)
         new_filename = self.filename_iterator.get_next_filename()
-        self.assertEqual(new_filename, file_path2)
+        self.assertEqual(os.path.abspath(new_filename),
+                         os.path.abspath(file_path2))
 
         os.remove(file_path1)
         os.remove(file_path2)
