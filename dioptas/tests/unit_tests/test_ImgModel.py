@@ -39,7 +39,6 @@ class ImgModelTest(unittest.TestCase):
 
     def tearDown(self):
         del self.img_model
-        gc.collect()
 
     def perform_transformations_tests(self):
         self.assertEqual(np.sum(np.absolute(self.img_model.get_img_data())), 0)
