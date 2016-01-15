@@ -8,7 +8,7 @@ import numpy as np
 from model.MaskModel import MaskModel
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 
 
 class MaskModelTest(unittest.TestCase):
