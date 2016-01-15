@@ -29,6 +29,7 @@ from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
 from model.util.HelperModule import get_base_name
+from model import ImgModel
 import calibrants
 
 logger = logging.getLogger(__name__)
@@ -37,10 +38,15 @@ logger.setLevel(logging.INFO)
 
 class CalibrationModel(object):
     def __init__(self, img_model=None):
+        """
+        :param img_model:
+        :type img_model: ImgModel
+        """
         self.img_model = img_model
         self.points = []
         self.points_index = []
         self.spectrum_geometry = AzimuthalIntegrator()
+        self.cake_geometry = None
         self.calibrant = Calibrant()
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
@@ -62,6 +68,8 @@ class CalibrationModel(object):
         self.cake_img = np.zeros((2048, 2048))
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
+
+        self.peak_search_algorithm = None
 
     def find_peaks_automatic(self, x, y, peak_ind):
         """
@@ -104,7 +112,7 @@ class CalibrationModel(object):
         if top_ind < 0:
             top_ind = 0
         search_array = self.img_model.img_data[left_ind:(left_ind + search_size),
-                                                top_ind:(top_ind + search_size)]
+                                               top_ind:(top_ind + search_size)]
         x_ind, y_ind = np.where(search_array == search_array.max())
         x_ind = x_ind[0] + left_ind
         y_ind = y_ind[0] + top_ind
@@ -144,18 +152,32 @@ class CalibrationModel(object):
         """
 
         if algorithm == 'Massif':
-            self.peak_search_algorithm = Massif(self.img_model._img_data)
+            self.peak_search_algorithm = Massif(self.img_model.get_raw_img_data())
         elif algorithm == 'Blob':
             if mask is not None:
-                self.peak_search_algorithm = BlobDetection(self.img_model._img_data * mask)
+                self.peak_search_algorithm = BlobDetection(self.img_model.get_raw_img_data() * mask)
             else:
-                self.peak_search_algorithm = BlobDetection(self.img_model._img_data)
+                self.peak_search_algorithm = BlobDetection(self.img_model.get_raw_img_data())
             self.peak_search_algorithm.process()
         else:
             return
 
-    def search_peaks_on_ring(self, peak_index, delta_tth=0.1, min_mean_factor=1,
+    def search_peaks_on_ring(self, ring_index, delta_tth=0.1, min_mean_factor=1,
                              upper_limit=55000, mask=None):
+        """
+        This function is searching for peaks on an expected ring. It needs an initial calibration
+        before. Then it will search for the ring within some delta_tth and other parameters to get
+        peaks from the calibrant.
+
+        :param ring_index: the index of the ring for the search
+        :param delta_tth: search space around the expected position in two theta
+        :param min_mean_factor: a factor determining the minimum peak intensity to be picked up. it is based
+                                on the mean value of the search area defined by delta_tth. Pick a large value
+                                for larger minimum value and lower for lower minimum value. Therefore, a smaller
+                                number is more prone to picking up noise. typical values like between 1 and 3.
+        :param upper_limit: maximum intensity for the peaks to be picked
+        :param mask: in case the image has to be masked from certain areas, it need to be given here. Default is zero.
+        """
         self.reset_supersampling()
         if not self.is_calibrated:
             return
@@ -165,7 +187,7 @@ class CalibrationModel(object):
 
         # get appropriate two theta value for the ring number
         tth_calibrant_list = self.calibrant.get_2th()
-        tth_calibrant = np.float(tth_calibrant_list[peak_index])
+        tth_calibrant = np.float(tth_calibrant_list[ring_index])
 
         # get the calculated two theta values for the whole image
         if self.spectrum_geometry._ttha is None:
@@ -204,7 +226,7 @@ class CalibrationModel(object):
         # Store the result
         if len(res):
             self.points.append(np.array(res))
-            self.points_index.append(peak_index)
+            self.points_index.append(ring_index)
 
         self.set_supersampling()
         self.spectrum_geometry.reset()

@@ -63,6 +63,12 @@ class CalibrationModelTest(unittest.TestCase):
             self.assertEqual(peak_point[0][0], point[0])
             self.assertEqual(peak_point[0][1], point[1])
 
+    def test_search_peaks_on_ring(self):
+        """
+        Tests to search on the first ring of the calibrant after an inital calibration
+        """
+        pass
+
     def load_pilatus_1M_and_find_peaks(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.calibration_model.find_peaks_automatic(517.664434674, 647.529865592, 0)

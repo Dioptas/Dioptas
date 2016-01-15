@@ -198,6 +198,9 @@ class ImgModel(QtCore.QObject):
     def get_img_data(self):
         return self.img_data
 
+    def get_raw_img_data(self):
+        return self._img_data
+
     def _calculate_img_data(self):
         """
         Calculates compound img_data based on the state of the object. This function is used internally to not compute
