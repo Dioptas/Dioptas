@@ -9,12 +9,12 @@ from mock import MagicMock
 
 from controller.integration.ImageController import NewFileInDirectoryWatcher
 
-unittest_data_path = os.path.join(os.path.dirname(__file__), 'data')
+unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
+
+app = QtGui.QApplication([])
 
 
 class NewFileInDirectoryWatcherTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.directory_watcher = NewFileInDirectoryWatcher(path=None)
 
