@@ -22,7 +22,7 @@ import os
 from model.util import jcpds
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
