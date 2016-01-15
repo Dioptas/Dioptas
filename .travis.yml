@@ -34,5 +34,5 @@ install:
     - cd ../../../
 
 script:
-    - cd dioptas/test
+    - cd dioptas/tests
     - python run_tests.py
