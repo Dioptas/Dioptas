@@ -3,6 +3,7 @@
 import unittest
 from mock import MagicMock
 import os
+import gc
 
 import numpy as np
 
@@ -28,6 +29,15 @@ class SaveSettingsTest(unittest.TestCase):
         self.spectrum_model = self.controller.spectrum_model
         self.phase_model = self.controller.phase_model
 
+
+    def tearDown(self):
+        del self.controller
+        del self.mask_model
+        del self.img_model
+        del self.calibration_model.cake_geometry
+        del self.calibration_model.spectrum_geometry
+        del self.calibration_model
+        gc.collect()
 
     def test_calibration_data(self):
         self.create_controller_and_data()

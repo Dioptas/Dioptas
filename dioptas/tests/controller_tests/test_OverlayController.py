@@ -18,7 +18,7 @@
 
 import unittest
 import os
-import sys
+import gc
 
 import numpy as np
 from PyQt4 import QtGui, QtCore
@@ -42,8 +42,11 @@ class OverlayControllerTest(unittest.TestCase):
         self.overlay_tw = self.widget.overlay_tw
 
     def tearDown(self):
+        del self.widget
+        del self.spectrum_model
         del self.overlay_tw
         del self.overlay_controller
+        gc.collect()
 
     def test_manual_deleting_overlays(self):
         self.load_overlays()
