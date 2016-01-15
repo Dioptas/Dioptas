@@ -17,8 +17,8 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
+from mock import MagicMock
 import os
-import sys
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
@@ -33,7 +33,8 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 app = QtGui.QApplication([])
-
+QtGui.QApplication.processEvents = MagicMock()
+app.processEvents = MagicMock()
 
 class IntegrationBackgroundControllerTest(unittest.TestCase):
     def setUp(self):
