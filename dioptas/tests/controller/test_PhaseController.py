@@ -32,14 +32,14 @@ from controller.integration import PhaseController
 from controller.integration import PatternController
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
+
+app = QtGui.QApplication([])
+
 
 
 class PhaseControllerTest(unittest.TestCase):
-
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.image_model = ImgModel()
         self.calibration_model = CalibrationModel()
@@ -56,6 +56,13 @@ class PhaseControllerTest(unittest.TestCase):
         self.controller = PhaseController({}, self.widget, self.calibration_model, self.spectrum_model,
                                           self.phase_model)
         self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
+
+    def tearDown(self):
+        del self.calibration_model
+        del self.spectrum_model
+        del self.phase_model
+        del self.widget
+        del self.controller
 
     def test_manual_deleting_phases(self):
         self.load_phases()
