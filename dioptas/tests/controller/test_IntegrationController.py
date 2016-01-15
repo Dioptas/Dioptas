@@ -13,12 +13,12 @@ from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseMode
 from widgets.IntegrationWidget import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
+
+app = QtGui.QApplication([])
 
 
 class IntegrationControllerTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
@@ -45,7 +45,12 @@ class IntegrationControllerTest(unittest.TestCase):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
     def tearDown(self):
-        del self.app
+        del self.calibration_model
+        del self.img_model
+        del self.phase_model
+        del self.widget
+        del self.integration_controller
+        del self.image_controller
 
     def _setup_batch_integration(self):
         # setting up filenames and working directories
