@@ -90,7 +90,7 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_view.plot_image(self.img_model.get_img(),
+        self.widget.img_view.plot_image(self.img_model.img_data,
                                         False)
 
         if auto_scale:

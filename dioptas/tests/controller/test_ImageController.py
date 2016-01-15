@@ -16,7 +16,7 @@ from model.CalibrationModel import CalibrationModel
 
 from widgets.IntegrationWidget import IntegrationWidget
 
-unittest_data_path = os.path.join(os.path.dirname(__file__), 'data')
+unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 
 class ImageControllerTest(unittest.TestCase):
