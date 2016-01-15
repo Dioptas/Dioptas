@@ -23,8 +23,8 @@ class UserInterFaceTest(unittest.TestCase):
         self.mask_model = self.controller.mask_model
         self.spectrum_model = self.controller.spectrum_model
         self.calibration_model = self.controller.calibration_model
-        self.calibration_model.integrate_1d = MagicMock((self.calibration_model.tth,
-                                                         self.calibration_model.int))
+        self.calibration_model.integrate_1d = MagicMock(return_value = (self.calibration_model.tth,
+                                                                        self.calibration_model.int))
         self.phase_model = self.controller.phase_model
 
         self.calibration_widget = self.controller.widget.calibration_widget

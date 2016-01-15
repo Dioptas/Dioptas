@@ -44,7 +44,6 @@ class JcpdsEditorTest(unittest.TestCase):
         del self.jcpds
         self.jcpds_editor_widget.close()
         del self.jcpds_editor_widget
-        gc.collect()
 
     def test_filename_and_comment_are_shown_correctly(self):
         self.assertEqual(self.jcpds_editor_widget.filename_txt.text(),
