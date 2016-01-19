@@ -49,6 +49,8 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
 
     def tearDown(self):
         del self.spectrum_model
+        del self.spectrum_controller
+        del self.background_controller
         del self.img_model
         del self.widget
         gc.collect()
