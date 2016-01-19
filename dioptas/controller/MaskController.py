@@ -168,7 +168,7 @@ class MaskController(object):
         self.plot_mask()
 
     def plot_image(self):
-        self.widget.img_view.plot_image(self.img_model.get_img(), False)
+        self.widget.img_view.plot_image(self.img_model.img_data, False)
         self.widget.img_view.auto_range()
 
     def process_click(self, x, y):
@@ -240,12 +240,12 @@ class MaskController(object):
 
     def below_thresh_btn_click(self):
         thresh = np.float64(self.widget.below_thresh_txt.text())
-        self.mask_model.mask_below_threshold(self.img_model.get_img(), thresh)
+        self.mask_model.mask_below_threshold(self.img_model.img_data, thresh)
         self.plot_mask()
 
     def above_thresh_btn_click(self):
         thresh = np.float64(self.widget.above_thresh_txt.text())
-        self.mask_model.mask_above_threshold(self.img_model.get_img(), thresh)
+        self.mask_model.mask_above_threshold(self.img_model.img_data, thresh)
         self.plot_mask()
 
     def grow_btn_click(self):
@@ -265,7 +265,7 @@ class MaskController(object):
         self.plot_mask()
 
     def cosmic_btn_click(self):
-        self.mask_model.remove_cosmic(self.img_model.get_img())
+        self.mask_model.remove_cosmic(self.img_model.img_data)
         self.plot_mask()
 
     def save_mask_btn_click(self, filename=None):

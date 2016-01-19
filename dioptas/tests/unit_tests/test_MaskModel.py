@@ -8,7 +8,7 @@ import numpy as np
 from model.MaskModel import MaskModel
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 
 
 class MaskModelTest(unittest.TestCase):
@@ -31,7 +31,7 @@ class MaskModelTest(unittest.TestCase):
 
         self.mask_model.grow()
 
-        # test corners
+        # tests corners
         self.assertEqual(self.mask_model._mask_data[0, 1], 1)
         self.assertEqual(self.mask_model._mask_data[1, 1], 1)
         self.assertEqual(self.mask_model._mask_data[1, 0], 1)
@@ -48,7 +48,7 @@ class MaskModelTest(unittest.TestCase):
         self.assertEqual(self.mask_model._mask_data[8, 9], 1)
         self.assertEqual(self.mask_model._mask_data[9, 8], 1)
 
-        # test center
+        # tests center
         self.assertEqual(self.mask_model._mask_data[3, 3], 1)
         self.assertEqual(self.mask_model._mask_data[4, 3], 1)
         self.assertEqual(self.mask_model._mask_data[5, 3], 1)

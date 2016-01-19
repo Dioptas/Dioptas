@@ -18,6 +18,8 @@
 
 import unittest
 import os
+from mock import MagicMock
+import gc
 
 from PyQt4 import QtGui, QtCore
 import numpy as np
@@ -32,19 +34,20 @@ from controller.integration import PhaseController
 from controller.integration import PatternController
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
+
+app = QtGui.QApplication([])
 
 
 class PhaseControllerTest(unittest.TestCase):
-
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.image_model = ImgModel()
         self.calibration_model = CalibrationModel()
         self.calibration_model.is_calibrated = True
         self.calibration_model.spectrum_geometry.wavelength = 0.31E-10
+        self.calibration_model.integrate_1d = MagicMock(return_value = (self.calibration_model.tth,
+                                                                        self.calibration_model.int))
         self.spectrum_model = PatternModel()
         self.phase_model = PhaseModel()
         self.widget = IntegrationWidget()
@@ -56,6 +59,16 @@ class PhaseControllerTest(unittest.TestCase):
         self.controller = PhaseController({}, self.widget, self.calibration_model, self.spectrum_model,
                                           self.phase_model)
         self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
+
+    def tearDown(self):
+        del self.calibration_model
+        del self.spectrum_model
+        del self.phase_model
+        self.widget.close()
+        del self.widget
+        del self.controller
+        del self.spectrum_controller
+        gc.collect()
 
     def test_manual_deleting_phases(self):
         self.load_phases()

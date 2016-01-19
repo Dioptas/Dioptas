@@ -18,7 +18,7 @@
 
 import unittest
 import os
-import sys
+import gc
 
 import numpy as np
 from PyQt4 import QtGui, QtCore
@@ -29,12 +29,12 @@ from model import PatternModel
 from controller.integration import OverlayController
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
+
+app = QtGui.QApplication([])
 
 
 class OverlayControllerTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.widget = IntegrationWidget()
         self.spectrum_model = PatternModel()
@@ -42,9 +42,11 @@ class OverlayControllerTest(unittest.TestCase):
         self.overlay_tw = self.widget.overlay_tw
 
     def tearDown(self):
+        del self.widget
+        del self.spectrum_model
         del self.overlay_tw
         del self.overlay_controller
-        del self.app
+        gc.collect()
 
     def test_manual_deleting_overlays(self):
         self.load_overlays()
@@ -117,7 +119,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.widget.overlay_scale_sb.setValue(2.0)
         self.assertEqual(self.spectrum_model.get_overlay_scaling(2), 2)
 
-        # test if overlay is updated in spectrum
+        # tests if overlay is updated in spectrum
         x, y = self.spectrum_model.overlays[2].data
         x_spec, y_spec = self.widget.spectrum_view.overlays[2].getData()
 
