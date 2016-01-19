@@ -18,6 +18,7 @@
 
 import unittest
 import os
+from mock import MagicMock
 import gc
 
 from PyQt4 import QtGui, QtCore
@@ -45,6 +46,8 @@ class PhaseControllerTest(unittest.TestCase):
         self.calibration_model = CalibrationModel()
         self.calibration_model.is_calibrated = True
         self.calibration_model.spectrum_geometry.wavelength = 0.31E-10
+        self.calibration_model.integrate_1d = MagicMock(return_value = (self.calibration_model.tth,
+                                                                        self.calibration_model.int))
         self.spectrum_model = PatternModel()
         self.phase_model = PhaseModel()
         self.widget = IntegrationWidget()
@@ -64,6 +67,7 @@ class PhaseControllerTest(unittest.TestCase):
         self.widget.close()
         del self.widget
         del self.controller
+        del self.spectrum_controller
         gc.collect()
 
     def test_manual_deleting_phases(self):
