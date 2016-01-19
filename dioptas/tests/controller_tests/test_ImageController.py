@@ -3,6 +3,7 @@
 import os
 import unittest
 import shutil
+import gc
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
@@ -16,12 +17,12 @@ from model.CalibrationModel import CalibrationModel
 
 from widgets.IntegrationWidget import IntegrationWidget
 
-unittest_data_path = os.path.join(os.path.dirname(__file__), 'data')
+unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
+
+app = QtGui.QApplication([])
 
 
 class ImageControllerTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.working_dir = {'image': ''}
 
@@ -42,6 +43,14 @@ class ImageControllerTest(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(os.path.join(unittest_data_path, 'image_003.tif')):
             os.remove(os.path.join(unittest_data_path, 'image_003.tif'))
+        del self.widget
+        del self.image_model
+        del self.mask_model
+        del self.spectrum_model
+        del self.calibration_model
+        del self.controller
+        gc.collect()
+
 
     def test_automatic_file_processing(self):
         # get into a specific folder
@@ -59,6 +68,5 @@ class ImageControllerTest(unittest.TestCase):
                      os.path.join(unittest_data_path, 'image_003.tif'))
 
         self.controller._directory_watcher._file_system_watcher.directoryChanged.emit(unittest_data_path)
-        self.app.processEvents()
 
         self.assertEqual('image_003.tif', str(self.widget.img_filename_txt.text()))

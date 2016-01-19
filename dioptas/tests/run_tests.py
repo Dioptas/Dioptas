@@ -6,17 +6,15 @@ import sys
 import os
 import time
 
-# appending the main dioptas path to the PYTHONPATH
-path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-print path
-sys.path.append(path)
-
-folders = ['', 'functional_tests/']
+folders = [x[0] for x in os.walk(os.path.dirname(os.path.abspath(__file__)))]
+print folders
+print os.path.dirname('.')
+print os.path.abspath(__file__)
 test_files = []
 
 for folder in folders:
-    base_str = os.path.join(folder, 'test')
-    test_files += glob.glob("{}_*.py".format(base_str))
+    base_string = folder + '/test'
+    test_files += glob.glob("{}_*.py".format(base_string))
 
 exit_codes = []
 for test_file in test_files:

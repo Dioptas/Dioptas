@@ -1,6 +1,5 @@
-
-
 import unittest
+from mock import MagicMock
 import sys
 import os
 import gc
@@ -14,14 +13,18 @@ from controller import MainController
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
-class IntegrationFunctionalTest(unittest.TestCase):
+app = QtGui.QApplication([])
+
+
+class UserInterFaceTest(unittest.TestCase):
     def setUp(self):
-        self.app = QtGui.QApplication(sys.argv)
         self.controller = MainController(use_settings=False)
         self.img_model = self.controller.img_model
         self.mask_model = self.controller.mask_model
         self.spectrum_model = self.controller.spectrum_model
         self.calibration_model = self.controller.calibration_model
+        self.calibration_model.integrate_1d = MagicMock(return_value = (self.calibration_model.tth,
+                                                                        self.calibration_model.int))
         self.phase_model = self.controller.phase_model
 
         self.calibration_widget = self.controller.widget.calibration_widget
@@ -44,7 +47,6 @@ class IntegrationFunctionalTest(unittest.TestCase):
         del self.calibration_model
         del self.integration_widget
         del self.integration_controller
-        del self.app
         gc.collect()
 
     def test_synchronization_of_view_range(self):
@@ -53,8 +55,8 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.calibration_widget.img_view.img_view_box.setRange(QtCore.QRectF(-10, -10, 20, 20))
         self.controller.widget.tabWidget.setCurrentIndex(1)
 
-        self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_view.img_view_box.targetRange())-\
-                               np.array(self.mask_widget.img_view.img_view_box.targetRange())),0)
+        self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_view.img_view_box.targetRange())- \
+                                      np.array(self.mask_widget.img_view.img_view_box.targetRange())),0)
 
         self.mask_widget.img_view.img_view_box.setRange(QtCore.QRectF(100, 100, 300, 300))
         self.controller.widget.tabWidget.setCurrentIndex(0)

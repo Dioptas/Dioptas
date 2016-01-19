@@ -2,8 +2,11 @@
 
 
 import unittest
+from mock import MagicMock
 import os
 import gc
+
+import numpy as np
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
@@ -15,28 +18,31 @@ from widgets.IntegrationWidget import IntegrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
-class IntegrationFunctionalTest(unittest.TestCase):
-    app = QtGui.QApplication([])
+app = QtGui.QApplication([])
 
+
+class IntegrationFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.spectrum_model = PatternModel()
         self.calibration_model = CalibrationModel(self.img_model)
+        self.calibration_model.integrate_1d = MagicMock(return_value=(self.calibration_model.tth,
+                                                                      self.calibration_model.int))
+
         self.phase_model = PhaseModel()
 
         self.integration_widget = IntegrationWidget()
 
         self.integration_controller = IntegrationController({'spectrum': data_path},
-                                                              widget=self.integration_widget,
-                                                              img_model=self.img_model,
-                                                              mask_model=self.mask_model,
-                                                              calibration_model=self.calibration_model,
-                                                              spectrum_model=self.spectrum_model,
-                                                              phase_model=self.phase_model)
+                                                            widget=self.integration_widget,
+                                                            img_model=self.img_model,
+                                                            mask_model=self.mask_model,
+                                                            calibration_model=self.calibration_model,
+                                                            spectrum_model=self.spectrum_model,
+                                                            phase_model=self.phase_model)
         self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-
 
         self.integration_spectrum_controller = self.integration_controller.spectrum_controller
         self.integration_image_controller = self.integration_controller.image_controller
@@ -68,18 +74,17 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
-        self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 1512)
         previous_number_of_points = len(self.spectrum_model.pattern.x)
-        self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * 1512)
+        self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
-        self.assertAlmostEqual(len(self.spectrum_model.pattern.x), 2 * previous_number_of_points,
-                               delta=1)
+        self.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
+                                                               mask=None, unit='2th_deg')
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
-        self.assertEqual(int(str(self.integration_widget.bin_count_txt.text())), 1512)
-        self.assertEqual(len(self.spectrum_model.pattern.x), previous_number_of_points)
+        self.calibration_model.integrate_1d.assert_called_with(num_points=None,
+                                                               mask=None, unit='2th_deg')
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
         # Edith opens the program, calibrates everything and looks in to the options menu. She sees that there is a
@@ -104,7 +109,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.assertEqual(self.img_model.img_data.shape[0], 2 * img_shape[0])
         self.assertEqual(self.img_model.img_data.shape[1], 2 * img_shape[1])
 
-        self.mask_model.load_mask(os.path.join(data_path,'test.mask'))
+        self.mask_model.load_mask(os.path.join(data_path, 'test.mask'))
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
 
@@ -124,6 +129,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def test_saving_spectrum(self):
         # the widget has to be shown to be able to save the image:
         self.integration_widget.show()
+
         # Tests if the spectrum save procedures is are working for all fileendings
         def save_spectra_test_for_size_and_delete(self):
             self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.xy'))

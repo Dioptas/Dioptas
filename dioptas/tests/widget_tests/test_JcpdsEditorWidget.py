@@ -25,12 +25,12 @@ from model.util import jcpds
 from widgets.JcpdsEditorWidget import JcpdsEditorWidget
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
+app = QtGui.QApplication([])
 
 class JcpdsEditorTest(unittest.TestCase):
-    app = QtGui.QApplication([])
 
     def setUp(self):
         self.jcpds = jcpds()
@@ -44,7 +44,6 @@ class JcpdsEditorTest(unittest.TestCase):
         del self.jcpds
         self.jcpds_editor_widget.close()
         del self.jcpds_editor_widget
-        gc.collect()
 
     def test_filename_and_comment_are_shown_correctly(self):
         self.assertEqual(self.jcpds_editor_widget.filename_txt.text(),

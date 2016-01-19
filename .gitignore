@@ -24,6 +24,7 @@ cloc-1.62.pl
 *.pyd
 *.so.dSYM
 *.ui.autosave
+*.coverage
 
 log.txt
 .idea

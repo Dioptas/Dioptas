@@ -198,11 +198,8 @@ class ImgModel(QtCore.QObject):
     def get_img_data(self):
         return self.img_data
 
-    def get_img(self):
-        if self._background_data is not None:
-            return self._img_data_background_subtracted
-        else:
-            return self._img_data
+    def get_raw_img_data(self):
+        return self._img_data
 
     def _calculate_img_data(self):
         """
@@ -282,6 +279,7 @@ class ImgModel(QtCore.QObject):
 
             elif self._background_data is not None and self._img_corrections.has_items():
                 return self._img_data_supersampled_background_subtracted_absorption_corrected
+        return self._img_data
 
     def rotate_img_p90(self):
         """

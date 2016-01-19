@@ -15,12 +15,12 @@ from controller.MaskController import MaskController
 from widgets.MaskWidget import MaskWidget
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, 'data')
+data_path = os.path.join(unittest_path, '../data')
+
+app = QtGui.QApplication([])
 
 
 class MaskControllerTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
     def setUp(self):
         self.working_dir = {}
 
