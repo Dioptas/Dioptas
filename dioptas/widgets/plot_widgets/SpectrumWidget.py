@@ -93,6 +93,9 @@ class SpectrumWidget(QtCore.QObject):
         self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5, style=QtCore.Qt.DashLine))
         self.spectrum_plot.addItem(self.pos_line)
 
+    def deactivate_pos_line(self):
+        self.spectrum_plot.removeItem(self.pos_line)
+
     def set_pos_line(self, x):
         self.pos_line.setPos(x)
 
@@ -239,7 +242,8 @@ class SpectrumWidget(QtCore.QObject):
         if len(self.phases_vlines) > 0:
             self.phases_vlines[0].set_data(positions, name)
         else:
-            self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions))
+            self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions,
+                                                     pen=pg.mkPen(color=(200, 50, 50), style=QtCore.Qt.SolidLine)))
 
     def show_linear_region(self):
         self.spectrum_plot.addItem(self.linear_region_item)
@@ -397,8 +401,7 @@ class SpectrumWidget(QtCore.QObject):
 
 
 class PhaseLinesPlot(object):
-    def __init__(self, plot_item, positions=None, name='Dummy',
-                 pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine)):
+    def __init__(self, plot_item, positions=None, name='Dummy', pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine)):
         self.plot_item = plot_item
         self.peak_positions = []
         self.line_items = []
