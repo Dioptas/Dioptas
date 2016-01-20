@@ -20,7 +20,9 @@ class CalibrationWidgetNew(QtGui.QWidget):
         self._main_splitter.setStretchFactor(0, 2)
 
         self._layout = QtGui.QHBoxLayout()
-        self._layout.addWidget(self._main_splitter)
+        self._layout.addWidget(self.calibration_display_widget)
+        self._layout.addWidget(self.calibration_control_widget)
+        # self._layout.addWidget(self._main_splitter)
         self.setLayout(self._layout)
 
         self.create_shortcuts()
@@ -177,7 +179,7 @@ class CalibrationDisplayWidget(QtGui.QWidget):
         self.tab_widget = QtGui.QTabWidget()
         self.tab_widget.addTab(self.img_layout_widget, 'Image')
         self.tab_widget.addTab(self.cake_layout_widget, 'Cake')
-        self.tab_widget.addTab(self.spectrum_layout_widget, 'Cake')
+        self.tab_widget.addTab(self.spectrum_layout_widget, 'Pattern')
         self._layout.addWidget(self.tab_widget)
 
         self._status_layout = QtGui.QHBoxLayout()
@@ -196,6 +198,7 @@ class CalibrationDisplayWidget(QtGui.QWidget):
         self.style_widgets()
 
     def style_widgets(self):
+        self.spectrum_widget.deactivate_pos_line()
         self.calibrate_btn.setMinimumWidth(140)
         self.refine_btn.setMinimumWidth(140)
 
@@ -239,6 +242,14 @@ class CalibrationControlWidget(QtGui.QWidget):
 
         self.setLayout(self._layout)
 
+        self.style_widgets()
+
+    def style_widgets(self):
+        self.load_previous_img_btn.setMaximumWidth(60)
+        self.load_next_img_btn.setMaximumWidth(60)
+        self.setMaximumWidth(335)
+        self.setMinimumWidth(335)
+
 
 class CalibrationParameterWidget(QtGui.QWidget):
     def __init__(self, *args, **kwargs):
@@ -253,6 +264,8 @@ class CalibrationParameterWidget(QtGui.QWidget):
         self._layout.addWidget(self.start_values_gb)
         self._layout.addWidget(self.peak_selection_gb)
         self._layout.addWidget(self.refinement_options_gb)
+        self._layout.addSpacerItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
+                                                     QtGui.QSizePolicy.Expanding))
 
         self.setLayout(self._layout)
 
