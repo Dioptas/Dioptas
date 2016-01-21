@@ -80,7 +80,7 @@ class CalibrationController(object):
 
         self.connect_click_function(self.widget.save_calibration_btn, self.save_calibration)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
-        self.connect_click_function(self.widget.integrate_btn, self.calibrate)
+        self.connect_click_function(self.widget.calibrate_btn, self.calibrate)
         self.connect_click_function(self.widget.refine_btn, self.refine)
 
         self.widget.img_view.mouse_left_clicked.connect(self.search_peaks)
