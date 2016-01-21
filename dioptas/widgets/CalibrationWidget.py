@@ -6,8 +6,16 @@ from pyqtgraph import GraphicsLayoutWidget
 from widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
 from widgets.plot_widgets import SpectrumWidget
 
+from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
+    DoubleSpinBoxAlignRight
+
 
 class CalibrationWidget(QtGui.QWidget):
+    """
+    Defines the main structure of the calibration widget, which is separated into two parts.
+    Calibration Display Widget - shows the image and pattern
+    Calibration Control Widget - shows all the controls on the right side of the widget
+    """
     def __init__(self, *args, **kwargs):
         super(CalibrationWidget, self).__init__(*args, **kwargs)
 
@@ -22,6 +30,9 @@ class CalibrationWidget(QtGui.QWidget):
         self.create_shortcuts()
 
     def create_shortcuts(self):
+        """
+        Creates shortcuts for the widgets which are directly interfacing with the controller.
+        """
         self.load_img_btn = self.calibration_control_widget.load_img_btn
         self.load_next_img_btn = self.calibration_control_widget.load_next_img_btn
         self.load_previous_img_btn = self.calibration_control_widget.load_previous_img_btn
@@ -30,7 +41,7 @@ class CalibrationWidget(QtGui.QWidget):
         self.save_calibration_btn = self.calibration_control_widget.save_calibration_btn
         self.load_calibration_btn = self.calibration_control_widget.load_calibration_btn
 
-        self.integrate_btn = self.calibration_display_widget.calibrate_btn
+        self.calibrate_btn = self.calibration_display_widget.calibrate_btn
         self.refine_btn = self.calibration_display_widget.refine_btn
         self.pos_lbl = self.calibration_display_widget.position_lbl
 
@@ -44,6 +55,14 @@ class CalibrationWidget(QtGui.QWidget):
         self.invert_vertical_btn = sv_gb.flip_vertical_btn
         self.reset_transformations_btn = sv_gb.reset_transformations_btn
         self.calibrant_cb = sv_gb.calibrant_cb
+
+        self.sv_wavelength_txt = sv_gb.wavelength_txt
+        self.sv_wavelength_cb = sv_gb.wavelength_cb
+        self.sv_distance_txt = sv_gb.distance_txt
+        self.sv_distance_cb = sv_gb.distance_cb
+        self.sv_polarisation_txt = sv_gb.polarization_txt
+        self.sv_pixel_width_txt = sv_gb.pixel_width_txt
+        self.sv_pixel_height_txt = sv_gb.pixel_height_txt
 
         refinement_options_gb = self.calibration_control_widget.calibration_parameters_widget.refinement_options_gb
         self.use_mask_cb = refinement_options_gb.use_mask_cb
@@ -68,16 +87,9 @@ class CalibrationWidget(QtGui.QWidget):
 
         self.f2_wavelength_cb = self.calibration_control_widget.fit2d_parameters_widget.wavelength_cb
         self.pf_wavelength_cb = self.calibration_control_widget.pyfai_parameters_widget.wavelength_cb
-        self.sv_wavelength_cb = sv_gb.wavelength_cb
-        self.sv_wavelength_txt = sv_gb.wavelength_txt
-        self.sv_distance_txt = sv_gb.distance_txt
-        self.sv_polarisation_txt = sv_gb.polarization_txt
-        self.sv_pixel_width_txt = sv_gb.pixel_width_txt
-        self.sv_pixel_height_txt = sv_gb.pixel_height_txt
 
         self.f2_distance_cb = self.calibration_control_widget.fit2d_parameters_widget.distance_cb
         self.pf_distance_cb = self.calibration_control_widget.pyfai_parameters_widget.distance_cb
-        self.sv_distance_cb = sv_gb.distance_cb
 
         self.img_view = self.calibration_display_widget.img_widget
         self.cake_view = self.calibration_display_widget.cake_widget
@@ -87,15 +99,24 @@ class CalibrationWidget(QtGui.QWidget):
         self.filename_txt.setText(os.path.basename(filename))
 
     def set_start_values(self, start_values):
+        """
+        Sets the Start value widgets with the correct numbers and appropriate formatting
+        :param start_values: dictionary with calibration start values, expected fields are: dist, wavelength,
+                             polarization_factor, pixel_width, pixel_width
+        """
         sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
         sv_gb.distance_txt.setText('%.3f' % (start_values['dist'] * 1000))
         sv_gb.wavelength_txt.setText('%.6f' % (start_values['wavelength'] * 1e10))
         sv_gb.polarization_txt.setText('%.3f' % (start_values['polarization_factor']))
         sv_gb.pixel_height_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
         sv_gb.pixel_width_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
-        return start_values
 
     def get_start_values(self):
+        """
+        Gets start_values from the widgets
+        :return: returns a dictionary with the following keys: dist, wavelength, pixel_width, pixel_height,
+                polarization_factor
+        """
         sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
         start_values = {'dist': float(sv_gb.distance_txt.text()) * 1e-3,
                         'wavelength': float(sv_gb.wavelength_txt.text()) * 1e-10,
@@ -109,6 +130,11 @@ class CalibrationWidget(QtGui.QWidget):
         self.set_fit2d_parameter(fit2d_parameter)
 
     def set_pyFAI_parameter(self, pyfai_parameter):
+        """
+        Sets the values of the pyFAI widgets.
+        :param pyfai_parameter: dictionary with the following keys: dist, poni1, poni2, rot1, rot2, rot3, wavelength
+            polarization_factor, pixel1, pixel2
+        """
         pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
         pyfai_widget.distance_txt.setText('%.6f' % (pyfai_parameter['dist'] * 1000))
         pyfai_widget.poni1_txt.setText('%.6f' % (pyfai_parameter['poni1']))
@@ -122,6 +148,11 @@ class CalibrationWidget(QtGui.QWidget):
         pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
 
     def get_pyFAI_parameter(self):
+        """
+        Gets the pyFAI parameter values from the pyFAI widgets.
+        :return: dictionary with the following keys: dist, poni1, poni2, rot1, rot2, rot3, wavelength
+            polarization_factor, pixel1, pixel2
+        """
         pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
         pyfai_parameter = {'dist': float(pyfai_widget.distance_txt.text()) / 1000,
                            'poni1': float(pyfai_widget.poni1_txt.text()),
@@ -136,6 +167,11 @@ class CalibrationWidget(QtGui.QWidget):
         return pyfai_parameter
 
     def set_fit2d_parameter(self, fit2d_parameter):
+        """
+        Sets the values of the fit2d parameter widgets with the appropriate number formatting.
+        :param fit2d_parameter: dictionary with the following keys: directDist, centerX, centerY, tilt,
+            tiltPlanRotation, wavelength, pixelX, pixelY
+        """
         fit2d_widget = self.calibration_control_widget.fit2d_parameters_widget
         fit2d_widget.distance_txt.setText('%.4f' % (fit2d_parameter['directDist']))
         fit2d_widget.center_x_txt.setText('%.3f' % (fit2d_parameter['centerX']))
@@ -148,6 +184,11 @@ class CalibrationWidget(QtGui.QWidget):
         fit2d_widget.pixel_height_txt.setText('%.4f' % (fit2d_parameter['pixelY']))
 
     def get_fit2d_parameter(self):
+        """
+        Gets the values of the fit2d parameter widgets.
+        :return: dictionary with the following keys: directDist, centerX, centerY, tilt,
+            tiltPlanRotation, wavelength, pixelX, pixelY
+        """
         fit2d_widget = self.calibration_control_widget.fit2d_parameters_widget
         fit2d_parameter = {'directDist': float(fit2d_widget.distance_txt.text()),
                            'centerX': float(fit2d_widget.center_x_txt.text()),
@@ -540,42 +581,9 @@ class Fit2dParametersWidget(QtGui.QWidget):
         self.setLayout(self._layout)
 
 
-class NumberTextField(QtGui.QLineEdit):
-    def __init__(self, *args, **kwargs):
-        super(NumberTextField, self).__init__(*args, **kwargs)
-        self.setValidator(QtGui.QDoubleValidator())
-        self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-
-
-class LabelAlignRight(QtGui.QLabel):
-    def __init__(self, *args, **kwargs):
-        super(LabelAlignRight, self).__init__(*args, **kwargs)
-        self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-
-
-class CleanLooksComboBox(QtGui.QComboBox):
-    cleanlooks = QtGui.QStyleFactory.create('cleanlooks')
-
-    def __init__(self, *args, **kwargs):
-        super(CleanLooksComboBox, self).__init__(*args, **kwargs)
-        self.setStyle(CleanLooksComboBox.cleanlooks)
-
-
-class SpinBoxAlignRight(QtGui.QSpinBox):
-    def __init__(self, *args, **kwargs):
-        super(SpinBoxAlignRight, self).__init__(*args, **kwargs)
-        self.setAlignment(QtCore.Qt.AlignRight)
-
-
-class DoubleSpinBoxAlignRight(QtGui.QDoubleSpinBox):
-    def __init__(self, *args, **kwargs):
-        super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
-        self.setAlignment(QtCore.Qt.AlignRight)
-
-
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    widget = CalibrationWidgetNew()
+    widget = CalibrationWidget()
     widget.show()
     widget.setWindowState(widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
     widget.activateWindow()

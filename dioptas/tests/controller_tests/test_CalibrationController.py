@@ -60,7 +60,7 @@ class TestCalibrationController(unittest.TestCase):
         calibrant_index = self.calibration_widget.calibrant_cb.findText('LaB6')
         self.calibration_controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
 
-        QTest.mouseClick(self.calibration_widget.integrate_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.calibration_widget.calibrate_btn, QtCore.Qt.LeftButton)
         self.calibration_model.integrate_1d.assert_called_once_with()
         self.calibration_model.integrate_2d.assert_called_once_with()
         self.assertEqual(QtGui.QProgressDialog.setValue.call_count, 15)
