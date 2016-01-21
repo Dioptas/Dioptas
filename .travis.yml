@@ -35,4 +35,5 @@ install:
 
 script:
     - cd dioptas/tests
-    - py.test
+    - py.test controller_tests
+    - py.test unit_tests
