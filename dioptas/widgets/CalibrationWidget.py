@@ -17,7 +17,6 @@ class CalibrationWidget(QtGui.QWidget):
         self._layout = QtGui.QHBoxLayout()
         self._layout.addWidget(self.calibration_display_widget)
         self._layout.addWidget(self.calibration_control_widget)
-        # self._layout.addWidget(self._main_splitter)
         self.setLayout(self._layout)
 
         self.create_shortcuts()
@@ -70,6 +69,11 @@ class CalibrationWidget(QtGui.QWidget):
         self.f2_wavelength_cb = self.calibration_control_widget.fit2d_parameters_widget.wavelength_cb
         self.pf_wavelength_cb = self.calibration_control_widget.pyfai_parameters_widget.wavelength_cb
         self.sv_wavelength_cb = sv_gb.wavelength_cb
+        self.sv_wavelength_txt = sv_gb.wavelength_txt
+        self.sv_distance_txt = sv_gb.distance_txt
+        self.sv_polarisation_txt = sv_gb.polarization_txt
+        self.sv_pixel_width_txt = sv_gb.pixel_width_txt
+        self.sv_pixel_height_txt = sv_gb.pixel_height_txt
 
         self.f2_distance_cb = self.calibration_control_widget.fit2d_parameters_widget.distance_cb
         self.pf_distance_cb = self.calibration_control_widget.pyfai_parameters_widget.distance_cb
