@@ -31,12 +31,12 @@ class SaveSettingsTest(unittest.TestCase):
 
 
     def tearDown(self):
-        del self.controller
-        del self.mask_model
-        del self.img_model
         del self.calibration_model.cake_geometry
         del self.calibration_model.spectrum_geometry
         del self.calibration_model
+        del self.img_model
+        del self.mask_model
+        del self.controller
         gc.collect()
 
     def test_calibration_data(self):
@@ -46,6 +46,7 @@ class SaveSettingsTest(unittest.TestCase):
         center_x = self.calibration_model.spectrum_geometry.poni1
 
         self.controller.save_settings()
+        self.tearDown()
         self.create_controller_and_data()
 
         self.assertEqual(self.calibration_model.spectrum_geometry.poni1, center_x)
