@@ -36,8 +36,17 @@ class MaskWidget(QtGui.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(MaskWidget, self).__init__()
-        self._layout = QtGui.QHBoxLayout()
+        self.create_display_widget()
+        self.create_control_widget()
 
+        self._layout = QtGui.QHBoxLayout()
+        self._layout.addWidget(self._display_widget)
+        self._layout.addWidget(self._control_widget)
+        self.setLayout(self._layout)
+
+        self.style_widgets()
+
+    def create_display_widget(self):
         self._display_widget = QtGui.QWidget()
         self._display_layout = QtGui.QVBoxLayout()
         self.img_layout_widget = GraphicsLayoutWidget()
@@ -54,6 +63,7 @@ class MaskWidget(QtGui.QWidget):
 
         self._display_widget.setLayout(self._display_layout)
 
+    def create_control_widget(self):
         self._control_widget = QtGui.QWidget()
         self._control_layout = QtGui.QVBoxLayout()
 
@@ -138,16 +148,10 @@ class MaskWidget(QtGui.QWidget):
 
         self._control_widget.setLayout(self._control_layout)
 
-        self._layout.addWidget(self._display_widget)
-        self._layout.addWidget(self._control_widget)
-        self.setLayout(self._layout)
-
-        self.style_widgets()
 
     def style_widgets(self):
         self.mask_rb.setChecked(True)
         self.fill_rb.setChecked(True)
-        self.circle_btn.setChecked(True)
         self.point_size_sb.setValue(20)
 
         self._control_widget.setMinimumWidth(200)
