@@ -63,7 +63,8 @@ class MaskControllerTest(unittest.TestCase):
 
         filename = os.path.join(data_path, 'dummy.mask')
         self.mask_controller.save_mask_btn_click(filename)
-        self.assertEqual(self.get_file_size(filename), self.get_file_size(os.path.join(data_path, 'test.mask')))
+        self.assertAlmostEqual(self.get_file_size(filename), self.get_file_size(os.path.join(data_path, 'test.mask')),
+                               delta=20)
 
     def test_grow_and_shrinking(self):
         self.mask_model.mask_ellipse(100, 100, 20, 20)
