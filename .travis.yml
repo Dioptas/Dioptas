@@ -24,7 +24,7 @@ addons:
 
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
-    - pip install lmfit pyqtgraph fabio mock pymatgen pytest
+    - pip install lmfit pyqtgraph fabio mock pymatgen pytest pytest-cov
     - git clone https://github.com/kif/pyFAI.git
     - cd pyFAI
     - python setup.py install
@@ -34,5 +34,6 @@ install:
     - cd ../../../
 
 script:
-    - cd dioptas
-    - py.test tests
+    - cd dioptas/tests
+    - py.test controller_tests
+    - py.test unit_tests

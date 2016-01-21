@@ -16,12 +16,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 block_cipher = None
+
 import sys
 import os
+
+
 folder = os.getcwd()
 
-
 from distutils.sysconfig import get_python_lib
+from sys import platform as _platform
+
 site_packages_path = get_python_lib()
 
 extra_datas = [
@@ -30,11 +34,20 @@ extra_datas = [
     (os.path.join(site_packages_path, 'pymatgen/symmetry/symm_data.yaml'), "pymatgen/symmetry"),
     (os.path.join(site_packages_path, 'pymatgen/analysis/diffraction/atomic_scattering_params.json'),
      "pymatgen/analysis/diffraction"),
+
 ]
+
+if _platform == "darwin":
+    extra_datas.extend((
+        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtCore.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtGui.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libpng16.16.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtSvg.4.dylib'), '.'),
+    ))
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
-             binaries=None,
+             binaries=[],
              datas=extra_datas,
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
              hookspath=[],
@@ -56,7 +69,6 @@ a.binaries = [x for x in a.binaries if not x[0].startswith("libQtDesigner")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("PySide")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
 
-
 a.datas = [x for x in a.datas if not "IPython" in x[0]]
 a.datas = [x for x in a.datas if not "matplotlib" in x[0]]
 a.datas = [x for x in a.datas if not "mpl-data" in x[0]]
@@ -67,7 +79,7 @@ a.datas = [x for x in a.datas if not "lib{}".format(os.path.sep) in x[0]]
 a.datas = [x for x in a.datas if not "include" in x[0]]
 a.datas = [x for x in a.datas if not "sphinx" in x[0]]
 
-from sys import platform as _platform
+
 platform = ''
 
 if _platform == "linux" or _platform == "linux2":
@@ -80,19 +92,19 @@ elif _platform == "darwin":
     platform = "Mac"
     name = "Dioptas"
 
-# checking wether the platform is 64 or 32 bit
-if sys.maxsize > 2**32:
-    platform+="64"
+# checking whether the platform is 64 or 32 bit
+if sys.maxsize > 2 ** 32:
+    platform += "64"
 else:
-    platform+="32"
+    platform += "32"
 
 # getting the current version of Dioptas
 from controller.MainController import get_version
+
 version = get_version()
 
-
 pyz = PYZ(a.pure, a.zipped_data,
-             cipher=block_cipher)
+          cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
           exclude_binaries=True,
@@ -100,7 +112,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False )
+          console=False)
 
 coll = COLLECT(exe,
                a.binaries,
