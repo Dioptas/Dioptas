@@ -18,6 +18,7 @@
 
 from PyQt4 import QtCore, QtGui
 
+
 class NumberTextField(QtGui.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(NumberTextField, self).__init__(*args, **kwargs)
@@ -49,3 +50,29 @@ class DoubleSpinBoxAlignRight(QtGui.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
         super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
+
+
+class FlatButton(QtGui.QPushButton ):
+    def __init__(self, *args):
+        super(FlatButton, self).__init__(*args)
+        self.setFlat(True)
+
+
+class CheckableFlatButton(QtGui.QPushButton):
+    def __init__(self, *args):
+        super(CheckableFlatButton, self).__init__(*args)
+        self.setFlat(True)
+        self.setCheckable(True)
+
+class HorizontalLine(QtGui.QFrame):
+    def __init__(self):
+        super(HorizontalLine, self).__init__()
+        self.setFrameShape(QtGui.QFrame.HLine)
+        self.setFrameShadow(QtGui.QFrame.Sunken)
+
+
+def HorizontalSpacerItem():
+    return QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+
+def VerticalSpacerItem():
+    return QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
