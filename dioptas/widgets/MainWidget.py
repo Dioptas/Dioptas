@@ -25,8 +25,7 @@ from .UiFiles.MainUI import Ui_mainView
 
 from .MaskWidget import MaskWidget
 from .IntegrationWidget import IntegrationWidget
-# from .CalibrationWidget import CalibrationWidget
-from .CalibrationWidgetNew import CalibrationWidgetNew as CalibrationWidget
+from .CalibrationWidget import CalibrationWidget
 
 
 class MainWidget(QtGui.QWidget, Ui_mainView):
