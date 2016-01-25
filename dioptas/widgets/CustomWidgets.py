@@ -77,6 +77,15 @@ class HorizontalLine(QtGui.QFrame):
         self.setFrameShadow(QtGui.QFrame.Sunken)
 
 
+class NoRectDelegate(QtGui.QItemDelegate):
+    def __init__(self):
+        super(NoRectDelegate, self).__init__()
+
+    def drawFocus(self, painter, option, rect):
+        option.state &= ~QtGui.QStyle.State_HasFocus
+        QtGui.QItemDelegate.drawFocus(self, painter, option, rect)
+
+
 def HorizontalSpacerItem(minimum_width=0):
     return QtGui.QSpacerItem(minimum_width, 0, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Minimum)
 
