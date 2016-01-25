@@ -25,6 +25,12 @@ class NumberTextField(QtGui.QLineEdit):
         self.setValidator(QtGui.QDoubleValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
+class IntegerTextField(QtGui.QLineEdit):
+    def __init__(self, *args, **kwargs):
+        super(IntegerTextField, self).__init__(*args, **kwargs)
+        self.setValidator(QtGui.QIntValidator())
+        self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+
 
 class LabelAlignRight(QtGui.QLabel):
     def __init__(self, *args, **kwargs):
@@ -71,8 +77,8 @@ class HorizontalLine(QtGui.QFrame):
         self.setFrameShadow(QtGui.QFrame.Sunken)
 
 
-def HorizontalSpacerItem():
-    return QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+def HorizontalSpacerItem(minimum_width=0):
+    return QtGui.QSpacerItem(minimum_width, 0, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Minimum)
 
 def VerticalSpacerItem():
     return QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
