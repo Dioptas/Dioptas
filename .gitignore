@@ -29,6 +29,8 @@ cloc-1.62.pl
 log.txt
 .idea
 data/
+releases
+cache
 _build/
 *.logoist
 _version.py
