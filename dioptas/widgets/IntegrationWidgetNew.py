@@ -13,7 +13,7 @@ from widgets.FileInfoWidget import FileInfoWidget
 
 from widgets.CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, \
-    NoRectDelegate, HorizontalLine
+    NoRectDelegate, HorizontalLine, ListTableWidget
 
 clicked_color = '#00DD00'
 widget_path = os.path.dirname(__file__)
@@ -44,7 +44,7 @@ class IntegrationWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
         self._layout.setSpacing(6)
-        self._layout.setContentsMargins(6, 0, 6, 0)
+        self._layout.setContentsMargins(6, 6, 6, 0)
 
         self._vertical_splitter = QtGui.QSplitter()
         self._vertical_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -586,7 +586,11 @@ class IntegrationImgWidget(QtGui.QWidget):
 
         self.setLayout(self._layout)
 
+        self.style_widgets()
+
+    def style_widgets(self):
         self.setStyleSheet('#img_frame, QLabel {background: black;}')
+        self.autoscale_btn.setChecked(True)
 
 
 class IntegrationControlWidget(QtGui.QTabWidget):
@@ -595,19 +599,38 @@ class IntegrationControlWidget(QtGui.QTabWidget):
 
         self.img_control_widget = ImageControlWidget()
         self.pattern_control_widget = PatternControlWidget()
-        self.phase_control_widget = PhaseControlWidget()
         self.overlay_control_widget = OverlayControlWidget()
+        self.phase_control_widget = PhaseControlWidget()
         self.corrections_control_widget = CorrectionsControlWidget()
         self.background_control_widget = BackgroundControlWidget()
         self.integration_options_widget = OptionsWidget()
 
         self.addTab(self.img_control_widget, 'Image')
         self.addTab(self.pattern_control_widget, 'Pattern')
-        self.addTab(self.phase_control_widget, 'Phase')
         self.addTab(self.overlay_control_widget, 'Overlay')
+        self.addTab(self.phase_control_widget, 'Phase')
         self.addTab(self.corrections_control_widget, 'Cor')
         self.addTab(self.background_control_widget, 'Bkg')
         self.addTab(self.integration_options_widget, 'X')
+
+        self.style_widgets()
+
+    def style_widgets(self):
+        self.setStyleSheet("""
+        QTableWidget QPushButton {
+            margin: 5px;
+        }
+
+        QTableWidget QPushButton::pressed{
+            margin-top: 7px;
+            margin-left: 7px;
+        }
+
+        QTableWidget {
+            selection-background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(177,80,0,255), stop:1 rgba(255,120,0,255));
+            selection-color: #F1F1F1;
+        }
+        """)
 
 
 class ImageControlWidget(QtGui.QWidget):
@@ -666,20 +689,27 @@ class PhaseControlWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
 
-        self._control_layout = QtGui.QHBoxLayout()
+        self.button_widget = QtGui.QWidget(self)
+        self.button_widget.setObjectName('phase_control_button_widget')
+        self._button_layout = QtGui.QHBoxLayout()
+        self._button_layout.setContentsMargins(0, 0, 0, 0)
+        self._button_layout.setSpacing(6)
+
         self.add_btn = FlatButton('Add')
         self.edit_btn = FlatButton('Edit')
         self.delete_btn = FlatButton('Delete')
         self.clear_btn = FlatButton('Clear')
 
-        self._control_layout.addWidget(self.add_btn)
-        self._control_layout.addWidget(self.edit_btn)
-        self._control_layout.addWidget(self.delete_btn)
-        self._control_layout.addWidget(self.clear_btn)
-        self._control_layout.addSpacerItem(HorizontalSpacerItem())
-        self._layout.addLayout(self._control_layout)
+        self._button_layout.addWidget(self.add_btn)
+        self._button_layout.addWidget(self.edit_btn)
+        self._button_layout.addWidget(self.delete_btn)
+        self._button_layout.addWidget(self.clear_btn)
+        self._button_layout.addSpacerItem(HorizontalSpacerItem())
+        self.button_widget.setLayout(self._button_layout)
+        self._layout.addWidget(self.button_widget)
 
         self.parameter_widget = QtGui.QWidget()
+
         self._parameter_layout = QtGui.QGridLayout()
         self.pressure_sb = DoubleSpinBoxAlignRight()
         self.temperature_sb = DoubleSpinBoxAlignRight()
@@ -706,15 +736,13 @@ class PhaseControlWidget(QtGui.QWidget):
         self.parameter_widget.setLayout(self._parameter_layout)
 
         self._body_layout = QtGui.QHBoxLayout()
-
-        self.phase_tw = QtGui.QTableWidget()
+        self.phase_tw = ListTableWidget(columns=5)
         self._body_layout.addWidget(self.phase_tw, 10)
         self._body_layout.addWidget(self.parameter_widget, 0)
 
         self._layout.addLayout(self._body_layout)
 
         self.setLayout(self._layout)
-
         self.style_widgets()
 
     def style_widgets(self):
@@ -735,7 +763,7 @@ class PhaseControlWidget(QtGui.QWidget):
         self.temperature_sb.setValue(298)
 
         self.setStyleSheet("""
-            QPushButton {
+            #phase_control_button_widget QPushButton {
                 min-width: 95;
             }
         """)
@@ -747,21 +775,23 @@ class OverlayControlWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
 
-        self.control_widget = QtGui.QWidget(self)
-        self.control_widget.setObjectName('overlay_control_widget')
-        self._control_layout = QtGui.QHBoxLayout(self.control_widget)
-        self._control_layout.setContentsMargins(0, 0, 0, 0)
-        self._control_layout.setSpacing(6)
+        self.button_widget = QtGui.QWidget(self)
+        self.button_widget.setObjectName('overlay_control_widget')
+        self._button_layout = QtGui.QHBoxLayout(self.button_widget)
+        self._button_layout.setContentsMargins(0, 0, 0, 0)
+        self._button_layout.setSpacing(6)
+
         self.add_btn = FlatButton('Add')
         self.delete_btn = FlatButton('Delete')
         self.clear_btn = FlatButton('Clear')
 
-        self._control_layout.addWidget(self.add_btn)
-        self._control_layout.addWidget(self.delete_btn)
-        self._control_layout.addWidget(self.clear_btn)
-        self._control_layout.addSpacerItem(HorizontalSpacerItem())
-        self._layout.addWidget(self.control_widget)
+        self._button_layout.addWidget(self.add_btn)
+        self._button_layout.addWidget(self.delete_btn)
+        self._button_layout.addWidget(self.clear_btn)
+        self._button_layout.addSpacerItem(HorizontalSpacerItem())
+        self._layout.addWidget(self.button_widget)
 
+        self.parameter_widget = QtGui.QWidget()
         self._parameter_layout = QtGui.QGridLayout()
 
         self.scale_sb = DoubleSpinBoxAlignRight()
@@ -795,11 +825,12 @@ class OverlayControlWidget(QtGui.QWidget):
         self._background_layout.addSpacerItem(HorizontalSpacerItem())
         self._background_layout.addWidget(self.set_as_background_btn)
         self._parameter_layout.addLayout(self._background_layout, 6, 0, 1, 3)
+        self.parameter_widget.setLayout(self._parameter_layout)
 
         self._body_layout = QtGui.QHBoxLayout()
-        self.overlay_tw = QtGui.QTableWidget()
+        self.overlay_tw = ListTableWidget(columns=3)
         self._body_layout.addWidget(self.overlay_tw, 10)
-        self._body_layout.addLayout(self._parameter_layout, 0)
+        self._body_layout.addWidget(self.parameter_widget, 0)
 
         self._layout.addLayout(self._body_layout)
 
@@ -813,18 +844,14 @@ class OverlayControlWidget(QtGui.QWidget):
         self.offset_step_txt.setMaximumWidth(step_txt_width)
         self.waterfall_separation_txt.setMaximumWidth(step_txt_width)
 
-        # sb_width = 110
-        # self.scale_sb.setMaximumWidth(sb_width)
-        # self.scale_sb.setMinimumWidth(sb_width)
-        # self.offset_sb.setMaximumWidth(sb_width)
-        # self.offset_sb.setMinimumWidth(sb_width)
-
         self.scale_sb.setMinimum(-9999999)
         self.scale_sb.setMaximum(9999999)
         self.scale_sb.setValue(1)
+        self.scale_sb.setSingleStep(0.01)
 
         self.offset_sb.setMaximum(999999998)
         self.offset_sb.setMinimum(-99999999)
+        self.offset_sb.setSingleStep(100)
 
         self.setStyleSheet("""
             #overlay_control_widget QPushButton {
@@ -1247,6 +1274,8 @@ class IntegrationPatternWidget(QtGui.QWidget):
 
     def style_widgets(self):
         self.tth_btn.setChecked(True)
+        self.antialias_btn.setChecked(True)
+        self.auto_range_btn.setChecked(True)
 
         self.setStyleSheet("""
             #pattern_frame, #pattern_right_control_widget, QLabel {
