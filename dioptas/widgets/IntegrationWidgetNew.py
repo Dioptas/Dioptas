@@ -930,28 +930,12 @@ class CorrectionsControlWidget(QtGui.QWidget):
         self.cbn_seat_gb.setCheckable(True)
         self.cbn_seat_gb.setChecked(False)
 
-        txt_width = 50
-        self.anvil_thickness_txt.setMinimumWidth(txt_width)
-        self.seat_thickness_txt.setMinimumWidth(txt_width)
-        self.seat_inner_radius_txt.setMinimumWidth(txt_width)
-        self.seat_outer_radius_txt.setMinimumWidth(txt_width)
-        self.cell_tilt_txt.setMinimumWidth(txt_width)
-        self.cell_tilt_rotation_txt.setMinimumWidth(txt_width)
-        self.center_offset_txt.setMinimumWidth(txt_width)
-        self.center_offset_angle_txt.setMinimumWidth(txt_width)
-        self.anvil_absorption_length_txt.setMinimumWidth(txt_width)
-        self.seat_absorption_length_txt.setMinimumWidth(txt_width)
-
-        self.anvil_thickness_txt.setMaximumWidth(txt_width)
-        self.seat_thickness_txt.setMaximumWidth(txt_width)
-        self.seat_inner_radius_txt.setMaximumWidth(txt_width)
-        self.seat_outer_radius_txt.setMaximumWidth(txt_width)
-        self.cell_tilt_txt.setMaximumWidth(txt_width)
-        self.cell_tilt_rotation_txt.setMaximumWidth(txt_width)
-        self.center_offset_txt.setMaximumWidth(txt_width)
-        self.center_offset_angle_txt.setMaximumWidth(txt_width)
-        self.anvil_absorption_length_txt.setMaximumWidth(txt_width)
-        self.seat_absorption_length_txt.setMaximumWidth(txt_width)
+        self.setStyleSheet("""
+            QLineEdit {
+                min-width: 50 px;
+                max-width: 60 px;
+            }
+        """)
 
         self.cbn_seat_plot_btn.setMaximumHeight(150)
 
@@ -996,7 +980,6 @@ class BackgroundControlWidget(QtGui.QWidget):
 
         self._layout.addWidget(self.image_background_gb)
 
-        self._layout.addSpacerItem(VerticalSpacerItem())
         self.setLayout(self._layout)
 
         self.pattern_background_gb = QtGui.QGroupBox('Pattern Background')
@@ -1033,6 +1016,7 @@ class BackgroundControlWidget(QtGui.QWidget):
         self.pattern_background_gb.setLayout(self._pattern_background_gb)
 
         self._layout.addWidget(self.pattern_background_gb)
+        self._layout.addSpacerItem(VerticalSpacerItem())
 
         self.setLayout(self._layout)
         self.style_widgets()
