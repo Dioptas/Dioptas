@@ -44,7 +44,7 @@ class IntegrationWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
         self._layout.setSpacing(6)
-        self._layout.setContentsMargins(6, 0, 0, 0)
+        self._layout.setContentsMargins(6, 0, 6, 0)
 
         self._vertical_splitter = QtGui.QSplitter()
         self._vertical_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -1156,7 +1156,11 @@ class IntegrationPatternWidget(QtGui.QWidget):
     def __init__(self):
         super(IntegrationPatternWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self.frame = QtGui.QFrame()
+        self.frame.setObjectName('pattern_frame')
+
+        self._frame_layout = QtGui.QVBoxLayout()
+        self._frame_layout.setContentsMargins(6,6,6,6)
 
         self._top_control_layout = QtGui.QHBoxLayout()
 
@@ -1175,9 +1179,12 @@ class IntegrationPatternWidget(QtGui.QWidget):
         self._top_control_layout.addWidget(self.load_calibration_btn)
         self._top_control_layout.addWidget(self.calibration_lbl)
 
-        self._layout.addLayout(self._top_control_layout)
+        self._frame_layout.addLayout(self._top_control_layout)
 
+        self.right_control_widget = QtGui.QWidget()
+        self.right_control_widget.setObjectName('pattern_right_control_widget')
         self._right_control_layout = QtGui.QVBoxLayout()
+        self._right_control_layout.setContentsMargins(0,0,0,0)
 
         self.tth_btn = CheckableFlatButton(u"2θ")
         self.q_btn = CheckableFlatButton('Q')
@@ -1198,16 +1205,51 @@ class IntegrationPatternWidget(QtGui.QWidget):
         self._right_control_layout.addSpacerItem(VerticalSpacerItem())
         self._right_control_layout.addWidget(self.auto_range_btn)
 
+        self.right_control_widget.setLayout(self._right_control_layout)
+
         self._central_layout = QtGui.QHBoxLayout()
+        self._central_layout.setSpacing(0)
 
         self.spectrum_pg_layout = GraphicsLayoutWidget()
         self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
 
         self._central_layout.addWidget(self.spectrum_pg_layout)
-        self._central_layout.addLayout(self._right_control_layout)
-        self._layout.addLayout(self._central_layout)
+        self._central_layout.addWidget(self.right_control_widget)
+        self._frame_layout.addLayout(self._central_layout)
 
+        self.frame.setLayout(self._frame_layout)
+
+        self._layout = QtGui.QVBoxLayout()
+        self._layout.addWidget(self.frame)
+        self._layout.setContentsMargins(0,0,0,0)
         self.setLayout(self._layout)
+
+
+        self.style_widgets()
+
+    def style_widgets(self):
+        self.tth_btn.setChecked(True)
+
+        self.setStyleSheet("""
+            #pattern_frame, #pattern_right_control_widget, QLabel {
+                background: black;
+                color: yellow;
+            }
+            #pattern_right_control_widget QPushButton{
+                padding: 0px;
+	            padding-right: 1px;
+	            border-radius: 3px;
+            }
+	    """)
+
+        right_controls_button_width = 25
+        self.tth_btn.setMaximumWidth(right_controls_button_width)
+        self.q_btn.setMaximumWidth(right_controls_button_width)
+        self.d_btn.setMaximumWidth(right_controls_button_width)
+        self.background_btn.setMaximumWidth(right_controls_button_width)
+        self.background_inspect_btn.setMaximumWidth(right_controls_button_width)
+        self.antialias_btn.setMaximumWidth(right_controls_button_width)
+        self.auto_range_btn.setMaximumWidth(right_controls_button_width)
 
 
 class IntegrationStatusWidget(QtGui.QWidget):
