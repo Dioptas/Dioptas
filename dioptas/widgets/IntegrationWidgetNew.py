@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 
+import os
 from functools import partial
 
 from PyQt4 import QtGui, QtCore
@@ -15,7 +16,7 @@ from widgets.CustomWidgets import NumberTextField, IntegerTextField, LabelAlignR
     NoRectDelegate
 
 clicked_color = '#00DD00'
-
+widget_path = os.path.dirname(__file__)
 
 class IntegrationWidget(QtGui.QWidget):
     """
@@ -41,6 +42,8 @@ class IntegrationWidget(QtGui.QWidget):
         self.integration_status_widget = IntegrationStatusWidget()
 
         self._layout = QtGui.QVBoxLayout()
+        self._layout.setSpacing(6)
+        self._layout.setContentsMargins(6,0,0,0)
 
         self._vertical_splitter = QtGui.QSplitter()
         self._vertical_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -81,6 +84,15 @@ class IntegrationWidget(QtGui.QWidget):
         self.mask_transparent_cb.setVisible(False)
 
         self.file_info_widget = FileInfoWidget(self)
+
+        self.set_stylesheet()
+
+    def set_stylesheet(self):
+        file = open(os.path.join(widget_path, "stylesheet.qss"))
+        stylesheet = file.read()
+        self.setStyleSheet(stylesheet)
+        file.close()
+
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
@@ -210,7 +222,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.spectrum_view = pattern_widget.spectrum_view
 
         image_widget = self.integration_image_widget
-        self.img_frame = image_widget
+        self.img_frame = image_widget.frame
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn
         self.img_mask_btn = image_widget.mask_btn
@@ -521,11 +533,15 @@ class IntegrationImgWidget(QtGui.QWidget):
     def __init__(self):
         super(IntegrationImgWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self.frame = QtGui.QFrame()
+        self.frame.setObjectName('img_frame')
+
+        self._frame_layout = QtGui.QVBoxLayout()
+        self._frame_layout.setContentsMargins(0,0,0,0)
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
-        self._layout.addWidget(self.img_pg_layout)
+        self._frame_layout.addWidget(self.img_pg_layout)
 
         self._mouse_position_layout = QtGui.QHBoxLayout()
 
@@ -536,9 +552,10 @@ class IntegrationImgWidget(QtGui.QWidget):
         self._mouse_position_layout.addSpacerItem(HorizontalSpacerItem())
         self._mouse_position_layout.addWidget(self.mouse_unit_widget)
 
-        self._layout.addLayout(self._mouse_position_layout)
+        self._frame_layout.addLayout(self._mouse_position_layout)
 
         self._control_layout = QtGui.QHBoxLayout()
+        self._control_layout.setContentsMargins(6, 6,6,6)
 
         self.roi_btn = CheckableFlatButton('ROI')
         self.mode_btn = FlatButton('Cake')
@@ -555,10 +572,17 @@ class IntegrationImgWidget(QtGui.QWidget):
         self._control_layout.addWidget(self.autoscale_btn)
         self._control_layout.addWidget(self.undock_btn)
 
-        self._layout.addLayout(self._control_layout)
+        self._frame_layout.addLayout(self._control_layout)
+        self.frame.setLayout(self._frame_layout)
+
+        self._layout = QtGui.QVBoxLayout()
+        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.addWidget(self.frame)
 
         self.setLayout(self._layout)
+        self._layout.setSpacing(0)
 
+        self.setStyleSheet('#img_frame, QLabel {background: black;}')
 
 class IntegrationControlWidget(QtGui.QTabWidget):
     def __init__(self):
@@ -1193,6 +1217,7 @@ class IntegrationStatusWidget(QtGui.QWidget):
         super(IntegrationStatusWidget, self).__init__()
 
         self._layout = QtGui.QHBoxLayout()
+        self._layout.setContentsMargins(0,0,0,0)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget()
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget()
@@ -1212,6 +1237,7 @@ class MouseCurrentAndClickedWidget(QtGui.QWidget):
         super(MouseCurrentAndClickedWidget, self).__init__()
 
         self._layout = QtGui.QVBoxLayout()
+        self._layout.setSpacing(0)
 
         self.cur_pos_widget = MousePositionWidget()
         self.clicked_pos_widget = MousePositionWidget(clicked_color)
@@ -1227,6 +1253,7 @@ class MousePositionWidget(QtGui.QWidget):
         super(MousePositionWidget, self).__init__()
 
         self._layout = QtGui.QHBoxLayout()
+        self._layout.setContentsMargins(0,0,0,0)
 
         self.x_pos_lbl = LabelAlignRight('X:')
         self.y_pos_lbl = LabelAlignRight('Y:')
@@ -1249,6 +1276,7 @@ class MouseUnitCurrentAndClickedWidget(QtGui.QWidget):
     def __init__(self):
         super(MouseUnitCurrentAndClickedWidget, self).__init__()
         self._layout = QtGui.QVBoxLayout()
+        self._layout.setSpacing(0)
 
         self.cur_unit_widget = MouseUnitWidget()
         self.clicked_unit_widget = MouseUnitWidget(clicked_color)
@@ -1264,6 +1292,7 @@ class MouseUnitWidget(QtGui.QWidget):
         super(MouseUnitWidget, self).__init__()
 
         self._layout = QtGui.QHBoxLayout()
+        self._layout.setContentsMargins(0,0,0,0)
 
         self.tth_lbl = LabelAlignRight(u"2θ:")
         self.q_lbl = LabelAlignRight('Q:')
