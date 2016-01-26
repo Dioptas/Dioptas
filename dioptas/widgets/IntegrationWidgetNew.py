@@ -13,7 +13,7 @@ from widgets.FileInfoWidget import FileInfoWidget
 
 from widgets.CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, \
-    NoRectDelegate
+    NoRectDelegate, HorizontalLine
 
 clicked_color = '#00DD00'
 widget_path = os.path.dirname(__file__)
@@ -620,6 +620,7 @@ class ImageControlWidget(QtGui.QWidget):
         self.file_info_btn = FlatButton('File Info')
 
         self._layout.addWidget(self.file_widget)
+        self._layout.addWidget(HorizontalLine())
 
         self._file_info_layout = QtGui.QHBoxLayout()
         self._file_info_layout.addWidget(self.file_info_btn)
@@ -644,6 +645,7 @@ class PatternControlWidget(QtGui.QWidget):
         self.dat_cb = QtGui.QCheckBox('.dat')
 
         self._layout.addWidget(self.file_widget, 0, 0, 1, 2)
+        self._layout.addWidget(HorizontalLine(), 1, 0, 1, 2)
 
         self.pattern_types_gc = QtGui.QGroupBox('Pattern data types')
         self._pattern_layout = QtGui.QHBoxLayout()
@@ -651,9 +653,9 @@ class PatternControlWidget(QtGui.QWidget):
         self._pattern_layout.addWidget(self.chi_cb)
         self._pattern_layout.addWidget(self.dat_cb)
         self.pattern_types_gc.setLayout(self._pattern_layout)
-        self._layout.addWidget(self.pattern_types_gc, 1, 0)
+        self._layout.addWidget(self.pattern_types_gc, 2, 0)
 
-        self._layout.addItem(VerticalSpacerItem(), 2, 0)
+        self._layout.addItem(VerticalSpacerItem(), 3, 0)
 
         self.setLayout(self._layout)
 
@@ -1146,13 +1148,23 @@ class BrowseFileWidget(QtGui.QWidget):
     def style_widgets(self):
         self.load_btn.setMaximumWidth(120)
         self.load_btn.setMinimumWidth(120)
-        maximum_width = 40
+        small_btn_width = 35
 
-        self.next_btn.setMaximumWidth(maximum_width)
-        self.previous_btn.setMaximumWidth(maximum_width)
-        self.directory_btn.setMaximumWidth(maximum_width)
+        self.next_btn.setMaximumWidth(small_btn_width)
+        self.previous_btn.setMaximumWidth(small_btn_width)
+        self.directory_btn.setMaximumWidth(small_btn_width)
+        self.next_btn.setMinimumWidth(small_btn_width)
+        self.previous_btn.setMinimumWidth(small_btn_width)
+        self.directory_btn.setMinimumWidth(small_btn_width)
 
         self.step_txt.setMaximumWidth(30)
+
+        self.setStyleSheet("""
+        QPushButton {
+            min-height: 22 px;
+        }
+        """)
+
 
 
 class IntegrationPatternWidget(QtGui.QWidget):
