@@ -77,6 +77,18 @@ class HorizontalLine(QtGui.QFrame):
         self.setFrameShadow(QtGui.QFrame.Sunken)
 
 
+class ListTableWidget(QtGui.QTableWidget):
+    def __init__(self, columns = 3):
+        super(ListTableWidget, self).__init__()
+
+        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.setColumnCount(columns)
+        self.horizontalHeader().setVisible(False)
+        self.verticalHeader().setVisible(False)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.setShowGrid(False)
+
 class NoRectDelegate(QtGui.QItemDelegate):
     def __init__(self):
         super(NoRectDelegate, self).__init__()
@@ -84,6 +96,8 @@ class NoRectDelegate(QtGui.QItemDelegate):
     def drawFocus(self, painter, option, rect):
         option.state &= ~QtGui.QStyle.State_HasFocus
         QtGui.QItemDelegate.drawFocus(self, painter, option, rect)
+
+
 
 
 def HorizontalSpacerItem(minimum_width=0):
