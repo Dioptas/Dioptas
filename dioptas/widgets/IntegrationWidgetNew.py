@@ -546,7 +546,7 @@ class IntegrationImgWidget(QtGui.QWidget):
         self._frame_layout.addWidget(self.img_pg_layout)
 
         self._mouse_position_layout = QtGui.QHBoxLayout()
-        self._mouse_position_layout.setContentsMargins(0,0,0,0)
+        self._mouse_position_layout.setContentsMargins(0, 0, 0, 0)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget()
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget()
@@ -734,6 +734,12 @@ class PhaseControlWidget(QtGui.QWidget):
         self.temperature_sb.setMinimum(0)
         self.temperature_sb.setValue(298)
 
+        self.setStyleSheet("""
+            QPushButton {
+                min-width: 95;
+            }
+        """)
+
 
 class OverlayControlWidget(QtGui.QWidget):
     def __init__(self):
@@ -741,7 +747,11 @@ class OverlayControlWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
 
-        self._control_layout = QtGui.QHBoxLayout()
+        self.control_widget = QtGui.QWidget(self)
+        self.control_widget.setObjectName('overlay_control_widget')
+        self._control_layout = QtGui.QHBoxLayout(self.control_widget)
+        self._control_layout.setContentsMargins(0, 0, 0, 0)
+        self._control_layout.setSpacing(6)
         self.add_btn = FlatButton('Add')
         self.delete_btn = FlatButton('Delete')
         self.clear_btn = FlatButton('Clear')
@@ -750,7 +760,7 @@ class OverlayControlWidget(QtGui.QWidget):
         self._control_layout.addWidget(self.delete_btn)
         self._control_layout.addWidget(self.clear_btn)
         self._control_layout.addSpacerItem(HorizontalSpacerItem())
-        self._layout.addLayout(self._control_layout)
+        self._layout.addWidget(self.control_widget)
 
         self._parameter_layout = QtGui.QGridLayout()
 
@@ -803,11 +813,11 @@ class OverlayControlWidget(QtGui.QWidget):
         self.offset_step_txt.setMaximumWidth(step_txt_width)
         self.waterfall_separation_txt.setMaximumWidth(step_txt_width)
 
-        sb_width = 110
-        self.scale_sb.setMaximumWidth(sb_width)
-        self.scale_sb.setMinimumWidth(sb_width)
-        self.offset_sb.setMaximumWidth(sb_width)
-        self.offset_sb.setMinimumWidth(sb_width)
+        # sb_width = 110
+        # self.scale_sb.setMaximumWidth(sb_width)
+        # self.scale_sb.setMinimumWidth(sb_width)
+        # self.offset_sb.setMaximumWidth(sb_width)
+        # self.offset_sb.setMinimumWidth(sb_width)
 
         self.scale_sb.setMinimum(-9999999)
         self.scale_sb.setMaximum(9999999)
@@ -815,6 +825,16 @@ class OverlayControlWidget(QtGui.QWidget):
 
         self.offset_sb.setMaximum(999999998)
         self.offset_sb.setMinimum(-99999999)
+
+        self.setStyleSheet("""
+            #overlay_control_widget QPushButton {
+                min-width: 95;
+            }
+            QSpinBox {
+                min-width: 110;
+                max-width: 110;
+            }
+        """)
 
 
 class CorrectionsControlWidget(QtGui.QWidget):
@@ -1166,7 +1186,6 @@ class BrowseFileWidget(QtGui.QWidget):
         """)
 
 
-
 class IntegrationPatternWidget(QtGui.QWidget):
     def __init__(self):
         super(IntegrationPatternWidget, self).__init__()
@@ -1175,7 +1194,7 @@ class IntegrationPatternWidget(QtGui.QWidget):
         self.frame.setObjectName('pattern_frame')
 
         self._frame_layout = QtGui.QVBoxLayout()
-        self._frame_layout.setContentsMargins(0,0,6,0)
+        self._frame_layout.setContentsMargins(0, 0, 6, 0)
 
         self._top_control_layout = QtGui.QHBoxLayout()
         self._top_control_layout.setContentsMargins(8, 8, 0, 0)
@@ -1200,7 +1219,7 @@ class IntegrationPatternWidget(QtGui.QWidget):
         self.right_control_widget = QtGui.QWidget()
         self.right_control_widget.setObjectName('pattern_right_control_widget')
         self._right_control_layout = QtGui.QVBoxLayout()
-        self._right_control_layout.setContentsMargins(0,0,0,6)
+        self._right_control_layout.setContentsMargins(0, 0, 0, 6)
 
         self.tth_btn = CheckableFlatButton(u"2θ")
         self.q_btn = CheckableFlatButton('Q')
@@ -1237,9 +1256,8 @@ class IntegrationPatternWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
         self._layout.addWidget(self.frame)
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
-
 
         self.style_widgets()
 
