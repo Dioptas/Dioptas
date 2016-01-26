@@ -539,12 +539,14 @@ class IntegrationImgWidget(QtGui.QWidget):
 
         self._frame_layout = QtGui.QVBoxLayout()
         self._frame_layout.setContentsMargins(0, 0, 0, 0)
+        self._frame_layout.setSpacing(0)
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
         self._frame_layout.addWidget(self.img_pg_layout)
 
         self._mouse_position_layout = QtGui.QHBoxLayout()
+        self._mouse_position_layout.setContentsMargins(0,0,0,0)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget()
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget()
@@ -557,6 +559,7 @@ class IntegrationImgWidget(QtGui.QWidget):
 
         self._control_layout = QtGui.QHBoxLayout()
         self._control_layout.setContentsMargins(6, 6, 6, 6)
+        self._control_layout.setSpacing(6)
 
         self.roi_btn = CheckableFlatButton('ROI')
         self.mode_btn = FlatButton('Cake')
@@ -578,10 +581,10 @@ class IntegrationImgWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
         self._layout.addWidget(self.frame)
 
         self.setLayout(self._layout)
-        self._layout.setSpacing(0)
 
         self.setStyleSheet('#img_frame, QLabel {background: black;}')
 
@@ -1160,9 +1163,10 @@ class IntegrationPatternWidget(QtGui.QWidget):
         self.frame.setObjectName('pattern_frame')
 
         self._frame_layout = QtGui.QVBoxLayout()
-        self._frame_layout.setContentsMargins(6,6,6,6)
+        self._frame_layout.setContentsMargins(0,0,6,0)
 
         self._top_control_layout = QtGui.QHBoxLayout()
+        self._top_control_layout.setContentsMargins(8, 8, 0, 0)
 
         self.save_image_btn = FlatButton('Save Image')
         self.save_pattern_btn = FlatButton('Save Pattern')
@@ -1184,7 +1188,7 @@ class IntegrationPatternWidget(QtGui.QWidget):
         self.right_control_widget = QtGui.QWidget()
         self.right_control_widget.setObjectName('pattern_right_control_widget')
         self._right_control_layout = QtGui.QVBoxLayout()
-        self._right_control_layout.setContentsMargins(0,0,0,0)
+        self._right_control_layout.setContentsMargins(0,0,0,6)
 
         self.tth_btn = CheckableFlatButton(u"2θ")
         self.q_btn = CheckableFlatButton('Q')
