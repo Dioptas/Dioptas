@@ -18,6 +18,7 @@ from widgets.CustomWidgets import NumberTextField, IntegerTextField, LabelAlignR
 clicked_color = '#00DD00'
 widget_path = os.path.dirname(__file__)
 
+
 class IntegrationWidget(QtGui.QWidget):
     """
     Defines the main structure of the integration widget, which is separated into four parts.
@@ -43,7 +44,7 @@ class IntegrationWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
         self._layout.setSpacing(6)
-        self._layout.setContentsMargins(6,0,0,0)
+        self._layout.setContentsMargins(6, 0, 0, 0)
 
         self._vertical_splitter = QtGui.QSplitter()
         self._vertical_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -92,7 +93,6 @@ class IntegrationWidget(QtGui.QWidget):
         stylesheet = file.read()
         self.setStyleSheet(stylesheet)
         file.close()
-
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
@@ -529,6 +529,7 @@ class IntegrationWidget(QtGui.QWidget):
         x_max = float(str(self.bkg_spectrum_x_max_txt.text()))
         return x_min, x_max
 
+
 class IntegrationImgWidget(QtGui.QWidget):
     def __init__(self):
         super(IntegrationImgWidget, self).__init__()
@@ -537,7 +538,7 @@ class IntegrationImgWidget(QtGui.QWidget):
         self.frame.setObjectName('img_frame')
 
         self._frame_layout = QtGui.QVBoxLayout()
-        self._frame_layout.setContentsMargins(0,0,0,0)
+        self._frame_layout.setContentsMargins(0, 0, 0, 0)
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
@@ -555,7 +556,7 @@ class IntegrationImgWidget(QtGui.QWidget):
         self._frame_layout.addLayout(self._mouse_position_layout)
 
         self._control_layout = QtGui.QHBoxLayout()
-        self._control_layout.setContentsMargins(6, 6,6,6)
+        self._control_layout.setContentsMargins(6, 6, 6, 6)
 
         self.roi_btn = CheckableFlatButton('ROI')
         self.mode_btn = FlatButton('Cake')
@@ -576,13 +577,14 @@ class IntegrationImgWidget(QtGui.QWidget):
         self.frame.setLayout(self._frame_layout)
 
         self._layout = QtGui.QVBoxLayout()
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.frame)
 
         self.setLayout(self._layout)
         self._layout.setSpacing(0)
 
         self.setStyleSheet('#img_frame, QLabel {background: black;}')
+
 
 class IntegrationControlWidget(QtGui.QTabWidget):
     def __init__(self):
@@ -873,7 +875,6 @@ class CorrectionsControlWidget(QtGui.QWidget):
 
         self.cbn_seat_gb.setLayout(self._cbn_seat_layout)
 
-
         self.oiadac_gb = QtGui.QGroupBox('Oblique Incidence Angle Detector Absorption Correction')
         self._oiadac_layout = QtGui.QHBoxLayout()
 
@@ -892,7 +893,6 @@ class CorrectionsControlWidget(QtGui.QWidget):
         self._oiadac_layout.addSpacerItem(HorizontalSpacerItem())
 
         self.oiadac_gb.setLayout(self._oiadac_layout)
-
 
         self._layout.addWidget(self.cbn_seat_gb)
         self._layout.addWidget(self.oiadac_gb)
@@ -930,15 +930,12 @@ class CorrectionsControlWidget(QtGui.QWidget):
 
         self.cbn_seat_plot_btn.setMaximumHeight(150)
 
-
         self.oiadac_gb.setCheckable(True)
         self.oiadac_gb.setChecked(False)
         self.detector_thickness_txt.setMinimumWidth(60)
         self.detector_thickness_txt.setMaximumWidth(60)
         self.detector_absorption_length_txt.setMinimumWidth(60)
         self.detector_absorption_length_txt.setMaximumWidth(60)
-
-
 
 
 class BackgroundControlWidget(QtGui.QWidget):
@@ -1102,6 +1099,7 @@ class OptionsWidget(QtGui.QWidget):
         self.bin_count_txt.setEnabled(False)
         self.bin_count_cb.setChecked(True)
 
+
 class BrowseFileWidget(QtGui.QWidget):
     def __init__(self, files, checkbox_text):
         super(BrowseFileWidget, self).__init__()
@@ -1217,7 +1215,7 @@ class IntegrationStatusWidget(QtGui.QWidget):
         super(IntegrationStatusWidget, self).__init__()
 
         self._layout = QtGui.QHBoxLayout()
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget()
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget()
@@ -1253,7 +1251,7 @@ class MousePositionWidget(QtGui.QWidget):
         super(MousePositionWidget, self).__init__()
 
         self._layout = QtGui.QHBoxLayout()
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.x_pos_lbl = LabelAlignRight('X:')
         self.y_pos_lbl = LabelAlignRight('Y:')
@@ -1292,7 +1290,7 @@ class MouseUnitWidget(QtGui.QWidget):
         super(MouseUnitWidget, self).__init__()
 
         self._layout = QtGui.QHBoxLayout()
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.tth_lbl = LabelAlignRight(u"2θ:")
         self.q_lbl = LabelAlignRight('Q:')
