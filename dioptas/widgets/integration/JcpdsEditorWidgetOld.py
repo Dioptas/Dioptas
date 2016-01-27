@@ -16,198 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtCore, QtGui
 
-from widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
-    VerticalSpacerItem, FlatButton, CleanLooksComboBox
-
+from widgets.UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
 from model.util.HelperModule import convert_d_to_two_theta
 
 
-class JcpdsEditorWidget(QtGui.QWidget):
+class JcpdsEditorWidget(QtGui.QWidget, Ui_JcpdsEditorWidget):
     def __init__(self, parent=None):
         super(JcpdsEditorWidget, self).__init__(parent)
-
-        self._layout = QtGui.QVBoxLayout()
-
-        self._file_layout = QtGui.QGridLayout()
-        self._file_layout.addWidget(LabelAlignRight('Filename:'), 0, 0)
-        self._file_layout.addWidget(LabelAlignRight('Comment:'), 1, 0)
-
-        self.filename_txt = QtGui.QLineEdit('')
-        self.comments_txt = QtGui.QLineEdit('')
-        self._file_layout.addWidget(self.filename_txt, 0, 1)
-        self._file_layout.addWidget(self.comments_txt, 1, 1)
-        self._layout.addLayout((self._file_layout))
-
-        self.lattice_parameters_gb = QtGui.QGroupBox('Lattice Parameters')
-        self._lattice_parameters_layout = QtGui.QVBoxLayout()
-
-        self._symmetry_layout = QtGui.QHBoxLayout()
-        self._symmetry_layout.addWidget(LabelAlignRight('Symmetry'))
-        self.symmetry_cb = CleanLooksComboBox()
-        self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'rhombohedral',
-                           'orthorhombic', 'monoclinic', 'triclinic']
-        self.symmetry_cb.addItems(self.symmetries)
-        self._symmetry_layout.addWidget(self.symmetry_cb)
-        self._symmetry_layout.addSpacerItem(HorizontalSpacerItem())
-        self._lattice_parameters_layout.addLayout(self._symmetry_layout)
-
-        self._parameters_layout = QtGui.QGridLayout()
-
-        self.lattice_a_sb = DoubleSpinBoxAlignRight()
-        self.lattice_a_sb.setSingleStep(0.01)
-        self.lattice_a_sb.setMinimum(0)
-        self.lattice_a_sb.setMaximum(99999)
-        self.lattice_a_sb.setDecimals(4)
-        self.lattice_b_sb = DoubleSpinBoxAlignRight()
-        self.lattice_b_sb.setMinimum(0)
-        self.lattice_b_sb.setMaximum(99999)
-        self.lattice_b_sb.setDecimals(4)
-        self.lattice_b_sb.setSingleStep(0.01)
-        self.lattice_c_sb = DoubleSpinBoxAlignRight()
-        self.lattice_c_sb.setMinimum(0)
-        self.lattice_c_sb.setMaximum(99999)
-        self.lattice_c_sb.setDecimals(4)
-        self.lattice_c_sb.setSingleStep(0.01)
-        self.lattice_length_step_txt = NumberTextField('0.01')
-
-        self.add_field(self._parameters_layout, self.lattice_a_sb, 'a0:',u"Å", 0, 0)
-        self.add_field(self._parameters_layout, self.lattice_b_sb, 'b0:',u"Å", 0, 3)
-        self.add_field(self._parameters_layout, self.lattice_c_sb, 'c0:',u"Å", 0, 6)
-        self.add_field(self._parameters_layout, self.lattice_length_step_txt, 'st:',u"Å", 0, 9)
-
-        self.lattice_eos_a_txt = NumberTextField()
-        self.lattice_eos_b_txt = NumberTextField()
-        self.lattice_eos_c_txt = NumberTextField()
-
-        self.add_field(self._parameters_layout, self.lattice_eos_a_txt, 'a:',u"Å", 1, 0)
-        self.add_field(self._parameters_layout, self.lattice_eos_b_txt, 'b:',u"Å", 1, 3)
-        self.add_field(self._parameters_layout, self.lattice_eos_c_txt, 'c:',u"Å", 1, 6)
-
-        self.lattice_alpha_sb = DoubleSpinBoxAlignRight()
-        self.lattice_alpha_sb.setMaximum(180)
-        self.lattice_beta_sb = DoubleSpinBoxAlignRight()
-        self.lattice_beta_sb.setMaximum(180)
-        self.lattice_gamma_sb = DoubleSpinBoxAlignRight()
-        self.lattice_gamma_sb.setMaximum(180)
-        self.lattice_angle_step_txt = NumberTextField('1')
-
-        self.add_field(self._parameters_layout, self.lattice_alpha_sb, u'α:',u"°", 2, 0)
-        self.add_field(self._parameters_layout, self.lattice_beta_sb, u'β:',u"°", 2, 3)
-        self.add_field(self._parameters_layout, self.lattice_gamma_sb, u'γ:',u"°", 2, 6)
-        self.add_field(self._parameters_layout, self.lattice_angle_step_txt, u'st:',u"°", 2, 9)
-
-        self.lattice_volume_txt = NumberTextField()
-        self.lattice_eos_volume_txt = NumberTextField()
-
-        self.add_field(self._parameters_layout, self.lattice_volume_txt, 'V0:', u'Å³', 3, 3)
-        self.add_field(self._parameters_layout, self.lattice_eos_volume_txt, 'V0:', u'Å³', 3, 6)
-
-        self.lattice_ab_sb = DoubleSpinBoxAlignRight()
-        self.lattice_ab_sb.setDecimals(4)
-        self.lattice_ca_sb = DoubleSpinBoxAlignRight()
-        self.lattice_ca_sb.setDecimals(4)
-        self.lattice_cb_sb = DoubleSpinBoxAlignRight()
-        self.lattice_cb_sb.setDecimals(4)
-        self.lattice_ratio_step_txt = NumberTextField('0.01')
-
-        self.add_field(self._parameters_layout, self.lattice_ab_sb, 'a/b:', None, 4, 0)
-        self.add_field(self._parameters_layout, self.lattice_ca_sb, 'c/a:', None, 4, 3)
-        self.add_field(self._parameters_layout, self.lattice_cb_sb, 'c/b:', None, 4, 6)
-        self.add_field(self._parameters_layout, self.lattice_ratio_step_txt, 'st:', None, 4, 9)
-
-
-        self._lattice_parameters_layout.addLayout(self._parameters_layout)
-        self.lattice_parameters_gb.setLayout(self._lattice_parameters_layout)
-
-        self.eos_gb = QtGui.QGroupBox('Equation of State')
-        self._eos_layout = QtGui.QGridLayout()
-
-        self.eos_K_txt = NumberTextField()
-        self.eos_Kp_txt = NumberTextField()
-        self.eos_alphaT_txt = NumberTextField()
-        self.eos_dalphadT_txt = NumberTextField()
-        self.eos_dKdT_txt = NumberTextField()
-        self.eos_dKpdT_txt = NumberTextField()
-
-        self.add_field(self._eos_layout, self.eos_K_txt, 'K:', 'GPa', 0, 0)
-        self.add_field(self._eos_layout, self.eos_Kp_txt, 'Kp:', None, 1, 0)
-        self.add_field(self._eos_layout, self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 2, 0)
-        self.add_field(self._eos_layout, self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 3, 0)
-        self.add_field(self._eos_layout, self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 4, 0)
-        self.add_field(self._eos_layout, self.eos_dKpdT_txt, "dK'/dT", '1/K', 5, 0)
-        self.eos_gb.setLayout(self._eos_layout)
-
-        self.reflections_gb = QtGui.QGroupBox('Reflections')
-        self._reflection_layout = QtGui.QGridLayout()
-        self.reflection_table = QtGui.QTableWidget()
-        self.reflection_table.setColumnCount(8)
-        self.reflections_add_btn = FlatButton('Add')
-        self.reflections_delete_btn = FlatButton('Delete')
-        self.reflections_clear_btn = FlatButton('Clear')
-
-        self._reflection_layout.addWidget(self.reflection_table, 0, 0, 1, 3)
-        self._reflection_layout.addWidget(self.reflections_add_btn, 1, 0)
-        self._reflection_layout.addWidget(self.reflections_delete_btn, 1, 1)
-        self._reflection_layout.addWidget(self.reflections_clear_btn, 1, 2)
-
-        self.reflections_gb.setLayout(self._reflection_layout)
-
-        self._body_layout = QtGui.QGridLayout()
-        self._body_layout.addWidget(self.eos_gb, 0, 0)
-        self._body_layout.addItem(VerticalSpacerItem(), 1, 0)
-        self._body_layout.addWidget(self.reflections_gb, 0, 1, 2, 1)
-
-
-        self._button_layout = QtGui.QHBoxLayout()
-        self.save_as_btn = FlatButton('Save As')
-        self.reload_file_btn = FlatButton('Reload File')
-        self.ok_btn = FlatButton('Ok')
-        self.cancel_btn = FlatButton('Cancel')
-
-        self._button_layout.addWidget(self.save_as_btn)
-        self._button_layout.addWidget(self.reload_file_btn)
-        self._button_layout.addSpacerItem(HorizontalSpacerItem())
-        self._button_layout.addWidget(self.ok_btn)
-        self._button_layout.addWidget(self.cancel_btn)
-
-        self._layout.addWidget(self.lattice_parameters_gb)
-        self._layout.addLayout(self._body_layout)
-        self._layout.addLayout(self._button_layout)
-        self.setLayout(self._layout)
-
-        self.style_widgets()
-
-    def style_widgets(self):
-        self.lattice_angle_step_txt.setMaximumWidth(60)
-        self.lattice_length_step_txt.setMaximumWidth(60)
-        self.lattice_ratio_step_txt.setMaximumWidth(60)
-
-        self.reflection_table.setHorizontalHeaderLabels(
-            ['h', 'k', 'l', 'Intensity', 'd0', u"2θ_0", 'd', u"2θ"]
-        )
-        self.reflection_table.setItemDelegate(TextDoubleDelegate(self))
-        self.reflection_table.setShowGrid(False)
-        self.reflection_table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.reflection_table.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self.reflection_table.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-
-        self.eos_gb.setMaximumWidth(200)
-        self.eos_gb.setStyleSheet("""
-            QLineEdit {
-                max-width: 80;
-            }
-        """)
-
-        reflections_horizontal_header_item = self.reflection_table.horizontalHeaderItem(1)
-        reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20, 24))
-
-        self.reflection_table.verticalHeader().setDefaultSectionSize(20)
-        # self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
-
-        self.setWindowFlags(QtCore.Qt.Tool)
-        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
+        self.setupUi(self)
+        self.setup_ui()
+        self.set_validators()
 
     def raise_widget(self):
         self.show()
@@ -215,11 +35,35 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.activateWindow()
         self.raise_()
 
-    def add_field(self, layout, widget, label_str, unit, x, y):
-        layout.addWidget(LabelAlignRight(label_str), x, y)
-        layout.addWidget(widget, x, y+1)
-        if unit:
-            layout.addWidget(QtGui.QLabel(unit), x, y+2)
+    def setup_ui(self):
+        self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'rhombohedral',
+                           'orthorhombic', 'monoclinic', 'triclinic']
+        self.symmetry_cb.clear()
+        self.symmetry_cb.addItems(self.symmetries)
+        self.reflection_table.setItemDelegate(TextDoubleDelegate(self))
+        cleanlooks = QtGui.QStyleFactory.create('cleanlooks')
+        self.symmetry_cb.setStyle(cleanlooks)
+
+        reflections_horizontal_header_item = self.reflection_table.horizontalHeaderItem(1)
+        reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20, 24))
+
+        self.reflection_table.verticalHeader().setDefaultSectionSize(20)
+        self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
+
+        self.setWindowFlags(QtCore.Qt.Tool)
+        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
+
+    def set_validators(self):
+        self.lattice_length_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.lattice_angle_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.lattice_ratio_step_txt.setValidator(QtGui.QDoubleValidator())
+
+        self.eos_K_txt.setValidator(QtGui.QDoubleValidator())
+        self.eos_Kp_txt.setValidator(QtGui.QDoubleValidator())
+        self.eos_alphaT_txt.setValidator(QtGui.QDoubleValidator())
+        self.eos_dalphadT_txt.setValidator(QtGui.QDoubleValidator())
+        self.eos_dKdT_txt.setValidator(QtGui.QDoubleValidator())
+        self.eos_dKpdT_txt.setValidator(QtGui.QDoubleValidator())
 
     def show_jcpds(self, jcpds_phase, wavelength=None):
         self.blockAllSignals(True)
@@ -533,21 +377,3 @@ class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
     def __init__(self, value):
         super(CenteredNonEditableQTableWidgetItem, self).__init__(value)
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
-
-
-
-if __name__ == '__main__':
-    app = QtGui.QApplication([])
-    from model.util.jcpds import jcpds
-    import os
-    test_phase = jcpds()
-    path = os.path.join(os.path.dirname(__file__), '../../')
-    path = os.path.join(path, 'tests', 'data', 'jcpds', 'ag.jcpds')
-    print os.path.abspath(path)
-    test_phase.load_file(path)
-    widget = JcpdsEditorWidget(None)
-    widget.show_jcpds(test_phase, 0.31)
-    widget.show()
-    widget.raise_()
-    app.exec_()
-
