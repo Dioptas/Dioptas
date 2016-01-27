@@ -23,7 +23,7 @@ from functools import partial
 
 from PyQt4 import QtGui, QtCore
 
-from ..FileInfoWidget import FileInfoWidget
+from ..UtilityWidgets import FileInfoWidget
 from ..CustomWidgets import NoRectDelegate
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
