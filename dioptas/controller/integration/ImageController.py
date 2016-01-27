@@ -20,14 +20,13 @@
 import os
 import time
 
-from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
+from PyQt4 import QtGui, QtCore
 
 from model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
-
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.PatternModel import PatternModel
 from model.MaskModel import MaskModel

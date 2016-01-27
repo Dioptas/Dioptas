@@ -18,11 +18,11 @@
 
 import os
 
-from PyQt4 import QtGui, QtCore
 import numpy as np
+from PyQt4 import QtGui, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration import IntegrationWidget
 from model.PatternModel import PatternModel
 
 

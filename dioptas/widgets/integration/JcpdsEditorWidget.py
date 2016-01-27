@@ -18,7 +18,7 @@
 
 from PyQt4 import QtCore, QtGui
 
-from .UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
+from widgets.UiFiles.JcpdsUI import Ui_JcpdsEditorWidget
 from model.util.HelperModule import convert_d_to_two_theta
 
 

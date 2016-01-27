@@ -18,14 +18,14 @@
 
 import pyqtgraph as pg
 
-from .OverlayController import OverlayController
+from .BackgroundController import BackgroundController
 from .ImageController import ImageController
+from .OverlayController import OverlayController
 from .PatternController import PatternController
 from .PhaseController import PhaseController
-from .BackgroundController import BackgroundController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel

@@ -21,12 +21,12 @@ import os
 import numpy as np
 from PyQt4 import QtGui, QtCore
 
-from model.util.HelperModule import get_base_name
 from model.PhaseModel import PhaseLoadError, PymatgenNotInstalledError
+from model.util.HelperModule import get_base_name
 from .JcpdsEditorController import JcpdsEditorController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration import IntegrationWidget
 from widgets.UtilityWidgets import CifConversionParametersDialog
 from model.CalibrationModel import CalibrationModel
 from model.PatternModel import PatternModel

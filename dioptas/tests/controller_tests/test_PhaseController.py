@@ -16,22 +16,22 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
-import os
-from mock import MagicMock
 import gc
+import os
+import unittest
 
-from PyQt4 import QtGui, QtCore
 import numpy as np
+from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
+from mock import MagicMock
 
-from model.ImgModel import ImgModel
+from controller.integration import PatternController
+from controller.integration import PhaseController
 from model.CalibrationModel import CalibrationModel
+from model.ImgModel import ImgModel
 from model.PatternModel import PatternModel
 from model.PhaseModel import PhaseModel
-from widgets.IntegrationWidget import IntegrationWidget
-from controller.integration import PhaseController
-from controller.integration import PatternController
+from widgets.integration.IntegrationWidgets import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

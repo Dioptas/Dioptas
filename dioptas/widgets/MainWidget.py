@@ -19,13 +19,13 @@
 from __future__ import absolute_import
 
 import sys
+
 from PyQt4 import QtGui
 
-from .UiFiles.MainUI import Ui_mainView
-
-from .MaskWidget import MaskWidget
-from .IntegrationWidget import IntegrationWidget
+from widgets.integration import IntegrationWidget
 from .CalibrationWidget import CalibrationWidget
+from .MaskWidget import MaskWidget
+from .UiFiles.MainUI import Ui_mainView
 
 
 class MainWidget(QtGui.QWidget, Ui_mainView):
