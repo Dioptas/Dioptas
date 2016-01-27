@@ -18,7 +18,6 @@
 
 CLICKED_COLOR = '#00DD00'
 
-import os
 from functools import partial
 
 from PyQt4 import QtGui, QtCore
@@ -29,8 +28,6 @@ from ..CustomWidgets import NoRectDelegate
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .ControlWidgets import IntegrationControlWidget
 from .IntegrationWidgets import IntegrationImgWidget, IntegrationPatternWidget, IntegrationStatusWidget
-
-widget_path = os.path.dirname(__file__)
 
 
 class IntegrationWidget(QtGui.QWidget):
@@ -104,13 +101,6 @@ class IntegrationWidget(QtGui.QWidget):
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
 
-        self.set_stylesheet()
-
-    def set_stylesheet(self):
-        file = open(os.path.join(widget_path, '../', "stylesheet.qss"))
-        stylesheet = file.read()
-        self.setStyleSheet(stylesheet)
-        file.close()
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget

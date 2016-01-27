@@ -55,10 +55,6 @@ class MaskController(object):
         self.circle = None
         self.polygon = None
         self.point = None
-        self.widget.show()
-        self.widget.setWindowState(self.widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-        self.widget.activateWindow()
-        self.widget.raise_()
 
     def connect_click_function(self, emitter, function):
         self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
