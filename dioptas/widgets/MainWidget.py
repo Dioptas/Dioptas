@@ -16,43 +16,46 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-
-import sys
+import os
 
 from PyQt4 import QtGui
 
-from widgets.integration import IntegrationWidget
 from .CalibrationWidget import CalibrationWidget
 from .MaskWidget import MaskWidget
-from .UiFiles.MainUI import Ui_mainView
+from .integration import IntegrationWidget
+
+widget_path = os.path.dirname(__file__)
 
 
-class MainWidget(QtGui.QWidget, Ui_mainView):
-    def __init__(self):
-        super(MainWidget, self).__init__(None)
-        self.setupUi(self)
+class MainWidget(QtGui.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(MainWidget, self).__init__(*args, **kwargs)
+
+        self._layout = QtGui.QHBoxLayout()
+
+        self.tabWidget = QtGui.QTabWidget()
+        self.tabWidget.setTabPosition(QtGui.QTabWidget.West)
+        self.tabWidget.setCurrentIndex(0)
 
         self.calibration_widget = CalibrationWidget()
         self.mask_widget = MaskWidget()
         self.integration_widget = IntegrationWidget()
 
-        self.calibration_layout = QtGui.QHBoxLayout()
-        self.calibration_layout.setContentsMargins(0, 0, 0, 0)
-        self.calibration_tab.setLayout(self.calibration_layout)
-        self.calibration_layout.addWidget(self.calibration_widget)
+        self.tabWidget.addTab(self.calibration_widget, 'Calibration')
+        self.tabWidget.addTab(self.mask_widget, 'Mask')
+        self.tabWidget.addTab(self.integration_widget, 'Integration')
 
-        self.mask_layout = QtGui.QHBoxLayout()
-        self.mask_layout.setContentsMargins(0, 0, 0, 0)
-        self.mask_tab.setLayout(self.mask_layout)
-        self.mask_layout.addWidget(self.mask_widget)
-
-        self.integration_layout = QtGui.QHBoxLayout()
-        self.integration_layout.setContentsMargins(0, 0, 0, 0)
-        self.integration_tab.setLayout(self.integration_layout)
-        self.integration_layout.addWidget(self.integration_widget)
+        self._layout.addWidget(self.tabWidget)
+        self.setLayout(self._layout)
 
         self.set_system_dependent_stylesheet()
+        self.set_stylesheet()
+
+    def set_stylesheet(self):
+        file = open(os.path.join(widget_path, "stylesheet.qss"))
+        stylesheet = file.read()
+        self.setStyleSheet(stylesheet)
+        file.close()
 
     def set_system_dependent_stylesheet(self):
         from sys import platform
@@ -62,10 +65,3 @@ class MainWidget(QtGui.QWidget, Ui_mainView):
         else:
             self.tabWidget.setStyleSheet(
                     "QDoubleSpinBox, QSpinBox {padding-right: -3px;}")
-
-
-if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
-    view = MainWidget()
-    view.show()
-    app.exec_()

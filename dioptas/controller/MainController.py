@@ -24,8 +24,7 @@ import xml.etree.cElementTree as ET
 
 from PyQt4 import QtGui, QtCore
 
-# from widgets.MainWidget import MainWidget
-from widgets.MainWidgetNew import MainWidget
+from widgets.MainWidget import MainWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.PatternModel import PatternModel
