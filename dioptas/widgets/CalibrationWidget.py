@@ -23,6 +23,7 @@ class CalibrationWidget(QtGui.QWidget):
         self.calibration_control_widget = CalibrationControlWidget()
 
         self._layout = QtGui.QHBoxLayout()
+        self._layout.setContentsMargins(6, 6, 6, 6)
         self._layout.addWidget(self.calibration_display_widget)
         self._layout.addWidget(self.calibration_control_widget)
         self.setLayout(self._layout)

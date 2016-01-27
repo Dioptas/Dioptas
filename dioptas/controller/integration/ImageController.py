@@ -441,10 +441,10 @@ class ImageController(object):
         self._get_master_parent().update()
 
     def _get_master_parent(self):
-        maset_widget_parent = self.widget
-        while maset_widget_parent.parent():
-            maset_widget_parent = maset_widget_parent.parent()
-        return maset_widget_parent
+        master_widget_parent = self.widget
+        while master_widget_parent.parent():
+            master_widget_parent = master_widget_parent.parent()
+        return master_widget_parent
 
     def change_roi_mode(self):
         self.roi_active = not self.roi_active
