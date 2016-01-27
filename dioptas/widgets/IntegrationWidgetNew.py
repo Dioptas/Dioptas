@@ -44,18 +44,19 @@ class IntegrationWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
         self._layout.setSpacing(6)
-        self._layout.setContentsMargins(6, 6, 6, 0)
+        self._layout.setContentsMargins(6, 6, 6, 6)
 
-        self._vertical_splitter = QtGui.QSplitter()
-        self._vertical_splitter.setOrientation(QtCore.Qt.Vertical)
-        self._vertical_splitter.addWidget(self.integration_control_widget)
-        self._vertical_splitter.addWidget(self.integration_pattern_widget)
+        self.vertical_splitter = QtGui.QSplitter()
+        self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
+        self.vertical_splitter.addWidget(self.integration_control_widget)
+        self.vertical_splitter.addWidget(self.integration_pattern_widget)
+        self.vertical_splitter.setStretchFactor(10, 0)
 
-        self._horizontal_splitter = QtGui.QSplitter()
-        self._horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
-        self._horizontal_splitter.addWidget(self.integration_image_widget)
-        self._horizontal_splitter.addWidget(self._vertical_splitter)
-        self._layout.addWidget(self._horizontal_splitter, 10)
+        self.horizontal_splitter = QtGui.QSplitter()
+        self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.horizontal_splitter.addWidget(self.integration_image_widget)
+        self.horizontal_splitter.addWidget(self.vertical_splitter)
+        self._layout.addWidget(self.horizontal_splitter, 10)
         self._layout.addWidget(self.integration_status_widget, 0)
         self.setLayout(self._layout)
 
@@ -85,6 +86,9 @@ class IntegrationWidget(QtGui.QWidget):
         self.mask_transparent_cb.setVisible(False)
 
         self.file_info_widget = FileInfoWidget(self)
+
+        self.img_frame_size = QtCore.QSize(400, 500)
+        self.img_frame_position = QtCore.QPoint(0, 0)
 
         self.set_stylesheet()
 
@@ -222,7 +226,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.spectrum_view = pattern_widget.spectrum_view
 
         image_widget = self.integration_image_widget
-        self.img_frame = image_widget.frame
+        self.img_frame = image_widget
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn
         self.img_mask_btn = image_widget.mask_btn
@@ -231,6 +235,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.img_dock_btn = image_widget.undock_btn
         self.img_view = image_widget.img_view
 
+        self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
         self.img_widget_mouse_x_lbl = self.integration_image_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl
         self.img_widget_mouse_y_lbl = self.integration_image_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl
         self.img_widget_mouse_int_lbl = self.integration_image_widget.mouse_pos_widget.cur_pos_widget.int_lbl
@@ -245,6 +250,8 @@ class IntegrationWidget(QtGui.QWidget):
         self.img_widget_click_q_lbl = self.integration_image_widget.mouse_unit_widget.clicked_unit_widget.q_lbl
         self.img_widget_click_d_lbl = self.integration_image_widget.mouse_unit_widget.clicked_unit_widget.d_lbl
         self.img_widget_click_azi_lbl = self.integration_image_widget.mouse_unit_widget.clicked_unit_widget.azi_lbl
+
+        self.footer_img_mouse_position_widget = self.integration_status_widget.mouse_pos_widget
 
     def switch_to_cake(self):
         self.img_view.img_view_box.setAspectLocked(False)
@@ -545,17 +552,21 @@ class IntegrationImgWidget(QtGui.QWidget):
         self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
         self._frame_layout.addWidget(self.img_pg_layout)
 
-        self._mouse_position_layout = QtGui.QHBoxLayout()
-        self._mouse_position_layout.setContentsMargins(0, 0, 0, 0)
+        self.position_and_unit_widget = QtGui.QWidget()
+        self.position_and_unit_widget.setObjectName('img_position_and_unit_widget')
+        self._position_and_unit_layout = QtGui.QHBoxLayout()
+        self._position_and_unit_layout.setContentsMargins(0, 0, 0, 0)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget()
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget()
 
-        self._mouse_position_layout.addWidget(self.mouse_pos_widget)
-        self._mouse_position_layout.addSpacerItem(HorizontalSpacerItem())
-        self._mouse_position_layout.addWidget(self.mouse_unit_widget)
+        self._position_and_unit_layout.addWidget(self.mouse_pos_widget)
+        self._position_and_unit_layout.addSpacerItem(HorizontalSpacerItem())
+        self._position_and_unit_layout.addWidget(self.mouse_unit_widget)
 
-        self._frame_layout.addLayout(self._mouse_position_layout)
+        self.position_and_unit_widget.setLayout(self._position_and_unit_layout)
+
+        self._frame_layout.addWidget(self.position_and_unit_widget)
 
         self._control_layout = QtGui.QHBoxLayout()
         self._control_layout.setContentsMargins(6, 6, 6, 6)
@@ -589,8 +600,13 @@ class IntegrationImgWidget(QtGui.QWidget):
         self.style_widgets()
 
     def style_widgets(self):
-        self.setStyleSheet('#img_frame, QLabel {background: black;}')
+        self.setStyleSheet("""
+            #img_frame, #img_position_and_unit_widget, QLabel {
+                background: black;
+            }
+            """)
         self.autoscale_btn.setChecked(True)
+        self.position_and_unit_widget.hide()
 
 
 class IntegrationControlWidget(QtGui.QTabWidget):
@@ -1258,6 +1274,7 @@ class IntegrationPatternWidget(QtGui.QWidget):
 
         self.spectrum_pg_layout = GraphicsLayoutWidget()
         self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
+        self.spectrum_pg_layout.ci.layout.setContentsMargins(5, 0, 0, 5)
 
         self._central_layout.addWidget(self.spectrum_pg_layout)
         self._central_layout.addWidget(self.right_control_widget)
