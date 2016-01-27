@@ -1,19 +1,17 @@
 # -*- coding: utf8 -*-
 
 
-import unittest
-from mock import MagicMock
-import os
 import gc
-
-import numpy as np
+import os
+import unittest
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
+from mock import MagicMock
 
 from controller.integration import IntegrationController
 from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration.IntegrationWidgets import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')

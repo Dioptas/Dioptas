@@ -16,13 +16,13 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
-from PyQt4 import QtGui
-import gc
 import os
+import unittest
+
+from PyQt4 import QtGui
 
 from model.util import jcpds
-from widgets.JcpdsEditorWidget import JcpdsEditorWidget
+from widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

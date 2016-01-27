@@ -17,12 +17,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from copy import deepcopy
-import numpy as np
 
+import numpy as np
 from PyQt4 import QtGui, QtCore
 
-from widgets.JcpdsEditorWidget import JcpdsEditorWidget
-
+from widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from model.util.jcpds import jcpds
 from model.CalibrationModel import CalibrationModel

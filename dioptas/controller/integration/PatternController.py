@@ -17,12 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from PyQt4 import QtGui, QtCore
-import pyFAI
+
 import numpy as np
+import pyFAI
+from PyQt4 import QtGui, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel

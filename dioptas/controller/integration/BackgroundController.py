@@ -16,14 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui, QtCore
 import os
+
 import numpy as np
+from PyQt4 import QtGui, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from model.PatternModel import PatternModel
 from model.ImgModel import ImgModel
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration import IntegrationWidget
 
 
 class BackgroundController(object):

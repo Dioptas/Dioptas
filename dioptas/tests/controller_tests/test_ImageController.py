@@ -1,21 +1,19 @@
 # -*- coding: utf8 -*-
 
-import os
-import unittest
-import shutil
 import gc
+import os
+import shutil
+import unittest
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from controller.integration.ImageController import ImageController
-
+from model.CalibrationModel import CalibrationModel
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.PatternModel import PatternModel
-from model.CalibrationModel import CalibrationModel
-
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration.IntegrationWidgets import IntegrationWidget
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
