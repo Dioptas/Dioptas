@@ -26,7 +26,7 @@ from PyQt4.QtTest import QTest
 
 from controller.integration import OverlayController
 from model import PatternModel
-from widgets.integration.IntegrationWidgets import IntegrationWidget
+from widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

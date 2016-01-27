@@ -31,7 +31,7 @@ from model.CalibrationModel import CalibrationModel
 from model.ImgModel import ImgModel
 from model.PatternModel import PatternModel
 from model.PhaseModel import PhaseModel
-from widgets.integration.IntegrationWidgets import IntegrationWidget
+from widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

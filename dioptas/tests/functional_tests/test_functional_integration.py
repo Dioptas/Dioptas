@@ -11,7 +11,7 @@ from mock import MagicMock
 
 from controller.integration import IntegrationController
 from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
-from widgets.integration.IntegrationWidgets import IntegrationWidget
+from widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')

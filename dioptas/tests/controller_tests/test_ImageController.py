@@ -13,7 +13,7 @@ from model.CalibrationModel import CalibrationModel
 from model.ImgModel import ImgModel
 from model.MaskModel import MaskModel
 from model.PatternModel import PatternModel
-from widgets.integration.IntegrationWidgets import IntegrationWidget
+from widgets.integration import IntegrationWidget
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
