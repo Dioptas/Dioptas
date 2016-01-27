@@ -28,7 +28,7 @@ from controller.integration import BackgroundController
 from controller.integration import PatternController
 from model import ImgModel
 from model import PatternModel
-from widgets.integration.IntegrationWidgets import IntegrationWidget
+from widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
