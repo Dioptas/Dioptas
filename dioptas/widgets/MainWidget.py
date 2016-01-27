@@ -24,8 +24,7 @@ from PyQt4 import QtGui
 from .UiFiles.MainUI import Ui_mainView
 
 from .MaskWidget import MaskWidget
-# from .IntegrationWidget import IntegrationWidget
-from .IntegrationWidgetNew import IntegrationWidget
+from .IntegrationWidget import IntegrationWidget
 from .CalibrationWidget import CalibrationWidget
 
 
