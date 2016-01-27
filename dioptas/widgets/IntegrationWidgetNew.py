@@ -236,6 +236,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.img_view = image_widget.img_view
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
+        self.tabWidget = self.integration_control_widget
         self.img_widget_mouse_x_lbl = self.integration_image_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl
         self.img_widget_mouse_y_lbl = self.integration_image_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl
         self.img_widget_mouse_int_lbl = self.integration_image_widget.mouse_pos_widget.cur_pos_widget.int_lbl
@@ -1000,7 +1001,7 @@ class BackgroundControlWidget(QtGui.QWidget):
         self._image_background_gb_layout = QtGui.QGridLayout()
 
         self.load_image_btn = FlatButton('Load')
-        self.filename_lbl = QtGui.QLabel('')
+        self.filename_lbl = QtGui.QLabel('None')
         self.remove_image_btn = FlatButton('Remove')
         self.scale_sb = DoubleSpinBoxAlignRight()
         self.offset_sb = DoubleSpinBoxAlignRight()
