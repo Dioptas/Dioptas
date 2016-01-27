@@ -16,9 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
 from widgets.plot_widgets import MaskImgWidget
@@ -35,18 +33,18 @@ class MaskWidget(QtGui.QWidget):
     """
 
     def __init__(self, *args, **kwargs):
-        super(MaskWidget, self).__init__()
+        super(MaskWidget, self).__init__(*args, **kwargs)
+        self._layout = QtGui.QHBoxLayout(self)
         self.create_display_widget()
         self.create_control_widget()
 
-        self._layout = QtGui.QHBoxLayout()
         self._layout.addWidget(self._display_widget)
         self._layout.addWidget(self._control_widget)
-        self.setLayout(self._layout)
         self._layout.setContentsMargins(6, 6, 6, 6)
         self._layout.setSpacing(6)
 
         self.style_widgets()
+        self.setLayout(self._layout)
 
     def create_display_widget(self):
         self._display_widget = QtGui.QWidget()
@@ -158,13 +156,3 @@ class MaskWidget(QtGui.QWidget):
 
         self._control_widget.setMinimumWidth(200)
         self._control_widget.setMaximumWidth(200)
-
-
-if __name__ == '__main__':
-    app = QtGui.QApplication([])
-    widget = MaskWidget()
-    widget.show()
-    # widget.setWindowState(widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-    # widget.activateWindow()
-    # widget.raise_()
-    app.exec_()
