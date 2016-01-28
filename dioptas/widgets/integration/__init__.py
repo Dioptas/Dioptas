@@ -55,7 +55,7 @@ class IntegrationWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
         self._layout.setSpacing(6)
-        self._layout.setContentsMargins(6, 6, 6, 6)
+        self._layout.setContentsMargins(10, 6, 6, 6)
 
         self.vertical_splitter = QtGui.QSplitter()
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
