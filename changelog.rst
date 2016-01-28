@@ -1,4 +1,4 @@
-0.2.5 (development 10/19/2015)
+0.2.6 (development 10/19/2015)
 ------------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
@@ -11,6 +11,8 @@
 Bugfixes:
     - autoprocessing of files, i.e. automatically loading newly collected files should now be much more reliable and
       especially the check for new files takes much less network bandwidth
+    - jcpds editor content is now properly updated with the values of a newly added phase, which will be the new
+      selected one
 
 
 0.2.4 (stable 04/13/2015)

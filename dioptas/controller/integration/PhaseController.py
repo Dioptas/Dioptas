@@ -164,6 +164,8 @@ class PhaseController(object):
 
             self.widget.set_phase_pressure(len(self.phase_model.phases) - 1, pressure)
             self.update_phase_temperature(len(self.phase_model.phases) - 1, temperature)
+            if self.jcpds_editor_controller.active:
+                self.jcpds_editor_controller.show_phase(self.phase_model.phases[-1])
         except PhaseLoadError as e:
             self.widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
