@@ -140,6 +140,7 @@ class IntegrationPatternWidget(QtGui.QWidget):
         self.right_control_widget.setObjectName('pattern_right_control_widget')
         self._right_control_layout = QtGui.QVBoxLayout()
         self._right_control_layout.setContentsMargins(0, 0, 0, 6)
+        self._right_control_layout.setSpacing(4)
 
         self.tth_btn = CheckableFlatButton(u"2θ")
         self.q_btn = CheckableFlatButton('Q')

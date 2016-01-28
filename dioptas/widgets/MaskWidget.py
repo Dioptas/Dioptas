@@ -40,15 +40,16 @@ class MaskWidget(QtGui.QWidget):
 
         self._layout.addWidget(self._display_widget)
         self._layout.addWidget(self._control_widget)
-        self._layout.setContentsMargins(6, 6, 6, 6)
+        self._layout.setContentsMargins(10, 6, 6, 6)
         self._layout.setSpacing(6)
 
         self.style_widgets()
         self.setLayout(self._layout)
 
     def create_display_widget(self):
-        self._display_widget = QtGui.QWidget()
+        self._display_widget = QtGui.QFrame()
         self._display_layout = QtGui.QVBoxLayout()
+        self._display_layout.setContentsMargins(0, 0, 0, 0)
         self.img_layout_widget = GraphicsLayoutWidget()
         self.img_view = MaskImgWidget(self.img_layout_widget)
 
@@ -147,7 +148,6 @@ class MaskWidget(QtGui.QWidget):
         self._control_layout.addLayout(self._file_layout)
 
         self._control_widget.setLayout(self._control_layout)
-
 
     def style_widgets(self):
         self.mask_rb.setChecked(True)

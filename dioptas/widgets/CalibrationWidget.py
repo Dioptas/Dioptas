@@ -34,6 +34,7 @@ class CalibrationWidget(QtGui.QWidget):
     Calibration Display Widget - shows the image and pattern
     Calibration Control Widget - shows all the controls on the right side of the widget
     """
+
     def __init__(self, *args, **kwargs):
         super(CalibrationWidget, self).__init__(*args, **kwargs)
 
@@ -41,7 +42,7 @@ class CalibrationWidget(QtGui.QWidget):
         self.calibration_control_widget = CalibrationControlWidget()
 
         self._layout = QtGui.QHBoxLayout()
-        self._layout.setContentsMargins(6, 6, 6, 6)
+        self._layout.setContentsMargins(10, 6, 6, 6)
         self._layout.addWidget(self.calibration_display_widget)
         self._layout.addWidget(self.calibration_control_widget)
         self.setLayout(self._layout)
@@ -226,6 +227,7 @@ class CalibrationDisplayWidget(QtGui.QWidget):
         super(CalibrationDisplayWidget, self).__init__(*args, **kwargs)
 
         self._layout = QtGui.QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.img_layout_widget = GraphicsLayoutWidget()
         self.cake_layout_widget = GraphicsLayoutWidget()

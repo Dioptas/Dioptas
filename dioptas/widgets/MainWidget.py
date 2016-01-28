@@ -32,6 +32,7 @@ class MainWidget(QtGui.QWidget):
         super(MainWidget, self).__init__(*args, **kwargs)
 
         self._layout = QtGui.QHBoxLayout()
+        self._layout.setContentsMargins(10, 2, 2, 2)
 
         self.tabWidget = QtGui.QTabWidget()
         self.tabWidget.setTabPosition(QtGui.QTabWidget.West)
