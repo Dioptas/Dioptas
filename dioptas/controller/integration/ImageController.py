@@ -31,6 +31,7 @@ from model.ImgModel import ImgModel
 from model.PatternModel import PatternModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
+from model.util.HelperModule import reverse_interpolate_two_array
 
 
 class ImageController(object):
@@ -473,7 +474,8 @@ class ImageController(object):
                 self.widget.img_widget.activate_circle_scatter()
                 if self.roi_active:
                     self.widget.img_widget.activate_roi()
-                self._update_image_scatter_pos()
+                self._update_image_line_pos()
+                self._update_image_mouse_click_pos()
                 self.widget.img_mode_btn.setText('Cake')
 
     def img_autoscale_btn_clicked(self):
@@ -511,10 +513,22 @@ class ImageController(object):
 
 
 
-    def _update_image_scatter_pos(self):
+    def _update_image_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()
         self.widget.img_widget.set_circle_line(
             self.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
+
+    def _update_image_mouse_click_pos(self):
+        tth = self.clicked_tth
+        azi = self.clicked_azi/180.0 * np.pi
+
+        x_pos, y_pos = reverse_interpolate_two_array(tth, self.calibration_model.spectrum_geometry.ttha,
+                                                     azi, self.calibration_model.spectrum_geometry.chia,
+                                                     0.5, 0.5)
+
+        print x_pos, y_pos
+
+        self.widget.img_widget.set_mouse_click_position(y_pos, x_pos)
 
     def get_current_spectrum_tth(self):
         cur_pos = self.widget.pattern_widget.pos_line.getPos()[0]
