@@ -51,7 +51,7 @@ class PhaseControllerTest(unittest.TestCase):
         self.spectrum_model = PatternModel()
         self.phase_model = PhaseModel()
         self.widget = IntegrationWidget()
-        self.widget.spectrum_view._auto_range = True
+        self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
 
         self.spectrum_controller = PatternController({}, self.widget, self.image_model, None,
@@ -76,27 +76,27 @@ class PhaseControllerTest(unittest.TestCase):
 
         self.assertEqual(self.phase_tw.rowCount(), 6)
         self.assertEqual(len(self.phase_model.phases), 6)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 6)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 6)
         self.assertEqual(self.phase_tw.currentRow(), 5)
 
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 5)
         self.assertEqual(len(self.phase_model.phases), 5)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 5)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 5)
         self.assertEqual(self.phase_tw.currentRow(), 4)
 
         self.widget.select_phase(1)
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 4)
         self.assertEqual(len(self.phase_model.phases), 4)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 4)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 4)
         self.assertEqual(self.phase_tw.currentRow(), 1)
 
         self.widget.select_phase(0)
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 3)
         self.assertEqual(len(self.phase_model.phases), 3)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 3)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 3)
         self.assertEqual(self.phase_tw.currentRow(), 0)
 
         self.controller.remove_btn_click_callback()
@@ -104,13 +104,13 @@ class PhaseControllerTest(unittest.TestCase):
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_model.phases), 0)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 0)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_model.phases), 0)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 0)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
     def test_automatic_deleting_phases(self):
@@ -118,11 +118,11 @@ class PhaseControllerTest(unittest.TestCase):
         self.load_phases()
         self.assertEqual(self.phase_tw.rowCount(), 12)
         self.assertEqual(len(self.phase_model.phases), 12)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 12)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 12)
         self.controller.clear_phases()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_model.phases), 0)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 0)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
         multiplier = 1
@@ -133,7 +133,7 @@ class PhaseControllerTest(unittest.TestCase):
         self.controller.clear_phases()
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.phase_model.phases), 0)
-        self.assertEqual(len(self.widget.spectrum_view.phases), 0)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
     def test_pressure_change(self):
@@ -186,10 +186,10 @@ class PhaseControllerTest(unittest.TestCase):
         self.load_phases()
         self.phase_tw.selectRow(1)
         QTest.mouseClick(self.widget.phase_del_btn, QtCore.Qt.LeftButton)
-        self.widget.spectrum_view.hide_phase(1)
+        self.widget.pattern_widget.hide_phase(1)
 
     def test_auto_scaling_of_lines_in_spectrum_view(self):
-        spectrum_view = self.widget.spectrum_view
+        spectrum_view = self.widget.pattern_widget
 
         spectrum_view_range = spectrum_view.view_box.viewRange()
         spectrum_y = spectrum_view.plot_item.getData()[1]
@@ -212,7 +212,7 @@ class PhaseControllerTest(unittest.TestCase):
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
 
     def test_line_height_in_spectrum_view_after_zooming(self):
-        spectrum_view = self.widget.spectrum_view
+        spectrum_view = self.widget.pattern_widget
         self.load_phase('au_Anderson.jcpds')
 
         spectrum_view.view_box.setRange(xRange=[17, 30])

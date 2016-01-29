@@ -81,9 +81,9 @@ class PhaseController(object):
         self.widget.phase_color_btn_clicked.connect(self.phase_color_btn_clicked)
         self.widget.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
 
-        self.widget.spectrum_view.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
+        self.widget.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
         # self.widget.spectrum_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
-        self.widget.spectrum_view.spectrum_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
+        self.widget.pattern_widget.spectrum_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
         self.spectrum_model.pattern_changed.connect(self.spectrum_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
@@ -180,7 +180,7 @@ class PhaseController(object):
         Adds a phase to the Pattern view.
         :return:
         """
-        axis_range = self.widget.spectrum_view.spectrum_plot.viewRange()
+        axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline = \
@@ -189,10 +189,10 @@ class PhaseController(object):
                     x_range, y_range,
                     self.calibration_model.wavelength * 1e10,
                     self.get_unit())
-        color = self.widget.spectrum_view.add_phase(self.phase_model.phases[-1].name,
-                                                    positions,
-                                                    intensities,
-                                                    baseline)
+        color = self.widget.pattern_widget.add_phase(self.phase_model.phases[-1].name,
+                                                     positions,
+                                                     intensities,
+                                                     baseline)
         return color
 
     def edit_btn_click_callback(self):
@@ -208,7 +208,7 @@ class PhaseController(object):
         if cur_ind >= 0:
             self.widget.del_phase(cur_ind)
             self.phase_model.del_phase(cur_ind)
-            self.widget.spectrum_view.del_phase(cur_ind)
+            self.widget.pattern_widget.del_phase(cur_ind)
             self.update_temperature_control_visibility()
             if self.jcpds_editor_controller.active:
                 cur_ind = self.widget.get_selected_phase_row()
@@ -321,14 +321,14 @@ class PhaseController(object):
             color = str(new_color.name())
         else:
             color = str(previous_color.name())
-        self.widget.spectrum_view.set_phase_color(ind, color)
+        self.widget.pattern_widget.set_phase_color(ind, color)
         button.setStyleSheet('background-color:' + color)
 
     def phase_show_cb_state_changed(self, ind, state):
         if state:
-            self.widget.spectrum_view.show_phase(ind)
+            self.widget.pattern_widget.show_phase(ind)
         else:
-            self.widget.spectrum_view.hide_phase(ind)
+            self.widget.pattern_widget.hide_phase(ind)
 
     def get_unit(self):
         """
@@ -348,7 +348,7 @@ class PhaseController(object):
         """
         # QtGui.QApplication.processEvents()
         # self.update_phase_lines_slot()
-        self.widget.spectrum_view.update_phase_line_visibilities()
+        self.widget.pattern_widget.update_phase_line_visibilities()
 
     def update_all_phase_intensities(self):
         """
@@ -356,7 +356,7 @@ class PhaseController(object):
         (within range of spectrum and/or overlays
         :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
-        axis_range = self.widget.spectrum_view.view_box.viewRange()
+        axis_range = self.widget.pattern_widget.view_box.viewRange()
 
         for ind in range(len(self.phase_model.phases)):
             self.update_phase_intensities(ind, axis_range)
@@ -368,7 +368,7 @@ class PhaseController(object):
         :param axis_range: list/tuple of visible x_range and y_range -- ((x_min, x_max), (y_min, y_max))
         """
         if axis_range is None:
-            axis_range = self.widget.spectrum_view.view_box.viewRange()
+            axis_range = self.widget.pattern_widget.view_box.viewRange()
 
         x_range = axis_range[0]
         y_range = axis_range[1]
@@ -379,7 +379,7 @@ class PhaseController(object):
                 self.get_unit()
         )
 
-        self.widget.spectrum_view.update_phase_intensities(
+        self.widget.pattern_widget.update_phase_intensities(
                 ind, positions, intensities, y_range[0])
 
     def update_cur_phase_name(self):
@@ -396,9 +396,9 @@ class PhaseController(object):
     def jcpds_editor_reload_phase(self, jcpds):
         cur_ind = self.widget.get_selected_phase_row()
         self.phase_model.phases[cur_ind] = jcpds
-        self.widget.spectrum_view.phases[cur_ind].clear_lines()
+        self.widget.pattern_widget.phases[cur_ind].clear_lines()
         for dummy_line_ind in self.phase_model.phases[cur_ind].reflections:
-            self.widget.spectrum_view.phases[cur_ind].add_line()
+            self.widget.pattern_widget.phases[cur_ind].add_line()
         self.update_cur_phase_parameters()
 
     def update_cur_phase_parameters(self):
@@ -406,19 +406,19 @@ class PhaseController(object):
         self.phase_model.get_lines_d(cur_ind)
         self.update_phase_intensities(cur_ind)
         self.update_temperature_control_visibility(cur_ind)
-        self.widget.spectrum_view.update_phase_line_visibility(cur_ind)
+        self.widget.pattern_widget.update_phase_line_visibility(cur_ind)
 
     def jcpds_editor_reflection_removed(self, reflection_ind):
         cur_phase_ind = self.widget.get_selected_phase_row()
-        self.widget.spectrum_view.phases[cur_phase_ind].remove_line(reflection_ind)
+        self.widget.pattern_widget.phases[cur_phase_ind].remove_line(reflection_ind)
         self.phase_model.get_lines_d(cur_phase_ind)
         self.update_phase_intensities(cur_phase_ind)
 
     def jcpds_editor_reflection_added(self):
         cur_ind = self.widget.get_selected_phase_row()
-        self.widget.spectrum_view.phases[cur_ind].add_line()
+        self.widget.pattern_widget.phases[cur_ind].add_line()
         self.phase_model.get_lines_d(cur_ind)
 
     def jcpds_editor_reflection_cleared(self):
         cur_phase_ind = self.widget.get_selected_phase_row()
-        self.widget.spectrum_view.phases[cur_phase_ind].clear_lines()
+        self.widget.pattern_widget.phases[cur_phase_ind].clear_lines()
