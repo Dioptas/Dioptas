@@ -212,3 +212,38 @@ def calculate_color(ind):
 
 def convert_d_to_two_theta(d, wavelength):
     return np.arcsin(wavelength / (2 * d)) / np.pi * 360
+
+
+def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, delta2=0.1):
+    """
+    Tries to reverse interpolate two vales from two arrays with the same dimensions, and finds a common index
+    for value1 and value2 in their respective arrays. the deltas define the search radius for a close value match
+    to the arrays.
+
+    :return: index1, index2
+    """
+    tth_ind = np.argwhere(np.abs(array1 - value1) < delta1)
+    azi_ind = np.argwhere(np.abs(array2 - value2) < delta2)
+
+    tth_ind_ravel = np.ravel_multi_index((tth_ind[:, 0], tth_ind[:, 1]), dims=array1.shape)
+    azi_ind_ravel = np.ravel_multi_index((azi_ind[:, 0], azi_ind[:, 1]), dims=array2.shape)
+
+    common_ind_ravel = np.intersect1d(tth_ind_ravel, azi_ind_ravel)
+    result_ind = np.unravel_index(common_ind_ravel, dims=array1.shape)
+
+    while len(result_ind[0]) > 1:
+        if np.max(np.diff(array1)) > 0:
+            delta1 = np.max(np.diff(array1[result_ind]))
+
+        if np.max(np.diff(array2)) > 0:
+            delta2 = np.max(np.diff(array2[result_ind]))
+
+        tth_ind = np.argwhere(np.abs(array1[result_ind] - value1) < delta1)
+        azi_ind = np.argwhere(np.abs(array2[result_ind] - value2) < delta2)
+
+        print result_ind
+
+        common_ind = np.intersect1d(tth_ind, azi_ind)
+        result_ind = (result_ind[0][common_ind], result_ind[1][common_ind])
+
+    return result_ind[0], result_ind[1]
