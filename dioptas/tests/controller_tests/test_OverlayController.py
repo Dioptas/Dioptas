@@ -53,27 +53,27 @@ class OverlayControllerTest(unittest.TestCase):
 
         self.assertEqual(self.overlay_tw.rowCount(), 6)
         self.assertEqual(len(self.spectrum_model.overlays), 6)
-        self.assertEqual(len(self.widget.spectrum_view.overlays), 6)
+        self.assertEqual(len(self.widget.pattern_widget.overlays), 6)
         self.assertEqual(self.overlay_tw.currentRow(), 5)
 
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 5)
         self.assertEqual(len(self.spectrum_model.overlays), 5)
-        self.assertEqual(len(self.widget.spectrum_view.overlays), 5)
+        self.assertEqual(len(self.widget.pattern_widget.overlays), 5)
         self.assertEqual(self.overlay_tw.currentRow(), 4)
 
         self.widget.select_overlay(1)
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 4)
         self.assertEqual(len(self.spectrum_model.overlays), 4)
-        self.assertEqual(len(self.widget.spectrum_view.overlays), 4)
+        self.assertEqual(len(self.widget.pattern_widget.overlays), 4)
         self.assertEqual(self.overlay_tw.currentRow(), 1)
 
         self.widget.select_overlay(0)
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 3)
         self.assertEqual(len(self.spectrum_model.overlays), 3)
-        self.assertEqual(len(self.widget.spectrum_view.overlays), 3)
+        self.assertEqual(len(self.widget.pattern_widget.overlays), 3)
         self.assertEqual(self.overlay_tw.currentRow(), 0)
 
         self.overlay_controller.remove_overlay_btn_click_callback()
@@ -81,7 +81,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_model.overlays), 0)
-        self.assertEqual(len(self.widget.spectrum_view.overlays), 0)
+        self.assertEqual(len(self.widget.pattern_widget.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
         self.overlay_controller.remove_overlay_btn_click_callback()
@@ -93,12 +93,12 @@ class OverlayControllerTest(unittest.TestCase):
         self.load_overlays()
         self.assertEqual(self.overlay_tw.rowCount(), 12)
         self.assertEqual(len(self.spectrum_model.overlays), 12)
-        self.assertEqual(len(self.widget.spectrum_view.overlays), 12)
+        self.assertEqual(len(self.widget.pattern_widget.overlays), 12)
 
         self.overlay_controller.clear_overlays_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_model.overlays), 0)
-        self.assertEqual(len(self.widget.spectrum_view.overlays), 0)
+        self.assertEqual(len(self.widget.pattern_widget.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
         multiplier = 1
@@ -109,7 +109,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.overlay_controller.clear_overlays_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
         self.assertEqual(len(self.spectrum_model.overlays), 0)
-        self.assertEqual(len(self.widget.spectrum_view.overlays), 0)
+        self.assertEqual(len(self.widget.pattern_widget.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
     def test_change_scaling_in_view(self):
@@ -121,7 +121,7 @@ class OverlayControllerTest(unittest.TestCase):
 
         # tests if overlay is updated in spectrum
         x, y = self.spectrum_model.overlays[2].data
-        x_spec, y_spec = self.widget.spectrum_view.overlays[2].getData()
+        x_spec, y_spec = self.widget.pattern_widget.overlays[2].getData()
 
         self.assertAlmostEqual(np.sum(y - y_spec), 0)
 
@@ -133,7 +133,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.assertEqual(self.spectrum_model.get_overlay_offset(3), 100)
 
         x, y = self.spectrum_model.overlays[3].data
-        x_spec, y_spec = self.widget.spectrum_view.overlays[3].getData()
+        x_spec, y_spec = self.widget.pattern_widget.overlays[3].getData()
 
         self.assertAlmostEqual(np.sum(y - y_spec), 0)
 

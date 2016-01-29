@@ -21,7 +21,7 @@ import os
 from PyQt4 import QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
-from widgets.plot_widgets.ImgWidget import IntegrationImgView
+from widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 from widgets.plot_widgets import SpectrumWidget
 
 from widgets.CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, \
@@ -34,9 +34,9 @@ from . import CLICKED_COLOR
 widget_path = os.path.dirname(__file__)
 
 
-class IntegrationImgWidget(QtGui.QWidget):
+class IntegrationImgDisplayWidget(QtGui.QWidget):
     def __init__(self):
-        super(IntegrationImgWidget, self).__init__()
+        super(IntegrationImgDisplayWidget, self).__init__()
 
         self.frame = QtGui.QFrame()
         self.frame.setObjectName('img_frame')
@@ -46,7 +46,7 @@ class IntegrationImgWidget(QtGui.QWidget):
         self._frame_layout.setSpacing(0)
 
         self.img_pg_layout = GraphicsLayoutWidget()
-        self.img_view = IntegrationImgView(self.img_pg_layout, orientation='horizontal')
+        self.img_view = IntegrationImgWidget(self.img_pg_layout, orientation='horizontal')
         self._frame_layout.addWidget(self.img_pg_layout)
 
         self.position_and_unit_widget = QtGui.QWidget()

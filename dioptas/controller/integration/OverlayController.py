@@ -103,7 +103,7 @@ class OverlayController(object):
         """
         callback when overlay is added to the SpectrumData
         """
-        color = self.widget.spectrum_view.add_overlay(self.spectrum_model.overlays[-1])
+        color = self.widget.pattern_widget.add_overlay(self.spectrum_model.overlays[-1])
         self.widget.add_overlay(self.spectrum_model.get_overlay_name(-1),
                                 '#%02x%02x%02x' % (color[0], color[1], color[2]))
 
@@ -120,7 +120,7 @@ class OverlayController(object):
         :param ind: index of overlay removed
         """
         self.widget.remove_overlay(ind)
-        self.widget.spectrum_view.remove_overlay(ind)
+        self.widget.pattern_widget.remove_overlay(ind)
 
         # if no more overlays are present the set_as_bkg_btn should be unchecked
         if self.widget.overlay_tw.rowCount() == 0:
@@ -180,7 +180,7 @@ class OverlayController(object):
             color = str(new_color.name())
         else:
             color = str(previous_color.name())
-        self.widget.spectrum_view.set_overlay_color(ind, color)
+        self.widget.pattern_widget.set_overlay_color(ind, color)
         button.setStyleSheet('background-color:' + color)
 
     def overlay_scale_sb_changed(self, value):
@@ -200,7 +200,7 @@ class OverlayController(object):
         self.spectrum_model.set_overlay_offset(cur_ind, value)
 
     def overlay_changed(self, ind):
-        self.widget.spectrum_view.update_overlay(self.spectrum_model.overlays[ind], ind)
+        self.widget.pattern_widget.update_overlay(self.spectrum_model.overlays[ind], ind)
         cur_ind = self.widget.get_selected_overlay_row()
         if ind == cur_ind:
             self.widget.overlay_offset_sb.blockSignals(True)
@@ -260,9 +260,9 @@ class OverlayController(object):
         :param state: boolean value whether the checkbox was checked or unchecked
         """
         if state:
-            self.widget.spectrum_view.show_overlay(ind)
+            self.widget.pattern_widget.show_overlay(ind)
         else:
-            self.widget.spectrum_view.hide_overlay(ind)
+            self.widget.pattern_widget.hide_overlay(ind)
 
     def rename_overlay(self, ind, name):
         """
@@ -271,4 +271,4 @@ class OverlayController(object):
         :param ind: index of overlay for which the name was changed
         :param name: new name
         """
-        self.widget.spectrum_view.rename_overlay(ind, name)
+        self.widget.pattern_widget.rename_overlay(ind, name)

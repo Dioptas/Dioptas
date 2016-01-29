@@ -287,15 +287,16 @@ class MaskImgWidget(ImgWidget):
 from pyFAI import marchingsquares
 
 
-class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
+class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
-        super(IntegrationImgView, self).__init__(pg_layout, orientation)
+        super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
         self.deactivate_vertical_line()
-        self.create_circle_scatter_item()
+        self.create_circle_plot_items()
+        self.create_mouse_click_item()
         self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
 
-    def create_circle_scatter_item(self):
+    def create_circle_plot_items(self):
         # creates several PlotDataItems as line items, to be filled with the current clicked position
         # this needs to be several because the lines can be interrupted by the edges of the image, otherwise
         # they would always create straight line around the image
@@ -307,6 +308,17 @@ class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
         self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
         for plot_item in self.circle_plot_items:
             self.img_view_box.addItem(plot_item)
+
+    def create_mouse_click_item(self):
+        self.mouse_click_item = pg.ScatterPlotItem()
+        self.mouse_click_item.setSymbol('+')
+        self.mouse_click_item.setSize(15)
+        self.mouse_click_item.addPoints([1024], [1024])
+        self.img_view_box.addItem(self.mouse_click_item)
+        self.mouse_left_clicked.connect(self.set_mouse_click_position)
+
+    def set_mouse_click_position(self, x, y):
+        self.mouse_click_item.setData([y], [x])
 
     def set_circle_line(self, tth, cur_tth):
         """

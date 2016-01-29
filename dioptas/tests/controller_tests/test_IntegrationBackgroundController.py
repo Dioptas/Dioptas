@@ -59,11 +59,11 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.bkg_spectrum_gb.setChecked(True)
         self.widget.bkg_spectrum_inspect_btn.toggle()
-        x_bkg, y_bkg = self.widget.spectrum_view.bkg_item.getData()
+        x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
         self.assertGreater(len(x_bkg), 0)
 
         self.widget.bkg_spectrum_inspect_btn.toggle()
-        x_bkg, y_bkg = self.widget.spectrum_view.bkg_item.getData()
+        x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
         self.assertEqual(len(x_bkg), 0)
 
     def test_spectrum_bkg_inspect_btn_is_untoggled_when_disabling_spectrum_gb(self):
@@ -71,7 +71,7 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         self.widget.bkg_spectrum_gb.setChecked(True)
         self.widget.bkg_spectrum_inspect_btn.toggle()
         self.widget.bkg_spectrum_gb.setChecked(False)
-        x_bkg, y_bkg = self.widget.spectrum_view.bkg_item.getData()
+        x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
         self.assertEqual(len(x_bkg), 0)
 
     def test_spectrum_bkg_linear_region_changes_txt_fields(self):
@@ -79,7 +79,7 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         self.widget.bkg_spectrum_gb.setChecked(True)
         self.widget.bkg_spectrum_inspect_btn.toggle()
 
-        self.widget.spectrum_view.set_linear_region(5, 11)
+        self.widget.pattern_widget.set_linear_region(5, 11)
 
         x_min = float(str(self.widget.bkg_spectrum_x_min_txt.text()))
         x_max = float(str(self.widget.bkg_spectrum_x_max_txt.text()))
@@ -97,7 +97,7 @@ class IntegrationBackgroundControllerTest(unittest.TestCase):
         self.widget.bkg_spectrum_x_max_txt.setText('11')
         QTest.keyPress(self.widget.bkg_spectrum_x_max_txt, QtCore.Qt.Key_Enter)
 
-        x_min, x_max = self.widget.spectrum_view.linear_region_item.getRegion()
+        x_min, x_max = self.widget.pattern_widget.linear_region_item.getRegion()
 
         self.assertEqual(x_min, 5)
         self.assertEqual(x_max, 11)

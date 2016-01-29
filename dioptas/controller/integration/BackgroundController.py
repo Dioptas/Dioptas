@@ -135,7 +135,7 @@ class BackgroundController(object):
         else:
             self.widget.bkg_spectrum_inspect_btn.setChecked(False)
             self.widget.qa_bkg_spectrum_inspect_btn.setChecked(False)
-            self.widget.spectrum_view.hide_linear_region()
+            self.widget.pattern_widget.hide_linear_region()
             self.spectrum_model.unset_auto_background_subtraction()
 
     def bkg_spectrum_parameters_changed(self):
@@ -152,22 +152,22 @@ class BackgroundController(object):
         self.widget.qa_bkg_spectrum_inspect_btn.blockSignals(False)
 
         if checked:
-            self.widget.spectrum_view.show_linear_region()
+            self.widget.pattern_widget.show_linear_region()
             x_min, x_max = self.widget.get_bkg_spectrum_roi()
             x_spec = self.spectrum_model.pattern.auto_background_before_subtraction_spectrum.x
             if x_min < x_spec[0]:
                 x_min = x_spec[0]
             if x_max > x_spec[-1]:
                 x_max = x_spec[-1]
-            self.widget.spectrum_view.set_linear_region(x_min, x_max)
-            self.widget.spectrum_view.linear_region_item.sigRegionChanged.connect(
+            self.widget.pattern_widget.set_linear_region(x_min, x_max)
+            self.widget.pattern_widget.linear_region_item.sigRegionChanged.connect(
                     self.bkg_spectrum_linear_region_callback
             )
             self.widget.bkg_spectrum_x_min_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
             self.widget.bkg_spectrum_x_max_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
         else:
-            self.widget.spectrum_view.hide_linear_region()
-            self.widget.spectrum_view.linear_region_item.sigRegionChanged.disconnect(
+            self.widget.pattern_widget.hide_linear_region()
+            self.widget.pattern_widget.linear_region_item.sigRegionChanged.disconnect(
                     self.bkg_spectrum_linear_region_callback
             )
 
@@ -176,12 +176,12 @@ class BackgroundController(object):
         self.spectrum_model.pattern_changed.emit()
 
     def bkg_spectrum_linear_region_callback(self):
-        x_min, x_max = self.widget.spectrum_view.get_linear_region()
+        x_min, x_max = self.widget.pattern_widget.get_linear_region()
         self.widget.bkg_spectrum_x_min_txt.setText('{:.3f}'.format(x_min))
         self.widget.bkg_spectrum_x_max_txt.setText('{:.3f}'.format(x_max))
         self.bkg_spectrum_parameters_changed()
 
     def update_bkg_spectrum_linear_region(self):
-        self.widget.spectrum_view.linear_region_item.blockSignals(True)
-        self.widget.spectrum_view.set_linear_region(*self.widget.get_bkg_spectrum_roi())
-        self.widget.spectrum_view.linear_region_item.blockSignals(False)
+        self.widget.pattern_widget.linear_region_item.blockSignals(True)
+        self.widget.pattern_widget.set_linear_region(*self.widget.get_bkg_spectrum_roi())
+        self.widget.pattern_widget.linear_region_item.blockSignals(False)

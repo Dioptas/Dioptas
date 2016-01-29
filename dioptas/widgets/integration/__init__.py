@@ -27,7 +27,7 @@ from ..CustomWidgets import NoRectDelegate
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .ControlWidgets import IntegrationControlWidget
-from .IntegrationWidgets import IntegrationImgWidget, IntegrationPatternWidget, IntegrationStatusWidget
+from .IntegrationWidgets import IntegrationImgDisplayWidget, IntegrationPatternWidget, IntegrationStatusWidget
 
 
 class IntegrationWidget(QtGui.QWidget):
@@ -48,7 +48,7 @@ class IntegrationWidget(QtGui.QWidget):
     def __init__(self, *args, **kwargs):
         super(IntegrationWidget, self).__init__(*args, **kwargs)
 
-        self.integration_image_widget = IntegrationImgWidget()
+        self.integration_image_widget = IntegrationImgDisplayWidget()
         self.integration_control_widget = IntegrationControlWidget()
         self.integration_pattern_widget = IntegrationPatternWidget()
         self.integration_status_widget = IntegrationStatusWidget()
@@ -227,7 +227,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.qa_bkg_spectrum_inspect_btn = pattern_widget.background_inspect_btn
         self.antialias_btn = pattern_widget.antialias_btn
         self.spec_auto_range_btn = pattern_widget.auto_range_btn
-        self.spectrum_view = pattern_widget.spectrum_view
+        self.pattern_widget = pattern_widget.spectrum_view
 
         image_widget = self.integration_image_widget
         self.img_frame = image_widget
@@ -237,7 +237,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.mask_transparent_cb = image_widget.transparent_cb
         self.img_autoscale_btn = image_widget.autoscale_btn
         self.img_dock_btn = image_widget.undock_btn
-        self.img_view = image_widget.img_view
+        self.img_widget = image_widget.img_view
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
         self.tabWidget = self.integration_control_widget
@@ -259,12 +259,12 @@ class IntegrationWidget(QtGui.QWidget):
         self.footer_img_mouse_position_widget = self.integration_status_widget.mouse_pos_widget
 
     def switch_to_cake(self):
-        self.img_view.img_view_box.setAspectLocked(False)
-        self.img_view.activate_vertical_line()
+        self.img_widget.img_view_box.setAspectLocked(False)
+        self.img_widget.activate_vertical_line()
 
     def switch_to_img(self):
-        self.img_view.img_view_box.setAspectLocked(True)
-        self.img_view.deactivate_vertical_line()
+        self.img_widget.img_view_box.setAspectLocked(True)
+        self.img_widget.deactivate_vertical_line()
 
     def dock_img(self, bool_value):
         if not bool_value:
@@ -313,10 +313,10 @@ class IntegrationWidget(QtGui.QWidget):
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         progress_dialog.move(
-                self.spectrum_view.pg_layout.x() + self.spectrum_view.pg_layout.size().width() / 2.0 - \
-                progress_dialog.size().width() / 2.0,
-                self.spectrum_view.pg_layout.y() + self.spectrum_view.pg_layout.size().height() / 2.0 -
-                progress_dialog.size().height() / 2.0)
+            self.pattern_widget.pg_layout.x() + self.pattern_widget.pg_layout.size().width() / 2.0 - \
+            progress_dialog.size().width() / 2.0,
+            self.pattern_widget.pg_layout.y() + self.pattern_widget.pg_layout.size().height() / 2.0 -
+            progress_dialog.size().height() / 2.0)
         progress_dialog.show()
         return progress_dialog
 
@@ -474,7 +474,7 @@ class IntegrationWidget(QtGui.QWidget):
             self.select_phase(self.phase_tw.rowCount() - 1)
 
     def rename_phase(self, ind, name):
-        self.spectrum_view.rename_phase(ind, name)
+        self.pattern_widget.rename_phase(ind, name)
         name_item = self.phase_tw.item(ind, 2)
         name_item.setText(name)
 
@@ -514,7 +514,7 @@ class IntegrationWidget(QtGui.QWidget):
             if temperature != 0 and temperature != 298 and temperature is not None:
                 parameter_str += '{0} K '.format(temperature)
 
-        self.spectrum_view.rename_phase(ind, parameter_str + name_str)
+        self.pattern_widget.rename_phase(ind, parameter_str + name_str)
 
     def phase_color_btn_click(self, button):
         self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)

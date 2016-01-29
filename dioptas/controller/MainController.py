@@ -158,8 +158,8 @@ class MainController(object):
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()
             self.integration_controller.image_controller.update_img()
-            self.widget.integration_widget.img_view.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
-            self.widget.integration_widget.img_view.img_histogram_LUT.setLevels(*old_hist_levels)
+            self.widget.integration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
+            self.widget.integration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
         elif ind == 1:  # mask tab
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
