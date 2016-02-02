@@ -52,15 +52,15 @@ class UserInterFaceTest(unittest.TestCase):
     def test_synchronization_of_view_range(self):
 
         # calibration and mask view
-        self.calibration_widget.img_view.img_view_box.setRange(QtCore.QRectF(-10, -10, 20, 20))
+        self.calibration_widget.img_widget.img_view_box.setRange(QtCore.QRectF(-10, -10, 20, 20))
         self.controller.widget.tabWidget.setCurrentIndex(1)
 
-        self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_view.img_view_box.targetRange())- \
-                                      np.array(self.mask_widget.img_view.img_view_box.targetRange())),0)
+        self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_widget.img_view_box.targetRange())- \
+                                      np.array(self.mask_widget.img_widget.img_view_box.targetRange())),0)
 
-        self.mask_widget.img_view.img_view_box.setRange(QtCore.QRectF(100, 100, 300, 300))
+        self.mask_widget.img_widget.img_view_box.setRange(QtCore.QRectF(100, 100, 300, 300))
         self.controller.widget.tabWidget.setCurrentIndex(0)
 
-        self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_view.img_view_box.targetRange())- \
-                                      np.array(self.mask_widget.img_view.img_view_box.targetRange())),0)
+        self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_widget.img_view_box.targetRange())- \
+                                      np.array(self.mask_widget.img_widget.img_view_box.targetRange())),0)
 

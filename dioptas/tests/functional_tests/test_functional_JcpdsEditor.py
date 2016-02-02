@@ -102,7 +102,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         item.setText(str(value))
 
     def get_phase_line_position(self, phase_ind, line_ind):
-        return self.main_controller.integration_controller.widget.spectrum_view.phases[phase_ind]. \
+        return self.main_controller.integration_controller.widget.pattern_widget.phases[phase_ind]. \
             line_items[line_ind].getData()[0][0]
 
     def compare_line_position(self, prev_line_pos, phase_ind, line_ind):
@@ -520,7 +520,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
-        self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
@@ -601,7 +601,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
-        self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
         self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
@@ -630,7 +630,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.phase_model.phases[0]
-        self.jcpds_in_spec = self.main_controller.integration_controller.widget.spectrum_view.phases[0]
+        self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)

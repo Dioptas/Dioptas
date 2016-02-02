@@ -502,16 +502,13 @@ class ImageController(object):
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def _update_cake_mouse_click_pos(self):
-        tth = self.clicked_tth/np.pi*180
+        tth = self.clicked_tth / np.pi * 180
         azi = self.clicked_azi
 
-        x_pos = np.abs(self.calibration_model.cake_tth-tth).argmin()
-        y_pos = np.abs(self.calibration_model.cake_azi-azi).argmin()
+        x_pos = np.abs(self.calibration_model.cake_tth - tth).argmin()
+        y_pos = np.abs(self.calibration_model.cake_azi - azi).argmin()
 
-        print x_pos, y_pos
-        self.widget.img_widget.set_mouse_click_position(y_pos, x_pos)
-
-
+        self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
 
     def _update_image_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()
@@ -520,14 +517,9 @@ class ImageController(object):
 
     def _update_image_mouse_click_pos(self):
         tth = self.clicked_tth
-        azi = self.clicked_azi/180.0 * np.pi
+        azi = self.clicked_azi / 180.0 * np.pi
 
-        x_pos, y_pos = reverse_interpolate_two_array(tth, self.calibration_model.spectrum_geometry.ttha,
-                                                     azi, self.calibration_model.spectrum_geometry.chia,
-                                                     0.5, 0.5)
-
-        print x_pos, y_pos
-
+        x_pos, y_pos = self.calibration_model.get_pixel_ind(tth, azi)
         self.widget.img_widget.set_mouse_click_position(y_pos, x_pos)
 
     def get_current_spectrum_tth(self):
@@ -614,7 +606,7 @@ class ImageController(object):
             self.widget.click_int_lbl.setText('I: ')
 
         if self.calibration_model.is_calibrated:
-            x, y = y, x # the indices are reversed for the img_array
+            x, y = y, x  # the indices are reversed for the img_array
             if self.img_mode == 'Cake':  # cake mode
                 cake_shape = self.calibration_model.cake_img.shape
                 if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):
