@@ -150,9 +150,7 @@ class ImgWidget(QtCore.QObject):
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
-            y = pos.x()
-            x = pos.y()
-            self.mouse_left_clicked.emit(x, y)
+            self.mouse_left_clicked.emit(pos.x(), pos.y())
 
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
@@ -238,7 +236,7 @@ class CalibrationCakeWidget(ImgWidget):
             self._vertical_line_activated = False
 
     def set_vertical_line_pos(self, x, y):
-        self.vertical_line.setValue(y)
+        self.vertical_line.setValue(x)
 
 
 class MaskImgWidget(ImgWidget):
@@ -318,7 +316,7 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.mouse_left_clicked.connect(self.set_mouse_click_position)
 
     def set_mouse_click_position(self, x, y):
-        self.mouse_click_item.setData([y], [x])
+        self.mouse_click_item.setData([x], [y])
 
     def set_circle_line(self, tth, cur_tth):
         """
@@ -386,33 +384,33 @@ class MyPolygon(QtGui.QGraphicsPolygonItem):
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
 
         self.vertices = []
-        self.vertices.append(QtCore.QPoint(y, x))
+        self.vertices.append(QtCore.QPoint(x, y))
 
     def set_size(self, x, y):
         temp_points = list(self.vertices)
         temp_points.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(temp_points))
 
-    def add_point(self, y, x):
+    def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(self.vertices))
 
 
 class MyCircle(QtGui.QGraphicsEllipseItem):
     def __init__(self, x, y, radius):
-        QtGui.QGraphicsEllipseItem.__init__(self, y - radius, x - radius, radius * 2, radius * 2)
+        QtGui.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
         self.radius = radius
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
         self.center_x = x
         self.center_y = y
 
-    def set_size(self, y, x):
-        self.radius = np.sqrt((y - self.center_y) ** 2 + (x - self.center_x) ** 2)
-        self.setRect(self.center_y - self.radius, self.center_x - self.radius, self.radius * 2, self.radius * 2)
+    def set_size(self, x, y):
+        self.radius = np.sqrt((x - self.center_x) ** 2 + (y - self.center_y) ** 2)
+        self.setRect(self.center_x - self.radius, self.center_y - self.radius, self.radius * 2, self.radius * 2)
 
-    def set_position(self, y, x):
-        self.setRect(y - self.radius, x - self.radius, self.radius * 2, self.radius * 2)
+    def set_position(self, x, y):
+        self.setRect(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
 
 class MyPoint(QtGui.QGraphicsEllipseItem):
@@ -424,35 +422,35 @@ class MyPoint(QtGui.QGraphicsEllipseItem):
         self.x = 0
         self.y = 0
 
-    def set_position(self, y, x):
+    def set_position(self, x, y):
         self.x = x
         self.y = y
-        self.setRect(y - self.radius, x - self.radius, self.radius * 2, self.radius * 2)
+        self.setRect(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
     def set_radius(self, radius):
         self.radius = radius
-        self.set_position(self.y, self.x)
+        self.set_position(self.x, self.y)
         return self.radius
 
     def inc_size(self, step):
         self.radius = self.radius + step
-        self.set_position(self.y, self.x)
+        self.set_position(self.x, self.y)
         return self.radius
 
 
 class MyRectangle(QtGui.QGraphicsRectItem):
     def __init__(self, x, y, width, height):
-        QtGui.QGraphicsRectItem.__init__(self, y, x - height, width, height)
+        QtGui.QGraphicsRectItem.__init__(self, x, y + height, width, height)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
 
         self.initial_x = x
         self.initial_y = y
 
-    def set_size(self, y, x):
-        height = x - self.initial_x
-        width = y - self.initial_y
-        self.setRect(self.initial_y, self.initial_x + height, width, -height)
+    def set_size(self, x, y):
+        width = x - self.initial_x
+        height = y - self.initial_y
+        self.setRect(self.initial_x, self.initial_y + height, width, -height)
 
 
 class MyROI(pg.ROI):

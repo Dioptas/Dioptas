@@ -51,7 +51,7 @@ class MaskWidget(QtGui.QWidget):
         self._display_layout = QtGui.QVBoxLayout()
         self._display_layout.setContentsMargins(0, 0, 0, 0)
         self.img_layout_widget = GraphicsLayoutWidget()
-        self.img_view = MaskImgWidget(self.img_layout_widget)
+        self.img_widget = MaskImgWidget(self.img_layout_widget)
 
         self._display_layout.addWidget(self.img_layout_widget)
 
