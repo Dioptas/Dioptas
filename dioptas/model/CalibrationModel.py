@@ -28,6 +28,7 @@ from pyFAI.blob_detection import BlobDetection
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
+from skimage.measure import find_contours
 from model.util.HelperModule import get_base_name
 from model import ImgModel
 import calibrants
@@ -549,6 +550,23 @@ class CalibrationModel(object):
 
     def get_two_theta_array(self):
         return self.spectrum_geometry._ttha[::self.supersampling_factor, ::self.supersampling_factor]
+
+    def get_pixel_ind(self, tth, azi):
+        """
+        Calculates pixel index for a specfic two theta and azimutal value.
+        :param tth:
+            two theta in radians
+        :param azi:
+            azimuth in radians
+        :return:
+            tuple of index 1 and 2
+        """
+        tth_ind = find_contours(self.spectrum_geometry.ttha, tth)
+        tth_ind = np.vstack(tth_ind)
+        azi_values = self.spectrum_geometry.chi(tth_ind[:,0], tth_ind[:,1])
+        min_index = np.argmin(np.abs(azi_values-azi))
+        return tth_ind[min_index, 0], tth_ind[min_index, 1]
+
 
     @property
     def wavelength(self):
