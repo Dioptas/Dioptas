@@ -30,23 +30,27 @@ from model.CalibrationModel import CalibrationModel
 from controller.integration import JcpdsEditorController
 from controller import MainController
 
-
-
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 jcpds_path = os.path.join(data_path, 'jcpds')
+
 
 def calculate_cubic_d_spacing(h, k, l, a):
     d_squared_inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
     return np.sqrt(1. / d_squared_inv)
 
-app = QtGui.QApplication([])
-QtGui.QApplication.processEvents = MagicMock()
-app.processEvents = MagicMock()
-
-
 
 class JcpdsEditorFunctionalTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+        QtGui.QApplication.processEvents = MagicMock()
+        cls.app.processEvents = MagicMock()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+
     def setUp(self):
         self.calibration_model = CalibrationModel()
         dummy_x = np.linspace(0, 30)
@@ -120,7 +124,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.calibration_model.spectrum_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None,  self.calibration_model, self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.calibration_model, self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
 
         # Erwin immediately sees the filename in the explorer
@@ -347,7 +351,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual(self.jcpds.comments[0], 'HAHA this is a phase you will never see in your spectrum')
 
         # then he sees the save_as button and is happy to save his non-sense for later users
-        filename = os.path.join(jcpds_path,'au_mal_anders.jcpds')
+        filename = os.path.join(jcpds_path, 'au_mal_anders.jcpds')
         self.jcpds_controller.save_as_btn_clicked(filename)
         self.assertTrue(os.path.exists(filename))
 
@@ -389,17 +393,17 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
                                                                      update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img(os.path.join(data_path,'LaB6_40keV_MarCCD.tif'))
+        self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path, 'mo.jcpds'))
+            os.path.join(jcpds_path, 'mo.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path, 'ar.jcpds'))
+            os.path.join(jcpds_path, 'ar.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path, 're.jcpds'))
+            os.path.join(jcpds_path, 're.jcpds'))
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
@@ -494,7 +498,6 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 1.3e-6)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-
     def test_connection_between_main_gui_and_jcpds_editor_reflections(self):
         # Erwin loads Dioptas with a previous calibration and image file then he adds several phases and looks into the
         # jcpds editor for the first phase. He sees that everything seems to be correct
@@ -508,13 +511,13 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path,'au_Anderson.jcpds'))
+            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path,'mo.jcpds'))
+            os.path.join(jcpds_path, 'mo.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path,'ar.jcpds'))
+            os.path.join(jcpds_path, 'ar.jcpds'))
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path,'re.jcpds'))
+            os.path.join(jcpds_path, 're.jcpds'))
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
@@ -534,7 +537,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # then he decides to add another reflection to the jcpds file and sees that after changing the parameters it is
         # miraculously connected to the view
 
-        #adding the reflection
+        # adding the reflection
         QTest.mouseClick(self.jcpds_widget.reflections_add_btn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 14)
@@ -548,7 +551,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertAlmostEqual(self.get_phase_line_position(0, 13), self.convert_d_to_twotheta(4.0786, 0.31),
                                delta=0.0005)
 
-        #he looks through the reflection and sees that one is actually forbidden. Who has added this reflection to the
+        # he looks through the reflection and sees that one is actually forbidden. Who has added this reflection to the
         # file? He decides to delete it
 
         self.jcpds_widget.reflection_table.selectRow(5)
@@ -560,7 +563,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual(len(self.jcpds_in_spec.line_items), 13)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 13)
 
-        #then he looks again at all reflection and does not like it so he decides to clear all of them and build them
+        # then he looks again at all reflection and does not like it so he decides to clear all of them and build them
         # up from sketch...
 
         QTest.mouseClick(self.jcpds_widget.reflections_clear_btn, QtCore.Qt.LeftButton)
@@ -581,18 +584,17 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual(len(self.jcpds_in_spec.line_items), 4)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 4)
 
-
     def test_phase_name_difference_after_modified(self):
         self.main_controller = MainController(use_settings=False)
         self.main_controller.calibration_model.integrate_1d = self.calibration_model.integrate_1d
-        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path,'LaB6_40keV_MarCCD.poni'),
+        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
                                                                      update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
         # change anything the names every are the same...
@@ -611,18 +613,17 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
         self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
 
-
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
         self.main_controller = MainController(use_settings=False)
         self.main_controller.calibration_model.integrate_1d = self.calibration_model.integrate_1d
-        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path,'LaB6_40keV_MarCCD.poni'),
+        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
                                                                      update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
         self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-                os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
@@ -657,17 +658,18 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual(float(self.jcpds_widget.lattice_eos_volume_txt.text()),
                          float(self.jcpds_widget.lattice_volume_txt.text()))
 
-        #then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
+        # then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
         # values
 
         self.phase_controller.widget.phase_pressure_sb.setValue(30)
         for row_ind in xrange(13):
-            self.assertNotEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 5))
+            self.assertNotEqual(self.get_reflection_table_value(row_ind, 4),
+                                self.get_reflection_table_value(row_ind, 5))
             self.assertNotAlmostEqual(self.get_reflection_table_value(row_ind, 6),
                                       self.convert_d_to_twotheta(self.jcpds_phase.reflections[row_ind].d0, 0.31),
                                       delta=0.0001)
-            self.assertNotEqual(self.get_reflection_table_value(row_ind,6),
-                                self.get_reflection_table_value(row_ind,7))
+            self.assertNotEqual(self.get_reflection_table_value(row_ind, 6),
+                                self.get_reflection_table_value(row_ind, 7))
 
         self.assertNotEqual(float(self.jcpds_widget.lattice_eos_a_txt.text()), self.jcpds_widget.lattice_a_sb.value())
         self.assertNotEqual(float(self.jcpds_widget.lattice_eos_b_txt.text()), self.jcpds_widget.lattice_b_sb.value())

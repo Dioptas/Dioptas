@@ -7,9 +7,16 @@ from model.util.HelperModule import FileNameIterator
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
-app = QtGui.QApplication([])
 
 class FileNameIteratorTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+
     def setUp(self):
         self.filename_iterator = FileNameIterator()
 

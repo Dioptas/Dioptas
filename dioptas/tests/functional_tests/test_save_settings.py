@@ -14,21 +14,25 @@ from controller.MainController import MainController
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
-app = QtGui.QApplication([])
-
 
 class SaveSettingsTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
 
     def create_controller_and_data(self):
         self.controller = MainController()
         self.img_model = self.controller.img_model
         self.mask_model = self.controller.mask_model
         self.calibration_model = self.controller.calibration_model
-        self.calibration_model.integrate_1d = MagicMock(return_value = (self.calibration_model.tth,
-                                                           self.calibration_model.int))
+        self.calibration_model.integrate_1d = MagicMock(return_value=(self.calibration_model.tth,
+                                                                      self.calibration_model.int))
         self.spectrum_model = self.controller.spectrum_model
         self.phase_model = self.controller.phase_model
-
 
     def tearDown(self):
         del self.calibration_model.cake_geometry
