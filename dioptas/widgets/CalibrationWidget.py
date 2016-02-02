@@ -111,9 +111,9 @@ class CalibrationWidget(QtGui.QWidget):
         self.f2_distance_cb = self.calibration_control_widget.fit2d_parameters_widget.distance_cb
         self.pf_distance_cb = self.calibration_control_widget.pyfai_parameters_widget.distance_cb
 
-        self.img_view = self.calibration_display_widget.img_widget
-        self.cake_view = self.calibration_display_widget.cake_widget
-        self.spectrum_view = self.calibration_display_widget.spectrum_widget
+        self.img_widget = self.calibration_display_widget.img_widget
+        self.cake_widget = self.calibration_display_widget.cake_widget
+        self.spectrum_widget = self.calibration_display_widget.spectrum_widget
 
     def set_img_filename(self, filename):
         self.filename_txt.setText(os.path.basename(filename))
