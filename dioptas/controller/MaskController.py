@@ -45,7 +45,7 @@ class MaskController(object):
         self.img_model = img_model
         self.mask_model = mask_model
 
-        self.widget.img_view.mouse_left_clicked.connect(self.process_click)
+        self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
 
         self.state = None
         self.clicks = 0
@@ -86,7 +86,7 @@ class MaskController(object):
         self.connect_click_function(self.widget.transparent_rb, self.transparent_rb_click)
         self.widget.connect(self.widget.point_size_sb, QtCore.SIGNAL('valueChanged(int)'), self.set_point_size)
 
-        self.widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
+        self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
 
         self.widget.keyPressEvent = self.key_press_event
 
@@ -106,12 +106,12 @@ class MaskController(object):
         shapes = [self.rect, self.circle, self.polygon]
         for shape in shapes:
             if shape is not None:
-                self.widget.img_view.img_view_box.removeItem(shape)
-                self.widget.img_view.mouse_moved.disconnect(shape.set_size)
+                self.widget.img_widget.img_view_box.removeItem(shape)
+                self.widget.img_widget.mouse_moved.disconnect(shape.set_size)
 
         try:
-            self.widget.img_view.mouse_moved.disconnect(self.point.set_position)
-            self.widget.img_view.img_view_box.removeItem(self.point)
+            self.widget.img_widget.mouse_moved.disconnect(self.point.set_position)
+            self.widget.img_widget.img_view_box.removeItem(self.point)
             self.point = None
         except AttributeError:
             pass
@@ -149,8 +149,8 @@ class MaskController(object):
             self.state = 'point'
             self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.point_btn)
-            self.point = self.widget.img_view.draw_point(self.widget.point_size_sb.value())
-            self.widget.img_view.mouse_moved.connect(self.point.set_position)
+            self.point = self.widget.img_widget.draw_point(self.widget.point_size_sb.value())
+            self.widget.img_widget.mouse_moved.connect(self.point.set_position)
         else:
             self.state = 'None'
             self.uncheck_all_btn()
@@ -164,8 +164,8 @@ class MaskController(object):
         self.plot_mask()
 
     def plot_image(self):
-        self.widget.img_view.plot_image(self.img_model.img_data, False)
-        self.widget.img_view.auto_range()
+        self.widget.img_widget.plot_image(self.img_model.img_data, False)
+        self.widget.img_widget.auto_range()
 
     def process_click(self, x, y):
         if self.state == 'circle':
@@ -180,27 +180,27 @@ class MaskController(object):
     def draw_circle(self, x, y):
         if self.clicks == 0:
             self.clicks += 1
-            self.circle = self.widget.img_view.draw_circle(x, y)
-            self.widget.img_view.mouse_moved.connect(self.circle.set_size)
+            self.circle = self.widget.img_widget.draw_circle(x, y)
+            self.widget.img_widget.mouse_moved.connect(self.circle.set_size)
         elif self.clicks == 1:
             self.clicks = 0
             self.mask_model.mask_QGraphicsEllipseItem(self.circle)
-            self.widget.img_view.img_view_box.removeItem(self.circle)
+            self.widget.img_widget.img_view_box.removeItem(self.circle)
             self.plot_mask()
-            self.widget.img_view.mouse_moved.disconnect(self.circle.set_size)
+            self.widget.img_widget.mouse_moved.disconnect(self.circle.set_size)
             self.circle = None
 
     def draw_rectangle(self, x, y):
         if self.clicks == 0:
             self.clicks += 1
-            self.rect = self.widget.img_view.draw_rectangle(x, y)
-            self.widget.img_view.mouse_moved.connect(self.rect.set_size)
+            self.rect = self.widget.img_widget.draw_rectangle(x, y)
+            self.widget.img_widget.mouse_moved.connect(self.rect.set_size)
         elif self.clicks == 1:
             self.clicks = 0
             self.mask_model.mask_QGraphicsRectItem(self.rect)
-            self.widget.img_view.img_view_box.removeItem(self.rect)
+            self.widget.img_widget.img_view_box.removeItem(self.rect)
             self.plot_mask()
-            self.widget.img_view.mouse_moved.disconnect(self.rect.set_size)
+            self.widget.img_widget.mouse_moved.disconnect(self.rect.set_size)
             self.rect = None
 
     def draw_point(self, x, y):
@@ -217,21 +217,21 @@ class MaskController(object):
     def draw_polygon(self, x, y):
         if self.clicks == 0:
             self.clicks += 1
-            self.polygon = self.widget.img_view.draw_polygon(x, y)
-            self.widget.img_view.mouse_moved.connect(self.polygon.set_size)
-            self.widget.img_view.mouse_left_double_clicked.connect(self.finish_polygon)
+            self.polygon = self.widget.img_widget.draw_polygon(x, y)
+            self.widget.img_widget.mouse_moved.connect(self.polygon.set_size)
+            self.widget.img_widget.mouse_left_double_clicked.connect(self.finish_polygon)
         elif self.clicks == 1:
             self.polygon.set_size(x, y)
             self.polygon.add_point(x, y)
 
     def finish_polygon(self, x, y):
-        self.widget.img_view.mouse_moved.disconnect(self.polygon.set_size)
-        self.widget.img_view.mouse_left_double_clicked.disconnect(self.finish_polygon)
+        self.widget.img_widget.mouse_moved.disconnect(self.polygon.set_size)
+        self.widget.img_widget.mouse_left_double_clicked.disconnect(self.finish_polygon)
         self.polygon.add_point(y, x)
         self.clicks = 0
         self.mask_model.mask_QGraphicsPolygonItem(self.polygon)
         self.plot_mask()
-        self.widget.img_view.img_view_box.removeItem(self.polygon)
+        self.widget.img_widget.img_view_box.removeItem(self.polygon)
         self.polygon = None
 
     def below_thresh_btn_click(self):
@@ -302,7 +302,7 @@ class MaskController(object):
                                            'the same shape. Mask could not be added.')
 
     def plot_mask(self):
-        self.widget.img_view.plot_mask(self.mask_model.get_img())
+        self.widget.img_widget.plot_mask(self.mask_model.get_img())
 
     def key_press_event(self, ev):
         if self.state == "point":
@@ -330,19 +330,19 @@ class MaskController(object):
         self.mask_model.set_mode(False)
 
     def fill_rb_click(self):
-        self.widget.img_view.set_color([255, 0, 0, 255])
+        self.widget.img_widget.set_color([255, 0, 0, 255])
         self.plot_mask()
 
     #
     def transparent_rb_click(self):
-        self.widget.img_view.set_color([255, 0, 0, 100])
+        self.widget.img_widget.set_color([255, 0, 0, 100])
         self.plot_mask()
 
     def show_img_mouse_position(self, x, y):
         try:
             if x > 0 and y > 0:
                 str = "x: %8.1f   y: %8.1f   I: %6.f" % (
-                x, y, self.widget.img_view.img_data.T[np.floor(x), np.floor(y)])
+                x, y, self.widget.img_widget.img_data.T[np.floor(x), np.floor(y)])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):
