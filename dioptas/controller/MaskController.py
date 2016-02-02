@@ -45,7 +45,6 @@ class MaskController(object):
         self.img_model = img_model
         self.mask_model = mask_model
 
-        self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
 
         self.state = None
         self.clicks = 0
@@ -60,6 +59,7 @@ class MaskController(object):
         self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def create_signals(self):
+        self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
 
         self.img_model.img_changed.connect(self.update_mask_dimension)
 
@@ -205,7 +205,7 @@ class MaskController(object):
 
     def draw_point(self, x, y):
         radius = self.widget.point_size_sb.value()
-        self.mask_model.mask_ellipse(y, x, radius, radius)
+        self.mask_model.mask_ellipse(x, y, radius, radius)
         self.plot_mask()
 
     def set_point_size(self, radius):
@@ -227,7 +227,7 @@ class MaskController(object):
     def finish_polygon(self, x, y):
         self.widget.img_widget.mouse_moved.disconnect(self.polygon.set_size)
         self.widget.img_widget.mouse_left_double_clicked.disconnect(self.finish_polygon)
-        self.polygon.add_point(y, x)
+        self.polygon.add_point(x, y)
         self.clicks = 0
         self.mask_model.mask_QGraphicsPolygonItem(self.polygon)
         self.plot_mask()
@@ -342,7 +342,7 @@ class MaskController(object):
         try:
             if x > 0 and y > 0:
                 str = "x: %8.1f   y: %8.1f   I: %6.f" % (
-                x, y, self.widget.img_widget.img_data.T[np.floor(x), np.floor(y)])
+                    x, y, self.widget.img_widget.img_data.T[np.floor(x), np.floor(y)])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):
