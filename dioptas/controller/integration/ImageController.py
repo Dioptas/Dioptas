@@ -598,10 +598,10 @@ class ImageController(object):
     def img_mouse_click(self, x, y):
         # update click position
         try:
-            x_pos_string = 'X:  %4d' % y
-            y_pos_string = 'Y:  %4d' % x
+            x_pos_string = 'X:  %4d' % x
+            y_pos_string = 'Y:  %4d' % y
             int_string = 'I:   %5d' % self.widget.img_widget.img_data[
-                np.floor(x), np.floor(y)]
+                np.floor(y), np.floor(x)]
 
             self.widget.click_x_lbl.setText(x_pos_string)
             self.widget.click_y_lbl.setText(y_pos_string)
@@ -614,6 +614,7 @@ class ImageController(object):
             self.widget.click_int_lbl.setText('I: ')
 
         if self.calibration_model.is_calibrated:
+            x, y = y, x # the indices are reversed for the img_array
             if self.img_mode == 'Cake':  # cake mode
                 cake_shape = self.calibration_model.cake_img.shape
                 if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):

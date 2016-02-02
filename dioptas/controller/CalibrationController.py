@@ -83,7 +83,6 @@ class CalibrationController(object):
         self.connect_click_function(self.widget.calibrate_btn, self.calibrate)
         self.connect_click_function(self.widget.refine_btn, self.refine)
 
-        self.widget.img_view.mouse_left_clicked.connect(self.search_peaks)
         self.connect_click_function(self.widget.clear_peaks_btn, self.clear_peaks_btn_click)
 
         self.widget.f2_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
@@ -123,9 +122,10 @@ class CalibrationController(object):
         """
         Creates the mouse_move connections to show the current position of the mouse pointer.
         """
-        self.widget.img_view.mouse_moved.connect(self.update_img_mouse_position_lbl)
-        self.widget.cake_view.mouse_moved.connect(self.update_cake_mouse_position_lbl)
-        self.widget.spectrum_view.mouse_moved.connect(self.update_spectrum_mouse_position_lbl)
+        self.widget.img_widget.mouse_moved.connect(self.update_img_mouse_position_lbl)
+        self.widget.cake_widget.mouse_moved.connect(self.update_cake_mouse_position_lbl)
+        self.widget.spectrum_widget.mouse_moved.connect(self.update_spectrum_mouse_position_lbl)
+        self.widget.img_widget.mouse_left_clicked.connect(self.search_peaks)
 
     def connect_click_function(self, emitter, function):
         self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -225,9 +225,9 @@ class CalibrationController(object):
             wavelength = start_values['wavelength']
 
         self.calibration_model.calibrant.setWavelength_change2th(wavelength)
-        self.widget.spectrum_view.plot_vertical_lines(
-                np.array(self.calibration_model.calibrant.get_2th()) / np.pi * 180,
-                name=self._calibrants_file_names_list[current_index])
+        self.widget.spectrum_widget.plot_vertical_lines(
+            np.array(self.calibration_model.calibrant.get_2th()) / np.pi * 180,
+            name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -242,8 +242,8 @@ class CalibrationController(object):
         Plots the current image loaded in img_data and autoscales the intensity.
         :return:
         """
-        self.widget.img_view.plot_image(self.img_model.img_data, True)
-        self.widget.img_view.auto_range()
+        self.widget.img_widget.plot_image(self.img_model.img_data, True)
+        self.widget.img_widget.auto_range()
         self.widget.set_img_filename(self.img_model.filename)
 
     def search_peaks(self, x, y):
@@ -255,6 +255,7 @@ class CalibrationController(object):
         :param y:
             y-Position for the search
         """
+        x, y = y, x #indeces for the img array are transposed compared to the mouse position
         peak_ind = self.widget.peak_num_sb.value()
         if self.widget.automatic_peak_search_rb.isChecked():
             points = self.calibration_model.find_peaks_automatic(x, y, peak_ind - 1)
@@ -279,7 +280,7 @@ class CalibrationController(object):
             except IndexError:
                 points = []
         if len(points):
-            self.widget.img_view.add_scatter_data(points[:, 0] + 0.5, points[:, 1] + 0.5)
+            self.widget.img_widget.add_scatter_data(points[:, 0] + 0.5, points[:, 1] + 0.5)
 
     def clear_peaks_btn_click(self):
         """
@@ -287,7 +288,7 @@ class CalibrationController(object):
         :return:
         """
         self.calibration_model.clear_peaks()
-        self.widget.img_view.clear_scatter_plot()
+        self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
 
     def wavelength_cb_changed(self, value):
@@ -461,9 +462,9 @@ class CalibrationController(object):
         """
         state = self.widget.use_mask_cb.isChecked()
         if state:
-            self.widget.img_view.plot_mask(self.mask_model.get_img())
+            self.widget.img_widget.plot_mask(self.mask_model.get_img())
         else:
-            self.widget.img_view.plot_mask(np.zeros(self.mask_model.get_img().shape))
+            self.widget.img_widget.plot_mask(np.zeros(self.mask_model.get_img().shape))
 
     def mask_transparent_status_changed(self, state):
         """
@@ -471,9 +472,9 @@ class CalibrationController(object):
         :type state: bool
         """
         if state:
-            self.widget.img_view.set_color([255, 0, 0, 100])
+            self.widget.img_widget.set_color([255, 0, 0, 100])
         else:
-            self.widget.img_view.set_color([255, 0, 0, 255])
+            self.widget.img_widget.set_color([255, 0, 0, 255])
 
     def update_all(self, integrate=True):
         """
@@ -490,13 +491,13 @@ class CalibrationController(object):
             QtGui.QApplication.processEvents()
             self.calibration_model.integrate_1d()
             progress_dialog.close()
-        self.widget.cake_view.plot_image(self.calibration_model.cake_img, False)
-        self.widget.cake_view.auto_range()
+        self.widget.cake_widget.plot_image(self.calibration_model.cake_img, False)
+        self.widget.cake_widget.auto_range()
 
-        self.widget.spectrum_view.plot_data(self.calibration_model.tth, self.calibration_model.int)
-        self.widget.spectrum_view.plot_vertical_lines(np.array(self.calibration_model.calibrant.get_2th()) /
-                                                      np.pi * 180)
-        self.widget.spectrum_view.view_box.autoRange()
+        self.widget.spectrum_widget.plot_data(self.calibration_model.tth, self.calibration_model.int)
+        self.widget.spectrum_widget.plot_vertical_lines(np.array(self.calibration_model.calibrant.get_2th()) /
+                                                        np.pi * 180)
+        self.widget.spectrum_widget.view_box.autoRange()
         if self.widget.tab_widget.currentIndex() == 0:
             self.widget.tab_widget.setCurrentIndex(1)
 
@@ -536,7 +537,7 @@ class CalibrationController(object):
         # x, y = pos
         try:
             if x > 0 and y > 0:
-                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.img_view.img_data.T[np.round(x), np.round(y)])
+                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.img_widget.img_data.T[np.round(x), np.round(y)])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):
@@ -550,7 +551,7 @@ class CalibrationController(object):
         # x, y = pos
         try:
             if x > 0 and y > 0:
-                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.cake_view.img_data.T[np.round(x), np.round(y)])
+                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.cake_widget.img_data.T[np.round(x), np.round(y)])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):
