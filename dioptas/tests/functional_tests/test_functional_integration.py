@@ -16,10 +16,16 @@ from widgets.integration import IntegrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
-app = QtGui.QApplication([])
-
 
 class IntegrationFunctionalTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+
     def setUp(self):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()

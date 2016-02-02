@@ -33,6 +33,14 @@ app = QtGui.QApplication([])
 
 
 class ImgModelTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+
     def setUp(self):
         self.img_model = ImgModel()
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))

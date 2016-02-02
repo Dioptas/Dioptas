@@ -11,10 +11,16 @@ from controller.integration.ImageController import NewFileInDirectoryWatcher
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
-app = QtGui.QApplication([])
-
 
 class NewFileInDirectoryWatcherTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+
     def setUp(self):
         self.directory_watcher = NewFileInDirectoryWatcher(path=None)
 
