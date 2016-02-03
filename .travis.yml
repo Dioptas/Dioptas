@@ -6,10 +6,10 @@ python:
     - 2.7
 
 before_install:
-    - wget http://repo.continuum.io/miniconda/Miniconda3-3.5.5-Linux-x86_64.sh -O miniconda.sh
+    - wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
     - chmod +x miniconda.sh
     - ./miniconda.sh -b
-    - export PATH=/home/travis/miniconda3/bin:$PATH
+    - export PATH=/home/travis/miniconda2/bin:$PATH
     - conda update --yes conda
     - export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
 
@@ -25,8 +25,10 @@ addons:
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
     - pip install lmfit pyqtgraph fabio mock pymatgen pytest pytest-cov
-    - wget https://www.dropbox.com/s/okbdapobm9brxfp/pyFAI-0.12.0a3-cp27-none-linux_x86_64.whl
-    - pip install pyFAI-0.12.0a3-cp27-none-linux_x86_64.whl
+    - git clone https://github.com/kif/pyFAI
+    - cd pyFAI
+    - python setup.py install
+    - cd ..
     - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
     - cd ../../../
