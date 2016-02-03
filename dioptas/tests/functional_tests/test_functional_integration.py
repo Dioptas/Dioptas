@@ -25,6 +25,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app.quit()
+        cls.app.deleteLater()
 
     def setUp(self):
         self.img_model = ImgModel()

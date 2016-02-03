@@ -37,17 +37,24 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
-app = QtGui.QApplication([])
-
 
 class PhaseControllerTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+        cls.app.deleteLater()
+
     def setUp(self):
         self.image_model = ImgModel()
         self.calibration_model = CalibrationModel()
         self.calibration_model.is_calibrated = True
         self.calibration_model.spectrum_geometry.wavelength = 0.31E-10
-        self.calibration_model.integrate_1d = MagicMock(return_value = (self.calibration_model.tth,
-                                                                        self.calibration_model.int))
+        self.calibration_model.integrate_1d = MagicMock(return_value=(self.calibration_model.tth,
+                                                                      self.calibration_model.int))
         self.spectrum_model = PatternModel()
         self.phase_model = PhaseModel()
         self.widget = IntegrationWidget()

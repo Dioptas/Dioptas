@@ -33,11 +33,20 @@ from widgets.integration import IntegrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
-app = QtGui.QApplication([])
 QtGui.QApplication.processEvents = MagicMock()
-app.processEvents = MagicMock()
+
 
 class IntegrationBackgroundControllerTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+        cls.app.processEvents = MagicMock()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+        cls.app.deleteLater()
+
     def setUp(self):
         self.widget = IntegrationWidget()
         self.spectrum_model = PatternModel()
