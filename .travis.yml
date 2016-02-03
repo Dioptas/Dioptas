@@ -25,10 +25,8 @@ addons:
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
     - pip install lmfit pyqtgraph fabio mock pymatgen pytest pytest-cov
-    - git clone https://github.com/kif/pyFAI.git
-    - cd pyFAI
-    - python setup.py install
-    - cd ..
+    - wget https://www.dropbox.com/s/okbdapobm9brxfp/pyFAI-0.12.0a3-cp27-none-linux_x86_64.whl
+    - pip install pyFAI-0.12.0a3-cp27-none-linux_x86_64.whl
     - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
     - cd ../../../
