@@ -22,6 +22,7 @@ import pyqtgraph as pg
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from scipy.spatial import ConvexHull
+from skimage.measure import find_contours
 from PyQt4 import QtCore, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
@@ -282,9 +283,6 @@ class MaskImgWidget(ImgWidget):
         return polygon
 
 
-from pyFAI import marchingsquares
-
-
 class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
@@ -324,29 +322,16 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         :param tth: array of twotheta for the image
         :param cur_tth: two theta value for the line
         """
-        data = marchingsquares.isocontour(tth, cur_tth)
-        hull = ConvexHull(data)
-        hull_indices = np.hstack((hull.vertices, hull.vertices[1]))
-        x = data[hull_indices, 0]
-        y = data[hull_indices, 1]
-        distance_between_points = np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2)
-
-        key_indices = np.argwhere(distance_between_points > 5 * np.mean(distance_between_points))
+        tth_ind = find_contours(tth, cur_tth)
 
         # delete old graphs
         for plot_item in self.circle_plot_items:
             plot_item.setData(x=[], y=[])
 
-        cur_data_ind = 0
-        plot_ind = 0
-        for ind, key_index in enumerate(key_indices):
-            x_plot = x[cur_data_ind:key_index]
-            y_plot = y[cur_data_ind:key_index]
-            if len(x_plot) > 0:
-                self.circle_plot_items[plot_ind].setData(x=x_plot, y=y_plot)
-                plot_ind += 1
-            cur_data_ind = key_index + 1
-        self.circle_plot_items[-1].setData(x=x[cur_data_ind:-1], y=y[cur_data_ind:-1])
+        for plot_ind, tth in enumerate(tth_ind):
+            x_plot = tth[:, 1]
+            y_plot = tth[:, 0]
+            self.circle_plot_items[plot_ind].setData(x=x_plot, y=y_plot)
 
     def activate_circle_scatter(self):
         for plot_item in self.circle_plot_items:
