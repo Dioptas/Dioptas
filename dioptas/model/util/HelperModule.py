@@ -23,7 +23,6 @@ import re
 import time
 
 import numpy as np
-from pyFAI import marchingsquares
 from PyQt4 import QtCore
 from colorsys import hsv_to_rgb
 
@@ -248,23 +247,3 @@ def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, de
         result_ind = (result_ind[0][common_ind], result_ind[1][common_ind])
 
     return result_ind[0], result_ind[1]
-
-def reverse_interpolate_two_array2(value1, array1, value2, array2, delta1=0.1, delta2=0.1):
-    """
-    Tries to reverse interpolate two vales from two arrays with the same dimensions, and finds a common index
-    for value1 and value2 in their respective arrays. the deltas define the search radius for a close value match
-    to the arrays.
-
-    :return: index1, index2
-    """
-    array1_ind = marchingsquares.isocontour(array1, value1)
-    array2_ind = marchingsquares.isocontour(array2, value2)
-
-    print len(array1_ind)
-    print len(array2_ind)
-
-    return 1, 1
-
-
-
-
