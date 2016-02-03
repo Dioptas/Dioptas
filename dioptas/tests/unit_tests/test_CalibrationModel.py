@@ -125,7 +125,7 @@ class CalibrationModelTest(unittest.TestCase):
         self.assertAlmostEqual(self.calibration_model.spectrum_geometry.dist, 0.100, delta=0.02)
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
 
-
+    @unittest.skip('short tests')
     def test_get_pixel_ind(self):
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))
         self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
