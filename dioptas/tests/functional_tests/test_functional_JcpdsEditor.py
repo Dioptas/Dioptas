@@ -50,6 +50,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app.quit()
+        cls.app.deleteLater()
 
     def setUp(self):
         self.calibration_model = CalibrationModel()

@@ -24,6 +24,7 @@ class UserInterFaceTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app.quit()
+        cls.app.deleteLater()
 
     def setUp(self):
         self.controller = MainController(use_settings=False)
