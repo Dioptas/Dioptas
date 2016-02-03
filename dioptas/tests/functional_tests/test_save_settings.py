@@ -23,6 +23,7 @@ class SaveSettingsTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app.quit()
+        cls.app.deleteLater()
 
     def create_controller_and_data(self):
         self.controller = MainController()
