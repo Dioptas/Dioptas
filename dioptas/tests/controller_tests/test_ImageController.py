@@ -17,10 +17,17 @@ from widgets.integration import IntegrationWidget
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
-app = QtGui.QApplication([])
-
 
 class ImageControllerTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication([])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.quit()
+        cls.app.deleteLater()
+
     def setUp(self):
         self.working_dir = {'image': ''}
 
@@ -31,12 +38,12 @@ class ImageControllerTest(unittest.TestCase):
         self.calibration_model = CalibrationModel(self.image_model)
 
         self.controller = ImageController(
-                working_dir=self.working_dir,
-                widget=self.widget,
-                img_model=self.image_model,
-                mask_model=self.mask_model,
-                spectrum_model=self.spectrum_model,
-                calibration_model=self.calibration_model)
+            working_dir=self.working_dir,
+            widget=self.widget,
+            img_model=self.image_model,
+            mask_model=self.mask_model,
+            spectrum_model=self.spectrum_model,
+            calibration_model=self.calibration_model)
 
     def tearDown(self):
         if os.path.exists(os.path.join(unittest_data_path, 'image_003.tif')):
@@ -48,7 +55,6 @@ class ImageControllerTest(unittest.TestCase):
         del self.calibration_model
         del self.controller
         gc.collect()
-
 
     def test_automatic_file_processing(self):
         # get into a specific folder
