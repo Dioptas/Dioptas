@@ -506,6 +506,8 @@ class jcpds(object):
 
         if (pressure == 0.):
             self.v = self.v0 * (1 + self.alpha_t * (temperature - 298.))
+        if (pressure < 0):
+            self.v = self.v0 * (1-pressure/self.k0)
         else:
             if (self.k0 <= 0.):
                 logger.info('K0 is zero, computing zero pressure volume')

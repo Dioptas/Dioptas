@@ -186,8 +186,8 @@ class PhaseControlWidget(QtGui.QWidget):
         self.pressure_step_txt.setMaximumWidth(60)
         self.pressure_sb.setMinimumWidth(100)
 
-        self.pressure_sb.setMaximum(999999)
-        self.pressure_sb.setMinimum(0)
+        self.pressure_sb.setMaximum(9999999)
+        self.pressure_sb.setMinimum(-9999999)
         self.pressure_sb.setValue(0)
 
         self.temperature_sb.setMaximum(99999999)
