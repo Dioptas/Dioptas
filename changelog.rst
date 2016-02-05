@@ -1,4 +1,4 @@
-0.2.6 (development 10/19/2015)
+0.2.6 (development 02/05/2016)
 ------------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
@@ -7,6 +7,9 @@
     - The overlay tab has a new waterfall feature which automatically creates a waterfall plot with a given offset of
       all loaded overlays, whereby the most recent one is closest to the current integrated pattern.
     - the selected region and image shading is now synchronized between the calibration, mask and image view
+    - negative pressures are now allowed for phases, although unphysical, it might give some hint when searching for a
+      matching structure. The bulk modulus here is kept constant with pressures below 0. (Since the Birch Murnaghan EOS
+      misbehaves at these conditions).
     - Dioptas has been completely refactored by rewriting almost all of the GUI code, which will make future releases
       much faster, so stay tuned
 
