@@ -90,27 +90,31 @@ class PatternControlWidget(QtGui.QWidget):
     def __init__(self):
         super(PatternControlWidget, self).__init__()
 
-        self._layout = QtGui.QGridLayout()
+        self._layout = QtGui.QVBoxLayout()
 
         self.file_widget = BrowseFileWidget(files='Pattern', checkbox_text='autocreate')
 
+        self._layout.addWidget(self.file_widget)
+        self._layout.addWidget(HorizontalLine())
+
+        self.pattern_types_gc = QtGui.QGroupBox('Pattern data types')
         self.xy_cb = QtGui.QCheckBox('.xy')
         self.xy_cb.setChecked(True)
         self.chi_cb = QtGui.QCheckBox('.chi')
         self.dat_cb = QtGui.QCheckBox('.dat')
+        self._pattern_types_gb_layout = QtGui.QHBoxLayout()
+        self._pattern_types_gb_layout.addWidget(self.xy_cb)
+        self._pattern_types_gb_layout.addWidget(self.chi_cb)
+        self._pattern_types_gb_layout.addWidget(self.dat_cb)
+        self.pattern_types_gc.setLayout(self._pattern_types_gb_layout)
 
-        self._layout.addWidget(self.file_widget, 0, 0, 1, 2)
-        self._layout.addWidget(HorizontalLine(), 1, 0, 1, 2)
+        self._pattern_types_layout = QtGui.QHBoxLayout()
+        self._pattern_types_layout.addWidget(self.pattern_types_gc)
+        self._pattern_types_layout.addSpacerItem(HorizontalSpacerItem())
 
-        self.pattern_types_gc = QtGui.QGroupBox('Pattern data types')
-        self._pattern_layout = QtGui.QHBoxLayout()
-        self._pattern_layout.addWidget(self.xy_cb)
-        self._pattern_layout.addWidget(self.chi_cb)
-        self._pattern_layout.addWidget(self.dat_cb)
-        self.pattern_types_gc.setLayout(self._pattern_layout)
-        self._layout.addWidget(self.pattern_types_gc, 2, 0)
+        self._layout.addLayout(self._pattern_types_layout)
 
-        self._layout.addItem(VerticalSpacerItem(), 3, 0)
+        self._layout.addItem(VerticalSpacerItem())
 
         self.setLayout(self._layout)
 
@@ -532,28 +536,31 @@ class OptionsWidget(QtGui.QWidget):
     def __init__(self):
         super(OptionsWidget, self).__init__()
 
-        self._layout = QtGui.QGridLayout()
+        self._layout = QtGui.QVBoxLayout()
 
         self.integration_gb = QtGui.QGroupBox('Integration')
-        self._integration_layout = QtGui.QGridLayout()
+        self._integration_gb_layout = QtGui.QGridLayout()
 
         self.bin_count_txt = IntegerTextField('0')
         self.bin_count_cb = QtGui.QCheckBox('auto')
         self.supersampling_sb = SpinBoxAlignRight()
 
-        self._integration_layout.addWidget(LabelAlignRight('Number of Bins:'), 0, 0)
-        self._integration_layout.addWidget(LabelAlignRight('Supersampling:'), 1, 0)
+        self._integration_gb_layout.addWidget(LabelAlignRight('Number of Bins:'), 0, 0)
+        self._integration_gb_layout.addWidget(LabelAlignRight('Supersampling:'), 1, 0)
 
-        self._integration_layout.addWidget(self.bin_count_txt, 0, 1)
-        self._integration_layout.addWidget(self.bin_count_cb, 0, 2)
+        self._integration_gb_layout.addWidget(self.bin_count_txt, 0, 1)
+        self._integration_gb_layout.addWidget(self.bin_count_cb, 0, 2)
+        self._integration_gb_layout.addWidget(self.supersampling_sb, 1, 1)
 
-        self._integration_layout.addWidget(self.supersampling_sb, 1, 1)
 
-        self.integration_gb.setLayout(self._integration_layout)
+        self.integration_gb.setLayout(self._integration_gb_layout)
 
-        self._layout.addWidget(self.integration_gb, 0, 0)
-        self._layout.addItem(HorizontalSpacerItem(), 0, 1)
-        self._layout.addItem(VerticalSpacerItem(), 1, 0, 1, 2)
+        self._integration_layout = QtGui.QHBoxLayout()
+        self._integration_layout.addWidget(self.integration_gb)
+        self._integration_layout.addSpacerItem(HorizontalSpacerItem())
+
+        self._layout.addLayout(self._integration_layout )
+        self._layout.addItem(VerticalSpacerItem())
 
         self.setLayout(self._layout)
         self.style_widgets()
