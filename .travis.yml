@@ -21,6 +21,7 @@ addons:
   apt:
     packages:
       - gfortran
+      - libgfortran3
 
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
