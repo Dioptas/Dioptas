@@ -1,5 +1,5 @@
-0.2.6 (development 02/05/2016)
-------------------------------
+0.3.0 (stable 02/05/2016)
+-------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
     - Dioptas can now load tiff tags and display them in a separate window. This is very practical if the beamline
