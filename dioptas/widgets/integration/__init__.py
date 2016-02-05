@@ -23,7 +23,7 @@ from functools import partial
 from PyQt4 import QtGui, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
-from ..CustomWidgets import NoRectDelegate
+from ..CustomWidgets import NoRectDelegate, FlatButton
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .ControlWidgets import IntegrationControlWidget
@@ -346,7 +346,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
         self.overlay_show_cbs.append(show_cb)
 
-        color_button = QtGui.QPushButton()
+        color_button = FlatButton()
         color_button.setStyleSheet("background-color: " + color)
         color_button.clicked.connect(partial(self.overlay_color_btn_click, color_button))
         self.overlay_tw.setCellWidget(current_rows, 1, color_button)
@@ -420,7 +420,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.phase_tw.setCellWidget(current_rows, 0, show_cb)
         self.phase_show_cbs.append(show_cb)
 
-        color_button = QtGui.QPushButton()
+        color_button = FlatButton()
         color_button.setStyleSheet("background-color: " + color)
         color_button.clicked.connect(partial(self.phase_color_btn_click, color_button))
         self.phase_tw.setCellWidget(current_rows, 1, color_button)

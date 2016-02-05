@@ -25,6 +25,7 @@ class NumberTextField(QtGui.QLineEdit):
         self.setValidator(QtGui.QDoubleValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
+
 class IntegerTextField(QtGui.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(IntegerTextField, self).__init__(*args, **kwargs)
@@ -58,7 +59,7 @@ class DoubleSpinBoxAlignRight(QtGui.QDoubleSpinBox):
         self.setAlignment(QtCore.Qt.AlignRight)
 
 
-class FlatButton(QtGui.QPushButton ):
+class FlatButton(QtGui.QPushButton):
     def __init__(self, *args):
         super(FlatButton, self).__init__(*args)
         self.setFlat(True)
@@ -70,6 +71,7 @@ class CheckableFlatButton(QtGui.QPushButton):
         self.setFlat(True)
         self.setCheckable(True)
 
+
 class HorizontalLine(QtGui.QFrame):
     def __init__(self):
         super(HorizontalLine, self).__init__()
@@ -78,7 +80,7 @@ class HorizontalLine(QtGui.QFrame):
 
 
 class ListTableWidget(QtGui.QTableWidget):
-    def __init__(self, columns = 3):
+    def __init__(self, columns=3):
         super(ListTableWidget, self).__init__()
 
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
@@ -89,6 +91,7 @@ class ListTableWidget(QtGui.QTableWidget):
         self.horizontalHeader().setStretchLastSection(True)
         self.setShowGrid(False)
 
+
 class NoRectDelegate(QtGui.QItemDelegate):
     def __init__(self):
         super(NoRectDelegate, self).__init__()
@@ -98,10 +101,9 @@ class NoRectDelegate(QtGui.QItemDelegate):
         QtGui.QItemDelegate.drawFocus(self, painter, option, rect)
 
 
-
-
 def HorizontalSpacerItem(minimum_width=0):
     return QtGui.QSpacerItem(minimum_width, 0, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Minimum)
+
 
 def VerticalSpacerItem():
     return QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)

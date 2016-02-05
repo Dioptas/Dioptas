@@ -126,6 +126,9 @@ class BrowseFileWidget(QtGui.QWidget):
         super(BrowseFileWidget, self).__init__()
 
         self._layout = QtGui.QGridLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setVerticalSpacing(6)
+        self._layout.setHorizontalSpacing(12)
 
         self.load_btn = FlatButton('Load {}(s)'.format(files))
         self.file_cb = QtGui.QCheckBox(checkbox_text)
