@@ -44,15 +44,24 @@ class MousePositionWidget(QtGui.QWidget):
         self._layout = QtGui.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
 
-        self.x_pos_lbl = LabelAlignRight('X:')
-        self.y_pos_lbl = LabelAlignRight('Y:')
-        self.int_lbl = LabelAlignRight('I:')
+        self.x_pos_lbl = QtGui.QLabel('X:')
+        self.y_pos_lbl = QtGui.QLabel('Y:')
+        self.int_lbl = QtGui.QLabel('I:')
 
         self._layout.addWidget(self.x_pos_lbl)
         self._layout.addWidget(self.y_pos_lbl)
         self._layout.addWidget(self.int_lbl)
 
         self.setLayout(self._layout)
+        self.style_widgets(color)
+
+    def style_widgets(self, color):
+        main_style_str = """
+            QLabel {
+                min-width: 70px;
+            }
+        """
+        self.setStyleSheet(main_style_str)
 
         if color is not None:
             style_str = 'color: {};'.format(color)
@@ -83,10 +92,10 @@ class MouseUnitWidget(QtGui.QWidget):
         self._layout = QtGui.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
 
-        self.tth_lbl = LabelAlignRight(u"2θ:")
-        self.q_lbl = LabelAlignRight('Q:')
-        self.d_lbl = LabelAlignRight('d:')
-        self.azi_lbl = LabelAlignRight('X:')
+        self.tth_lbl = QtGui.QLabel(u"2θ:")
+        self.q_lbl = QtGui.QLabel('Q:')
+        self.d_lbl = QtGui.QLabel('d:')
+        self.azi_lbl = QtGui.QLabel('X:')
 
         self._layout.addWidget(self.tth_lbl)
         self._layout.addWidget(self.q_lbl)
@@ -94,6 +103,15 @@ class MouseUnitWidget(QtGui.QWidget):
         self._layout.addWidget(self.azi_lbl)
 
         self.setLayout(self._layout)
+        self.style_widgets(color)
+
+    def style_widgets(self, color):
+        main_style_str = """
+            QLabel {
+                min-width: 70px;
+            }
+        """
+        self.setStyleSheet(main_style_str)
 
         if color is not None:
             style_str = 'color: {};'.format(color)
