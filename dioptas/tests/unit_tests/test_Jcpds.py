@@ -78,6 +78,28 @@ class JcpdsUnitTest(unittest.TestCase):
         self.assertEqual(os.path.join(jcpds_path, 'au_Anderson.jcpds*'), self.jcpds.filename)
         self.assertEqual('au_Anderson*', self.jcpds.name)
 
+    def get_reflection_d_spacing(self, reflections, h, k, l):
+        for reflection in reflections:
+            if reflection.h == h and reflection.k == k and reflection.l == l:
+                return reflection.d0
+
+    def test_consistency_d_spacing_calculation(self):
+        # loading a monoclinic jcpds and check if different signs will change the d spacing
+        self.jcpds.load_file(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
+        print self.jcpds.symmetry
+
+        d1_mon = self.get_reflection_d_spacing(self.jcpds.reflections, 2, 2, 1)
+        d2_mon = self.get_reflection_d_spacing(self.jcpds.reflections, -2, 2, 1)
+
+        self.jcpds.symmetry = 'TRICLINIC'
+        self.jcpds.compute_d0()
+
+        d1_tri = self.get_reflection_d_spacing(self.jcpds.reflections, 2, 2, 1)
+        d2_tri = self.get_reflection_d_spacing(self.jcpds.reflections, -2, 2, 1)
+
+        self.assertAlmostEqual(d1_mon, d1_tri)
+        self.assertAlmostEqual(d2_mon, d2_tri)
+
 
 if __name__ == '__main__':
     unittest.main()
