@@ -34,7 +34,7 @@ class MaskWidget(QtGui.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(MaskWidget, self).__init__(*args, **kwargs)
-        self._layout = QtGui.QHBoxLayout(self)
+        self._layout = QtGui.QHBoxLayout()
         self.create_display_widget()
         self.create_control_widget()
 
@@ -47,7 +47,7 @@ class MaskWidget(QtGui.QWidget):
         self.setLayout(self._layout)
 
     def create_display_widget(self):
-        self._display_widget = QtGui.QFrame()
+        self._display_widget = QtGui.QFrame(self)
         self._display_layout = QtGui.QVBoxLayout()
         self._display_layout.setContentsMargins(0, 0, 0, 0)
         self.img_layout_widget = GraphicsLayoutWidget()
@@ -65,8 +65,9 @@ class MaskWidget(QtGui.QWidget):
         self._display_widget.setLayout(self._display_layout)
 
     def create_control_widget(self):
-        self._control_widget = QtGui.QWidget()
-        self._control_layout = QtGui.QVBoxLayout()
+        self._control_widget = QtGui.QWidget(self)
+        self._control_layout = QtGui.QVBoxLayout(self._control_widget)
+        self._control_layout.setSpacing(6)
 
         self._rb_layout = QtGui.QHBoxLayout()
         self.mask_rb = QtGui.QRadioButton('mask')
