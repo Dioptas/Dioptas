@@ -230,8 +230,9 @@ class OverlayControlWidget(QtGui.QWidget):
         self._button_layout.addSpacerItem(HorizontalSpacerItem())
         self._layout.addWidget(self.button_widget)
 
-        self.parameter_widget = QtGui.QWidget()
-        self._parameter_layout = QtGui.QGridLayout()
+        self.parameter_widget = QtGui.QWidget(self)
+        self._parameter_layout = QtGui.QGridLayout(self.parameter_widget)
+        self._parameter_layout.setSpacing(6)
 
         self.scale_sb = DoubleSpinBoxAlignRight()
         self.offset_sb = DoubleSpinBoxAlignRight()
@@ -310,7 +311,8 @@ class CorrectionsControlWidget(QtGui.QWidget):
         self._layout = QtGui.QVBoxLayout()
 
         self.cbn_seat_gb = QtGui.QGroupBox('cBN Seat Correction')
-        self._cbn_seat_layout = QtGui.QGridLayout()
+        self._cbn_seat_layout = QtGui.QGridLayout(self)
+        self._cbn_seat_layout.setSpacing(6)
 
         self.anvil_thickness_txt = NumberTextField('2.3')
         self.seat_thickness_txt = NumberTextField('5.3')
@@ -419,8 +421,9 @@ class BackgroundControlWidget(QtGui.QWidget):
 
         self._layout = QtGui.QVBoxLayout()
 
-        self.image_background_gb = QtGui.QGroupBox('Image Background')
-        self._image_background_gb_layout = QtGui.QGridLayout()
+        self.image_background_gb = QtGui.QGroupBox('Image Background', self)
+        self._image_background_gb_layout = QtGui.QGridLayout(self.image_background_gb)
+        self._image_background_gb_layout.setSpacing(6)
 
         self.load_image_btn = FlatButton('Load')
         self.filename_lbl = QtGui.QLabel('None')
