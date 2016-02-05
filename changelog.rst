@@ -10,6 +10,9 @@
     - negative pressures are now allowed for phases, although unphysical, it might give some hint when searching for a
       matching structure. The bulk modulus here is kept constant with pressures below 0. (Since the Birch Murnaghan EOS
       misbehaves at these conditions).
+    - There is now a white cross marking the clicked position on the image in the Integration module. This marker will
+      move to the corresponding position when switching between 'cake' and 'image' mode. This allows for tracking of
+      individual peaks easily.
     - Dioptas has been completely refactored by rewriting almost all of the GUI code, which will make future releases
       much faster, so stay tuned
 
