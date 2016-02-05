@@ -406,7 +406,7 @@ class CorrectionsControlWidget(QtGui.QWidget):
         """)
 
         self.cbn_seat_plot_btn.setMaximumHeight(150)
-
+        self.oiadac_plot_btn.setMaximumHeight(150)
         self.oiadac_gb.setCheckable(True)
         self.oiadac_gb.setChecked(False)
         self.detector_thickness_txt.setMinimumWidth(60)
@@ -533,6 +533,8 @@ class BackgroundControlWidget(QtGui.QWidget):
 
         self.x_range_min_txt.setMaximumWidth(70)
         self.x_range_max_txt.setMaximumWidth(70)
+
+        self.inspect_btn.setMaximumHeight(150)
 
 
 class OptionsWidget(QtGui.QWidget):
