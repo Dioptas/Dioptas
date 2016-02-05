@@ -509,7 +509,7 @@ class IntegrationWidget(QtGui.QWidget):
         parameter_str = ''
 
         if self.show_parameter_in_spectrum:
-            if pressure > 0:
+            if pressure != 0:
                 parameter_str += '{0} GPa '.format(pressure)
             if temperature != 0 and temperature != 298 and temperature is not None:
                 parameter_str += '{0} K '.format(temperature)

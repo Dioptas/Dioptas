@@ -100,6 +100,14 @@ class JcpdsUnitTest(unittest.TestCase):
         self.assertAlmostEqual(d1_mon, d1_tri)
         self.assertAlmostEqual(d2_mon, d2_tri)
 
+    def test_using_negative_pressures(self):
+        self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+        self.jcpds.pressure = -1.
+
+        self.jcpds.compute_d(-1, 298)
+        self.assertGreater(self.jcpds.v, self.jcpds.v0)
+
+
 
 if __name__ == '__main__':
     unittest.main()
