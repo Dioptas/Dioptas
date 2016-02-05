@@ -245,8 +245,7 @@ class PatternController(object):
             save_file_dialog.setNameFilters(
                 ['Data (*.chi)', 'Data (*.dat)', 'png (*.png)', 'svg (*.svg)', 'Data (*.xy)'])
             save_file_dialog.selectNameFilter('Data (*.xy)')
-            save_file_dialog.selectFile(os.path.join(self.working_dir['spectrum'],
-                                                     '.'.join(self.img_model.filename.split('.')[:-1]) + '.xy'))
+            save_file_dialog.selectFile(os.path.splitext(os.path.basename(self.img_model.filename))[0])
 
             if save_file_dialog.exec_():
                 filename = str(save_file_dialog.selectedFiles()[0])
