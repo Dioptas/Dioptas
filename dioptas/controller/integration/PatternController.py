@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import sys
 
 import numpy as np
 import pyFAI
@@ -239,13 +240,17 @@ class PatternController(object):
 
     def save_pattern(self, filename=None, subtract_background=False):
         if filename is None:
-            save_file_dialog = QtGui.QFileDialog()
+            save_file_dialog = QtGui.QFileDialog(self.widget)
             save_file_dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
-            save_file_dialog.setWindowTitle("Save Pattern Data or Image.")
+            save_file_dialog.setWindowTitle("Save pattern as data file or image.")
             save_file_dialog.setNameFilters(
-                ['Data (*.chi)', 'Data (*.dat)', 'png (*.png)', 'svg (*.svg)', 'Data (*.xy)'])
+                ['Data (*.xy)', 'Data (*.chi)', 'Data (*.dat)', 'png (*.png)', 'svg (*.svg)'])
+            default_filename = os.path.splitext(os.path.basename(self.img_model.filename))[0]
+            if sys.platform == "linux" or sys.platform == "linux2":
+                default_filename += '.xy'
+            save_file_dialog.selectFile(default_filename)
             save_file_dialog.selectNameFilter('Data (*.xy)')
-            save_file_dialog.selectFile(os.path.splitext(os.path.basename(self.img_model.filename))[0])
+            save_file_dialog.setDefaultSuffix('xy')
 
             if save_file_dialog.exec_():
                 filename = str(save_file_dialog.selectedFiles()[0])
