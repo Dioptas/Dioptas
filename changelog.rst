@@ -7,12 +7,16 @@
     - The overlay tab has a new waterfall feature which automatically creates a waterfall plot with a given offset of
       all loaded overlays, whereby the most recent one is closest to the current integrated pattern.
     - the selected region and image shading is now synchronized between the calibration, mask and image view
+    - Dioptas has been completely refactored by rewriting almost all of the GUI code, which will make future releases
+      much faster, so stay tuned
 
 Bugfixes:
+    - mar345 files are now correctly loaded
     - autoprocessing of files, i.e. automatically loading newly collected files should now be much more reliable and
       especially the check for new files takes much less network bandwidth
     - jcpds editor content is now properly updated with the values of a newly added phase, which will be the new
       selected one
+    - calculation of d-spacings for monoclinic space group jcpds is now correct, there was a sign error in the last term
 
 
 0.2.4 (stable 04/13/2015)
