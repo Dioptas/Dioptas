@@ -29,6 +29,8 @@ from sys import platform as _platform
 site_packages_path = get_python_lib()
 
 extra_datas = [
+    ("calibrants", "calibrants"),
+    ("widgets/stylesheet.qss", "widgets"),
     (os.path.join(site_packages_path, "pyFAI/calibration"), "pyFAI/calibration"),
     (os.path.join(site_packages_path, "pymatgen/core/*.json"), "pymatgen/core"),
     (os.path.join(site_packages_path, 'pymatgen/symmetry/symm_data.yaml'), "pymatgen/symmetry"),
@@ -37,6 +39,8 @@ extra_datas = [
 
 ]
 
+binaries = []
+
 if _platform == "darwin":
     extra_datas.extend((
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtCore.4.dylib'), '.'),
@@ -44,10 +48,12 @@ if _platform == "darwin":
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libpng16.16.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtSvg.4.dylib'), '.'),
     ))
+elif _platform == "win32":
+    extra_datas.append((os.path.join(os.path.expanduser('~'), "Anaconda2\Library", "bin\mkl_avx.dll"), '.'))
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
-             binaries=[],
+             binaries=binaries,
              datas=extra_datas,
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
              hookspath=[],
@@ -112,7 +118,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False)
+          console=True)
 
 coll = COLLECT(exe,
                a.binaries,
