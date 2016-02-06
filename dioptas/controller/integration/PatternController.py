@@ -17,18 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 
 import numpy as np
 import pyFAI
 from PyQt4 import QtGui, QtCore
 
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.integration import IntegrationWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.CalibrationModel import CalibrationModel
-from model.PatternModel import PatternModel
 
 
 class PatternController(object):
@@ -244,7 +239,7 @@ class PatternController(object):
             filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Spectrum Data.",
                                                              os.path.join(self.working_dir['spectrum'],
                                                                           img_filename + '.xy'),
-                                                             ('Data (*.xy);; Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg)')))
+                                                             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)')))
             subtract_background = True  # when manually saving the spectrum the background will be automatically
 
         if filename is not '':
