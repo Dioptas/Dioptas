@@ -712,8 +712,10 @@ class ImageController(object):
 
     def save_img(self, filename=None):
         if filename is None:
+            img_filename = os.path.splitext(os.path.basename(self.img_model.filename))[0]
             filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Image.",
-                                                             self.working_dir['image'],
+                                                             os.path.join(self.working_dir['image'],
+                                                                          img_filename + '.png'),
                                                              ('Image (*.png);;Data (*.tiff)')))
         if filename is not '':
             if filename.endswith('.png'):
