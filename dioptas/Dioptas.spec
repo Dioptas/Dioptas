@@ -50,6 +50,8 @@ if _platform == "darwin":
     ))
 elif _platform == "win32":
     extra_datas.append((os.path.join(os.path.expanduser('~'), "Anaconda2\Library", "bin\mkl_avx.dll"), '.'))
+elif _platform == 'linux' or _platform == "linux2":
+    extra_datas.append((os.path.join(os.path.expanduser('~'), ".anaconda/lib/libmkl_avx.so"), '.'))
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
