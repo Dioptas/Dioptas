@@ -1,4 +1,4 @@
-0.3.0 (stable 02/05/2016)
+0.3.0 (stable 02/06/2016)
 -------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
@@ -13,6 +13,8 @@
     - There is now a white cross marking the clicked position on the image in the Integration module. This marker will
       move to the corresponding position when switching between 'cake' and 'image' mode. This allows for tracking of
       individual peaks easily.
+    - The default filename for the "save mask", "save pattern" and "save image" file dialogs will be the current image
+      basename with the appropriate extension.
     - Dioptas has been completely refactored by rewriting almost all of the GUI code, which will make future releases
       much faster, so stay tuned
 
