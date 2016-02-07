@@ -27,16 +27,20 @@ from distutils.sysconfig import get_python_lib
 from sys import platform as _platform
 
 site_packages_path = get_python_lib()
+import pyFAI
+pyFAI_path = os.path.dirname(pyFAI.__file__)
+import pymatgen
+pymatgen_path = os.path.dirname(pymatgen.__file__)
+
 
 extra_datas = [
     ("calibrants", "calibrants"),
     ("widgets/stylesheet.qss", "widgets"),
-    (os.path.join(site_packages_path, "pyFAI/calibration"), "pyFAI/calibration"),
-    (os.path.join(site_packages_path, "pymatgen/core/*.json"), "pymatgen/core"),
-    (os.path.join(site_packages_path, 'pymatgen/symmetry/symm_data.yaml'), "pymatgen/symmetry"),
-    (os.path.join(site_packages_path, 'pymatgen/analysis/diffraction/atomic_scattering_params.json'),
+    (os.path.join(pyFAI_path, "calibration"), "pyFAI/calibration"),
+    (os.path.join(pymatgen_path, "core/*.json"), "pymatgen/core"),
+    (os.path.join(pymatgen_path, "symmetry/symm_data.yaml"), "pymatgen/symmetry"),
+    (os.path.join(pymatgen_path, "analysis/diffraction/atomic_scattering_params.json"),
      "pymatgen/analysis/diffraction"),
-
 ]
 
 binaries = []
@@ -50,8 +54,8 @@ if _platform == "darwin":
     ))
 elif _platform == "win32":
     extra_datas.append((os.path.join(os.path.expanduser('~'), "Anaconda2\Library", "bin\mkl_avx.dll"), '.'))
-elif _platform == 'linux' or _platform == "linux2":
-    extra_datas.append((os.path.join(os.path.expanduser('~'), ".anaconda/lib/libmkl_avx.so"), '.'))
+#elif _platform == 'linux' or _platform == "linux2":
+#    extra_datas.append((os.path.join(os.path.expanduser('~'), "anaconda2/lib/libmkl_avx.so"), '.'))
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
