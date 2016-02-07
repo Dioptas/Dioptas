@@ -31,6 +31,7 @@ from model.ImgModel import ImgModel
 from model.PatternModel import PatternModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
+from model.util.HelperModule import get_partial_index
 
 
 class ImageController(object):
@@ -116,8 +117,7 @@ class ImageController(object):
         """
         Plots the mask data.
         """
-        if self.use_mask and \
-                        self.img_mode == 'Image':
+        if self.use_mask and self.img_mode == 'Image':
             self.widget.img_widget.plot_mask(self.mask_model.get_img())
         else:
             self.widget.img_widget.plot_mask(
@@ -490,20 +490,15 @@ class ImageController(object):
         if cur_tth < np.min(self.calibration_model.cake_tth):
             new_pos = np.min(self.calibration_model.cake_tth)
         else:
-            upper_ind = np.where(self.calibration_model.cake_tth > cur_tth)
-            lower_ind = np.where(self.calibration_model.cake_tth < cur_tth)
-
-            spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - \
-                self.calibration_model.cake_tth[lower_ind[-1][-1]]
-            new_pos = lower_ind[-1][-1] + (cur_tth - self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
+            new_pos = get_partial_index(self.calibration_model.cake_tth, cur_tth) + 0.5
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def _update_cake_mouse_click_pos(self):
         tth = self.clicked_tth / np.pi * 180
         azi = self.clicked_azi
 
-        x_pos = np.abs(self.calibration_model.cake_tth - tth).argmin()
-        y_pos = np.abs(self.calibration_model.cake_azi - azi).argmin()
+        x_pos = get_partial_index(self.calibration_model.cake_tth, tth) + 0.5
+        y_pos = get_partial_index(self.calibration_model.cake_azi, azi) + 0.5
 
         self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
 
@@ -516,8 +511,8 @@ class ImageController(object):
         tth = self.clicked_tth
         azi = self.clicked_azi / 180.0 * np.pi
 
-        x_pos, y_pos = self.calibration_model.get_pixel_ind(tth, azi)
-        self.widget.img_widget.set_mouse_click_position(y_pos, x_pos)
+        x_ind, y_ind = self.calibration_model.get_pixel_ind(tth, azi)
+        self.widget.img_widget.set_mouse_click_position(y_ind + 0.5, x_ind + 0.5)
 
     def get_current_spectrum_tth(self):
         cur_pos = self.widget.pattern_widget.pos_line.getPos()[0]
