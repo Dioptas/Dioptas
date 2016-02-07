@@ -31,7 +31,6 @@ from model.ImgModel import ImgModel
 from model.PatternModel import PatternModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
-from model.util.HelperModule import reverse_interpolate_two_array
 
 
 class ImageController(object):
@@ -495,10 +494,8 @@ class ImageController(object):
             lower_ind = np.where(self.calibration_model.cake_tth < cur_tth)
 
             spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - \
-                      self.calibration_model.cake_tth[lower_ind[-1][-1]]
-            new_pos = lower_ind[-1][-1] + \
-                      (cur_tth -
-                       self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing
+                self.calibration_model.cake_tth[lower_ind[-1][-1]]
+            new_pos = lower_ind[-1][-1] + (cur_tth - self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def _update_cake_mouse_click_pos(self):
