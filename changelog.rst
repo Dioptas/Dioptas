@@ -15,6 +15,8 @@
       individual peaks easily.
     - The default filename for the "save mask", "save pattern" and "save image" file dialogs will be the current image
       basename with the appropriate extension.
+    - Added a lot more calibrants from pyFAI library. All NIST calibrants should be present with the appropriate
+      references in the files.
     - Dioptas has been completely refactored by rewriting almost all of the GUI code, which will make future releases
       much faster, so stay tuned
 
