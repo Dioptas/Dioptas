@@ -57,11 +57,11 @@ class IntegrationWidget(QtGui.QWidget):
         self._layout.setSpacing(6)
         self._layout.setContentsMargins(10, 6, 6, 6)
 
-        self.vertical_splitter = QtGui.QSplitter()
+        self.vertical_splitter = QtGui.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter.addWidget(self.integration_control_widget)
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
-        self.vertical_splitter.setStretchFactor(0, 1)
+        self.vertical_splitter.setStretchFactor(1, 99999)
 
         self.horizontal_splitter = QtGui.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
@@ -100,7 +100,6 @@ class IntegrationWidget(QtGui.QWidget):
 
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
-
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
