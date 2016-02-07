@@ -137,4 +137,4 @@ coll = COLLECT(exe,
 if _platform == "darwin":
     app = BUNDLE(coll,
                  name='Dioptas_{}.app'.format(version),
-                 icon='widgets/UiFiles/Icon/icns/icon.icns')
+                 icon='widgets/icns/icon.icns')
