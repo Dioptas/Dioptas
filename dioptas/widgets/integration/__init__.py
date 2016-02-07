@@ -61,7 +61,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter.addWidget(self.integration_control_widget)
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
-        self.vertical_splitter.setStretchFactor(10, 0)
+        self.vertical_splitter.setStretchFactor(0, 1)
 
         self.horizontal_splitter = QtGui.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
