@@ -57,7 +57,7 @@ class PatternController(object):
         self.spectrum_model = spectrum_model
 
         self.integration_unit = '2th_deg'
-        self.autocreate = False
+        self.autocreate_pattern = False
         self.unit = pyFAI.units.TTH_DEG
 
         self.create_subscriptions()
@@ -71,8 +71,8 @@ class PatternController(object):
 
         # Gui subscriptions
         self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
-        self.widget.pattern_widget.mouse_left_clicked.connect(self.spectrum_left_click)
-        self.widget.pattern_widget.mouse_moved.connect(self.show_spectrum_mouse_position)
+        self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+        self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
     def create_gui_signals(self):
         """
@@ -154,7 +154,7 @@ class PatternController(object):
 
             self.spectrum_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)
 
-            if self.autocreate:
+            if self.autocreate_pattern:
                 filename = self.img_model.filename
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
@@ -221,7 +221,7 @@ class PatternController(object):
 
     def autocreate_spectrum(self):
         if self.spectrum_model.pattern.has_background():
-            if self.autocreate is True:
+            if self.autocreate_pattern is True:
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
                     directory = os.path.join(
@@ -289,7 +289,7 @@ class PatternController(object):
             os.path.basename(self.spectrum_model.pattern_filename))
 
     def autocreate_cb_changed(self):
-        self.autocreate = self.widget.spec_autocreate_cb.isChecked()
+        self.autocreate_pattern = self.widget.spec_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.spectrum_model.pattern_filename)
@@ -418,7 +418,7 @@ class PatternController(object):
             res = 0
         return res
 
-    def spectrum_left_click(self, x, y):
+    def pattern_left_click(self, x, y):
         self.set_line_position(x)
 
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
@@ -429,7 +429,7 @@ class PatternController(object):
     def set_line_position(self, x):
         self.widget.pattern_widget.set_pos_line(x)
         if self.calibration_model.is_calibrated:
-            self.update_image_view_line_position()
+            self.update_image_widget_line_position()
 
     def get_line_tth(self):
         x = self.widget.pattern_widget.get_pos_line()
@@ -439,7 +439,7 @@ class PatternController(object):
             x = self.convert_x_value(x, 'd_A', '2th_deg')
         return x
 
-    def update_image_view_line_position(self):
+    def update_image_widget_line_position(self):
         tth = self.get_line_tth()
         if self.widget.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
             self.set_cake_line_position(tth)
@@ -449,11 +449,8 @@ class PatternController(object):
     def set_cake_line_position(self, tth):
         upper_ind = np.where(self.calibration_model.cake_tth > tth)
         lower_ind = np.where(self.calibration_model.cake_tth < tth)
-        spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - \
-                  self.calibration_model.cake_tth[lower_ind[-1][-1]]
-        new_pos = lower_ind[-1][-1] + \
-                  (tth -
-                   self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing
+        spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - self.calibration_model.cake_tth[lower_ind[-1][-1]]
+        new_pos = lower_ind[-1][-1] + (tth - self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def set_image_line_position(self, tth):
@@ -461,7 +458,7 @@ class PatternController(object):
             self.widget.img_widget.set_circle_line(
                 self.calibration_model.get_two_theta_array(), tth / 180 * np.pi)
 
-    def show_spectrum_mouse_position(self, x, y):
+    def show_pattern_mouse_position(self, x, _):
         tth_str, d_str, q_str, azi_str = self.get_position_strings(x)
         self.widget.mouse_tth_lbl.setText(tth_str)
         self.widget.mouse_d_lbl.setText(d_str)
@@ -514,7 +511,7 @@ class PatternController(object):
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
             self.set_line_position(new_pos)
-            self.update_image_view_line_position()
+            self.update_image_widget_line_position()
 
             tth_str, d_str, q_str, azi_str = self.get_position_strings(new_pos)
             self.widget.click_tth_lbl.setText(tth_str)
