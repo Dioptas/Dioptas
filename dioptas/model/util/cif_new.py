@@ -31,15 +31,15 @@ class CifPhase(object):
         """
         self.cif_dictionary = cif_dictionary
 
-        self.a = float(cif_dictionary['_cell_length_a'])
-        self.b = float(cif_dictionary['_cell_length_b'])
-        self.c = float(cif_dictionary['_cell_length_c'])
+        self.a = convert_cif_number_to_float(cif_dictionary['_cell_length_a'])
+        self.b = convert_cif_number_to_float(cif_dictionary['_cell_length_b'])
+        self.c = convert_cif_number_to_float(cif_dictionary['_cell_length_c'])
 
-        self.alpha = float(cif_dictionary['_cell_angle_alpha'])
-        self.beta = float(cif_dictionary['_cell_angle_beta'])
-        self.gamma = float(cif_dictionary['_cell_angle_gamma'])
+        self.alpha = convert_cif_number_to_float(cif_dictionary['_cell_angle_alpha'])
+        self.beta = convert_cif_number_to_float(cif_dictionary['_cell_angle_beta'])
+        self.gamma = convert_cif_number_to_float(cif_dictionary['_cell_angle_gamma'])
 
-        self.volume = float(cif_dictionary['_cell_volume'])
+        self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
 
         self.space_group = cif_dictionary['_symmetry_space_group_name_H-M']
         self.space_group_number = int(cif_dictionary['_symmetry_Int_Tables_number'])
@@ -60,11 +60,15 @@ class CifPhase(object):
         self._atom_x = [float(s) for s in cif_dictionary['_atom_site_fract_x']]
         self._atom_y = [float(s) for s in cif_dictionary['_atom_site_fract_y']]
         self._atom_z = [float(s) for s in cif_dictionary['_atom_site_fract_z']]
+        if '_atom_site_occupancy' in cif_dictionary.keys():
+            self._atom_occupancy = [float(s) for s in cif_dictionary['_atom_site_occupancy']]
+        else:
+            self._atom_occupancy = [1] * len(self._atom_labels)
 
         # Create a list of 4-tuples, where each tuple is an atom:
         # [ ('Si', 0.4697, 0.0, 0.0),  ('O', 0.4135, 0.2669, 0.1191),  ... ]
-        self.atoms = [(self._atom_labels[i], self._atom_x[i], self._atom_y[i], self._atom_z[i]) for i in
-                      range(len(self._atom_labels))]
+        self.atoms = [(self._atom_labels[i], self._atom_x[i], self._atom_y[i], self._atom_z[i],
+                       self._atom_occupancy[i]) for i in range(len(self._atom_labels))]
         self.clean_atoms()
         self.generate_symmetry_equivalents()
 
@@ -73,12 +77,12 @@ class CifPhase(object):
         Cleaning all atom labels and check atom positions
         """
         for i in range(len(self.atoms)):
-            (name, xn, yn, zn) = self.atoms[i]
+            (name, xn, yn, zn, occu) = self.atoms[i]
             xn = (xn + 10.0) % 1.0
             yn = (yn + 10.0) % 1.0
             zn = (zn + 10.0) % 1.0
             name = self.convert_element(name)
-            self.atoms[i] = (name, xn, yn, zn)
+            self.atoms[i] = (name, xn, yn, zn, occu)
 
     def generate_symmetry_equivalents(self):
         # The CIF file consists of a few atom positions plus several "symmetry
@@ -93,7 +97,7 @@ class CifPhase(object):
         i = 0
         while (i < len(self.atoms)):
 
-            label, x, y, z = self.atoms[i]
+            label, x, y, z, occu = self.atoms[i]
 
             for op in self.symmetry_operations:
 
@@ -110,12 +114,13 @@ class CifPhase(object):
                 # atom.
                 new_atom = True
                 for at in self.atoms:
-                    if (abs(at[1] - xn) < eps and abs(at[2] - yn) < eps and abs(at[3] - zn) < eps):
+                    if (abs(at[1] - xn) < eps and abs(at[2] - yn) < eps and abs(at[3] - zn) < eps) \
+                            and at[0] == label:
                         new_atom = False
 
                 # If the atom is new, add it to the list!
                 if (new_atom):
-                    self.atoms.append((label, xn, yn, zn))  # add a 4-tuple
+                    self.atoms.append((label, xn, yn, zn, occu))  # add a 4-tuple
 
             # Update the loop iterator.
             i += 1
@@ -199,3 +204,6 @@ def number_between(num, num_low, num_high):
     if num >= num_low and num <= num_high:
         return True
     return False
+
+def convert_cif_number_to_float(cif_number):
+    return float(cif_number.split('(')[0])
