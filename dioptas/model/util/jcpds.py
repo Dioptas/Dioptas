@@ -42,8 +42,6 @@ import numpy as np
 from scipy.optimize import minimize
 import os
 
-import time
-
 
 class jcpds_reflection:
     """
@@ -183,10 +181,7 @@ class jcpds(object):
         pos = name.find('.')
         if (pos >= 0): name = name[0:pos]
         self._name = name
-        line = ''
-        version = 0.
         self.comments = []
-        nd = 0
         self.reflections = []
 
         # Determine what version JCPDS file this is
@@ -507,7 +502,7 @@ class jcpds(object):
         if (pressure == 0.):
             self.v = self.v0 * (1 + self.alpha_t * (temperature - 298.))
         if (pressure < 0):
-            self.v = self.v0 * (1-pressure/self.k0)
+            self.v = self.v0 * (1 - pressure / self.k0)
         else:
             if (self.k0 <= 0.):
                 logger.info('K0 is zero, computing zero pressure volume')

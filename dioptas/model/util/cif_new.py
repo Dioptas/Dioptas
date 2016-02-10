@@ -22,12 +22,15 @@ class CifPhase(object):
 
     This automatically creates symmetry equivalent position of atoms for further processing of the file.
     """
+
     def __init__(self, cif_dictionary):
         """
 
         :param cif_dictionary:
         :return:
         """
+        self.cif_dictionary = cif_dictionary
+
         self.a = float(cif_dictionary['_cell_length_a'])
         self.b = float(cif_dictionary['_cell_length_b'])
         self.c = float(cif_dictionary['_cell_length_c'])
@@ -41,6 +44,9 @@ class CifPhase(object):
         self.space_group = cif_dictionary['_symmetry_space_group_name_H-M']
         self.space_group_number = int(cif_dictionary['_symmetry_Int_Tables_number'])
         self.symmetry = self.get_symmetry_from_space_group_number(self.space_group_number)
+
+        self.comments = ''
+        self.read_file_information()
 
         if '_symmetry_equiv_pos_as_xyz' in cif_dictionary.keys():
             self.symmetry_operations = cif_dictionary['_symmetry_equiv_pos_as_xyz']
@@ -161,6 +167,28 @@ class CifPhase(object):
             else:
                 return "RHOMBOHEDRAL"
         return None
+
+    def read_file_information(self):
+        """
+        Reads in all the header information and tries to build a good description of the phase.
+        """
+        if self.cif_dictionary.get('_chemical_formula_structural'):
+            self.comments += self.cif_dictionary['_chemical_formula_structural'].replace(" ", "")
+            self.comments += ' - '
+        elif self.cif_dictionary.get('_chemical_formula_analytical'):
+            self.comments += self.cif_dictionary['_chemical_formula_analytical'].replace(" ", "")
+            self.comments += ' - '
+
+        if self.cif_dictionary.get('_chemical_name_structure_type'):
+            self.comments += self.cif_dictionary['_chemical_name_structure_type']
+            self.comments += ' structure type'
+        if self.cif_dictionary.get('_database_code_icsd'):
+            self.comments = self.comments.strip()
+            if self.comments is not '':
+                self.comments += ', ICSD '
+            else:
+                self.comments *= 'ICSD '
+            self.comments += self.cif_dictionary['_database_code_icsd']
 
 
 def number_between(num, num_low, num_high):
