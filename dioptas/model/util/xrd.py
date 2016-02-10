@@ -151,7 +151,7 @@ class CifConverter(object):
         atom_numbers = []
         form_coefficients = []
         fractional_coordinates = []
-        occupations = []
+        occupancies = []
         for atom in cif_phase.atoms:
             atom_numbers.append(PERIODIC_TABLE[atom[0]]['Atomic no'])
             try:
@@ -161,13 +161,13 @@ class CifConverter(object):
                                  "there is no scattering coefficients for"
                                  " %s." % atom[0])
             form_coefficients.append(c)
-            fractional_coordinates.append(atom[1:])
-            occupations.append(1)
+            fractional_coordinates.append(atom[1:4])
+            occupancies.append(atom[4])
 
         atom_numbers = np.array(atom_numbers)
         form_coefficients = np.array(form_coefficients)
         fractional_coordinates = np.array(fractional_coordinates)
-        occupations = np.array(occupations)
+        occupancies = np.array(occupancies)
 
         two_thetas = []
         peaks = {}
@@ -188,7 +188,7 @@ class CifConverter(object):
 
                 fs = atom_numbers - 41.78214 * s2 * np.sum(
                     form_coefficients[:, :, 0] * np.exp(-form_coefficients[:, :, 1] * s2), axis=1)
-                f_hkl = np.sum(fs * occupations * np.exp(2j * np.pi * g_dot_r))
+                f_hkl = np.sum(fs * occupancies * np.exp(2j * np.pi * g_dot_r))
                 i_hkl = (f_hkl * f_hkl.conjugate()).real
 
                 ind = np.where(np.abs(np.subtract(two_thetas, two_theta)) < CifConverter.TWO_THETA_TOL)

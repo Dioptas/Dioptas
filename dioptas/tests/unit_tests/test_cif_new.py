@@ -66,4 +66,8 @@ class TestCifPhase(unittest.TestCase):
         self.assertAlmostEqual(jcpds_phase.reflections[1].d0, 2.437, places=4)
 
     def test_loading_cif_phase_with_occupancies_specified(self):
-        pass
+        cif_converter = CifConverter(0.31)
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(data_path, 'magnesiowustite.cif'))
+        self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 27.53, delta=0.2)
+        self.assertAlmostEqual(jcpds_phase.reflections[1].intensity, 100)
+        self.assertAlmostEqual(jcpds_phase.reflections[2].intensity, 65.02, delta=0.2)
