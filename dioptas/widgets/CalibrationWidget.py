@@ -459,6 +459,7 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self._layout.addWidget(LabelAlignRight('Intensity Mean Factor:'), 4, 0)
         self.intensity_mean_factor_sb = DoubleSpinBoxAlignRight()
         self.intensity_mean_factor_sb.setValue(3.0)
+        self.intensity_mean_factor_sb.setSingleStep(0.1)
         self._layout.addWidget(self.intensity_mean_factor_sb, 4, 1)
 
         self._layout.addWidget(LabelAlignRight('Intensity Limit:'), 5, 0)

@@ -520,7 +520,7 @@ class BackgroundControlWidget(QtGui.QWidget):
         self.smooth_with_sb.setValue(0.100)
         self.smooth_with_sb.setMinimum(0)
         self.smooth_with_sb.setMaximum(10000000)
-        self.smooth_with_sb.setSingleStep(0.02)
+        self.smooth_with_sb.setSingleStep(0.005)
         self.smooth_with_sb.setDecimals(3)
         self.smooth_with_sb.setMaximumWidth(100)
 
