@@ -21,6 +21,10 @@ import os
 import itertools
 from math import degrees
 
+from cif_new import CifPhase
+from CifFile import ReadCif
+from jcpds import jcpds
+
 import numpy as np
 import json
 
@@ -33,29 +37,90 @@ with open(os.path.join(os.path.dirname(__file__),
     PERIODIC_TABLE = json.load(f)
 
 
-class XRDCalculator(object):
+class CifConverter(object):
     # Tolerance in which to treat two peaks as having the same two theta.
     TWO_THETA_TOL = 1e-5
 
-    # Tolerance in which to treat a peak as effectively 0 if the scaled
-    # intensity is less than this number. Since the max intensity is 100,
-    # this means the peak must be less than 1e-5 of the peak intensity to be
-    # considered as zero. This deals with numerical issues where systematic
-    # absences do not cancel exactly to zero.
-
-    def __init__(self, cif_phase, wavelength, min_d_spacing=0.5, min_intensity=0.5):
-        self.cif_phase = cif_phase
+    def __init__(self, wavelength, min_d_spacing=0.5, min_intensity=0.5):
+        """
+        Calculates the x-ray diffraction intensities for a specific cif phase.
+        :param wavelength: Wavelength for the two theta calculation
+        :param min_d_spacing: all calculated reflections will have a d-spacing above this value
+        :param min_intensity: all calculated reflections will have an intensity greater than this value
+        :return:
+        """
         self.wavelength = wavelength
         self.min_d_spacing = min_d_spacing
         self.min_intensity = min_intensity
 
-        self.reflections = self.calculate_hkl_within_sphere_and_min_d_spacing()
-        self.calculate_reflection_intensities()
+    def convert_cif_to_jcpds(self, filename):
+        """
+        Reads a cif file and returns a jcpds with correct reflection and intensities
+        :param filename:  cif filename
+        :return: converted jcpds object
+        :rtype: jcpds
+        """
+        cif_file = ReadCif(filename)
+        cif_phase = CifPhase(cif_file[cif_file.keys()[0]])
+        jcpds_phase = self.convert_cif_phase_to_jcpds(cif_phase)
+        jcpds_phase.filename = filename
+        jcpds_phase.name = os.path.splitext(os.path.basename(filename))[0]
+        jcpds_phase.modified = False
 
-    def calculate_hkl_within_sphere_and_min_d_spacing(self):
-        max_h = np.floor(2 * self.cif_phase.a / self.wavelength)
-        max_k = np.floor(2 * self.cif_phase.b / self.wavelength)
-        max_l = np.floor(2 * self.cif_phase.c / self.wavelength)
+        return jcpds_phase
+
+    def convert_cif_phase_to_jcpds(self, cif_phase):
+        """
+        Converts a CifPhase into a jcpds object by calculating the intensities and multiplicities for all reflections
+        :param cif_phase: input CifPhase
+        :type cif_phase: CifPhase
+        :return: converted jcpds object
+        :rtype: jcpds
+        """
+        reflections = self._calculate_hkl_within_sphere_and_min_d_spacing(cif_phase)
+        xrd_reflections = self._calculate_reflection_intensities(cif_phase, reflections)
+        jcpds_phase = self._create_jcpds_from_cif_parameters(cif_phase)
+
+        for reflection in xrd_reflections:
+            jcpds_phase.add_reflection(reflection.h,
+                                       reflection.k,
+                                       reflection.l,
+                                       reflection.intensity,
+                                       reflection.d_spacing)
+        return jcpds_phase
+
+    def _create_jcpds_from_cif_parameters(self, cif_phase):
+        """
+        Creates a jcpds object from a cif_phase using cell parameters, symmetries, and file information. Does not
+        calculate intensities for any reflection e.g. the jcpds will have 0 reflections
+        :param cif_phase:
+        :type cif_phase: CifPhase
+        :return:
+        """
+        jcpds_phase = jcpds()
+
+        jcpds_phase.a0 = cif_phase.a
+        jcpds_phase.b0 = cif_phase.b
+        jcpds_phase.c0 = cif_phase.c
+        jcpds_phase.alpha0 = cif_phase.alpha
+        jcpds_phase.beta0 = cif_phase.beta
+        jcpds_phase.gamma0 = cif_phase.gamma
+        jcpds_phase.v0 = cif_phase.volume
+        jcpds_phase.symmetry = cif_phase.symmetry
+        jcpds_phase.comments = cif_phase.comments
+
+        return jcpds_phase
+
+    def _calculate_hkl_within_sphere_and_min_d_spacing(self, cif_phase):
+        """
+        Generates a list of hkl reflections which can satisfy the diffraction condition using the given wavelength and
+        also the minimum d spacing
+        :return: list of reflections
+        :rtype: list[Reflection]
+        """
+        max_h = np.floor(2 * cif_phase.a / self.wavelength)
+        max_k = np.floor(2 * cif_phase.b / self.wavelength)
+        max_l = np.floor(2 * cif_phase.c / self.wavelength)
 
         h = reversed(np.arange(-max_h + 1, max_h, 1))
         k = reversed(np.arange(-max_k + 1, max_k, 1))
@@ -67,7 +132,7 @@ class XRDCalculator(object):
         k = reciprocal_hkl[:, 1]
         l = reciprocal_hkl[:, 2]
 
-        d_hkl = compute_d_hkl(h, k, l, self.cif_phase)
+        d_hkl = compute_d_hkl(h, k, l, cif_phase)
         good_indices = np.argwhere(d_hkl > self.min_d_spacing)
 
         reflections = []
@@ -76,35 +141,38 @@ class XRDCalculator(object):
 
         return reflections
 
-    def calculate_reflection_intensities(self):
-
-        # lets get first the atom parameters
-        zs = []
-        coeffs = []
-        fcoords = []
-        occus = []
-        for atom in self.cif_phase.atoms:
-            zs.append(PERIODIC_TABLE[atom[0]]['Atomic no'])
+    def _calculate_reflection_intensities(self, cif_phase, base_reflections):
+        """
+        :param cif_phase:
+        :param base_reflections:
+        :return:
+        """
+        # provide atom parameters as lists
+        atom_numbers = []
+        form_coefficients = []
+        fractional_coordinates = []
+        occupations = []
+        for atom in cif_phase.atoms:
+            atom_numbers.append(PERIODIC_TABLE[atom[0]]['Atomic no'])
             try:
                 c = ATOMIC_SCATTERING_PARAMS[atom[0]]
             except KeyError:
                 raise ValueError("Unable to calculate XRD pattern as "
                                  "there is no scattering coefficients for"
                                  " %s." % atom[0])
-            coeffs.append(c)
-            fcoords.append(atom[1:])
-            occus.append(1)
+            form_coefficients.append(c)
+            fractional_coordinates.append(atom[1:])
+            occupations.append(1)
 
-        zs = np.array(zs)
-        coeffs = np.array(coeffs)
-        fcoords = np.array(fcoords)
-        occus = np.array(occus)
-
+        atom_numbers = np.array(atom_numbers)
+        form_coefficients = np.array(form_coefficients)
+        fractional_coordinates = np.array(fractional_coordinates)
+        occupations = np.array(occupations)
 
         two_thetas = []
         peaks = {}
 
-        for reflection in self.reflections:
+        for reflection in base_reflections:
             d_hkl = reflection.d_spacing
             g_hkl = 1. / d_hkl
             if g_hkl != 0:
@@ -116,13 +184,14 @@ class XRDCalculator(object):
                 theta = np.arcsin(self.wavelength * g_hkl * 0.5)
                 two_theta = degrees(2 * theta)
 
-                g_dot_r = np.dot(fcoords, np.transpose([hkl])).T[0]
+                g_dot_r = np.dot(fractional_coordinates, np.transpose([hkl])).T[0]
 
-                fs = zs - 41.78214 * s2 * np.sum(coeffs[:, :, 0] * np.exp(-coeffs[:, :, 1] * s2), axis=1)
-                f_hkl = np.sum(fs * occus * np.exp(2j * np.pi * g_dot_r))
+                fs = atom_numbers - 41.78214 * s2 * np.sum(
+                    form_coefficients[:, :, 0] * np.exp(-form_coefficients[:, :, 1] * s2), axis=1)
+                f_hkl = np.sum(fs * occupations * np.exp(2j * np.pi * g_dot_r))
                 i_hkl = (f_hkl * f_hkl.conjugate()).real
 
-                ind = np.where(np.abs(np.subtract(two_thetas, two_theta)) < XRDCalculator.TWO_THETA_TOL)
+                ind = np.where(np.abs(np.subtract(two_thetas, two_theta)) < CifConverter.TWO_THETA_TOL)
 
                 lorentz_factor = (1 + np.cos(2 * theta) ** 2) / (np.sin(theta) ** 2 * np.cos(theta))
 
@@ -134,28 +203,36 @@ class XRDCalculator(object):
                     two_thetas.append(two_theta)
 
         max_intensity = max([v[0] for v in peaks.values()])
-        data = []
+        calculated_reflections = []
         for k in sorted(peaks.keys()):
             v = peaks[k]
             scaled_intensity = v[0] / max_intensity * 100
             fam = get_unique_families(v[1])
             if scaled_intensity > self.min_intensity:
-                data.append([k, scaled_intensity, fam, v[2]])
+                calculated_reflections.append(
+                    Reflection(
+                        *fam.keys()[0],
+                        d_spacing=v[2],
+                        intensity=scaled_intensity,
+                        multiplicity=fam[fam.keys()[0]]
+                    )
+                )
 
-        self.peaks = data
-
+        return calculated_reflections
 
 
 class Reflection():
-    def __init__(self, h, k, l, d_spacing, intensity=None):
+    def __init__(self, h, k, l, d_spacing, intensity=None, multiplicity=1):
         self.h = h
         self.k = k
         self.l = l
+        self.multiplicity = multiplicity
         self.d_spacing = d_spacing
         self.intensity = intensity
 
     def __repr__(self):
-        return "({},{},{}) {:.5f} - {}".format(self.h, self.k, self.l, self.d_spacing, self.intensity)
+        return "({},{},{}) x {} {:.5f} - {}".format(self.h, self.k, self.l, self.multiplicity,
+                                                    self.d_spacing, self.intensity)
 
 
 def compute_d_hkl(h, k, l, cif_phase):
@@ -217,7 +294,8 @@ def get_unique_families(hkls):
     Returns:
         {hkl: multiplicity}: A dict with unique hkl and multiplicity.
     """
-    #TODO: Definitely can be sped up.
+
+    # TODO: Definitely can be sped up.
     def is_perm(hkl1, hkl2):
         h1 = map(abs, hkl1)
         h2 = map(abs, hkl2)
