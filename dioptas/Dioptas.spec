@@ -29,18 +29,13 @@ from sys import platform as _platform
 site_packages_path = get_python_lib()
 import pyFAI
 pyFAI_path = os.path.dirname(pyFAI.__file__)
-import pymatgen
-pymatgen_path = os.path.dirname(pymatgen.__file__)
 
 
 extra_datas = [
     ("calibrants", "calibrants"),
     ("widgets/stylesheet.qss", "widgets"),
-    (os.path.join(pyFAI_path, "calibration"), "pyFAI/calibration"),
-    (os.path.join(pymatgen_path, "core/*.json"), "pymatgen/core"),
-    (os.path.join(pymatgen_path, "symmetry/symm_data.yaml"), "pymatgen/symmetry"),
-    (os.path.join(pymatgen_path, "analysis/diffraction/atomic_scattering_params.json"),
-     "pymatgen/analysis/diffraction"),
+    (os.path.join(pyFAI_path, 'calibration'), 'pyFAI/calibration'),
+    ("model/util/data/*.json", "model/util/data")
 ]
 
 binaries = []
@@ -51,6 +46,7 @@ if _platform == "darwin":
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtGui.4.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libpng16.16.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtSvg.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libmkl_avx2.dylib'), '.')
     ))
 elif _platform == "win32":
     extra_datas.append((os.path.join(os.path.expanduser('~'), "Anaconda2\Library", "bin\mkl_avx.dll"), '.'))
