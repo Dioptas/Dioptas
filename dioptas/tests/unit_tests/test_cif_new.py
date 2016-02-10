@@ -20,8 +20,7 @@ import os
 
 from CifFile import ReadCif
 
-from model.util.cif_new import CifPhase
-from model.util.xrd import CifConverter
+from model.util.cif import CifPhase, CifConverter
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
