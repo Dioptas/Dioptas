@@ -509,6 +509,7 @@ class BackgroundControlWidget(QtGui.QWidget):
         self.scale_sb.setMinimum(-9999999)
         self.scale_sb.setMaximum(9999999)
         self.scale_sb.setValue(1)
+        self.scale_sb.setSingleStep(0.01)
 
         self.pattern_background_gb.setCheckable(True)
         self.pattern_background_gb.setChecked(False)
