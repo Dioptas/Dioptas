@@ -266,8 +266,11 @@ class MaskController(object):
 
     def save_mask_btn_click(self, filename=None):
         if filename is None:
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, caption="Save mask data",
-                                                             directory=self.working_dir['mask'], filter='*.mask'))
+            img_filename, _ = os.path.splitext(os.path.basename(self.img_model.filename))
+            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save mask data",
+                                                             os.path.join(self.working_dir['mask'],
+                                                                          img_filename+'.mask'),
+                                                             filter='Mask (*.mask)'))
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)

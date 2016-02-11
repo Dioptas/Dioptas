@@ -214,6 +214,25 @@ def convert_d_to_two_theta(d, wavelength):
     return np.arcsin(wavelength / (2 * d)) / np.pi * 360
 
 
+def get_partial_index(array, value):
+    """
+    Calculates the partial index for a value from an array using linear interpolation.
+    e.g. with array = [0,1,2,3,4,5] and value = 2.5 it would return 2.5, since it in between the second and third
+    element.
+    :param array: list or numpy array
+    :param value: value for which to get the index
+    :return: partial index
+    """
+    upper_ind = np.where(array > value)
+    lower_ind = np.where(array < value)
+
+    spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
+    new_pos = lower_ind[-1][-1] + (value - array[lower_ind[-1][-1]]) / spacing
+
+    return new_pos
+
+
+
 def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, delta2=0.1):
     """
     Tries to reverse interpolate two vales from two arrays with the same dimensions, and finds a common index
