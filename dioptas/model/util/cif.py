@@ -1,75 +1,495 @@
-# -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import division, unicode_literals
 
 import os
+import itertools
+from math import degrees
+
+from CifFile import ReadCif
+from jcpds import jcpds
 
 import numpy as np
-from pymatgen.core.structure import Structure
-from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from pymatgen.analysis.diffraction.xrd import XRDCalculator
+import json
 
-from .jcpds import jcpds
+with open(os.path.join(os.path.dirname(__file__),
+                       "data/atomic_scattering_params.json")) as f:
+    ATOMIC_SCATTERING_PARAMS = json.load(f)
+
+with open(os.path.join(os.path.dirname(__file__),
+                       "data/periodic_table.json")) as f:
+    PERIODIC_TABLE = json.load(f)
 
 
-def read_cif(filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
+class CifConverter(object):
+    # Tolerance in which to treat two peaks as having the same two theta.
+    TWO_THETA_TOL = 1e-5
+
+    def __init__(self, wavelength, min_d_spacing=0.5, min_intensity=0.5):
+        """
+        Calculates the x-ray diffraction intensities for a specific cif phase.
+        :param wavelength: Wavelength for the two theta calculation
+        :param min_d_spacing: all calculated reflections will have a d-spacing above this value
+        :param min_intensity: all calculated reflections will have an intensity greater than this value
+        :return:
+        """
+        self.wavelength = wavelength
+        self.min_d_spacing = min_d_spacing
+        self.min_intensity = min_intensity
+
+    def convert_cif_to_jcpds(self, filename):
+        """
+        Reads a cif file and returns a jcpds with correct reflection and intensities
+        :param filename:  cif filename
+        :return: converted jcpds object
+        :rtype: jcpds
+        """
+        cif_file = ReadCif(filename)
+        cif_phase = CifPhase(cif_file[cif_file.keys()[0]])
+        jcpds_phase = self.convert_cif_phase_to_jcpds(cif_phase)
+        jcpds_phase.filename = filename
+        jcpds_phase.name = os.path.splitext(os.path.basename(filename))[0]
+        jcpds_phase.modified = False
+
+        return jcpds_phase
+
+    def convert_cif_phase_to_jcpds(self, cif_phase):
+        """
+        Converts a CifPhase into a jcpds object by calculating the intensities and multiplicities for all reflections
+        :param cif_phase: input CifPhase
+        :type cif_phase: CifPhase
+        :return: converted jcpds object
+        :rtype: jcpds
+        """
+        reflections = self._calculate_hkl_within_sphere_and_min_d_spacing(cif_phase)
+        xrd_reflections = self._calculate_reflection_intensities(cif_phase, reflections)
+        jcpds_phase = self._create_jcpds_from_cif_parameters(cif_phase)
+
+        for reflection in xrd_reflections:
+            jcpds_phase.add_reflection(reflection.h,
+                                       reflection.k,
+                                       reflection.l,
+                                       reflection.intensity,
+                                       reflection.d_spacing)
+        return jcpds_phase
+
+    def _create_jcpds_from_cif_parameters(self, cif_phase):
+        """
+        Creates a jcpds object from a cif_phase using cell parameters, symmetries, and file information. Does not
+        calculate intensities for any reflection e.g. the jcpds will have 0 reflections
+        :param cif_phase:
+        :type cif_phase: CifPhase
+        :return:
+        """
+        jcpds_phase = jcpds()
+
+        jcpds_phase.a0 = cif_phase.a
+        jcpds_phase.b0 = cif_phase.b
+        jcpds_phase.c0 = cif_phase.c
+        jcpds_phase.alpha0 = cif_phase.alpha
+        jcpds_phase.beta0 = cif_phase.beta
+        jcpds_phase.gamma0 = cif_phase.gamma
+        jcpds_phase.v0 = cif_phase.volume
+        jcpds_phase.symmetry = cif_phase.symmetry
+        jcpds_phase.comments = [cif_phase.comments]
+
+        return jcpds_phase
+
+    def _calculate_hkl_within_sphere_and_min_d_spacing(self, cif_phase):
+        """
+        Generates a list of hkl reflections which can satisfy the diffraction condition using the given wavelength and
+        also the minimum d spacing
+        :return: list of reflections
+        :rtype: list[Reflection]
+        """
+        max_h = np.floor(2 * cif_phase.a / self.wavelength)
+        max_k = np.floor(2 * cif_phase.b / self.wavelength)
+        max_l = np.floor(2 * cif_phase.c / self.wavelength)
+
+        h = reversed(np.arange(-max_h + 1, max_h, 1))
+        k = reversed(np.arange(-max_k + 1, max_k, 1))
+        l = reversed(np.arange(-max_l + 1, max_l, 1))
+        s = [h, k, l]
+
+        reciprocal_hkl = np.array(list(itertools.product(*s)))
+        h = reciprocal_hkl[:, 0]
+        k = reciprocal_hkl[:, 1]
+        l = reciprocal_hkl[:, 2]
+
+        d_hkl = compute_d_hkl(h, k, l, cif_phase)
+        good_indices = np.argwhere(d_hkl > self.min_d_spacing)
+
+        reflections = []
+        for i in good_indices:
+            reflections.append(Reflection(int(h[i][0]), int(k[i][0]), int(l[i][0]), d_hkl[i][0]))
+
+        return reflections
+
+    def _calculate_reflection_intensities(self, cif_phase, base_reflections):
+        """
+        :param cif_phase:
+        :param base_reflections:
+        :return:
+        """
+        # provide atom parameters as lists
+        atom_numbers = []
+        form_coefficients = []
+        fractional_coordinates = []
+        occupancies = []
+        for atom in cif_phase.atoms:
+            atom_numbers.append(PERIODIC_TABLE[atom[0]]['Atomic no'])
+            try:
+                c = ATOMIC_SCATTERING_PARAMS[atom[0]]
+            except KeyError:
+                raise ValueError("Unable to calculate XRD pattern as "
+                                 "there is no scattering coefficients for"
+                                 " %s." % atom[0])
+            form_coefficients.append(c)
+            fractional_coordinates.append(atom[1:4])
+            occupancies.append(atom[4])
+
+        atom_numbers = np.array(atom_numbers)
+        form_coefficients = np.array(form_coefficients)
+        fractional_coordinates = np.array(fractional_coordinates)
+        occupancies = np.array(occupancies)
+
+        two_thetas = []
+        peaks = {}
+
+        for reflection in base_reflections:
+            d_hkl = reflection.d_spacing
+            g_hkl = 1. / d_hkl
+            if g_hkl != 0:
+                hkl = np.array([reflection.h, reflection.k, reflection.l])
+
+                s = g_hkl * 0.5
+                s2 = s ** 2
+
+                theta = np.arcsin(self.wavelength * g_hkl * 0.5)
+                two_theta = degrees(2 * theta)
+
+                g_dot_r = np.dot(fractional_coordinates, np.transpose([hkl])).T[0]
+
+                fs = atom_numbers - 41.78214 * s2 * np.sum(
+                    form_coefficients[:, :, 0] * np.exp(-form_coefficients[:, :, 1] * s2), axis=1)
+                f_hkl = np.sum(fs * occupancies * np.exp(2j * np.pi * g_dot_r))
+                i_hkl = (f_hkl * f_hkl.conjugate()).real
+
+                ind = np.where(np.abs(np.subtract(two_thetas, two_theta)) < CifConverter.TWO_THETA_TOL)
+
+                lorentz_factor = (1 + np.cos(2 * theta) ** 2) / (np.sin(theta) ** 2 * np.cos(theta))
+
+                if len(ind[0]) > 0:
+                    peaks[two_thetas[ind[0]]][0] += i_hkl * lorentz_factor
+                    peaks[two_thetas[ind[0]]][1].append(tuple(hkl))
+                else:
+                    peaks[two_theta] = [i_hkl * lorentz_factor, [tuple(hkl)], d_hkl]
+                    two_thetas.append(two_theta)
+
+        max_intensity = max([v[0] for v in peaks.values()])
+        calculated_reflections = []
+        for k in sorted(peaks.keys()):
+            v = peaks[k]
+            scaled_intensity = v[0] / max_intensity * 100
+            fam = get_unique_families(v[1])
+            if scaled_intensity > self.min_intensity:
+                calculated_reflections.append(
+                    Reflection(
+                        *fam.keys()[0],
+                        d_spacing=v[2],
+                        intensity=scaled_intensity,
+                        multiplicity=fam[fam.keys()[0]]
+                    )
+                )
+
+        return calculated_reflections
+
+
+class Reflection():
+    def __init__(self, h, k, l, d_spacing, intensity=None, multiplicity=1):
+        self.h = h
+        self.k = k
+        self.l = l
+        self.multiplicity = multiplicity
+        self.d_spacing = d_spacing
+        self.intensity = intensity
+
+    def __repr__(self):
+        return "({},{},{}) x {} {:.5f} - {}".format(self.h, self.k, self.l, self.multiplicity,
+                                                    self.d_spacing, self.intensity)
+
+
+def compute_d_hkl(h, k, l, cif_phase):
+    a = cif_phase.a
+    b = cif_phase.b
+    c = cif_phase.c
+    alpha = cif_phase.alpha
+    beta = cif_phase.beta
+    gamma = cif_phase.gamma
+
+    symmetry = cif_phase.symmetry
+
+    if (symmetry == 'CUBIC'):
+        d2inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
+    elif (symmetry == 'TETRAGONAL'):
+        d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
+    elif (symmetry == 'ORTHORHOMBIC'):
+        d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
+    elif (symmetry == 'HEXAGONAL'):
+        d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
+    elif (symmetry == 'RHOMBOHEDRAL'):
+        d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
+                                          (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
+                 (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
+    elif (symmetry == 'MONOCLINIC'):
+        d2inv = (h ** 2 / np.sin(beta) ** 2 / a ** 2 +
+                 k ** 2 / b ** 2 +
+                 l ** 2 / np.sin(beta) ** 2 / c ** 2 +
+                 2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
+    elif (symmetry == 'TRICLINIC'):
+        V = (a * b * c *
+             np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
+                     np.cos(gamma) ** 2 +
+                     2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
+        s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
+        s22 = a ** 2 * c ** 2 * np.sin(beta) ** 2
+        s33 = a ** 2 * b ** 2 * np.sin(gamma) ** 2
+        s12 = a * b * c ** 2 * (np.cos(alpha) * np.cos(beta) -
+                                np.cos(gamma))
+        s23 = a ** 2 * b * c * (np.cos(beta) * np.cos(gamma) -
+                                np.cos(alpha))
+        s31 = a * b ** 2 * c * (np.cos(gamma) * np.cos(alpha) -
+                                np.cos(beta))
+        d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
+                 2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
+    d_spacings = np.sqrt(1. / d2inv)
+
+    return d_spacings
+
+
+def get_unique_families(hkls):
     """
-    Reads in a cif file and converts it into a jcpds object. The X-ray reflections are calculated based on atomic positions,
-    whereby the saved reflections have to have relative intensities above the an intensity cutoff.
-    :param structure: pymatgen structure object e.g. obtained from read_cif
-    :param intensity_cutoff: only reflections with relative intensities above this value are included in the jcpds
-    :param minimum_d_spacing: only reflections with a d_spacing above this value are included in the jcpds object
-    :return: jcpds object
-    :type structure: Structure
+    Returns unique families of Miller indices. Families must be permutations
+    of each other.
+
+    Args:
+        hkls ([h, k, l]): List of Miller indices.
+
+    Returns:
+        {hkl: multiplicity}: A dict with unique hkl and multiplicity.
     """
-    structure = Structure.from_file(filename)
-    jcpds_obj = jcpds()
-    jcpds_obj._filename = filename
-    jcpds_obj._name = ''.join(os.path.basename(filename).split('.')[:-1])
-    jcpds_obj.comments.append("Composition: {}".format(structure.composition.reduced_formula))
 
-    # getting the lattice parameter right:
-    jcpds_obj.a0 = structure.lattice.a
-    jcpds_obj.b0 = structure.lattice.b
-    jcpds_obj.c0 = structure.lattice.c
-    jcpds_obj.alpha0 = structure.lattice.alpha
-    jcpds_obj.beta0 = structure.lattice.beta
-    jcpds_obj.gamma0 = structure.lattice.gamma
-    jcpds_obj.compute_v0()
-    jcpds_obj.symmetry = get_symmetry_from_space_group_number(SpacegroupAnalyzer(structure).get_spacegroup_number())
+    # TODO: Definitely can be sped up.
+    def is_perm(hkl1, hkl2):
+        h1 = map(abs, hkl1)
+        h2 = map(abs, hkl2)
+        return all([i == j for i, j in zip(sorted(h1), sorted(h2))])
 
-    xrd_analyzer = XRDCalculator(wavelength=0.4)
-    max_two_theta = 2 * np.arcsin(0.4 / (2. * minimum_d_spacing)) / np.pi * 180
-    xrd_reflections = xrd_analyzer.get_xrd_data(structure, two_theta_range=(0, max_two_theta))
-    for reflection in xrd_reflections:
-        miller_indices = reflection[2].keys()[0]
-        if len(miller_indices) == 4:
-            h, k, _, l = miller_indices
+    unique = {}
+    for hkl1 in hkls:
+        found = False
+        for hkl2 in unique.keys():
+            if is_perm(hkl1, hkl2):
+                found = True
+                unique[hkl2] += 1
+                break
+        if not found:
+            unique[hkl1] = 1
+
+    return unique
+
+class CifPhase(object):
+    """
+    Phase created from a cif dictionary (a cif file can have several phases which can be read as a list by PyCifRw)
+
+    This automatically creates symmetry equivalent position of atoms for further processing of the file.
+    """
+
+    def __init__(self, cif_dictionary):
+        """
+
+        :param cif_dictionary:
+        :return:
+        """
+        self.cif_dictionary = cif_dictionary
+
+        self.a = convert_cif_number_to_float(cif_dictionary['_cell_length_a'])
+        self.b = convert_cif_number_to_float(cif_dictionary['_cell_length_b'])
+        self.c = convert_cif_number_to_float(cif_dictionary['_cell_length_c'])
+
+        self.alpha = convert_cif_number_to_float(cif_dictionary['_cell_angle_alpha'])
+        self.beta = convert_cif_number_to_float(cif_dictionary['_cell_angle_beta'])
+        self.gamma = convert_cif_number_to_float(cif_dictionary['_cell_angle_gamma'])
+
+        self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
+
+        self.space_group = cif_dictionary['_symmetry_space_group_name_H-M']
+        self.space_group_number = int(cif_dictionary['_symmetry_Int_Tables_number'])
+        self.symmetry = self.get_symmetry_from_space_group_number(self.space_group_number)
+
+        self.comments = ''
+        self.read_file_information()
+
+        if '_symmetry_equiv_pos_as_xyz' in cif_dictionary.keys():
+            self.symmetry_operations = cif_dictionary['_symmetry_equiv_pos_as_xyz']
+        elif '_space_group_symop_operation_xyz' in cif_dictionary.keys():
+            self.symmetry_operations = cif_dictionary['_symmetry_equiv_pos_as_xyz']
+
+        for i in range(len(self.symmetry_operations)):
+            self.symmetry_operations[i] = self.symmetry_operations[i].replace("/", "./")
+
+        self._atom_labels = cif_dictionary['_atom_site_label']
+        self._atom_x = [float(s) for s in cif_dictionary['_atom_site_fract_x']]
+        self._atom_y = [float(s) for s in cif_dictionary['_atom_site_fract_y']]
+        self._atom_z = [float(s) for s in cif_dictionary['_atom_site_fract_z']]
+        if '_atom_site_occupancy' in cif_dictionary.keys():
+            self._atom_occupancy = [float(s) for s in cif_dictionary['_atom_site_occupancy']]
         else:
-            h, k, l = miller_indices
-        intensity = reflection[1]
-        d_spacing = reflection[3]
-        if intensity >= intensity_cutoff:
-            jcpds_obj.add_reflection(h, k, l, intensity, d_spacing)
-    return jcpds_obj
+            self._atom_occupancy = [1] * len(self._atom_labels)
 
+        # Create a list of 4-tuples, where each tuple is an atom:
+        # [ ('Si', 0.4697, 0.0, 0.0),  ('O', 0.4135, 0.2669, 0.1191),  ... ]
+        self.atoms = [(self._atom_labels[i], self._atom_x[i], self._atom_y[i], self._atom_z[i],
+                       self._atom_occupancy[i]) for i in range(len(self._atom_labels))]
+        self.clean_atoms()
+        self.generate_symmetry_equivalents()
 
-def get_symmetry_from_space_group_number(number):
-    if number_between(number, 1, 2):
-        return "TRICLINIC"
-    if number_between(number, 3, 15):
-        return "MONOCLINIC"
-    if number_between(number, 16, 74):
-        return "ORTHORHOMBIC"
-    if number_between(number, 75, 142):
-        return "TETRAGONAL"
-    if number_between(number, 143, 167):
-        return "TRIGONAL"
-    if number_between(number, 168, 194):
-        return "HEXAGONAL"
-    if number in (196, 201, 202, 203, 209, 210, 216, 219, 225, 226, 227, 228):
-        return "RHOMBOHEDRAL"
-    if number_between(number, 195, 230):
-        return "CUBIC"
-    return None
+    def clean_atoms(self):
+        """
+        Cleaning all atom labels and check atom positions
+        """
+        for i in range(len(self.atoms)):
+            (name, xn, yn, zn, occu) = self.atoms[i]
+            xn = (xn + 10.0) % 1.0
+            yn = (yn + 10.0) % 1.0
+            zn = (zn + 10.0) % 1.0
+            name = self.convert_element(name)
+            self.atoms[i] = (name, xn, yn, zn, occu)
+
+    def generate_symmetry_equivalents(self):
+        # The CIF file consists of a few atom positions plus several "symmetry
+        # operations" that indicate the other atom positions within the unit cell.  So
+        # using these operations, create copies of the atoms until no new copies can be
+        # made.
+
+        # Two atoms are on top of each other if they are less than "eps" away.
+        eps = 0.0001  # in Angstrom
+
+        # For each atom, apply each symmetry operation to create a new atom.
+        i = 0
+        while (i < len(self.atoms)):
+
+            label, x, y, z, occu = self.atoms[i]
+
+            for op in self.symmetry_operations:
+
+                # Python is awesome: calling e.g. eval('x,y,1./2+z') will convert the
+                # string into a 3-tuple using the current values for x,y,z!
+                xn, yn, zn = eval(op)
+
+                # Make sure that the new atom lies within the unit cell.
+                xn = (xn + 10.0) % 1.0
+                yn = (yn + 10.0) % 1.0
+                zn = (zn + 10.0) % 1.0
+
+                # Check if the new position is actually new, or the same as a previous
+                # atom.
+                new_atom = True
+                for at in self.atoms:
+                    if (abs(at[1] - xn) < eps and abs(at[2] - yn) < eps and abs(at[3] - zn) < eps) \
+                            and at[0] == label:
+                        new_atom = False
+
+                # If the atom is new, add it to the list!
+                if (new_atom):
+                    self.atoms.append((label, xn, yn, zn, occu))  # add a 4-tuple
+
+            # Update the loop iterator.
+            i += 1
+
+        # Sort the atoms according to type alphabetically.
+        self.atoms = sorted(self.atoms, key=lambda at: at[0])
+        self.atoms.reverse()
+
+    def convert_element(self, label):
+        """
+        Convert atom labels such as 'Oa1' into 'O'.
+        """
+
+        elem2 = ['He', 'Li', 'Be', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'Cl', 'Ar', 'Ca', 'Sc', 'Ti',
+                 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
+                 'Rb', 'Sr', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
+                 'Sb', 'Te', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd',
+                 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf', 'Ta', 'Re', 'Os', 'Ir', 'Pt',
+                 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa',
+                 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr']
+
+        if (label[0:2] in elem2):
+            return label[0:2]
+
+        elem1 = ['H', 'B', 'C', 'N', 'O', 'F', 'P', 'S', 'K', 'V', 'Y', 'I', 'W', 'U']
+
+        if (label[0] in elem1):
+            return label[0]
+
+        print('WARNING: could not convert "%s" into element name!' % label)
+        return label
+
+    def get_symmetry_from_space_group_number(self, number):
+        if number_between(number, 1, 2):
+            return "TRICLINIC"
+        if number_between(number, 3, 15):
+            return "MONOCLINIC"
+        if number_between(number, 16, 74):
+            return "ORTHORHOMBIC"
+        if number_between(number, 75, 142):
+            return "TETRAGONAL"
+        if number_between(number, 143, 167):
+            return "TRIGONAL"
+        if number_between(number, 168, 194):
+            return "HEXAGONAL"
+        if number_between(number, 195, 230):
+            if self.alpha == 90 and self.beta == 90 and self.gamma == 90:
+                return "CUBIC"
+            else:
+                return "RHOMBOHEDRAL"
+        return None
+
+    def read_file_information(self):
+        """
+        Reads in all the header information and tries to build a good description of the phase.
+        """
+        if self.cif_dictionary.get('_chemical_formula_structural'):
+            self.comments += self.cif_dictionary['_chemical_formula_structural'].replace(" ", "")
+        elif self.cif_dictionary.get('_chemical_formula_analytical'):
+            self.comments += self.cif_dictionary['_chemical_formula_analytical'].replace(" ", "")
+
+        if self.cif_dictionary.get('_chemical_name_structure_type'):
+            self.comments += ' - '
+            self.comments += self.cif_dictionary['_chemical_name_structure_type']
+            self.comments += ' structure type'
+        if self.cif_dictionary.get('_database_code_icsd'):
+            self.comments = self.comments.strip()
+            if self.comments is not '':
+                self.comments += ', ICSD '
+            else:
+                self.comments *= 'ICSD '
+            self.comments += self.cif_dictionary['_database_code_icsd']
 
 
 def number_between(num, num_low, num_high):
@@ -80,3 +500,6 @@ def number_between(num, num_low, num_high):
     if num >= num_low and num <= num_high:
         return True
     return False
+
+def convert_cif_number_to_float(cif_number):
+    return float(cif_number.split('(')[0])

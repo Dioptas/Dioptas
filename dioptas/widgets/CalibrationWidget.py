@@ -25,7 +25,7 @@ from widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
 from widgets.plot_widgets import SpectrumWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
-    DoubleSpinBoxAlignRight
+    DoubleSpinBoxAlignRight, FlatButton
 
 
 class CalibrationWidget(QtGui.QWidget):
@@ -38,8 +38,8 @@ class CalibrationWidget(QtGui.QWidget):
     def __init__(self, *args, **kwargs):
         super(CalibrationWidget, self).__init__(*args, **kwargs)
 
-        self.calibration_display_widget = CalibrationDisplayWidget()
-        self.calibration_control_widget = CalibrationControlWidget()
+        self.calibration_display_widget = CalibrationDisplayWidget(self)
+        self.calibration_control_widget = CalibrationControlWidget(self)
 
         self._layout = QtGui.QHBoxLayout()
         self._layout.setContentsMargins(10, 6, 6, 6)
@@ -226,7 +226,7 @@ class CalibrationDisplayWidget(QtGui.QWidget):
     def __init__(self, *args, **kwargs):
         super(CalibrationDisplayWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtGui.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.img_layout_widget = GraphicsLayoutWidget()
@@ -244,8 +244,8 @@ class CalibrationDisplayWidget(QtGui.QWidget):
         self._layout.addWidget(self.tab_widget)
 
         self._status_layout = QtGui.QHBoxLayout()
-        self.calibrate_btn = QtGui.QPushButton("Calibrate")
-        self.refine_btn = QtGui.QPushButton("Refine")
+        self.calibrate_btn = FlatButton("Calibrate")
+        self.refine_btn = FlatButton("Refine")
         self.position_lbl = QtGui.QLabel("position_lbl")
 
         self._status_layout.addWidget(self.calibrate_btn)
@@ -268,12 +268,12 @@ class CalibrationControlWidget(QtGui.QWidget):
     def __init__(self, *args, **kwargs):
         super(CalibrationControlWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtGui.QVBoxLayout(self)
 
         self._file_layout = QtGui.QHBoxLayout()
-        self.load_img_btn = QtGui.QPushButton("Load File")
-        self.load_previous_img_btn = QtGui.QPushButton("<")
-        self.load_next_img_btn = QtGui.QPushButton(">")
+        self.load_img_btn = FlatButton("Load File", self)
+        self.load_previous_img_btn = FlatButton("<", self)
+        self.load_next_img_btn = FlatButton(">", self)
 
         self._file_layout.addWidget(self.load_img_btn)
         self._file_layout.addWidget(self.load_previous_img_btn)
@@ -281,7 +281,7 @@ class CalibrationControlWidget(QtGui.QWidget):
 
         self._layout.addLayout(self._file_layout)
 
-        self.filename_txt = QtGui.QLineEdit()
+        self.filename_txt = QtGui.QLineEdit('', self)
         self._layout.addWidget(self.filename_txt)
 
         self.toolbox = QtGui.QToolBox()
@@ -295,30 +295,28 @@ class CalibrationControlWidget(QtGui.QWidget):
         self._layout.addWidget(self.toolbox)
 
         self._bottom_layout = QtGui.QHBoxLayout()
-        self.load_calibration_btn = QtGui.QPushButton('Load Calibration')
-        self.save_calibration_btn = QtGui.QPushButton('Save Calibration')
+        self.load_calibration_btn = FlatButton('Load Calibration')
+        self.save_calibration_btn = FlatButton('Save Calibration')
         self._bottom_layout.addWidget(self.load_calibration_btn)
         self._bottom_layout.addWidget(self.save_calibration_btn)
         self._layout.addLayout(self._bottom_layout)
-
-        self.setLayout(self._layout)
 
         self.style_widgets()
 
     def style_widgets(self):
         self.load_previous_img_btn.setMaximumWidth(60)
         self.load_next_img_btn.setMaximumWidth(60)
-        self.setMaximumWidth(335)
-        self.setMinimumWidth(335)
+        self.setMaximumWidth(340)
+        self.setMinimumWidth(340)
 
 
 class CalibrationParameterWidget(QtGui.QWidget):
     def __init__(self, *args, **kwargs):
         super(CalibrationParameterWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtGui.QVBoxLayout(self)
 
-        self.start_values_gb = StartValuesGroupBox()
+        self.start_values_gb = StartValuesGroupBox(self)
         self.peak_selection_gb = PeakSelectionGroupBox()
         self.refinement_options_gb = RefinementOptionsGroupBox()
 
@@ -335,7 +333,7 @@ class StartValuesGroupBox(QtGui.QGroupBox):
     def __init__(self, *args, **kwargs):
         super(StartValuesGroupBox, self).__init__('Start values', *args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtGui.QVBoxLayout(self)
 
         self._grid_layout1 = QtGui.QGridLayout()
 
@@ -373,18 +371,19 @@ class StartValuesGroupBox(QtGui.QGroupBox):
         self._grid_layout1.addWidget(self.calibrant_cb, 5, 1, 1, 2)
 
         self._grid_layout2 = QtGui.QGridLayout()
+        self._grid_layout2.setSpacing(6)
 
-        self.rotate_p90_btn = QtGui.QPushButton('Rotate +90')
-        self.rotate_m90_btn = QtGui.QPushButton('Rotate -90')
+        self.rotate_p90_btn = FlatButton('Rotate +90')
+        self.rotate_m90_btn = FlatButton('Rotate -90', self)
         self._grid_layout2.addWidget(self.rotate_p90_btn, 1, 0)
         self._grid_layout2.addWidget(self.rotate_m90_btn, 1, 1)
 
-        self.flip_horizontal_btn = QtGui.QPushButton('Flip horizontal')
-        self.flip_vertical_btn = QtGui.QPushButton('Flip vertical')
+        self.flip_horizontal_btn = FlatButton('Flip horizontal', self)
+        self.flip_vertical_btn = FlatButton('Flip vertical', self)
         self._grid_layout2.addWidget(self.flip_horizontal_btn, 2, 0)
         self._grid_layout2.addWidget(self.flip_vertical_btn, 2, 1)
 
-        self.reset_transformations_btn = QtGui.QPushButton('Reset transformations')
+        self.reset_transformations_btn = FlatButton('Reset transformations', self)
         self._grid_layout2.addWidget(self.reset_transformations_btn, 3, 0, 1, 2)
 
         self._layout.addLayout(self._grid_layout1)
@@ -426,7 +425,7 @@ class PeakSelectionGroupBox(QtGui.QGroupBox):
         self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
                                                QtGui.QSizePolicy.Minimum), 4, 2, 1, 2)
 
-        self.clear_peaks_btn = QtGui.QPushButton("Clear All Peaks")
+        self.clear_peaks_btn = FlatButton("Clear All Peaks")
         self._layout.addWidget(self.clear_peaks_btn, 5, 0, 1, 4)
 
         self.setLayout(self._layout)
@@ -460,6 +459,7 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self._layout.addWidget(LabelAlignRight('Intensity Mean Factor:'), 4, 0)
         self.intensity_mean_factor_sb = DoubleSpinBoxAlignRight()
         self.intensity_mean_factor_sb.setValue(3.0)
+        self.intensity_mean_factor_sb.setSingleStep(0.1)
         self._layout.addWidget(self.intensity_mean_factor_sb, 4, 1)
 
         self._layout.addWidget(LabelAlignRight('Intensity Limit:'), 5, 0)
@@ -529,7 +529,7 @@ class PyfaiParametersWidget(QtGui.QWidget):
         self._layout.addWidget(self.pixel_height_txt, 9, 1)
         self._layout.addWidget(QtGui.QLabel('um'))
 
-        self.update_btn = QtGui.QPushButton('update')
+        self.update_btn = FlatButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
         self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding),
@@ -593,7 +593,7 @@ class Fit2dParametersWidget(QtGui.QWidget):
         self._layout.addWidget(self.pixel_height_txt, 9, 1)
         self._layout.addWidget(QtGui.QLabel('um'))
 
-        self.update_btn = QtGui.QPushButton('update')
+        self.update_btn = FlatButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
         self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding),

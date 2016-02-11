@@ -19,11 +19,7 @@
 import numpy as np
 
 from model.util import jcpds
-
-try:
-    from model.util.cif import read_cif
-except ImportError:
-    read_cif = None
+from model.util.cif import CifConverter
 
 
 class PhaseLoadError(Exception):
@@ -33,12 +29,6 @@ class PhaseLoadError(Exception):
 
     def __repr__(self):
         return "Could not load {0} as jcpds file".format(self.filename)
-
-
-class PymatgenNotInstalledError(Exception):
-    def __init__(self, filename):
-        super(PymatgenNotInstalledError, self).__init__()
-        self.filename = filename
 
 
 class PhaseModel(object):
@@ -58,15 +48,13 @@ class PhaseModel(object):
 
     def add_cif(self, filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
         try:
-            jcpds_object = read_cif(filename, intensity_cutoff, minimum_d_spacing)
+            cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
+            jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
             self.phases.append(jcpds_object)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             print(e)
             raise PhaseLoadError(filename)
-        except TypeError as e:
-            print(e)
-            raise PymatgenNotInstalledError(filename)
 
     def del_phase(self, ind):
         del self.phases[ind]
