@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,24 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
+
 import os
 import time
 
-from PyQt4 import QtGui, QtCore
 import numpy as np
 from PIL import Image
+from PyQt4 import QtGui, QtCore
 
 from model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
-
-
-
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationWidget import IntegrationWidget
+from widgets.integration import IntegrationWidget
 from model.ImgModel import ImgModel
 from model.PatternModel import PatternModel
 from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
+from model.util.HelperModule import get_partial_index
 
 
 class ImageController(object):
@@ -70,6 +68,9 @@ class ImageController(object):
         self.use_mask = False
         self.roi_active = False
 
+        self.clicked_tth = 0
+        self.clicked_azi = 0
+
         self.autoprocess_timer = QtCore.QTimer(self.widget)
 
         self.initialize()
@@ -80,7 +81,7 @@ class ImageController(object):
     def initialize(self):
         self.update_img(True)
         self.plot_mask()
-        self.widget.img_view.auto_range()
+        self.widget.img_widget.auto_range()
 
     def plot_img(self, auto_scale=None):
         """
@@ -92,11 +93,11 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_view.plot_image(self.img_model.get_img(),
-                                        False)
+        self.widget.img_widget.plot_image(self.img_model.img_data,
+                                          False)
 
         if auto_scale:
-            self.widget.img_view.auto_range()
+            self.widget.img_widget.auto_range()
 
     def plot_cake(self, auto_scale=None):
         """
@@ -108,19 +109,18 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_view.plot_image(self.calibration_model.cake_img)
+        self.widget.img_widget.plot_image(self.calibration_model.cake_img)
         if auto_scale:
-            self.widget.img_view.auto_range()
+            self.widget.img_widget.auto_range()
 
     def plot_mask(self):
         """
         Plots the mask data.
         """
-        if self.use_mask and \
-                        self.img_mode == 'Image':
-            self.widget.img_view.plot_mask(self.mask_model.get_img())
+        if self.use_mask and self.img_mode == 'Image':
+            self.widget.img_widget.plot_mask(self.mask_model.get_img())
         else:
-            self.widget.img_view.plot_mask(
+            self.widget.img_widget.plot_mask(
                 np.zeros(self.mask_model.get_img().shape))
 
     def change_mask_colormap(self):
@@ -129,9 +129,9 @@ class ImageController(object):
         be either transparent or solid.
         """
         if self.widget.mask_transparent_cb.isChecked():
-            self.widget.img_view.set_color([255, 0, 0, 100])
+            self.widget.img_widget.set_color([255, 0, 0, 100])
         else:
-            self.widget.img_view.set_color([255, 0, 0, 255])
+            self.widget.img_widget.set_color([255, 0, 0, 255])
 
     def create_signals(self):
         """
@@ -190,8 +190,8 @@ class ImageController(object):
         """
         Creates the signal connections of mouse interactions
         """
-        self.widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
-        self.widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
+        self.widget.img_widget.mouse_left_clicked.connect(self.img_mouse_click)
+        self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
 
     def load_file(self, filenames=None):
         if filenames is None:
@@ -285,7 +285,7 @@ class ImageController(object):
                 filename = os.path.join(directory, self.spectrum_model.pattern.name + file_ending)
                 if file_ending == '.xy':
                     self.spectrum_model.save_pattern(filename, header=self._create_spectrum_header(),
-                                                      subtract_background=True)
+                                                     subtract_background=True)
                 else:
                     self.spectrum_model.save_pattern(filename, subtract_background=True)
 
@@ -323,7 +323,7 @@ class ImageController(object):
             mask = None
 
         if self.widget.img_roi_btn.isChecked():
-            roi_mask = self.widget.img_view.roi.getRoiMask(self.img_model.img_data.shape)
+            roi_mask = self.widget.img_widget.roi.getRoiMask(self.img_model.img_data.shape)
         else:
             roi_mask = None
 
@@ -417,7 +417,7 @@ class ImageController(object):
 
             if self.roi_active:
                 roi_mask = np.ones(self.img_model._img_data.shape)
-                x1, x2, y1, y2 = self.widget.img_view.roi.getIndexLimits(self.img_model._img_data.shape)
+                x1, x2, y1, y2 = self.widget.img_widget.roi.getIndexLimits(self.img_model._img_data.shape)
                 roi_mask[x1:x2, y1:y2] = 0
             else:
                 roi_mask = np.zeros(self.img_model._img_data.shape)
@@ -429,23 +429,32 @@ class ImageController(object):
 
             self.calibration_model.integrate_2d(mask)
             self.plot_cake()
-            self.widget.img_view.plot_mask(
+            self.widget.img_widget.plot_mask(
                 np.zeros(self.mask_model.get_img().shape))
-            self.widget.img_view.activate_vertical_line()
-            self.widget.img_view.img_view_box.setAspectLocked(False)
+            self.widget.img_widget.activate_vertical_line()
+            self.widget.img_widget.img_view_box.setAspectLocked(False)
         elif self.img_mode == 'Image':
             self.plot_mask()
             self.plot_img(reset_img_levels)
-            self.widget.img_view.deactivate_vertical_line()
-            self.widget.img_view.img_view_box.setAspectLocked(True)
+            self.widget.img_widget.deactivate_vertical_line()
+            self.widget.img_widget.img_view_box.setAspectLocked(True)
+
+        # update the window due to some errors on mac when using macports
+        self._get_master_parent().update()
+
+    def _get_master_parent(self):
+        master_widget_parent = self.widget
+        while master_widget_parent.parent():
+            master_widget_parent = master_widget_parent.parent()
+        return master_widget_parent
 
     def change_roi_mode(self):
         self.roi_active = not self.roi_active
         if self.img_mode == 'Image':
             if self.roi_active:
-                self.widget.img_view.activate_roi()
+                self.widget.img_widget.activate_roi()
             else:
-                self.widget.img_view.deactivate_roi()
+                self.widget.img_widget.deactivate_roi()
         self.img_model.img_changed.emit()
 
     def change_view_mode(self):
@@ -455,20 +464,22 @@ class ImageController(object):
         else:
             self.update_img()
             if self.img_mode == 'Cake':
-                self.widget.img_view.deactivate_circle_scatter()
-                self.widget.img_view.deactivate_roi()
+                self.widget.img_widget.deactivate_circle_scatter()
+                self.widget.img_widget.deactivate_roi()
                 self._update_cake_line_pos()
+                self._update_cake_mouse_click_pos()
                 self.widget.img_mode_btn.setText('Image')
             elif self.img_mode == 'Image':
-                self.widget.img_view.activate_circle_scatter()
+                self.widget.img_widget.activate_circle_scatter()
                 if self.roi_active:
-                    self.widget.img_view.activate_roi()
-                self._update_image_scatter_pos()
+                    self.widget.img_widget.activate_roi()
+                self._update_image_line_pos()
+                self._update_image_mouse_click_pos()
                 self.widget.img_mode_btn.setText('Cake')
 
     def img_autoscale_btn_clicked(self):
         if self.widget.img_autoscale_btn.isChecked():
-            self.widget.img_view.auto_range()
+            self.widget.img_widget.auto_range()
 
     def img_dock_btn_clicked(self):
         self.img_docked = not self.img_docked
@@ -479,23 +490,32 @@ class ImageController(object):
         if cur_tth < np.min(self.calibration_model.cake_tth):
             new_pos = np.min(self.calibration_model.cake_tth)
         else:
-            upper_ind = np.where(self.calibration_model.cake_tth > cur_tth)
-            lower_ind = np.where(self.calibration_model.cake_tth < cur_tth)
+            new_pos = get_partial_index(self.calibration_model.cake_tth, cur_tth) + 0.5
+        self.widget.img_widget.vertical_line.setValue(new_pos)
 
-            spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - \
-                      self.calibration_model.cake_tth[lower_ind[-1][-1]]
-            new_pos = lower_ind[-1][-1] + \
-                      (cur_tth -
-                       self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing
-        self.widget.img_view.vertical_line.setValue(new_pos)
+    def _update_cake_mouse_click_pos(self):
+        tth = self.clicked_tth / np.pi * 180
+        azi = self.clicked_azi
 
-    def _update_image_scatter_pos(self):
+        x_pos = get_partial_index(self.calibration_model.cake_tth, tth) + 0.5
+        y_pos = get_partial_index(self.calibration_model.cake_azi, azi) + 0.5
+
+        self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
+
+    def _update_image_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()
-        self.widget.img_view.set_circle_scatter_tth(
+        self.widget.img_widget.set_circle_line(
             self.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
 
+    def _update_image_mouse_click_pos(self):
+        tth = self.clicked_tth
+        azi = self.clicked_azi / 180.0 * np.pi
+
+        x_ind, y_ind = self.calibration_model.get_pixel_ind(tth, azi)
+        self.widget.img_widget.set_mouse_click_position(y_ind + 0.5, x_ind + 0.5)
+
     def get_current_spectrum_tth(self):
-        cur_pos = self.widget.spectrum_view.pos_line.getPos()[0]
+        cur_pos = self.widget.pattern_widget.pos_line.getPos()[0]
         if self.widget.spec_q_btn.isChecked():
             cur_tth = self.convert_x_value(cur_pos, 'q_A^-1', '2th_deg')
         elif self.widget.spec_tth_btn.isChecked():
@@ -507,7 +527,7 @@ class ImageController(object):
         return cur_tth
 
     def show_img_mouse_position(self, x, y):
-        img_shape = self.img_model.get_img().shape
+        img_shape = self.img_model.img_data.shape
         if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
@@ -517,7 +537,7 @@ class ImageController(object):
             self.widget.img_widget_mouse_x_lbl.setText(x_pos_string)
             self.widget.img_widget_mouse_y_lbl.setText(y_pos_string)
 
-            int_string = 'I:   %5d' % self.widget.img_view.img_data[
+            int_string = 'I:   %5d' % self.widget.img_widget.img_data[
                 np.floor(y), np.floor(x)]
 
             self.widget.mouse_int_lbl.setText(int_string)
@@ -562,10 +582,10 @@ class ImageController(object):
     def img_mouse_click(self, x, y):
         # update click position
         try:
-            x_pos_string = 'X:  %4d' % y
-            y_pos_string = 'Y:  %4d' % x
-            int_string = 'I:   %5d' % self.widget.img_view.img_data[
-                np.floor(x), np.floor(y)]
+            x_pos_string = 'X:  %4d' % x
+            y_pos_string = 'Y:  %4d' % y
+            int_string = 'I:   %5d' % self.widget.img_widget.img_data[
+                np.floor(y), np.floor(x)]
 
             self.widget.click_x_lbl.setText(x_pos_string)
             self.widget.click_y_lbl.setText(y_pos_string)
@@ -578,23 +598,30 @@ class ImageController(object):
             self.widget.click_int_lbl.setText('I: ')
 
         if self.calibration_model.is_calibrated:
+            x, y = y, x  # the indices are reversed for the img_array
             if self.img_mode == 'Cake':  # cake mode
                 cake_shape = self.calibration_model.cake_img.shape
                 if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):
                     return
                 y = np.array([y])
                 tth = self.calibration_model.get_two_theta_cake(y) / 180 * np.pi
+                azi = self.calibration_model.get_azi_cake(np.array([x]))
             elif self.img_mode == 'Image':  # image mode
-                img_shape = self.img_model.get_img().shape
+                img_shape = self.img_model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
                     return
                 tth = self.calibration_model.get_two_theta_img(x, y)
-                self.widget.img_view.set_circle_scatter_tth(
+                azi = self.calibration_model.get_azi_img(np.array([x]), np.array([y])) / np.pi * 180
+                self.widget.img_widget.set_circle_line(
                     self.calibration_model.get_two_theta_array(), tth)
             else:  # in the case of whatever
                 tth = 0
+                azi = 0
 
-            # calculate right unit
+            self.clicked_tth = tth
+            self.clicked_azi = azi
+
+            # calculate right unit for the position line the pattern widget
             if self.widget.spec_q_btn.isChecked():
                 pos = 4 * np.pi * \
                       np.sin(tth / 2) / \
@@ -606,7 +633,7 @@ class ImageController(object):
                       (2 * np.sin(tth / 2)) * 1e10
             else:
                 pos = 0
-            self.widget.spectrum_view.set_pos_line(pos)
+            self.widget.pattern_widget.set_pos_line(pos)
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
         self.widget.click_d_lbl.setText(self.widget.mouse_d_lbl.text())
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
@@ -677,26 +704,28 @@ class ImageController(object):
 
     def save_img(self, filename=None):
         if filename is None:
+            img_filename = os.path.splitext(os.path.basename(self.img_model.filename))[0]
             filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Image.",
-                                                             self.working_dir['image'],
+                                                             os.path.join(self.working_dir['image'],
+                                                                          img_filename + '.png'),
                                                              ('Image (*.png);;Data (*.tiff)')))
         if filename is not '':
             if filename.endswith('.png'):
                 if self.img_mode == 'Cake':
-                    self.widget.img_view.deactivate_vertical_line()
+                    self.widget.img_widget.deactivate_vertical_line()
                 elif self.img_mode == 'Image':
-                    self.widget.img_view.deactivate_circle_scatter()
-                    self.widget.img_view.deactivate_roi()
+                    self.widget.img_widget.deactivate_circle_scatter()
+                    self.widget.img_widget.deactivate_roi()
 
                 QtGui.QApplication.processEvents()
-                self.widget.img_view.save_img(filename)
+                self.widget.img_widget.save_img(filename)
 
                 if self.img_mode == 'Cake':
-                    self.widget.img_view.activate_vertical_line()
+                    self.widget.img_widget.activate_vertical_line()
                 elif self.img_mode == 'Image':
-                    self.widget.img_view.activate_circle_scatter()
+                    self.widget.img_widget.activate_circle_scatter()
                     if self.roi_active:
-                        self.widget.img_view.activate_roi()
+                        self.widget.img_widget.activate_roi()
             elif filename.endswith('.tiff'):
                 if self.img_mode == 'Image':
                     im_array = np.int32(self.img_model.img_data)
@@ -758,8 +787,8 @@ class ImageController(object):
 
     def cbn_plot_correction_btn_clicked(self):
         if str(self.widget.cbn_plot_correction_btn.text()) == 'Plot':
-            self.widget.img_view.plot_image(self.img_model._img_corrections.get_correction("cbn").get_data(),
-                                            True)
+            self.widget.img_widget.plot_image(self.img_model._img_corrections.get_correction("cbn").get_data(),
+                                              True)
             self.widget.cbn_plot_correction_btn.setText('Back')
             self.widget.oiadac_plot_btn.setText('Plot')
         else:
@@ -813,8 +842,8 @@ class ImageController(object):
 
     def oiadac_plot_btn_clicked(self):
         if str(self.widget.oiadac_plot_btn.text()) == 'Plot':
-            self.widget.img_view.plot_image(self.img_model._img_corrections.get_correction("oiadac").get_data(),
-                                            True)
+            self.widget.img_widget.plot_image(self.img_model._img_corrections.get_correction("oiadac").get_data(),
+                                              True)
             self.widget.oiadac_plot_btn.setText('Back')
             self.widget.cbn_plot_correction_btn.setText('Plot')
         else:

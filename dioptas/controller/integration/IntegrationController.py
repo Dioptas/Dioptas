@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,33 +16,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-__author__ = 'Clemens Prescher'
-import sys
-
-from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 
+from .BackgroundController import BackgroundController
+from .ImageController import ImageController
+from .OverlayController import OverlayController
+from .PatternController import PatternController
+from .PhaseController import PhaseController
+
+# imports for type hinting in PyCharm -- DO NOT DELETE
+from widgets.integration import IntegrationWidget
+from model.ImgModel import ImgModel
+from model.MaskModel import MaskModel
+from model.CalibrationModel import CalibrationModel
+from model.PatternModel import PatternModel
+from model.PhaseModel import PhaseModel
 
 pg.setConfigOption('useOpenGL', False)
 pg.setConfigOption('leftButtonPan', False)
 pg.setConfigOption('background', 'k')
 pg.setConfigOption('foreground', 'w')
 pg.setConfigOption('antialias', True)
-
-from .OverlayController import OverlayController
-from .ImageController import ImageController
-from .PatternController import PatternController
-from .PhaseController import PhaseController
-from .BackgroundController import BackgroundController
-
-# imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationWidget import IntegrationWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.CalibrationModel import CalibrationModel
-from model.PatternModel import PatternModel
-from model.PhaseModel import PhaseModel
 
 
 class IntegrationController(object):
@@ -83,16 +77,16 @@ class IntegrationController(object):
         Creates the sub controller with the appropriate data.
         """
         self.spectrum_controller = PatternController(self.working_dir, self.widget, self.img_model,
-                                                                 self.mask_model,
-                                                                 self.calibration_model, self.spectrum_model)
+                                                     self.mask_model,
+                                                     self.calibration_model, self.spectrum_model)
         self.image_controller = ImageController(self.working_dir, self.widget, self.img_model,
-                                                           self.mask_model, self.spectrum_model,
-                                                           self.calibration_model)
+                                                self.mask_model, self.spectrum_model,
+                                                self.calibration_model)
 
         self.overlay_controller = OverlayController(self.working_dir, self.widget, self.spectrum_model)
 
         self.phase_controller = PhaseController(self.working_dir, self.widget, self.calibration_model,
-                                                           self.spectrum_model, self.phase_model)
+                                                self.spectrum_model, self.phase_model)
 
         self.background_controller = BackgroundController(self.working_dir, self.widget,
-                                                                     self.img_model, self.spectrum_model)
+                                                          self.img_model, self.spectrum_model)

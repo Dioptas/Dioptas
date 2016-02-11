@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,12 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-__author__ = 'Clemens Prescher'
-
 import logging
-
-logger = logging.getLogger(__name__)
 
 import numpy as np
 from PIL import Image
@@ -33,6 +28,8 @@ from model.util.HelperModule import  rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
 
 from model.util.ImgCorrection import ImgCorrectionManager
+
+logger = logging.getLogger(__name__)
 
 
 class ImgModel(QtCore.QObject):
@@ -201,11 +198,8 @@ class ImgModel(QtCore.QObject):
     def get_img_data(self):
         return self.img_data
 
-    def get_img(self):
-        if self._background_data is not None:
-            return self._img_data_background_subtracted
-        else:
-            return self._img_data
+    def get_raw_img_data(self):
+        return self._img_data
 
     def _calculate_img_data(self):
         """
@@ -285,6 +279,7 @@ class ImgModel(QtCore.QObject):
 
             elif self._background_data is not None and self._img_corrections.has_items():
                 return self._img_data_supersampled_background_subtracted_absorption_corrected
+        return self._img_data
 
     def rotate_img_p90(self):
         """

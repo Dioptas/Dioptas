@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,16 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
-
 from copy import deepcopy
+
 import numpy as np
-
 from PyQt4 import QtGui, QtCore
-from model.util import jcpds
 
-from widgets.JcpdsEditorWidget import JcpdsEditorWidget
-
+from widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from model.util.jcpds import jcpds
 from model.CalibrationModel import CalibrationModel
@@ -215,7 +211,6 @@ class JcpdsEditorController(QtCore.QObject):
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
-
     def lattice_length_step_changed(self):
         value = float(str(self.widget.lattice_length_step_txt.text()))
         self.widget.lattice_a_sb.setSingleStep(value)
@@ -325,8 +320,8 @@ class JcpdsEditorController(QtCore.QObject):
                         if col_ind > 0:
                             res += '\t'
                         res += str(self.widget.reflection_table.item(
-                            selection_ranges[range_ind].topRow() + row_ind,
-                            selection_ranges[range_ind].leftColumn() + col_ind).text())
+                                selection_ranges[range_ind].topRow() + row_ind,
+                                selection_ranges[range_ind].leftColumn() + col_ind).text())
             QtGui.QApplication.clipboard().setText(res)
         elif key_press_event == QtGui.QKeySequence.SelectAll:
             self.widget.reflection_table.selectAll()

@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,11 +18,7 @@
 
 from __future__ import absolute_import
 
-__author__ = 'Clemens Prescher'
-
-import os
-os.environ['QT_GRAPHICSSYSTEM']='native'
-
+from sys import platform as _platform
 import sys
 from PyQt4 import QtGui
 
@@ -32,16 +28,12 @@ print("Dioptas {}".format(get_version()))
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
-    from sys import platform as _platform
-
-    if _platform == "linux" or _platform == "linux2":
-        app.setStyle('plastique')
-    elif _platform == "win32" or _platform == 'cygwin':
+    if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
         # possible values:
-        # "windows", "motif", "cde", "plastique", "windowsxp", or "macitosh"
+        # "windows", "motif", "cde", "plastique", "windowsxp", or "macintosh"
+
     controller = MainController()
     controller.show_window()
     app.exec_()
     del app
-

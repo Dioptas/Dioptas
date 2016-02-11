@@ -243,7 +243,7 @@ QGraphicsView{
 	border-style: none;
 }
 
- QScrollBar:vertical {
+QScrollBar:vertical {
       border: 2px solid #3C3C3C;
       background: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #323232, stop:1 #505050);
       width: 12px;
@@ -267,6 +267,34 @@ QGraphicsView{
   QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
       background: none;
   }
+
+QScrollBar:horizontal {
+    border: 2px solid #3C3C3C;
+    background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #323232, stop:1 #505050);
+	height: 12 px;
+    margin: 0px 0px 0px 0px;
+}
+
+QScrollBar::handle:horizontal {
+    background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #969696, stop:1 #CACACA);
+   border-radius: 3px;
+    min-width: 20px;
+  padding: 15px;
+}
+QScrollBar::add-line:horizontal {
+    border: 0px solid grey;
+    height: 0px;
+}
+
+QScrollBar::sub-line:horizontal {
+    border: 0px solid grey;
+    height: 0px;
+}
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
+
+
 
 QSplitterHandle:hover {}
 
@@ -298,6 +326,20 @@ stop: 0.7 #3C3C3C);
 
 QSplitter::handle:hover {
 	background: #3C3C3C;
+}
+
+QHeaderView::section
+{
+	spacing: 10px;
+	color: #F1F1F1;
+     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #323232, stop:1 #505050);
+	border: None;
+	font-size: 12px;
+}
+
+QTableWidget {
+	font-size: 12px;
+	text-align: center;
 }
 
 

@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,21 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-__author__ = 'Clemens Prescher'
-
 import os
-from PyQt4 import QtGui, QtCore
-import pyFAI
-from model.util.Pattern import BkgNotInRangeError
+
 import numpy as np
+import pyFAI
+from PyQt4 import QtGui, QtCore
+
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.IntegrationWidget import IntegrationWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.CalibrationModel import CalibrationModel
-from model.PatternModel import PatternModel
 
 
 class PatternController(object):
@@ -64,7 +57,7 @@ class PatternController(object):
         self.spectrum_model = spectrum_model
 
         self.integration_unit = '2th_deg'
-        self.autocreate = False
+        self.autocreate_pattern = False
         self.unit = pyFAI.units.TTH_DEG
 
         self.create_subscriptions()
@@ -77,9 +70,9 @@ class PatternController(object):
         self.spectrum_model.pattern_changed.connect(self.autocreate_spectrum)
 
         # Gui subscriptions
-        self.widget.img_view.roi.sigRegionChangeFinished.connect(self.image_changed)
-        self.widget.spectrum_view.mouse_left_clicked.connect(self.spectrum_left_click)
-        self.widget.spectrum_view.mouse_moved.connect(self.show_spectrum_mouse_position)
+        self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
+        self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+        self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
     def create_gui_signals(self):
         """
@@ -98,14 +91,13 @@ class PatternController(object):
         self.connect_click_function(self.widget.spec_browse_by_time_rb, self.set_iteration_mode_time)
 
         self.widget.connect(self.widget.spec_directory_txt,
-                          QtCore.SIGNAL('editingFinished()'),
-                          self.spec_directory_txt_changed)
+                            QtCore.SIGNAL('editingFinished()'),
+                            self.spec_directory_txt_changed)
 
         # unit callbacks
         self.connect_click_function(self.widget.spec_tth_btn, self.set_unit_tth)
         self.connect_click_function(self.widget.spec_q_btn, self.set_unit_q)
         self.connect_click_function(self.widget.spec_d_btn, self.set_unit_d)
-
 
         # quick actions
         self.connect_click_function(self.widget.qa_save_spectrum_btn, self.save_pattern)
@@ -120,16 +112,16 @@ class PatternController(object):
 
         # spectrum_plot auto range functions
         self.connect_click_function(self.widget.spec_auto_range_btn, self.spec_auto_range_btn_click_callback)
-        self.widget.spectrum_view.auto_range_status_changed.connect(self.widget.spec_auto_range_btn.setChecked)
+        self.widget.pattern_widget.auto_range_status_changed.connect(self.widget.spec_auto_range_btn.setChecked)
 
         # spectrum_plot antialias
-        self.widget.antialias_btn.toggled.connect(self.widget.spectrum_view.set_antialias)
+        self.widget.antialias_btn.toggled.connect(self.widget.pattern_widget.set_antialias)
 
     def connect_click_function(self, emitter, function):
         self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def image_changed(self):
-        self.widget.img_view.roi.blockSignals(True)
+        self.widget.img_widget.roi.blockSignals(True)
         if self.calibration_model.is_calibrated:
             if self.widget.img_mask_btn.isChecked():
                 if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
@@ -139,7 +131,7 @@ class PatternController(object):
                 mask = None
 
             if self.widget.img_roi_btn.isChecked():
-                roi_mask = self.widget.img_view.roi.getRoiMask(self.img_model.img_data.shape)
+                roi_mask = self.widget.img_widget.roi.getRoiMask(self.img_model.img_data.shape)
             else:
                 roi_mask = None
 
@@ -162,7 +154,7 @@ class PatternController(object):
 
             self.spectrum_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)
 
-            if self.autocreate:
+            if self.autocreate_pattern:
                 filename = self.img_model.filename
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
@@ -181,7 +173,7 @@ class PatternController(object):
                 self.widget.spec_previous_btn.setEnabled(False)
                 self.widget.spec_filename_txt.setText(
                     'No File saved or selected')
-        self.widget.img_view.roi.blockSignals(False)
+        self.widget.img_widget.roi.blockSignals(False)
 
     def get_spectrum_file_endings(self):
         res = []
@@ -195,14 +187,14 @@ class PatternController(object):
 
     def plot_pattern(self):
         if self.widget.bkg_spectrum_inspect_btn.isChecked():
-            self.widget.spectrum_view.plot_data(
+            self.widget.pattern_widget.plot_data(
                 *self.spectrum_model.pattern.auto_background_before_subtraction_spectrum.data,
                 name=self.spectrum_model.pattern.name)
-            self.widget.spectrum_view.plot_bkg(*self.spectrum_model.pattern.auto_background_pattern.data)
+            self.widget.pattern_widget.plot_bkg(*self.spectrum_model.pattern.auto_background_pattern.data)
         else:
-            self.widget.spectrum_view.plot_data(
+            self.widget.pattern_widget.plot_data(
                 *self.spectrum_model.pattern.data, name=self.spectrum_model.pattern.name)
-            self.widget.spectrum_view.plot_bkg([],[])
+            self.widget.pattern_widget.plot_bkg([], [])
 
         # update the bkg_name
         if self.spectrum_model.bkg_ind is not -1:
@@ -229,7 +221,7 @@ class PatternController(object):
 
     def autocreate_spectrum(self):
         if self.spectrum_model.pattern.has_background():
-            if self.autocreate is True:
+            if self.autocreate_pattern is True:
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
                     directory = os.path.join(
@@ -243,20 +235,11 @@ class PatternController(object):
 
     def save_pattern(self, filename=None, subtract_background=False):
         if filename is None:
-            save_file_dialog = QtGui.QFileDialog()
-            save_file_dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
-            save_file_dialog.setWindowTitle("Save Pattern Data or Image.")
-            save_file_dialog.setNameFilters(['Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg);; Data (*.xy)'])
-            save_file_dialog.selectFile(os.path.join(self.working_dir['spectrum'],
-                                                     '.'.join(self.img_model.filename.split('.')[:-1])))
-
-            if save_file_dialog.exec_():
-                filename = str(save_file_dialog.selectedFiles()[0])
-            else:
-                filename = ''
-            # filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Spectrum Data.",
-            #                                                  self.working_dir['spectrum'],
-            #                                                  ('Data (*.xy);; Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg)')))
+            img_filename, _ = os.path.splitext(os.path.basename(self.img_model.filename))
+            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Spectrum Data.",
+                                                             os.path.join(self.working_dir['spectrum'],
+                                                                          img_filename + '.xy'),
+                                                             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)')))
             subtract_background = True  # when manually saving the spectrum the background will be automatically
 
         if filename is not '':
@@ -276,9 +259,9 @@ class PatternController(object):
             elif filename.endswith('.dat'):
                 self.spectrum_model.save_pattern(filename, subtract_background=subtract_background)
             elif filename.endswith('.png'):
-                self.widget.spectrum_view.save_png(filename)
+                self.widget.pattern_widget.save_png(filename)
             elif filename.endswith('.svg'):
-                self.widget.spectrum_view.save_svg(filename)
+                self.widget.pattern_widget.save_svg(filename)
 
     def load(self, filename=None):
         if filename is None:
@@ -306,8 +289,7 @@ class PatternController(object):
             os.path.basename(self.spectrum_model.pattern_filename))
 
     def autocreate_cb_changed(self):
-        self.autocreate = self.widget.spec_autocreate_cb.isChecked()
-
+        self.autocreate_pattern = self.widget.spec_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.spectrum_model.pattern_filename)
@@ -350,8 +332,8 @@ class PatternController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
-        self.widget.spectrum_view.spectrum_plot.setLabel('bottom', u'2θ', '°')
-        self.widget.spectrum_view.spectrum_plot.invertX(False)
+        self.widget.pattern_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
+        self.widget.pattern_widget.spectrum_plot.invertX(False)
         if self.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.image_changed()
@@ -366,8 +348,8 @@ class PatternController(object):
             return
         self.integration_unit = "q_A^-1"
 
-        self.widget.spectrum_view.spectrum_plot.invertX(False)
-        self.widget.spectrum_view.spectrum_plot.setLabel(
+        self.widget.pattern_widget.spectrum_plot.invertX(False)
+        self.widget.pattern_widget.spectrum_plot.setLabel(
             'bottom', 'Q', 'A<sup>-1</sup>')
         if self.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
@@ -382,10 +364,10 @@ class PatternController(object):
         if previous_unit == 'd_A':
             return
 
-        self.widget.spectrum_view.spectrum_plot.setLabel(
+        self.widget.pattern_widget.spectrum_plot.setLabel(
             'bottom', 'd', 'A'
         )
-        self.widget.spectrum_view.spectrum_plot.invertX(True)
+        self.widget.pattern_widget.spectrum_plot.invertX(True)
         self.integration_unit = 'd_A'
         if self.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
@@ -393,24 +375,24 @@ class PatternController(object):
             self.update_line_position(previous_unit, self.integration_unit)
 
     def update_x_range(self, previous_unit, new_unit):
-        old_x_axis_range = self.widget.spectrum_view.spectrum_plot.viewRange()[0]
+        old_x_axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()[0]
         spectrum_x = self.spectrum_model.pattern.data[0]
         if np.min(spectrum_x) < old_x_axis_range[0] or np.max(spectrum_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
-            self.widget.spectrum_view.spectrum_plot.setRange(xRange=new_x_axis_range, padding=0)
+            self.widget.pattern_widget.spectrum_plot.setRange(xRange=new_x_axis_range, padding=0)
 
     def spec_auto_range_btn_click_callback(self):
-        self.widget.spectrum_view.auto_range = self.widget.spec_auto_range_btn.isChecked()
+        self.widget.pattern_widget.auto_range = self.widget.spec_auto_range_btn.isChecked()
 
     def update_line_position(self, previous_unit, new_unit):
-        cur_line_pos = self.widget.spectrum_view.pos_line.getPos()[0]
+        cur_line_pos = self.widget.pattern_widget.pos_line.getPos()[0]
         if cur_line_pos == 0 and new_unit == 'd_A':
             cur_line_pos = 0.01
         try:
             new_line_pos = self.convert_x_value(cur_line_pos, previous_unit, new_unit)
         except RuntimeWarning:  # no calibration available
             new_line_pos = cur_line_pos
-        self.widget.spectrum_view.set_pos_line(new_line_pos)
+        self.widget.pattern_widget.set_pos_line(new_line_pos)
 
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.calibration_model.wavelength
@@ -436,7 +418,7 @@ class PatternController(object):
             res = 0
         return res
 
-    def spectrum_left_click(self, x, y):
+    def pattern_left_click(self, x, y):
         self.set_line_position(x)
 
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
@@ -445,19 +427,19 @@ class PatternController(object):
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
 
     def set_line_position(self, x):
-        self.widget.spectrum_view.set_pos_line(x)
+        self.widget.pattern_widget.set_pos_line(x)
         if self.calibration_model.is_calibrated:
-            self.update_image_view_line_position()
+            self.update_image_widget_line_position()
 
     def get_line_tth(self):
-        x = self.widget.spectrum_view.get_pos_line()
+        x = self.widget.pattern_widget.get_pos_line()
         if self.integration_unit == 'q_A^-1':
             x = self.convert_x_value(x, 'q_A^-1', '2th_deg')
         elif self.integration_unit == 'd_A':
             x = self.convert_x_value(x, 'd_A', '2th_deg')
         return x
 
-    def update_image_view_line_position(self):
+    def update_image_widget_line_position(self):
         tth = self.get_line_tth()
         if self.widget.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
             self.set_cake_line_position(tth)
@@ -467,19 +449,16 @@ class PatternController(object):
     def set_cake_line_position(self, tth):
         upper_ind = np.where(self.calibration_model.cake_tth > tth)
         lower_ind = np.where(self.calibration_model.cake_tth < tth)
-        spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - \
-                  self.calibration_model.cake_tth[lower_ind[-1][-1]]
-        new_pos = lower_ind[-1][-1] + \
-                  (tth -
-                   self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing
-        self.widget.img_view.vertical_line.setValue(new_pos)
+        spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - self.calibration_model.cake_tth[lower_ind[-1][-1]]
+        new_pos = lower_ind[-1][-1] + (tth - self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
+        self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def set_image_line_position(self, tth):
         if self.calibration_model.is_calibrated:
-            self.widget.img_view.set_circle_scatter_tth(
+            self.widget.img_widget.set_circle_line(
                 self.calibration_model.get_two_theta_array(), tth / 180 * np.pi)
 
-    def show_spectrum_mouse_position(self, x, y):
+    def show_pattern_mouse_position(self, x, _):
         tth_str, d_str, q_str, azi_str = self.get_position_strings(x)
         self.widget.mouse_tth_lbl.setText(tth_str)
         self.widget.mouse_d_lbl.setText(d_str)
@@ -519,7 +498,7 @@ class PatternController(object):
 
     def key_press_event(self, ev):
         if (ev.key() == QtCore.Qt.Key_Left) or (ev.key() == QtCore.Qt.Key_Right):
-            pos = self.widget.spectrum_view.get_pos_line()
+            pos = self.widget.pattern_widget.get_pos_line()
             step = np.min(np.diff(self.spectrum_model.pattern.data[0]))
             if ev.modifiers() & QtCore.Qt.ControlModifier:
                 step /= 20.
@@ -532,11 +511,10 @@ class PatternController(object):
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
             self.set_line_position(new_pos)
-            self.update_image_view_line_position()
+            self.update_image_widget_line_position()
 
             tth_str, d_str, q_str, azi_str = self.get_position_strings(new_pos)
             self.widget.click_tth_lbl.setText(tth_str)
             self.widget.click_d_lbl.setText(d_str)
             self.widget.click_q_lbl.setText(q_str)
             self.widget.click_azi_lbl.setText(azi_str)
-
