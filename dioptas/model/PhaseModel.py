@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,15 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
-
 import numpy as np
 
 from model.util import jcpds
-try:
-    from model.util.cif import read_cif
-except ImportError:
-    read_cif = None
+from model.util.cif import CifConverter
 
 
 class PhaseLoadError(Exception):
@@ -35,10 +30,6 @@ class PhaseLoadError(Exception):
     def __repr__(self):
         return "Could not load {0} as jcpds file".format(self.filename)
 
-class PymatgenNotInstalledError(Exception):
-    def __init__(self, filename):
-       super(PymatgenNotInstalledError, self).__init__()
-       self.filename = filename
 
 class PhaseModel(object):
     def __init__(self):
@@ -57,15 +48,13 @@ class PhaseModel(object):
 
     def add_cif(self, filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
         try:
-            jcpds_object = read_cif(filename, intensity_cutoff, minimum_d_spacing)
+            cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
+            jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
             self.phases.append(jcpds_object)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             print(e)
             raise PhaseLoadError(filename)
-        except TypeError as e:
-            print(e)
-            raise PymatgenNotInstalledError(filename)
 
     def del_phase(self, ind):
         del self.phases[ind]
@@ -138,11 +127,11 @@ class PhaseModel(object):
         if scale_factor <= 0:
             scale_factor = 0.01
 
-        phase_line_intensities = scale_factor * self.reflections[ind][:, 1]+baseline
+        phase_line_intensities = scale_factor * self.reflections[ind][:, 1] + baseline
         return phase_line_intensities, baseline
 
     def get_rescaled_reflections(self, ind, pattern, x_range,
-                            y_range, wavelength, unit='tth'):
+                                 y_range, wavelength, unit='tth'):
         positions = self.get_phase_line_positions(ind, unit, wavelength)
 
         intensities, baseline = self.get_phase_line_intensities(ind, positions, pattern, x_range, y_range)

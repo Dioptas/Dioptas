@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,12 +18,11 @@
 
 from __future__ import absolute_import
 
-
-__author__ = 'Clemens Prescher'
-
 import pyqtgraph as pg
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
+from scipy.spatial import ConvexHull
+from skimage.measure import find_contours
 from PyQt4 import QtCore, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
@@ -47,11 +46,11 @@ class ImgWidget(QtCore.QObject):
         self.mask_data = None
 
     def create_graphics(self):
-        #self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
+        # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         if self.orientation == 'horizontal':
 
             self.img_view_box = self.pg_layout.addViewBox(1, 0)
-            #create the item handling the Data img
+            # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
@@ -59,7 +58,7 @@ class ImgWidget(QtCore.QObject):
 
         elif self.orientation == 'vertical':
             self.img_view_box = self.pg_layout.addViewBox(0, 0)
-            #create the item handling the Data img
+            # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
@@ -85,15 +84,13 @@ class ImgWidget(QtCore.QObject):
 
     def set_range(self, x_range, y_range):
         img_bounds = self.img_view_box.childrenBoundingRect()
-        if x_range[0]<=img_bounds.left() and \
-            x_range[1]>=img_bounds.right() and \
-            y_range[0]<=img_bounds.bottom() and \
-            y_range[1]>=img_bounds.top():
+        if x_range[0] <= img_bounds.left() and \
+                        x_range[1] >= img_bounds.right() and \
+                        y_range[0] <= img_bounds.bottom() and \
+                        y_range[1] >= img_bounds.top():
             self.img_view_box.autoRange()
             return
         self.img_view_box.setRange(xRange=x_range, yRange=y_range)
-
-
 
     def auto_range(self):
         hist_x, hist_y = self.img_histogram_LUT.hist_x, self.img_histogram_LUT.hist_y
@@ -130,7 +127,7 @@ class ImgWidget(QtCore.QObject):
         self.mouse_moved.emit(pos.x(), pos.y())
 
     def modify_mouse_behavior(self):
-        #different mouse handlers
+        # different mouse handlers
         self.img_view_box.setMouseMode(self.img_view_box.RectMode)
 
         self.pg_layout.scene().sigMouseMoved.connect(self.mouseMoved)
@@ -154,9 +151,7 @@ class ImgWidget(QtCore.QObject):
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
-            y = pos.x()
-            x = pos.y()
-            self.mouse_left_clicked.emit(x, y)
+            self.mouse_left_clicked.emit(pos.x(), pos.y())
 
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
@@ -167,7 +162,7 @@ class ImgWidget(QtCore.QObject):
             self.mouse_left_double_clicked.emit(pos.x(), pos.y())
 
     def myMouseDragEvent(self, ev, axis=None):
-        #most of this code is copied behavior of left click mouse drag from the original code
+        # most of this code is copied behavior of left click mouse drag from the original code
         ev.accept()
         pos = ev.pos()
         lastPos = ev.lastPos()
@@ -182,7 +177,7 @@ class ImgWidget(QtCore.QObject):
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and \
                              ev.modifiers() & QtCore.Qt.ControlModifier):
-            #determine the amount of translation
+            # determine the amount of translation
             tr = dif * mask
             tr = self.img_view_box.mapToView(tr) - self.img_view_box.mapToView(pg.Point(0, 0))
             x = tr.x()
@@ -192,9 +187,9 @@ class ImgWidget(QtCore.QObject):
             self.img_view_box.sigRangeChangedManually.emit(self.img_view_box.state['mouseEnabled'])
         else:
             if ev.isFinish():  ## This is the final move in the drag; change the view scale now
-                #print "finish"
+                # print "finish"
                 self.img_view_box.rbScaleBox.hide()
-                #ax = QtCore.QRectF(Point(self.pressPos), Point(self.mousePos))
+                # ax = QtCore.QRectF(Point(self.pressPos), Point(self.mousePos))
                 ax = QtCore.QRectF(pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos))
                 ax = self.img_view_box.childGroup.mapRectFromParent(ax)
                 self.img_view_box.showAxRect(ax)
@@ -242,7 +237,7 @@ class CalibrationCakeWidget(ImgWidget):
             self._vertical_line_activated = False
 
     def set_vertical_line_pos(self, x, y):
-        self.vertical_line.setValue(y)
+        self.vertical_line.setValue(x)
 
 
 class MaskImgWidget(ImgWidget):
@@ -288,31 +283,63 @@ class MaskImgWidget(ImgWidget):
         return polygon
 
 
-from pyFAI import marchingsquares
-
-
-class IntegrationImgView(MaskImgWidget, CalibrationCakeWidget):
+class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
-        super(IntegrationImgView, self).__init__(pg_layout, orientation)
+        super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
         self.deactivate_vertical_line()
-        self.create_circle_scatter_item()
+        self.create_circle_plot_items()
+        self.create_mouse_click_item()
         self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
 
-    def create_circle_scatter_item(self):
-        self.circle_plot_item = pg.ScatterPlotItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1), size=0.4,
-                                                   brush=pg.mkBrush('g'))
-        self.img_view_box.addItem(self.circle_plot_item)
+    def create_circle_plot_items(self):
+        # creates several PlotDataItems as line items, to be filled with the current clicked position
+        # this needs to be several because the lines can be interrupted by the edges of the image, otherwise
+        # they would always create straight line around the image
+        self.circle_plot_items = []
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        for plot_item in self.circle_plot_items:
+            self.img_view_box.addItem(plot_item)
 
-    def set_circle_scatter_tth(self, tth, level):
-        data = marchingsquares.isocontour(tth, level)
-        self.circle_plot_item.setData(x=data[:, 0], y=data[:, 1])
+    def create_mouse_click_item(self):
+        self.mouse_click_item = pg.ScatterPlotItem()
+        self.mouse_click_item.setSymbol('+')
+        self.mouse_click_item.setSize(15)
+        self.mouse_click_item.addPoints([1024], [1024])
+        self.img_view_box.addItem(self.mouse_click_item)
+        self.mouse_left_clicked.connect(self.set_mouse_click_position)
+
+    def set_mouse_click_position(self, x, y):
+        self.mouse_click_item.setData([x], [y])
+
+    def set_circle_line(self, tth, cur_tth):
+        """
+        sets the circle plot items to a specfic two theta (tth) value
+        :param tth: array of twotheta for the image
+        :param cur_tth: two theta value for the line
+        """
+        tth_ind = find_contours(tth, cur_tth)
+
+        # delete old graphs
+        for plot_item in self.circle_plot_items:
+            plot_item.setData(x=[], y=[])
+
+        for plot_ind, tth in enumerate(tth_ind):
+            x_plot = tth[:, 1] + 0.5
+            y_plot = tth[:, 0] + 0.5
+            self.circle_plot_items[plot_ind].setData(x=x_plot, y=y_plot)
 
     def activate_circle_scatter(self):
-        self.img_view_box.addItem(self.circle_plot_item)
+        for plot_item in self.circle_plot_items:
+            self.img_view_box.addItem(plot_item)
 
     def deactivate_circle_scatter(self):
-        self.img_view_box.removeItem(self.circle_plot_item)
+        for plot_item in self.circle_plot_items:
+            self.img_view_box.removeItem(plot_item)
 
     def create_roi_item(self):
         self.roi = MyROI([20, 20], [500, 500], pen=pg.mkPen(color=(0, 255, 0), size=2))
@@ -342,33 +369,33 @@ class MyPolygon(QtGui.QGraphicsPolygonItem):
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
 
         self.vertices = []
-        self.vertices.append(QtCore.QPoint(y, x))
+        self.vertices.append(QtCore.QPoint(x, y))
 
     def set_size(self, x, y):
         temp_points = list(self.vertices)
         temp_points.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(temp_points))
 
-    def add_point(self, y, x):
+    def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(self.vertices))
 
 
 class MyCircle(QtGui.QGraphicsEllipseItem):
     def __init__(self, x, y, radius):
-        QtGui.QGraphicsEllipseItem.__init__(self, y - radius, x - radius, radius * 2, radius * 2)
+        QtGui.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
         self.radius = radius
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
         self.center_x = x
         self.center_y = y
 
-    def set_size(self, y, x):
-        self.radius = np.sqrt((y - self.center_y) ** 2 + (x - self.center_x) ** 2)
-        self.setRect(self.center_y - self.radius, self.center_x - self.radius, self.radius * 2, self.radius * 2)
+    def set_size(self, x, y):
+        self.radius = np.sqrt((x - self.center_x) ** 2 + (y - self.center_y) ** 2)
+        self.setRect(self.center_x - self.radius, self.center_y - self.radius, self.radius * 2, self.radius * 2)
 
-    def set_position(self, y, x):
-        self.setRect(y - self.radius, x - self.radius, self.radius * 2, self.radius * 2)
+    def set_position(self, x, y):
+        self.setRect(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
 
 class MyPoint(QtGui.QGraphicsEllipseItem):
@@ -380,35 +407,35 @@ class MyPoint(QtGui.QGraphicsEllipseItem):
         self.x = 0
         self.y = 0
 
-    def set_position(self, y, x):
+    def set_position(self, x, y):
         self.x = x
         self.y = y
-        self.setRect(y - self.radius, x - self.radius, self.radius * 2, self.radius * 2)
+        self.setRect(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
     def set_radius(self, radius):
         self.radius = radius
-        self.set_position(self.y, self.x)
+        self.set_position(self.x, self.y)
         return self.radius
 
     def inc_size(self, step):
         self.radius = self.radius + step
-        self.set_position(self.y, self.x)
+        self.set_position(self.x, self.y)
         return self.radius
 
 
 class MyRectangle(QtGui.QGraphicsRectItem):
     def __init__(self, x, y, width, height):
-        QtGui.QGraphicsRectItem.__init__(self, y, x - height, width, height)
+        QtGui.QGraphicsRectItem.__init__(self, x, y + height, width, height)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
 
         self.initial_x = x
         self.initial_y = y
 
-    def set_size(self, y, x):
-        height = x - self.initial_x
-        width = y - self.initial_y
-        self.setRect(self.initial_y, self.initial_x + height, width, -height)
+    def set_size(self, x, y):
+        width = x - self.initial_x
+        height = y - self.initial_y
+        self.setRect(self.initial_x, self.initial_y + height, width, -height)
 
 
 class MyROI(pg.ROI):
@@ -467,7 +494,6 @@ class RoiShade(object):
         self.active = False
         self.create_rect()
 
-
     def create_rect(self):
         color = QtGui.QColor(0, 0, 0, 100)
         self.left_rect = QtGui.QGraphicsRectItem()
@@ -483,7 +509,6 @@ class RoiShade(object):
         self.bottom_rect = QtGui.QGraphicsRectItem()
         self.bottom_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.bottom_rect.setBrush(QtGui.QBrush(color))
-
 
     def update_rects(self):
         roi_rect = self.roi.parentBounds()
@@ -510,8 +535,3 @@ class RoiShade(object):
             self.view_box.removeItem(self.top_rect)
             self.view_box.removeItem(self.bottom_rect)
             self.active = False
-
-
-
-
-

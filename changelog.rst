@@ -1,5 +1,5 @@
-0.2.5 (development 10/19/2015)
-------------------------------
+0.3.0 (stable 02/06/2016)
+-------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
     - Dioptas can now load tiff tags and display them in a separate window. This is very practical if the beamline
@@ -7,10 +7,26 @@
     - The overlay tab has a new waterfall feature which automatically creates a waterfall plot with a given offset of
       all loaded overlays, whereby the most recent one is closest to the current integrated pattern.
     - the selected region and image shading is now synchronized between the calibration, mask and image view
+    - negative pressures are now allowed for phases, although unphysical, it might give some hint when searching for a
+      matching structure. The bulk modulus here is kept constant with pressures below 0. (Since the Birch Murnaghan EOS
+      misbehaves at these conditions).
+    - There is now a white cross marking the clicked position on the image in the Integration module. This marker will
+      move to the corresponding position when switching between 'cake' and 'image' mode. This allows for tracking of
+      individual peaks easily.
+    - The default filename for the "save mask", "save pattern" and "save image" file dialogs will be the current image
+      basename with the appropriate extension.
+    - Added a lot more calibrants from pyFAI library. All NIST calibrants should be present with the appropriate
+      references in the files.
+    - Dioptas has been completely refactored by rewriting almost all of the GUI code, which will make future releases
+      much faster, so stay tuned
 
 Bugfixes:
+    - mar345 files are now correctly loaded
     - autoprocessing of files, i.e. automatically loading newly collected files should now be much more reliable and
       especially the check for new files takes much less network bandwidth
+    - jcpds editor content is now properly updated with the values of a newly added phase, which will be the new
+      selected one
+    - calculation of d-spacings for monoclinic space group jcpds is now correct, there was a sign error in the last term
 
 
 0.2.4 (stable 04/13/2015)

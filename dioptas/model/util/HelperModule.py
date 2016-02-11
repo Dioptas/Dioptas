@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
+
 
 import os
 import re
@@ -212,3 +212,57 @@ def calculate_color(ind):
 
 def convert_d_to_two_theta(d, wavelength):
     return np.arcsin(wavelength / (2 * d)) / np.pi * 360
+
+
+def get_partial_index(array, value):
+    """
+    Calculates the partial index for a value from an array using linear interpolation.
+    e.g. with array = [0,1,2,3,4,5] and value = 2.5 it would return 2.5, since it in between the second and third
+    element.
+    :param array: list or numpy array
+    :param value: value for which to get the index
+    :return: partial index
+    """
+    upper_ind = np.where(array > value)
+    lower_ind = np.where(array < value)
+
+    spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
+    new_pos = lower_ind[-1][-1] + (value - array[lower_ind[-1][-1]]) / spacing
+
+    return new_pos
+
+
+
+def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, delta2=0.1):
+    """
+    Tries to reverse interpolate two vales from two arrays with the same dimensions, and finds a common index
+    for value1 and value2 in their respective arrays. the deltas define the search radius for a close value match
+    to the arrays.
+
+    :return: index1, index2
+    """
+    tth_ind = np.argwhere(np.abs(array1 - value1) < delta1)
+    azi_ind = np.argwhere(np.abs(array2 - value2) < delta2)
+
+    tth_ind_ravel = np.ravel_multi_index((tth_ind[:, 0], tth_ind[:, 1]), dims=array1.shape)
+    azi_ind_ravel = np.ravel_multi_index((azi_ind[:, 0], azi_ind[:, 1]), dims=array2.shape)
+
+    common_ind_ravel = np.intersect1d(tth_ind_ravel, azi_ind_ravel)
+    result_ind = np.unravel_index(common_ind_ravel, dims=array1.shape)
+
+    while len(result_ind[0]) > 1:
+        if np.max(np.diff(array1)) > 0:
+            delta1 = np.max(np.diff(array1[result_ind]))
+
+        if np.max(np.diff(array2)) > 0:
+            delta2 = np.max(np.diff(array2[result_ind]))
+
+        tth_ind = np.argwhere(np.abs(array1[result_ind] - value1) < delta1)
+        azi_ind = np.argwhere(np.abs(array2[result_ind] - value2) < delta2)
+
+        print result_ind
+
+        common_ind = np.intersect1d(tth_ind, azi_ind)
+        result_ind = (result_ind[0][common_ind], result_ind[1][common_ind])
+
+    return result_ind[0], result_ind[1]

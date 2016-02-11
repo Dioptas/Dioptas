@@ -1,8 +1,24 @@
 # -*- coding: utf8 -*-
-__author__ = 'Clemens Prescher'
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt4 import QtCore, QtGui
 import os
+from CustomWidgets import FlatButton
 
 widget_path = os.path.dirname(__file__)
 
@@ -11,6 +27,7 @@ class CifConversionParametersDialog(QtGui.QDialog):
     """
     Dialog which is asking for Intensity Cutoff and minimum d-spacing when loading cif files.
     """
+
     def __init__(self, parent):
         super(CifConversionParametersDialog, self).__init__()
 
@@ -36,7 +53,7 @@ class CifConversionParametersDialog(QtGui.QDialog):
         self.int_cutoff_unit_lbl = QtGui.QLabel("%")
         self.min_d_spacing_unit_lbl = QtGui.QLabel("A")
 
-        self.ok_btn = QtGui.QPushButton("OK")
+        self.ok_btn = FlatButton("OK")
 
     def _layout_widgets(self):
         """
@@ -74,7 +91,6 @@ class CifConversionParametersDialog(QtGui.QDialog):
         self.setStyleSheet(stylesheet)
         file.close()
 
-
     def _connect_widgets(self):
         """
         Connecting actions to slots.
@@ -100,8 +116,43 @@ class CifConversionParametersDialog(QtGui.QDialog):
         Overwriting the dialog exec_ function to center the widget in the parent window before execution.
         """
         parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
-        self.move(parent_center.x()-101,parent_center.y()-48)
+        self.move(parent_center.x() - 101, parent_center.y() - 48)
         super(CifConversionParametersDialog, self).exec_()
+
+
+class FileInfoWidget(QtGui.QWidget):
+    def __init__(self, parent=None):
+        super(FileInfoWidget, self).__init__(parent)
+        self.setWindowTitle("File Info")
+
+        self.text_lbl = QtGui.QLabel()
+        self.text_lbl.setWordWrap(True)
+
+        self._layout = QtGui.QVBoxLayout()
+        self._layout.setContentsMargins(5, 5, 5, 5)
+        self._layout.addWidget(self.text_lbl)
+        self._layout.setSizeConstraint(QtGui.QLayout.SetFixedSize)
+
+        self.setStyleSheet(
+            """
+            QWidget{
+                background: rgb(0,0,0);
+            }
+            QLabel{
+                color: #00DD00;
+            }"""
+        )
+        self.setLayout(self._layout)
+        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
+                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
+                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
+
+    def raise_widget(self):
+        self.show()
+        self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.activateWindow()
+        self.raise_()
 
 
 if __name__ == '__main__':

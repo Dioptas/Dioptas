@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,16 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = 'Clemens Prescher'
-
 import logging
 
-logger = logging.getLogger(__name__)
 from copy import deepcopy
 from PyQt4 import QtCore
 
 from model.util.HelperModule import FileNameIterator, get_base_name
 from model.util import Pattern
+
+logger = logging.getLogger(__name__)
 
 
 class PatternModel(QtCore.QObject):
@@ -188,15 +187,14 @@ class PatternModel(QtCore.QObject):
         except IndexError:
             return None
 
-
     def add_spectrum_as_overlay(self):
         """
         Adds the current data spectrum as overlay to the list of overlays
         """
         current_spectrum = deepcopy(self.pattern)
         overlay_spectrum = Pattern(current_spectrum.x,
-                                    current_spectrum.y,
-                                    current_spectrum.name)
+                                   current_spectrum.y,
+                                   current_spectrum.name)
         self.overlays.append(overlay_spectrum)
         self.overlay_added.emit()
 
@@ -318,6 +316,3 @@ class PatternModel(QtCore.QObject):
         for ind, overlay in enumerate(self.overlays):
             overlay.offset = 0
             self.overlay_changed.emit(ind)
-
-
-

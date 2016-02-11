@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,15 +18,14 @@
 
 from __future__ import absolute_import
 
-__author__ = 'Clemens Prescher'
 import sys
 from PyQt4 import QtGui
 import logging
-logging.basicConfig(level=logging.INFO)
 
 from controller.MainController import MainController, get_version
 from widgets.FileInfoWidget import FileInfoWidget
 
+logging.basicConfig(level=logging.INFO)
 print(get_version())
 
 if __name__ == "__main__":
@@ -45,4 +44,3 @@ if __name__ == "__main__":
     file_info_widget.raise_widget()
     app.exec_()
     del app
-

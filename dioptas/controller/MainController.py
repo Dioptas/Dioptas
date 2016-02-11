@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-# GSECARS, University of Chicago
+# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 
 import os
 import csv
@@ -59,6 +58,7 @@ def write_version_file(version_str):
     with open(os.path.join(path, '_version.py'), 'w') as f:
         f.write('__version__="{}"'.format(version_str))
 
+
 __version__ = get_version()
 
 
@@ -71,7 +71,7 @@ class MainController(object):
         self.use_settings = use_settings
 
         self.widget = MainWidget()
-        #create data
+        # create data
         self.img_model = ImgModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.mask_model = MaskModel()
@@ -80,8 +80,7 @@ class MainController(object):
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
-                                'phase': ''}
-
+                                    'phase': ''}
 
         if use_settings:
             self.load_settings()
@@ -141,39 +140,39 @@ class MainController(object):
         # get the old view range
         old_view_range = None
         old_hist_levels = None
-        if old_index == 0: # calibration tab
-            old_view_range = self.widget.calibration_widget.img_view.img_view_box.targetRange()
-            old_hist_levels = self.widget.calibration_widget.img_view.img_histogram_LUT.getExpLevels()
-        elif old_index == 1: # mask tab
-            old_view_range = self.widget.mask_widget.img_view.img_view_box.targetRange()
-            old_hist_levels = self.widget.mask_widget.img_view.img_histogram_LUT.getExpLevels()
+        if old_index == 0:  # calibration tab
+            old_view_range = self.widget.calibration_widget.img_widget.img_view_box.targetRange()
+            old_hist_levels = self.widget.calibration_widget.img_widget.img_histogram_LUT.getExpLevels()
+        elif old_index == 1:  # mask tab
+            old_view_range = self.widget.mask_widget.img_widget.img_view_box.targetRange()
+            old_hist_levels = self.widget.mask_widget.img_widget.img_histogram_LUT.getExpLevels()
         elif old_index == 2:
-            old_view_range = self.widget.integration_widget.img_view.img_view_box.targetRange()
-            old_hist_levels = self.widget.integration_widget.img_view.img_histogram_LUT.getExpLevels()
+            old_view_range = self.widget.integration_widget.img_widget.img_view_box.targetRange()
+            old_hist_levels = self.widget.integration_widget.img_widget.img_histogram_LUT.getExpLevels()
 
         # update the GUI
-        if ind == 2: # integration tab
+        if ind == 2:  # integration tab
             self.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(self.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()
             self.integration_controller.image_controller.update_img()
-            self.widget.integration_widget.img_view.set_range(x_range = old_view_range[0], y_range = old_view_range[1])
-            self.widget.integration_widget.img_view.img_histogram_LUT.setLevels(*old_hist_levels)
-        elif ind == 1: # mask tab
+            self.widget.integration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
+            self.widget.integration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
+        elif ind == 1:  # mask tab
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
-            self.widget.mask_widget.img_view.set_range(x_range = old_view_range[0], y_range = old_view_range[1])
-            self.widget.mask_widget.img_view.img_histogram_LUT.setLevels(*old_hist_levels)
-        elif ind == 0: # calibration tab
+            self.widget.mask_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
+            self.widget.mask_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
+        elif ind == 0:  # calibration tab
             self.calibration_controller.plot_mask()
             try:
                 self.calibration_controller.update_calibration_parameter_in_view()
             except (TypeError, AttributeError):
                 pass
-            self.widget.calibration_widget.img_view.set_range(x_range = old_view_range[0], y_range = old_view_range[1])
-            self.widget.calibration_widget.img_view.img_histogram_LUT.setLevels(*old_hist_levels)
+            self.widget.calibration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
+            self.widget.calibration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
 
     def update_title(self):
         """
@@ -221,7 +220,6 @@ class MainController(object):
             reader = csv.reader(open(working_directories_path, 'r'))
             self.working_directories = dict(x for x in reader)
 
-
     def load_xml_settings(self):
         """
         Loads previously used Dioptas settings. Currently this is only the calibration.
@@ -232,7 +230,7 @@ class MainController(object):
             tree = ET.parse(xml_settings_path)
             root = tree.getroot()
             filenames = root.find("filenames")
-            calibration_path=filenames.find("calibration").text
+            calibration_path = filenames.find("calibration").text
             if os.path.exists(str(calibration_path)):
                 self.calibration_model.load(calibration_path)
 

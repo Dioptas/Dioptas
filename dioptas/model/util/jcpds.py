@@ -34,6 +34,7 @@ Modifications:
 
 """
 import logging
+
 logger = logging.getLogger(__name__)
 
 import string
@@ -41,8 +42,6 @@ import numpy as np
 from scipy.optimize import minimize
 import os
 
-
-import time
 
 class jcpds_reflection:
     """
@@ -171,7 +170,7 @@ class jcpds(object):
                DIHKL:        1.2390      16.0   1   0  10
 
            Note that B and ALPHA, BETA and GAMMA are not present, since they are
-           not needed for a hexagonal material, and will be simple ignorred if
+           not needed for a hexagonal material, and will be simple ignored if
            they are present.
         """
         self.__init__()
@@ -182,10 +181,7 @@ class jcpds(object):
         pos = name.find('.')
         if (pos >= 0): name = name[0:pos]
         self._name = name
-        line = ''
-        version = 0.
         self.comments = []
-        nd = 0
         self.reflections = []
 
         # Determine what version JCPDS file this is
@@ -307,7 +303,6 @@ class jcpds(object):
         #             ': calculated D ', r.d, \
         #             ') differs by more than 0.1% from input D (', r.d0, ')'))
 
-
     def save_file(self, filename):
         """
         Writes a JCPDS object to a file.
@@ -329,21 +324,21 @@ class jcpds(object):
         fp = open(filename, 'w')
         fp.write('VERSION:   4\n')
         for comment in self.comments:
-            fp.write('COMMENT: ' + comment+'\n')
-        fp.write('K0:       ' + str(self.k0)+'\n')
-        fp.write('K0P:      ' + str(self.k0p0)+'\n')
-        fp.write('DK0DT:    ' + str(self.dk0dt)+'\n')
-        fp.write('DK0PDT:   ' + str(self.dk0pdt)+'\n')
-        fp.write('SYMMETRY: ' + self.symmetry+'\n')
-        fp.write('A:        ' + str(self.a0)+'\n')
-        fp.write('B:        ' + str(self.b0)+'\n')
-        fp.write('C:        ' + str(self.c0)+'\n')
-        fp.write('ALPHA:    ' + str(self.alpha0)+'\n')
-        fp.write('BETA:     ' + str(self.beta0)+'\n')
-        fp.write('GAMMA:    ' + str(self.gamma0)+'\n')
-        fp.write('VOLUME:   ' + str(self.v0)+'\n')
-        fp.write('ALPHAT:   ' + str(self.alpha_t0)+'\n')
-        fp.write('DALPHADT: ' + str(self.d_alpha_dt)+'\n')
+            fp.write('COMMENT: ' + comment + '\n')
+        fp.write('K0:       ' + str(self.k0) + '\n')
+        fp.write('K0P:      ' + str(self.k0p0) + '\n')
+        fp.write('DK0DT:    ' + str(self.dk0dt) + '\n')
+        fp.write('DK0PDT:   ' + str(self.dk0pdt) + '\n')
+        fp.write('SYMMETRY: ' + self.symmetry + '\n')
+        fp.write('A:        ' + str(self.a0) + '\n')
+        fp.write('B:        ' + str(self.b0) + '\n')
+        fp.write('C:        ' + str(self.c0) + '\n')
+        fp.write('ALPHA:    ' + str(self.alpha0) + '\n')
+        fp.write('BETA:     ' + str(self.beta0) + '\n')
+        fp.write('GAMMA:    ' + str(self.gamma0) + '\n')
+        fp.write('VOLUME:   ' + str(self.v0) + '\n')
+        fp.write('ALPHAT:   ' + str(self.alpha_t0) + '\n')
+        fp.write('DALPHADT: ' + str(self.d_alpha_dt) + '\n')
         reflections = self.get_reflections()
         for r in reflections:
             fp.write('DIHKL:    {0:g}\t{1:g}\t{2:g}\t{3:g}\t{4:g}\n'.format(r.d0, r.intensity, r.h, r.k, r.l))
@@ -368,7 +363,7 @@ class jcpds(object):
     def __setattr__(self, key, value):
         if key in ['comments', 'a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0',
                    'symmetry', 'k0', 'k0p0', 'dk0dt', 'dk0pdt',
-                    'alpha_t0', 'd_alpha_dt', 'reflections']:
+                   'alpha_t0', 'd_alpha_dt', 'reflections']:
             self.modified = True
         super(jcpds, self).__setattr__(key, value)
 
@@ -393,7 +388,6 @@ class jcpds(object):
     @name.setter
     def name(self, value):
         self._name = value
-
 
     def compute_v0(self):
         """
@@ -507,6 +501,8 @@ class jcpds(object):
 
         if (pressure == 0.):
             self.v = self.v0 * (1 + self.alpha_t * (temperature - 298.))
+        if (pressure < 0):
+            self.v = self.v0 * (1 - pressure / self.k0)
         else:
             if (self.k0 <= 0.):
                 logger.info('K0 is zero, computing zero pressure volume')
@@ -589,10 +585,10 @@ class jcpds(object):
                      l ** 2 / np.sin(beta) ** 2 / c ** 2 +
                      2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
         elif (self.symmetry == 'TRICLINIC'):
-            V = (a  * b  * c  *
+            V = (a * b * c *
                  np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
-                  np.cos(gamma) ** 2 +
-                  2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
+                         np.cos(gamma) ** 2 +
+                         2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
             s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
             s22 = a ** 2 * c ** 2 * np.sin(beta) ** 2
             s33 = a ** 2 * b ** 2 * np.sin(gamma) ** 2
@@ -610,8 +606,6 @@ class jcpds(object):
 
         for ind in xrange(len(self.reflections)):
             self.reflections[ind].d0 = d_spacings[ind]
-
-
 
     def compute_d(self, pressure=None, temperature=None):
         """
@@ -688,15 +682,15 @@ class jcpds(object):
                                               (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
                      (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
         elif (self.symmetry == 'MONOCLINIC'):
-            d2inv = (h ** 2 / np.sin(beta) ** 2 / a ** 2 +
+            d2inv = (h ** 2 / (np.sin(beta) ** 2 * a ** 2) +
                      k ** 2 / b ** 2 +
-                     l ** 2 / np.sin(beta) ** 2 / c ** 2 +
+                     l ** 2 / (np.sin(beta) ** 2 * c ** 2) -
                      2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
         elif (self.symmetry == 'TRICLINIC'):
-            V = (  a * b  * c  *
+            V = (a * b * c *
                  np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
-                  np.cos(gamma) ** 2 +
-                  2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
+                         np.cos(gamma) ** 2 +
+                         2 * np.cos(alpha) * np.cos(beta) * np.cos(gamma)))
             s11 = b ** 2 * c ** 2 * np.sin(alpha) ** 2
             s22 = a ** 2 * c ** 2 * np.sin(beta) ** 2
             s33 = a ** 2 * b ** 2 * np.sin(gamma) ** 2
@@ -715,7 +709,7 @@ class jcpds(object):
             self.reflections[ind].d = d_spacings[ind]
 
     def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0.):
-        new_reflection = jcpds_reflection(h,k,l, intensity, d)
+        new_reflection = jcpds_reflection(h, k, l, intensity, d)
         self.reflections.append(new_reflection)
         self.modified = True
 
@@ -732,7 +726,7 @@ class jcpds(object):
 
     def reorder_reflections_by_index(self, ind_list, reversed=False):
         if reversed:
-            ind_list= ind_list[::-1]
+            ind_list = ind_list[::-1]
         new_reflections = []
         for ind in ind_list:
             new_reflections.append(self.reflections[ind])
@@ -741,35 +735,35 @@ class jcpds(object):
         self.reflections = new_reflections
         self.modified = modified_flag
 
-    def sort_reflections_by_h(self, reversed = False):
+    def sort_reflections_by_h(self, reversed=False):
         h_list = []
         for reflection in self.reflections:
             h_list.append(reflection.h)
         sorted_ind = np.argsort(h_list)
         self.reorder_reflections_by_index(sorted_ind, reversed)
 
-    def sort_reflections_by_k(self, reversed = False):
+    def sort_reflections_by_k(self, reversed=False):
         k_list = []
         for reflection in self.reflections:
             k_list.append(reflection.k)
         sorted_ind = np.argsort(k_list)
         self.reorder_reflections_by_index(sorted_ind, reversed)
 
-    def sort_reflections_by_l(self, reversed = False):
+    def sort_reflections_by_l(self, reversed=False):
         l_list = []
         for reflection in self.reflections:
             l_list.append(reflection.l)
         sorted_ind = np.argsort(l_list)
         self.reorder_reflections_by_index(sorted_ind, reversed)
 
-    def sort_reflections_by_intensity(self, reversed = False):
+    def sort_reflections_by_intensity(self, reversed=False):
         intensity_list = []
         for reflection in self.reflections:
             intensity_list.append(reflection.intensity)
         sorted_ind = np.argsort(intensity_list)
         self.reorder_reflections_by_index(sorted_ind, reversed)
 
-    def sort_reflections_by_d(self, reversed = False):
+    def sort_reflections_by_d(self, reversed=False):
         d_list = []
         for reflection in self.reflections:
             d_list.append(reflection.d0)
@@ -777,7 +771,7 @@ class jcpds(object):
         self.reorder_reflections_by_index(sorted_ind, reversed)
 
     def has_thermal_expansion(self):
-        return (self.alpha_t0!=0) or (self.d_alpha_dt!=0)
+        return (self.alpha_t0 != 0) or (self.d_alpha_dt != 0)
 
 
 def lookup_jcpds_line(in_string,
