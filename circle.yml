@@ -31,11 +31,11 @@ dependencies:
       fi
     - pwd
     - ls
-    - cd Dioptas/dioptas/model/util/
+    - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
-    - cd ../../../../
+    - cd ../../../
 ## Customize test commands
 test:
   override:
-    - cd Dioptas/dioptas/tests
+    - cd dioptas/tests
     - py.test
