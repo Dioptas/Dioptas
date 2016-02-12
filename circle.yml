@@ -1,0 +1,39 @@
+## Customize the test machine
+machine:
+  environment:
+    CONDA_ROOT: /home/ubuntu/miniconda
+    TEST_ENV_NAME: test-env
+    TEST_ENV_PREFIX: /home/ubuntu/miniconda/envs/test-env
+    PATH: ${CONDA_ROOT}/bin:${PATH}
+    PYTHONPATH: $PWD/dioptas:$PYTHONPATH
+
+## Customize dependencies
+dependencies:
+  cache_directories:
+    - /home/ubuntu/miniconda
+
+  override:
+    # Download/install conda (if not already cached)
+    - >
+      if [[ ! -d ${CONDA_ROOT} ]]; then
+          echo "Installing Miniconda...";
+          wget --quiet https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh &&
+          bash Miniconda-latest-Linux-x86_64.sh -b -p ${CONDA_ROOT};
+          conda install --yes pip numpy pillow scipy pandas dateutil nose h5py pyqt
+          conda install --yes scikit-image cython
+          pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw
+          git clone https://github.com/kif/pyFAI
+          cd pyFAI
+          python setup.py install
+          cd ../
+      else
+          echo "Using cached Miniconda install";
+      fi
+    - cd dioptas/model/util/
+    - f2py -c -m smooth_bruckner smooth_bruckner.f95
+    - cd ../../../
+## Customize test commands
+test:
+  override:
+    - cd dioptas/tests
+    - py.test
