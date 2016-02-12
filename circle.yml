@@ -15,7 +15,7 @@ dependencies:
   override:
     # Download/install conda (if not already cached)
     - >
-      if [[ ! -d ${CONDA_ROOT} ]]; then
+      if [ ! -d ${CONDA_ROOT} ]; then
           echo "Installing Miniconda...";
           wget --quiet https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh &&
           bash Miniconda-latest-Linux-x86_64.sh -b -p ${CONDA_ROOT};
