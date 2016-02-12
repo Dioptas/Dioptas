@@ -193,11 +193,13 @@ class CalibrationController(object):
             if file.endswith('.D'):
                 self._calibrants_file_list.append(file)
                 self._calibrants_file_names_list.append(file.split('.')[:-1][0])
+        self._calibrants_file_list.sort()
+        self._calibrants_file_names_list.sort()
         self.widget.calibrant_cb.blockSignals(True)
         self.widget.calibrant_cb.clear()
         self.widget.calibrant_cb.addItems(self._calibrants_file_names_list)
         self.widget.calibrant_cb.blockSignals(False)
-        self.widget.calibrant_cb.setCurrentIndex(7)  # to LaB6
+        self.widget.calibrant_cb.setCurrentIndex(self._calibrants_file_names_list.index('LaB6'))  # to LaB6
         self.load_calibrant()
 
     def load_calibrant(self, wavelength_from='start_values'):

@@ -114,7 +114,7 @@ class CalibrationModel(object):
         if top_ind < 0:
             top_ind = 0
         search_array = self.img_model.img_data[left_ind:(left_ind + search_size),
-                                               top_ind:(top_ind + search_size)]
+                       top_ind:(top_ind + search_size)]
         x_ind, y_ind = np.where(search_array == search_array.max())
         x_ind = x_ind[0] + left_ind
         y_ind = y_ind[0] + top_ind
@@ -505,14 +505,15 @@ class CalibrationModel(object):
 
     def get_two_theta_img(self, x, y):
         """
-        Gives the two_theta value for the x,y coordinates on the image
+        Gives the two_theta value for the x,y coordinates on the image. Be aware that this function will be incorrect
+        for pixel indices, since it does not correct for center of the pixel.
         :return:
             two theta in radians
         """
         x = np.array([x]) * self.supersampling_factor
         y = np.array([y]) * self.supersampling_factor
 
-        return self.spectrum_geometry.tth(x, y)[0]
+        return self.spectrum_geometry.tth(x - 0.5, y - 0.5)[0]  # deletes 0.5 because tth function uses pixel indices
 
     def get_azi_img(self, x, y):
         """
@@ -528,15 +529,18 @@ class CalibrationModel(object):
         y *= self.supersampling_factor
         return self.spectrum_geometry.chi(x, y)[0]
 
-    def get_two_theta_cake(self, y):
+    def get_two_theta_cake(self, x):
         """
         Gives the two_theta value for the x coordinate in the cake
         :param x:
-            y-coordinate on image
+            x-coordinate on image
         :return:
             two theta in degree
         """
-        return self.cake_tth[np.round(y[0])]
+        x -= 0.5
+        cake_step = self.cake_tth[1] - self.cake_tth[0]
+        tth = self.cake_tth[int(np.floor(x))] + (x  - np.floor(x)) * cake_step
+        return tth
 
     def get_azi_cake(self, x):
         """
@@ -546,7 +550,10 @@ class CalibrationModel(object):
         :return:
             azimuth in degree
         """
-        return self.cake_azi[np.round(x[0])]
+        x -= 0.5
+        azi_step = self.cake_azi[1] - self.cake_azi[0]
+        azi = self.cake_azi[int(np.floor(x))] + (x - np.floor(x)) * azi_step
+        return azi
 
     def get_two_theta_array(self):
         return self.spectrum_geometry._ttha[::self.supersampling_factor, ::self.supersampling_factor]
@@ -563,10 +570,9 @@ class CalibrationModel(object):
         """
         tth_ind = find_contours(self.spectrum_geometry.ttha, tth)
         tth_ind = np.vstack(tth_ind)
-        azi_values = self.spectrum_geometry.chi(tth_ind[:,0], tth_ind[:,1])
-        min_index = np.argmin(np.abs(azi_values-azi))
+        azi_values = self.spectrum_geometry.chi(tth_ind[:, 0], tth_ind[:, 1])
+        min_index = np.argmin(np.abs(azi_values - azi))
         return tth_ind[min_index, 0], tth_ind[min_index, 1]
-
 
     @property
     def wavelength(self):
@@ -575,5 +581,5 @@ class CalibrationModel(object):
 
 class DummyStdOut(object):
     @classmethod
-    def write(self, *args, **kwargs):
+    def write(cls, *args, **kwargs):
         pass

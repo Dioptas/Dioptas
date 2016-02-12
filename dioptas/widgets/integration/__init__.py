@@ -23,7 +23,7 @@ from functools import partial
 from PyQt4 import QtGui, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
-from ..CustomWidgets import NoRectDelegate
+from ..CustomWidgets import NoRectDelegate, FlatButton
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .ControlWidgets import IntegrationControlWidget
@@ -57,11 +57,11 @@ class IntegrationWidget(QtGui.QWidget):
         self._layout.setSpacing(6)
         self._layout.setContentsMargins(10, 6, 6, 6)
 
-        self.vertical_splitter = QtGui.QSplitter()
+        self.vertical_splitter = QtGui.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter.addWidget(self.integration_control_widget)
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
-        self.vertical_splitter.setStretchFactor(10, 0)
+        self.vertical_splitter.setStretchFactor(1, 99999)
 
         self.horizontal_splitter = QtGui.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
@@ -100,7 +100,6 @@ class IntegrationWidget(QtGui.QWidget):
 
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
-
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
@@ -346,7 +345,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
         self.overlay_show_cbs.append(show_cb)
 
-        color_button = QtGui.QPushButton()
+        color_button = FlatButton()
         color_button.setStyleSheet("background-color: " + color)
         color_button.clicked.connect(partial(self.overlay_color_btn_click, color_button))
         self.overlay_tw.setCellWidget(current_rows, 1, color_button)
@@ -420,7 +419,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.phase_tw.setCellWidget(current_rows, 0, show_cb)
         self.phase_show_cbs.append(show_cb)
 
-        color_button = QtGui.QPushButton()
+        color_button = FlatButton()
         color_button.setStyleSheet("background-color: " + color)
         color_button.clicked.connect(partial(self.phase_color_btn_click, color_button))
         self.phase_tw.setCellWidget(current_rows, 1, color_button)

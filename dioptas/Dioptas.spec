@@ -27,15 +27,18 @@ from distutils.sysconfig import get_python_lib
 from sys import platform as _platform
 
 site_packages_path = get_python_lib()
+import pyFAI
+pyFAI_path = os.path.dirname(pyFAI.__file__)
+
 
 extra_datas = [
-    (os.path.join(site_packages_path, "pyFAI/calibration"), "pyFAI/calibration"),
-    (os.path.join(site_packages_path, "pymatgen/core/*.json"), "pymatgen/core"),
-    (os.path.join(site_packages_path, 'pymatgen/symmetry/symm_data.yaml'), "pymatgen/symmetry"),
-    (os.path.join(site_packages_path, 'pymatgen/analysis/diffraction/atomic_scattering_params.json'),
-     "pymatgen/analysis/diffraction"),
-
+    ("calibrants", "calibrants"),
+    ("widgets/stylesheet.qss", "widgets"),
+    (os.path.join(pyFAI_path, 'calibration'), 'pyFAI/calibration'),
+    ("model/util/data/*.json", "model/util/data")
 ]
+
+binaries = []
 
 if _platform == "darwin":
     extra_datas.extend((
@@ -43,11 +46,12 @@ if _platform == "darwin":
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtGui.4.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libpng16.16.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtSvg.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libmkl_avx2.dylib'), '.')
     ))
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
-             binaries=[],
+             binaries=binaries,
              datas=extra_datas,
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
              hookspath=[],
@@ -125,4 +129,4 @@ coll = COLLECT(exe,
 if _platform == "darwin":
     app = BUNDLE(coll,
                  name='Dioptas_{}.app'.format(version),
-                 icon='widgets/UiFiles/Icon/icns/icon.icns')
+                 icon='widgets/icns/icon.icns')

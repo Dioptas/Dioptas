@@ -329,8 +329,8 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
             plot_item.setData(x=[], y=[])
 
         for plot_ind, tth in enumerate(tth_ind):
-            x_plot = tth[:, 1]
-            y_plot = tth[:, 0]
+            x_plot = tth[:, 1] + 0.5
+            y_plot = tth[:, 0] + 0.5
             self.circle_plot_items[plot_ind].setData(x=x_plot, y=y_plot)
 
     def activate_circle_scatter(self):
