@@ -33,14 +33,15 @@ class MainWidget(QtGui.QWidget):
 
         self._layout = QtGui.QHBoxLayout()
         self._layout.setContentsMargins(10, 2, 2, 2)
+        self._layout.setSpacing(6)
 
         self.tabWidget = QtGui.QTabWidget()
         self.tabWidget.setTabPosition(QtGui.QTabWidget.West)
         self.tabWidget.setCurrentIndex(0)
 
-        self.calibration_widget = CalibrationWidget()
-        self.mask_widget = MaskWidget()
-        self.integration_widget = IntegrationWidget()
+        self.calibration_widget = CalibrationWidget(self)
+        self.mask_widget = MaskWidget(self)
+        self.integration_widget = IntegrationWidget(self)
 
         self.tabWidget.addTab(self.calibration_widget, 'Calibration')
         self.tabWidget.addTab(self.mask_widget, 'Mask')

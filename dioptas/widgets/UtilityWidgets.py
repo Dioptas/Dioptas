@@ -18,6 +18,7 @@
 
 from PyQt4 import QtCore, QtGui
 import os
+from CustomWidgets import FlatButton
 
 widget_path = os.path.dirname(__file__)
 
@@ -52,7 +53,7 @@ class CifConversionParametersDialog(QtGui.QDialog):
         self.int_cutoff_unit_lbl = QtGui.QLabel("%")
         self.min_d_spacing_unit_lbl = QtGui.QLabel("A")
 
-        self.ok_btn = QtGui.QPushButton("OK")
+        self.ok_btn = FlatButton("OK")
 
     def _layout_widgets(self):
         """
@@ -118,6 +119,7 @@ class CifConversionParametersDialog(QtGui.QDialog):
         self.move(parent_center.x() - 101, parent_center.y() - 48)
         super(CifConversionParametersDialog, self).exec_()
 
+
 class FileInfoWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         super(FileInfoWidget, self).__init__(parent)
@@ -132,13 +134,13 @@ class FileInfoWidget(QtGui.QWidget):
         self._layout.setSizeConstraint(QtGui.QLayout.SetFixedSize)
 
         self.setStyleSheet(
-                """
-                QWidget{
-                    background: rgb(0,0,0);
-                }
-                QLabel{
-                    color: #00DD00;
-                }"""
+            """
+            QWidget{
+                background: rgb(0,0,0);
+            }
+            QLabel{
+                color: #00DD00;
+            }"""
         )
         self.setLayout(self._layout)
         self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |

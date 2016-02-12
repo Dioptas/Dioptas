@@ -98,7 +98,7 @@ class IntegrationImgDisplayWidget(QtGui.QWidget):
 
     def style_widgets(self):
         self.setStyleSheet("""
-            #img_frame, #img_position_and_unit_widget, QLabel {
+            #img_frame, #img_position_and_unit_widget, QLabel, QCheckBox {
                 background: black;
             }
             """)

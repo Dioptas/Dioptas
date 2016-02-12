@@ -22,12 +22,8 @@ import numpy as np
 import pyFAI
 from PyQt4 import QtGui, QtCore
 
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.integration import IntegrationWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.CalibrationModel import CalibrationModel
-from model.PatternModel import PatternModel
 
 
 class PatternController(object):
@@ -61,7 +57,7 @@ class PatternController(object):
         self.spectrum_model = spectrum_model
 
         self.integration_unit = '2th_deg'
-        self.autocreate = False
+        self.autocreate_pattern = False
         self.unit = pyFAI.units.TTH_DEG
 
         self.create_subscriptions()
@@ -75,8 +71,8 @@ class PatternController(object):
 
         # Gui subscriptions
         self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
-        self.widget.pattern_widget.mouse_left_clicked.connect(self.spectrum_left_click)
-        self.widget.pattern_widget.mouse_moved.connect(self.show_spectrum_mouse_position)
+        self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+        self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
     def create_gui_signals(self):
         """
@@ -158,15 +154,15 @@ class PatternController(object):
 
             self.spectrum_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)
 
-            if self.autocreate:
+            if self.autocreate_pattern:
                 filename = self.img_model.filename
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
                     if filename is not '':
                         filename = os.path.join(
-                                self.working_dir['spectrum'],
-                                os.path.basename(
-                                        str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
+                            self.working_dir['spectrum'],
+                            os.path.basename(
+                                str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
                     self.save_pattern(filename)
                 self.widget.spec_next_btn.setEnabled(True)
                 self.widget.spec_previous_btn.setEnabled(True)
@@ -176,7 +172,7 @@ class PatternController(object):
                 self.widget.spec_next_btn.setEnabled(False)
                 self.widget.spec_previous_btn.setEnabled(False)
                 self.widget.spec_filename_txt.setText(
-                        'No File saved or selected')
+                    'No File saved or selected')
         self.widget.img_widget.roi.blockSignals(False)
 
     def get_spectrum_file_endings(self):
@@ -192,12 +188,12 @@ class PatternController(object):
     def plot_pattern(self):
         if self.widget.bkg_spectrum_inspect_btn.isChecked():
             self.widget.pattern_widget.plot_data(
-                    *self.spectrum_model.pattern.auto_background_before_subtraction_spectrum.data,
-                    name=self.spectrum_model.pattern.name)
+                *self.spectrum_model.pattern.auto_background_before_subtraction_spectrum.data,
+                name=self.spectrum_model.pattern.name)
             self.widget.pattern_widget.plot_bkg(*self.spectrum_model.pattern.auto_background_pattern.data)
         else:
             self.widget.pattern_widget.plot_data(
-                    *self.spectrum_model.pattern.data, name=self.spectrum_model.pattern.name)
+                *self.spectrum_model.pattern.data, name=self.spectrum_model.pattern.name)
             self.widget.pattern_widget.plot_bkg([], [])
 
         # update the bkg_name
@@ -225,34 +221,25 @@ class PatternController(object):
 
     def autocreate_spectrum(self):
         if self.spectrum_model.pattern.has_background():
-            if self.autocreate is True:
+            if self.autocreate_pattern is True:
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
                     directory = os.path.join(
-                            self.working_dir['spectrum'], 'bkg_subtracted')
+                        self.working_dir['spectrum'], 'bkg_subtracted')
                     if not os.path.exists(directory):
                         os.mkdir(directory)
                     filename = os.path.join(
-                            directory,
-                            self.spectrum_model.pattern.name + file_ending)
+                        directory,
+                        self.spectrum_model.pattern.name + file_ending)
                     self.save_pattern(filename, subtract_background=True)
 
     def save_pattern(self, filename=None, subtract_background=False):
         if filename is None:
-            save_file_dialog = QtGui.QFileDialog()
-            save_file_dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
-            save_file_dialog.setWindowTitle("Save Pattern Data or Image.")
-            save_file_dialog.setNameFilters(['Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg);; Data (*.xy)'])
-            save_file_dialog.selectFile(os.path.join(self.working_dir['spectrum'],
-                                                     '.'.join(self.img_model.filename.split('.')[:-1])))
-
-            if save_file_dialog.exec_():
-                filename = str(save_file_dialog.selectedFiles()[0])
-            else:
-                filename = ''
-            # filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Spectrum Data.",
-            #                                                  self.working_dir['spectrum'],
-            #                                                  ('Data (*.xy);; Data (*.chi);; Data (*.dat);;png (*.png);; svg (*.svg)')))
+            img_filename, _ = os.path.splitext(os.path.basename(self.img_model.filename))
+            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Spectrum Data.",
+                                                             os.path.join(self.working_dir['spectrum'],
+                                                                          img_filename + '.xy'),
+                                                             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)')))
             subtract_background = True  # when manually saving the spectrum the background will be automatically
 
         if filename is not '':
@@ -279,8 +266,8 @@ class PatternController(object):
     def load(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(
-                    self.widget, caption="Load Spectrum",
-                    directory=self.working_dir['spectrum']))
+                self.widget, caption="Load Spectrum",
+                directory=self.working_dir['spectrum']))
         if filename is not '':
             self.working_dir['spectrum'] = os.path.dirname(filename)
             self.widget.spec_filename_txt.setText(os.path.basename(filename))
@@ -293,16 +280,16 @@ class PatternController(object):
         step = int(str(self.widget.spec_browse_step_txt.text()))
         self.spectrum_model.load_previous_file(step=step)
         self.widget.spec_filename_txt.setText(
-                os.path.basename(self.spectrum_model.pattern_filename))
+            os.path.basename(self.spectrum_model.pattern_filename))
 
     def load_next(self):
         step = int(str(self.widget.spec_browse_step_txt.text()))
         self.spectrum_model.load_next_file(step=step)
         self.widget.spec_filename_txt.setText(
-                os.path.basename(self.spectrum_model.pattern_filename))
+            os.path.basename(self.spectrum_model.pattern_filename))
 
     def autocreate_cb_changed(self):
-        self.autocreate = self.widget.spec_autocreate_cb.isChecked()
+        self.autocreate_pattern = self.widget.spec_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.spectrum_model.pattern_filename)
@@ -318,9 +305,9 @@ class PatternController(object):
 
     def spec_directory_btn_click(self):
         directory = QtGui.QFileDialog.getExistingDirectory(
-                self.widget,
-                "Please choose the default directory for autosaved spectra.",
-                self.working_dir['spectrum'])
+            self.widget,
+            "Please choose the default directory for autosaved spectra.",
+            self.working_dir['spectrum'])
         if directory is not '':
             self.working_dir['spectrum'] = str(directory)
             self.widget.spec_directory_txt.setText(directory)
@@ -363,7 +350,7 @@ class PatternController(object):
 
         self.widget.pattern_widget.spectrum_plot.invertX(False)
         self.widget.pattern_widget.spectrum_plot.setLabel(
-                'bottom', 'Q', 'A<sup>-1</sup>')
+            'bottom', 'Q', 'A<sup>-1</sup>')
         if self.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.image_changed()
@@ -378,7 +365,7 @@ class PatternController(object):
             return
 
         self.widget.pattern_widget.spectrum_plot.setLabel(
-                'bottom', 'd', 'A'
+            'bottom', 'd', 'A'
         )
         self.widget.pattern_widget.spectrum_plot.invertX(True)
         self.integration_unit = 'd_A'
@@ -413,7 +400,7 @@ class PatternController(object):
             tth = value
         elif previous_unit == 'q_A^-1':
             tth = np.arcsin(
-                    value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
+                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
         elif previous_unit == 'd_A':
             tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
         else:
@@ -431,7 +418,7 @@ class PatternController(object):
             res = 0
         return res
 
-    def spectrum_left_click(self, x, y):
+    def pattern_left_click(self, x, y):
         self.set_line_position(x)
 
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
@@ -442,7 +429,7 @@ class PatternController(object):
     def set_line_position(self, x):
         self.widget.pattern_widget.set_pos_line(x)
         if self.calibration_model.is_calibrated:
-            self.update_image_view_line_position()
+            self.update_image_widget_line_position()
 
     def get_line_tth(self):
         x = self.widget.pattern_widget.get_pos_line()
@@ -452,7 +439,7 @@ class PatternController(object):
             x = self.convert_x_value(x, 'd_A', '2th_deg')
         return x
 
-    def update_image_view_line_position(self):
+    def update_image_widget_line_position(self):
         tth = self.get_line_tth()
         if self.widget.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
             self.set_cake_line_position(tth)
@@ -462,19 +449,16 @@ class PatternController(object):
     def set_cake_line_position(self, tth):
         upper_ind = np.where(self.calibration_model.cake_tth > tth)
         lower_ind = np.where(self.calibration_model.cake_tth < tth)
-        spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - \
-                  self.calibration_model.cake_tth[lower_ind[-1][-1]]
-        new_pos = lower_ind[-1][-1] + \
-                  (tth -
-                   self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing
+        spacing = self.calibration_model.cake_tth[upper_ind[0][0]] - self.calibration_model.cake_tth[lower_ind[-1][-1]]
+        new_pos = lower_ind[-1][-1] + (tth - self.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def set_image_line_position(self, tth):
         if self.calibration_model.is_calibrated:
             self.widget.img_widget.set_circle_line(
-                    self.calibration_model.get_two_theta_array(), tth / 180 * np.pi)
+                self.calibration_model.get_two_theta_array(), tth / 180 * np.pi)
 
-    def show_spectrum_mouse_position(self, x, y):
+    def show_pattern_mouse_position(self, x, _):
         tth_str, d_str, q_str, azi_str = self.get_position_strings(x)
         self.widget.mouse_tth_lbl.setText(tth_str)
         self.widget.mouse_d_lbl.setText(d_str)
@@ -527,7 +511,7 @@ class PatternController(object):
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
             self.set_line_position(new_pos)
-            self.update_image_view_line_position()
+            self.update_image_widget_line_position()
 
             tth_str, d_str, q_str, azi_str = self.get_position_strings(new_pos)
             self.widget.click_tth_lbl.setText(tth_str)
