@@ -5,7 +5,7 @@ machine:
     TEST_ENV_NAME: test-env
     TEST_ENV_PREFIX: /home/ubuntu/miniconda/envs/test-env
     PATH: ${CONDA_ROOT}/bin:${PATH}
-    PYTHONPATH: $PWD/dioptas:$PYTHONPATH
+    PYTHONPATH: $PWD/Dioptas/dioptas:$PYTHONPATH
 
 ## Customize dependencies
 dependencies:
@@ -29,12 +29,11 @@ dependencies:
       else
           echo "Using cached Miniconda install";
       fi
-    - ls
-    - cd dioptas/model/util/
+    - cd Dioptas/dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
-    - cd ../../../
+    - cd ../../../../
 ## Customize test commands
 test:
   override:
-    - cd dioptas/tests
+    - cd Dioptas/dioptas/tests
     - py.test
