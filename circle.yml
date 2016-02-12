@@ -10,7 +10,7 @@ machine:
 ## Customize dependencies
 dependencies:
   cache_directories:
-    - /home/ubuntu/miniconda
+    - "miniconda"
 
   override:
     # Download/install conda (if not already cached)
