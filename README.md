@@ -70,4 +70,4 @@ The pyFAI folder can be deleted after this.
 Running the Program
 ------------------
 
-You can start the program by running the Dioptas.py script in the Dioptas_main folder.
+You can start the program by running the Dioptas.py script in the dioptas folder.
