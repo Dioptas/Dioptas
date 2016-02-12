@@ -499,6 +499,14 @@ class CifPhase(object):
             self.comments += self.cif_dictionary['_chemical_formula_structural'].replace(" ", "")
         elif self.cif_dictionary.get('_chemical_formula_analytical'):
             self.comments += self.cif_dictionary['_chemical_formula_analytical'].replace(" ", "")
+        elif self.cif_dictionary.get('_chemical_formula_sum'):
+            self.comments += self.cif_dictionary['_chemical_formula_sum'].replace(" ", "")
+
+        if self.cif_dictionary.get('_symmetry_space_group_name_H-M'):
+            if self.comments=='':
+                self.comments += self.cif_dictionary.get('_symmetry_space_group_name_H-M').replace(" ", "")
+            else:
+                self.comments+= ', ' +self.cif_dictionary.get('_symmetry_space_group_name_H-M').replace(" ", "")
 
         if self.cif_dictionary.get('_chemical_name_structure_type'):
             self.comments += ' - '
@@ -509,8 +517,14 @@ class CifPhase(object):
             if self.comments is not '':
                 self.comments += ', ICSD '
             else:
-                self.comments *= 'ICSD '
+                self.comments += 'ICSD '
             self.comments += self.cif_dictionary['_database_code_icsd']
+        elif self.cif_dictionary.get('_database_code_amcsd'):
+            if self.comments is not '':
+                self.comments += ', amcsd '
+            else:
+                self.comments += 'amcsd '
+            self.comments+= self.cif_dictionary['_database_code_amcsd']
 
 
 def number_between(num, num_low, num_high):
