@@ -26,7 +26,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class TestCifPhase(unittest.TestCase):
+class TestCifModule(unittest.TestCase):
     def test_reading_phase(self):
         fcc_cif = ReadCif(os.path.join(data_path, 'fcc.cif'))
 
@@ -44,7 +44,7 @@ class TestCifPhase(unittest.TestCase):
         self.assertEqual(cif_phase.space_group_number, 225)
 
         self.assertEqual(len(cif_phase.atoms), 8)
-        self.assertEqual(cif_phase.comments, 'HoN - NaCl structure type, ICSD 44776')
+        self.assertEqual(cif_phase.comments, 'HoN, Fm-3m - NaCl structure type, ICSD 44776')
 
     def test_calculating_xrd_pattern_from_cif_file(self):
         fcc_cif = ReadCif(os.path.join(data_path, 'fcc.cif'))
@@ -70,3 +70,12 @@ class TestCifPhase(unittest.TestCase):
         self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 27.53, delta=0.2)
         self.assertAlmostEqual(jcpds_phase.reflections[1].intensity, 100)
         self.assertAlmostEqual(jcpds_phase.reflections[2].intensity, 65.02, delta=0.2)
+
+    def test_reading_american_mineralogist_db_cif(self):
+        cif_converter = CifConverter(0.31)
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(data_path, 'amcsd.cif'))
+        self.assertEqual(jcpds_phase.a0, 5.4631)
+        self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 73.48, delta=0.6)
+        self.assertAlmostEqual(jcpds_phase.reflections[1].intensity, 100)
+        self.assertAlmostEqual(jcpds_phase.reflections[2].intensity, 33.6, delta=0.4)
+        self.assertAlmostEqual(jcpds_phase.reflections[3].intensity, 14.65, delta=0.4)
