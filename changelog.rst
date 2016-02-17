@@ -1,4 +1,9 @@
-0.3.0 (stable 02/06/2016)
+0.3.0a (stable 02/12/2016)
+--------------------------
+Bugfixes:
+    - Dioptas now als reads cif files from the American Mineralogist Crystal Structure Database (AMCSD)
+
+0.3.0 (stable 02/11/2016)
 -------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
