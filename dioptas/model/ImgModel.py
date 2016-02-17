@@ -98,7 +98,6 @@ class ImgModel(QtCore.QObject):
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
-
             im = Image.open(filename)
             self.file_info = self._get_file_info(im)
             self._img_data = np.array(im)[::-1]
@@ -129,11 +128,11 @@ class ImgModel(QtCore.QObject):
         """
         self.background_filename = filename
         try:
+            im = Image.open(filename)
+            self._background_data = np.array(im)[::-1]
+        except IOError:
             self._background_data_fabio = fabio.open(filename)
-            self._background_data = self._background_data_fabio.data[::-1].astype(float)
-        except AttributeError:
-            self._background_data = np.array(Image.open(filename))[::-1].astype(float)
-
+            self._background_data = self._img_data_fabio.data[::-1]
         self._perform_background_transformations()
         self._calculate_img_data()
 
