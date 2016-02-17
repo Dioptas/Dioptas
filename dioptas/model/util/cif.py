@@ -313,6 +313,7 @@ def get_unique_families(hkls):
 
     return unique
 
+
 class CifPhase(object):
     """
     Phase created from a cif dictionary (a cif file can have several phases which can be read as a list by PyCifRw)
@@ -339,7 +340,9 @@ class CifPhase(object):
         self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
 
         self.space_group = cif_dictionary['_symmetry_space_group_name_H-M']
-        self.space_group_number = int(cif_dictionary['_symmetry_Int_Tables_number'])
+        self.space_group_number = cif_dictionary.get('_symmetry_Int_Tables_number')
+        if self.space_group_number is not None:
+            self.space_group_number = int(self.space_group_number)
         self.symmetry = self.get_symmetry_from_space_group_number(self.space_group_number)
 
         self.comments = ''
@@ -348,7 +351,7 @@ class CifPhase(object):
         if '_symmetry_equiv_pos_as_xyz' in cif_dictionary.keys():
             self.symmetry_operations = cif_dictionary['_symmetry_equiv_pos_as_xyz']
         elif '_space_group_symop_operation_xyz' in cif_dictionary.keys():
-            self.symmetry_operations = cif_dictionary['_symmetry_equiv_pos_as_xyz']
+            self.symmetry_operations = cif_dictionary['_space_group_symop_operation_xyz']
 
         for i in range(len(self.symmetry_operations)):
             self.symmetry_operations[i] = self.symmetry_operations[i].replace("/", "./")
@@ -451,24 +454,42 @@ class CifPhase(object):
         return label
 
     def get_symmetry_from_space_group_number(self, number):
-        if number_between(number, 1, 2):
-            return "TRICLINIC"
-        if number_between(number, 3, 15):
-            return "MONOCLINIC"
-        if number_between(number, 16, 74):
-            return "ORTHORHOMBIC"
-        if number_between(number, 75, 142):
-            return "TETRAGONAL"
-        if number_between(number, 143, 167):
-            return "TRIGONAL"
-        if number_between(number, 168, 194):
-            return "HEXAGONAL"
-        if number_between(number, 195, 230):
+        if number is not None:
+            if number_between(number, 1, 2):
+                return "TRICLINIC"
+            if number_between(number, 3, 15):
+                return "MONOCLINIC"
+            if number_between(number, 16, 74):
+                return "ORTHORHOMBIC"
+            if number_between(number, 75, 142):
+                return "TETRAGONAL"
+            if number_between(number, 143, 167):
+                return "TRIGONAL"
+            if number_between(number, 168, 194):
+                return "HEXAGONAL"
+            if number_between(number, 195, 230):
+                if self.alpha == 90 and self.beta == 90 and self.gamma == 90:
+                    return "CUBIC"
+                else:
+                    return "RHOMBOHEDRAL"
+        else:
             if self.alpha == 90 and self.beta == 90 and self.gamma == 90:
-                return "CUBIC"
-            else:
-                return "RHOMBOHEDRAL"
-        return None
+                if self.a == self.c and self.a == self.b:
+                    return 'CUBIC'
+                elif self.a == self.b:
+                    return 'TETRAGONAL'
+                else:
+                    return 'ORTHORHOMBIC'
+            elif self.alpha == 90 and self.beta == 90 and self.gamma == 120:
+                if '6' in self.space_group:
+                    return 'HEXAGONAL'
+                elif '3' in self.space_group:
+                    return 'TRIGONAL'
+            elif self.alpha == 90 and self.gamma == 90:
+                return 'MONOCLINIC'
+            elif self.alpha == 90 and self.beta == 90:
+                return 'MONOCLINIC'
+        return 'TRICLINIC'
 
     def read_file_information(self):
         """
@@ -478,6 +499,14 @@ class CifPhase(object):
             self.comments += self.cif_dictionary['_chemical_formula_structural'].replace(" ", "")
         elif self.cif_dictionary.get('_chemical_formula_analytical'):
             self.comments += self.cif_dictionary['_chemical_formula_analytical'].replace(" ", "")
+        elif self.cif_dictionary.get('_chemical_formula_sum'):
+            self.comments += self.cif_dictionary['_chemical_formula_sum'].replace(" ", "")
+
+        if self.cif_dictionary.get('_symmetry_space_group_name_H-M'):
+            if self.comments=='':
+                self.comments += self.cif_dictionary.get('_symmetry_space_group_name_H-M').replace(" ", "")
+            else:
+                self.comments+= ', ' +self.cif_dictionary.get('_symmetry_space_group_name_H-M').replace(" ", "")
 
         if self.cif_dictionary.get('_chemical_name_structure_type'):
             self.comments += ' - '
@@ -488,8 +517,14 @@ class CifPhase(object):
             if self.comments is not '':
                 self.comments += ', ICSD '
             else:
-                self.comments *= 'ICSD '
+                self.comments += 'ICSD '
             self.comments += self.cif_dictionary['_database_code_icsd']
+        elif self.cif_dictionary.get('_database_code_amcsd'):
+            if self.comments is not '':
+                self.comments += ', amcsd '
+            else:
+                self.comments += 'amcsd '
+            self.comments+= self.cif_dictionary['_database_code_amcsd']
 
 
 def number_between(num, num_low, num_high):
@@ -500,6 +535,7 @@ def number_between(num, num_low, num_high):
     if num >= num_low and num <= num_high:
         return True
     return False
+
 
 def convert_cif_number_to_float(cif_number):
     return float(cif_number.split('(')[0])
