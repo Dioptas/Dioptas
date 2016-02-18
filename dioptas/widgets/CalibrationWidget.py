@@ -212,7 +212,7 @@ class CalibrationWidget(QtGui.QWidget):
         fit2d_widget = self.calibration_control_widget.fit2d_parameters_widget
         fit2d_parameter = {'directDist': float(fit2d_widget.distance_txt.text()),
                            'centerX': float(fit2d_widget.center_x_txt.text()),
-                           'centerY': float(self.f2_center_y_txt.text()),
+                           'centerY': float(fit2d_widget.center_y_txt.text()),
                            'tilt': float(fit2d_widget.tilt_txt.text()),
                            'tiltPlanRotation': float(fit2d_widget.rotation_txt.text()),
                            'wavelength': float(fit2d_widget.wavelength_txt.text()) / 1e10,
