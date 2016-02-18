@@ -1,7 +1,14 @@
-0.3.0a (stable 02/12/2016)
---------------------------
-Bugfixes:
-    - Dioptas now als reads cif files from the American Mineralogist Crystal Structure Database (AMCSD)
+0.3.0c
+------
+    - fixing bug with fit2d parameter input
+
+0.3.0b
+------
+    - fixing bug with background image loading
+
+0.3.0a
+------
+    - adding AMCSD cif compatibility
 
 0.3.0 (stable 02/11/2016)
 -------------------------
