@@ -1,3 +1,15 @@
+0.3.0c
+------
+    - fixing bug with fit2d parameter input
+
+0.3.0b
+------
+    - fixing bug with background image loading
+
+0.3.0a
+------
+    - adding AMCSD cif compatibility
+
 0.3.0 (stable 02/06/2016)
 -------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
