@@ -357,11 +357,11 @@ class CifPhase(object):
             self.symmetry_operations[i] = self.symmetry_operations[i].replace("/", "./")
 
         self._atom_labels = cif_dictionary['_atom_site_label']
-        self._atom_x = [float(s) for s in cif_dictionary['_atom_site_fract_x']]
-        self._atom_y = [float(s) for s in cif_dictionary['_atom_site_fract_y']]
-        self._atom_z = [float(s) for s in cif_dictionary['_atom_site_fract_z']]
+        self._atom_x = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_x']]
+        self._atom_y = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_y']]
+        self._atom_z = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_z']]
         if '_atom_site_occupancy' in cif_dictionary.keys():
-            self._atom_occupancy = [float(s) for s in cif_dictionary['_atom_site_occupancy']]
+            self._atom_occupancy = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_occupancy']]
         else:
             self._atom_occupancy = [1] * len(self._atom_labels)
 
