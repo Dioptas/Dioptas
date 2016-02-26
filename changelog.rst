@@ -1,6 +1,7 @@
 0.3.0d
 ------
     - cif files with errors in atomic coordinates can now be loaded too
+    - fixed some typos
 
 0.3.0c
 ------
