@@ -19,6 +19,7 @@ from __future__ import division, unicode_literals
 
 import os
 import itertools
+import urllib
 from math import degrees
 
 from CifFile import ReadCif
@@ -59,7 +60,8 @@ class CifConverter(object):
         :return: converted jcpds object
         :rtype: jcpds
         """
-        cif_file = ReadCif(filename)
+        file_url = 'file:' + urllib.pathname2url(filename)
+        cif_file = ReadCif(file_url)
         cif_phase = CifPhase(cif_file[cif_file.keys()[0]])
         jcpds_phase = self.convert_cif_phase_to_jcpds(cif_phase)
         jcpds_phase.filename = filename

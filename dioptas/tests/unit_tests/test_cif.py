@@ -15,8 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
 import os
+import unittest
+import urllib
 
 from CifFile import ReadCif
 
@@ -27,9 +28,15 @@ data_path = os.path.join(unittest_path, '../data')
 cif_path = os.path.join(data_path, 'cif')
 
 
+def get_cif_url(cif_filename):
+    file_path = 'file:' + urllib.pathname2url(
+        os.path.join(cif_path, cif_filename))
+    return file_path
+
+
 class TestCifModule(unittest.TestCase):
     def test_reading_phase(self):
-        fcc_cif = ReadCif(os.path.join(cif_path, 'fcc.cif'))
+        fcc_cif = ReadCif(get_cif_url('fcc.cif'))
 
         cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
 
@@ -48,7 +55,7 @@ class TestCifModule(unittest.TestCase):
         self.assertEqual(cif_phase.comments, 'HoN, Fm-3m - NaCl structure type, ICSD 44776')
 
     def test_calculating_xrd_pattern_from_cif_file(self):
-        fcc_cif = ReadCif(os.path.join(cif_path, 'fcc.cif'))
+        fcc_cif = ReadCif(get_cif_url('fcc.cif'))
         cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
         cif_converter = CifConverter(0.31)
         jcpds_phase = cif_converter.convert_cif_phase_to_jcpds(cif_phase)
