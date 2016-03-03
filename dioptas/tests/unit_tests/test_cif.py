@@ -15,8 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
 import os
+import unittest
+import urllib
 
 from CifFile import ReadCif
 
@@ -24,11 +25,18 @@ from model.util.cif import CifPhase, CifConverter
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
+cif_path = os.path.join(data_path, 'cif')
+
+
+def get_cif_url(cif_filename):
+    file_path = 'file:' + urllib.pathname2url(
+        os.path.join(cif_path, cif_filename))
+    return file_path
 
 
 class TestCifModule(unittest.TestCase):
     def test_reading_phase(self):
-        fcc_cif = ReadCif(os.path.join(data_path, 'fcc.cif'))
+        fcc_cif = ReadCif(get_cif_url('fcc.cif'))
 
         cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
 
@@ -47,7 +55,7 @@ class TestCifModule(unittest.TestCase):
         self.assertEqual(cif_phase.comments, 'HoN, Fm-3m - NaCl structure type, ICSD 44776')
 
     def test_calculating_xrd_pattern_from_cif_file(self):
-        fcc_cif = ReadCif(os.path.join(data_path, 'fcc.cif'))
+        fcc_cif = ReadCif(get_cif_url('fcc.cif'))
         cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
         cif_converter = CifConverter(0.31)
         jcpds_phase = cif_converter.convert_cif_phase_to_jcpds(cif_phase)
@@ -58,7 +66,7 @@ class TestCifModule(unittest.TestCase):
 
     def test_loading_cif_phase_and_calculate_jcpds(self):
         cif_converter = CifConverter(0.31)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(data_path, 'fcc.cif'))
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'fcc.cif'))
         self.assertEqual(jcpds_phase.name, 'fcc')
         self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 100, places=4)
         self.assertAlmostEqual(jcpds_phase.reflections[0].d0, 2.814, places=4)
@@ -66,16 +74,21 @@ class TestCifModule(unittest.TestCase):
 
     def test_loading_cif_phase_with_occupancies_specified(self):
         cif_converter = CifConverter(0.31)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(data_path, 'magnesiowustite.cif'))
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'magnesiowustite.cif'))
         self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 27.53, delta=0.2)
         self.assertAlmostEqual(jcpds_phase.reflections[1].intensity, 100)
         self.assertAlmostEqual(jcpds_phase.reflections[2].intensity, 65.02, delta=0.2)
 
     def test_reading_american_mineralogist_db_cif(self):
         cif_converter = CifConverter(0.31)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(data_path, 'amcsd.cif'))
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'amcsd.cif'))
         self.assertEqual(jcpds_phase.a0, 5.4631)
         self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 73.48, delta=0.6)
         self.assertAlmostEqual(jcpds_phase.reflections[1].intensity, 100)
         self.assertAlmostEqual(jcpds_phase.reflections[2].intensity, 33.6, delta=0.4)
         self.assertAlmostEqual(jcpds_phase.reflections[3].intensity, 14.65, delta=0.4)
+
+    def test_read_cif_with_errors_in_atomic_positions(self):
+        cif_converter = CifConverter(0.31, min_d_spacing=1.5, min_intensity=10)
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'apatite.cif'))
+        self.assertEqual(jcpds_phase.a0, 9.628)

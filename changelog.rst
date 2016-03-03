@@ -1,3 +1,9 @@
+0.3.0d (stable 3/3/2016)
+------------------------
+    - cif files with errors in atomic coordinates can now be loaded too
+    - fixed an error with file paths on windows causing it to not load any cif files
+    - fixed some typos
+
 0.3.0c
 ------
     - fixing bug with fit2d parameter input
@@ -10,7 +16,7 @@
 ------
     - adding AMCSD cif compatibility
 
-0.3.0 (stable 02/06/2016)
+0.3.0 (stable 02/11/2016)
 -------------------------
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.

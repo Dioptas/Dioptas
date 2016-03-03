@@ -102,7 +102,7 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.lattice_eos_volume_txt = NumberTextField()
 
         self.add_field(self._parameters_layout, self.lattice_volume_txt, 'V0:', u'Å³', 3, 3)
-        self.add_field(self._parameters_layout, self.lattice_eos_volume_txt, 'V0:', u'Å³', 3, 6)
+        self.add_field(self._parameters_layout, self.lattice_eos_volume_txt, 'V:', u'Å³', 3, 6)
 
         self.lattice_ab_sb = DoubleSpinBoxAlignRight()
         self.lattice_ab_sb.setDecimals(4)
