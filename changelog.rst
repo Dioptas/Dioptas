@@ -2,6 +2,7 @@
 ------
     - cif files with errors in atomic coordinates can now be loaded too
     - fixed some typos
+    - fixed an error with file paths on windows causing it to not load any cif files
 
 0.3.0c
 ------
