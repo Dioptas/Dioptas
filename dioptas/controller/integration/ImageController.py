@@ -143,7 +143,9 @@ class ImageController(object):
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.connect_click_function(self.widget.img_directory_btn, self.img_directory_btn_click)
+
         self.connect_click_function(self.widget.file_info_btn, self.show_file_info)
+        self.connect_click_function(self.widget.move_btn, self.move_stage)
 
         self.connect_click_function(self.widget.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
@@ -308,6 +310,9 @@ class ImageController(object):
     def show_file_info(self):
         self.widget.file_info_widget.raise_widget()
 
+    def move_stage(self):
+        self.widget.move_widget.raise_widget()
+
     def get_integration_unit(self):
         if self.widget.spec_tth_btn.isChecked():
             return '2th_deg'
@@ -405,6 +410,13 @@ class ImageController(object):
         self.widget.img_filename_txt.setText(os.path.basename(self.img_model.filename))
         self.widget.img_directory_txt.setText(os.path.dirname(self.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.img_model.file_info)
+
+        self.widget.move_widget.img_hor_lbl.setText(self.img_model.motors_info['Horizontal'])
+        self.widget.move_widget.img_ver_lbl.setText(self.img_model.motors_info['Vertical'])
+        self.widget.move_widget.img_focus_lbl.setText(self.img_model.motors_info['Focus'])
+        self.widget.move_widget.img_omega_lbl.setText(self.img_model.motors_info['Omega'])
+        self.widget.move_widget.file_creation_date = self.img_model.motors_info['Date']
+
         self.widget.cbn_plot_correction_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
 
