@@ -1,8 +1,8 @@
-0.3.0d
-------
+0.3.0d (stable 3/3/2016)
+------------------------
     - cif files with errors in atomic coordinates can now be loaded too
-    - fixed some typos
     - fixed an error with file paths on windows causing it to not load any cif files
+    - fixed some typos
 
 0.3.0c
 ------
