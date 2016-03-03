@@ -6,20 +6,13 @@ cloc-1.62.pl
 *.suo
 *.user
 *.sln.docstates
-*.tif
 *.mar3450
 *.tiff
-*.jpg
-*.png
 *.data
 *.pyc
-*.poni
-*.xy
 *.csv
 *.ai
 *.psd
-*.jcpds
-*.chi
 *.so
 *.pyd
 *.so.dSYM
@@ -28,7 +21,6 @@ cloc-1.62.pl
 
 log.txt
 .idea
-data/
 releases
 cache
 _build/
