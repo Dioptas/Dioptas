@@ -263,9 +263,6 @@ class MoveStageWidget(QtGui.QWidget):
 
         if ver is None or hor is None or focus is None or omega is None:
             self.epics_update_timer.stop()
-        else:
-            self.move_ver_cb.setChecked(True)
-            self.move_hor_cb.setChecked(True)
 
         self.hor_label.setText('Hor:        ' + str(hor))
         self.ver_label.setText('Ver:        ' + str(ver))
