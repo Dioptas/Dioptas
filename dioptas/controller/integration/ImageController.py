@@ -411,11 +411,14 @@ class ImageController(object):
         self.widget.img_directory_txt.setText(os.path.dirname(self.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.img_model.file_info)
 
-        self.widget.move_widget.img_hor_lbl.setText(self.img_model.motors_info['Horizontal'])
-        self.widget.move_widget.img_ver_lbl.setText(self.img_model.motors_info['Vertical'])
-        self.widget.move_widget.img_focus_lbl.setText(self.img_model.motors_info['Focus'])
-        self.widget.move_widget.img_omega_lbl.setText(self.img_model.motors_info['Omega'])
-        self.widget.move_widget.file_creation_date = self.img_model.motors_info['Date']
+        try:
+            self.widget.move_widget.img_hor_lbl.setText(self.img_model.motors_info['Horizontal'])
+            self.widget.move_widget.img_ver_lbl.setText(self.img_model.motors_info['Vertical'])
+            self.widget.move_widget.img_focus_lbl.setText(self.img_model.motors_info['Focus'])
+            self.widget.move_widget.img_omega_lbl.setText(self.img_model.motors_info['Omega'])
+
+        except KeyError:
+            pass
 
         self.widget.cbn_plot_correction_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
