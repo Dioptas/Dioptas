@@ -169,9 +169,13 @@ class MoveStageWidget(QtGui.QWidget):
         self.setWindowTitle("Move")
         self.setGeometry(400, 400, 280, 180)
 
+        # create buttons
+
         self.connect_epics_btn = QtGui.QPushButton('Connect Epics', self)
-        self.move_btn = QtGui.QPushButton(self)
-        self.move_btn.setText('Move motors')
+        self.move_btn = QtGui.QPushButton('Move motors', self)
+        self.motors_setup_btn = QtGui.QPushButton('Setup', self)
+
+        # Create labels
 
         self.img_pos_label = QtGui.QLabel(self)
         self.img_pos_label.setText('Image postions:')
@@ -199,40 +203,48 @@ class MoveStageWidget(QtGui.QWidget):
         self.omega_label = QtGui.QLabel(self)
         self.omega_label.setText("Omega:")
 
+        # Create checkboxes
+
         self.move_hor_cb = QtGui.QCheckBox(self)
-
         self.move_ver_cb = QtGui.QCheckBox(self)
-
         self.move_focus_cb = QtGui.QCheckBox(self)
         self.move_omega_cb = QtGui.QCheckBox(self)
+
+        # Create grid
 
         grid = QtGui.QGridLayout()
         grid.setVerticalSpacing(10)
         grid.setHorizontalSpacing(20)
-
-        grid.addWidget(self.cur_pos_label, 1,0, 1, 1)
+        grid.addWidget(self.cur_pos_label, 1, 0, 1, 1)
         grid.addWidget(self.hor_label, 2, 0)
         grid.addWidget(self.ver_label, 3, 0)
         grid.addWidget(self.focus_label, 4, 0)
         grid.addWidget(self.omega_label, 5, 0)
         grid.addWidget(self.connect_epics_btn, 6, 0, 1,1)
-
         grid.addWidget(self.move_lbl, 1, 2)
-
         grid.addWidget(self.img_pos_label, 1, 1)
         grid.addWidget(self.move_btn, 6, 1, 1, 1)
-
         grid.addWidget(self.img_hor_lbl, 2, 1)
         grid.addWidget(self.img_ver_lbl, 3, 1)
         grid.addWidget(self.img_focus_lbl, 4, 1)
         grid.addWidget(self.img_omega_lbl, 5, 1)
-
         grid.addWidget(self.move_hor_cb, 2, 2)
         grid.addWidget(self.move_ver_cb, 3, 2)
         grid.addWidget(self.move_focus_cb, 4, 2)
         grid.addWidget(self.move_omega_cb, 5, 2)
+        grid.addWidget(self.motors_setup_btn, 6, 2)
+
+        # Create timer
 
         self.epics_update_timer = QtCore.QTimer(self)
+        self.epics_update_timer.timeout.connect(self.connect_epics)
+
+        # read epics_config
+        self.hor_motor_name = epics_config['sample_position_x']
+        self.ver_motor_name = epics_config['sample_position_y']
+        self.focus_motor_name = epics_config['sample_position_z']
+        self.omega_motor_name = epics_config['sample_position_omega']
+
         self.setLayout(grid)
         self.connect_buttons()
 
@@ -248,39 +260,26 @@ class MoveStageWidget(QtGui.QWidget):
         self.raise_()
 
     def connect_buttons(self):
-        self.connect_epics_btn.clicked.connect(self.connect_epics_btn_clicked)
+        self.connect_epics_btn.clicked.connect(self.connect_epics)
         self.move_btn.clicked.connect(self.move_stage)
-
-    def connect_epics_btn_clicked(self):
-        self.epics_update_timer.timeout.connect(self.connect_epics)
-        self.epics_update_timer.start(1000)
+        self.motors_setup_btn.clicked.connect(self.open_motors_setup_widget)
 
     def connect_epics(self):
-        ver = epics.caget(epics_config['sample_position_y']+'.RBV', as_string=True)
-        hor = epics.caget(epics_config['sample_position_x']+'.RBV', as_string=True)
-        focus = epics.caget(epics_config['sample_position_z']+'.RBV', as_string=True)
-        omega = epics.caget(epics_config['sample_position_omega']+'.RBV', as_string=True)
+        hor = epics.caget(self.hor_motor_name+'.RBV', as_string=True)
+        ver = epics.caget(self.ver_motor_name+'.RBV', as_string=True)
+        focus = epics.caget(self.focus_motor_name+'.RBV', as_string=True)
+        omega = epics.caget(self.omega_motor_name+'.RBV', as_string=True)
 
-        if ver is None or hor is None or focus is None or omega is None:
-            self.epics_update_timer.stop()
+        if ver is not None and hor is not None and focus is not None and omega is not None:
+            self.epics_update_timer.start(1000)
         else:
-            self.move_ver_cb.setChecked(True)
-            self.move_hor_cb.setChecked(True)
+            if self.epics_update_timer.isActive():
+                self.epics_update_timer.stop()
 
         self.hor_label.setText('Hor:        ' + str(hor))
         self.ver_label.setText('Ver:        ' + str(ver))
         self.focus_label.setText('Focus:     ' + str(focus))
         self.omega_label.setText('Omega:   ' + str(omega))
-
-    # def checktime(self):
-    #     file_date = datetime.datetime.strptime(self.file_creation_date, "%B %d, %Y %H:%M:%S")
-    #     now = datetime.datetime.strptime(time.strftime("%B %d, %Y %H:%M:%S", time.localtime()), "%B %d, %Y %H:%M:%S")
-    #
-    #     if (now - file_date).total_seconds() > 36000:
-    #         reply = self.show_continue_abort_message_box('This file was created more than 10 hours ago. Are you sure, you want to move motors?')
-    #         if reply == QtGui.QMessageBox.Abort:
-    #             return False
-    #     return True
 
     def move_stage(self):
 
@@ -295,19 +294,32 @@ class MoveStageWidget(QtGui.QWidget):
 
         if self.check_sample_point_distances(hor_pos, ver_pos, focus_pos):
             if self.move_hor_cb.isChecked():
-                epics.caput(epics_config['sample_position_x']+'.VAL', hor_pos)
+                epics.caput(self.hor_motor_name+'.VAL', hor_pos)
             if self.move_ver_cb.isChecked():
-                epics.caput(epics_config['sample_position_y']+'.VAL', ver_pos)
+                epics.caput(self.ver_motor_name+'.VAL', ver_pos)
             if self.move_focus_cb.isChecked():
-                epics.caput(epics_config['sample_position_z']+'.VAL', focus_pos)
+                epics.caput(self.focus_motor_name+'.VAL', focus_pos)
             if self.move_omega_cb.isChecked():
                 if self.check_conditions() is False:
                     self.show_error_message_box('If you want to rotate the stage, please move mirrors and microscope in the right positions!')
                     return
-                elif omega_pos > -45 or omega_pos <135:
+                elif omega_pos > -45 or omega_pos <-135:
                     self.show_error_message_box('Requested omega angle is not within the limits')
+                    return
                 else:
-                    epics.caput(epics_config['sample_position_omega'], omega_pos)
+                    epics.caput(self.omega_motor_name+'.VAL', omega_pos)
+
+    def open_motors_setup_widget(self):
+        self.motors_setup_widget = MotorsSetup(self)
+        self.motors_setup_widget.setGeometry(400, 680, 280, 180)
+        self.motors_setup_widget.show()
+        self.motors_setup_widget.set_motor_names_btn.clicked.connect(self.get_motors)
+        self.motors_setup_widget.reread_config_btn.clicked.connect(self.get_motors)
+
+
+    def get_motors(self):
+        self.hor_motor_name, self.ver_motor_name, self.focus_motor_name, self.omega_motor_name = self.motors_setup_widget.return_motor_names()
+        self.connect_epics()
 
     def closeEvent(self, QCloseEvent):
         self.epics_update_timer.stop()
@@ -358,6 +370,63 @@ class MoveStageWidget(QtGui.QWidget):
                return False
 
         return True
+
+class MotorsSetup(QtGui.QWidget):
+    def __init__(self, parent = None):
+        super(MotorsSetup, self).__init__(parent)
+
+        self.setWindowTitle("Motors setup")
+
+        self.hor_lbl = QtGui.QLabel('Hor:', self)
+        self.ver_lbl = QtGui.QLabel('Ver:', self)
+        self.focus_lbl = QtGui.QLabel('Focus:', self)
+        self.omega_lbl = QtGui.QLabel('Omega:', self)
+
+        self.hor_motor_txt = QtGui.QLineEdit(epics_config['sample_position_x'], self)
+        self.ver_motor_txt = QtGui.QLineEdit(epics_config['sample_position_y'], self)
+        self.focus_motor_txt = QtGui.QLineEdit(epics_config['sample_position_z'], self)
+        self.omega_motor_txt = QtGui.QLineEdit(epics_config['sample_position_omega'], self)
+
+        self.set_motor_names_btn = QtGui.QPushButton('Set', self)
+        self.reread_config_btn = QtGui.QPushButton('Default config', self)
+
+        grid = QtGui.QGridLayout()
+        grid.setVerticalSpacing(10)
+        grid.setHorizontalSpacing(10)
+
+        grid.addWidget(self.hor_lbl, 1, 0)
+        grid.addWidget(self.ver_lbl, 2, 0)
+        grid.addWidget(self.focus_lbl,3,0)
+        grid.addWidget(self.omega_lbl,4,0)
+        grid.addWidget(self.hor_motor_txt, 1, 1)
+        grid.addWidget(self.ver_motor_txt, 2, 1)
+        grid.addWidget(self.focus_motor_txt, 3, 1)
+        grid.addWidget(self.omega_motor_txt, 4, 1)
+        grid.addWidget(self.set_motor_names_btn, 5, 1)
+        grid.addWidget(self.reread_config_btn, 5, 0)
+
+        self.setLayout(grid)
+
+        self.reread_config_btn.clicked.connect(self.reread_config)
+
+
+        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
+                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
+                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
+        self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.activateWindow()
+
+
+    def return_motor_names(self):
+        return str(self.hor_motor_txt.text()), str(self.ver_motor_txt.text()), str(self.focus_motor_txt.text()), str(self.omega_motor_txt.text())
+
+    def reread_config(self):
+        self.hor_motor_txt.setText(epics_config['sample_position_x'])
+        self.ver_motor_txt.setText(epics_config['sample_position_y'])
+        self.focus_motor_txt.setText(epics_config['sample_position_z'])
+        self.omega_motor_txt.setText(epics_config['sample_position_omega'])
+
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
