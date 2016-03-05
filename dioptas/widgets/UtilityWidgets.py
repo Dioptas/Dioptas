@@ -358,9 +358,9 @@ class MoveStageWidget(QtGui.QWidget):
         return msg_box.result()
 
     def check_sample_point_distances(self, posx, posy, posz):
-        curx = float(epics.caget(epics_config['sample_position_x']+'.RBV', as_string=True))
-        cury = float(epics.caget(epics_config['sample_position_y']+'.RBV', as_string=True))
-        curz = float(epics.caget(epics_config['sample_position_z']+'.RBV', as_string=True))
+        curx = float(epics.caget(self.hor_motor_name+'.RBV', as_string=True))
+        cury = float(epics.caget(self.ver_motor_name+'.RBV', as_string=True))
+        curz = float(epics.caget(self.focus_motor_name+'.RBV', as_string=True))
 
         largest_distance = math.sqrt((float(posx)-curx)**2+(float(posy)-cury)**2+(float(posz)-curz)**2)
 
