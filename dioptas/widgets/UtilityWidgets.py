@@ -312,6 +312,10 @@ class MoveStageWidget(QtGui.QWidget):
     def open_motors_setup_widget(self):
         self.motors_setup_widget = MotorsSetup(self)
         self.motors_setup_widget.setGeometry(400, 680, 280, 180)
+        self.motors_setup_widget.hor_motor_txt.setText(self.hor_motor_name)
+        self.motors_setup_widget.ver_motor_txt.setText(self.ver_motor_name)
+        self.motors_setup_widget.focus_motor_txt.setText(self.focus_motor_name)
+        self.motors_setup_widget.omega_motor_txt.setText(self.omega_motor_name)
         self.motors_setup_widget.show()
         self.motors_setup_widget.set_motor_names_btn.clicked.connect(self.get_motors)
         self.motors_setup_widget.reread_config_btn.clicked.connect(self.get_motors)
@@ -382,10 +386,10 @@ class MotorsSetup(QtGui.QWidget):
         self.focus_lbl = QtGui.QLabel('Focus:', self)
         self.omega_lbl = QtGui.QLabel('Omega:', self)
 
-        self.hor_motor_txt = QtGui.QLineEdit(epics_config['sample_position_x'], self)
-        self.ver_motor_txt = QtGui.QLineEdit(epics_config['sample_position_y'], self)
-        self.focus_motor_txt = QtGui.QLineEdit(epics_config['sample_position_z'], self)
-        self.omega_motor_txt = QtGui.QLineEdit(epics_config['sample_position_omega'], self)
+        self.hor_motor_txt = QtGui.QLineEdit(self)
+        self.ver_motor_txt = QtGui.QLineEdit(self)
+        self.focus_motor_txt = QtGui.QLineEdit(self)
+        self.omega_motor_txt = QtGui.QLineEdit(self)
 
         self.set_motor_names_btn = QtGui.QPushButton('Set', self)
         self.reread_config_btn = QtGui.QPushButton('Default config', self)
