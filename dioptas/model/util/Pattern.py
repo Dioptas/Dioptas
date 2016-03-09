@@ -195,6 +195,11 @@ class Pattern(QtCore.QObject):
             self._scaling = value
         self.recalculate_pattern()
 
+    def limit(self, x_min, x_max):
+        x, y = self.data
+        return Pattern(x[np.where((x_min < x) & (x < x_max))],
+                       y[np.where((x_min < x) & (x < x_max))])
+
     @property
     def offset(self):
         return self._offset
