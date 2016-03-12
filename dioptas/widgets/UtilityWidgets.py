@@ -303,7 +303,7 @@ class MoveStageWidget(QtGui.QWidget):
                 if self.check_conditions() is False:
                     self.show_error_message_box('If you want to rotate the stage, please move mirrors and microscope in the right positions!')
                     return
-                elif omega_pos > -45 or omega_pos <-135:
+                elif float(omega_pos) > -45.0 or float(omega_pos) < -135.0:
                     self.show_error_message_box('Requested omega angle is not within the limits')
                     return
                 else:

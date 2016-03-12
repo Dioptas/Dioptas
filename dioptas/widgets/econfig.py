@@ -3,9 +3,7 @@
 #z - focus
 
 epics_config = {
-    'sample_position_x': '13RAMAN2:m1',
-    'sample_position_y': '13RAMAN2:m2',
-    'sample_position_z': '13RAMAN2:m3',
-    'sample_position_omega': '13RAMAN2:m4'}
-
-
+    'sample_position_x': '13IDD:m81',
+    'sample_position_y': '13IDD:m83',
+    'sample_position_z': '13IDD:m82',
+    'sample_position_omega': '13IDD:m96'}
