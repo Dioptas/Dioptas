@@ -280,7 +280,7 @@ class ImgModelTest(unittest.TestCase):
         self.assertTrue(np.array_equal(self.img_model.get_img_data(), pre_transformed_data))
 
         pre_transformed_data = self.img_model.get_img_data()
-        self.img_model.flip_img_vertdically()
+        self.img_model.flip_img_vertically()
         self.img_model.flip_img_horizontally()
         self.img_model.rotate_img_m90()
         self.img_model.rotate_img_p90()
