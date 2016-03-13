@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 
 import numpy as np
 from PIL import Image
@@ -24,7 +25,9 @@ from PyQt4 import QtCore
 
 import fabio
 
-from model.util.HelperModule import  rotate_matrix_p90, rotate_matrix_m90, \
+from .util.spe import SpeFile
+
+from model.util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
 
 from model.util.ImgCorrection import ImgCorrectionManager
@@ -102,8 +105,12 @@ class ImgModel(QtCore.QObject):
             self.file_info = self._get_file_info(im)
             self._img_data = np.array(im)[::-1]
         except IOError:
-            self._img_data_fabio = fabio.open(filename)
-            self._img_data = self._img_data_fabio.data[::-1]
+            if os.path.splitext(filename)[1].lower() == '.spe':
+                spe = SpeFile(filename)
+                self._img_data = spe.img
+            else:
+                self._img_data_fabio = fabio.open(filename)
+                self._img_data = self._img_data_fabio.data[::-1]
         self.file_name_iterator.update_filename(filename)
 
         self._perform_img_transformations()
