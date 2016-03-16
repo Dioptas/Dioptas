@@ -28,6 +28,7 @@ from model.util.ImgCorrection import DummyCorrection
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
+spe_path = os.path.join(data_path, 'spe')
 
 app = QtGui.QApplication([])
 
@@ -292,6 +293,10 @@ class ImgModelTest(unittest.TestCase):
     def test_loading_a_tagged_tif_file_and_retrieving_info_string(self):
         self.img_model.load(os.path.join(data_path, "attrib.tif"))
         self.assertIn("areaDetector", self.img_model.file_info)
+
+    def test_loading_spe_file(self):
+        self.img_model.load(os.path.join(spe_path, 'CeO2_PI_CCD_Mo.SPE'))
+        self.assertEqual(self.img_model.img_data.shape, (1042, 1042))
 
 
 if __name__ == '__main__':
