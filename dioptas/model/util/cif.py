@@ -341,7 +341,7 @@ class CifPhase(object):
 
         self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
 
-        self.space_group = cif_dictionary['_symmetry_space_group_name_H-M']
+        self.space_group = cif_dictionary['_symmetry_space_group_name_H-M_alt']
         self.space_group_number = cif_dictionary.get('_symmetry_Int_Tables_number')
         if self.space_group_number is not None:
             self.space_group_number = int(self.space_group_number)
