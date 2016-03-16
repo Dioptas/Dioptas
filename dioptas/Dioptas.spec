@@ -46,7 +46,6 @@ if _platform == "darwin":
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtGui.4.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libpng16.16.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtSvg.4.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libmkl_avx2.dylib'), '.')
     ))
 
 a = Analysis(['Dioptas.py'],
