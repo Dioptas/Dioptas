@@ -1,0 +1,616 @@
+data_theta-Fe2O3_73.8GPa
+
+_publ_requested_journal          'Nature Communications'
+
+_publ_contact_author_name        'Elena Bykova'
+_publ_contact_author_address     
+;Bavarian Research Institute of Experimental Geochemistry and Geophysics, 
+University of Bayreuth, Universitaetsstrasse 30
+Bayreuth, D-95440
+Germany
+;
+_publ_contact_author_email       knilav@gmail.com
+_publ_contact_author_phone       49(0)921553729
+_publ_contact_author_fax         49(0)921553770
+loop_
+_publ_author_name
+_publ_author_address
+'Bykova, Elena'
+;Bavarian Research Institute of Experimental Geochemistry and Geophysics, 
+University of Bayreuth, Universitaetsstrasse 30
+Bayreuth, D-95440
+Germany
+;
+'Dubrovinskaia, N.'
+;Laboratory of Crystallography 
+Material Physics and Technology at Extreme Conditions, University of Bayreuth
+Universitaetsstrasse 30
+Bayreuth, D-95440
+Germany
+;
+'Dubrovinsky, L.'
+;Bavarian Research Institute of Experimental Geochemistry and Geophysics, 
+University of Bayreuth
+Universitaetsstrasse 30
+Bayreuth, D-95440
+Germany
+;
+'Bykov, M.'
+;Laboratory of Crystallography, University of Bayreuth 
+Universitaetsstrasse 30
+Bayreuth, D-95440
+Germany
+;
+'McCammon C.'
+;Bavarian Research Institute of Experimental Geochemistry and Geophysics, 
+University of Bayreuth
+Universitaetsstrasse 30
+Bayreuth, D-95440
+Germany
+;
+'Ovsyannikov S.V.'
+;Bavarian Research Institute of Experimental Geochemistry and Geophysics, 
+University of Bayreuth
+Universitaetsstrasse 30
+Bayreuth, D-95440
+Germany
+;
+'Liermann, H.-P.'
+;P02.2 Extreme Conditions Beamline, Deutsches Elektronen-Synchrotron
+Notkestra\&se 85,
+Hamburg, D-22607
+Germany
+;
+'Kupenko I.'
+;Nuclear Resonance Group, 
+European Synchrotron Radiation Facility, 
+BP 220, Grenoble F-38043, 
+France
+;
+'Chumakov A.I.'
+;Nuclear Resonance Group, 
+European Synchrotron Radiation Facility, 
+BP 220, Grenoble F-38043, 
+France
+;
+'R\"uffer R.'
+;Nuclear Resonance Group, 
+European Synchrotron Radiation Facility, 
+BP 220, Grenoble F-38043, 
+France
+;
+'Hanfland M.'
+;European Synchrotron Radiation Facility, 
+BP 220, Grenoble F-38043, 
+France
+;
+'Prakapenka, V.'
+;Center for Advanced Radiation Sources, University of Chicago, 
+Argonne National Laboratory, Building 434A, 9700 South Cass Ave
+Argonne, IL 60437
+USA
+;
+
+ 
+_audit_creation_method            'SHELXL-2014/7'
+_shelx_SHELXL_version_number      '2014/7'
+_chemical_name_systematic        'iron(III) oxide'
+_chemical_name_common            'theta-Fe2O3'
+_chemical_formula_moiety         'Fe2 O3'
+_chemical_formula_sum            'Fe2 O3'
+_chemical_melting_point          ?
+
+_exptl_crystal_description       prism
+_exptl_crystal_colour            'dark red'
+
+_diffrn_ambient_temperature      296(2)
+_diffrn_ambient_pressure         73800000
+_chemical_formula_weight         159.70
+
+loop_
+ _atom_type_symbol
+ _atom_type_description
+ _atom_type_scat_dispersion_real
+ _atom_type_scat_dispersion_imag
+ _atom_type_scat_source
+ 'O'  'O'   0.0017   0.0018
+ 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+ 'Fe'  'Fe'   0.1981   0.3055
+ 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+ 
+_space_group_crystal_system       orthorhombic
+_space_group_IT_number            41
+_space_group_name_H-M_alt         'A b a 2'
+_space_group_name_Hall            'A 2 -2ac'
+ 
+_shelx_space_group_comment
+;
+The symmetry employed for this shelxl refinement is uniquely defined
+by the following loop, which should always be used as a source of
+symmetry information in preference to the above space-group names.
+They are only intended as comments.
+;
+ 
+loop_
+ _space_group_symop_operation_xyz
+ 'x, y, z'
+ '-x, -y, z'
+ '-x+1/2, y, z+1/2'
+ 'x+1/2, -y, z+1/2'
+ 'x, y+1/2, z+1/2'
+ '-x, -y+1/2, z+1/2'
+ '-x+1/2, y+1/2, z+1'
+ 'x+1/2, -y+1/2, z+1'
+ 
+_cell_length_a                    6.524(9)
+_cell_length_b                    4.702(3)
+_cell_length_c                    4.603(7)
+_cell_angle_alpha                 90
+_cell_angle_beta                  90
+_cell_angle_gamma                 90
+_cell_volume                      141.2(3)
+_cell_formula_units_Z             4
+_cell_measurement_temperature     296(2)
+_cell_measurement_reflns_used    49
+_cell_measurement_theta_min      3.1410
+_cell_measurement_theta_max      14.0320
+ 
+
+_exptl_crystal_density_meas       ?
+_exptl_crystal_density_method     ?
+_exptl_crystal_density_diffrn     7.513          
+_exptl_crystal_F_000              304
+_exptl_transmission_factor_min    ?
+_exptl_transmission_factor_max    ?
+_exptl_crystal_size_max          0.03
+_exptl_crystal_size_mid          0.02
+_exptl_crystal_size_min          0.005
+_exptl_absorpt_coefficient_mu     4.327
+_shelx_estimated_absorpt_T_min    ?
+_shelx_estimated_absorpt_T_max    ?
+_exptl_absorpt_correction_type    none
+_exptl_absorpt_correction_T_min   ?
+_exptl_absorpt_correction_T_max   ?
+_exptl_absorpt_process_details    ?
+
+_diffrn_radiation_probe          x-ray
+_diffrn_radiation_type           synchrotron
+_diffrn_radiation_wavelength     0.4126
+_diffrn_source                   synchrotron
+_diffrn_source_type              'ESRF, Beamline ID09A'
+_diffrn_measurement_device_type  
+;
+MAR-CrysAlisPro-abstract goniometer: imported MAR images
+;
+_diffrn_measurement_method       '\w scans'
+_diffrn_detector_area_resol_mean  ?
+_diffrn_reflns_number             54
+_diffrn_reflns_av_unetI/netI      0.0362
+_diffrn_reflns_av_R_equivalents   0.0329
+_diffrn_reflns_limit_h_min        -7
+_diffrn_reflns_limit_h_max        4
+_diffrn_reflns_limit_k_min        -5
+_diffrn_reflns_limit_k_max        5
+_diffrn_reflns_limit_l_min        -4
+_diffrn_reflns_limit_l_max        5
+_diffrn_reflns_theta_min          4.028
+_diffrn_reflns_theta_max          15.132
+_diffrn_reflns_theta_full         15.000
+_diffrn_measured_fraction_theta_max   0.440
+_diffrn_measured_fraction_theta_full  0.450
+_diffrn_reflns_Laue_measured_fraction_max    0.440
+_diffrn_reflns_Laue_measured_fraction_full   0.450
+_diffrn_reflns_point_group_measured_fraction_max   0.436
+_diffrn_reflns_point_group_measured_fraction_full  0.447
+_reflns_number_total              45
+_reflns_number_gt                 39
+_reflns_threshold_expression      'I > 2\s(I)'
+_reflns_Friedel_coverage          0.757
+_reflns_Friedel_fraction_max      0.431
+_reflns_Friedel_fraction_full     0.443
+ 
+_reflns_special_details
+;
+ Reflections were merged by SHELXL according to the crystal
+ class for the calculation of statistics and refinement.
+ 
+ _reflns_Friedel_fraction is defined as the number of unique
+ Friedel pairs measured divided by the number that would be
+ possible theoretically, ignoring centric projections and
+ systematic absences.
+;
+ 
+_computing_data_collection       
+;
+CrysAlisPro, Agilent Technologies,
+Version 1.171.36.28 (release 01-02-2013 CrysAlis171 .NET)
+(compiled Feb  1 2013,16:14:44)
+;
+_computing_cell_refinement       
+;
+CrysAlisPro, Agilent Technologies,
+Version 1.171.36.28 (release 01-02-2013 CrysAlis171 .NET)
+(compiled Feb  1 2013,16:14:44)
+;
+_computing_data_reduction        
+;
+CrysAlisPro, Agilent Technologies,
+Version 1.171.36.28 (release 01-02-2013 CrysAlis171 .NET)
+(compiled Feb  1 2013,16:14:44)
+;
+_computing_structure_solution     'SHELXS-97 (Sheldrick, 1990)'
+_computing_structure_refinement 'SHELXL-2014/7 (Sheldrick, 2014)'
+_computing_molecular_graphics     ?
+_computing_publication_material   ?
+_refine_special_details
+;
+ Refined as a 2-component inversion twin.
+;
+_refine_ls_structure_factor_coef  Fsqd
+_refine_ls_matrix_type            full
+_refine_ls_weighting_scheme       calc
+_refine_ls_weighting_details
+'w=1/[\s^2^(Fo^2^)+60.7391P] where P=(Fo^2^+2Fc^2^)/3'
+_atom_sites_solution_primary      direct
+_atom_sites_solution_secondary    difmap
+
+_refine_ls_extinction_method      none
+_refine_ls_extinction_coef        .
+_refine_ls_abs_structure_details
+;
+ Refined as an inversion twin.
+;
+
+
+_refine_ls_number_reflns          45
+_refine_ls_number_parameters      12
+_refine_ls_number_restraints      1
+_refine_ls_R_factor_all           0.1058
+_refine_ls_R_factor_gt            0.0943
+_refine_ls_wR_factor_ref          0.1736
+_refine_ls_wR_factor_gt           0.1669
+_refine_ls_goodness_of_fit_ref    1.236
+_refine_ls_restrained_S_all       1.218
+_refine_ls_shift/su_max           0.000
+_refine_ls_shift/su_mean          0.000
+ 
+loop_
+ _atom_site_label
+ _atom_site_type_symbol
+ _atom_site_fract_x
+ _atom_site_fract_y
+ _atom_site_fract_z
+ _atom_site_U_iso_or_equiv
+ _atom_site_adp_type
+ _atom_site_occupancy
+ _atom_site_site_symmetry_order  
+ _atom_site_calc_flag
+ _atom_site_refinement_flags_posn
+ _atom_site_refinement_flags_adp
+ _atom_site_refinement_flags_occupancy
+ _atom_site_disorder_assembly
+ _atom_site_disorder_group
+Fe1 Fe 0.3906(15) 0.2905(15) 0.406(8) 0.026(3) Uiso 1 1 d . . . . .
+O1 O 0.355(7) 0.150(6) 0.049(5) 0.002(8) Uiso 1 1 d . . . . .
+O2 O 0.5000 0.5000 0.127(15) 0.018(14) Uiso 1 2 d S . P . .
+ 
+_geom_special_details
+;
+ All esds (except the esd in the dihedral angle between two l.s. planes)
+ are estimated using the full covariance matrix.  The cell esds are taken
+ into account individually in the estimation of esds in distances, angles
+ and torsion angles; correlations between esds in cell parameters are only
+ used when they are defined by crystal symmetry.  An approximate (isotropic)
+ treatment of cell esds is used for estimating esds involving l.s. planes.
+;
+ 
+loop_
+ _geom_bond_atom_site_label_1
+ _geom_bond_atom_site_label_2
+ _geom_bond_distance
+ _geom_bond_site_symmetry_2
+ _geom_bond_publ_flag
+Fe1 O2 1.77(6) . ?
+Fe1 O1 1.79(5) . ?
+Fe1 O1 1.81(4) 6_655 ?
+Fe1 O1 1.83(3) 5 ?
+Fe1 O2 1.85(4) 5_545 ?
+Fe1 O1 1.85(5) 3 ?
+Fe1 Fe1 2.433(16) 2_665 ?
+Fe1 Fe1 2.735(11) 6_654 ?
+Fe1 Fe1 2.735(11) 6_655 ?
+Fe1 Fe1 2.943(13) 3_554 ?
+Fe1 Fe1 2.943(13) 3 ?
+O1 Fe1 1.81(4) 6_654 ?
+O1 Fe1 1.83(3) 5_544 ?
+O1 Fe1 1.85(5) 3_554 ?
+O2 Fe1 1.77(6) 2_665 ?
+O2 Fe1 1.85(4) 6_654 ?
+O2 Fe1 1.85(4) 5_554 ?
+ 
+loop_
+ _geom_angle_atom_site_label_1
+ _geom_angle_atom_site_label_2
+ _geom_angle_atom_site_label_3
+ _geom_angle
+ _geom_angle_site_symmetry_1
+ _geom_angle_site_symmetry_3
+ _geom_angle_publ_flag
+O2 Fe1 O1 66(2) . . ?
+O2 Fe1 O1 78.9(15) . 6_655 ?
+O1 Fe1 O1 120.9(15) . 6_655 ?
+O2 Fe1 O1 78.4(15) . 5 ?
+O1 Fe1 O1 131(2) . 5 ?
+O1 Fe1 O1 81(2) 6_655 5 ?
+O2 Fe1 O2 131.0(11) . 5_545 ?
+O1 Fe1 O2 106(2) . 5_545 ?
+O1 Fe1 O2 63.8(12) 6_655 5_545 ?
+O1 Fe1 O2 122(3) 5 5_545 ?
+O2 Fe1 O1 143.7(17) . 3 ?
+O1 Fe1 O1 94.7(17) . 3 ?
+O1 Fe1 O1 136(3) 6_655 3 ?
+O1 Fe1 O1 95.2(14) 5 3 ?
+O2 Fe1 O1 82.7(13) 5_545 3 ?
+O2 Fe1 Fe1 46.5(18) . 2_665 ?
+O1 Fe1 Fe1 112.1(11) . 2_665 ?
+O1 Fe1 Fe1 48.4(10) 6_655 2_665 ?
+O1 Fe1 Fe1 47.7(13) 5 2_665 ?
+O2 Fe1 Fe1 111.8(7) 5_545 2_665 ?
+O1 Fe1 Fe1 142.7(12) 3 2_665 ?
+O2 Fe1 Fe1 41.9(11) . 6_654 ?
+O1 Fe1 Fe1 40.8(14) . 6_654 ?
+O1 Fe1 Fe1 81.3(17) 6_655 6_654 ?
+O1 Fe1 Fe1 119.9(12) 5 6_654 ?
+O2 Fe1 Fe1 99.1(19) 5_545 6_654 ?
+O1 Fe1 Fe1 134.5(13) 3 6_654 ?
+Fe1 Fe1 Fe1 78.8(4) 2_665 6_654 ?
+O2 Fe1 Fe1 118.5(15) . 6_655 ?
+O1 Fe1 Fe1 142.3(13) . 6_655 ?
+O1 Fe1 Fe1 40.2(15) 6_655 6_655 ?
+O1 Fe1 Fe1 83.8(16) 5 6_655 ?
+O2 Fe1 Fe1 39.8(16) 5_545 6_655 ?
+O1 Fe1 Fe1 95.8(13) 3 6_655 ?
+Fe1 Fe1 Fe1 78.8(4) 2_665 6_655 ?
+Fe1 Fe1 Fe1 114.6(7) 6_654 6_655 ?
+O2 Fe1 Fe1 71.6(15) . 3_554 ?
+O1 Fe1 Fe1 36.8(14) . 3_554 ?
+O1 Fe1 Fe1 149.0(17) 6_655 3_554 ?
+O1 Fe1 Fe1 101.7(16) 5 3_554 ?
+O2 Fe1 Fe1 132.2(14) 5_545 3_554 ?
+O1 Fe1 Fe1 74.9(13) 3 3_554 ?
+Fe1 Fe1 Fe1 111.45(13) 2_665 3_554 ?
+Fe1 Fe1 Fe1 70.57(12) 6_654 3_554 ?
+Fe1 Fe1 Fe1 169.6(5) 6_655 3_554 ?
+O2 Fe1 Fe1 145.0(9) . 3 ?
+O1 Fe1 Fe1 129.6(13) . 3 ?
+O1 Fe1 Fe1 106.7(16) 6_655 3 ?
+O1 Fe1 Fe1 68.8(12) 5 3 ?
+O2 Fe1 Fe1 79.0(17) 5_545 3 ?
+O1 Fe1 Fe1 35.3(13) 3 3 ?
+Fe1 Fe1 Fe1 111.45(13) 2_665 3 ?
+Fe1 Fe1 Fe1 169.6(5) 6_654 3 ?
+Fe1 Fe1 Fe1 70.57(12) 6_655 3 ?
+Fe1 Fe1 Fe1 102.9(6) 3_554 3 ?
+Fe1 O1 Fe1 99(2) . 6_654 ?
+Fe1 O1 Fe1 131(2) . 5_544 ?
+Fe1 O1 Fe1 83.9(16) 6_654 5_544 ?
+Fe1 O1 Fe1 108.0(18) . 3_554 ?
+Fe1 O1 Fe1 127(2) 6_654 3_554 ?
+Fe1 O1 Fe1 108(2) 5_544 3_554 ?
+Fe1 O2 Fe1 87(4) . 2_665 ?
+Fe1 O2 Fe1 98.3(5) . 6_654 ?
+Fe1 O2 Fe1 131.0(11) 2_665 6_654 ?
+Fe1 O2 Fe1 131.0(11) . 5_554 ?
+Fe1 O2 Fe1 98.3(5) 2_665 5_554 ?
+Fe1 O2 Fe1 113(4) 6_654 5_554 ?
+ 
+_refine_diff_density_max    1.425
+_refine_diff_density_min   -1.786
+_refine_diff_density_rms    0.446
+
+_shelx_res_file
+;
+
+    test.res created by SHELXL-2014/7
+
+TITL test in Aba2
+CELL 0.41260 6.5244 4.7016 4.6030 90.000 90.000 90.000
+ZERR 4.0000 0.0089 0.0034 0.0074 0.000 0.000 0.000
+LATT -5
+SYMM -X, -Y, Z
+SYMM 0.5-X, Y, 0.5+Z
+SYMM 0.5+X, -Y, 0.5+Z
+SFAC O FE
+DISP     Fe    0.19812    0.30548       748.44
+DISP     O     0.00169    0.00181        10.21
+UNIT 12 8
+MERG 2
+FMAP 2
+GRID
+PLAN 20
+TEMP 23
+TWIN
+OMIT    6 0 -4
+OMIT    4 2 4
+OMIT    4 0 -2
+OMIT    3 2 0
+L.S. 10
+ACTA 30
+WGHT    0.000000   60.739098
+BASF   0.46387
+FVAR       0.34092
+FE1   2    0.390566    0.290468    0.405539    11.00000    0.02585
+O1    1    0.354629    0.149802    0.048720    11.00000    0.00175
+O2    1    0.500000    0.500000    0.126635    10.50000    0.01809
+HKLF 4
+
+REM  test in Aba2
+REM R1 =  0.0943 for      39 Fo > 4sig(Fo)  and  0.1058 for all      45 data
+REM     12 parameters refined using      1 restraints
+
+END
+
+WGHT      0.0000     60.7393
+
+REM Highest difference peak  1.425,  deepest hole -1.786,  1-sigma level  0.446
+Q1    1   0.5166  0.1380  0.4072  11.00000  0.05    1.42
+Q2    1   0.5000  0.0000  0.1363  10.50000  0.05    1.38
+Q3    1   0.3436  0.2793 -0.1838  11.00000  0.05    1.36
+Q4    1   0.3422  0.2747 -0.0297  11.00000  0.05    1.30
+Q5    1   0.2570  0.2316  0.1454  11.00000  0.05    1.10
+Q6    1   0.3070  0.3413  0.3971  11.00000  0.05    1.02
+Q7    1   0.4955  0.3223  0.3697  11.00000  0.05    0.81
+Q8    1   0.3565  0.1233  0.5506  11.00000  0.05    0.71
+Q9    1   0.3247  0.0422  0.1880  11.00000  0.05    0.67
+Q10   1   0.2321  0.0873 -0.1017  11.00000  0.05    0.66
+Q11   1   0.6826  0.5483  0.1220  11.00000  0.05    0.63
+Q12   1   0.4016  0.5445  0.3099  11.00000  0.05    0.56
+Q13   1   0.4250  0.3422  0.6941  11.00000  0.05    0.53
+Q14   1   0.3712  0.3640  0.5676  11.00000  0.05    0.52
+Q15   1   0.4308  0.1909  0.0884  11.00000  0.05    0.51
+Q16   1   0.4223  0.6778  0.2008  11.00000  0.05    0.45
+Q17   1   0.4005  0.0839  0.0529  11.00000  0.05    0.40
+;
+_shelx_res_checksum   60920
+
+_shelx_hkl_file
+;
+   0   2   0 1702.21   23.92
+   1   2   0   30.76    3.53
+  -1  -2   0   19.69    1.96
+  -2  -2   0    3.04    1.23
+  -3  -2   0   29.11    2.98
+   0   3   0    0.05    0.16
+   1   3   0   -0.08    0.48
+   2   3   0   -0.07    0.29
+  -2  -3   0   -0.09    0.42
+  -3  -3   0   -0.55    1.06
+  -4  -3   0   -0.34    1.03
+  -5  -3   0    0.71    0.51
+   0   4   0   79.28    8.21
+   1   4   0  145.88   11.13
+   2   4   0   34.26    4.75
+   3   4   0  223.84   10.47
+  -3  -4   0  258.90   10.96
+  -4  -4   0   14.87    2.97
+  -5  -4   0    0.52    0.49
+   2   5   0    0.76    2.05
+  -1   0  -1    0.59    0.31
+   1   0   1    0.15    0.09
+  -2   0  -1    0.00    0.08
+   0  -1   1  114.63    7.12
+   0   1  -1  106.63    5.55
+   1  -1   1  116.13    7.84
+  -1  -1   1  118.58    5.41
+  -1   1  -1  121.28    7.74
+  -2   1  -1 1484.48   21.90
+   0   2  -1    0.02    0.18
+   0  -2   1    0.21    0.30
+  -1   2  -1   54.53    5.66
+   1  -2   1   55.77    5.54
+  -2  -2   1   29.89    2.52
+  -2   2  -1   19.85    3.16
+   0  -3   1   33.08    5.03
+   0   3  -1   56.65    8.54
+  -1  -3   1  573.74   19.16
+   1   3  -1  537.84   16.34
+  -1   3  -1  516.08   20.33
+   2   3  -1  515.92   17.84
+  -2  -3   1  508.38   16.26
+  -3  -3   1  150.27    8.00
+  -4  -3   1   44.08    4.63
+   1   4  -1   10.98    3.05
+  -1  -4   1    6.30    1.68
+   1   4   1   12.73    2.72
+  -2  -4   1    3.93    1.75
+   2   4   1   -1.31    3.23
+   2   4  -1    3.55    1.66
+  -3  -4   1    0.30    0.76
+  -4  -4   1   -0.12    0.63
+  -5  -4   1    8.29    3.09
+   1   5   1  147.70   10.77
+  -2  -5   1   37.44   33.14
+  -3  -5   1   42.46    5.75
+  -4  -5   1    1.85    1.46
+   1   0   2    0.66    0.65
+   2   0   2   27.71    3.48
+  -2   0  -2   33.14    2.59
+   3   0   2   -0.44    0.47
+  -3   0  -2    0.13    0.36
+  -4   0  -2 1937.85   53.72
+  -5   0  -2    0.52    0.45
+   0   1  -2   78.31    6.87
+   0  -1   2   50.79    3.72
+   1  -1   2   96.63    6.76
+  -1   1  -2  131.34    5.95
+   2  -1   2    1.23    0.86
+   2   1   2    0.39    0.23
+  -2   1  -2    0.66    0.53
+   3   1   2   -0.20    0.26
+  -3   1  -2    1.42    0.88
+  -3  -1  -2    0.63    0.33
+  -4   1  -2    0.29    0.58
+  -4  -1  -2    0.07    0.76
+  -5   1  -2   10.73    3.00
+  -5  -1  -2   16.54    4.04
+  -6  -1  -2    4.12    1.08
+   0  -2   2 1515.27   29.46
+   0   2  -2 1495.17   22.56
+   1   2  -2  252.21   12.26
+  -1   2  -2  226.77   14.80
+  -1  -2   2  253.32   12.28
+  -2  -2   2  132.45    8.88
+   2  -2   2  102.18    7.98
+  -6  -2  -2    9.66    1.07
+   0  -3   2   22.21    6.29
+   1  -3   2    1.70    1.45
+  -1  -3   2    0.34    0.58
+  -2  -3   2   37.12    6.19
+   2  -3   2   12.09    3.48
+  -3  -3   2    2.96    1.31
+  -1  -4   2  192.47   13.95
+  -2  -4   2   20.86    6.12
+  -3  -4   2  192.10   10.91
+  -4  -4   2  158.28   14.46
+   1   0   3    6.13    1.83
+   2   0   3    2.63    1.95
+   3   0   3    0.47    1.27
+  -3   0  -3    0.54    0.58
+   4   0   3   -0.71    0.63
+  -4   0  -3    0.08    0.11
+  -5   0  -3    0.19    0.30
+  -6   0  -3    2.01    1.94
+  -7   0  -3    0.19    0.74
+   0  -1   3  138.50    9.79
+  -1   1  -3    9.20    1.42
+   1  -1   3   69.89    6.51
+   2  -1   3 1236.77   37.09
+   2   1   3 1257.22   22.90
+   3   1   3    0.54    0.46
+   3  -1   3    1.09    1.24
+  -3   1  -3    2.43    1.65
+   4  -1   3   38.78    6.01
+   4   1   3   18.56    2.67
+  -5  -1  -3    6.31    1.52
+  -6  -1  -3  184.15    8.63
+   0  -2   3    5.57    3.62
+  -1  -2   3    0.70    0.54
+   1  -2   3    1.22    1.76
+   2  -2   3    4.00    2.12
+   3  -2   3    2.28    1.62
+   3   2   3    1.47    0.85
+   2   0   4   52.76    6.27
+   3   0   4    0.54    1.08
+   4   0   4   50.03    6.65
+  -5   0  -4   16.81    4.68
+  -6   0  -4  151.93   11.51
+   1  -1   4    4.16    1.68
+   2  -1   4    1.55    1.57
+   3   1   4   -1.60    1.87
+   3  -1   4   -0.42    0.47
+   4   2   4   26.42    3.39
+   4   1   5    5.15    2.78
+   0   0   0    0.00    0.00
+;
+_shelx_hkl_checksum   46198
+
