@@ -1,3 +1,7 @@
+0.3.0e (stable 3/16/2015)
+-------------------------
+    - added compatibility for *.spe files (from Princeton instruments).
+
 0.3.0d (stable 3/3/2016)
 ------------------------
     - cif files with errors in atomic coordinates can now be loaded too
