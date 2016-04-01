@@ -17,17 +17,23 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import
+
 import sys
 import os
 import time
-import cStringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 import traceback
 from PyQt4 import QtGui
+
+from widgets.UtilityWidgets import ErrorMessageBox
 
 app = QtGui.QApplication(sys.argv)
 app.setGraphicsSystem("raster")
 
-dioptas_version = "not yet specified"
+dioptas_version = "unknown"
 
 
 def excepthook(exc_type, exc_value, traceback_obj):
@@ -53,7 +59,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
          os.path.join(os.path.dirname(__file__), log_file))
     version_info = '\n'.join((separator, "Dioptas Version: %s" % dioptas_version))
     time_string = time.strftime("%Y-%m-%d, %H:%M:%S")
-    tb_info_file = cStringIO.StringIO()
+    tb_info_file = StringIO()
     traceback.print_tb(traceback_obj, None, tb_info_file)
     tb_info_file.seek(0)
     tb_info = tb_info_file.read()
@@ -67,14 +73,15 @@ def excepthook(exc_type, exc_value, traceback_obj):
         f.close()
     except IOError:
         pass
-    errorbox = QtGui.QMessageBox()
-    errorbox.setText(str(notice)+str(msg)+str(version_info))
+    errorbox = ErrorMessageBox()
+    errorbox.setText(str(notice) + str(msg) + str(version_info))
     errorbox.exec_()
 
 sys.excepthook = excepthook
 
 
 if __name__ == "__main__":
+
     from sys import platform as _platform
     from controller.MainController import MainController, get_version
     dioptas_version = get_version()
