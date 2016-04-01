@@ -28,7 +28,10 @@ from sys import platform as _platform
 
 site_packages_path = get_python_lib()
 import pyFAI
+import matplotlib
+
 pyFAI_path = os.path.dirname(pyFAI.__file__)
+matplotlib_path = os.path.dirname(matplotlib.__file__)
 
 
 extra_datas = [
@@ -42,10 +45,12 @@ binaries = []
 
 if _platform == "darwin":
     extra_datas.extend((
-        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtCore.4.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtGui.4.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libpng16.16.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), 'anaconda/lib/libQtSvg.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtCore.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtGui.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libpng16.16.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtSvg.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5.10.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5_hl.10.dylib'), '.'),
     ))
 
 a = Analysis(['Dioptas.py'],
@@ -61,7 +66,7 @@ a = Analysis(['Dioptas.py'],
              cipher=block_cipher)
 
 # remove packages which are not needed by Dioptas
-a.binaries = [x for x in a.binaries if not x[0].startswith("matplotlib")]
+# a.binaries = [x for x in a.binaries if not x[0].startswith("matplotlib")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("zmq")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("IPython")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("docutils")]
@@ -72,15 +77,31 @@ a.binaries = [x for x in a.binaries if not x[0].startswith("libQtDesigner")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("PySide")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
 
-a.datas = [x for x in a.datas if not "IPython" in x[0]]
-a.datas = [x for x in a.datas if not "matplotlib" in x[0]]
-a.datas = [x for x in a.datas if not "mpl-data" in x[0]]
-a.datas = [x for x in a.datas if not "_MEI" in x[0]]
-a.datas = [x for x in a.datas if not "docutils" in x[0]]
-a.datas = [x for x in a.datas if not "pytz" in x[0]]
-a.datas = [x for x in a.datas if not "lib{}".format(os.path.sep) in x[0]]
-a.datas = [x for x in a.datas if not "include" in x[0]]
-a.datas = [x for x in a.datas if not "sphinx" in x[0]]
+
+exclude_datas = [
+    "IPython",
+    "matplotlib",
+    "mpl-data",
+    "_MEI",
+    "docutils",
+    "pytz",
+    "lib",
+    "include",
+    "sphinx",
+    ".py",
+    "tests",
+    "skimage",
+    "alabaster",
+    "boto",
+    "jsonschema",
+    "babel",
+    "idlelib",
+    "requests",
+    "qt4_plugins"
+]
+
+for exclude_data in exclude_datas:
+    a.datas = [x for x in a.datas if exclude_data not in x[0]]
 
 
 platform = ''
