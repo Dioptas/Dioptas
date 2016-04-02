@@ -50,7 +50,7 @@ class ImgCorrectionManager(object):
             return None
 
         res = np.ones(self.shape)
-        for key, correction in self._corrections.iteritems():
+        for key, correction in self._corrections.items():
             res *= correction.get_data()
         return res
 
