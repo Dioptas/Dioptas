@@ -33,7 +33,7 @@ dependencies:
 test:
   override:
     - ls
-    - cd dioptas/tests
+    - cd Dioptas/dioptas/tests
     - py.test unit_tests
     - py.test controller_tests
     - py.test functional_tests
