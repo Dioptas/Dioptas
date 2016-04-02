@@ -17,7 +17,10 @@
 
 import os
 import unittest
-import urllib
+try:
+    from urllib import pathname2url
+except ImportError:
+    from urllib.request import pathname2url
 
 from CifFile import ReadCif
 
@@ -29,7 +32,7 @@ cif_path = os.path.join(data_path, 'cif')
 
 
 def get_cif_url(cif_filename):
-    file_path = 'file:' + urllib.pathname2url(
+    file_path = 'file:' + pathname2url(
         os.path.join(cif_path, cif_filename))
     return file_path
 

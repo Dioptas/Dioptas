@@ -561,11 +561,11 @@ class ImageController(object):
                 azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
                 tth_str = u"2θ:%9.3f  " % tth
-                self.widget.mouse_tth_lbl.setText(unicode(tth_str))
+                self.widget.mouse_tth_lbl.setText(tth_str)
                 self.widget.mouse_d_lbl.setText('d:%9.3f  ' % d)
                 self.widget.mouse_q_lbl.setText('Q:%9.3f  ' % q_value)
                 self.widget.mouse_azi_lbl.setText('X:%9.3f  ' % azi)
-                self.widget.img_widget_mouse_tth_lbl.setText(unicode(tth_str))
+                self.widget.img_widget_mouse_tth_lbl.setText(tth_str)
                 self.widget.img_widget_mouse_d_lbl.setText('d:%9.3f  ' % d)
                 self.widget.img_widget_mouse_q_lbl.setText('Q:%9.3f  ' % q_value)
                 self.widget.img_widget_mouse_azi_lbl.setText('X:%9.3f  ' % azi)
@@ -776,7 +776,7 @@ class ImageController(object):
             if not new_cbn_correction == self.img_model.get_img_correction("cbn"):
                 t1 = time.time()
                 new_cbn_correction.update()
-                print "Time needed for correction calculation: {0}".format(time.time() - t1)
+                print("Time needed for correction calculation: {0}".format(time.time() - t1))
                 try:
                     self.img_model.delete_img_correction("cbn")
                 except KeyError:
@@ -831,7 +831,7 @@ class ImageController(object):
                 tilt=detector_tilt,
                 rotation=detector_tilt_rotation,
             )
-            print "Time needed for correction calculation: {0}".format(time.time() - t1)
+            print("Time needed for correction calculation: {0}".format(time.time() - t1))
             try:
                 self.img_model.delete_img_correction("oiadac")
             except KeyError:

@@ -18,7 +18,7 @@
 
 from PyQt4 import QtCore, QtGui
 import os
-from CustomWidgets import FlatButton
+from .CustomWidgets import FlatButton
 
 widget_path = os.path.dirname(__file__)
 
