@@ -8,7 +8,7 @@ import numpy as np
 
 try:
     from .smooth_bruckner import smooth_bruckner
-except ImportError, e:
+except ImportError as e:
     print(e)
     logger.warning(
         "Could not import the Fortran version of smooth_bruckner. Using python implementation instead. Please"

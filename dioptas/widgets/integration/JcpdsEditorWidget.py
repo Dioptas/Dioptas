@@ -535,7 +535,6 @@ class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
         self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
 
 
-
 if __name__ == '__main__':
     app = QtGui.QApplication([])
     from model.util.jcpds import jcpds
@@ -543,7 +542,7 @@ if __name__ == '__main__':
     test_phase = jcpds()
     path = os.path.join(os.path.dirname(__file__), '../../')
     path = os.path.join(path, 'tests', 'data', 'jcpds', 'ag.jcpds')
-    print os.path.abspath(path)
+    print(os.path.abspath(path))
     test_phase.load_file(path)
     widget = JcpdsEditorWidget(None)
     widget.show_jcpds(test_phase, 0.31)
