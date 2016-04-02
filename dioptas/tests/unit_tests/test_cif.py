@@ -94,12 +94,10 @@ class TestCifModule(unittest.TestCase):
         self.assertEqual(jcpds_phase.a0, 9.628)
 
     def test_read_cif_from_shelx(self):
-        cif_phase = ReadCif(get_cif_url('Fe2O3_shelx.cif'))
-        real_phase = cif_phase[cif_phase.keys()[0]]
-        print real_phase['_space_group_name_h-m_alt']
-        # print '-----------------------------------------'
-        # cif_converter = CifConverter(0.31)
-        # jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'Fe2O3_shelx.cif'))
-        # jcpds_phase['']
+        cif_converter = CifConverter(0.31)
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'Fe2O3_shelx.cif'))
+        self.assertEqual(jcpds_phase.a0, 6.524)
+        self.assertEqual(jcpds_phase.b0, 4.702)
+        self.assertEqual(jcpds_phase.c0, 4.603)
 
 
