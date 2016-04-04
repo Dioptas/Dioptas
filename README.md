@@ -37,7 +37,7 @@ Installation
 
 Executable versions for Windows, Mac OsX and Linux (all 64bit) can be downloaded from:
 
-[https://uni-koeln.sciebo.de/index.php/s/3feAlsnYZqqIK3N](https://uni-koeln.sciebo.de/index.php/s/3feAlsnYZqqIK3N)
+[https://uni-koeln.sciebo.de/index.php/s/cmHGpz4q9dpDRRL](https://uni-koeln.sciebo.de/index.php/s/cmHGpz4q9dpDRRL)
 or
 [http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/](http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/)
 
