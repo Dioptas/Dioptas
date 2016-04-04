@@ -22,7 +22,8 @@ from functools import partial
 
 from PyQt4 import QtGui, QtCore
 
-from ..UtilityWidgets import FileInfoWidget, MoveStageWidget
+from ..UtilityWidgets import FileInfoWidget
+from ..EpicsWidgets import MoveStageWidget
 from ..CustomWidgets import NoRectDelegate, FlatButton
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
