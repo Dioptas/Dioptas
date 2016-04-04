@@ -151,9 +151,7 @@ class FileInfoWidget(QtGui.QWidget):
             }"""
         )
         self.setLayout(self._layout)
-        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
-                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
-                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
     def raise_widget(self):
@@ -248,9 +246,8 @@ class MoveStageWidget(QtGui.QWidget):
         self.setLayout(grid)
         self.connect_buttons()
 
-        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
-                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
-                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
+
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
     def raise_widget(self):
@@ -415,9 +412,7 @@ class MotorsSetup(QtGui.QWidget):
 
         self.reread_config_btn.clicked.connect(self.reread_config)
 
-        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
-                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
-                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
         self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.activateWindow()
@@ -459,7 +454,7 @@ class ErrorMessageBox(QtGui.QDialog):
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    widget = CifConversionParametersDialog(None)
+    widget = MotorsSetup(None)
     widget.show()
     widget.raise_()
     app.exec_()
