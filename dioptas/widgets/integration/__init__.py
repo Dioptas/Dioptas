@@ -116,7 +116,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.img_directory_txt = img_file_widget.directory_txt
         self.img_directory_btn = img_file_widget.directory_btn
         self.file_info_btn = self.integration_control_widget.img_control_widget.file_info_btn
-        self.move_btn = self.integration_control_widget.img_control_widget.move_btn
+        self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
         self.spec_load_btn = pattern_file_widget.load_btn
