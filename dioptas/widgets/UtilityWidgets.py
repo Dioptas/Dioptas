@@ -20,6 +20,7 @@ from PyQt4 import QtCore, QtGui
 import os
 from .CustomWidgets import FlatButton
 
+
 widget_path = os.path.dirname(__file__)
 
 
@@ -143,9 +144,7 @@ class FileInfoWidget(QtGui.QWidget):
             }"""
         )
         self.setLayout(self._layout)
-        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
-                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
-                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
     def raise_widget(self):
@@ -179,9 +178,10 @@ class ErrorMessageBox(QtGui.QDialog):
         self.text_lbl.setText(text_str)
 
 
+
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    widget = CifConversionParametersDialog(None)
+    widget = MotorsSetup(None)
     widget.show()
     widget.raise_()
     app.exec_()

@@ -57,7 +57,7 @@ pip install lmfit pyqtgraph fabio mock pycifrw
 ```
 
 The only more advanced dependency is to install pyFAI, since the current release version has some problems with the
-newest scipy version, please go to a temporary folder and run:
+newest scipy version, please go to a temporary folder pyand run:
 
 ```bash
 git clone https://github.com/kif/pyFAI

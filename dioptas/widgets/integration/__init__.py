@@ -23,6 +23,7 @@ from functools import partial
 from PyQt4 import QtGui, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
+from ..EpicsWidgets import MoveStageWidget
 from ..CustomWidgets import NoRectDelegate, FlatButton
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
@@ -97,6 +98,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.mask_transparent_cb.setVisible(False)
 
         self.file_info_widget = FileInfoWidget(self)
+        self.move_widget = MoveStageWidget(self)
 
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
@@ -114,6 +116,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.img_directory_txt = img_file_widget.directory_txt
         self.img_directory_btn = img_file_widget.directory_btn
         self.file_info_btn = self.integration_control_widget.img_control_widget.file_info_btn
+        self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
         self.spec_load_btn = pattern_file_widget.load_btn
