@@ -34,13 +34,7 @@ class MoveStageWidget(QtGui.QWidget):
         self.move_btn = FlatButton('Move motors', self)
         self.motors_setup_btn = FlatButton('Setup', self)
 
-        # Create labels
-        self.img_pos_label = QtGui.QLabel(self)
-        self.img_pos_label.setText('Image postions:')
-
-        self.move_lbl = QtGui.QLabel(self)
-        self.move_lbl.setText('Move:')
-
+        # create labels
         self.img_hor_lbl = QtGui.QLabel(self)
         self.img_ver_lbl = QtGui.QLabel(self)
         self.img_focus_lbl = QtGui.QLabel(self)
@@ -50,49 +44,55 @@ class MoveStageWidget(QtGui.QWidget):
         self.img_ver_lbl.setStyleSheet('color: yellow')
         self.img_focus_lbl.setStyleSheet('color: yellow')
 
-        self.cur_pos_label = QtGui.QLabel(self)
-        self.cur_pos_label.setText('Current positions:')
-        self.hor_label = QtGui.QLabel(self)
-        self.ver_label = QtGui.QLabel(self)
-        self.focus_label = QtGui.QLabel(self)
-        self.hor_label.setText("Hor:")
-        self.ver_label.setText("Ver:")
-        self.focus_label.setText("Focus:")
-        self.omega_label = QtGui.QLabel(self)
-        self.omega_label.setText("Omega:")
+        self.hor_lbl = QtGui.QLabel(self)
+        self.ver_lbl = QtGui.QLabel(self)
+        self.focus_lbl = QtGui.QLabel(self)
+        self.omega_lbl = QtGui.QLabel(self)
 
         # Create checkboxes
-
         self.move_hor_cb = QtGui.QCheckBox(self)
         self.move_ver_cb = QtGui.QCheckBox(self)
         self.move_focus_cb = QtGui.QCheckBox(self)
         self.move_omega_cb = QtGui.QCheckBox(self)
 
-        # Create grid
+        # Create grid layout
+        grid_layout = QtGui.QGridLayout()
+        grid_layout.setVerticalSpacing(10)
+        grid_layout.setHorizontalSpacing(20)
+        grid_layout.addWidget(LabelAlignRight("Current Position:"), 0, 0, 1, 2)
+        grid_layout.addWidget(LabelAlignRight("Image Position:"), 0, 2)
+        grid_layout.addWidget(LabelAlignRight("Move?"), 0, 3)
 
-        grid = QtGui.QGridLayout()
-        grid.setVerticalSpacing(10)
-        grid.setHorizontalSpacing(20)
-        grid.addWidget(self.cur_pos_label, 1, 0, 1, 1)
-        grid.addWidget(self.hor_label, 2, 0)
-        grid.addWidget(self.ver_label, 3, 0)
-        grid.addWidget(self.focus_label, 4, 0)
-        grid.addWidget(self.omega_label, 5, 0)
-        grid.addWidget(self.connect_epics_btn, 6, 0, 1, 1)
-        grid.addWidget(self.move_lbl, 1, 2)
-        grid.addWidget(self.img_pos_label, 1, 1)
-        grid.addWidget(self.move_btn, 6, 1, 1, 1)
-        grid.addWidget(self.img_hor_lbl, 2, 1)
-        grid.addWidget(self.img_ver_lbl, 3, 1)
-        grid.addWidget(self.img_focus_lbl, 4, 1)
-        grid.addWidget(self.img_omega_lbl, 5, 1)
-        grid.addWidget(self.move_hor_cb, 2, 2)
-        grid.addWidget(self.move_ver_cb, 3, 2)
-        grid.addWidget(self.move_focus_cb, 4, 2)
-        grid.addWidget(self.move_omega_cb, 5, 2)
-        grid.addWidget(self.motors_setup_btn, 6, 2)
+        grid_layout.addWidget(LabelAlignRight('Hor:'), 1, 0)
+        grid_layout.addWidget(self.hor_lbl, 1, 1)
+        grid_layout.addWidget(self.img_hor_lbl, 1, 2)
+        grid_layout.addWidget(self.move_hor_cb, 1, 3)
 
-        self.setLayout(grid)
+        grid_layout.addWidget(LabelAlignRight("Ver:"), 2, 0)
+        grid_layout.addWidget(self.ver_lbl, 2, 1)
+        grid_layout.addWidget(self.img_ver_lbl, 2, 2)
+        grid_layout.addWidget(self.move_ver_cb, 2, 3)
+
+        grid_layout.addWidget(LabelAlignRight("Focus:"), 3, 0)
+        grid_layout.addWidget(self.focus_lbl, 3, 1)
+        grid_layout.addWidget(self.img_focus_lbl, 3, 2)
+        grid_layout.addWidget(self.move_focus_cb, 3, 3)
+
+        grid_layout.addWidget(LabelAlignRight("Omega"), 4, 0)
+        grid_layout.addWidget(self.omega_lbl, 4, 1)
+        grid_layout.addWidget(self.img_omega_lbl, 4, 2)
+        grid_layout.addWidget(self.move_omega_cb, 4, 3)
+
+        btn_layout = QtGui.QHBoxLayout()
+        btn_layout.addWidget(self.connect_epics_btn)
+        btn_layout.addWidget(self.move_btn)
+        btn_layout.addWidget(self.motors_setup_btn)
+
+        self._main_layout = QtGui.QVBoxLayout()
+        self._main_layout.addLayout(grid_layout)
+        self._main_layout.addLayout(btn_layout)
+
+        self.setLayout(self._main_layout)
 
         self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
