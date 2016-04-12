@@ -52,7 +52,7 @@ Anaconda prompt on windows) please run the following commands on the commandline
 
 ```bash
 conda update --all
-conda install numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
+conda install numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future
 pip install lmfit pyqtgraph fabio mock pycifrw
 ```
 
