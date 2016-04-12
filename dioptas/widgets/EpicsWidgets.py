@@ -78,7 +78,7 @@ class MoveStageWidget(QtGui.QWidget):
         grid_layout.addWidget(self.img_focus_lbl, 3, 2)
         grid_layout.addWidget(self.move_focus_cb, 3, 3)
 
-        grid_layout.addWidget(LabelAlignRight("Omega"), 4, 0)
+        grid_layout.addWidget(LabelAlignRight("Omega:"), 4, 0)
         grid_layout.addWidget(self.omega_lbl, 4, 1)
         grid_layout.addWidget(self.img_omega_lbl, 4, 2)
         grid_layout.addWidget(self.move_omega_cb, 4, 3)
