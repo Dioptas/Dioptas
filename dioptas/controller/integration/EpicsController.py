@@ -77,10 +77,10 @@ class EpicsController(object):
             if self.epics_update_timer.isActive():
                 self.epics_update_timer.stop()
 
-        self.widget.hor_label.setText(str(hor))
-        self.widget.ver_label.setText(str(ver))
-        self.widget.focus_label.setText(str(focus))
-        self.widget.omega_label.setText(str(omega))
+        self.widget.hor_lbl.setText(str(hor))
+        self.widget.ver_lbl.setText(str(ver))
+        self.widget.focus_lbl.setText(str(focus))
+        self.widget.omega_lbl.setText(str(omega))
 
     def update_image_position(self):
         try:
