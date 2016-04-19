@@ -84,7 +84,7 @@ class ImgModel(QtCore.QObject):
         self._background_offset = 0
 
         self.file_info = ''
-        self.motors_info = {'Horizontal': '', 'Vertical': '', 'Focus': '', 'Omega': '', 'Date': ''}
+        self.motors_info = {}
         self._img_corrections = ImgCorrectionManager()
 
         self._create_dummy_img()
@@ -454,7 +454,7 @@ class ImgModel(QtCore.QObject):
         """
         reads the file info from tif_tags and returns positions of vertical, horizontal, focus and omega motors
         """
-        result = {'Horizontal': '-', 'Vertical': '-', 'Focus': '-', 'Omega': '-'}
+        result = {}
         tags = image.tag
 
         useful_tags = ['Horizontal:', 'Vertical:', 'Focus:', 'Omega:']
@@ -463,7 +463,5 @@ class ImgModel(QtCore.QObject):
             for key in useful_tags:
                 if key in str(value):
                     k, v = str(value[0]).split(':')
-                    v = '%.3f' % float(v)
                     result[str(k)] = str(v)
-
         return result
