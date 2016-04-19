@@ -140,7 +140,6 @@ class MotorsSetup(QtGui.QWidget):
 
         self.setLayout(grid)
 
-        self.reread_config_btn.clicked.connect(self.reread_config)
 
         self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
@@ -150,11 +149,5 @@ class MotorsSetup(QtGui.QWidget):
     def return_motor_names(self):
         return str(self.hor_motor_txt.text()), str(self.ver_motor_txt.text()), str(self.focus_motor_txt.text()), str(
             self.omega_motor_txt.text())
-
-    def reread_config(self):
-        self.hor_motor_txt.setText(epics_config['sample_position_x'])
-        self.ver_motor_txt.setText(epics_config['sample_position_y'])
-        self.focus_motor_txt.setText(epics_config['sample_position_z'])
-        self.omega_motor_txt.setText(epics_config['sample_position_omega'])
 
 
