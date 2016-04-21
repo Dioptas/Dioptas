@@ -33,7 +33,7 @@ from widgets.UtilityWidgets import ErrorMessageBox
 app = QtGui.QApplication(sys.argv)
 app.setGraphicsSystem("raster")
 
-dioptas_version = "unknown"
+dioptas_version = "0.3.1"
 
 
 def excepthook(exc_type, exc_value, traceback_obj):
