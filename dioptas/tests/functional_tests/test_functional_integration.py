@@ -5,8 +5,8 @@ import gc
 import os
 import unittest
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt4 import QtGui, QtCorefrom PyQt4.QtTest import QTest
+
 from mock import MagicMock
 
 from controller.integration import IntegrationController
