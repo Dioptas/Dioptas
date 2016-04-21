@@ -6,7 +6,8 @@ import unittest
 
 import mock
 import numpy as np
-from PyQt4 import QtGui
+from PyQt4 import QtGui, QtCore
+from PyQt4.QtTest import QTest
 
 from controller.integration import IntegrationController
 from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
@@ -105,3 +106,8 @@ class IntegrationControllerTest(unittest.TestCase):
 
         os.rmdir(os.path.join(working_dir, 'bkg_subtracted'))
         os.rmdir(working_dir)
+
+
+    def test_switching_to_cake_mode_without_having_clicked_the_image_before(self):
+        QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
