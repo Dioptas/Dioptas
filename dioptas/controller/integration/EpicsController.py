@@ -88,10 +88,10 @@ class EpicsController(object):
 
     def update_image_position(self):
         try:
-            self.move_widget.img_hor_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Horizontal']))
-            self.move_widget.img_ver_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Vertical']))
-            self.move_widget.img_focus_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Focus']))
-            self.move_widget.img_omega_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Omega']))
+            self.move_widget.img_hor_lbl.setText('{:.3f}'.format(float(self.img_model.motors_info['Horizontal'])))
+            self.move_widget.img_ver_lbl.setText('{:.3f}'.format(float(self.img_model.motors_info['Vertical'])))
+            self.move_widget.img_focus_lbl.setText('{:.3f}'.format(float(self.img_model.motors_info['Focus'])))
+            self.move_widget.img_omega_lbl.setText('{:.3f}'.format(float(self.img_model.motors_info['Omega'])))
         except KeyError:
             self.move_widget.img_hor_lbl.setText("")
             self.move_widget.img_ver_lbl.setText("")
