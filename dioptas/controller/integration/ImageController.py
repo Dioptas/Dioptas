@@ -33,6 +33,8 @@ from model.MaskModel import MaskModel
 from model.CalibrationModel import CalibrationModel
 from model.util.HelperModule import get_partial_index
 
+from .EpicsController import EpicsController
+
 
 class ImageController(object):
     """
@@ -63,13 +65,15 @@ class ImageController(object):
         self.spectrum_model = spectrum_model
         self.calibration_model = calibration_model
 
+        self.epics_controller = EpicsController(self.widget, self.img_model)
+
         self.img_mode = 'Image'
         self.img_docked = True
         self.use_mask = False
         self.roi_active = False
 
-        self.clicked_tth = 0
-        self.clicked_azi = 0
+        self.clicked_tth = None
+        self.clicked_azi = None
 
         self.autoprocess_timer = QtCore.QTimer(self.widget)
 
@@ -143,6 +147,7 @@ class ImageController(object):
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.connect_click_function(self.widget.img_directory_btn, self.img_directory_btn_click)
+
         self.connect_click_function(self.widget.file_info_btn, self.show_file_info)
 
         self.connect_click_function(self.widget.img_browse_by_name_rb, self.set_iteration_mode_number)
@@ -308,6 +313,7 @@ class ImageController(object):
     def show_file_info(self):
         self.widget.file_info_widget.raise_widget()
 
+
     def get_integration_unit(self):
         if self.widget.spec_tth_btn.isChecked():
             return '2th_deg'
@@ -405,6 +411,7 @@ class ImageController(object):
         self.widget.img_filename_txt.setText(os.path.basename(self.img_model.filename))
         self.widget.img_directory_txt.setText(os.path.dirname(self.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.img_model.file_info)
+
         self.widget.cbn_plot_correction_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
 
@@ -465,7 +472,8 @@ class ImageController(object):
             self.update_img()
             if self.img_mode == 'Cake':
                 self.widget.img_widget.deactivate_circle_scatter()
-                self.widget.img_widget.deactivate_roi()
+                if self.roi_active:
+                    self.widget.img_widget.deactivate_roi()
                 self._update_cake_line_pos()
                 self._update_cake_mouse_click_pos()
                 self.widget.img_mode_btn.setText('Image')
@@ -494,6 +502,9 @@ class ImageController(object):
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def _update_cake_mouse_click_pos(self):
+        if self.clicked_tth is None:
+            return
+
         tth = self.clicked_tth / np.pi * 180
         azi = self.clicked_azi
 
@@ -508,6 +519,9 @@ class ImageController(object):
             self.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
 
     def _update_image_mouse_click_pos(self):
+        if self.clicked_tth is None:
+            return
+
         tth = self.clicked_tth
         azi = self.clicked_azi / 180.0 * np.pi
 
@@ -538,7 +552,7 @@ class ImageController(object):
             self.widget.img_widget_mouse_y_lbl.setText(y_pos_string)
 
             int_string = 'I:   %5d' % self.widget.img_widget.img_data[
-                np.floor(y), np.floor(x)]
+                int(np.floor(y)), int(np.floor(x))]
 
             self.widget.mouse_int_lbl.setText(int_string)
             self.widget.img_widget_mouse_int_lbl.setText(int_string)
@@ -561,11 +575,11 @@ class ImageController(object):
                 azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
                 tth_str = u"2θ:%9.3f  " % tth
-                self.widget.mouse_tth_lbl.setText(unicode(tth_str))
+                self.widget.mouse_tth_lbl.setText(tth_str)
                 self.widget.mouse_d_lbl.setText('d:%9.3f  ' % d)
                 self.widget.mouse_q_lbl.setText('Q:%9.3f  ' % q_value)
                 self.widget.mouse_azi_lbl.setText('X:%9.3f  ' % azi)
-                self.widget.img_widget_mouse_tth_lbl.setText(unicode(tth_str))
+                self.widget.img_widget_mouse_tth_lbl.setText(tth_str)
                 self.widget.img_widget_mouse_d_lbl.setText('d:%9.3f  ' % d)
                 self.widget.img_widget_mouse_q_lbl.setText('Q:%9.3f  ' % q_value)
                 self.widget.img_widget_mouse_azi_lbl.setText('X:%9.3f  ' % azi)
@@ -585,7 +599,7 @@ class ImageController(object):
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
             int_string = 'I:   %5d' % self.widget.img_widget.img_data[
-                np.floor(y), np.floor(x)]
+                int(np.floor(y)), int(np.floor(x))]
 
             self.widget.click_x_lbl.setText(x_pos_string)
             self.widget.click_y_lbl.setText(y_pos_string)
@@ -776,7 +790,7 @@ class ImageController(object):
             if not new_cbn_correction == self.img_model.get_img_correction("cbn"):
                 t1 = time.time()
                 new_cbn_correction.update()
-                print "Time needed for correction calculation: {0}".format(time.time() - t1)
+                print("Time needed for correction calculation: {0}".format(time.time() - t1))
                 try:
                     self.img_model.delete_img_correction("cbn")
                 except KeyError:
@@ -831,7 +845,7 @@ class ImageController(object):
                 tilt=detector_tilt,
                 rotation=detector_tilt_rotation,
             )
-            print "Time needed for correction calculation: {0}".format(time.time() - t1)
+            print("Time needed for correction calculation: {0}".format(time.time() - t1))
             try:
                 self.img_model.delete_img_correction("oiadac")
             except KeyError:

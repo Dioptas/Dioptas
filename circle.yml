@@ -14,14 +14,13 @@ dependencies:
 
   override:
     # Download/install conda (if not already cached)
-    - >
-      if [ ! -d $CONDA_ROOT ]; then
+    - if [ ! -d $CONDA_ROOT ]; then
           echo "Installing Miniconda...";
           wget --quiet https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh &&
           bash Miniconda-latest-Linux-x86_64.sh -b -p ${CONDA_ROOT};
           conda install --yes pip numpy pillow scipy pandas dateutil nose h5py pyqt
-          conda install --yes scikit-image cython
-          pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw
+          conda install --yes scikit-image cython future
+          pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pypeics
           git clone https://github.com/kif/pyFAI
           cd pyFAI
           python setup.py install
@@ -33,8 +32,7 @@ dependencies:
 ## Customize test commands
 test:
   override:
-    - >
-      cd dioptas/tests
+    - cd dioptas/tests
       py.test unit_tests
       py.test controller_tests
       py.test functional_tests

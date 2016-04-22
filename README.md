@@ -15,6 +15,7 @@ Requirements
     * PyQt4
     * numpy
     * scipy
+    * future
     * pyFAI (https://github.com/kif/pyFAI)
     * fabio (https://github.com/kif/fabio)
     * pyqtgraph (http://www.pyqtgraph.org/) - version 0.9.9
@@ -36,7 +37,7 @@ Installation
 
 Executable versions for Windows, Mac OsX and Linux (all 64bit) can be downloaded from:
 
-[https://uni-koeln.sciebo.de/index.php/s/3feAlsnYZqqIK3N](https://uni-koeln.sciebo.de/index.php/s/3feAlsnYZqqIK3N)
+[https://uni-koeln.sciebo.de/index.php/s/cmHGpz4q9dpDRRL](https://uni-koeln.sciebo.de/index.php/s/cmHGpz4q9dpDRRL)
 or
 [http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/](http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/)
 
@@ -51,12 +52,12 @@ Anaconda prompt on windows) please run the following commands on the commandline
 
 ```bash
 conda update --all
-conda install numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython
+conda install numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future
 pip install lmfit pyqtgraph fabio mock pycifrw
 ```
 
 The only more advanced dependency is to install pyFAI, since the current release version has some problems with the
-newest scipy version, please go to a temporary folder and run:
+newest scipy version, please go to a temporary folder pyand run:
 
 ```bash
 git clone https://github.com/kif/pyFAI

@@ -226,8 +226,11 @@ def get_partial_index(array, value):
     upper_ind = np.where(array > value)
     lower_ind = np.where(array < value)
 
-    spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
-    new_pos = lower_ind[-1][-1] + (value - array[lower_ind[-1][-1]]) / spacing
+    try:
+        spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
+        new_pos = lower_ind[-1][-1] + (value - array[lower_ind[-1][-1]]) / spacing
+    except IndexError:
+        return None
 
     return new_pos
 
@@ -260,7 +263,7 @@ def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, de
         tth_ind = np.argwhere(np.abs(array1[result_ind] - value1) < delta1)
         azi_ind = np.argwhere(np.abs(array2[result_ind] - value2) < delta2)
 
-        print result_ind
+        print(result_ind)
 
         common_ind = np.intersect1d(tth_ind, azi_ind)
         result_ind = (result_ind[0][common_ind], result_ind[1][common_ind])

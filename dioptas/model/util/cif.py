@@ -19,11 +19,15 @@ from __future__ import division, unicode_literals
 
 import os
 import itertools
-import urllib
+try:
+    from urllib import pathname2url
+except ImportError:
+    from urllib.request import pathname2url
+
 from math import degrees
 
 from CifFile import ReadCif
-from jcpds import jcpds
+from .jcpds import jcpds
 
 import numpy as np
 import json
@@ -60,7 +64,7 @@ class CifConverter(object):
         :return: converted jcpds object
         :rtype: jcpds
         """
-        file_url = 'file:' + urllib.pathname2url(filename)
+        file_url = 'file:' + pathname2url(filename)
         cif_file = ReadCif(file_url)
         cif_phase = CifPhase(cif_file[cif_file.keys()[0]])
         jcpds_phase = self.convert_cif_phase_to_jcpds(cif_phase)
@@ -222,7 +226,7 @@ class CifConverter(object):
         return calculated_reflections
 
 
-class Reflection():
+class Reflection:
     def __init__(self, h, k, l, d_spacing, intensity=None, multiplicity=1):
         self.h = h
         self.k = k
@@ -246,24 +250,24 @@ def compute_d_hkl(h, k, l, cif_phase):
 
     symmetry = cif_phase.symmetry
 
-    if (symmetry == 'CUBIC'):
+    if symmetry == 'CUBIC':
         d2inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
-    elif (symmetry == 'TETRAGONAL'):
+    elif symmetry == 'TETRAGONAL':
         d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
-    elif (symmetry == 'ORTHORHOMBIC'):
+    elif symmetry == 'ORTHORHOMBIC':
         d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
-    elif (symmetry == 'HEXAGONAL'):
+    elif symmetry == 'HEXAGONAL':
         d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
-    elif (symmetry == 'RHOMBOHEDRAL'):
+    elif symmetry == 'RHOMBOHEDRAL':
         d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
                                           (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
                  (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
-    elif (symmetry == 'MONOCLINIC'):
+    elif symmetry == 'MONOCLINIC':
         d2inv = (h ** 2 / np.sin(beta) ** 2 / a ** 2 +
                  k ** 2 / b ** 2 +
                  l ** 2 / np.sin(beta) ** 2 / c ** 2 +
                  2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
-    elif (symmetry == 'TRICLINIC'):
+    elif symmetry == 'TRICLINIC':
         V = (a * b * c *
              np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
                      np.cos(gamma) ** 2 +
@@ -341,7 +345,13 @@ class CifPhase(object):
 
         self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
 
-        self.space_group = cif_dictionary['_symmetry_space_group_name_H-M']
+        if '_symmetry_space_group_name_h-m' in cif_dictionary.keys():
+            self.space_group = cif_dictionary['_symmetry_space_group_name_h-m']
+        elif '_symmetry_space_group_name_h-m_alt' in cif_dictionary.keys():
+            self.space_group = cif_dictionary['_symmetry_space_group_name_h-m_alt']
+        else:
+            self.space_group = None
+
         self.space_group_number = cif_dictionary.get('_symmetry_Int_Tables_number')
         if self.space_group_number is not None:
             self.space_group_number = int(self.space_group_number)

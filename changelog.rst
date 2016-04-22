@@ -1,24 +1,17 @@
-0.3.0e (stable 3/16/2015)
--------------------------
-    - added compatibility for *.spe files (from Princeton instruments).
-
-0.3.0d (stable 3/3/2016)
+0.3.1 (stable 4/21/2016)
 ------------------------
+    - added compatibility for *.spe files (from Princeton instruments).
+    - added capability for beamlines using epics and Image Tags to move to the position where the image was collected
+    - added a new error Dialog which will popup on any error and show the error message, which then can be send to
+    clemens.prescher@gmail.com, so I can fix it
+
+Bugfixes:
     - cif files with errors in atomic coordinates can now be loaded too
+    - adding AMCSD cif compatibility
     - fixed an error with file paths on windows causing it to not load any cif files
     - fixed some typos
-
-0.3.0c
-------
     - fixing bug with fit2d parameter input
-
-0.3.0b
-------
     - fixing bug with background image loading
-
-0.3.0a
-------
-    - adding AMCSD cif compatibility
 
 0.3.0 (stable 02/11/2016)
 -------------------------

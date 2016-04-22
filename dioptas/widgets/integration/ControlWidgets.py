@@ -73,12 +73,16 @@ class ImageControlWidget(QtGui.QWidget):
 
         self.file_widget = BrowseFileWidget(files='Image', checkbox_text='autoprocess')
         self.file_info_btn = FlatButton('File Info')
+        self.move_btn = FlatButton('Position')
 
         self._layout.addWidget(self.file_widget)
         self._layout.addWidget(HorizontalLine())
 
         self._file_info_layout = QtGui.QHBoxLayout()
         self._file_info_layout.addWidget(self.file_info_btn)
+        self._file_info_layout.addWidget(self.move_btn)
+
+
         self._file_info_layout.addSpacerItem(HorizontalSpacerItem())
         self._layout.addLayout(self._file_info_layout)
         self._layout.addSpacerItem(VerticalSpacerItem())
