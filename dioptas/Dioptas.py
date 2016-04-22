@@ -28,10 +28,11 @@ except ImportError:
 import traceback
 from PyQt4 import QtGui
 
+
 from widgets.UtilityWidgets import ErrorMessageBox
 
+QtGui.QApplication.setGraphicsSystem("raster")
 app = QtGui.QApplication(sys.argv)
-app.setGraphicsSystem("raster")
 
 dioptas_version = "0.3.1"
 

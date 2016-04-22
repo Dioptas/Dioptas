@@ -552,7 +552,7 @@ class ImageController(object):
             self.widget.img_widget_mouse_y_lbl.setText(y_pos_string)
 
             int_string = 'I:   %5d' % self.widget.img_widget.img_data[
-                np.floor(y), np.floor(x)]
+                int(np.floor(y)), int(np.floor(x))]
 
             self.widget.mouse_int_lbl.setText(int_string)
             self.widget.img_widget_mouse_int_lbl.setText(int_string)
@@ -599,7 +599,7 @@ class ImageController(object):
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
             int_string = 'I:   %5d' % self.widget.img_widget.img_data[
-                np.floor(y), np.floor(x)]
+                int(np.floor(y)), int(np.floor(x))]
 
             self.widget.click_x_lbl.setText(x_pos_string)
             self.widget.click_y_lbl.setText(y_pos_string)
