@@ -72,8 +72,8 @@ class ImageController(object):
         self.use_mask = False
         self.roi_active = False
 
-        self.clicked_tth = 0
-        self.clicked_azi = 0
+        self.clicked_tth = None
+        self.clicked_azi = None
 
         self.autoprocess_timer = QtCore.QTimer(self.widget)
 
@@ -472,7 +472,8 @@ class ImageController(object):
             self.update_img()
             if self.img_mode == 'Cake':
                 self.widget.img_widget.deactivate_circle_scatter()
-                self.widget.img_widget.deactivate_roi()
+                if self.roi_active:
+                    self.widget.img_widget.deactivate_roi()
                 self._update_cake_line_pos()
                 self._update_cake_mouse_click_pos()
                 self.widget.img_mode_btn.setText('Image')
@@ -501,6 +502,9 @@ class ImageController(object):
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def _update_cake_mouse_click_pos(self):
+        if self.clicked_tth is None:
+            return
+
         tth = self.clicked_tth / np.pi * 180
         azi = self.clicked_azi
 
@@ -515,6 +519,9 @@ class ImageController(object):
             self.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
 
     def _update_image_mouse_click_pos(self):
+        if self.clicked_tth is None:
+            return
+
         tth = self.clicked_tth
         azi = self.clicked_azi / 180.0 * np.pi
 
@@ -545,7 +552,7 @@ class ImageController(object):
             self.widget.img_widget_mouse_y_lbl.setText(y_pos_string)
 
             int_string = 'I:   %5d' % self.widget.img_widget.img_data[
-                np.floor(y), np.floor(x)]
+                int(np.floor(y)), int(np.floor(x))]
 
             self.widget.mouse_int_lbl.setText(int_string)
             self.widget.img_widget_mouse_int_lbl.setText(int_string)
@@ -592,7 +599,7 @@ class ImageController(object):
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
             int_string = 'I:   %5d' % self.widget.img_widget.img_data[
-                np.floor(y), np.floor(x)]
+                int(np.floor(y)), int(np.floor(x))]
 
             self.widget.click_x_lbl.setText(x_pos_string)
             self.widget.click_y_lbl.setText(y_pos_string)
