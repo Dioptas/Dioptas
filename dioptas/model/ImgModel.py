@@ -18,6 +18,7 @@
 
 import logging
 import os
+from past.builtins import basestring
 
 import numpy as np
 from PIL import Image
@@ -83,7 +84,7 @@ class ImgModel(QtCore.QObject):
         self._background_offset = 0
 
         self.file_info = ''
-
+        self.motors_info = {}
         self._img_corrections = ImgCorrectionManager()
 
         self._create_dummy_img()
@@ -103,6 +104,7 @@ class ImgModel(QtCore.QObject):
         try:
             im = Image.open(filename)
             self.file_info = self._get_file_info(im)
+            self.motors_info = self._get_motors_info(im)
             self._img_data = np.array(im)[::-1]
         except IOError:
             if os.path.splitext(filename)[1].lower() == '.spe':
@@ -213,14 +215,14 @@ class ImgModel(QtCore.QObject):
         those img arrays every time somebody requests the image data by get_img_data() and img_data.
         """
 
-        #check that all data has the same dimensions
+        # check that all data has the same dimensions
         if self._background_data is not None:
             if self._img_data.shape != self._background_data.shape:
                 self._background_data = None
         if self._img_corrections.has_items():
             self._img_corrections.set_shape(self._img_data.shape)
 
-        #calculate the current _img_data
+        # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():
             self._img_data_background_subtracted = self._img_data - (self._background_scaling *
                                                                      self._background_data +
@@ -250,7 +252,6 @@ class ImgModel(QtCore.QObject):
                 self._img_data_supersampled_background_subtracted_absorption_corrected = \
                     self.supersample_data(self._img_data_background_subtracted_absorption_corrected,
                                           self.supersampling_factor)
-
 
     @property
     def img_data(self):
@@ -382,7 +383,6 @@ class ImgModel(QtCore.QObject):
             for transformation in self.img_transformations:
                 self._background_data = transformation(self._background_data)
 
-
     def set_supersampling(self, factor=None):
         """
         Stores the supersampling factor and calculates supersampled original and background image arrays.
@@ -438,14 +438,30 @@ class ImgModel(QtCore.QObject):
         tags = image.tag
         useful_keys = []
         for key in tags.keys():
-            if key>300:
+            if key > 300:
                 useful_keys.append(key)
 
         useful_keys.sort()
         for key in useful_keys:
             tag = tags[key][0]
             if isinstance(tag, basestring):
-                new_line = str(tag)+"\n"
+                new_line = str(tag) + "\n"
                 new_line = new_line.replace(":", ":\t", 1)
                 result += new_line
+        return result
+
+    def _get_motors_info(self, image):
+        """
+        reads the file info from tif_tags and returns positions of vertical, horizontal, focus and omega motors
+        """
+        result = {}
+        tags = image.tag
+
+        useful_tags = ['Horizontal:', 'Vertical:', 'Focus:', 'Omega:']
+
+        for value in tags.itervalues():
+            for key in useful_tags:
+                if key in str(value):
+                    k, v = str(value[0]).split(':')
+                    result[str(k)] = float(v)
         return result

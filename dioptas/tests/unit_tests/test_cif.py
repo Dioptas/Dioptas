@@ -17,7 +17,10 @@
 
 import os
 import unittest
-import urllib
+try:
+    from urllib import pathname2url
+except ImportError:
+    from urllib.request import pathname2url
 
 from CifFile import ReadCif
 
@@ -29,7 +32,7 @@ cif_path = os.path.join(data_path, 'cif')
 
 
 def get_cif_url(cif_filename):
-    file_path = 'file:' + urllib.pathname2url(
+    file_path = 'file:' + pathname2url(
         os.path.join(cif_path, cif_filename))
     return file_path
 
@@ -92,3 +95,12 @@ class TestCifModule(unittest.TestCase):
         cif_converter = CifConverter(0.31, min_d_spacing=1.5, min_intensity=10)
         jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'apatite.cif'))
         self.assertEqual(jcpds_phase.a0, 9.628)
+
+    def test_read_cif_from_shelx(self):
+        cif_converter = CifConverter(0.31)
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'Fe2O3_shelx.cif'))
+        self.assertEqual(jcpds_phase.a0, 6.524)
+        self.assertEqual(jcpds_phase.b0, 4.702)
+        self.assertEqual(jcpds_phase.c0, 4.603)
+
+

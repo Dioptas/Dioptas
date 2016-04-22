@@ -18,7 +18,8 @@
 
 from PyQt4 import QtCore, QtGui
 import os
-from CustomWidgets import FlatButton
+from .CustomWidgets import FlatButton
+
 
 widget_path = os.path.dirname(__file__)
 
@@ -143,9 +144,7 @@ class FileInfoWidget(QtGui.QWidget):
             }"""
         )
         self.setLayout(self._layout)
-        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
-                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
-                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
     def raise_widget(self):
@@ -155,9 +154,34 @@ class FileInfoWidget(QtGui.QWidget):
         self.raise_()
 
 
+class ErrorMessageBox(QtGui.QDialog):
+    def __init__(self, *args, **kwargs):
+        super(ErrorMessageBox, self).__init__(*args, **kwargs)
+        self.setWindowTitle("OOOPS! An error occurred!")
+
+        self.text_lbl = QtGui.QLabel()
+        self.text_lbl.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.scroll_area = QtGui.QScrollArea()
+
+        self.scroll_area.setWidget(self.text_lbl)
+        self.scroll_area.setWidgetResizable(True)
+        self.ok_btn = QtGui.QPushButton('OK')
+
+        _layout = QtGui.QGridLayout()
+        _layout.addWidget(self.scroll_area, 0, 0, 1, 10)
+        _layout.addWidget(self.ok_btn, 1, 9)
+
+        self.setLayout(_layout)
+        self.ok_btn.clicked.connect(self.close)
+
+    def setText(self, text_str):
+        self.text_lbl.setText(text_str)
+
+
+
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    widget = CifConversionParametersDialog(None)
+    widget = MotorsSetup(None)
     widget.show()
     widget.raise_()
     app.exec_()
