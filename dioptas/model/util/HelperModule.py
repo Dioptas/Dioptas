@@ -226,8 +226,11 @@ def get_partial_index(array, value):
     upper_ind = np.where(array > value)
     lower_ind = np.where(array < value)
 
-    spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
-    new_pos = lower_ind[-1][-1] + (value - array[lower_ind[-1][-1]]) / spacing
+    try:
+        spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
+        new_pos = lower_ind[-1][-1] + (value - array[lower_ind[-1][-1]]) / spacing
+    except IndexError:
+        return None
 
     return new_pos
 

@@ -29,15 +29,18 @@ from sys import platform as _platform
 site_packages_path = get_python_lib()
 import pyFAI
 import matplotlib
+import lib2to3
 
 pyFAI_path = os.path.dirname(pyFAI.__file__)
 matplotlib_path = os.path.dirname(matplotlib.__file__)
-
+lib2to3_path = os.path.dirname(lib2to3.__file__)
 
 extra_datas = [
     ("calibrants", "calibrants"),
     ("widgets/stylesheet.qss", "widgets"),
     (os.path.join(pyFAI_path, 'calibration'), 'pyFAI/calibration'),
+    (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
+    (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
     ("model/util/data/*.json", "model/util/data")
 ]
 

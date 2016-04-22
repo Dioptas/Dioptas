@@ -463,5 +463,5 @@ class ImgModel(QtCore.QObject):
             for key in useful_tags:
                 if key in str(value):
                     k, v = str(value[0]).split(':')
-                    result[str(k)] = str(v)
+                    result[str(k)] = float(v)
         return result
