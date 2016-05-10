@@ -160,7 +160,8 @@ class PhaseController(object):
 
             self.phase_model.get_lines_d(-1)
             color = self.add_phase_plot()
-            self.widget.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
+            self.widget.add_phase(get_base_name(filename), '#%02x%02x%02x' % (int(color[0]), int(color[1]),
+                                                                              int(color[2])))
 
             self.widget.set_phase_pressure(len(self.phase_model.phases) - 1, pressure)
             self.update_phase_temperature(len(self.phase_model.phases) - 1, temperature)

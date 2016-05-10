@@ -98,6 +98,8 @@ class OverlayControllerTest(unittest.TestCase):
     def test_automatic_deleting_overlays(self):
         self.load_overlays()
         self.load_overlays()
+        QtGui.QApplication.processEvents()
+        QtGui.QApplication.processEvents()
         self.assertEqual(self.overlay_tw.rowCount(), 12)
         self.assertEqual(len(self.spectrum_model.overlays), 12)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 12)
@@ -124,6 +126,7 @@ class OverlayControllerTest(unittest.TestCase):
         self.widget.select_overlay(2)
 
         self.widget.overlay_scale_sb.setValue(2.0)
+        self.app.processEvents()
         self.assertEqual(self.spectrum_model.get_overlay_scaling(2), 2)
 
         # tests if overlay is updated in spectrum
@@ -196,6 +199,7 @@ class OverlayControllerTest(unittest.TestCase):
     def test_setting_spectrum_as_bkg(self):
         self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
+        QtGui.QApplication.processEvents()
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 

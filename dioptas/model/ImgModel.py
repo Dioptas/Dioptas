@@ -459,7 +459,12 @@ class ImgModel(QtCore.QObject):
 
         useful_tags = ['Horizontal:', 'Vertical:', 'Focus:', 'Omega:']
 
-        for value in tags.itervalues():
+        try:
+            tag_values = tags.itervalues()
+        except AttributeError:
+            tag_values = tags.values()
+
+        for value in tag_values:
             for key in useful_tags:
                 if key in str(value):
                     k, v = str(value[0]).split(':')
