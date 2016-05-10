@@ -180,7 +180,7 @@ class FileNameIterator(QtCore.QObject):
                 if creation_time > self.ordered_file_list[-1][0]:
                     self.ordered_file_list.append((creation_time, filename))
                 else:
-                    for ind in xrange(len(self.ordered_file_list)):
+                    for ind in range(len(self.ordered_file_list)):
                         if creation_time < self.ordered_file_list[ind][0]:
                             self.ordered_file_list.insert(ind, (creation_time, filename))
                             break

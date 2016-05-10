@@ -604,7 +604,7 @@ class jcpds(object):
             logger.error(('Unknown crystal symmetry = ' + self.symmetry))
         d_spacings = np.sqrt(1. / d2inv)
 
-        for ind in xrange(len(self.reflections)):
+        for ind in range(len(self.reflections)):
             self.reflections[ind].d0 = d_spacings[ind]
 
     def compute_d(self, pressure=None, temperature=None):
@@ -705,7 +705,7 @@ class jcpds(object):
         else:
             logger.error(('Unknown crystal symmetry = ' + self.symmetry))
         d_spacings = np.sqrt(1. / d2inv)
-        for ind in xrange(len(self.reflections)):
+        for ind in range(len(self.reflections)):
             self.reflections[ind].d = d_spacings[ind]
 
     def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0.):

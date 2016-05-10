@@ -105,7 +105,7 @@ class OverlayController(object):
         """
         color = self.widget.pattern_widget.add_overlay(self.spectrum_model.overlays[-1])
         self.widget.add_overlay(self.spectrum_model.get_overlay_name(-1),
-                                '#%02x%02x%02x' % (color[0], color[1], color[2]))
+                                '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
 
     def remove_overlay_btn_click_callback(self):
         """

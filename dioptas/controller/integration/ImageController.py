@@ -205,11 +205,11 @@ class ImageController(object):
                 self.working_dir['image']))
 
         else:
-            if isinstance(filenames, str):
-                filenames = [filenames]
-
-            elif isinstance(filenames, QtCore.QString):
-                filenames = [str(filenames)]
+            if not isinstance(filenames, list):
+                if isinstance(filenames, str):
+                    filenames = [filenames]
+                else:
+                    filenames = [str(filenames)]
 
         if filenames is not None and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))

@@ -93,6 +93,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
     def enter_value_into_spinbox(self, spinbox, value):
         spinbox.setValue(value)
         QtGui.QApplication.processEvents()
+        self.assertEqual(spinbox.value(), value)
 
     def set_symmetry(self, symmetry):
         self.jcpds_widget.symmetry_cb.setCurrentIndex(self.jcpds_widget.symmetries.index(symmetry))
@@ -112,7 +113,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
     def compare_line_position(self, prev_line_pos, phase_ind, line_ind):
         new_line_pos = self.get_phase_line_position(phase_ind, line_ind)
-        self.assertNotAlmostEqual(prev_line_pos, new_line_pos)
+        self.assertNotAlmostEqual(prev_line_pos, new_line_pos, 5)
         return new_line_pos
 
     def convert_d_to_twotheta(self, d, wavelength):
@@ -643,7 +644,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # however, the zero values and non-zero values are all the same
 
         self.assertEqual(8, self.jcpds_widget.reflection_table.columnCount())
-        for row_ind in xrange(13):
+        for row_ind in range(13):
             self.assertEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 6))
             self.assertAlmostEqual(self.get_reflection_table_value(row_ind, 5),
                                    self.convert_d_to_twotheta(self.jcpds_phase.reflections[row_ind].d0, 0.31),
@@ -663,7 +664,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # values
 
         self.phase_controller.widget.phase_pressure_sb.setValue(30)
-        for row_ind in xrange(13):
+        for row_ind in range(13):
             self.assertNotEqual(self.get_reflection_table_value(row_ind, 4),
                                 self.get_reflection_table_value(row_ind, 5))
             self.assertNotAlmostEqual(self.get_reflection_table_value(row_ind, 6),

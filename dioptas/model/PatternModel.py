@@ -18,8 +18,9 @@
 
 import logging
 
-from copy import deepcopy
+from copy import copy
 from PyQt4 import QtCore
+import numpy as np
 
 from model.util.HelperModule import FileNameIterator, get_base_name
 from model.util import Pattern
@@ -107,13 +108,13 @@ class PatternModel(QtCore.QObject):
                 file_handle.write("       {0}\n".format(num_points))
             else:
                 file_handle.write(header)
-            for ind in xrange(num_points):
+            for ind in range(num_points):
                 file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
         else:
             if header is not None:
                 file_handle.write(header)
                 file_handle.write('\n')
-            for ind in xrange(num_points):
+            for ind in range(num_points):
                 file_handle.write('{0:.9E}  {1:.9E}\n'.format(x[ind], y[ind]))
         file_handle.close()
 
@@ -191,10 +192,9 @@ class PatternModel(QtCore.QObject):
         """
         Adds the current data spectrum as overlay to the list of overlays
         """
-        current_spectrum = deepcopy(self.pattern)
-        overlay_spectrum = Pattern(current_spectrum.x,
-                                   current_spectrum.y,
-                                   current_spectrum.name)
+        overlay_spectrum = Pattern(np.copy(self.pattern.x),
+                                   np.copy(self.pattern.y),
+                                   copy(self.pattern.name))
         self.overlays.append(overlay_spectrum)
         self.overlay_added.emit()
 

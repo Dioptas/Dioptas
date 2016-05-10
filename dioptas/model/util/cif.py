@@ -216,10 +216,10 @@ class CifConverter(object):
             if scaled_intensity > self.min_intensity:
                 calculated_reflections.append(
                     Reflection(
-                        *fam.keys()[0],
+                        *list(fam.keys())[0],
                         d_spacing=v[2],
                         intensity=scaled_intensity,
-                        multiplicity=fam[fam.keys()[0]]
+                        multiplicity=fam[list(fam.keys())[0]]
                     )
                 )
 
