@@ -28,6 +28,7 @@ install:
     - pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pyepics
     - git clone https://github.com/kif/pyFAI
     - cd pyFAI
+    - git checkout before_refactoring
     - python setup.py install
     - cd ..
     - cd dioptas/model/util/
