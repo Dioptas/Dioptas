@@ -26,11 +26,7 @@ addons:
 install:
     - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future
     - pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pyepics
-    - git clone https://github.com/kif/pyFAI
-    - cd pyFAI
-    - git checkout before_refactoring
-    - python setup.py install
-    - cd ..
+    - conda install -c ericdill pyfai=v0.11.0.post20
     - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
     - cd ../../../
