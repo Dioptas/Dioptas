@@ -4,18 +4,51 @@ language: python
 
 python:
     - 2.7
+    - 3.5
+    
+cache:
+  pip: true
+  directories:
+    - /home/travis/miniconda2
+    - /home/travis/miniconda3
+    - /home/travis/pyFAI
 
 before_install:
-    - wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-    - chmod +x miniconda.sh
-    - ./miniconda.sh -b
-    - export PATH=/home/travis/miniconda2/bin:$PATH
-    - conda update --yes conda
-    - export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
+  - echo $TRAVIS_PYTHON_VERSION
+  - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
+      if [ ! -d "/home/travis/miniconda2/bin" ]; then
+        rm -rf /home/travis/miniconda2;
+        wget http://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+        chmod +x miniconda.sh;
+        ./miniconda.sh -b;
+      fi
+    fi
+  - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
+      if [ ! -d "/home/travis/miniconda3/bin" ]; then
+        rm -rf /home/travis/miniconda3;
+        wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+        chmod +x miniconda.sh;
+        ./miniconda.sh -b;
+      fi
+    fi
+  - if [ ! -d "/home/travis/pyFAI/build" ]; then
+      git clone https://github.com/kif/pyFAI;
+      cd pyFAI;
+      git checkout before_refactoring;
+      cd ..;
+    fi
+    
+  - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
+      export PATH=/home/travis/miniconda2/bin:$PATH;
+    else
+      export PATH=/home/travis/miniconda3/bin:$PATH;
+    fi
+  - conda update --yes conda
+  - export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
 
-    #start x-server
-    - export DISPLAY=:99.0
-    - sh -e /etc/init.d/xvfb start
+  #start x-server
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
 
 addons:
   apt:
@@ -24,11 +57,9 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future
+    - conda install --yes pip numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future
     - pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pyepics
-    - git clone https://github.com/kif/pyFAI
     - cd pyFAI
-    - git checkout before_refactoring
     - python setup.py install
     - cd ..
     - cd dioptas/model/util/
