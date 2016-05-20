@@ -10,24 +10,21 @@ from controller.integration.EpicsController import EpicsController
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-
-app = QtGui.QApplication([])
-
 # mocking the functions which will block the unittest for some reason...
 QtGui.QApplication.processEvents = MagicMock()
-app.processEvents = MagicMock()
 QtGui.QProgressDialog.setValue = MagicMock()
+
 
 class TestCalibrationController(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QtGui.QApplication([])
+        cls.app.processEvents = MagicMock()
 
     @classmethod
     def tearDownClass(cls):
         cls.app.quit()
         cls.app.deleteLater()
-
 
     def setUp(self):
         self.integration_widget = IntegrationWidget()
@@ -83,7 +80,6 @@ class TestCalibrationController(unittest.TestCase):
         caput.assert_any_call('13IDD:m81.VAL', 0.1)
         caput.assert_any_call('13IDD:m83.VAL', 0.02)
         caput.assert_any_call('13IDD:m82.VAL', 0.05)
-
 
 
 if __name__ == '__main__':
