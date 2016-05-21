@@ -10,7 +10,7 @@ cache:
   directories:
     - /home/travis/miniconda2
     - /home/travis/miniconda3
-    - /home/travis/pyFAI
+    - /home/travis/build/Dioptas/Dioptas/pyFAI
 
 before_install:
   - echo $TRAVIS_PYTHON_VERSION
@@ -30,8 +30,7 @@ before_install:
         ./miniconda.sh -b;
       fi
     fi
-  - if [ ! -d "/home/travis/pyFAI/build" ]; then
-      pwd;
+  - if [ ! -d "/home/travis/build/Dioptas/Dioptas/pyFAI/build" ]; then
       git clone https://github.com/kif/pyFAI;
       cd pyFAI;
       git checkout before_refactoring;
