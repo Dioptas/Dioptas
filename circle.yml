@@ -18,14 +18,14 @@ dependencies:
           echo "Installing Miniconda...";
           wget --quiet https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh &&
           bash Miniconda-latest-Linux-x86_64.sh -b -p ${CONDA_ROOT};
-          conda install --yes pip numpy pillow scipy pandas dateutil nose h5py pyqt
-          conda install --yes scikit-image cython future
-          pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pypeics
-          git clone https://github.com/kif/pyFAI
-          cd pyFAI
-          python setup.py install
-          cd ..
-          rm -rf pyFAI
+          conda install --yes pip numpy pillow scipy pandas dateutil nose h5py pyqt;
+          conda install --yes scikit-image cython future;
+          pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pypeics;
+          git clone https://github.com/kif/pyFAI;
+          cd pyFAI;
+          python setup.py install;
+          cd ..;
+          rm -rf pyFAI;
       else
           echo "Using cached Miniconda install";
       fi
