@@ -194,10 +194,7 @@ class CalibrationModel(object):
         tth_calibrant = np.float(tth_calibrant_list[ring_index])
 
         # get the calculated two theta values for the whole image
-        if self.spectrum_geometry._ttha is None:
-            tth_array = self.spectrum_geometry.twoThetaArray(self.img_model._img_data.shape)
-        else:
-            tth_array = self.spectrum_geometry._ttha
+        tth_array = self.spectrum_geometry.twoThetaArray(self.img_model._img_data.shape)
 
         # create mask based on two_theta position
         ring_mask = abs(tth_array - tth_calibrant) <= delta_tth
@@ -556,7 +553,7 @@ class CalibrationModel(object):
         return azi
 
     def get_two_theta_array(self):
-        return self.spectrum_geometry._ttha[::self.supersampling_factor, ::self.supersampling_factor]
+        return self.spectrum_geometry.twoThetaArray()[::self.supersampling_factor, ::self.supersampling_factor]
 
     def get_pixel_ind(self, tth, azi):
         """
