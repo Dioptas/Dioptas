@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import unittest
-import sys
+from tests.utility import QtTest
 import os
-import numpy as np
 import gc
+import numpy as np
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
@@ -18,15 +17,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class MaskControllerTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
+class MaskControllerTest(QtTest):
 
     def setUp(self):
         self.working_dir = {}

@@ -1,30 +1,20 @@
 # -*- coding: utf-8 -*-
 
-import unittest
+from tests.utility import QtTest
 from mock import MagicMock, patch
 
 from model.ImgModel import ImgModel
 from widgets.integration import IntegrationWidget
 from controller.integration.EpicsController import EpicsController
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt4 import QtGui
 
 # mocking the functions which will block the unittest for some reason...
 QtGui.QApplication.processEvents = MagicMock()
 QtGui.QProgressDialog.setValue = MagicMock()
 
 
-class TestCalibrationController(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-        cls.app.processEvents = MagicMock()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
+class TestEpicsController(QtTest):
 
     def setUp(self):
         self.integration_widget = IntegrationWidget()

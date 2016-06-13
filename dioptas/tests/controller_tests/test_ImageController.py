@@ -1,11 +1,11 @@
 # -*- coding: utf8 -*-
 
-import gc
 import os
+import gc
 import shutil
-import unittest
+from tests.utility import QtTest
 
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtCore
 from PyQt4.QtTest import QTest
 
 from controller.integration.ImageController import ImageController
@@ -18,15 +18,7 @@ from widgets.integration import IntegrationWidget
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 
-class ImageControllerTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
+class ImageControllerTest(QtTest):
 
     def setUp(self):
         self.working_dir = {'image': ''}
