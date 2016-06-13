@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import unittest
+from tests.utility import QtTest
 from mock import MagicMock
 import os
 import gc
@@ -17,24 +17,11 @@ from widgets.CalibrationWidget import CalibrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
-app = QtGui.QApplication([])
-
 # mocking the functions which will block the unittest for some reason...
 QtGui.QApplication.processEvents = MagicMock()
-app.processEvents = MagicMock()
 QtGui.QProgressDialog.setValue = MagicMock()
 
-class TestCalibrationController(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
-
-
+class TestCalibrationController(QtTest):
     def setUp(self):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()

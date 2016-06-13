@@ -1,8 +1,8 @@
 # -*- coding: utf8 -*-
 
-import gc
 import os
-import unittest
+import gc
+from tests.utility import QtTest
 
 import mock
 import numpy as np
@@ -17,15 +17,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class IntegrationControllerTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
+class IntegrationControllerTest(QtTest):
 
     def setUp(self):
         self.img_model = ImgModel()
