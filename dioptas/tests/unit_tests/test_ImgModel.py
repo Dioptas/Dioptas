@@ -36,11 +36,9 @@ app = QtGui.QApplication([])
 class ImgModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
 
     def setUp(self):
         self.img_model = ImgModel()

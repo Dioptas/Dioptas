@@ -13,13 +13,11 @@ data_path = os.path.join(unittest_path, '../data')
 
 
 class HelperModuleTest(unittest.TestCase):
-    app = QtGui.QApplication([])
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
 
     def test_get_partial_ind(self):
         data = np.arange(0, 10, 1)
