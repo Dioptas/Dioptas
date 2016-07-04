@@ -22,6 +22,9 @@ class ConfigurationWidget(QtGui.QWidget):
 
         self.configuration_btns = []
         self.configurations_btn_widget = QtGui.QWidget()
+
+        self.add_configuration_btn = FlatButton("+")
+        self.remove_configuration_btn = FlatButton("-")
         self.configuration_name_lbl = LabelAlignRight("Name:")
         self.configuration_name_txt = QtGui.QLineEdit("default")
 
@@ -29,6 +32,8 @@ class ConfigurationWidget(QtGui.QWidget):
         self.main_layout = QtGui.QHBoxLayout()
         self.main_layout.addWidget(self.configuration_lbl)
         self.main_layout.addWidget(self.configurations_btn_widget)
+        self.main_layout.addWidget(self.add_configuration_btn)
+        self.main_layout.addWidget(self.remove_configuration_btn)
         self.main_layout.addWidget(self.configuration_name_lbl)
         self.main_layout.addWidget(self.configuration_name_txt)
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
@@ -54,4 +59,5 @@ class ConfigurationWidget(QtGui.QWidget):
             self.configurations_btn_layout.addWidget(new_button)
             if ind == cur_ind:
                 new_button.setChecked(True)
-            new_button.pressed.connect(partial(self.configuration_selected, ind))
+            new_button.clicked.connect(partial(self.configuration_selected.emit, ind))
+
