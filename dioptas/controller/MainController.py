@@ -89,8 +89,7 @@ class MainController(object):
                                                             self.dioptas_model)
         self.mask_controller = MaskController(self.working_directories,
                                               self.widget.mask_widget,
-                                              self.img_model,
-                                              self.mask_model)
+                                              self.dioptas_model)
         self.integration_controller = IntegrationController(self.working_directories,
                                                             self.widget.integration_widget,
                                                             self.img_model,
@@ -101,7 +100,7 @@ class MainController(object):
 
         self.configuration_controller = ConfigurationController(
             configuration_widget=self.widget.configuration_widget,
-            configuration_manager=self.dioptas_model,
+            dioptas_model=self.dioptas_model,
             controllers=[
                 self.calibration_controller,
                 self.mask_controller,
