@@ -82,7 +82,7 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         self.config_manager.select_configuration(0)
         self.config_manager.configuration_selected.emit.assert_called_with(0)
 
-        self.config_manager.remove_configuration(0)
+        self.config_manager.remove_configuration()
         self.config_manager.configuration_removed.emit.assert_called_with(0)
 
 
