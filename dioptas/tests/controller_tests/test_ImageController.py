@@ -8,12 +8,9 @@ from tests.utility import QtTest
 from PyQt4 import QtCore
 from PyQt4.QtTest import QTest
 
-from controller.integration.ImageController import ImageController
-from model.CalibrationModel import CalibrationModel
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.PatternModel import PatternModel
 from widgets.integration import IntegrationWidget
+from controller.integration.ImageController import ImageController
+from model.DioptasModel import DioptasModel
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
@@ -24,27 +21,18 @@ class ImageControllerTest(QtTest):
         self.working_dir = {'image': ''}
 
         self.widget = IntegrationWidget()
-        self.image_model = ImgModel()
-        self.mask_model = MaskModel()
-        self.spectrum_model = PatternModel()
-        self.calibration_model = CalibrationModel(self.image_model)
+        self.model = DioptasModel()
 
         self.controller = ImageController(
             working_dir=self.working_dir,
             widget=self.widget,
-            img_model=self.image_model,
-            mask_model=self.mask_model,
-            spectrum_model=self.spectrum_model,
-            calibration_model=self.calibration_model)
+            dioptas_model=self.model)
 
     def tearDown(self):
         if os.path.exists(os.path.join(unittest_data_path, 'image_003.tif')):
             os.remove(os.path.join(unittest_data_path, 'image_003.tif'))
         del self.widget
-        del self.image_model
-        del self.mask_model
-        del self.spectrum_model
-        del self.calibration_model
+        del self.model
         del self.controller
         gc.collect()
 

@@ -128,17 +128,17 @@ class BackgroundController(object):
         if is_checked:
             bkg_spectrum_parameters = self.widget.get_bkg_spectrum_parameters()
             bkg_spectrum_roi = self.widget.get_bkg_spectrum_roi()
-            self.spectrum_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+            self.model.pattern_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
         else:
             self.widget.bkg_spectrum_inspect_btn.setChecked(False)
             self.widget.qa_bkg_spectrum_inspect_btn.setChecked(False)
             self.widget.pattern_widget.hide_linear_region()
-            self.spectrum_model.unset_auto_background_subtraction()
+            self.model.pattern_model.unset_auto_background_subtraction()
 
     def bkg_spectrum_parameters_changed(self):
         bkg_spectrum_parameters = self.widget.get_bkg_spectrum_parameters()
         bkg_spectrum_roi = self.widget.get_bkg_spectrum_roi()
-        self.spectrum_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+        self.model.pattern_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
 
     def bkg_spectrum_inspect_btn_toggled_callback(self, checked):
         self.widget.bkg_spectrum_inspect_btn.blockSignals(True)
@@ -151,7 +151,7 @@ class BackgroundController(object):
         if checked:
             self.widget.pattern_widget.show_linear_region()
             x_min, x_max = self.widget.get_bkg_spectrum_roi()
-            x_spec = self.spectrum_model.pattern.auto_background_before_subtraction_spectrum.x
+            x_spec = self.model.pattern_model.pattern.auto_background_before_subtraction_spectrum.x
             if x_min < x_spec[0]:
                 x_min = x_spec[0]
             if x_max > x_spec[-1]:
@@ -170,7 +170,7 @@ class BackgroundController(object):
 
             self.widget.bkg_spectrum_x_min_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
             self.widget.bkg_spectrum_x_max_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
-        self.spectrum_model.pattern_changed.emit()
+        self.model.pattern_changed.emit()
 
     def bkg_spectrum_linear_region_callback(self):
         x_min, x_max = self.widget.pattern_widget.get_linear_region()

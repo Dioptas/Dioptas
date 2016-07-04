@@ -177,7 +177,7 @@ class PhaseController(object):
             self.model.phase_model.get_rescaled_reflections(
                     -1, self.model.pattern_model.pattern,
                     x_range, y_range,
-                    self.calibration_model.wavelength * 1e10,
+                    self.model.calibration_model.wavelength * 1e10,
                     self.get_unit())
         color = self.widget.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
                                                      positions,
