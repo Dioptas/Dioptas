@@ -10,9 +10,9 @@ from PyQt4.QtTest import QTest
 
 from mock import MagicMock
 
-from controller.integration import IntegrationController
-from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
+from model.DioptasModel import DioptasModel
 from widgets.integration import IntegrationWidget
+from controller.integration import IntegrationController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
@@ -21,47 +21,30 @@ data_path = os.path.join(unittest_path, os.pardir, 'data')
 class IntegrationFunctionalTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
 
     def setUp(self):
-        self.img_model = ImgModel()
-        self.mask_model = MaskModel()
-        self.spectrum_model = PatternModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.calibration_model.integrate_1d = MagicMock(return_value=(self.calibration_model.tth,
-                                                                      self.calibration_model.int))
-
-        self.phase_model = PhaseModel()
+        self.model = DioptasModel()
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
+                                                                      self.model.calibration_model.int))
 
         self.integration_widget = IntegrationWidget()
-
         self.integration_controller = IntegrationController({'spectrum': data_path},
                                                             widget=self.integration_widget,
-                                                            img_model=self.img_model,
-                                                            mask_model=self.mask_model,
-                                                            calibration_model=self.calibration_model,
-                                                            spectrum_model=self.spectrum_model,
-                                                            phase_model=self.phase_model)
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+                                                            dioptas_model=self.model)
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
         self.integration_spectrum_controller = self.integration_controller.spectrum_controller
         self.integration_image_controller = self.integration_controller.image_controller
 
     def tearDown(self):
         del self.integration_spectrum_controller
-        del self.mask_model
-        del self.img_model
-        del self.calibration_model.cake_geometry
-        del self.calibration_model.spectrum_geometry
-        del self.calibration_model
-        del self.integration_widget
         del self.integration_controller
+        self.model.clear()
+        del self.model
         gc.collect()
 
     def enter_value_into_text_field(self, text_field, value):
@@ -80,16 +63,16 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
-        previous_number_of_points = len(self.spectrum_model.pattern.x)
+        previous_number_of_points = len(self.model.pattern_model.pattern.x)
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
-        self.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
+        self.model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
                                                                mask=None, unit='2th_deg')
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
-        self.calibration_model.integrate_1d.assert_called_with(num_points=None,
+        self.model.calibration_model.integrate_1d.assert_called_with(num_points=None,
                                                                mask=None, unit='2th_deg')
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
@@ -101,21 +84,21 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # smoother
 
         # values before:
-        px1 = self.calibration_model.spectrum_geometry.pixel1
-        px2 = self.calibration_model.spectrum_geometry.pixel2
+        px1 = self.model.calibration_model.spectrum_geometry.pixel1
+        px2 = self.model.calibration_model.spectrum_geometry.pixel2
 
-        img_shape = self.img_model.img_data.shape
+        img_shape = self.model.img_model.img_data.shape
 
         self.integration_widget.supersampling_sb.setValue(2)
-        self.assertEqual(self.calibration_model.spectrum_geometry.pixel1, 0.5 * px1)
-        self.assertEqual(self.calibration_model.spectrum_geometry.pixel2, 0.5 * px2)
-        self.assertEqual(self.calibration_model.cake_geometry.pixel1, px1)
-        self.assertEqual(self.calibration_model.cake_geometry.pixel2, px2)
+        self.assertEqual(self.model.calibration_model.spectrum_geometry.pixel1, 0.5 * px1)
+        self.assertEqual(self.model.calibration_model.spectrum_geometry.pixel2, 0.5 * px2)
+        self.assertEqual(self.model.calibration_model.cake_geometry.pixel1, px1)
+        self.assertEqual(self.model.calibration_model.cake_geometry.pixel2, px2)
 
-        self.assertEqual(self.img_model.img_data.shape[0], 2 * img_shape[0])
-        self.assertEqual(self.img_model.img_data.shape[1], 2 * img_shape[1])
+        self.assertEqual(self.model.img_model.img_data.shape[0], 2 * img_shape[0])
+        self.assertEqual(self.model.img_model.img_data.shape[1], 2 * img_shape[1])
 
-        self.mask_model.load_mask(os.path.join(data_path, 'test.mask'))
+        self.model.mask_model.load_mask(os.path.join(data_path, 'test.mask'))
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
 

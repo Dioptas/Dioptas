@@ -26,7 +26,7 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from model.util import jcpds
-from model.CalibrationModel import CalibrationModel
+from model.DioptasModel import DioptasModel
 from controller.integration import JcpdsEditorController
 from controller import MainController
 
@@ -43,44 +43,23 @@ def calculate_cubic_d_spacing(h, k, l, a):
 class JcpdsEditorFunctionalTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
         QtGui.QApplication.processEvents = MagicMock()
         cls.app.processEvents = MagicMock()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
-
     def setUp(self):
-        self.calibration_model = CalibrationModel()
+        self.model = DioptasModel()
         dummy_x = np.linspace(0, 30)
         dummy_y = np.ones(dummy_x.shape)
-        self.calibration_model.integrate_1d = MagicMock(return_value=(dummy_x,
-                                                                      dummy_y))
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=(dummy_x,
+                                                                            dummy_y))
         self.jcpds = jcpds()
 
     def tearDown(self):
-        try:
-            del self.calibration_model.cake_geometry
-        except:
-            pass
-
-        try:
-            del self.calibration_model.spectrum_geometry
-        except:
-            pass
-
-        try:
-            del self.main_controller.calibration_model.cake_geometry
-        except:
-            pass
-
-        try:
-            del self.main_controller.calibration_model.spectrum_geometry
-        except:
-            pass
-        del self.calibration_model
+        self.model.clear()
+        del self.model
         del self.jcpds
         gc.collect()
 
@@ -124,9 +103,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # and wants to edit the parameters
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
-        self.calibration_model.spectrum_geometry.wavelength = 0.31
+        self.model.calibration_model.spectrum_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.calibration_model, self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
 
         # Erwin immediately sees the filename in the explorer
@@ -141,9 +120,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         symmetry = str(self.jcpds_widget.symmetry_cb.currentText())
         self.assertEqual(symmetry.upper(), 'CUBIC')
 
-        a = float(str(self.jcpds_widget.lattice_a_sb.text()))
-        b = float(str(self.jcpds_widget.lattice_b_sb.text()))
-        c = float(str(self.jcpds_widget.lattice_c_sb.text()))
+        a = float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.'))
+        b = float(str(self.jcpds_widget.lattice_b_sb.text()).replace(',', '.'))
+        c = float(str(self.jcpds_widget.lattice_c_sb.text()).replace(',', '.'))
 
         self.assertEqual(a, 4.07860)
         self.assertEqual(b, 4.07860)
@@ -152,20 +131,20 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         V = float(str(self.jcpds_widget.lattice_volume_txt.text()))
         self.assertAlmostEqual(V, a * b * c, delta=0.0001)
 
-        alpha = float(str(self.jcpds_widget.lattice_alpha_sb.text()))
-        beta = float(str(self.jcpds_widget.lattice_beta_sb.text()))
-        gamma = float(str(self.jcpds_widget.lattice_gamma_sb.text()))
+        alpha = float(str(self.jcpds_widget.lattice_alpha_sb.text()).replace(',', '.'))
+        beta = float(str(self.jcpds_widget.lattice_beta_sb.text()).replace(',', '.'))
+        gamma = float(str(self.jcpds_widget.lattice_gamma_sb.text()).replace(',', '.'))
 
         self.assertEqual(alpha, 90)
         self.assertEqual(beta, 90)
         self.assertEqual(gamma, 90)
 
-        K0 = float(str(self.jcpds_widget.eos_K_txt.text()))
-        Kp = float(str(self.jcpds_widget.eos_Kp_txt.text()))
-        alphaT = float(str(self.jcpds_widget.eos_alphaT_txt.text()))
-        dalpha_dt = float(str(self.jcpds_widget.eos_dalphadT_txt.text()))
-        dK_dt = float(str(self.jcpds_widget.eos_dKdT_txt.text()))
-        dKp_dt = float(str(self.jcpds_widget.eos_dKpdT_txt.text()))
+        K0 = float(str(self.jcpds_widget.eos_K_txt.text()).replace(',', '.'))
+        Kp = float(str(self.jcpds_widget.eos_Kp_txt.text()).replace(',', '.'))
+        alphaT = float(str(self.jcpds_widget.eos_alphaT_txt.text()).replace(',', '.'))
+        dalpha_dt = float(str(self.jcpds_widget.eos_dalphadT_txt.text()).replace(',', '.'))
+        dK_dt = float(str(self.jcpds_widget.eos_dKdT_txt.text()).replace(',', '.'))
+        dKp_dt = float(str(self.jcpds_widget.eos_dKpdT_txt.text()).replace(',', '.'))
 
         self.assertEqual(K0, 166.65)
         self.assertEqual(Kp, 5.4823)
@@ -178,9 +157,9 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # others are changing too.
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 4.08)
         QtGui.QApplication.processEvents()
-        a = float(str(self.jcpds_widget.lattice_a_sb.text()))
-        b = float(str(self.jcpds_widget.lattice_b_sb.text()))
-        c = float(str(self.jcpds_widget.lattice_c_sb.text()))
+        a = float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.'))
+        b = float(str(self.jcpds_widget.lattice_b_sb.text()).replace(',', '.'))
+        c = float(str(self.jcpds_widget.lattice_c_sb.text()).replace(',', '.'))
         self.assertEqual(a, 4.08)
         self.assertEqual(b, 4.08)
         self.assertEqual(c, 4.08)
@@ -209,15 +188,17 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         # he notices that the system is a smart editor shows ratios of lattice parameters:
 
-        self.assertAlmostEqual(float(str(self.jcpds_widget.lattice_ab_sb.text())), 4.08 / 5)
-        self.assertAlmostEqual(float(str(self.jcpds_widget.lattice_ca_sb.text())), 6.0 / 4.08, delta=0.0001)
-        self.assertAlmostEqual(float(str(self.jcpds_widget.lattice_cb_sb.text())), 6.0 / 5, delta=0.0001)
+        self.assertAlmostEqual(float(str(self.jcpds_widget.lattice_ab_sb.text()).replace(',', '.')), 4.08 / 5)
+        self.assertAlmostEqual(float(str(self.jcpds_widget.lattice_ca_sb.text()).replace(',', '.')), 6.0 / 4.08,
+                               delta=0.0001)
+        self.assertAlmostEqual(float(str(self.jcpds_widget.lattice_cb_sb.text()).replace(',', '.')), 6.0 / 5,
+                               delta=0.0001)
 
         # he decides to play with the ratios to be better able to fit it to the current spectrum:
 
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_ca_sb, 1.5)
-        self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text())), 4.08)
-        self.assertEqual(float(str(self.jcpds_widget.lattice_c_sb.text())), 1.5 * 4.08)
+        self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 4.08)
+        self.assertEqual(float(str(self.jcpds_widget.lattice_c_sb.text()).replace(',', '.')), 1.5 * 4.08)
 
         # then he set all values back again and
         #  plays a little bit with the symmetry and accidentally changes it to several different symmetries
@@ -227,11 +208,11 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_c_sb, 6)
 
         self.set_symmetry("tetragonal")
-        self.assertEqual(float(str(self.jcpds_widget.lattice_b_sb.text())), 4.08)
-        self.assertEqual(float(str(self.jcpds_widget.lattice_c_sb.text())), 6)
+        self.assertEqual(float(str(self.jcpds_widget.lattice_b_sb.text()).replace(',', '.')), 4.08)
+        self.assertEqual(float(str(self.jcpds_widget.lattice_c_sb.text()).replace(',', '.')), 6)
 
         self.set_symmetry("hexagonal")
-        self.assertEqual(float(str(self.jcpds_widget.lattice_gamma_sb.text())), 120)
+        self.assertEqual(float(str(self.jcpds_widget.lattice_gamma_sb.text()).replace(',', '.')), 120)
         self.set_symmetry("monoclinic")
         self.set_symmetry("rhombohedral")
         self.set_symmetry("orthorhombic")
@@ -283,7 +264,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds = jcpds()
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, jcpds_phase=self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
 
         # he sees that there are 13 reflections predefined in the table
@@ -391,7 +372,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # Erwin opens up the program, loads image and calibration and some phases
 
         self.main_controller = MainController()
-        self.main_controller.calibration_model.integrate_1d = self.calibration_model.integrate_1d
+        self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
         self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
                                                                      update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
@@ -419,10 +400,10 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 10.4)
 
-        self.assertAlmostEqual(self.phase_controller.phase_model.phases[0].a0, 10.4)
+        self.assertAlmostEqual(self.phase_controller.model.phase_model.phases[0].a0, 10.4)
         QTest.mouseClick(self.jcpds_widget.cancel_btn, QtCore.Qt.LeftButton)
 
-        self.assertNotAlmostEqual(self.phase_controller.phase_model.phases[0].a0, 10.4)
+        self.assertNotAlmostEqual(self.phase_controller.model.phase_model.phases[0].a0, 10.4)
 
         # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click another
         # phase --  so he just selects it without closing and reopening the editor
@@ -433,7 +414,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         QtGui.QApplication.processEvents()
 
         self.phase_controller.widget.phase_tw.selectRow(2)
-        self.assertTrue(float(str(self.jcpds_widget.lattice_a_sb.text())), 5.51280)  # Argon lattice parameter
+        self.assertTrue(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 5.51280)  # Argon lattice parameter
 
         # Now he changes the lattice parameter and wants to see if there is any change in the line position in the graph
 
@@ -483,7 +464,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         # he decides to change temperature value and play with all equation of state parameters
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 6.234e-5)
-        self.assertEqual(self.phase_controller.phase_model.phases[2].alpha_t0, 6.234e-5)
+        self.assertEqual(self.phase_controller.model.phase_model.phases[2].alpha_t0, 6.234e-5)
 
         self.main_controller.integration_controller.widget.phase_temperature_sb.setValue(1300)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
@@ -505,7 +486,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # jcpds editor for the first phase. He sees that everything seems to be correct
 
         self.main_controller = MainController()
-        self.main_controller.calibration_model.integrate_1d = self.calibration_model.integrate_1d
+        self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
         self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
                                                                      update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
@@ -524,7 +505,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
-        self.jcpds_phase = self.main_controller.phase_model.phases[0]
+        self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
         self.phase_controller.widget.phase_tw.selectRow(0)
@@ -588,7 +569,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
     def test_phase_name_difference_after_modified(self):
         self.main_controller = MainController(use_settings=False)
-        self.main_controller.calibration_model.integrate_1d = self.calibration_model.integrate_1d
+        self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
         self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
                                                                      update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
@@ -604,7 +585,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
-        self.jcpds_phase = self.main_controller.phase_model.phases[0]
+        self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
@@ -617,7 +598,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
         self.main_controller = MainController(use_settings=False)
-        self.main_controller.calibration_model.integrate_1d = self.calibration_model.integrate_1d
+        self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
         self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
                                                                      update_all=False)
         self.main_controller.calibration_controller.set_calibrant(7)
@@ -632,7 +613,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
-        self.jcpds_phase = self.main_controller.phase_model.phases[0]
+        self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
         self.phase_controller.widget.phase_tw.selectRow(0)

@@ -95,3 +95,11 @@ class DioptasModel(QtCore.QObject):
         :rtype: PhaseModel
         """
         return self._phase_model
+
+    def clear(self):
+        for configuration in self.configurations:
+            del configuration.calibration_model.cake_geometry
+            del configuration.calibration_model.spectrum_geometry
+            del configuration.img_model
+            del configuration.mask_model
+        del self.configurations

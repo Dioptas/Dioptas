@@ -236,7 +236,7 @@ class MainController(object):
             filenames = root.find("filenames")
             calibration_path = filenames.find("calibration").text
             if os.path.exists(str(calibration_path)):
-                self.calibration_model.load(calibration_path)
+                self.model.calibration_model.load(calibration_path)
 
     def save_settings(self):
         """
