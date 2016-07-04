@@ -50,7 +50,7 @@ class ConfigurationWidget(QtGui.QWidget):
         self.configuration_btn_group = QtGui.QButtonGroup()
         self.configurations_btn_widget = QtGui.QWidget()
         self.configurations_btn_layout = QtGui.QHBoxLayout(self.configurations_btn_widget)
-        self.configuration_btns.clear()
+        self.configuration_btns = []
 
         for ind, configuration in enumerate(configurations):
             new_button = CheckableFlatButton(str(ind + 1))
