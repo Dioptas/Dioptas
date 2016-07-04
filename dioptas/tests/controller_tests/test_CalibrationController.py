@@ -8,9 +8,7 @@ import gc
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.CalibrationModel import CalibrationModel
+from model.DioptasModel import DioptasModel
 from controller.CalibrationController import CalibrationController
 from widgets.CalibrationWidget import CalibrationWidget
 
@@ -23,27 +21,19 @@ QtGui.QProgressDialog.setValue = MagicMock()
 
 class TestCalibrationController(QtTest):
     def setUp(self):
-        self.img_model = ImgModel()
-        self.mask_model = MaskModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.calibration_model._calibrants_working_dir = os.path.join(data_path, 'calibrants')
-        self.calibration_model.integrate_1d = MagicMock()
-        self.calibration_model.integrate_2d = MagicMock()
+        self.model=DioptasModel()
+        self.model.calibration_model._calibrants_working_dir = os.path.join(data_path, 'calibrants')
+        self.model.calibration_model.integrate_1d = MagicMock()
+        self.model.calibration_model.integrate_2d = MagicMock()
 
         self.calibration_widget = CalibrationWidget()
         self.working_dir = {}
         self.calibration_controller = CalibrationController(working_dir=self.working_dir,
-                                                            img_model=self.img_model,
-                                                            mask_model=self.mask_model,
                                                             widget=self.calibration_widget,
-                                                            calibration_model=self.calibration_model)
+                                                            dioptas_model=self.model)
 
     def tearDown(self):
-        del self.img_model
-        del self.mask_model
-        del self.calibration_model.cake_geometry
-        del self.calibration_model.spectrum_geometry
-        del self.calibration_model
+        del self.model
         gc.collect()
 
     def test_automatic_calibration(self):
@@ -59,11 +49,11 @@ class TestCalibrationController(QtTest):
 
         QTest.mouseClick(self.calibration_widget.calibrate_btn, QtCore.Qt.LeftButton)
         self.app.processEvents()
-        self.calibration_model.integrate_1d.assert_called_once_with()
-        self.calibration_model.integrate_2d.assert_called_once_with()
+        self.model.calibration_model.integrate_1d.assert_called_once_with()
+        self.model.calibration_model.integrate_2d.assert_called_once_with()
         self.assertEqual(QtGui.QProgressDialog.setValue.call_count, 15)
 
-        calibration_parameter = self.calibration_model.get_calibration_parameter()[0]
+        calibration_parameter = self.model.calibration_model.get_calibration_parameter()[0]
         self.assertAlmostEqual(calibration_parameter['dist'], .1967, places=4)
 
     def test_loading_and_saving_of_calibration_files(self):

@@ -26,7 +26,7 @@ from PyQt4 import QtGui, QtCore
 
 from widgets.MainWidget import MainWidget
 
-from model.ImgConfiguration import ImgConfigurationManager
+from model.DioptasModel import DioptasModel
 from model.PatternModel import PatternModel
 from model.PhaseModel import PhaseModel
 
@@ -75,13 +75,7 @@ class MainController(object):
 
 
         # create data
-        self.configuration_manager = ImgConfigurationManager()
-        self.img_model = self.configuration_manager.img_model
-        self.mask_model = self.configuration_manager.mask_model
-        self.calibration_model = self.configuration_manager.calibration_model
-
-        self.spectrum_model = PatternModel()
-        self.phase_model = PhaseModel()
+        self.dioptas_model = DioptasModel()
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
@@ -92,9 +86,7 @@ class MainController(object):
 
         self.calibration_controller = CalibrationController(self.working_directories,
                                                             self.widget.calibration_widget,
-                                                            self.img_model,
-                                                            self.mask_model,
-                                                            self.calibration_model)
+                                                            self.dioptas_model)
         self.mask_controller = MaskController(self.working_directories,
                                               self.widget.mask_widget,
                                               self.img_model,
@@ -109,7 +101,7 @@ class MainController(object):
 
         self.configuration_controller = ConfigurationController(
             configuration_widget=self.widget.configuration_widget,
-            configuration_manager=self.configuration_manager,
+            configuration_manager=self.dioptas_model,
             controllers=[
                 self.calibration_controller,
                 self.mask_controller,
