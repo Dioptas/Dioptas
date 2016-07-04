@@ -16,7 +16,7 @@ class ImgConfiguration(QtCore.QObject):
 class ImgConfigurationManager(QtCore.QObject):
     configuration_added = QtCore.pyqtSignal()
     configuration_selected = QtCore.pyqtSignal(int)  # new index
-    configuration_removed = QtCore.pyqtSignal(int) # removed index
+    configuration_removed = QtCore.pyqtSignal(int)  # removed index
 
     def __init__(self):
         super(ImgConfigurationManager, self).__init__()
@@ -29,14 +29,15 @@ class ImgConfigurationManager(QtCore.QObject):
         self.current_configuration = len(self.configurations) - 1
         self.configuration_added.emit()
 
-    def remove_configuration(self, ind=-1):
+    def remove_configuration(self):
+        ind = self.current_configuration
         del self.configurations[ind]
         if ind == len(self.configurations) or ind == -1:
             self.current_configuration = len(self.configurations)-1
         self.configuration_removed.emit(self.current_configuration)
 
     def select_configuration(self, ind):
-        if ind>=0 and ind<len(self.configurations):
+        if ind >= 0 and ind < len(self.configurations):
             self.current_configuration = ind
             self.configuration_selected.emit(ind)
 

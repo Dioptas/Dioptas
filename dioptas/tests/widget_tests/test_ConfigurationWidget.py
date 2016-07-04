@@ -19,6 +19,7 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 def click_button(widget):
     QTest.mouseClick(widget, QtCore.Qt.LeftButton)
 
+
 class ConfigurationWidgetTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -60,6 +61,3 @@ class ConfigurationWidgetTest(unittest.TestCase):
         self.assertFalse(self.config_widget.configuration_btns[1].isChecked())
         self.assertFalse(self.config_widget.configuration_btns[2].isChecked())
         self.assertTrue(self.config_widget.configuration_btns[3].isChecked())
-
-
-
