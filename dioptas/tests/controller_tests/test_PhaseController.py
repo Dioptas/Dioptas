@@ -10,10 +10,7 @@ from mock import MagicMock
 
 from controller.integration import PatternController
 from controller.integration import PhaseController
-from model.CalibrationModel import CalibrationModel
-from model.ImgModel import ImgModel
-from model.PatternModel import PatternModel
-from model.PhaseModel import PhaseModel
+from model.DioptasModel import DioptasModel
 from widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
@@ -22,62 +19,53 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class PhaseControllerTest(QtTest):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
 
     def setUp(self):
-        self.image_model = ImgModel()
-        self.calibration_model = CalibrationModel()
-        self.calibration_model.is_calibrated = True
-        self.calibration_model.spectrum_geometry.wavelength = 0.31E-10
-        self.calibration_model.integrate_1d = MagicMock(return_value=(self.calibration_model.tth,
-                                                                      self.calibration_model.int))
-        self.spectrum_model = PatternModel()
-        self.phase_model = PhaseModel()
+        self.model = DioptasModel()
+        self.model.calibration_model.is_calibrated = True
+        self.model.calibration_model.spectrum_geometry.wavelength = 0.31E-10
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
+                                                                      self.model.calibration_model.int))
         self.widget = IntegrationWidget()
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
 
-        self.spectrum_controller = PatternController({}, self.widget, self.image_model, None,
-                                                     self.calibration_model, self.spectrum_model)
-        self.controller = PhaseController({}, self.widget, self.calibration_model, self.spectrum_model,
-                                          self.phase_model)
+        self.spectrum_controller = PatternController({}, self.widget, self.model)
+        self.controller = PhaseController({}, self.widget, self.model)
         self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
 
-    def tearDown(self):
-        del self.calibration_model
-        del self.spectrum_model
-        del self.phase_model
-        self.widget.close()
-        del self.widget
-        del self.controller
-        del self.spectrum_controller
-        gc.collect()
 
     def test_manual_deleting_phases(self):
         self.load_phases()
         QtGui.QApplication.processEvents()
 
         self.assertEqual(self.phase_tw.rowCount(), 6)
-        self.assertEqual(len(self.phase_model.phases), 6)
+        self.assertEqual(len(self.model.phase_model.phases), 6)
         self.assertEqual(len(self.widget.pattern_widget.phases), 6)
         self.assertEqual(self.phase_tw.currentRow(), 5)
 
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 5)
-        self.assertEqual(len(self.phase_model.phases), 5)
+        self.assertEqual(len(self.model.phase_model.phases), 5)
         self.assertEqual(len(self.widget.pattern_widget.phases), 5)
         self.assertEqual(self.phase_tw.currentRow(), 4)
 
         self.widget.select_phase(1)
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 4)
-        self.assertEqual(len(self.phase_model.phases), 4)
+        self.assertEqual(len(self.model.phase_model.phases), 4)
         self.assertEqual(len(self.widget.pattern_widget.phases), 4)
         self.assertEqual(self.phase_tw.currentRow(), 1)
 
         self.widget.select_phase(0)
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 3)
-        self.assertEqual(len(self.phase_model.phases), 3)
+        self.assertEqual(len(self.model.phase_model.phases), 3)
         self.assertEqual(len(self.widget.pattern_widget.phases), 3)
         self.assertEqual(self.phase_tw.currentRow(), 0)
 
@@ -85,13 +73,13 @@ class PhaseControllerTest(QtTest):
         self.controller.remove_btn_click_callback()
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 0)
-        self.assertEqual(len(self.phase_model.phases), 0)
+        self.assertEqual(len(self.model.phase_model.phases), 0)
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
         self.controller.remove_btn_click_callback()
         self.assertEqual(self.phase_tw.rowCount(), 0)
-        self.assertEqual(len(self.phase_model.phases), 0)
+        self.assertEqual(len(self.model.phase_model.phases), 0)
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
@@ -99,11 +87,11 @@ class PhaseControllerTest(QtTest):
         self.load_phases()
         self.load_phases()
         self.assertEqual(self.phase_tw.rowCount(), 12)
-        self.assertEqual(len(self.phase_model.phases), 12)
+        self.assertEqual(len(self.model.phase_model.phases), 12)
         self.assertEqual(len(self.widget.pattern_widget.phases), 12)
         self.controller.clear_phases()
         self.assertEqual(self.phase_tw.rowCount(), 0)
-        self.assertEqual(len(self.phase_model.phases), 0)
+        self.assertEqual(len(self.model.phase_model.phases), 0)
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
@@ -114,7 +102,7 @@ class PhaseControllerTest(QtTest):
         self.assertEqual(self.phase_tw.rowCount(), multiplier * 6)
         self.controller.clear_phases()
         self.assertEqual(self.phase_tw.rowCount(), 0)
-        self.assertEqual(len(self.phase_model.phases), 0)
+        self.assertEqual(len(self.model.phase_model.phases), 0)
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
@@ -122,7 +110,7 @@ class PhaseControllerTest(QtTest):
         self.load_phases()
         pressure = 200
         self.widget.phase_pressure_sb.setValue(200)
-        for ind, phase in enumerate(self.phase_model.phases):
+        for ind, phase in enumerate(self.model.phase_model.phases):
             self.assertEqual(phase.pressure, pressure)
             self.assertEqual(self.widget.get_phase_pressure(ind), pressure)
 
@@ -130,7 +118,7 @@ class PhaseControllerTest(QtTest):
         self.load_phases()
         temperature = 1500
         self.widget.phase_temperature_sb.setValue(temperature)
-        for ind, phase in enumerate(self.phase_model.phases):
+        for ind, phase in enumerate(self.model.phase_model.phases):
             if phase.has_thermal_expansion():
                 self.assertEqual(phase.temperature, temperature)
                 self.assertEqual(self.widget.get_phase_temperature(ind), temperature)
@@ -144,7 +132,7 @@ class PhaseControllerTest(QtTest):
         self.widget.phase_temperature_sb.setValue(temperature)
         self.widget.phase_pressure_sb.setValue(pressure)
         self.load_phases()
-        for ind, phase in enumerate(self.phase_model.phases):
+        for ind, phase in enumerate(self.model.phase_model.phases):
             self.assertEqual(phase.pressure, pressure)
             self.assertEqual(self.widget.get_phase_pressure(ind), pressure)
             if phase.has_thermal_expansion():
@@ -160,8 +148,8 @@ class PhaseControllerTest(QtTest):
         self.widget.phase_pressure_sb.setValue(pressure)
         self.load_phase('au_Anderson.jcpds')
 
-        reflections1 = self.phase_model.get_lines_d(0)
-        reflections2 = self.phase_model.get_lines_d(1)
+        reflections1 = self.model.phase_model.get_lines_d(0)
+        reflections2 = self.model.phase_model.get_lines_d(1)
         self.assertTrue(np.array_equal(reflections1, reflections2))
 
     def test_to_not_show_lines_in_legend(self):

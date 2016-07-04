@@ -3,7 +3,7 @@
 from tests.utility import QtTest
 from mock import MagicMock, patch
 
-from model.ImgModel import ImgModel
+from model.DioptasModel import DioptasModel
 from widgets.integration import IntegrationWidget
 from controller.integration.EpicsController import EpicsController
 
@@ -20,8 +20,8 @@ class TestEpicsController(QtTest):
         self.integration_widget = IntegrationWidget()
         self.move_widget = self.integration_widget.move_widget
         self.setup_widget = self.integration_widget.move_widget.motors_setup_widget
-        self.img_model = ImgModel()
-        self.epics_controller = EpicsController(self.integration_widget, self.img_model)
+        self.model = DioptasModel()
+        self.epics_controller = EpicsController(self.integration_widget, self.model)
 
     @patch('epics.caget', return_value=12.03)
     def test_update_motor_position(self, caget):
@@ -40,10 +40,10 @@ class TestEpicsController(QtTest):
         self.assertEqual(self.move_widget.img_focus_lbl.text(), '')
         self.assertEqual(self.move_widget.img_omega_lbl.text(), '')
 
-        self.img_model.motors_info['Horizontal'] = 0.1
-        self.img_model.motors_info['Vertical'] = 0.2
-        self.img_model.motors_info['Focus'] = 0.3
-        self.img_model.motors_info['Omega'] = 0.4
+        self.model.img_model.motors_info['Horizontal'] = 0.1
+        self.model.img_model.motors_info['Vertical'] = 0.2
+        self.model.img_model.motors_info['Focus'] = 0.3
+        self.model.img_model.motors_info['Omega'] = 0.4
 
         self.epics_controller.update_image_position()
         self.assertEqual(str(self.move_widget.img_hor_lbl.text()), '0.100')
@@ -54,10 +54,10 @@ class TestEpicsController(QtTest):
     @patch('epics.caput')
     @patch('epics.caget', return_value=0.0)
     def test_move_stage(self, caget, caput):
-        self.img_model.motors_info['Horizontal'] = 0.1
-        self.img_model.motors_info['Vertical'] = 0.02
-        self.img_model.motors_info['Focus'] = 0.05
-        self.img_model.motors_info['Omega'] = 90
+        self.model.img_model.motors_info['Horizontal'] = 0.1
+        self.model.img_model.motors_info['Vertical'] = 0.02
+        self.model.img_model.motors_info['Focus'] = 0.05
+        self.model.img_model.motors_info['Omega'] = 90
 
         self.epics_controller.update_image_position()
 
