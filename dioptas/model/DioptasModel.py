@@ -24,59 +24,63 @@ class DioptasModel(QtCore.QObject):
     def __init__(self):
         super(DioptasModel, self).__init__()
         self.configurations = []
-        self.current_configuration = 0
+        self.configuration_ind = 0
         self.configurations.append(ImgConfiguration())
 
         self._pattern_model = PatternModel()
         self._phase_model = PhaseModel()
 
-        self.img_model.img_changed.connect(self.img_changed)
-        self.pattern_model.pattern_changed.connect(self.pattern_changed)
+        self.connect_models()
 
     def add_configuration(self):
         self.configurations.append(ImgConfiguration())
-        self.configuration_added.emit()
         self.select_configuration(len(self.configurations) - 1)
+        self.configuration_added.emit()
 
     def remove_configuration(self):
-        ind = self.current_configuration
+        ind = self.configuration_ind
+        self.disconnect_models()
         del self.configurations[ind]
         if ind == len(self.configurations) or ind == -1:
-            ind = len(self.configurations) - 1
-        self.configuration_removed.emit(self.current_configuration)
-        self.select_configuration(ind)
+            self.configuration_ind = len(self.configurations) - 1
+        self.connect_models()
+        self.configuration_removed.emit(self.configuration_ind)
 
     def select_configuration(self, ind):
         if ind >= 0 and ind < len(self.configurations):
-            self.img_model.img_changed.disconnect(self.img_changed)
-            self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
-
-            self.current_configuration = ind
+            self.disconnect_models()
+            self.configuration_ind = ind
+            self.connect_models()
             self.configuration_selected.emit(ind)
 
-            self.img_model.img_changed.connect(self.img_changed)
-            self.pattern_model.pattern_changed.connect(self.pattern_changed)
+    def disconnect_models(self):
+        self.img_model.img_changed.disconnect(self.img_changed)
+        self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
+
+    def connect_models(self):
+        self.img_model.img_changed.connect(self.img_changed)
+        self.pattern_model.pattern_changed.connect(self.pattern_changed)
 
     @property
     def img_model(self):
         """
         :rtype: ImgModel
         """
-        return self.configurations[self.current_configuration].img_model
+        return self.configurations[self.configuration_ind].img_model
 
     @property
     def mask_model(self):
         """
         :rtype: MaskModel
         """
-        return self.configurations[self.current_configuration].mask_model
+        return self.configurations[self.configuration_ind].mask_model
 
     @property
     def calibration_model(self):
         """
         :rtype: CalibrationModel
         """
-        return self.configurations[self.current_configuration].calibration_model
+        return self.configurations[self.configuration_ind].calibration_model
 
     @property
     def pattern_model(self):

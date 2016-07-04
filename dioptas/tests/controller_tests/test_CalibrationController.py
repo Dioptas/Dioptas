@@ -19,9 +19,10 @@ data_path = os.path.join(unittest_path, '../data')
 QtGui.QApplication.processEvents = MagicMock()
 QtGui.QProgressDialog.setValue = MagicMock()
 
+
 class TestCalibrationController(QtTest):
     def setUp(self):
-        self.model=DioptasModel()
+        self.model = DioptasModel()
         self.model.calibration_model._calibrants_working_dir = os.path.join(data_path, 'calibrants')
         self.model.calibration_model.integrate_1d = MagicMock()
         self.model.calibration_model.integrate_2d = MagicMock()

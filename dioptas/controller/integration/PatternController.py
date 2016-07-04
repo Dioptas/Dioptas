@@ -180,24 +180,24 @@ class PatternController(object):
     def plot_pattern(self):
         if self.widget.bkg_spectrum_inspect_btn.isChecked():
             self.widget.pattern_widget.plot_data(
-                *self.spectrum_model.pattern.auto_background_before_subtraction_spectrum.data,
-                name=self.spectrum_model.pattern.name)
-            self.widget.pattern_widget.plot_bkg(*self.spectrum_model.pattern.auto_background_pattern.data)
+                *self.model.pattern_model.pattern.auto_background_before_subtraction_spectrum.data,
+                name=self.model.pattern_model.pattern.name)
+            self.widget.pattern_widget.plot_bkg(*self.model.pattern_model.pattern.auto_background_pattern.data)
         else:
             self.widget.pattern_widget.plot_data(
-                *self.spectrum_model.pattern.data, name=self.spectrum_model.pattern.name)
+                *self.model.pattern_model.pattern.data, name=self.model.pattern_model.pattern.name)
             self.widget.pattern_widget.plot_bkg([], [])
 
         # update the bkg_name
-        if self.spectrum_model.bkg_ind is not -1:
-            self.widget.bkg_name_lbl.setText('Bkg: ' + self.spectrum_model.overlays[self.spectrum_model.bkg_ind].name)
+        if self.model.pattern_model.bkg_ind is not -1:
+            self.widget.bkg_name_lbl.setText('Bkg: ' + self.model.pattern_model.overlays[self.model.pattern_model.bkg_ind].name)
         else:
             self.widget.bkg_name_lbl.setText('')
 
     def reset_background(self, popup=True):
-        self.widget.overlay_show_cb_set_checked(self.spectrum_model.bkg_ind, True)  # show the old overlay again
-        self.spectrum_model.bkg_ind = -1
-        self.spectrum_model.pattern.unset_background_spectrum()
+        self.widget.overlay_show_cb_set_checked(self.model.pattern_model.bkg_ind, True)  # show the old overlay again
+        self.model.pattern_model.bkg_ind = -1
+        self.model.pattern_model.pattern.unset_background_spectrum()
         self.widget.overlay_set_as_bkg_btn.setChecked(False)
 
     def automatic_binning_cb_changed(self):
@@ -212,7 +212,7 @@ class PatternController(object):
         self.image_changed()
 
     def autocreate_spectrum(self):
-        if self.spectrum_model.pattern.has_background():
+        if self.model.pattern_model.pattern.has_background():
             if self.autocreate_pattern is True:
                 file_endings = self.get_spectrum_file_endings()
                 for file_ending in file_endings:
@@ -222,7 +222,7 @@ class PatternController(object):
                         os.mkdir(directory)
                     filename = os.path.join(
                         directory,
-                        self.spectrum_model.pattern.name + file_ending)
+                        self.model.pattern_model.pattern.name + file_ending)
                     self.save_pattern(filename, subtract_background=True)
 
     def save_pattern(self, filename=None, subtract_background=False):
