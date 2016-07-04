@@ -26,22 +26,22 @@ except ImportError:
 from .econfig import epics_config
 
 from widgets.integration import IntegrationWidget
-from model.ImgModel import ImgModel
+from model.DioptasModel import DioptasModel
 
 
 class EpicsController(object):
 
-    def __init__(self, widget, img_model):
+    def __init__(self, widget, dioptas_model):
         """
         :param widget: Reference to IntegrationWidget
-        :param img_model: Reference to ImgModel object
+        :param dioptas_model: Reference to DioptasModel object
 
         :type widget: IntegrationWidget
-        :type img_model: ImgModel
+        :type dioptas_model: DioptasModel
         """
 
         self.widget = widget
-        self.img_model = img_model
+        self.model = dioptas_model
 
         self.move_widget = widget.move_widget
 
@@ -59,7 +59,7 @@ class EpicsController(object):
     def connect_signals(self):
         self.epics_update_timer.timeout.connect(self.update_current_motor_position)
 
-        self.img_model.img_changed.connect(self.update_image_position)
+        self.model.img_changed.connect(self.update_image_position)
 
         self.widget.move_widget_btn.clicked.connect(self.widget.move_widget.raise_widget)
         self.widget.move_widget.connect_epics_btn.clicked.connect(self.update_current_motor_position)
@@ -88,10 +88,10 @@ class EpicsController(object):
 
     def update_image_position(self):
         try:
-            self.move_widget.img_hor_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Horizontal']))
-            self.move_widget.img_ver_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Vertical']))
-            self.move_widget.img_focus_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Focus']))
-            self.move_widget.img_omega_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Omega']))
+            self.move_widget.img_hor_lbl.setText('{:.3f}'.format(self.model.img_model.motors_info['Horizontal']))
+            self.move_widget.img_ver_lbl.setText('{:.3f}'.format(self.model.img_model.motors_info['Vertical']))
+            self.move_widget.img_focus_lbl.setText('{:.3f}'.format(self.model.img_model.motors_info['Focus']))
+            self.move_widget.img_omega_lbl.setText('{:.3f}'.format(self.model.img_model.motors_info['Omega']))
         except KeyError:
             self.move_widget.img_hor_lbl.setText("")
             self.move_widget.img_ver_lbl.setText("")

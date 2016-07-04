@@ -75,7 +75,7 @@ class MainController(object):
 
 
         # create data
-        self.dioptas_model = DioptasModel()
+        self.model = DioptasModel()
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
@@ -86,21 +86,17 @@ class MainController(object):
 
         self.calibration_controller = CalibrationController(self.working_directories,
                                                             self.widget.calibration_widget,
-                                                            self.dioptas_model)
+                                                            self.model)
         self.mask_controller = MaskController(self.working_directories,
                                               self.widget.mask_widget,
-                                              self.dioptas_model)
+                                              self.model)
         self.integration_controller = IntegrationController(self.working_directories,
                                                             self.widget.integration_widget,
-                                                            self.img_model,
-                                                            self.mask_model,
-                                                            self.calibration_model,
-                                                            self.spectrum_model,
-                                                            self.phase_model)
+                                                            self.model)
 
         self.configuration_controller = ConfigurationController(
             configuration_widget=self.widget.configuration_widget,
-            dioptas_model=self.dioptas_model,
+            dioptas_model=self.model,
             controllers=[
                 self.calibration_controller,
                 self.mask_controller,
@@ -132,8 +128,8 @@ class MainController(object):
         """
         self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
-        self.img_model.img_changed.connect(self.update_title)
-        self.spectrum_model.pattern_changed.connect(self.update_title)
+        self.model.img_changed.connect(self.update_title)
+        self.model.pattern_changed.connect(self.update_title)
 
     def tab_changed(self, ind):
         """
@@ -160,9 +156,9 @@ class MainController(object):
 
         # update the GUI
         if ind == 2:  # integration tab
-            self.mask_model.set_supersampling()
+            self.model.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
-            self.integration_controller.widget.calibration_lbl.setText(self.calibration_model.calibration_name)
+            self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
             self.integration_controller.spectrum_controller.image_changed()
             self.integration_controller.image_controller.update_img()
@@ -187,13 +183,13 @@ class MainController(object):
         Updates the title bar of the main window. The title bar will always show the current version of Dioptas, the
         image or spectrum filenames loaded and the current calibration name.
         """
-        img_filename = os.path.basename(self.img_model.filename)
-        spec_filename = os.path.basename(self.spectrum_model.pattern_filename)
-        calibration_name = self.calibration_model.calibration_name
+        img_filename = os.path.basename(self.model.img_model.filename)
+        spec_filename = os.path.basename(self.model.pattern_model.pattern_filename)
+        calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':
             self.widget.setWindowTitle(str + u' - © 2015 C. Prescher')
-            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2015 C. Prescher')
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2016 C. Prescher')
             return
 
         if img_filename is not '' or spec_filename is not '':
@@ -271,7 +267,7 @@ class MainController(object):
         root = ET.Element("DioptasSettings")
         filenames = ET.SubElement(root, "filenames")
         calibration_filename = ET.SubElement(filenames, "calibration")
-        calibration_filename.text = self.calibration_model.filename
+        calibration_filename.text = self.model.calibration_model.filename
         tree = ET.ElementTree(root)
         tree.write(os.path.join(self.settings_directory, "settings.xml"))
 
