@@ -39,6 +39,13 @@ class PhaseControllerTest(QtTest):
         self.controller = PhaseController({}, self.widget, self.model)
         self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
 
+    def tearDown(self):
+        del self.spectrum_controller
+        del self.controller
+        del self.widget
+        self.model.clear()
+        del self.model
+        gc.collect()
 
     def test_manual_deleting_phases(self):
         self.load_phases()
