@@ -49,7 +49,11 @@ class ConfigurationController(object):
         self.configuration_manager.current_configuration = selected_ind
 
     def update_controller(self):
+        # update models
         for controller in self.controllers:
             controller.img_model = self.configuration_manager.img_model
             controller.mask_model = self.configuration_manager.mask_model
             controller.calibration_model = self.configuration_manager.calibration_model
+
+        # fire update events
+        self.configuration_manager.img_model.img_changed.emit()

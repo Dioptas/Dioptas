@@ -25,14 +25,15 @@ import xml.etree.cElementTree as ET
 from PyQt4 import QtGui, QtCore
 
 from widgets.MainWidget import MainWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
+
+from model.ImgConfiguration import ImgConfigurationManager
 from model.PatternModel import PatternModel
-from model.CalibrationModel import CalibrationModel
 from model.PhaseModel import PhaseModel
+
 from . import CalibrationController
 from .integration import IntegrationController
 from .MaskController import MaskController
+from .ConfigurationController import ConfigurationController
 
 from . import versioneer
 
@@ -71,10 +72,14 @@ class MainController(object):
         self.use_settings = use_settings
 
         self.widget = MainWidget()
+
+
         # create data
-        self.img_model = ImgModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.mask_model = MaskModel()
+        self.configuration_manager = ImgConfigurationManager()
+        self.img_model = self.configuration_manager.img_model
+        self.mask_model = self.configuration_manager.mask_model
+        self.calibration_model = self.configuration_manager.calibration_model
+
         self.spectrum_model = PatternModel()
         self.phase_model = PhaseModel()
 
@@ -101,6 +106,18 @@ class MainController(object):
                                                             self.calibration_model,
                                                             self.spectrum_model,
                                                             self.phase_model)
+
+        self.configuration_controller = ConfigurationController(
+            configuration_widget=self.widget.configuration_widget,
+            configuration_manager=self.configuration_manager,
+            controllers=[
+                self.calibration_controller,
+                self.mask_controller,
+                self.integration_controller,
+                self
+            ]
+        )
+
         self.create_signals()
         self.update_title()
 
