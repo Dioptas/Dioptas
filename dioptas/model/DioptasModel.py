@@ -2,7 +2,7 @@
 
 from PyQt4 import QtCore
 
-from . import ImgModel, CalibrationModel, MaskModel
+from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel
 
 
 class ImgConfiguration(QtCore.QObject):
@@ -10,19 +10,24 @@ class ImgConfiguration(QtCore.QObject):
         super(ImgConfiguration, self).__init__()
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
-        self.calibration_model = CalibrationModel()
+        self.calibration_model = CalibrationModel(self.img_model)
 
 
-class ImgConfigurationManager(QtCore.QObject):
+class DioptasModel(QtCore.QObject):
     configuration_added = QtCore.pyqtSignal()
     configuration_selected = QtCore.pyqtSignal(int)  # new index
     configuration_removed = QtCore.pyqtSignal(int)  # removed index
 
+    img_changed = QtCore.pyqtSignal()
+
     def __init__(self):
-        super(ImgConfigurationManager, self).__init__()
+        super(DioptasModel, self).__init__()
         self.configurations = []
         self.current_configuration = 0
         self.configurations.append(ImgConfiguration())
+
+        self._pattern_model = PatternModel()
+        self._phase_model = PhaseModel()
 
     def add_configuration(self):
         self.configurations.append(ImgConfiguration())
@@ -38,6 +43,7 @@ class ImgConfigurationManager(QtCore.QObject):
 
     def select_configuration(self, ind):
         if ind >= 0 and ind < len(self.configurations):
+
             self.current_configuration = ind
             self.configuration_selected.emit(ind)
 
@@ -61,3 +67,19 @@ class ImgConfigurationManager(QtCore.QObject):
         :rtype: CalibrationModel
         """
         return self.configurations[self.current_configuration].calibration_model
+
+
+    @property
+    def pattern_model(self):
+        """
+        :rtype: PatternModel
+        """
+        return self._pattern_model
+
+
+    @property
+    def phase_model(self):
+        """
+        :rtype: PhaseModel
+        """
+        return self._phase_model

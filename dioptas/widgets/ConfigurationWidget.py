@@ -22,6 +22,7 @@ class ConfigurationWidget(QtGui.QWidget):
 
         self.configuration_btns = []
         self.configurations_btn_widget = QtGui.QWidget()
+        self.configuration_btn_group = QtGui.QButtonGroup()
 
         self.add_configuration_btn = FlatButton("+")
         self.remove_configuration_btn = FlatButton("-")
@@ -31,13 +32,15 @@ class ConfigurationWidget(QtGui.QWidget):
     def create_layout(self):
         self.main_layout = QtGui.QHBoxLayout()
         self.main_layout.addWidget(self.configuration_lbl)
-        self.main_layout.addWidget(self.configurations_btn_widget)
         self.main_layout.addWidget(self.add_configuration_btn)
         self.main_layout.addWidget(self.remove_configuration_btn)
+        self.main_layout.addWidget(self.configurations_btn_widget)
         self.main_layout.addWidget(self.configuration_name_lbl)
         self.main_layout.addWidget(self.configuration_name_txt)
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.setLayout(self.main_layout)
+
+        self.configurations_btn_layout = QtGui.QHBoxLayout(self.configurations_btn_widget)
 
     def style_widgets(self):
         self.main_layout.setContentsMargins(5, 5, 5, 3)
@@ -46,10 +49,10 @@ class ConfigurationWidget(QtGui.QWidget):
         self.configuration_name_txt.setMaximumWidth(150)
 
     def update_configurations(self, configurations, cur_ind):
-        self.main_layout.removeWidget(self.configurations_btn_widget)
-        self.configuration_btn_group = QtGui.QButtonGroup()
-        self.configurations_btn_widget = QtGui.QWidget()
-        self.configurations_btn_layout = QtGui.QHBoxLayout(self.configurations_btn_widget)
+        for btn in self.configuration_btns:
+            self.configurations_btn_layout.removeWidget(btn)
+            self.configuration_btn_group.removeButton(btn)
+
         self.configuration_btns = []
 
         for ind, configuration in enumerate(configurations):
@@ -60,4 +63,5 @@ class ConfigurationWidget(QtGui.QWidget):
             if ind == cur_ind:
                 new_button.setChecked(True)
             new_button.clicked.connect(partial(self.configuration_selected.emit, ind))
+
 
