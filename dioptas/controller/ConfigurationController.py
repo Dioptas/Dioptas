@@ -31,11 +31,16 @@ class ConfigurationController(object):
         self.widget.remove_configuration_btn.clicked.connect(self.model.remove_configuration)
 
         self.widget.configuration_selected.connect(self.model.select_configuration)
+
         self.model.configuration_added.connect(self.update_configuration_widget)
         self.model.configuration_removed.connect(self.update_configuration_widget)
+        self.model.configuration_selected.connect(self.configuration_selected)
 
     def update_configuration_widget(self):
         self.widget.update_configurations(
             configurations=self.model.configurations,
             cur_ind=self.model.configuration_ind
         )
+
+    def configuration_selected(self):
+        self.model.img_changed.emit()
