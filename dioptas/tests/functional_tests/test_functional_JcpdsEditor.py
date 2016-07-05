@@ -264,6 +264,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds = jcpds()
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
+        self.model.configurations[0].calibration_model.spectrum_geometry.wavelength = 0.3344
+
         self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, jcpds_phase=self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
 
@@ -342,11 +344,12 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 10)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, dioptas_model=self.model,
+                                                      jcpds_phase=self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
-        self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text())), 4.0786)
-        self.assertEqual(float(str(self.jcpds_widget.lattice_b_sb.text())), 4.0786)
-        self.assertEqual(float(str(self.jcpds_widget.lattice_c_sb.text())), 4.0786)
+        self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 4.0786)
+        self.assertEqual(float(str(self.jcpds_widget.lattice_b_sb.text()).replace(',', '.')), 4.0786)
+        self.assertEqual(float(str(self.jcpds_widget.lattice_c_sb.text()).replace(',', '.')), 4.0786)
 
         # then he decides to make this phase it little bit more useful and adds some peaks and saves this as a different
         # version and trys to load it again...
@@ -366,7 +369,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.jcpds_controller.save_as_btn_clicked(filename)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, jcpds_phase=self.jcpds)
 
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
         # Erwin opens up the program, loads image and calibration and some phases
@@ -414,7 +417,8 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         QtGui.QApplication.processEvents()
 
         self.phase_controller.widget.phase_tw.selectRow(2)
-        self.assertTrue(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 5.51280)  # Argon lattice parameter
+        self.assertTrue(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')),
+                        5.51280)  # Argon lattice parameter
 
         # Now he changes the lattice parameter and wants to see if there is any change in the line position in the graph
 
