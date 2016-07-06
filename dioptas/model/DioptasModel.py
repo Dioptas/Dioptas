@@ -12,6 +12,8 @@ class ImgConfiguration(QtCore.QObject):
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
 
+        self.use_mask = False
+
 
 class DioptasModel(QtCore.QObject):
     configuration_added = QtCore.pyqtSignal()
@@ -95,6 +97,14 @@ class DioptasModel(QtCore.QObject):
         :rtype: PhaseModel
         """
         return self._phase_model
+
+    @property
+    def use_mask(self):
+        return self.configurations[self.configuration_ind].use_mask
+
+    @use_mask.setter
+    def use_mask(self, new_val):
+        self.configurations[self.configuration_ind].use_mask=new_val
 
     def clear(self):
         for configuration in self.configurations:

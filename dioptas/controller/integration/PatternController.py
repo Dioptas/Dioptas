@@ -115,7 +115,7 @@ class PatternController(object):
     def image_changed(self):
         self.widget.img_widget.roi.blockSignals(True)
         if self.model.calibration_model.is_calibrated:
-            if self.widget.img_mask_btn.isChecked():
+            if self.model.use_mask:
                 if self.model.mask_model.supersampling_factor != self.model.img_model.supersampling_factor:
                     self.model.mask_model.set_supersampling(self.model.img_model.supersampling_factor)
                 mask = self.model.mask_model.get_mask()
