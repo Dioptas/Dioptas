@@ -112,12 +112,13 @@ class ImageController(object):
             self.widget.img_widget.plot_mask(
                 np.zeros(self.model.mask_model.get_img().shape))
 
-    def change_mask_colormap(self):
+    def update_mask_transparency(self):
         """
         Changes the colormap of the mask according to the transparency option selection in the GUI. Resulting Mask will
         be either transparent or solid.
         """
-        if self.widget.mask_transparent_cb.isChecked():
+        self.model.transparent_mask = self.widget.mask_transparent_cb.isChecked()
+        if self.model.transparent_mask:
             self.widget.img_widget.set_color([255, 0, 0, 100])
         else:
             self.widget.img_widget.set_color([255, 0, 0, 255])
@@ -140,7 +141,7 @@ class ImageController(object):
 
         self.connect_click_function(self.widget.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
-        self.connect_click_function(self.widget.mask_transparent_cb, self.change_mask_colormap)
+        self.connect_click_function(self.widget.mask_transparent_cb, self.update_mask_transparency)
 
         self.connect_click_function(self.widget.img_roi_btn, self.change_roi_mode)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
@@ -863,6 +864,7 @@ class ImageController(object):
 
     def update_gui(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
+        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
 
 
 class NewFileInDirectoryWatcher(QtCore.QObject):
