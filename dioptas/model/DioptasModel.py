@@ -54,6 +54,7 @@ class DioptasModel(QtCore.QObject):
             self.configuration_ind = ind
             self.connect_models()
             self.configuration_selected.emit(ind)
+            self.img_changed.emit()
 
     def disconnect_models(self):
         self.img_model.img_changed.disconnect(self.img_changed)

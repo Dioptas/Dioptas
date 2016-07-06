@@ -123,6 +123,7 @@ class ImageController(object):
             self.widget.img_widget.set_color([255, 0, 0, 255])
 
     def create_signals(self):
+        self.model.configuration_selected.connect(self.update_gui)
         self.model.img_changed.connect(self.update_img)
 
         """
@@ -859,6 +860,9 @@ class ImageController(object):
                                        'ERROR',
                                        'Due to a change in image dimensions the absorption ' +
                                        'corrections have been removed')
+
+    def update_gui(self):
+        self.widget.img_mask_btn.setChecked(self.model.use_mask)
 
 
 class NewFileInDirectoryWatcher(QtCore.QObject):

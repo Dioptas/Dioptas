@@ -14,6 +14,8 @@ from model.DioptasModel import DioptasModel
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
+def click_button(widget):
+    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
 
 class ImageControllerTest(QtTest):
 
@@ -54,3 +56,12 @@ class ImageControllerTest(QtTest):
         self.controller._directory_watcher._file_system_watcher.directoryChanged.emit(unittest_data_path)
 
         self.assertEqual('image_003.tif', str(self.widget.img_filename_txt.text()))
+
+    def test_configuration_selected_changes_mask_mode(self):
+        self.model.add_configuration()
+        click_button(self.widget.img_mask_btn)
+        self.assertTrue(self.model.use_mask)
+
+        self.model.select_configuration(0)
+        self.assertFalse(self.model.use_mask)
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
