@@ -56,7 +56,6 @@ class ImageController(object):
 
         self.img_mode = 'Image'
         self.img_docked = True
-        self.use_mask = False
         self.roi_active = False
 
         self.clicked_tth = None
@@ -107,7 +106,7 @@ class ImageController(object):
         """
         Plots the mask data.
         """
-        if self.use_mask and self.img_mode == 'Image':
+        if self.model.use_mask and self.img_mode == 'Image':
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
         else:
             self.widget.img_widget.plot_mask(
@@ -345,7 +344,7 @@ class ImageController(object):
         return self.model.calibration_model.integrate_1d(mask=mask, unit=integration_unit, num_points=num_points)
 
     def change_mask_mode(self):
-        self.use_mask = not self.use_mask
+        self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
         self.widget.mask_transparent_cb.setVisible(not self.widget.mask_transparent_cb.isVisible())
         self.plot_mask()
         self.model.img_changed.emit()
@@ -402,7 +401,7 @@ class ImageController(object):
 
         if self.img_mode == 'Cake' and \
                 self.model.calibration_model.is_calibrated:
-            if self.use_mask:
+            if self.model.use_mask:
                 mask = self.model.mask_model.get_img()
             else:
                 mask = np.zeros(self.model.img_model._img_data.shape)
@@ -414,7 +413,7 @@ class ImageController(object):
             else:
                 roi_mask = np.zeros(self.model.img_model._img_data.shape)
 
-            if self.use_mask or self.roi_active:
+            if self.model.use_mask or self.roi_active:
                 mask = np.logical_or(mask, roi_mask)
             else:
                 mask = None
