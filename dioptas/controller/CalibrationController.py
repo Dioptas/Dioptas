@@ -39,8 +39,8 @@ class CalibrationController(object):
         :param widget: Gives the Calibration Widget
         :type widget: CalibrationWidget
 
-        :param dioptas_model: Reverence to DioptasModel Object
-        :type img_model: DioptasModel
+        :param dioptas_model: Reference to DioptasModel Object
+        :type dioptas_model: DioptasModel
 
         """
         self.working_dir = working_dir
@@ -58,6 +58,7 @@ class CalibrationController(object):
         Connects the GUI signals to the appropriate Controller methods.
         """
         self.model.img_changed.connect(self.plot_image)
+        self.model.configuration_selected.connect(self.update_calibration_parameter_in_view)
 
         self.create_transformation_signals()
         self.create_update_signals()

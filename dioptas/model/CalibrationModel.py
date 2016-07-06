@@ -371,10 +371,10 @@ class CalibrationModel(object):
         return self.create_point_array(self.points, self.points_index)
 
     def get_calibration_parameter(self):
-        pyFAI_parameter = self.cake_geometry.getPyFAI()
+        pyFAI_parameter = self.spectrum_geometry.getPyFAI()
         pyFAI_parameter['polarization_factor'] = self.polarization_factor
         try:
-            fit2d_parameter = self.cake_geometry.getFit2D()
+            fit2d_parameter = self.spectrum_geometry.getFit2D()
             fit2d_parameter['polarization_factor'] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
