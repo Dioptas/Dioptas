@@ -13,6 +13,7 @@ class ImgConfiguration(QtCore.QObject):
         self.calibration_model = CalibrationModel(self.img_model)
 
         self.use_mask = False
+        self.transparent_mask = False
 
 
 class DioptasModel(QtCore.QObject):
@@ -106,6 +107,14 @@ class DioptasModel(QtCore.QObject):
     @use_mask.setter
     def use_mask(self, new_val):
         self.configurations[self.configuration_ind].use_mask=new_val
+
+    @property
+    def transparent_mask(self):
+        return self.configurations[self.configuration_ind].transparent_mask
+
+    @transparent_mask.setter
+    def transparent_mask(self, new_val):
+        self.configurations[self.configuration_ind].transparent_mask = new_val
 
     def clear(self):
         for configuration in self.configurations:

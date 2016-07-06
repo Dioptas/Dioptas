@@ -14,11 +14,17 @@ from model.DioptasModel import DioptasModel
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
+
 def click_button(widget):
     QTest.mouseClick(widget, QtCore.Qt.LeftButton)
 
-class ImageControllerTest(QtTest):
 
+def click_checkbox(checkbox_widget):
+    QTest.mouseClick(checkbox_widget, QtCore.Qt.LeftButton,
+                     pos=QtCore.QPoint(2, checkbox_widget.height() / 2.0))
+
+
+class ImageControllerTest(QtTest):
     def setUp(self):
         self.working_dir = {'image': ''}
 
@@ -65,3 +71,14 @@ class ImageControllerTest(QtTest):
         self.model.select_configuration(0)
         self.assertFalse(self.model.use_mask)
         self.assertFalse(self.widget.img_mask_btn.isChecked())
+
+    def test_configuration_selected_changes_mask_transparency(self):
+        click_button(self.widget.img_mask_btn)
+        self.model.add_configuration()
+        click_button(self.widget.img_mask_btn)
+        click_checkbox(self.widget.mask_transparent_cb)
+        self.assertTrue(self.model.transparent_mask)
+
+        self.model.select_configuration(0)
+        self.assertFalse(self.model.transparent_mask)
+        self.assertFalse(self.widget.mask_transparent_cb.isChecked())
