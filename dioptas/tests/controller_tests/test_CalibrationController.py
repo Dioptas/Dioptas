@@ -63,6 +63,56 @@ class TestCalibrationController(QtTest):
         self.assertTrue(os.path.exists(os.path.join(data_path, 'calibration.poni')))
         os.remove(os.path.join(data_path, 'calibration.poni'))
 
+    def test_selecting_configuration_updates_parameter_display(self):
+        calibration1 = {
+            'dist': 0.2,
+            'poni1': 0.08,
+            'poni2': 0.081,
+            'rot1': 0.0043,
+            'rot2': 0.002,
+            'rot3': 0.001,
+            'pixel1': 7.9e-5,
+            'pixel2': 7.9e-5,
+            'wavelength': 0.3344,
+            'polarization_factor': 0.99
+        }
+        calibration2 = {
+            'dist': 0.3,
+            'poni1': 0.04,
+            'poni2': 0.021,
+            'rot1': 0.0053,
+            'rot2': 0.002,
+            'rot3': 0.0013,
+            'pixel1': 7.4e-5,
+            'pixel2': 7.6e-5,
+            'wavelength': 0.31,
+            'polarization_factor': 0.98
+        }
+
+        self.model.calibration_model.set_pyFAI(calibration1)
+        self.model.add_configuration()
+        self.model.calibration_model.set_pyFAI(calibration2)
+
+        self.model.select_configuration(0)
+
+        model_calibration = self.model.configurations[0].calibration_model.spectrum_geometry.getPyFAI()
+        del model_calibration['splineFile']
+        del model_calibration['detector']
+        current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
+        del current_displayed_calibration['polarization_factor']
+        self.assertEqual(model_calibration, current_displayed_calibration)
+
+        self.model.select_configuration(1)
+        model_calibration = self.model.configurations[1].calibration_model.spectrum_geometry.getPyFAI()
+        del model_calibration['splineFile']
+        del model_calibration['detector']
+        current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
+        del current_displayed_calibration['polarization_factor']
+        self.assertEqual(model_calibration, current_displayed_calibration)
+
+
+        current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -97,7 +97,7 @@ class ConfigurationControllerTest(unittest.TestCase):
         self.assertEqual(self.config_widget.configuration_btns[1].text(), "2")
         self.assertEqual(self.config_widget.configuration_btns[2].text(), "3")
 
-    def test_remove_inbetween_configuration(self):
+    def test_remove_in_between_configuration(self):
         click_button(self.config_widget.add_configuration_btn)
         click_button(self.config_widget.add_configuration_btn)
         click_button(self.config_widget.add_configuration_btn)
