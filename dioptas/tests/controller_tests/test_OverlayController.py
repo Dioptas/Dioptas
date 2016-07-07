@@ -35,27 +35,27 @@ class OverlayControllerTest(QtTest):
         self.load_overlays()
 
         self.assertEqual(self.overlay_tw.rowCount(), 6)
-        self.assertEqual(len(self.model.pattern_model.overlays), 6)
+        self.assertEqual(len(self.model.overlay_model.overlays), 6)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 6)
         self.assertEqual(self.overlay_tw.currentRow(), 5)
 
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 5)
-        self.assertEqual(len(self.model.pattern_model.overlays), 5)
+        self.assertEqual(len(self.model.overlay_model.overlays), 5)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 5)
         self.assertEqual(self.overlay_tw.currentRow(), 4)
 
         self.widget.select_overlay(1)
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 4)
-        self.assertEqual(len(self.model.pattern_model.overlays), 4)
+        self.assertEqual(len(self.model.overlay_model.overlays), 4)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 4)
         self.assertEqual(self.overlay_tw.currentRow(), 1)
 
         self.widget.select_overlay(0)
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 3)
-        self.assertEqual(len(self.model.pattern_model.overlays), 3)
+        self.assertEqual(len(self.model.overlay_model.overlays), 3)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 3)
         self.assertEqual(self.overlay_tw.currentRow(), 0)
 
@@ -63,7 +63,7 @@ class OverlayControllerTest(QtTest):
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.overlay_controller.remove_overlay_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
-        self.assertEqual(len(self.model.pattern_model.overlays), 0)
+        self.assertEqual(len(self.model.overlay_model.overlays), 0)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
@@ -77,12 +77,12 @@ class OverlayControllerTest(QtTest):
         QtGui.QApplication.processEvents()
         QtGui.QApplication.processEvents()
         self.assertEqual(self.overlay_tw.rowCount(), 12)
-        self.assertEqual(len(self.model.pattern_model.overlays), 12)
+        self.assertEqual(len(self.model.overlay_model.overlays), 12)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 12)
 
         self.overlay_controller.clear_overlays_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
-        self.assertEqual(len(self.model.pattern_model.overlays), 0)
+        self.assertEqual(len(self.model.overlay_model.overlays), 0)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
@@ -93,7 +93,7 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(self.overlay_tw.rowCount(), multiplier * 6)
         self.overlay_controller.clear_overlays_btn_click_callback()
         self.assertEqual(self.overlay_tw.rowCount(), 0)
-        self.assertEqual(len(self.model.pattern_model.overlays), 0)
+        self.assertEqual(len(self.model.overlay_model.overlays), 0)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 0)
         self.assertEqual(self.overlay_tw.currentRow(), -1)
 
@@ -103,10 +103,10 @@ class OverlayControllerTest(QtTest):
 
         self.widget.overlay_scale_sb.setValue(2.0)
         self.app.processEvents()
-        self.assertEqual(self.model.pattern_model.get_overlay_scaling(2), 2)
+        self.assertEqual(self.model.overlay_model.get_overlay_scaling(2), 2)
 
         # tests if overlay is updated in spectrum
-        x, y = self.model.pattern_model.overlays[2].data
+        x, y = self.model.overlay_model.overlays[2].data
         x_spec, y_spec = self.widget.pattern_widget.overlays[2].getData()
 
         self.assertAlmostEqual(np.sum(y - y_spec), 0)
@@ -116,9 +116,9 @@ class OverlayControllerTest(QtTest):
         self.widget.select_overlay(3)
 
         self.widget.overlay_offset_sb.setValue(100)
-        self.assertEqual(self.model.pattern_model.get_overlay_offset(3), 100)
+        self.assertEqual(self.model.overlay_model.get_overlay_offset(3), 100)
 
-        x, y = self.model.pattern_model.overlays[3].data
+        x, y = self.model.overlay_model.overlays[3].data
         x_spec, y_spec = self.widget.pattern_widget.overlays[3].getData()
 
         self.assertAlmostEqual(np.sum(y - y_spec), 0)
@@ -131,7 +131,7 @@ class OverlayControllerTest(QtTest):
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 
-        self.assertEqual(self.model.pattern_model.bkg_ind, 0)
+        self.assertEqual(self.model.pattern_model.background_pattern, self.model.overlay_model.overlays[0])
         x, y = self.model.pattern_model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
@@ -185,6 +185,8 @@ class OverlayControllerTest(QtTest):
     def test_having_overlay_as_bkg_and_deleting_it(self):
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
+        self.assertEqual(len(self.model.overlay_model.overlays), 1)
+        self.assertIsNotNone(self.model.pattern_model.background_pattern)
 
         QTest.mouseClick(self.widget.overlay_del_btn, QtCore.Qt.LeftButton)
 
@@ -199,13 +201,13 @@ class OverlayControllerTest(QtTest):
         self.widget.waterfall_separation_txt.setText("10")
         QTest.mouseClick(self.widget.waterfall_btn, QtCore.Qt.LeftButton)
 
-        self.assertEqual(self.model.pattern_model.overlays[5].offset, -10)
-        self.assertEqual(self.model.pattern_model.overlays[4].offset, -20)
+        self.assertEqual(self.model.overlay_model.overlays[5].offset, -10)
+        self.assertEqual(self.model.overlay_model.overlays[4].offset, -20)
 
         QTest.mouseClick(self.widget.reset_waterfall_btn, QtCore.Qt.LeftButton)
 
-        self.assertEqual(self.model.pattern_model.overlays[5].offset, 0)
-        self.assertEqual(self.model.pattern_model.overlays[5].offset, 0)
+        self.assertEqual(self.model.overlay_model.overlays[5].offset, 0)
+        self.assertEqual(self.model.overlay_model.overlays[5].offset, 0)
 
     def load_overlays(self):
         self.load_overlay('spectrum_001.xy')

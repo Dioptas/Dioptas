@@ -189,8 +189,9 @@ class PatternController(object):
             self.widget.pattern_widget.plot_bkg([], [])
 
         # update the bkg_name
-        if self.model.pattern_model.bkg_ind is not -1:
-            self.widget.bkg_name_lbl.setText('Bkg: ' + self.model.pattern_model.overlays[self.model.pattern_model.bkg_ind].name)
+        if self.model.pattern_model.background_pattern is not None:
+            self.widget.bkg_name_lbl.setText('Bkg: ' + self.model.pattern_model.background_pattern.name)
+            self.widget.bkg_name_lbl.setText('Bkg: ' + self.model.pattern_model.background_pattern.name)
         else:
             self.widget.bkg_name_lbl.setText('')
 

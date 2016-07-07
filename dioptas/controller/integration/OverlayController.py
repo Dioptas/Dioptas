@@ -63,21 +63,19 @@ class OverlayController(object):
         self.widget.overlay_offset_sb.valueChanged.connect(self.overlay_offset_sb_changed)
 
         self.widget.waterfall_btn.clicked.connect(self.overlay_waterfall_btn_click_callback)
-        self.widget.reset_waterfall_btn.clicked.connect(self.model.pattern_model.reset_overlay_offsets)
+        self.widget.reset_waterfall_btn.clicked.connect(self.model.overlay_model.reset_overlay_offsets)
 
         self.widget.overlay_set_as_bkg_btn.clicked.connect(self.overlay_set_as_bkg_btn_click_callback)
 
         # creating the quick-actions signals
 
-        self.connect_click_function(self.widget.qa_set_as_overlay_btn, self.model.pattern_model.add_spectrum_as_overlay)
-        self.connect_click_function(self.widget.qa_set_as_background_btn, self.qa_set_as_background_btn_click)
+        self.connect_click_function(self.widget.qa_set_as_overlay_btn, self.set_current_pattern_as_overlay)
+        self.connect_click_function(self.widget.qa_set_as_background_btn, self.set_current_pattern_as_background)
 
         # spectrum_data signals
-        self.model.pattern_model.overlay_removed.connect(self.overlay_removed)
-        self.model.pattern_model.overlay_added.connect(self.overlay_added)
-        self.model.pattern_model.overlay_changed.connect(self.overlay_changed)
-        self.model.pattern_model.overlay_set_as_bkg.connect(self.overlay_set_as_bkg)
-        self.model.pattern_model.overlay_unset_as_bkg.connect(self.overlay_unset_as_bkg)
+        self.model.overlay_model.overlay_removed.connect(self.overlay_removed)
+        self.model.overlay_model.overlay_added.connect(self.overlay_added)
+        self.model.overlay_model.overlay_changed.connect(self.overlay_changed)
 
     def connect_click_function(self, emitter, function):
         self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
@@ -93,18 +91,18 @@ class OverlayController(object):
             if len(filenames):
                 for filename in filenames:
                     filename = str(filename)
-                    self.model.pattern_model.add_overlay_file(filename)
+                    self.model.overlay_model.add_overlay_file(filename)
                 self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
         else:
-            self.model.pattern_model.add_overlay_file(filename)
+            self.model.overlay_model.add_overlay_file(filename)
             self.working_dir['overlay'] = os.path.dirname(str(filename))
 
     def overlay_added(self):
         """
         callback when overlay is added to the SpectrumData
         """
-        color = self.widget.pattern_widget.add_overlay(self.model.pattern_model.overlays[-1])
-        self.widget.add_overlay(self.model.pattern_model.get_overlay_name(-1),
+        color = self.widget.pattern_widget.add_overlay(self.model.overlay_model.overlays[-1])
+        self.widget.add_overlay(self.model.overlay_model.overlays[-1].name,
                                 '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
 
     def remove_overlay_btn_click_callback(self):
@@ -112,7 +110,11 @@ class OverlayController(object):
         Removes the currently in the overlay table selected overlay from the table, spectrum_data and spectrum_view
         """
         cur_ind = self.widget.get_selected_overlay_row()
-        self.model.pattern_model.remove_overlay(cur_ind)
+        if cur_ind < 0:
+            return
+        if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[cur_ind]:
+            self.model.pattern_model.background_pattern = None
+        self.model.overlay_model.remove_overlay(cur_ind)
 
     def overlay_removed(self, ind):
         """
@@ -157,12 +159,12 @@ class OverlayController(object):
         cur_ind = row
         self.widget.overlay_scale_sb.blockSignals(True)
         self.widget.overlay_offset_sb.blockSignals(True)
-        self.widget.overlay_scale_sb.setValue(self.model.pattern_model.overlays[cur_ind].scaling)
-        self.widget.overlay_offset_sb.setValue(self.model.pattern_model.overlays[cur_ind].offset)
+        self.widget.overlay_scale_sb.setValue(self.model.overlay_model.overlays[cur_ind].scaling)
+        self.widget.overlay_offset_sb.setValue(self.model.overlay_model.overlays[cur_ind].offset)
 
         self.widget.overlay_scale_sb.blockSignals(False)
         self.widget.overlay_offset_sb.blockSignals(False)
-        if self.model.pattern_model.overlay_is_bkg(cur_ind):
+        if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[cur_ind]:
             self.widget.overlay_set_as_bkg_btn.setChecked(True)
         else:
             self.widget.overlay_set_as_bkg_btn.setChecked(False)
@@ -189,7 +191,9 @@ class OverlayController(object):
         :param value: new scale value
         """
         cur_ind = self.widget.get_selected_overlay_row()
-        self.model.pattern_model.set_overlay_scaling(cur_ind, value)
+        self.model.overlay_model.set_overlay_scaling(cur_ind, value)
+        if self.model.overlay_model.overlays[cur_ind] == self.model.pattern_model.background_pattern:
+            self.model.pattern_changed.emit()
 
     def overlay_offset_sb_changed(self, value):
         """
@@ -197,22 +201,24 @@ class OverlayController(object):
         :param value: new value
         """
         cur_ind = self.widget.get_selected_overlay_row()
-        self.model.pattern_model.set_overlay_offset(cur_ind, value)
+        self.model.overlay_model.set_overlay_offset(cur_ind, value)
+        if self.model.overlay_model.overlays[cur_ind] == self.model.pattern_model.background_pattern:
+            self.model.pattern_changed.emit()
 
     def overlay_changed(self, ind):
-        self.widget.pattern_widget.update_overlay(self.model.pattern_model.overlays[ind], ind)
+        self.widget.pattern_widget.update_overlay(self.model.overlay_model.overlays[ind], ind)
         cur_ind = self.widget.get_selected_overlay_row()
         if ind == cur_ind:
             self.widget.overlay_offset_sb.blockSignals(True)
             self.widget.overlay_scale_sb.blockSignals(True)
-            self.widget.overlay_offset_sb.setValue(self.model.pattern_model.get_overlay_offset(ind))
-            self.widget.overlay_scale_sb.setValue(self.model.pattern_model.get_overlay_scaling(ind))
+            self.widget.overlay_offset_sb.setValue(self.model.overlay_model.get_overlay_offset(ind))
+            self.widget.overlay_scale_sb.setValue(self.model.overlay_model.get_overlay_scaling(ind))
             self.widget.overlay_offset_sb.blockSignals(False)
             self.widget.overlay_scale_sb.blockSignals(False)
 
     def overlay_waterfall_btn_click_callback(self):
         separation = float(str(self.widget.waterfall_separation_txt.text()))
-        self.model.pattern_model.overlay_waterfall(separation)
+        self.model.overlay_model.overlay_waterfall(separation)
 
     def overlay_set_as_bkg_btn_click_callback(self):
         """
@@ -226,12 +232,24 @@ class OverlayController(object):
 
         if not self.widget.overlay_set_as_bkg_btn.isChecked():
             ## if the overlay is not currently a background
-            # it will unset the current background and redisplay it in the spectrum view
-            # (which is achieved by checking the cb)
-            self.model.pattern_model.unset_overlay_as_bkg()
+            # it will unset the current background and redisplay
+            self.model.pattern_model.background_pattern=None
         else:
             # if the overlay is currently the active background
-            self.model.pattern_model.set_overlay_as_bkg(cur_ind)
+            self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[cur_ind]
+            if self.widget.overlay_show_cb_is_checked(cur_ind):
+                self.widget.overlay_show_cb_set_checked(cur_ind, False)
+
+    def set_current_pattern_as_overlay(self):
+        self.model.overlay_model.add_overlay_pattern(self.model.pattern_model.pattern)
+
+    def set_current_pattern_as_background(self):
+        self.model.overlay_model.add_overlay_pattern(self.model.pattern_model.pattern)
+        self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[-1]
+
+        self.widget.overlay_set_as_bkg_btn.setChecked(True)
+        self.widget.overlay_show_cb_set_checked(-1, False)
+
 
     def overlay_set_as_bkg(self, ind):
         cur_selected_ind = self.widget.get_selected_overlay_row()
@@ -245,12 +263,6 @@ class OverlayController(object):
         if self.model.pattern_model.bkg_ind == -1:
             self.widget.overlay_set_as_bkg_btn.setChecked(False)
 
-    def qa_set_as_background_btn_click(self):
-        """
-        Callback for the quick action button "Set as Background" in image and spectrum tab. It will add the currently
-        displayed spectrum as overlay and then set it as background
-        """
-        self.model.pattern_model.set_spectrum_as_bkg()
 
     def overlay_show_cb_state_changed(self, ind, state):
         """

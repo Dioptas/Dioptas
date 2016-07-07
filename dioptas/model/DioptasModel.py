@@ -2,7 +2,7 @@
 
 from PyQt4 import QtCore
 
-from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel
+from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
 
 
 class ImgConfiguration(QtCore.QObject):
@@ -11,6 +11,7 @@ class ImgConfiguration(QtCore.QObject):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
+        self.pattern_model = PatternModel()
 
         self.use_mask = False
         self.transparent_mask = False
@@ -30,7 +31,7 @@ class DioptasModel(QtCore.QObject):
         self.configuration_ind = 0
         self.configurations.append(ImgConfiguration())
 
-        self._pattern_model = PatternModel()
+        self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
 
         self.connect_models()
@@ -91,7 +92,14 @@ class DioptasModel(QtCore.QObject):
         """
         :rtype: PatternModel
         """
-        return self._pattern_model
+        return self.configurations[self.configuration_ind].pattern_model
+
+    @property
+    def overlay_model(self):
+        """
+        :rtype: OverlayModel
+        """
+        return self._overlay_model
 
     @property
     def phase_model(self):
