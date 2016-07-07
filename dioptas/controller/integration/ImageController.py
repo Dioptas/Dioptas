@@ -849,3 +849,4 @@ class ImageController(object):
     def update_gui(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
+        self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)

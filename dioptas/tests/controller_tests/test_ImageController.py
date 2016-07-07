@@ -88,3 +88,14 @@ class ImageControllerTest(QtTest):
         self.model.select_configuration(0)
         self.assertFalse(self.model.transparent_mask)
         self.assertFalse(self.widget.mask_transparent_cb.isChecked())
+
+    def test_configuration_selected_changed_autoprocessing_of_images(self):
+        click_checkbox(self.widget.autoprocess_cb)
+        self.model.add_configuration()
+
+        self.assertFalse(self.model.img_model.autoprocess)
+        self.assertFalse(self.widget.autoprocess_cb.isChecked())
+
+        self.model.select_configuration(0)
+        self.assertTrue(self.model.img_model.autoprocess)
+        self.assertTrue(self.widget.autoprocess_cb.isChecked())
