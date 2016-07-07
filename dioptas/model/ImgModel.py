@@ -155,8 +155,14 @@ class ImgModel(QtCore.QObject):
             self._background_data_fabio = fabio.open(filename)
             self._background_data = self._img_data_fabio.data[::-1]
         self._perform_background_transformations()
-        self._calculate_img_data()
 
+        if self._background_data.shape != self._img_data.shape:
+            self._background_data = None
+            self._calculate_img_data()
+            self.img_changed.emit()
+            raise BackgroundDimensionWrongException()
+
+        self._calculate_img_data()
         self.img_changed.emit()
 
     def _image_and_background_shape_equal(self):
@@ -186,13 +192,23 @@ class ImgModel(QtCore.QObject):
     def has_background(self):
         return self._background_data is not None
 
-    def set_background_scaling(self, value):
-        self._background_scaling = value
+    @property
+    def background_scaling(self):
+        return self._background_scaling
+
+    @background_scaling.setter
+    def background_scaling(self, new_value):
+        self._background_scaling = new_value
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def set_background_offset(self, value):
-        self._background_offset = value
+    @property
+    def background_offset(self):
+        return self._background_offset
+
+    @background_offset.setter
+    def background_offset(self, new_value):
+        self._background_offset = new_value
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -494,3 +510,6 @@ class ImgModel(QtCore.QObject):
             self._directory_watcher.activate()
         else:
             self._directory_watcher.deactivate()
+
+class BackgroundDimensionWrongException(Exception):
+    pass
