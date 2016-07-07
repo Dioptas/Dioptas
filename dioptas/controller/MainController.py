@@ -188,7 +188,7 @@ class MainController(object):
         calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':
-            self.widget.setWindowTitle(str + u' - © 2015 C. Prescher')
+            self.widget.setWindowTitle(str + u' - © 2016 C. Prescher')
             self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2016 C. Prescher')
             return
 
@@ -203,7 +203,7 @@ class MainController(object):
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += u' - © 2015 C. Prescher'
+        str += u' - © 2016 C. Prescher'
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 
@@ -222,7 +222,9 @@ class MainController(object):
         working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
         if os.path.exists(working_directories_path):
             reader = csv.reader(open(working_directories_path, 'r'))
-            self.working_directories = dict(x for x in reader)
+            for x in reader:
+                if len(x)>1:
+                    self.working_directories[x[0]] = x[1]
 
     def load_xml_settings(self):
         """
@@ -256,7 +258,6 @@ class MainController(object):
         working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
         writer = csv.writer(open(working_directories_path, 'w'))
         for key, value in list(self.working_directories.items()):
-            writer.writerow([key, value])
             writer.writerow([key, value])
 
     def save_xml_settings(self):
