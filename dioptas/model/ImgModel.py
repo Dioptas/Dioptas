@@ -18,6 +18,7 @@
 
 import logging
 import os
+import time
 from past.builtins import basestring
 
 import numpy as np
@@ -27,6 +28,7 @@ from PyQt4 import QtCore
 import fabio
 
 from .util.spe import SpeFile
+from .util.NewFileWatcher import NewFileInDirectoryWatcher
 
 from model.util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
@@ -89,6 +91,15 @@ class ImgModel(QtCore.QObject):
 
         self._create_dummy_img()
 
+        ### setting up autoprocess
+        self._autoprocess = False
+        self._directory_watcher = NewFileInDirectoryWatcher(
+            file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                        '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                        '.mccd', '.mar3450', '.pnm', 'spe']
+        )
+        self._directory_watcher.file_added.connect(self.load)
+
     def _create_dummy_img(self):
         self._img_data = np.zeros((2048, 2048))
 
@@ -103,9 +114,9 @@ class ImgModel(QtCore.QObject):
         self.filename = filename
         try:
             im = Image.open(filename)
+            self._img_data = np.array(im)[::-1]
             self.file_info = self._get_file_info(im)
             self.motors_info = self._get_motors_info(im)
-            self._img_data = np.array(im)[::-1]
         except IOError:
             if os.path.splitext(filename)[1].lower() == '.spe':
                 spe = SpeFile(filename)
@@ -114,6 +125,7 @@ class ImgModel(QtCore.QObject):
                 self._img_data_fabio = fabio.open(filename)
                 self._img_data = self._img_data_fabio.data[::-1]
         self.file_name_iterator.update_filename(filename)
+        self._directory_watcher.path = os.path.dirname(str(filename))
 
         self._perform_img_transformations()
         self._calculate_img_data()
@@ -470,3 +482,15 @@ class ImgModel(QtCore.QObject):
                     k, v = str(value[0]).split(':')
                     result[str(k)] = float(v)
         return result
+
+    @property
+    def autoprocess(self):
+        return self._autoprocess
+
+    @autoprocess.setter
+    def autoprocess(self, new_val):
+        self._autoprocess = new_val
+        if new_val:
+            self._directory_watcher.activate()
+        else:
+            self._directory_watcher.deactivate()

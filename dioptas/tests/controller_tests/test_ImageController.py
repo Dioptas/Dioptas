@@ -53,13 +53,19 @@ class ImageControllerTest(QtTest):
         # enable autoprocessing:
         QTest.mouseClick(self.widget.autoprocess_cb, QtCore.Qt.LeftButton,
                          pos=QtCore.QPoint(2, self.widget.autoprocess_cb.height() / 2.0))
-        self.assertFalse(self.controller._directory_watcher.signalsBlocked())
+
+        self.assertFalse(self.model.configurations[0].img_model._directory_watcher.signalsBlocked())
+        self.assertFalse(
+            self.model.configurations[0].img_model._directory_watcher._file_system_watcher.signalsBlocked())
 
         self.assertTrue(self.widget.autoprocess_cb.isChecked())
+        self.assertTrue(self.model.img_model.autoprocess)
+
         shutil.copy2(os.path.join(unittest_data_path, 'image_001.tif'),
                      os.path.join(unittest_data_path, 'image_003.tif'))
 
-        self.controller._directory_watcher._file_system_watcher.directoryChanged.emit(unittest_data_path)
+        self.model.configurations[0].img_model._directory_watcher._file_system_watcher.directoryChanged.emit(
+            unittest_data_path)
 
         self.assertEqual('image_003.tif', str(self.widget.img_filename_txt.text()))
 
