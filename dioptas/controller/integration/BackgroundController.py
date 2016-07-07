@@ -24,6 +24,7 @@ from PyQt4 import QtGui, QtCore
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.integration import IntegrationWidget
 from model.DioptasModel import DioptasModel
+from model.ImgModel import BackgroundDimensionWrongException
 
 
 class BackgroundController(object):
@@ -45,6 +46,7 @@ class BackgroundController(object):
         self.widget = widget
         self.model = dioptas_model
 
+        self.model.configuration_selected.connect(self.update_gui)
         self.create_image_background_signals()
         self.create_spectrum_background_signals()
 
@@ -55,8 +57,8 @@ class BackgroundController(object):
 
         self.widget.bkg_image_scale_step_txt.editingFinished.connect(self.update_bkg_image_scale_step)
         self.widget.bkg_image_offset_step_txt.editingFinished.connect(self.update_bkg_image_offset_step)
-        self.widget.bkg_image_scale_sb.valueChanged.connect(self.model.img_model.set_background_scaling)
-        self.widget.bkg_image_offset_sb.valueChanged.connect(self.model.img_model.set_background_offset)
+        self.widget.bkg_image_scale_sb.valueChanged.connect(self.background_img_scale_changed)
+        self.widget.bkg_image_offset_sb.valueChanged.connect(self.background_img_offset_changed)
 
         self.model.img_changed.connect(self.update_background_image_filename)
 
@@ -82,12 +84,18 @@ class BackgroundController(object):
     def load_background_image(self, filename=None):
         if filename is None:
             filename = str(QtGui.QFileDialog.getOpenFileName(
-                    self.widget, "Load an image background file",
-                    self.working_dir['image']))
+                self.widget, "Load an image background file",
+                self.working_dir['image']))
 
         if filename is not None and filename is not '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
-            self.model.img_model.load_background(filename)
+            try:
+                self.model.img_model.load_background(filename)
+            except BackgroundDimensionWrongException:
+                QtGui.QMessageBox.critical(self.widget, 'ERROR',
+                                           'Background image does not have the same dimensions as original Image. ' + \
+                                           'Resetting Background Image.')
+                self.widget.bkg_image_filename_lbl.setText("None")
 
     def remove_background_image(self):
         self.widget.bkg_image_filename_lbl.setText("None")
@@ -106,15 +114,16 @@ class BackgroundController(object):
         if self.model.img_model.has_background():
             self.widget.bkg_image_filename_lbl.setText(os.path.basename(self.model.img_model.background_filename))
             self.widget.bkg_name_lbl.setText(
-                    'Bkg image: {0}'.format(os.path.basename(self.model.img_model.background_filename)))
+                'Bkg image: {0}'.format(os.path.basename(self.model.img_model.background_filename)))
         else:
-            if str(self.widget.bkg_image_filename_lbl.text()) != 'None':
-                QtGui.QMessageBox.critical(self.widget, 'ERROR',
-                                           'Background image does not have the same dimensions as original Image. ' + \
-                                           'Resetting Background Image.')
-
             self.widget.bkg_image_filename_lbl.setText('None')
             self.widget.bkg_name_lbl.setText('')
+
+    def background_img_scale_changed(self):
+        self.model.img_model.background_scaling = self.widget.bkg_image_scale_sb.value()
+
+    def background_img_offset_changed(self):
+        self.model.img_model.background_offset = self.widget.bkg_image_offset_sb.value()
 
     def bkg_spectrum_gb_toggled_callback(self, is_checked):
         self.widget.bkg_spectrum_gb.blockSignals(True)
@@ -158,14 +167,14 @@ class BackgroundController(object):
                 x_max = x_spec[-1]
             self.widget.pattern_widget.set_linear_region(x_min, x_max)
             self.widget.pattern_widget.linear_region_item.sigRegionChanged.connect(
-                    self.bkg_spectrum_linear_region_callback
+                self.bkg_spectrum_linear_region_callback
             )
             self.widget.bkg_spectrum_x_min_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
             self.widget.bkg_spectrum_x_max_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
         else:
             self.widget.pattern_widget.hide_linear_region()
             self.widget.pattern_widget.linear_region_item.sigRegionChanged.disconnect(
-                    self.bkg_spectrum_linear_region_callback
+                self.bkg_spectrum_linear_region_callback
             )
 
             self.widget.bkg_spectrum_x_min_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
@@ -182,3 +191,7 @@ class BackgroundController(object):
         self.widget.pattern_widget.linear_region_item.blockSignals(True)
         self.widget.pattern_widget.set_linear_region(*self.widget.get_bkg_spectrum_roi())
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
+
+    def update_gui(self):
+        self.widget.bkg_image_offset_sb.setValue(self.model.img_model.background_offset)
+        self.widget.bkg_image_scale_sb.setValue(self.model.img_model.background_scaling)
