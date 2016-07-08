@@ -421,6 +421,7 @@ class ImgModel(QtCore.QObject):
         """
         self.supersampling_factor = factor
         self._calculate_img_data()
+        self.img_changed.emit()
 
     def supersample_data(self, img_data, factor):
         """

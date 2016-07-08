@@ -536,7 +536,7 @@ class CalibrationModel(object):
         """
         x -= 0.5
         cake_step = self.cake_tth[1] - self.cake_tth[0]
-        tth = self.cake_tth[int(np.floor(x))] + (x  - np.floor(x)) * cake_step
+        tth = self.cake_tth[int(np.floor(x))] + (x - np.floor(x)) * cake_step
         return tth
 
     def get_azi_cake(self, x):
@@ -553,7 +553,8 @@ class CalibrationModel(object):
         return azi
 
     def get_two_theta_array(self):
-        return self.spectrum_geometry.twoThetaArray()[::self.supersampling_factor, ::self.supersampling_factor]
+        return self.spectrum_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,
+               ::self.supersampling_factor]
 
     def get_pixel_ind(self, tth, azi):
         """
