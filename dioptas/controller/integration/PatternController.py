@@ -22,7 +22,6 @@ import numpy as np
 import pyFAI
 from PyQt4 import QtGui, QtCore
 
-
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from model.DioptasModel import DioptasModel
 
@@ -50,19 +49,16 @@ class PatternController(object):
 
         self.integration_unit = '2th_deg'
         self.autocreate_pattern = False
-        self.unit = pyFAI.units.TTH_DEG
 
         self.create_subscriptions()
         self.create_gui_signals()
 
     def create_subscriptions(self):
         # Data subscriptions
-        self.model.img_changed.connect(self.image_changed)
         self.model.pattern_changed.connect(self.plot_pattern)
-        self.model.pattern_changed.connect(self.autocreate_spectrum)
 
         # Gui subscriptions
-        self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
+        # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
         self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
@@ -95,8 +91,8 @@ class PatternController(object):
         self.connect_click_function(self.widget.qa_save_spectrum_btn, self.save_pattern)
 
         # integration controls
-        self.widget.automatic_binning_cb.stateChanged.connect(self.automatic_binning_cb_changed)
-        self.widget.bin_count_txt.editingFinished.connect(self.image_changed)
+        self.widget.automatic_binning_cb.stateChanged.connect(self.integration_binning_changed)
+        self.widget.bin_count_txt.editingFinished.connect(self.integration_binning_changed)
         self.widget.supersampling_sb.valueChanged.connect(self.supersampling_changed)
 
         # spectrum_plot interaction
@@ -109,65 +105,14 @@ class PatternController(object):
         # spectrum_plot antialias
         self.widget.antialias_btn.toggled.connect(self.widget.pattern_widget.set_antialias)
 
+        self.widget.spectrum_header_xy_cb.clicked.connect(self.update_spectrum_file_endings)
+        self.widget.spectrum_header_chi_cb.clicked.connect(self.update_spectrum_file_endings)
+        self.widget.spectrum_header_dat_cb.clicked.connect(self.update_spectrum_file_endings)
+
     def connect_click_function(self, emitter, function):
         self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
-    def image_changed(self):
-        self.widget.img_widget.roi.blockSignals(True)
-        if self.model.calibration_model.is_calibrated:
-            if self.model.use_mask:
-                if self.model.mask_model.supersampling_factor != self.model.img_model.supersampling_factor:
-                    self.model.mask_model.set_supersampling(self.model.img_model.supersampling_factor)
-                mask = self.model.mask_model.get_mask()
-            else:
-                mask = None
-
-            if self.widget.img_roi_btn.isChecked():
-                roi_mask = self.widget.img_widget.roi.getRoiMask(self.model.img_model.img_data.shape)
-            else:
-                roi_mask = None
-
-            if roi_mask is None and mask is None:
-                mask = None
-            elif roi_mask is None and mask is not None:
-                mask = mask
-            elif roi_mask is not None and mask is None:
-                mask = roi_mask
-            elif roi_mask is not None and mask is not None:
-                mask = np.logical_or(mask, roi_mask)
-
-            if not self.widget.automatic_binning_cb.isChecked():
-                num_points = int(str(self.widget.bin_count_txt.text()))
-            else:
-                num_points = None
-
-            x, y = self.model.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit, num_points=num_points)
-            self.widget.bin_count_txt.setText(str(self.model.calibration_model.num_points))
-
-            self.model.pattern_model.set_pattern(x, y, self.model.img_model.filename, unit=self.integration_unit)
-
-            if self.autocreate_pattern:
-                filename = self.model.img_model.filename
-                file_endings = self.get_spectrum_file_endings()
-                for file_ending in file_endings:
-                    if filename is not '':
-                        filename = os.path.join(
-                            self.working_dir['spectrum'],
-                            os.path.basename(
-                                str(self.model.img_model.filename)).split('.')[:-1][0] + file_ending)
-                    self.save_pattern(filename)
-                self.widget.spec_next_btn.setEnabled(True)
-                self.widget.spec_previous_btn.setEnabled(True)
-                self.widget.spec_filename_txt.setText(os.path.basename(filename))
-                self.widget.spec_directory_txt.setText(os.path.dirname(filename))
-            else:
-                self.widget.spec_next_btn.setEnabled(False)
-                self.widget.spec_previous_btn.setEnabled(False)
-                self.widget.spec_filename_txt.setText(
-                    'No File saved or selected')
-        self.widget.img_widget.roi.blockSignals(False)
-
-    def get_spectrum_file_endings(self):
+    def update_spectrum_file_endings(self):
         res = []
         if self.widget.spectrum_header_xy_cb.isChecked():
             res.append('.xy')
@@ -175,7 +120,7 @@ class PatternController(object):
             res.append('.chi')
         if self.widget.spectrum_header_dat_cb.isChecked():
             res.append('.dat')
-        return res
+        self.model.current_configuration.integration_unit = res
 
     def plot_pattern(self):
         if self.widget.bkg_spectrum_inspect_btn.isChecked():
@@ -201,39 +146,29 @@ class PatternController(object):
         self.model.pattern_model.pattern.unset_background_spectrum()
         self.widget.overlay_set_as_bkg_btn.setChecked(False)
 
-    def automatic_binning_cb_changed(self):
+    def integration_binning_changed(self):
         current_value = self.widget.automatic_binning_cb.isChecked()
-        self.widget.bin_count_txt.setEnabled(not current_value)
         if current_value:
-            self.image_changed()
+            self.model.current_configuration.integration_num_points = None
+        else:
+            self.model.current_configuration.integration_num_points = float(str(self.widget.bin_count_txt.text()))
+        self.widget.bin_count_txt.setEnabled(not current_value)
 
     def supersampling_changed(self, value):
         self.model.calibration_model.set_supersampling(value)
         self.model.img_model.set_supersampling(value)
-        self.image_changed()
-
-    def autocreate_spectrum(self):
-        if self.model.pattern_model.pattern.has_background():
-            if self.autocreate_pattern is True:
-                file_endings = self.get_spectrum_file_endings()
-                for file_ending in file_endings:
-                    directory = os.path.join(
-                        self.working_dir['spectrum'], 'bkg_subtracted')
-                    if not os.path.exists(directory):
-                        os.mkdir(directory)
-                    filename = os.path.join(
-                        directory,
-                        self.model.pattern_model.pattern.name + file_ending)
-                    self.save_pattern(filename, subtract_background=True)
 
     def save_pattern(self, filename=None, subtract_background=False):
         if filename is None:
             img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Spectrum Data.",
-                                                             os.path.join(self.working_dir['spectrum'],
-                                                                          img_filename + '.xy'),
-                                                             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)')))
-            subtract_background = True  # when manually saving the spectrum the background will be automatically
+            filename = str(QtGui.QFileDialog.getSaveFileName(
+                self.widget, "Save Spectrum Data.",
+                os.path.join(self.working_dir['spectrum'],
+                             img_filename + '.xy'),
+                ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))
+            )
+
+            subtract_background = True  # when manually saving the spectrum the background will be subtracted
 
         if filename is not '':
             print(filename)
@@ -442,7 +377,8 @@ class PatternController(object):
     def set_cake_line_position(self, tth):
         upper_ind = np.where(self.model.calibration_model.cake_tth > tth)
         lower_ind = np.where(self.model.calibration_model.cake_tth < tth)
-        spacing = self.model.calibration_model.cake_tth[upper_ind[0][0]] - self.model.calibration_model.cake_tth[lower_ind[-1][-1]]
+        spacing = self.model.calibration_model.cake_tth[upper_ind[0][0]] - self.model.calibration_model.cake_tth[
+            lower_ind[-1][-1]]
         new_pos = lower_ind[-1][-1] + (tth - self.model.calibration_model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
         self.widget.img_widget.vertical_line.setValue(new_pos)
 

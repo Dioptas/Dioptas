@@ -75,11 +75,12 @@ class MainController(object):
 
 
         # create data
-        self.model = DioptasModel()
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
                                     'phase': ''}
+
+        self.model = DioptasModel(self.working_directories)
 
         if use_settings:
             self.load_settings()
@@ -160,8 +161,7 @@ class MainController(object):
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
-            self.integration_controller.spectrum_controller.image_changed()
-            self.integration_controller.image_controller.update_img()
+            self.model.img_model.img_changed.emit()
             self.widget.integration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
             self.widget.integration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
         elif ind == 1:  # mask tab

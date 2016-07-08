@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+import os
 
 from PyQt4 import QtCore
 
@@ -6,15 +7,96 @@ from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, O
 
 
 class ImgConfiguration(QtCore.QObject):
-    def __init__(self):
+    def __init__(self, working_directories):
         super(ImgConfiguration, self).__init__()
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.pattern_model = PatternModel()
 
+        if working_directories is not None:
+            self.working_directories = working_directories
+        else:
+            self.working_directories = {}
         self.use_mask = False
         self.transparent_mask = False
+
+        self._integration_num_points = None
+        self._integration_unit = '2th_deg'
+
+        self.autosave_integrated_pattern = False
+        self.integrated_patterns_file_formats = ['.xy']
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.img_model.img_changed.connect(self.integrate_image)
+
+    def integrate_image(self):
+        if self.calibration_model.is_calibrated:
+            if self.use_mask:
+                if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
+                    self.mask_model.set_supersampling(self.img_model.supersampling_factor)
+                mask = self.mask_model.get_mask()
+            else:
+                mask = None
+
+            # if self.widget.img_roi_btn.isChecked():
+            #     roi_mask = self.widget.img_widget.roi.getRoiMask(self.model.img_model.img_data.shape)
+            # else:
+            #     roi_mask = None
+
+
+            # if roi_mask is not None and mask is None:
+            #     mask = roi_mask
+            # elif roi_mask is not None and mask is not None:
+            #     mask = np.logical_or(mask, roi_mask)
+
+            # if not self.widget.automatic_binning_cb.isChecked():
+            #     num_points = int(str(self.widget.bin_count_txt.text()))
+            # else:
+            #     num_points = None
+
+            x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
+                                                             num_points=self.integration_num_points)
+
+            self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)
+
+            if self.autosave_integrated_pattern:
+                # save
+                filename = self.img_model.filename
+                for file_ending in self.integrated_patterns_file_formats:
+                    if filename is not '':
+                        filename = os.path.join(
+                            self.working_directories['spectrum'],
+                            os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
+                    self.save_pattern(filename)
+
+                if self.pattern_model.pattern.has_background():
+                    for file_ending in self.integrated_patterns_file_formats:
+                        directory = os.path.join(self.working_directories['spectrum'], 'bkg_subtracted')
+                        if not os.path.exists(directory):
+                            os.mkdir(directory)
+                        filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
+                        self.save_pattern(filename, subtract_background=True)
+
+    @property
+    def integration_num_points(self):
+        return self._integration_num_points
+
+    @integration_num_points.setter
+    def integration_num_points(self, new_value):
+        self._integration_num_points = new_value
+        self.integrate_image()
+
+    @property
+    def integration_unit(self):
+        return self._integration_unit
+
+    @integration_unit.setter
+    def integration_unit(self, new_value):
+        self._integration_unit = new_value
+        self.integrate_image()
 
 
 class DioptasModel(QtCore.QObject):
@@ -25,11 +107,12 @@ class DioptasModel(QtCore.QObject):
     img_changed = QtCore.pyqtSignal()
     pattern_changed = QtCore.pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, working_directories=None):
         super(DioptasModel, self).__init__()
+        self.working_directories = working_directories
         self.configurations = []
         self.configuration_ind = 0
-        self.configurations.append(ImgConfiguration())
+        self.configurations.append(ImgConfiguration(self.working_directories))
 
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
@@ -37,7 +120,7 @@ class DioptasModel(QtCore.QObject):
         self.connect_models()
 
     def add_configuration(self):
-        self.configurations.append(ImgConfiguration())
+        self.configurations.append(ImgConfiguration(self.working_directories))
         self.select_configuration(len(self.configurations) - 1)
         self.configuration_added.emit()
 
@@ -65,6 +148,13 @@ class DioptasModel(QtCore.QObject):
     def connect_models(self):
         self.img_model.img_changed.connect(self.img_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
+
+    @property
+    def current_configuration(self):
+        """
+        :rtype: ImgConfiguration
+        """
+        return self.configurations[self.configuration_ind]
 
     @property
     def img_model(self):
@@ -114,7 +204,7 @@ class DioptasModel(QtCore.QObject):
 
     @use_mask.setter
     def use_mask(self, new_val):
-        self.configurations[self.configuration_ind].use_mask=new_val
+        self.configurations[self.configuration_ind].use_mask = new_val
 
     @property
     def transparent_mask(self):
