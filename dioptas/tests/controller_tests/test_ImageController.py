@@ -99,3 +99,14 @@ class ImageControllerTest(QtTest):
         self.model.select_configuration(0)
         self.assertTrue(self.model.img_model.autoprocess)
         self.assertTrue(self.widget.autoprocess_cb.isChecked())
+
+    def test_configuration_selected_changes_calibration_name(self):
+        self.model.calibration_model.calibration_name = "calib1"
+        self.model.add_configuration()
+        self.model.calibration_model.calibration_name = "calib2"
+
+        self.model.select_configuration(0)
+        self.assertEqual(str(self.widget.calibration_lbl.text()), "calib1")
+
+        self.model.select_configuration(1)
+        self.assertEqual(str(self.widget.calibration_lbl.text()), "calib2")
