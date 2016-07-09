@@ -1,9 +1,9 @@
 # -*- coding: utf8 -*-
-
-
 import gc
 import os
 import unittest
+
+import numpy as np
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
@@ -18,7 +18,11 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
 
-class IntegrationFunctionalTest(unittest.TestCase):
+def click_button(widget):
+    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
+
+
+class IntegrationMockFunctionalTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QtGui.QApplication.instance()
@@ -28,7 +32,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def setUp(self):
         self.model = DioptasModel()
         self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
-                                                                      self.model.calibration_model.int))
+                                                                            self.model.calibration_model.int))
 
         self.integration_widget = IntegrationWidget()
         self.integration_controller = IntegrationController({'spectrum': data_path},
@@ -67,13 +71,13 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
         self.model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
-                                                                    mask=None, unit='2th_deg')
+                                                                     mask=None, unit='2th_deg')
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
         self.model.calibration_model.integrate_1d.assert_called_with(num_points=None,
-                                                               mask=None, unit='2th_deg')
+                                                                     mask=None, unit='2th_deg')
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
         # Edith opens the program, calibrates everything and looks in to the options menu. She sees that there is a
@@ -166,5 +170,87 @@ class IntegrationFunctionalTest(unittest.TestCase):
         os.remove(os.path.join(data_path, 'image_002.xy'))
 
 
-if __name__ == '__main__':
-    unittest.main()
+class IntegrationFunctionalTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
+
+    def setUp(self):
+        self.model = DioptasModel()
+
+        self.integration_widget = IntegrationWidget()
+        self.integration_controller = IntegrationController({'spectrum': data_path},
+                                                            widget=self.integration_widget,
+                                                            dioptas_model=self.model)
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.integration_spectrum_controller = self.integration_controller.spectrum_controller
+        self.integration_image_controller = self.integration_controller.image_controller
+
+    def test_activating_mask_mode(self):
+        y1 = self.model.pattern_model.pattern.y
+
+        self.model.mask_model.mask_below_threshold(self.model.img_model.img_data, 1)
+        click_button(self.integration_widget.img_mask_btn)
+        y2 = self.model.pattern_model.pattern.y
+        self.assertFalse(np.array_equal(y1, y2))
+
+        click_button(self.integration_widget.img_mask_btn)
+        y3 = self.model.pattern_model.pattern.y
+        self.assertTrue(np.array_equal(y1, y3))
+
+    def test_activating_roi_mode(self):
+        y1 = self.model.pattern_model.pattern.y
+
+        click_button(self.integration_widget.img_roi_btn)
+        self.assertIsNotNone(self.model.current_configuration.roi_mask)
+
+        y2 = self.model.pattern_model.pattern.y
+        self.assertFalse(np.array_equal(y1, y2))
+
+        click_button(self.integration_widget.img_roi_btn)
+        y3 = self.model.pattern_model.pattern.y
+        self.assertTrue(np.array_equal(y1, y3))
+
+    def test_activating_roi_mode_and_mask_mode(self):
+        y1 = self.model.pattern_model.pattern.y
+
+        self.model.mask_model.mask_below_threshold(self.model.img_model.img_data, 1)
+        click_button(self.integration_widget.img_mask_btn)
+        y2 = self.model.pattern_model.pattern.y
+
+        click_button(self.integration_widget.img_roi_btn)
+        y3 = self.model.pattern_model.pattern.y
+
+        click_button(self.integration_widget.img_roi_btn)
+        y4 = self.model.pattern_model.pattern.y
+
+        click_button(self.integration_widget.img_mask_btn)
+        y5 = self.model.pattern_model.pattern.y
+
+        self.assertFalse(np.array_equal(y3, y1))
+        self.assertFalse(np.array_equal(y3, y2))
+        self.assertFalse(np.array_equal(y3, y4))
+
+        self.assertFalse(np.array_equal(y1, y2))
+        self.assertFalse(np.array_equal(y1, y4))
+        self.assertFalse(np.array_equal(y1, y3))
+        self.assertTrue(np.array_equal(y1, y5))
+
+    def test_moving_roi(self):
+        click_button(self.integration_widget.img_roi_btn)
+        roi_limits1 = self.integration_widget.img_widget.roi.getIndexLimits(self.model.img_model.img_data.shape)
+        y1 = self.model.pattern_model.pattern.y
+        self.integration_widget.img_widget.roi.setX(30)
+        self.integration_widget.img_widget.roi.setPos((31, 31))
+        self.integration_widget.img_widget.roi.setSize((100, 100))
+        roi_limits2 = self.integration_widget.img_widget.roi.getIndexLimits(self.model.img_model.img_data.shape)
+        y2 = self.model.pattern_model.pattern.y
+
+        print(roi_limits1)
+        print(roi_limits2)
+        self.assertNotEqual(roi_limits1, roi_limits2)
+        self.assertFalse(np.array_equal(y1, y2))

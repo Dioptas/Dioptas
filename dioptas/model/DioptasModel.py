@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import os
 
+import numpy as np
+
 from PyQt4 import QtCore
 
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
@@ -18,8 +20,10 @@ class ImgConfiguration(QtCore.QObject):
             self.working_directories = working_directories
         else:
             self.working_directories = {}
+
         self.use_mask = False
         self.transparent_mask = False
+        self._roi_mask = None
 
         self._integration_num_points = None
         self._integration_unit = '2th_deg'
@@ -31,6 +35,7 @@ class ImgConfiguration(QtCore.QObject):
 
     def connect_signals(self):
         self.img_model.img_changed.connect(self.integrate_image)
+        self.img_model.img_changed.connect(self.update_mask_dimension)
 
     def integrate_image(self):
         if self.calibration_model.is_calibrated:
@@ -41,16 +46,10 @@ class ImgConfiguration(QtCore.QObject):
             else:
                 mask = None
 
-            # if self.widget.img_roi_btn.isChecked():
-            #     roi_mask = self.widget.img_widget.roi.getRoiMask(self.model.img_model.img_data.shape)
-            # else:
-            #     roi_mask = None
-
-
-            # if roi_mask is not None and mask is None:
-            #     mask = roi_mask
-            # elif roi_mask is not None and mask is not None:
-            #     mask = np.logical_or(mask, roi_mask)
+            if self.roi_mask is not None and mask is None:
+                mask = self.roi_mask
+            elif self.roi_mask is not None and mask is not None:
+                mask = np.logical_or(mask, self.roi_mask)
 
             # if not self.widget.automatic_binning_cb.isChecked():
             #     num_points = int(str(self.widget.bin_count_txt.text()))
@@ -58,27 +57,32 @@ class ImgConfiguration(QtCore.QObject):
             #     num_points = None
 
             x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
-                                                             num_points=self.integration_num_points)
+                                                       num_points=self.integration_num_points)
 
-            self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)
+            self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
 
             if self.autosave_integrated_pattern:
-                # save
-                filename = self.img_model.filename
-                for file_ending in self.integrated_patterns_file_formats:
-                    if filename is not '':
-                        filename = os.path.join(
-                            self.working_directories['spectrum'],
-                            os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
-                    self.save_pattern(filename)
+                self.save_pattern()
 
-                if self.pattern_model.pattern.has_background():
-                    for file_ending in self.integrated_patterns_file_formats:
-                        directory = os.path.join(self.working_directories['spectrum'], 'bkg_subtracted')
-                        if not os.path.exists(directory):
-                            os.mkdir(directory)
-                        filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
-                        self.save_pattern(filename, subtract_background=True)
+    def save_pattern(self):
+        filename = self.img_model.filename
+        for file_ending in self.integrated_patterns_file_formats:
+            if filename is not '':
+                filename = os.path.join(
+                    self.working_directories['spectrum'],
+                    os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
+            self.save_pattern(filename)
+
+        if self.pattern_model.pattern.has_background():
+            for file_ending in self.integrated_patterns_file_formats:
+                directory = os.path.join(self.working_directories['spectrum'], 'bkg_subtracted')
+                if not os.path.exists(directory):
+                    os.mkdir(directory)
+                filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
+                self.save_pattern(filename, subtract_background=True)
+
+    def update_mask_dimension(self):
+        self.mask_model.set_dimension(self.img_model.img_data.shape)
 
     @property
     def integration_num_points(self):
@@ -96,6 +100,15 @@ class ImgConfiguration(QtCore.QObject):
     @integration_unit.setter
     def integration_unit(self, new_value):
         self._integration_unit = new_value
+        self.integrate_image()
+
+    @property
+    def roi_mask(self):
+        return self._roi_mask
+
+    @roi_mask.setter
+    def roi_mask(self, new_val):
+        self._roi_mask = new_val
         self.integrate_image()
 
 

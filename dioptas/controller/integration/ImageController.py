@@ -345,7 +345,7 @@ class ImageController(object):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
         self.widget.mask_transparent_cb.setVisible(not self.widget.mask_transparent_cb.isVisible())
         self.plot_mask()
-        self.model.img_changed.emit()
+        self.model.img_model.img_changed.emit()
 
     def load_next_img(self):
         step = int(str(self.widget.image_browse_step_txt.text()))
@@ -444,7 +444,17 @@ class ImageController(object):
                 self.widget.img_widget.activate_roi()
             else:
                 self.widget.img_widget.deactivate_roi()
-        self.model.img_changed.emit()
+        if self.roi_active:
+            self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.update_roi_in_model)
+            self.model.current_configuration.roi_mask = self.widget.img_widget.roi.getRoiMask(
+                self.model.img_model.img_data.shape)
+        else:
+            self.widget.img_widget.roi.sigRegionChangeFinished.disconnect(self.update_roi_in_model)
+            self.model.current_configuration.roi_mask = None
+
+    def update_roi_in_model(self):
+        self.model.current_configuration.roi_mask = self.widget.img_widget.roi.getRoiMask(
+            self.model.img_model.img_data.shape)
 
     def change_view_mode(self):
         self.img_mode = self.widget.img_mode_btn.text()
@@ -850,3 +860,4 @@ class ImageController(object):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
+        self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
