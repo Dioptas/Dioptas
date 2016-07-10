@@ -97,6 +97,11 @@ class MaskModelTest(unittest.TestCase):
         self.assertTrue(np.array_equal(mask_array, self.mask_model.get_img()))
         os.remove(filename)
 
+    def test_use_roi(self):
+        self.mask_model.roi = [0, 2, 0, 2]
 
-if __name__ == '__main__':
-    unittest.main()
+        self.assertTrue(np.array_equal(self.mask_model.get_mask()[0:3, 0:3],
+                                       np.array([[0, 0, 1],
+                                                 [0, 0, 1],
+                                                 [1, 1, 1]]))
+                        )

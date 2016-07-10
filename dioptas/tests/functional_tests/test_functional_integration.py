@@ -206,7 +206,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
         y1 = self.model.pattern_model.pattern.y
 
         click_button(self.integration_widget.img_roi_btn)
-        self.assertIsNotNone(self.model.current_configuration.roi_mask)
+        self.assertIsNotNone(self.model.current_configuration.mask_model.roi_mask)
 
         y2 = self.model.pattern_model.pattern.y
         self.assertFalse(np.array_equal(y1, y2))
@@ -242,15 +242,13 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
     def test_moving_roi(self):
         click_button(self.integration_widget.img_roi_btn)
-        roi_limits1 = self.integration_widget.img_widget.roi.getIndexLimits(self.model.img_model.img_data.shape)
+        roi_limits1 = self.integration_widget.img_widget.roi.getRoiLimits()
         y1 = self.model.pattern_model.pattern.y
         self.integration_widget.img_widget.roi.setX(30)
         self.integration_widget.img_widget.roi.setPos((31, 31))
         self.integration_widget.img_widget.roi.setSize((100, 100))
-        roi_limits2 = self.integration_widget.img_widget.roi.getIndexLimits(self.model.img_model.img_data.shape)
+        roi_limits2 = self.integration_widget.img_widget.roi.getRoiLimits()
         y2 = self.model.pattern_model.pattern.y
 
-        print(roi_limits1)
-        print(roi_limits2)
         self.assertNotEqual(roi_limits1, roi_limits2)
         self.assertFalse(np.array_equal(y1, y2))
