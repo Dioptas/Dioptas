@@ -105,3 +105,15 @@ class MaskModelTest(unittest.TestCase):
                                                  [0, 0, 1],
                                                  [1, 1, 1]]))
                         )
+
+    def test_use_roi_with_supersampling(self):
+        self.mask_model.roi = [0, 2, 0, 2]
+        self.mask_model.set_supersampling(2)
+        self.assertTrue(np.array_equal(self.mask_model.get_mask()[0:6, 0:6],
+                                       np.array([[0, 0, 0, 0, 1, 1],
+                                                 [0, 0, 0, 0, 1, 1],
+                                                 [0, 0, 0, 0, 1, 1],
+                                                 [0, 0, 0, 0, 1, 1],
+                                                 [1, 1, 1, 1, 1, 1],
+                                                 [1, 1, 1, 1, 1, 1]]))
+                        )
