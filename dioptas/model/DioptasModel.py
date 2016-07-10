@@ -23,7 +23,6 @@ class ImgConfiguration(QtCore.QObject):
 
         self.use_mask = False
         self.transparent_mask = False
-        self._roi_mask = None
 
         self._integration_num_points = None
         self._integration_unit = '2th_deg'
@@ -43,13 +42,10 @@ class ImgConfiguration(QtCore.QObject):
                 if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
                     self.mask_model.set_supersampling(self.img_model.supersampling_factor)
                 mask = self.mask_model.get_mask()
+            elif self.mask_model.roi is not None:
+                mask = self.mask_model.roi_mask
             else:
                 mask = None
-
-            if self.roi_mask is not None and mask is None:
-                mask = self.roi_mask
-            elif self.roi_mask is not None and mask is not None:
-                mask = np.logical_or(mask, self.roi_mask)
 
             # if not self.widget.automatic_binning_cb.isChecked():
             #     num_points = int(str(self.widget.bin_count_txt.text()))
@@ -103,12 +99,12 @@ class ImgConfiguration(QtCore.QObject):
         self.integrate_image()
 
     @property
-    def roi_mask(self):
-        return self._roi_mask
+    def roi(self):
+        return self.mask_model.roi
 
-    @roi_mask.setter
-    def roi_mask(self, new_val):
-        self._roi_mask = new_val
+    @roi.setter
+    def roi(self, new_val):
+        self.mask_model.roi = new_val
         self.integrate_image()
 
 

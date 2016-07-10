@@ -446,15 +446,13 @@ class ImageController(object):
                 self.widget.img_widget.deactivate_roi()
         if self.roi_active:
             self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.update_roi_in_model)
-            self.model.current_configuration.roi_mask = self.widget.img_widget.roi.getRoiMask(
-                self.model.img_model.img_data.shape)
+            self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
         else:
             self.widget.img_widget.roi.sigRegionChangeFinished.disconnect(self.update_roi_in_model)
-            self.model.current_configuration.roi_mask = None
+            self.model.current_configuration.roi = None
 
     def update_roi_in_model(self):
-        self.model.current_configuration.roi_mask = self.widget.img_widget.roi.getRoiMask(
-            self.model.img_model.img_data.shape)
+        self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
 
     def change_view_mode(self):
         self.img_mode = self.widget.img_mode_btn.text()
