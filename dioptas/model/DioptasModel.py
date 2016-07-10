@@ -9,6 +9,8 @@ from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, O
 
 
 class ImgConfiguration(QtCore.QObject):
+    cake_img_changed = QtCore.pyqtSignal()
+
     def __init__(self, working_directories):
         super(ImgConfiguration, self).__init__()
         self.img_model = ImgModel()
@@ -22,10 +24,15 @@ class ImgConfiguration(QtCore.QObject):
             self.working_directories = {}
 
         self.use_mask = False
+
         self.transparent_mask = False
 
         self._integration_num_points = None
+        self._integration_azimuth_points = 2048
         self._integration_unit = '2th_deg'
+
+        self._integrate_cake = False
+        self.cake_data = None
 
         self.autosave_integrated_pattern = False
         self.integrated_patterns_file_formats = ['.xy']
@@ -33,10 +40,10 @@ class ImgConfiguration(QtCore.QObject):
         self.connect_signals()
 
     def connect_signals(self):
-        self.img_model.img_changed.connect(self.integrate_image)
+        self.img_model.img_changed.connect(self.integrate_image_1d)
         self.img_model.img_changed.connect(self.update_mask_dimension)
 
-    def integrate_image(self):
+    def integrate_image_1d(self):
         if self.calibration_model.is_calibrated:
             if self.use_mask:
                 if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
@@ -60,6 +67,20 @@ class ImgConfiguration(QtCore.QObject):
             if self.autosave_integrated_pattern:
                 self.save_pattern()
 
+    def integrate_image_2d(self):
+        if self.use_mask:
+            if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
+                self.mask_model.set_supersampling(self.img_model.supersampling_factor)
+            mask = self.mask_model.get_mask()
+        elif self.mask_model.roi is not None:
+            mask = self.mask_model.roi_mask
+        else:
+            mask = None
+
+        self.calibration_model.integrate_2d(mask=mask,
+                                            dimensions=(2048, 2048))
+        self.cake_img_changed.emit()
+
     def save_pattern(self):
         filename = self.img_model.filename
         for file_ending in self.integrated_patterns_file_formats:
@@ -67,7 +88,11 @@ class ImgConfiguration(QtCore.QObject):
                 filename = os.path.join(
                     self.working_directories['spectrum'],
                     os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
-            self.save_pattern(filename)
+
+            if file_ending == '.xy':
+                self.pattern_model.save_pattern(filename, header=self._create_xy_header())
+            else:
+                self.pattern_model.save_pattern(filename)
 
         if self.pattern_model.pattern.has_background():
             for file_ending in self.integrated_patterns_file_formats:
@@ -75,7 +100,17 @@ class ImgConfiguration(QtCore.QObject):
                 if not os.path.exists(directory):
                     os.mkdir(directory)
                 filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
-                self.save_pattern(filename, subtract_background=True)
+                if file_ending == '.xy':
+                    self.pattern_model.save_pattern(filename, header=self._create_xy_header(),
+                                                    subtract_background=True)
+                else:
+                    self.pattern_model.save_pattern(filename, subtract_background=True)
+
+    def _create_xy_header(self):
+        header = self.calibration_model.create_file_header()
+        header = header.replace('\r\n', '\n')
+        header += '\n#\n# ' + self.model.pattern_model.unit + '\t I'
+        return header
 
     def update_mask_dimension(self):
         self.mask_model.set_dimension(self.img_model.img_data.shape)
@@ -87,7 +122,7 @@ class ImgConfiguration(QtCore.QObject):
     @integration_num_points.setter
     def integration_num_points(self, new_value):
         self._integration_num_points = new_value
-        self.integrate_image()
+        self.integrate_image_1d()
 
     @property
     def integration_unit(self):
@@ -96,7 +131,23 @@ class ImgConfiguration(QtCore.QObject):
     @integration_unit.setter
     def integration_unit(self, new_value):
         self._integration_unit = new_value
-        self.integrate_image()
+        self.integrate_image_1d()
+
+    @property
+    def integrate_cake(self):
+        return self._integrate_cake
+
+    @integrate_cake.setter
+    def integrate_cake(self, new_value):
+        self._integrate_cake = new_value
+        if new_value:
+            self.img_model.img_changed.connect(self.integrate_image_2d)
+        else:
+            self.img_model.img_changed.connect(self.integrate_image_2d)
+
+    @property
+    def cake_img(self):
+        return self.calibration_model.cake_img
 
     @property
     def roi(self):
@@ -105,7 +156,7 @@ class ImgConfiguration(QtCore.QObject):
     @roi.setter
     def roi(self, new_val):
         self.mask_model.roi = new_val
-        self.integrate_image()
+        self.integrate_image_1d()
 
 
 class DioptasModel(QtCore.QObject):

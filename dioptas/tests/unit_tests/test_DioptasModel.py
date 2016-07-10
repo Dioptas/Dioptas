@@ -85,5 +85,27 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         self.model.remove_configuration()
         self.model.configuration_removed.emit.assert_called_with(0)
 
+    def test_integrate_cakes(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.assertFalse(np.array_equal(self.model.current_configuration.cake_img,
+                                        np.zeros((2048, 2048))))
+
+
+    def test_integrate_cake_with_mask(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        cake_img1 = self.model.current_configuration.cake_img
+
+        self.model.use_mask = True
+        self.model.mask_model.mask_below_threshold(self.model.img_model.img_data,1)
+        self.model.img_model.img_changed.emit()
+        cake_img2 = self.model.current_configuration.cake_img
+        self.assertFalse(np.array_equal(cake_img1, cake_img2))
+
+
+
 
 

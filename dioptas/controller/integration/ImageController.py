@@ -67,6 +67,7 @@ class ImageController(object):
 
     def initialize(self):
         self.update_img(True)
+        self.plot_img()
         self.plot_mask()
         self.widget.img_widget.auto_range()
 
@@ -107,8 +108,7 @@ class ImageController(object):
         if self.model.use_mask and self.img_mode == 'Image':
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
         else:
-            self.widget.img_widget.plot_mask(
-                np.zeros(self.model.mask_model.get_img().shape))
+            self.widget.img_widget.plot_mask(np.zeros(self.model.mask_model.get_img().shape))
 
     def update_mask_transparency(self):
         """
@@ -124,6 +124,9 @@ class ImageController(object):
     def create_signals(self):
         self.model.configuration_selected.connect(self.update_gui)
         self.model.img_changed.connect(self.update_img)
+
+        self.model.img_changed.connect(self.plot_img)
+        self.model.img_changed.connect(self.plot_mask)
 
         """
         Creates all the connections of the GUI elements.
@@ -397,37 +400,6 @@ class ImageController(object):
         self.widget.cbn_plot_correction_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
 
-        if self.img_mode == 'Cake' and \
-                self.model.calibration_model.is_calibrated:
-            if self.model.use_mask:
-                mask = self.model.mask_model.get_img()
-            else:
-                mask = np.zeros(self.model.img_model._img_data.shape)
-
-            if self.roi_active:
-                roi_mask = np.ones(self.model.img_model._img_data.shape)
-                x1, x2, y1, y2 = self.widget.img_widget.roi.getIndexLimits(self.model.img_model._img_data.shape)
-                roi_mask[x1:x2, y1:y2] = 0
-            else:
-                roi_mask = np.zeros(self.model.img_model._img_data.shape)
-
-            if self.model.use_mask or self.roi_active:
-                mask = np.logical_or(mask, roi_mask)
-            else:
-                mask = None
-
-            self.model.calibration_model.integrate_2d(mask)
-            self.plot_cake()
-            self.widget.img_widget.plot_mask(
-                np.zeros(self.model.mask_model.get_img().shape))
-            self.widget.img_widget.activate_vertical_line()
-            self.widget.img_widget.img_view_box.setAspectLocked(False)
-        elif self.img_mode == 'Image':
-            self.plot_mask()
-            self.plot_img(reset_img_levels)
-            self.widget.img_widget.deactivate_vertical_line()
-            self.widget.img_widget.img_view_box.setAspectLocked(True)
-
         # update the window due to some errors on mac when using macports
         self._get_master_parent().update()
 
@@ -459,21 +431,46 @@ class ImageController(object):
         if not self.model.calibration_model.is_calibrated:
             return
         else:
-            self.update_img()
             if self.img_mode == 'Cake':
+                self.model.current_configuration.integrate_cake = True
+                self.model.current_configuration.integrate_image_2d()
+
                 self.widget.img_widget.deactivate_circle_scatter()
+                self.widget.img_widget.activate_vertical_line()
+                self.widget.img_widget.img_view_box.setAspectLocked(False)
+
                 if self.roi_active:
                     self.widget.img_widget.deactivate_roi()
                 self._update_cake_line_pos()
                 self._update_cake_mouse_click_pos()
                 self.widget.img_mode_btn.setText('Image')
+
+                self.model.img_changed.disconnect(self.plot_img)
+                self.model.img_changed.disconnect(self.plot_mask)
+
+                self.model.current_configuration.cake_img_changed.connect(self.plot_mask)
+                self.model.current_configuration.cake_img_changed.connect(self.plot_cake)
+                self.plot_mask()
+                self.plot_cake()
+
             elif self.img_mode == 'Image':
+                self.model.current_configuration.integrate_cake = False
                 self.widget.img_widget.activate_circle_scatter()
+                self.widget.img_widget.deactivate_vertical_line()
+                self.widget.img_widget.img_view_box.setAspectLocked(True)
                 if self.roi_active:
                     self.widget.img_widget.activate_roi()
                 self._update_image_line_pos()
                 self._update_image_mouse_click_pos()
                 self.widget.img_mode_btn.setText('Cake')
+
+                self.model.img_changed.connect(self.plot_img)
+                self.model.img_changed.connect(self.plot_cake)
+
+                self.model.current_configuration.cake_img_changed.disconnect(self.plot_mask)
+                self.model.current_configuration.cake_img_changed.disconnect(self.plot_cake)
+                self.plot_img()
+                self.plot_mask()
 
     def img_autoscale_btn_clicked(self):
         if self.widget.img_autoscale_btn.isChecked():
