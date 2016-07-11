@@ -253,13 +253,29 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.assertNotEqual(roi_limits1, roi_limits2)
         self.assertFalse(np.array_equal(y1, y2))
 
+    def test_changing_integration_unit(self):
+        x1, y1 = self.model.pattern_model.pattern.data
+
+        click_button(self.integration_widget.spec_q_btn)
+        x2, y2 = self.model.pattern_model.pattern.data
+        self.assertLess(np.max(x2), np.max(x1))
+
+        click_button(self.integration_widget.spec_d_btn)
+        x3, y3 = self.model.pattern_model.pattern.data
+        self.assertGreater(np.max(x3), np.max(x2))
+
+        click_button(self.integration_widget.spec_tth_btn)
+        x4, y4 = self.model.pattern_model.pattern.data
+        self.assertTrue(np.array_equal(x1, x4))
+        self.assertTrue(np.array_equal(y1, y4))
+
     def test_configuration_selected_changes_img_mode(self):
         click_button(self.integration_widget.img_mode_btn)
-        self.assertEqual(self.integration_image_controller.img_mode,"Cake")
+        self.assertEqual(self.integration_image_controller.img_mode, "Cake")
 
         self.model.add_configuration()
         self.model.select_configuration(0)
-        self.assertEqual(self.integration_image_controller.img_mode,"Cake")
+        self.assertEqual(self.integration_image_controller.img_mode, "Cake")
         self.model.select_configuration(1)
         self.assertEqual(self.integration_image_controller.img_mode, "Image")
 
@@ -280,4 +296,3 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
         self.integration_image_controller.img_mouse_click(1040, 500)
         self.model.select_configuration(0)
-

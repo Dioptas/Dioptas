@@ -286,3 +286,5 @@ class DioptasModel(QtCore.QObject):
             del configuration.img_model
             del configuration.mask_model
         del self.configurations
+
+
