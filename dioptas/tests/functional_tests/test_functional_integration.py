@@ -91,7 +91,7 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
         px1 = self.model.calibration_model.spectrum_geometry.pixel1
         px2 = self.model.calibration_model.spectrum_geometry.pixel2
 
-        img_shape = self.model.img_model.img_data.shape
+        img_shape = self.model.img_data.shape
 
         self.integration_widget.supersampling_sb.setValue(2)
         self.assertEqual(self.model.calibration_model.spectrum_geometry.pixel1, 0.5 * px1)
@@ -99,8 +99,8 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
         self.assertEqual(self.model.calibration_model.cake_geometry.pixel1, px1)
         self.assertEqual(self.model.calibration_model.cake_geometry.pixel2, px2)
 
-        self.assertEqual(self.model.img_model.img_data.shape[0], 2 * img_shape[0])
-        self.assertEqual(self.model.img_model.img_data.shape[1], 2 * img_shape[1])
+        self.assertEqual(self.model.img_data.shape[0], 2 * img_shape[0])
+        self.assertEqual(self.model.img_data.shape[1], 2 * img_shape[1])
 
         self.model.mask_model.load_mask(os.path.join(data_path, 'test.mask'))
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
@@ -193,7 +193,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def test_activating_mask_mode(self):
         y1 = self.model.pattern_model.pattern.y
 
-        self.model.mask_model.mask_below_threshold(self.model.img_model.img_data, 1)
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
         click_button(self.integration_widget.img_mask_btn)
         y2 = self.model.pattern_model.pattern.y
         self.assertFalse(np.array_equal(y1, y2))
@@ -218,7 +218,7 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def test_activating_roi_mode_and_mask_mode(self):
         y1 = self.model.pattern_model.pattern.y
 
-        self.model.mask_model.mask_below_threshold(self.model.img_model.img_data, 1)
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
         click_button(self.integration_widget.img_mask_btn)
         y2 = self.model.pattern_model.pattern.y
 

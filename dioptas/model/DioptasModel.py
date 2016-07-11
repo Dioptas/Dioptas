@@ -279,6 +279,18 @@ class DioptasModel(QtCore.QObject):
     def transparent_mask(self, new_val):
         self.configurations[self.configuration_ind].transparent_mask = new_val
 
+    @property
+    def img_data(self):
+        return self.img_model.img_data
+
+    @property
+    def cake_data(self):
+        return self.current_configuration.cake_data
+
+    @property
+    def pattern(self):
+        return self.pattern_model.pattern
+
     def clear(self):
         for configuration in self.configurations:
             del configuration.calibration_model.cake_geometry

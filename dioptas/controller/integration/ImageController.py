@@ -81,7 +81,7 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_widget.plot_image(self.model.img_model.img_data,
+        self.widget.img_widget.plot_image(self.model.img_data,
                                           False)
 
         if auto_scale:
@@ -314,7 +314,7 @@ class ImageController(object):
             mask = None
 
         if self.widget.img_roi_btn.isChecked():
-            roi_mask = self.widget.img_widget.roi.getRoiMask(self.model.img_model.img_data.shape)
+            roi_mask = self.widget.img_widget.roi.getRoiMask(self.model.img_data.shape)
         else:
             roi_mask = None
 
@@ -545,7 +545,7 @@ class ImageController(object):
         return cur_tth
 
     def show_img_mouse_position(self, x, y):
-        img_shape = self.model.img_model.img_data.shape
+        img_shape = self.model.img_data.shape
         if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
@@ -625,7 +625,7 @@ class ImageController(object):
                 tth = self.model.calibration_model.get_two_theta_cake(y) / 180 * np.pi
                 azi = self.model.calibration_model.get_azi_cake(np.array([x]))
             elif self.img_mode == 'Image':  # image mode
-                img_shape = self.model.img_model.img_data.shape
+                img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
                     return
                 tth = self.model.calibration_model.get_two_theta_img(x, y)
@@ -734,7 +734,7 @@ class ImageController(object):
                         self.widget.img_widget.activate_roi()
             elif filename.endswith('.tiff'):
                 if self.img_mode == 'Image':
-                    im_array = np.int32(self.model.img_model.img_data)
+                    im_array = np.int32(self.model.img_data)
                 elif self.img_mode == 'Cake':
                     im_array = np.int32(self.model.calibration_model.cake_img)
                 im_array = np.flipud(im_array)

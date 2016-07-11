@@ -236,7 +236,7 @@ class CalibrationController(object):
         Plots the current image loaded in img_data and autoscales the intensity.
         :return:
         """
-        self.widget.img_widget.plot_image(self.model.img_model.img_data, True)
+        self.widget.img_widget.plot_image(self.model.img_data, True)
         self.widget.img_widget.auto_range()
         self.widget.set_img_filename(self.model.img_model.filename)
 

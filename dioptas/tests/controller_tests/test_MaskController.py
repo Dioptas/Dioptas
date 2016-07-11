@@ -38,7 +38,7 @@ class MaskControllerTest(QtTest):
 
     def test_loading_and_saving_mask_files(self):
         self.mask_controller.load_mask_btn_click(os.path.join(data_path, 'test.mask'))
-        self.model.mask_model.mask_below_threshold(self.model.img_model.img_data, 1)
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
         filename = os.path.join(data_path, 'dummy.mask')
         self.mask_controller.save_mask_btn_click(filename)
         self.assertTrue(os.path.exists(filename))
@@ -54,7 +54,7 @@ class MaskControllerTest(QtTest):
         self.assertEqual(self.model.mask_model.get_img().shape[0], 2048)
         self.assertEqual(self.model.mask_model.get_img().shape[1], 2048)
 
-        self.model.mask_model.mask_below_threshold(self.model.img_model.img_data, 1)
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
 
         filename = os.path.join(data_path, 'dummy.mask')
         self.mask_controller.save_mask_btn_click(filename)
