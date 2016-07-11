@@ -861,8 +861,6 @@ class ImageController(object):
                                        'corrections have been removed')
 
     def update_gui(self):
-
-        # print(self.img_mode)
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
@@ -878,3 +876,5 @@ class ImageController(object):
         elif not self.model.current_configuration.integrate_cake and self.img_mode == 'Image':
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
+
+
