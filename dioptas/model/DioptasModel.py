@@ -53,11 +53,6 @@ class ImgConfiguration(QtCore.QObject):
             else:
                 mask = None
 
-            # if not self.widget.automatic_binning_cb.isChecked():
-            #     num_points = int(str(self.widget.bin_count_txt.text()))
-            # else:
-            #     num_points = None
-
             x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
                                                        num_points=self.integration_num_points)
 
@@ -194,7 +189,7 @@ class DioptasModel(QtCore.QObject):
         self.configuration_removed.emit(self.configuration_ind)
 
     def select_configuration(self, ind):
-        if ind >= 0 and ind < len(self.configurations):
+        if 0 <= ind < len(self.configurations):
             self.disconnect_models()
             self.configuration_ind = ind
             self.connect_models()
@@ -297,5 +292,3 @@ class DioptasModel(QtCore.QObject):
             del configuration.img_model
             del configuration.mask_model
         del self.configurations
-
-
