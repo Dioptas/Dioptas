@@ -269,11 +269,11 @@ class ImageController(object):
                 self.model.pattern_model.save_pattern(filename)
 
             # save the background subtracted filename
-            if self.model.pattern_model.pattern.has_background():
+            if self.model.pattern.has_background():
                 directory = os.path.join(working_directory, 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
-                filename = os.path.join(directory, self.model.pattern_model.pattern.name + file_ending)
+                filename = os.path.join(directory, self.model.pattern.name + file_ending)
                 if file_ending == '.xy':
                     self.model.pattern_model.save_pattern(filename, header=self._create_spectrum_header(),
                                                           subtract_background=True)

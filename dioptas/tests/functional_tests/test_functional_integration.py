@@ -67,7 +67,7 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
 
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
-        previous_number_of_points = len(self.model.pattern_model.pattern.x)
+        previous_number_of_points = len(self.model.pattern.x)
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
         self.model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
@@ -191,45 +191,45 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.integration_image_controller = self.integration_controller.image_controller
 
     def test_activating_mask_mode(self):
-        y1 = self.model.pattern_model.pattern.y
+        y1 = self.model.pattern.y
 
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
         click_button(self.integration_widget.img_mask_btn)
-        y2 = self.model.pattern_model.pattern.y
+        y2 = self.model.pattern.y
         self.assertFalse(np.array_equal(y1, y2))
 
         click_button(self.integration_widget.img_mask_btn)
-        y3 = self.model.pattern_model.pattern.y
+        y3 = self.model.pattern.y
         self.assertTrue(np.array_equal(y1, y3))
 
     def test_activating_roi_mode(self):
-        y1 = self.model.pattern_model.pattern.y
+        y1 = self.model.pattern.y
 
         click_button(self.integration_widget.img_roi_btn)
         self.assertIsNotNone(self.model.current_configuration.mask_model.roi_mask)
 
-        y2 = self.model.pattern_model.pattern.y
+        y2 = self.model.pattern.y
         self.assertFalse(np.array_equal(y1, y2))
 
         click_button(self.integration_widget.img_roi_btn)
-        y3 = self.model.pattern_model.pattern.y
+        y3 = self.model.pattern.y
         self.assertTrue(np.array_equal(y1, y3))
 
     def test_activating_roi_mode_and_mask_mode(self):
-        y1 = self.model.pattern_model.pattern.y
+        y1 = self.model.pattern.y
 
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
         click_button(self.integration_widget.img_mask_btn)
-        y2 = self.model.pattern_model.pattern.y
+        y2 = self.model.pattern.y
 
         click_button(self.integration_widget.img_roi_btn)
-        y3 = self.model.pattern_model.pattern.y
+        y3 = self.model.pattern.y
 
         click_button(self.integration_widget.img_roi_btn)
-        y4 = self.model.pattern_model.pattern.y
+        y4 = self.model.pattern.y
 
         click_button(self.integration_widget.img_mask_btn)
-        y5 = self.model.pattern_model.pattern.y
+        y5 = self.model.pattern.y
 
         self.assertFalse(np.array_equal(y3, y1))
         self.assertFalse(np.array_equal(y3, y2))
@@ -243,29 +243,29 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def test_moving_roi(self):
         click_button(self.integration_widget.img_roi_btn)
         roi_limits1 = self.integration_widget.img_widget.roi.getRoiLimits()
-        y1 = self.model.pattern_model.pattern.y
+        y1 = self.model.pattern.y
         self.integration_widget.img_widget.roi.setX(30)
         self.integration_widget.img_widget.roi.setPos((31, 31))
         self.integration_widget.img_widget.roi.setSize((100, 100))
         roi_limits2 = self.integration_widget.img_widget.roi.getRoiLimits()
-        y2 = self.model.pattern_model.pattern.y
+        y2 = self.model.pattern.y
 
         self.assertNotEqual(roi_limits1, roi_limits2)
         self.assertFalse(np.array_equal(y1, y2))
 
     def test_changing_integration_unit(self):
-        x1, y1 = self.model.pattern_model.pattern.data
+        x1, y1 = self.model.pattern.data
 
         click_button(self.integration_widget.spec_q_btn)
-        x2, y2 = self.model.pattern_model.pattern.data
+        x2, y2 = self.model.pattern.data
         self.assertLess(np.max(x2), np.max(x1))
 
         click_button(self.integration_widget.spec_d_btn)
-        x3, y3 = self.model.pattern_model.pattern.data
+        x3, y3 = self.model.pattern.data
         self.assertGreater(np.max(x3), np.max(x2))
 
         click_button(self.integration_widget.spec_tth_btn)
-        x4, y4 = self.model.pattern_model.pattern.data
+        x4, y4 = self.model.pattern.data
         self.assertTrue(np.array_equal(x1, x4))
         self.assertTrue(np.array_equal(y1, y4))
 
