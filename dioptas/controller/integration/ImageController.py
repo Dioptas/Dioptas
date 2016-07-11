@@ -486,8 +486,9 @@ class ImageController(object):
 
     def _update_cake_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()
-        if cur_tth < np.min(self.model.calibration_model.cake_tth):
-            new_pos = np.min(self.model.calibration_model.cake_tth)
+        if cur_tth < np.min(self.model.calibration_model.cake_tth) or cur_tth > np.max(
+                self.model.calibration_model.cake_tth):
+            new_pos = np.nan
         else:
             new_pos = get_partial_index(self.model.calibration_model.cake_tth, cur_tth) + 0.5
         self.widget.img_widget.vertical_line.setValue(new_pos)
@@ -499,10 +500,16 @@ class ImageController(object):
         tth = self.clicked_tth / np.pi * 180
         azi = self.clicked_azi
 
-        x_pos = get_partial_index(self.model.calibration_model.cake_tth, tth) + 0.5
-        y_pos = get_partial_index(self.model.calibration_model.cake_azi, azi) + 0.5
-
-        self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
+        if tth < np.min(self.model.calibration_model.cake_tth) or tth > np.max(
+                self.model.calibration_model.cake_tth):
+            self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
+        elif azi < np.min(self.model.calibration_model.cake_azi) or tth > np.max(
+                self.model.calibration_model.cake_azi):
+            self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
+        else:
+            x_pos = get_partial_index(self.model.calibration_model.cake_tth, tth) + 0.5
+            y_pos = get_partial_index(self.model.calibration_model.cake_azi, azi) + 0.5
+            self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
 
     def _update_image_line_pos(self):
         if not self.model.calibration_model.is_calibrated:
@@ -876,5 +883,3 @@ class ImageController(object):
         elif not self.model.current_configuration.integrate_cake and self.img_mode == 'Image':
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
-
-
