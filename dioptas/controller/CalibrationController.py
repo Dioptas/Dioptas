@@ -485,7 +485,7 @@ class CalibrationController(object):
             QtGui.QApplication.processEvents()
             self.model.calibration_model.integrate_1d()
             progress_dialog.close()
-        self.widget.cake_widget.plot_image(self.model.calibration_model.cake_img, False)
+        self.widget.cake_widget.plot_image(self.model.cake_data, False)
         self.widget.cake_widget.auto_range()
 
         self.widget.spectrum_widget.plot_data(self.model.calibration_model.tth, self.model.calibration_model.int)
