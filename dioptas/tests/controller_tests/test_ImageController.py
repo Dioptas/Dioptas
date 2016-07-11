@@ -3,6 +3,8 @@
 import os
 import gc
 import shutil
+from mock import MagicMock
+
 from tests.utility import QtTest
 
 from PyQt4 import QtCore
@@ -110,3 +112,4 @@ class ImageControllerTest(QtTest):
 
         self.model.select_configuration(1)
         self.assertEqual(str(self.widget.calibration_lbl.text()), "calib2")
+

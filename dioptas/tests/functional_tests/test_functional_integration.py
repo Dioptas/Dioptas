@@ -252,3 +252,14 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
         self.assertNotEqual(roi_limits1, roi_limits2)
         self.assertFalse(np.array_equal(y1, y2))
+
+
+    def test_configuration_selected_changes_img_mode(self):
+        click_button(self.integration_widget.img_mode_btn)
+        self.assertEqual(self.integration_image_controller.img_mode,"Cake")
+
+        self.model.add_configuration()
+        self.model.select_configuration(0)
+        self.assertEqual(self.integration_image_controller.img_mode,"Cake")
+        self.model.select_configuration(1)
+        self.assertEqual(self.integration_image_controller.img_mode, "Image")

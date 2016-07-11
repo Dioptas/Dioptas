@@ -427,50 +427,53 @@ class ImageController(object):
         self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
 
     def change_view_mode(self):
-        self.img_mode = self.widget.img_mode_btn.text()
-        if not self.model.calibration_model.is_calibrated:
-            return
-        else:
-            if self.img_mode == 'Cake':
-                self.model.current_configuration.integrate_cake = True
-                self.model.current_configuration.integrate_image_2d()
+        if str(self.widget.img_mode_btn.text()) == 'Cake':
+            self.activate_cake_mode()
+        elif str(self.widget.img_mode_btn.text()) == 'Image':
+            self.activate_image_mode()
 
-                self.widget.img_widget.deactivate_circle_scatter()
-                self.widget.img_widget.activate_vertical_line()
-                self.widget.img_widget.img_view_box.setAspectLocked(False)
+    def activate_cake_mode(self):
+        self.model.current_configuration.integrate_cake = True
+        self.model.current_configuration.integrate_image_2d()
 
-                if self.roi_active:
-                    self.widget.img_widget.deactivate_roi()
-                self._update_cake_line_pos()
-                self._update_cake_mouse_click_pos()
-                self.widget.img_mode_btn.setText('Image')
+        self.widget.img_widget.deactivate_circle_scatter()
+        self.widget.img_widget.activate_vertical_line()
+        self.widget.img_widget.img_view_box.setAspectLocked(False)
 
-                self.model.img_changed.disconnect(self.plot_img)
-                self.model.img_changed.disconnect(self.plot_mask)
+        if self.roi_active:
+            self.widget.img_widget.deactivate_roi()
+        self._update_cake_line_pos()
+        self._update_cake_mouse_click_pos()
+        self.widget.img_mode_btn.setText('Image')
+        self.img_mode = str("Cake")
 
-                self.model.current_configuration.cake_img_changed.connect(self.plot_mask)
-                self.model.current_configuration.cake_img_changed.connect(self.plot_cake)
-                self.plot_mask()
-                self.plot_cake()
+        self.model.img_changed.disconnect(self.plot_img)
+        self.model.img_changed.disconnect(self.plot_mask)
 
-            elif self.img_mode == 'Image':
-                self.model.current_configuration.integrate_cake = False
-                self.widget.img_widget.activate_circle_scatter()
-                self.widget.img_widget.deactivate_vertical_line()
-                self.widget.img_widget.img_view_box.setAspectLocked(True)
-                if self.roi_active:
-                    self.widget.img_widget.activate_roi()
-                self._update_image_line_pos()
-                self._update_image_mouse_click_pos()
-                self.widget.img_mode_btn.setText('Cake')
+        self.model.current_configuration.cake_img_changed.connect(self.plot_mask)
+        self.model.current_configuration.cake_img_changed.connect(self.plot_cake)
+        self.plot_mask()
+        self.plot_cake()
 
-                self.model.img_changed.connect(self.plot_img)
-                self.model.img_changed.connect(self.plot_cake)
+    def activate_image_mode(self):
+        self.model.current_configuration.integrate_cake = False
+        self.widget.img_widget.activate_circle_scatter()
+        self.widget.img_widget.deactivate_vertical_line()
+        self.widget.img_widget.img_view_box.setAspectLocked(True)
+        if self.roi_active:
+            self.widget.img_widget.activate_roi()
+        self._update_image_line_pos()
+        self._update_image_mouse_click_pos()
+        self.widget.img_mode_btn.setText('Cake')
+        self.img_mode = str("Image")
 
-                self.model.current_configuration.cake_img_changed.disconnect(self.plot_mask)
-                self.model.current_configuration.cake_img_changed.disconnect(self.plot_cake)
-                self.plot_img()
-                self.plot_mask()
+        self.model.img_changed.connect(self.plot_img)
+        self.model.img_changed.connect(self.plot_mask)
+
+        self.model.current_configuration.cake_img_changed.disconnect(self.plot_mask)
+        self.model.current_configuration.cake_img_changed.disconnect(self.plot_cake)
+        self.plot_img()
+        self.plot_mask()
 
     def img_autoscale_btn_clicked(self):
         if self.widget.img_autoscale_btn.isChecked():
@@ -489,7 +492,7 @@ class ImageController(object):
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def _update_cake_mouse_click_pos(self):
-        if self.clicked_tth is None:
+        if self.clicked_tth is None or not self.model.calibration_model.is_calibrated:
             return
 
         tth = self.clicked_tth / np.pi * 180
@@ -501,12 +504,14 @@ class ImageController(object):
         self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
 
     def _update_image_line_pos(self):
+        if not self.model.calibration_model.is_calibrated:
+            return
         cur_tth = self.get_current_spectrum_tth()
         self.widget.img_widget.set_circle_line(
             self.model.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
 
     def _update_image_mouse_click_pos(self):
-        if self.clicked_tth is None:
+        if self.clicked_tth is None or not self.model.calibration_model.is_calibrated:
             return
 
         tth = self.clicked_tth
@@ -852,7 +857,15 @@ class ImageController(object):
                                        'corrections have been removed')
 
     def update_gui(self):
+
+        # print(self.img_mode)
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
+
+        if self.model.current_configuration.integrate_cake and self.img_mode=='Image':
+            self.activate_cake_mode()
+        elif not self.model.current_configuration.integrate_cake and self.img_mode=='Cake':
+            print("activate_image_mode")
+            self.activate_image_mode()
