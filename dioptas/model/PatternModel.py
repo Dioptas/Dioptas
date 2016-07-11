@@ -47,7 +47,6 @@ class PatternModel(QtCore.QObject):
 
         self._background_pattern = None
 
-
     def set_pattern(self, x, y, filename='', unit=''):
         """
         set the current data spectrum.
