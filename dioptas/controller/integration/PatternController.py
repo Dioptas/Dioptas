@@ -56,6 +56,7 @@ class PatternController(object):
     def create_subscriptions(self):
         # Data subscriptions
         self.model.pattern_changed.connect(self.plot_pattern)
+        self.model.configuration_selected.connect(self.update_gui)
 
         # Gui subscriptions
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
@@ -253,9 +254,6 @@ class PatternController(object):
         self.model.pattern_model.set_file_iteration_mode('time')
 
     def set_unit_tth(self):
-        self.widget.spec_tth_btn.setChecked(True)
-        self.widget.spec_q_btn.setChecked(False)
-        self.widget.spec_d_btn.setChecked(False)
         previous_unit = self.integration_unit
         if previous_unit == '2th_deg':
             return
@@ -268,9 +266,6 @@ class PatternController(object):
             self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_q(self):
-        self.widget.spec_tth_btn.setChecked(False)
-        self.widget.spec_q_btn.setChecked(True)
-        self.widget.spec_d_btn.setChecked(False)
         previous_unit = self.integration_unit
         if previous_unit == 'q_A^-1':
             return
@@ -285,9 +280,6 @@ class PatternController(object):
             self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_d(self):
-        self.widget.spec_tth_btn.setChecked(False)
-        self.widget.spec_q_btn.setChecked(False)
-        self.widget.spec_d_btn.setChecked(True)
         previous_unit = self.integration_unit
         if previous_unit == 'd_A':
             return
@@ -447,3 +439,14 @@ class PatternController(object):
             self.widget.click_d_lbl.setText(d_str)
             self.widget.click_q_lbl.setText(q_str)
             self.widget.click_azi_lbl.setText(azi_str)
+
+    def update_gui(self):
+        if self.model.current_configuration.integration_unit == '2th_deg':
+            self.widget.spec_tth_btn.setChecked(True)
+            self.set_unit_tth()
+        elif self.model.current_configuration.integration_unit == 'd_A':
+            self.widget.spec_d_btn.setChecked(True)
+            self.set_unit_d()
+        elif self.model.current_configuration.integration_unit == 'q_A^-1':
+            self.widget.spec_q_btn.setChecked(True)
+            self.set_unit_q()
