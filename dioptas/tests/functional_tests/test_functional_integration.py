@@ -294,5 +294,5 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M_2.poni"))
         click_button(self.integration_widget.img_mode_btn)
         self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
-        self.integration_image_controller.img_mouse_click(1040, 500)
+        self.integration_image_controller.img_mouse_click(1840, 500)
         self.model.select_configuration(0)
