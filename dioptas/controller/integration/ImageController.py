@@ -695,7 +695,7 @@ class ImageController(object):
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
-            self.model.img_changed.emit()
+            self.model.img_model.img_changed.emit()
 
     def auto_process_cb_click(self):
         self.model.img_model.autoprocess = self.widget.autoprocess_cb.isChecked()
