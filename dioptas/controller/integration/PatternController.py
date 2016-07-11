@@ -260,11 +260,11 @@ class PatternController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
+        self.model.current_configuration.integration_unit = '2th_deg'
         self.widget.pattern_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
         self.widget.pattern_widget.spectrum_plot.invertX(False)
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
-            self.image_changed()
             self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_q(self):
@@ -275,13 +275,13 @@ class PatternController(object):
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
+        self.model.current_configuration.integration_unit = "q_A^-1"
 
         self.widget.pattern_widget.spectrum_plot.invertX(False)
         self.widget.pattern_widget.spectrum_plot.setLabel(
             'bottom', 'Q', 'A<sup>-1</sup>')
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
-            self.image_changed()
             self.update_line_position(previous_unit, self.integration_unit)
 
     def set_unit_d(self):
@@ -291,15 +291,15 @@ class PatternController(object):
         previous_unit = self.integration_unit
         if previous_unit == 'd_A':
             return
+        self.integration_unit = 'd_A'
+        self.model.current_configuration.integration_unit = 'd_A'
 
         self.widget.pattern_widget.spectrum_plot.setLabel(
             'bottom', 'd', 'A'
         )
         self.widget.pattern_widget.spectrum_plot.invertX(True)
-        self.integration_unit = 'd_A'
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
-            self.image_changed()
             self.update_line_position(previous_unit, self.integration_unit)
 
     def update_x_range(self, previous_unit, new_unit):
