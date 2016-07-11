@@ -527,9 +527,10 @@ class ImageController(object):
 
         new_pos = self.model.calibration_model.get_pixel_ind(tth, azi)
         if len(new_pos) == 0:
-            return
-        x_ind, y_ind = new_pos
-        self.widget.img_widget.set_mouse_click_position(y_ind + 0.5, x_ind + 0.5)
+            self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
+        else:
+            x_ind, y_ind = new_pos
+            self.widget.img_widget.set_mouse_click_position(y_ind + 0.5, x_ind + 0.5)
 
     def get_current_spectrum_tth(self):
         cur_pos = self.widget.pattern_widget.pos_line.getPos()[0]
