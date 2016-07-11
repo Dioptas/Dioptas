@@ -97,7 +97,7 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_widget.plot_image(self.model.calibration_model.cake_img)
+        self.widget.img_widget.plot_image(self.model.cake_data)
         if auto_scale:
             self.widget.img_widget.auto_range()
 
@@ -618,7 +618,7 @@ class ImageController(object):
         if self.model.calibration_model.is_calibrated:
             x, y = y, x  # the indices are reversed for the img_array
             if self.img_mode == 'Cake':  # cake mode
-                cake_shape = self.model.calibration_model.cake_img.shape
+                cake_shape = self.model.cake_data.shape
                 if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):
                     return
                 y = np.array([y])
@@ -736,7 +736,7 @@ class ImageController(object):
                 if self.img_mode == 'Image':
                     im_array = np.int32(self.model.img_data)
                 elif self.img_mode == 'Cake':
-                    im_array = np.int32(self.model.calibration_model.cake_img)
+                    im_array = np.int32(self.model.cake_data)
                 im_array = np.flipud(im_array)
                 im = Image.fromarray(im_array)
                 im.save(filename)

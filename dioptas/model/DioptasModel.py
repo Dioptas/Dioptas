@@ -32,7 +32,6 @@ class ImgConfiguration(QtCore.QObject):
         self._integration_unit = '2th_deg'
 
         self._integrate_cake = False
-        self.cake_data = None
 
         self.autosave_integrated_pattern = False
         self.integrated_patterns_file_formats = ['.xy']
@@ -285,7 +284,7 @@ class DioptasModel(QtCore.QObject):
 
     @property
     def cake_data(self):
-        return self.current_configuration.cake_data
+        return self.calibration_model.cake_img
 
     @property
     def pattern(self):
