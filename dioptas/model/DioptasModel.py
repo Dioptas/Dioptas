@@ -166,6 +166,7 @@ class DioptasModel(QtCore.QObject):
 
     img_changed = QtCore.pyqtSignal()
     pattern_changed = QtCore.pyqtSignal()
+    cake_changed = QtCore.pyqtSignal()
 
     def __init__(self, working_directories=None):
         super(DioptasModel, self).__init__()
@@ -200,14 +201,18 @@ class DioptasModel(QtCore.QObject):
             self.connect_models()
             self.configuration_selected.emit(ind)
             self.img_changed.emit()
+            self.pattern_changed.emit()
+            self.cake_changed.emit()
 
     def disconnect_models(self):
         self.img_model.img_changed.disconnect(self.img_changed)
         self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
+        self.current_configuration.cake_img_changed.disconnect(self.cake_changed)
 
     def connect_models(self):
         self.img_model.img_changed.connect(self.img_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
+        self.current_configuration.cake_img_changed.connect(self.cake_changed)
 
     @property
     def current_configuration(self):

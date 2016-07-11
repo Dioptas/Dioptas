@@ -534,7 +534,7 @@ class CalibrationModel(object):
         :return:
             two theta in degree
         """
-        x -= 0.5
+        x = x - 0.5
         cake_step = self.cake_tth[1] - self.cake_tth[0]
         tth = self.cake_tth[int(np.floor(x))] + (x - np.floor(x)) * cake_step
         return tth
@@ -547,7 +547,7 @@ class CalibrationModel(object):
         :return:
             azimuth in degree
         """
-        x -= 0.5
+        x = x - 0.5
         azi_step = self.cake_azi[1] - self.cake_azi[0]
         azi = self.cake_azi[int(np.floor(x))] + (x - np.floor(x)) * azi_step
         return azi
@@ -566,7 +566,10 @@ class CalibrationModel(object):
         :return:
             tuple of index 1 and 2
         """
+
         tth_ind = find_contours(self.spectrum_geometry.ttha, tth)
+        if len(tth_ind) == 0:
+            return []
         tth_ind = np.vstack(tth_ind)
         azi_values = self.spectrum_geometry.chi(tth_ind[:, 0], tth_ind[:, 1])
         min_index = np.argmin(np.abs(azi_values - azi))

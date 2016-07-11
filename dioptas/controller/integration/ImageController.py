@@ -450,8 +450,8 @@ class ImageController(object):
         self.model.img_changed.disconnect(self.plot_img)
         self.model.img_changed.disconnect(self.plot_mask)
 
-        self.model.current_configuration.cake_img_changed.connect(self.plot_mask)
-        self.model.current_configuration.cake_img_changed.connect(self.plot_cake)
+        self.model.cake_changed.connect(self.plot_mask)
+        self.model.cake_changed.connect(self.plot_cake)
         self.plot_mask()
         self.plot_cake()
 
@@ -470,8 +470,9 @@ class ImageController(object):
         self.model.img_changed.connect(self.plot_img)
         self.model.img_changed.connect(self.plot_mask)
 
-        self.model.current_configuration.cake_img_changed.disconnect(self.plot_mask)
-        self.model.current_configuration.cake_img_changed.disconnect(self.plot_cake)
+        self.model.cake_changed.disconnect(self.plot_mask)
+        self.model.cake_changed.disconnect(self.plot_cake)
+
         self.plot_img()
         self.plot_mask()
 
@@ -517,7 +518,10 @@ class ImageController(object):
         tth = self.clicked_tth
         azi = self.clicked_azi / 180.0 * np.pi
 
-        x_ind, y_ind = self.model.calibration_model.get_pixel_ind(tth, azi)
+        new_pos = self.model.calibration_model.get_pixel_ind(tth, azi)
+        if len(new_pos) == 0:
+            return
+        x_ind, y_ind = new_pos
         self.widget.img_widget.set_mouse_click_position(y_ind + 0.5, x_ind + 0.5)
 
     def get_current_spectrum_tth(self):
@@ -864,8 +868,13 @@ class ImageController(object):
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
 
-        if self.model.current_configuration.integrate_cake and self.img_mode=='Image':
+        if self.model.current_configuration.integrate_cake and self.img_mode == 'Image':
             self.activate_cake_mode()
-        elif not self.model.current_configuration.integrate_cake and self.img_mode=='Cake':
-            print("activate_image_mode")
+        elif not self.model.current_configuration.integrate_cake and self.img_mode == 'Cake':
             self.activate_image_mode()
+        elif self.model.current_configuration.integrate_cake and self.img_mode == 'Cake':
+            self._update_cake_line_pos()
+            self._update_cake_mouse_click_pos()
+        elif not self.model.current_configuration.integrate_cake and self.img_mode == 'Image':
+            self._update_image_line_pos()
+            self._update_image_mouse_click_pos()
