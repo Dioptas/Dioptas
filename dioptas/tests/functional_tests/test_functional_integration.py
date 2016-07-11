@@ -253,7 +253,6 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.assertNotEqual(roi_limits1, roi_limits2)
         self.assertFalse(np.array_equal(y1, y2))
 
-
     def test_configuration_selected_changes_img_mode(self):
         click_button(self.integration_widget.img_mode_btn)
         self.assertEqual(self.integration_image_controller.img_mode,"Cake")
@@ -263,3 +262,22 @@ class IntegrationFunctionalTest(unittest.TestCase):
         self.assertEqual(self.integration_image_controller.img_mode,"Cake")
         self.model.select_configuration(1)
         self.assertEqual(self.integration_image_controller.img_mode, "Image")
+
+    def test_configuration_selected_changes_green_line_position_in_image_mode(self):
+        self.integration_image_controller.img_mouse_click(0, 500)
+        self.model.add_configuration()
+        self.model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M_2.poni"))
+        self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+        self.integration_image_controller.img_mouse_click(0, 500)
+        self.model.select_configuration(0)
+
+    def test_configuration_selected_changes_green_line_position_in_cake_mode(self):
+        self.integration_image_controller.img_mouse_click(0, 500)
+        click_button(self.integration_widget.img_mode_btn)
+        self.model.add_configuration()
+        self.model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M_2.poni"))
+        click_button(self.integration_widget.img_mode_btn)
+        self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+        self.integration_image_controller.img_mouse_click(1040, 500)
+        self.model.select_configuration(0)
+
