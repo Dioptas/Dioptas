@@ -241,10 +241,10 @@ class OverlayController(object):
                 self.widget.overlay_show_cb_set_checked(cur_ind, False)
 
     def set_current_pattern_as_overlay(self):
-        self.model.overlay_model.add_overlay_pattern(self.model.pattern_model.pattern)
+        self.model.overlay_model.add_overlay_pattern(self.model.pattern)
 
     def set_current_pattern_as_background(self):
-        self.model.overlay_model.add_overlay_pattern(self.model.pattern_model.pattern)
+        self.model.overlay_model.add_overlay_pattern(self.model.pattern)
         self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[-1]
 
         self.widget.overlay_set_as_bkg_btn.setChecked(True)

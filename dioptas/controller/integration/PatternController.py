@@ -126,12 +126,12 @@ class PatternController(object):
     def plot_pattern(self):
         if self.widget.bkg_spectrum_inspect_btn.isChecked():
             self.widget.pattern_widget.plot_data(
-                *self.model.pattern_model.pattern.auto_background_before_subtraction_spectrum.data,
-                name=self.model.pattern_model.pattern.name)
-            self.widget.pattern_widget.plot_bkg(*self.model.pattern_model.pattern.auto_background_pattern.data)
+                *self.model.pattern.auto_background_before_subtraction_spectrum.data,
+                name=self.model.pattern.name)
+            self.widget.pattern_widget.plot_bkg(*self.model.pattern.auto_background_pattern.data)
         else:
             self.widget.pattern_widget.plot_data(
-                *self.model.pattern_model.pattern.data, name=self.model.pattern_model.pattern.name)
+                *self.model.pattern.data, name=self.model.pattern.name)
             self.widget.pattern_widget.plot_bkg([], [])
 
         # update the bkg_name
@@ -144,7 +144,7 @@ class PatternController(object):
     def reset_background(self, popup=True):
         self.widget.overlay_show_cb_set_checked(self.model.pattern_model.bkg_ind, True)  # show the old overlay again
         self.model.pattern_model.bkg_ind = -1
-        self.model.pattern_model.pattern.unset_background_spectrum()
+        self.model.pattern.unset_background_spectrum()
         self.widget.overlay_set_as_bkg_btn.setChecked(False)
 
     def integration_binning_changed(self):
@@ -209,19 +209,19 @@ class PatternController(object):
         step = int(str(self.widget.spec_browse_step_txt.text()))
         self.model.pattern_model.load_previous_file(step=step)
         self.widget.spec_filename_txt.setText(
-            os.path.basename(self.model.pattern_model.pattern_filename))
+            os.path.basename(self.model.pattern_filename))
 
     def load_next(self):
         step = int(str(self.widget.spec_browse_step_txt.text()))
         self.model.pattern_model.load_next_file(step=step)
         self.widget.spec_filename_txt.setText(
-            os.path.basename(self.model.pattern_model.pattern_filename))
+            os.path.basename(self.model.pattern_filename))
 
     def autocreate_cb_changed(self):
         self.autocreate_pattern = self.widget.spec_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
-        current_filename = os.path.basename(self.model.pattern_model.pattern_filename)
+        current_filename = os.path.basename(self.model.pattern_filename)
         current_directory = str(self.widget.spec_directory_txt.text())
         new_filename = str(self.widget.spec_filename_txt.text())
         if os.path.isfile(os.path.join(current_directory, new_filename)):
@@ -296,7 +296,7 @@ class PatternController(object):
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()[0]
-        spectrum_x = self.model.pattern_model.pattern.data[0]
+        spectrum_x = self.model.pattern.data[0]
         if np.min(spectrum_x) < old_x_axis_range[0] or np.max(spectrum_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
             self.widget.pattern_widget.spectrum_plot.setRange(xRange=new_x_axis_range, padding=0)
@@ -420,7 +420,7 @@ class PatternController(object):
     def key_press_event(self, ev):
         if (ev.key() == QtCore.Qt.Key_Left) or (ev.key() == QtCore.Qt.Key_Right):
             pos = self.widget.pattern_widget.get_pos_line()
-            step = np.min(np.diff(self.model.pattern_model.pattern.data[0]))
+            step = np.min(np.diff(self.model.pattern.data[0]))
             if ev.modifiers() & QtCore.Qt.ControlModifier:
                 step /= 20.
             elif ev.modifiers() & QtCore.Qt.ShiftModifier:

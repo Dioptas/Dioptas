@@ -160,7 +160,7 @@ class BackgroundController(object):
         if checked:
             self.widget.pattern_widget.show_linear_region()
             x_min, x_max = self.widget.get_bkg_spectrum_roi()
-            x_spec = self.model.pattern_model.pattern.auto_background_before_subtraction_spectrum.x
+            x_spec = self.model.pattern.auto_background_before_subtraction_spectrum.x
             if x_min < x_spec[0]:
                 x_min = x_spec[0]
             if x_max > x_spec[-1]:

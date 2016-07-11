@@ -175,7 +175,7 @@ class PhaseController(object):
         y_range = axis_range[1]
         positions, intensities, baseline = \
             self.model.phase_model.get_rescaled_reflections(
-                    -1, self.model.pattern_model.pattern,
+                    -1, self.model.pattern,
                     x_range, y_range,
                     self.model.calibration_model.wavelength * 1e10,
                     self.get_unit())
@@ -363,7 +363,7 @@ class PhaseController(object):
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline = self.model.phase_model.get_rescaled_reflections(
-                ind, self.model.pattern_model.pattern,
+                ind, self.model.pattern,
                 x_range, y_range,
                 self.model.calibration_model.wavelength * 1e10,
                 self.get_unit()

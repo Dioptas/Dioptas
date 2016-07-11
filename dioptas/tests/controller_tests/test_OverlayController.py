@@ -132,7 +132,7 @@ class OverlayControllerTest(QtTest):
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 
         self.assertEqual(self.model.pattern_model.background_pattern, self.model.overlay_model.overlays[0])
-        x, y = self.model.pattern_model.pattern.data
+        x, y = self.model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
     def test_setting_overlay_as_bkg_and_changing_scale(self):
@@ -142,8 +142,8 @@ class OverlayControllerTest(QtTest):
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         self.widget.overlay_scale_sb.setValue(2)
-        _, y = self.model.pattern_model.pattern.data
-        _, y_original = self.model.pattern_model.pattern.data
+        _, y = self.model.pattern.data
+        _, y_original = self.model.pattern.data
         self.assertEqual(np.sum(y - y_original), 0)
 
     def test_setting_overlay_as_bkg_and_changing_offset(self):
@@ -153,7 +153,7 @@ class OverlayControllerTest(QtTest):
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         self.widget.overlay_offset_sb.setValue(100)
-        _, y = self.model.pattern_model.pattern.data
+        _, y = self.model.pattern.data
         self.assertEqual(np.sum(y), -100 * y.size)
 
     def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(self):
@@ -162,14 +162,14 @@ class OverlayControllerTest(QtTest):
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
-        _, y = self.model.pattern_model.pattern.data
+        _, y = self.model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
         self.widget.select_overlay(1)
         self.widget.overlay_scale_sb.setValue(2)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
-        _, y = self.model.pattern_model.pattern.data
+        _, y = self.model.pattern.data
         self.assertNotEqual(np.sum(y), 0)
 
     def test_setting_spectrum_as_bkg(self):
@@ -179,7 +179,7 @@ class OverlayControllerTest(QtTest):
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 
-        _, y = self.model.pattern_model.pattern.data
+        _, y = self.model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
     def test_having_overlay_as_bkg_and_deleting_it(self):
@@ -193,7 +193,7 @@ class OverlayControllerTest(QtTest):
         self.assertFalse(self.widget.overlay_set_as_bkg_btn.isChecked())
         self.assertEqual(self.widget.overlay_tw.rowCount(), 0)
 
-        _, y = self.model.pattern_model.pattern.data
+        _, y = self.model.pattern.data
         self.assertNotEqual(np.sum(y), 0)
 
     def test_overlay_waterfall(self):
