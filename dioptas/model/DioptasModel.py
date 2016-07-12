@@ -287,14 +287,16 @@ class DioptasModel(QtCore.QObject):
         if not self.combine_cakes:
             return self.calibration_model.cake_img
         else:
-            combined_tth, combined_azi = self._get_combined_cake_tth_and_azi()
+            tth = self._get_combined_cake_tth()
+            azi = self._get_combined_cake_azi()
+            combined_tth, combined_azi = np.meshgrid(tth, azi)
             combined_intensity = np.zeros(combined_azi.shape)
             for configuration in self.configurations:
                 cake_interp2d = interp2d(configuration.calibration_model.cake_tth,
                                          configuration.calibration_model.cake_azi,
                                          configuration.calibration_model.cake_img,
                                          fill_value=0)
-                combined_intensity += cake_interp2d(combined_tth[0, :], combined_azi[:, 0])
+                combined_intensity += cake_interp2d(tth, azi)
             return combined_intensity
 
     def _get_cake_tth_range(self):
@@ -313,13 +315,13 @@ class DioptasModel(QtCore.QObject):
             max_azi.append(np.max(self.configurations[ind].calibration_model.cake_azi))
         return np.min(min_azi), np.max(max_azi)
 
-    def _get_combined_cake_tth_and_azi(self):
+    def _get_combined_cake_tth(self):
         min_tth, max_tth = self._get_cake_tth_range()
-        min_azi, max_azi = self._get_cake_azi_range()
+        return np.linspace(min_tth, max_tth, 2048)
 
-        tth = np.linspace(min_tth, max_tth, 2048)
-        azi = np.linspace(min_azi, max_azi, 2048)
-        return np.meshgrid(tth, azi)
+    def _get_combined_cake_azi(self):
+        min_azi, max_azi = self._get_cake_azi_range()
+        return np.linspace(min_azi, max_azi, 2048)
 
     @property
     def cake_tth(self):
