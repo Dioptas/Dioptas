@@ -1,15 +1,16 @@
 # -*- coding: utf8 -*-
 import os
 
+from scipy.interpolate import interp1d
 import numpy as np
-
 from PyQt4 import QtCore
 
+from .util import Pattern
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
 
 
 class ImgConfiguration(QtCore.QObject):
-    cake_img_changed = QtCore.pyqtSignal()
+    cake_changed = QtCore.pyqtSignal()
 
     def __init__(self, working_directories):
         super(ImgConfiguration, self).__init__()
@@ -73,7 +74,7 @@ class ImgConfiguration(QtCore.QObject):
 
         self.calibration_model.integrate_2d(mask=mask,
                                             dimensions=(2048, 2048))
-        self.cake_img_changed.emit()
+        self.cake_changed.emit()
 
     def save_pattern(self):
         filename = self.img_model.filename
@@ -172,6 +173,8 @@ class DioptasModel(QtCore.QObject):
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
 
+        self.combine_patterns = False
+
         self.connect_models()
 
     def add_configuration(self):
@@ -201,12 +204,12 @@ class DioptasModel(QtCore.QObject):
     def disconnect_models(self):
         self.img_model.img_changed.disconnect(self.img_changed)
         self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
-        self.current_configuration.cake_img_changed.disconnect(self.cake_changed)
+        self.current_configuration.cake_changed.disconnect(self.cake_changed)
 
     def connect_models(self):
         self.img_model.img_changed.connect(self.img_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
-        self.current_configuration.cake_img_changed.connect(self.cake_changed)
+        self.current_configuration.cake_changed.connect(self.cake_changed)
 
     @property
     def current_configuration(self):
@@ -283,7 +286,42 @@ class DioptasModel(QtCore.QObject):
 
     @property
     def pattern(self):
-        return self.pattern_model.pattern
+        if not self.combine_patterns:
+            return self.pattern_model.pattern
+        else:
+            x_min = []
+            for ind in range(0, len(self.configurations)):
+                # determine ranges
+                x = self.configurations[ind].pattern_model.pattern.x
+                x_min.append(np.min(x))
+
+            sorted_pattern_ind = np.argsort(x_min)
+
+            pattern = self.configurations[sorted_pattern_ind[0]].pattern_model.pattern
+            for ind in sorted_pattern_ind[1:]:
+                x1, y1 = pattern.data
+                x2, y2 = self.configurations[ind].pattern_model.pattern.data
+
+                pattern2_interp1d = interp1d(x2, y2, kind='linear')
+
+                overlap_ind_pattern1 = np.where((x1 <= np.max(x2)) & (x1 >= np.min(x2)))[0]
+                left_ind_pattern1 = np.where((x1 <= np.min(x2)))[0]
+                right_ind_pattern2 = np.where((x2 >= np.max(x1)))[0]
+
+                combined_x1 = x1[left_ind_pattern1]
+                combined_y1 = y1[left_ind_pattern1]
+                combined_x2 = x1[overlap_ind_pattern1]
+                combined_y2 = (y1[overlap_ind_pattern1] + pattern2_interp1d(combined_x2))/2
+                combined_x3 = x2[right_ind_pattern2]
+                combined_y3 = y2[right_ind_pattern2]
+
+                combined_x = np.hstack((combined_x1, combined_x2, combined_x3))
+                combined_y = np.hstack((combined_y1, combined_y2, combined_y3))
+
+                pattern = Pattern(combined_x, combined_y)
+
+            pattern.name = "Combined Pattern"
+            return pattern
 
     def clear(self):
         for configuration in self.configurations:
