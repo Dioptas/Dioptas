@@ -125,6 +125,22 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         self.assertLess(np.min(x3), 7)
         self.assertGreater(np.max(x3), 10)
 
+    def test_combine_cakes(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        cake1 = self.model.cake_data
+        self.model.add_configuration()
+
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M_2.poni'))
+        self.model.current_configuration.integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.model.combine_cakes = True
+        self.assertFalse(np.array_equal(self.model.cake_data, cake1))
+
+
 
 
 
