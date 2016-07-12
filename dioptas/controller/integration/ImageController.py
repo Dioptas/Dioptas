@@ -486,11 +486,10 @@ class ImageController(object):
 
     def _update_cake_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()
-        if cur_tth < np.min(self.model.calibration_model.cake_tth) or cur_tth > np.max(
-                self.model.calibration_model.cake_tth):
+        if cur_tth < np.min(self.model.cake_tth) or cur_tth > np.max(self.model.cake_tth):
             new_pos = np.nan
         else:
-            new_pos = get_partial_index(self.model.calibration_model.cake_tth, cur_tth) + 0.5
+            new_pos = get_partial_index(self.model.cake_tth, cur_tth) + 0.5
         self.widget.img_widget.vertical_line.setValue(new_pos)
 
     def _update_cake_mouse_click_pos(self):
@@ -500,15 +499,13 @@ class ImageController(object):
         tth = self.clicked_tth / np.pi * 180
         azi = self.clicked_azi
 
-        if tth < np.min(self.model.calibration_model.cake_tth) or tth > np.max(
-                self.model.calibration_model.cake_tth):
+        if tth < np.min(self.model.cake_tth) or tth > np.max(self.model.cake_tth):
             self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
-        elif azi < np.min(self.model.calibration_model.cake_azi) or tth > np.max(
-                self.model.calibration_model.cake_azi):
+        elif azi < np.min(self.model.cake_azi) or tth > np.max(self.model.cake_azi):
             self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
         else:
-            x_pos = get_partial_index(self.model.calibration_model.cake_tth, tth) + 0.5
-            y_pos = get_partial_index(self.model.calibration_model.cake_azi, azi) + 0.5
+            x_pos = get_partial_index(self.model.cake_tth, tth) + 0.5
+            y_pos = get_partial_index(self.model.cake_azi, azi) + 0.5
             self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
 
     def _update_image_line_pos(self):
@@ -545,7 +542,11 @@ class ImageController(object):
         return cur_tth
 
     def show_img_mouse_position(self, x, y):
-        img_shape = self.model.img_data.shape
+        if self.img_mode == "Image":
+            img_shape = self.model.img_data.shape
+        elif self.img_mode == "Cake":
+            img_shape = (len(self.model.cake_tth), len(self.model.cake_azi))
+
         if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
             y_pos_string = 'Y:  %4d' % y
