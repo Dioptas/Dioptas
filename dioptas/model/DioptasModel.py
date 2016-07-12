@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import os
 
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, interp2d
 import numpy as np
 from PyQt4 import QtCore
 
@@ -14,6 +14,7 @@ class ImgConfiguration(QtCore.QObject):
 
     def __init__(self, working_directories):
         super(ImgConfiguration, self).__init__()
+
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
@@ -174,6 +175,7 @@ class DioptasModel(QtCore.QObject):
         self._phase_model = PhaseModel()
 
         self._combine_patterns = False
+        self._combine_cakes = False
 
         self.connect_models()
 
@@ -282,7 +284,58 @@ class DioptasModel(QtCore.QObject):
 
     @property
     def cake_data(self):
-        return self.calibration_model.cake_img
+        if not self.combine_cakes:
+            return self.calibration_model.cake_img
+        else:
+            combined_tth, combined_azi = self._get_combined_cake_tth_and_azi()
+            combined_intensity = np.zeros(combined_azi.shape)
+            for configuration in self.configurations:
+                cake_interp2d = interp2d(configuration.calibration_model.cake_tth,
+                                         configuration.calibration_model.cake_azi,
+                                         configuration.calibration_model.cake_img,
+                                         fill_value=0)
+                combined_intensity += cake_interp2d(combined_tth[0, :], combined_azi[:, 0])
+            return combined_intensity
+
+    def _get_cake_tth_range(self):
+        min_tth = []
+        max_tth = []
+        for ind in range(len(self.configurations)):
+            min_tth.append(np.min(self.configurations[ind].calibration_model.cake_tth))
+            max_tth.append(np.max(self.configurations[ind].calibration_model.cake_tth))
+        return np.min(min_tth), np.max(max_tth)
+
+    def _get_cake_azi_range(self):
+        min_azi = []
+        max_azi = []
+        for ind in range(len(self.configurations)):
+            min_azi.append(np.min(self.configurations[ind].calibration_model.cake_azi))
+            max_azi.append(np.max(self.configurations[ind].calibration_model.cake_azi))
+        return np.min(min_azi), np.max(max_azi)
+
+    def _get_combined_cake_tth_and_azi(self):
+        min_tth, max_tth = self._get_cake_tth_range()
+        min_azi, max_azi = self._get_cake_azi_range()
+
+        tth = np.linspace(min_tth, max_tth, 2048)
+        azi = np.linspace(min_azi, max_azi, 2048)
+        return np.meshgrid(tth, azi)
+
+    @property
+    def cake_tth(self):
+        if not self.combine_cakes:
+            return self.calibration_model.cake_tth
+        else:
+            cake_tth, _ = self._get_combined_cake_tth_and_azi()
+            return cake_tth
+
+    @property
+    def cake_azi(self):
+        if not self.combine_cakes:
+            return self.calibration_model.cake_azi
+        else:
+            _, cake_azi = self._get_combined_cake_tth_and_azi()
+            return cake_azi
 
     @property
     def pattern(self):
@@ -311,7 +364,7 @@ class DioptasModel(QtCore.QObject):
                 combined_x1 = x1[left_ind_pattern1]
                 combined_y1 = y1[left_ind_pattern1]
                 combined_x2 = x1[overlap_ind_pattern1]
-                combined_y2 = (y1[overlap_ind_pattern1] + pattern2_interp1d(combined_x2))/2
+                combined_y2 = (y1[overlap_ind_pattern1] + pattern2_interp1d(combined_x2)) / 2
                 combined_x3 = x2[right_ind_pattern2]
                 combined_y3 = y2[right_ind_pattern2]
 
@@ -331,6 +384,15 @@ class DioptasModel(QtCore.QObject):
     def combine_patterns(self, new_val):
         self._combine_patterns = new_val
         self.pattern_changed.emit()
+
+    @property
+    def combine_cakes(self):
+        return self._combine_cakes
+
+    @combine_cakes.setter
+    def combine_cakes(self, new_val):
+        self._combine_cakes = new_val
+        self.cake_changed.emit()
 
     def clear(self):
         for configuration in self.configurations:
