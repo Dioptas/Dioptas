@@ -30,6 +30,7 @@ class ConfigurationWidget(QtGui.QWidget):
         self.configuration_name_txt = QtGui.QLineEdit("default")
 
         self.combine_patterns_btn = CheckableFlatButton("Combine Patterns")
+        self.combine_cakes_btn = CheckableFlatButton("Combine Cakes")
 
     def create_layout(self):
         self.main_layout = QtGui.QHBoxLayout()
@@ -41,6 +42,7 @@ class ConfigurationWidget(QtGui.QWidget):
         self.main_layout.addWidget(self.configuration_name_txt)
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.combine_patterns_btn)
+        self.main_layout.addWidget(self.combine_cakes_btn)
         self.setLayout(self.main_layout)
 
         self.configurations_btn_layout = QtGui.QHBoxLayout(self.configurations_btn_widget)

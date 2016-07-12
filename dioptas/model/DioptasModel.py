@@ -287,6 +287,7 @@ class DioptasModel(QtCore.QObject):
         if not self.combine_cakes:
             return self.calibration_model.cake_img
         else:
+            self._activate_cake()
             tth = self._get_combined_cake_tth()
             azi = self._get_combined_cake_azi()
             combined_tth, combined_azi = np.meshgrid(tth, azi)
@@ -299,7 +300,14 @@ class DioptasModel(QtCore.QObject):
                 combined_intensity += cake_interp2d(tth, azi)
             return combined_intensity
 
+    def _activate_cake(self):
+        for configuration in self.configurations:
+            if not configuration.integrate_cake:
+                configuration.integrate_cake = True
+                configuration.integrate_image_2d()
+
     def _get_cake_tth_range(self):
+        self._activate_cake()
         min_tth = []
         max_tth = []
         for ind in range(len(self.configurations)):
@@ -308,6 +316,7 @@ class DioptasModel(QtCore.QObject):
         return np.min(min_tth), np.max(max_tth)
 
     def _get_cake_azi_range(self):
+        self._activate_cake()
         min_azi = []
         max_azi = []
         for ind in range(len(self.configurations)):
@@ -328,16 +337,14 @@ class DioptasModel(QtCore.QObject):
         if not self.combine_cakes:
             return self.calibration_model.cake_tth
         else:
-            cake_tth, _ = self._get_combined_cake_tth_and_azi()
-            return cake_tth
+            return self._get_combined_cake_tth()
 
     @property
     def cake_azi(self):
         if not self.combine_cakes:
             return self.calibration_model.cake_azi
         else:
-            _, cake_azi = self._get_combined_cake_tth_and_azi()
-            return cake_azi
+            return self._get_combined_cake_azi()
 
     @property
     def pattern(self):
