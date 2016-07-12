@@ -8,6 +8,8 @@ from mock import MagicMock
 from PyQt4 import QtGui
 
 from model.DioptasModel import DioptasModel
+from model.util import Pattern
+
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -103,6 +105,28 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         self.model.img_model.img_changed.emit()
         cake_img2 = self.model.current_configuration.cake_img
         self.assertFalse(np.array_equal(cake_img1, cake_img2))
+
+    def test_combine_patterns(self):
+        x1 = np.linspace(0, 10)
+        y1 = np.ones(x1.shape)
+        pattern1 = Pattern(x1, y1)
+
+        x2 = np.linspace(7, 15)
+        y2 = np.ones(x2.shape)*2
+        pattern2 = Pattern(x2, y2)
+
+        self.model.pattern_model.pattern = pattern1
+        self.model.add_configuration()
+        self.model.pattern_model.pattern = pattern2
+
+        self.model.combine_patterns = True
+
+        x3, y3 = self.model.pattern.data
+        self.assertLess(np.min(x3), 7)
+        self.assertGreater(np.max(x3), 10)
+
+
+
 
 
 
