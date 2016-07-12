@@ -36,6 +36,7 @@ class ConfigurationController(object):
         self.model.configuration_removed.connect(self.update_configuration_widget)
 
         self.widget.combine_patterns_btn.clicked.connect(self.combine_patterns_btn_clicked)
+        self.widget.combine_cakes_btn.clicked.connect(self.combine_cakes_btn_clicked)
 
     def update_configuration_widget(self):
         self.widget.update_configurations(
@@ -45,3 +46,6 @@ class ConfigurationController(object):
 
     def combine_patterns_btn_clicked(self):
         self.model.combine_patterns = self.widget.combine_patterns_btn.isChecked()
+
+    def combine_cakes_btn_clicked(self):
+        self.model.combine_cakes = self.widget.combine_cakes_btn.isChecked()

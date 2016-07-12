@@ -495,17 +495,21 @@ class ImageController(object):
     def _update_cake_mouse_click_pos(self):
         if self.clicked_tth is None or not self.model.calibration_model.is_calibrated:
             return
+        import time
 
         tth = self.clicked_tth / np.pi * 180
         azi = self.clicked_azi
 
-        if tth < np.min(self.model.cake_tth) or tth > np.max(self.model.cake_tth):
+        cake_tth = self.model.cake_tth
+        cake_azi = self.model.cake_azi
+
+        if tth < np.min(cake_tth) or tth > np.max(cake_tth):
             self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
-        elif azi < np.min(self.model.cake_azi) or tth > np.max(self.model.cake_azi):
+        elif azi < np.min(cake_azi) or tth > np.max(cake_azi):
             self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
         else:
-            x_pos = get_partial_index(self.model.cake_tth, tth) + 0.5
-            y_pos = get_partial_index(self.model.cake_azi, azi) + 0.5
+            x_pos = get_partial_index(cake_tth, tth) + 0.5
+            y_pos = get_partial_index(cake_azi, azi) + 0.5
             self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
 
     def _update_image_line_pos(self):
@@ -619,7 +623,7 @@ class ImageController(object):
         if self.model.calibration_model.is_calibrated:
             x, y = y, x  # the indices are reversed for the img_array
             if self.img_mode == 'Cake':  # cake mode
-                cake_shape = self.model.cake_data.shape
+                cake_shape = (len(self.model.cake_tth), len(self.model.cake_azi))
                 if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):
                     return
                 y = np.array([y])
