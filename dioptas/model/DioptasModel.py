@@ -173,7 +173,7 @@ class DioptasModel(QtCore.QObject):
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
 
-        self.combine_patterns = False
+        self._combine_patterns = False
 
         self.connect_models()
 
@@ -322,6 +322,15 @@ class DioptasModel(QtCore.QObject):
 
             pattern.name = "Combined Pattern"
             return pattern
+
+    @property
+    def combine_patterns(self):
+        return self._combine_patterns
+
+    @combine_patterns.setter
+    def combine_patterns(self, new_val):
+        self._combine_patterns = new_val
+        self.pattern_changed.emit()
 
     def clear(self):
         for configuration in self.configurations:
