@@ -35,8 +35,13 @@ class ConfigurationController(object):
         self.model.configuration_added.connect(self.update_configuration_widget)
         self.model.configuration_removed.connect(self.update_configuration_widget)
 
+        self.widget.combine_patterns_btn.clicked.connect(self.combine_patterns_btn_clicked)
+
     def update_configuration_widget(self):
         self.widget.update_configurations(
             configurations=self.model.configurations,
             cur_ind=self.model.configuration_ind
         )
+
+    def combine_patterns_btn_clicked(self):
+        self.model.combine_patterns = self.widget.combine_patterns_btn.isChecked()
