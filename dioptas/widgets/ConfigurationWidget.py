@@ -4,8 +4,7 @@ from functools import partial
 
 from PyQt4 import QtGui, QtCore
 
-from widgets.CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, \
-    HorizontalSpacerItem, CheckableFlatButton, FlatButton, VerticalSpacerItem, HorizontalLine
+from widgets.CustomWidgets import LabelAlignRight, HorizontalSpacerItem, CheckableFlatButton, FlatButton
 
 
 class ConfigurationWidget(QtGui.QWidget):
@@ -26,8 +25,6 @@ class ConfigurationWidget(QtGui.QWidget):
 
         self.add_configuration_btn = FlatButton("+")
         self.remove_configuration_btn = FlatButton("-")
-        self.configuration_name_lbl = LabelAlignRight("Name:")
-        self.configuration_name_txt = QtGui.QLineEdit("default")
 
         self.combine_patterns_btn = CheckableFlatButton("Combine Patterns")
         self.combine_cakes_btn = CheckableFlatButton("Combine Cakes")
@@ -38,8 +35,6 @@ class ConfigurationWidget(QtGui.QWidget):
         self.main_layout.addWidget(self.add_configuration_btn)
         self.main_layout.addWidget(self.remove_configuration_btn)
         self.main_layout.addWidget(self.configurations_btn_widget)
-        self.main_layout.addWidget(self.configuration_name_lbl)
-        self.main_layout.addWidget(self.configuration_name_txt)
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.combine_patterns_btn)
         self.main_layout.addWidget(self.combine_cakes_btn)
@@ -49,9 +44,6 @@ class ConfigurationWidget(QtGui.QWidget):
 
     def style_widgets(self):
         self.main_layout.setContentsMargins(5, 5, 5, 3)
-
-        self.configuration_name_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.configuration_name_txt.setMaximumWidth(150)
 
     def update_configurations(self, configurations, cur_ind):
         for btn in self.configuration_btns:
