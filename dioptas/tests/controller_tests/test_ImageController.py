@@ -3,11 +3,12 @@
 import os
 import gc
 import shutil
+import numpy as np
 from mock import MagicMock
 
 from tests.utility import QtTest
 
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtGui
 from PyQt4.QtTest import QTest
 
 from widgets.integration import IntegrationWidget
@@ -112,4 +113,14 @@ class ImageControllerTest(QtTest):
 
         self.model.select_configuration(1)
         self.assertEqual(str(self.widget.calibration_lbl.text()), "calib2")
+
+    def test_adding_images(self):
+        self.controller.load_file(os.path.join(unittest_data_path, 'image_001.tif'))
+        data1 = np.copy(self.widget.img_widget.img_data)
+        click_checkbox(self.widget.img_batch_mode_add_rb)
+        self.controller.load_file([os.path.join(unittest_data_path, 'image_001.tif'),
+                                   os.path.join(unittest_data_path, 'image_001.tif')])
+        self.assertTrue(np.array_equal(2*data1, self.widget.img_widget.img_data))
+
+
 
