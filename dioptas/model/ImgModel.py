@@ -166,6 +166,35 @@ class ImgModel(QtCore.QObject):
         self._calculate_img_data()
         self.img_changed.emit()
 
+    def add(self, filename):
+        """
+        Adds an image file in any format known by fabIO. Automatically performs all previous img transformations,
+        performs supersampling and recalculates background subtracted and absorption corrected image data. Observers
+        will be notified after the process.
+        :param filename: path of the image file to be loaded
+        """
+        filename = str(filename)  # since it could also be QString
+        try:
+            im = Image.open(filename)
+            img_data = np.array(im)[::-1]
+        except IOError:
+            if os.path.splitext(filename)[1].lower() == '.spe':
+                spe = SpeFile(filename)
+                img_data = spe.img
+            else:
+                img_data_fabio = fabio.open(filename)
+                img_data = img_data_fabio.data[::-1]
+
+        if not self._img_data.shape == img_data.shape:
+            return
+
+        logger.info("Adding {0}.".format(filename))
+        self._img_data += img_data
+
+        self._perform_img_transformations()
+        self._calculate_img_data()
+        self.img_changed.emit()
+
     def _image_and_background_shape_equal(self):
         """
         Tests if the original image and original background image have the same shape
