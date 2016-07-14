@@ -206,7 +206,15 @@ class ImageController(object):
             if len(filenames) == 1:
                 self.model.img_model.load(str(filenames[0]))
             else:
-                self._load_multiple_files(filenames)
+                if self.widget.img_batch_mode_add_rb.isChecked():
+                    self.model.img_model.blockSignals(True)
+                    self.model.img_model.load(str(filenames[0]))
+                    for ind in range(1, len(filenames)):
+                        self.model.img_model.add(filenames[ind])
+                    self.model.img_model.blockSignals(False)
+                    self.model.img_model.img_changed.emit()
+                elif self.widget.img_batch_mode_integrate_rb.isChecked():
+                    self._load_multiple_files(filenames)
             self._check_absorption_correction_shape()
 
     def _load_multiple_files(self, filenames):

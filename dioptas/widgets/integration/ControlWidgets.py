@@ -69,11 +69,22 @@ class ImageControlWidget(QtGui.QWidget):
     def __init__(self):
         super(ImageControlWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._create_widgets()
+        self._create_layout()
+        self._style_widgets()
 
+    def _create_widgets(self):
         self.file_widget = BrowseFileWidget(files='Image', checkbox_text='autoprocess')
         self.file_info_btn = FlatButton('File Info')
         self.move_btn = FlatButton('Position')
+
+        self.batch_mode_widget = QtGui.QWidget()
+        self.batch_mode_lbl = LabelAlignRight("Batch Mode:")
+        self.batch_mode_integrate_rb = QtGui.QRadioButton("integrate")
+        self.batch_mode_add_rb = QtGui.QRadioButton("add")
+
+    def _create_layout(self):
+        self._layout = QtGui.QVBoxLayout()
 
         self._layout.addWidget(self.file_widget)
         self._layout.addWidget(HorizontalLine())
@@ -81,13 +92,25 @@ class ImageControlWidget(QtGui.QWidget):
         self._file_info_layout = QtGui.QHBoxLayout()
         self._file_info_layout.addWidget(self.file_info_btn)
         self._file_info_layout.addWidget(self.move_btn)
-
-
         self._file_info_layout.addSpacerItem(HorizontalSpacerItem())
+
+        self._batch_layout = QtGui.QHBoxLayout()
+
+        self._batch_layout.addWidget(self.batch_mode_lbl)
+        self._batch_layout.addWidget(self.batch_mode_integrate_rb)
+        self._batch_layout.addWidget(self.batch_mode_add_rb)
+        self.batch_mode_widget.setLayout(self._batch_layout)
+
+        self._file_info_layout.addWidget(self.batch_mode_widget)
+
         self._layout.addLayout(self._file_info_layout)
         self._layout.addSpacerItem(VerticalSpacerItem())
 
         self.setLayout(self._layout)
+
+    def _style_widgets(self):
+        self._batch_layout.setContentsMargins(0, 0, 0, 0)
+        self.batch_mode_integrate_rb.setChecked(True)
 
 
 class PatternControlWidget(QtGui.QWidget):
@@ -562,14 +585,13 @@ class OptionsWidget(QtGui.QWidget):
         self._integration_gb_layout.addWidget(self.bin_count_cb, 0, 2)
         self._integration_gb_layout.addWidget(self.supersampling_sb, 1, 1)
 
-
         self.integration_gb.setLayout(self._integration_gb_layout)
 
         self._integration_layout = QtGui.QHBoxLayout()
         self._integration_layout.addWidget(self.integration_gb)
         self._integration_layout.addSpacerItem(HorizontalSpacerItem())
 
-        self._layout.addLayout(self._integration_layout )
+        self._layout.addLayout(self._integration_layout)
         self._layout.addItem(VerticalSpacerItem())
 
         self.setLayout(self._layout)
