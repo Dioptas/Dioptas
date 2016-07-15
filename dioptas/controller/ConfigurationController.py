@@ -35,6 +35,8 @@ class ConfigurationController(object):
         self.model.configuration_added.connect(self.update_configuration_widget)
         self.model.configuration_removed.connect(self.update_configuration_widget)
 
+        self.widget.factor_txt.editingFinished.connect(self.factor_txt_changed)
+
         self.widget.combine_patterns_btn.clicked.connect(self.combine_patterns_btn_clicked)
         self.widget.combine_cakes_btn.clicked.connect(self.combine_cakes_btn_clicked)
 
@@ -49,3 +51,6 @@ class ConfigurationController(object):
 
     def combine_cakes_btn_clicked(self):
         self.model.combine_cakes = self.widget.combine_cakes_btn.isChecked()
+
+    def factor_txt_changed(self):
+        self.model.img_model.factor = float(str(self.widget.factor_txt.text()))

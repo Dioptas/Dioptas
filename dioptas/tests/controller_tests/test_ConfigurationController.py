@@ -3,6 +3,8 @@
 import os
 import unittest
 
+import numpy as np
+
 from mock import MagicMock
 
 from PyQt4 import QtGui, QtCore
@@ -19,6 +21,13 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 def click_button(widget):
     QTest.mouseClick(widget, QtCore.Qt.LeftButton)
+
+
+def enter_value_into_text_field(text_field, value):
+    text_field.setText('')
+    QTest.keyClicks(text_field, str(value))
+    QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
+    QtGui.QApplication.processEvents()
 
 
 class ConfigurationControllerTest(unittest.TestCase):
@@ -112,3 +121,10 @@ class ConfigurationControllerTest(unittest.TestCase):
         self.assertEqual(self.config_widget.configuration_btns[0].text(), "1")
         self.assertEqual(self.config_widget.configuration_btns[1].text(), "2")
         self.assertEqual(self.config_widget.configuration_btns[2].text(), "3")
+
+    def test_using_factors(self):
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+        data1 = np.copy(self.model.img_data)
+        enter_value_into_text_field(self.config_widget.factor_txt, 2.5)
+        self.assertTrue(np.array_equal(2.5 * data1, self.model.img_data))
+
