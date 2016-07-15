@@ -348,7 +348,7 @@ class CalibrationModel(object):
 
         t1 = time.time()
 
-        res = self.cake_geometry.integrate2d(self.img_model._img_data, dimensions[0], dimensions[1], method=method,
+        res = self.cake_geometry.integrate2d(self.img_model.img_data, dimensions[0], dimensions[1], method=method,
                                              mask=mask,
                                              unit=unit, polarization_factor=polarization_factor)
         logger.info('2d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
