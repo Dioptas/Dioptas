@@ -73,7 +73,6 @@ class MainController(object):
 
         self.widget = MainWidget()
 
-
         # create data
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
@@ -161,7 +160,16 @@ class MainController(object):
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
-            self.model.img_model.img_changed.emit()
+
+            if self.integration_controller.image_controller.img_mode == "Image":
+                self.integration_controller.image_controller.plot_img()
+
+            if self.model.use_mask:
+                self.model.current_configuration.integrate_image_1d()
+                if self.model.current_configuration.integrate_cake:
+                    self.model.current_configuration.integrate_image_2d()
+            else:
+                self.model.pattern_changed.emit()
             self.widget.integration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
             self.widget.integration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
         elif ind == 1:  # mask tab
@@ -223,7 +231,7 @@ class MainController(object):
         if os.path.exists(working_directories_path):
             reader = csv.reader(open(working_directories_path, 'r'))
             for x in reader:
-                if len(x)>1:
+                if len(x) > 1:
                     self.working_directories[x[0]] = x[1]
 
     def load_xml_settings(self):

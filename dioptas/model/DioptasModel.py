@@ -176,6 +176,7 @@ class DioptasModel(QtCore.QObject):
 
         self._combine_patterns = False
         self._combine_cakes = False
+        self._cake_data = None
 
         self.connect_models()
 
@@ -199,7 +200,13 @@ class DioptasModel(QtCore.QObject):
             self.configuration_ind = ind
             self.connect_models()
             self.configuration_selected.emit(ind)
+            self.img_model.img_changed.disconnect(self.current_configuration.integrate_image_1d)
+            if self.combine_cakes:
+                self.img_model.img_changed.disconnect(self.current_configuration.integrate_image_2d)
             self.img_changed.emit()
+            self.img_model.img_changed.connect(self.current_configuration.integrate_image_1d)
+            if self.combine_cakes:
+                self.img_model.img_changed.connect(self.current_configuration.integrate_image_2d)
             self.pattern_changed.emit()
             self.cake_changed.emit()
 
@@ -287,18 +294,21 @@ class DioptasModel(QtCore.QObject):
         if not self.combine_cakes:
             return self.calibration_model.cake_img
         else:
-            self._activate_cake()
-            tth = self._get_combined_cake_tth()
-            azi = self._get_combined_cake_azi()
-            combined_tth, combined_azi = np.meshgrid(tth, azi)
-            combined_intensity = np.zeros(combined_azi.shape)
-            for configuration in self.configurations:
-                cake_interp2d = interp2d(configuration.calibration_model.cake_tth,
-                                         configuration.calibration_model.cake_azi,
-                                         configuration.calibration_model.cake_img,
-                                         fill_value=0)
-                combined_intensity += cake_interp2d(tth, azi)
-            return combined_intensity
+            return self._cake_data
+
+    def calculate_combined_cake(self):
+        self._activate_cake()
+        tth = self._get_combined_cake_tth()
+        azi = self._get_combined_cake_azi()
+        combined_tth, combined_azi = np.meshgrid(tth, azi)
+        combined_intensity = np.zeros(combined_azi.shape)
+        for configuration in self.configurations:
+            cake_interp2d = interp2d(configuration.calibration_model.cake_tth,
+                                     configuration.calibration_model.cake_azi,
+                                     configuration.calibration_model.cake_img,
+                                     fill_value=0)
+            combined_intensity += cake_interp2d(tth, azi)
+        self._cake_data = combined_intensity
 
     def _activate_cake(self):
         for configuration in self.configurations:
@@ -401,6 +411,13 @@ class DioptasModel(QtCore.QObject):
     @combine_cakes.setter
     def combine_cakes(self, new_val):
         self._combine_cakes = new_val
+        if new_val:
+            for configuration in self.configurations:
+                configuration.cake_changed.connect(self.calculate_combined_cake)
+            self.calculate_combined_cake()
+        else:
+            for configuration in self.configurations:
+                configuration.cake_changed.disconnect(self.calculate_combined_cake)
         self.cake_changed.emit()
 
     def clear(self):
