@@ -10,7 +10,6 @@ from PyQt4 import QtGui
 from model.DioptasModel import DioptasModel
 from model.util import Pattern
 
-
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
@@ -54,7 +53,6 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         self.model.add_configuration()
         self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
         img_2 = self.model.img_data
-
 
         self.model.add_configuration()
         self.model.img_model.load(os.path.join(data_path, "image_002.tif"))
@@ -101,7 +99,7 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         cake_img1 = self.model.current_configuration.cake_img
 
         self.model.use_mask = True
-        self.model.mask_model.mask_below_threshold(self.model.img_data,1)
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
         self.model.img_model.img_changed.emit()
         cake_img2 = self.model.current_configuration.cake_img
         self.assertFalse(np.array_equal(cake_img1, cake_img2))
@@ -112,7 +110,7 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         pattern1 = Pattern(x1, y1)
 
         x2 = np.linspace(7, 15)
-        y2 = np.ones(x2.shape)*2
+        y2 = np.ones(x2.shape) * 2
         pattern2 = Pattern(x2, y2)
 
         self.model.pattern_model.pattern = pattern1
@@ -140,11 +138,8 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         self.model.combine_cakes = True
         self.assertFalse(np.array_equal(self.model.cake_data, cake1))
 
-
-
-
-
-
-
-
-
+    def test_setting_factors(self):
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+        data1 = np.copy(self.model.img_data)
+        self.model.img_model.factor = 2
+        self.assertTrue(np.array_equal(2 * data1, self.model.img_data))
