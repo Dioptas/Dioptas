@@ -235,6 +235,18 @@ def get_partial_index(array, value):
     return new_pos
 
 
+def get_partial_value(array, ind):
+    """
+    Calculates the value for a non-integer array from an array using linear interpolation.
+    e.g. with array = [0,2,4,6,8,10] and value = 2.5 it would return 5, since it is in between the second and third
+    element.
+    :param array: list or numpy array
+    :param ind: float index for which to get value
+    """
+    step = array[int(np.floor(ind))+1] - array[int(np.floor(ind))]
+    value = array[int(np.floor(ind))] + (ind - np.floor(ind)) * step
+    return value
+
 
 def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, delta2=0.1):
     """

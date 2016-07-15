@@ -28,7 +28,7 @@ from model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorpti
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.integration import IntegrationWidget
 from model.DioptasModel import DioptasModel
-from model.util.HelperModule import get_partial_index
+from model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
 
@@ -579,8 +579,8 @@ class ImageController(object):
                 x = np.array([y])
                 y = np.array([x_temp])
                 if self.img_mode == 'Cake':
-                    tth = self.model.calibration_model.get_two_theta_cake(y)
-                    azi = self.model.calibration_model.get_azi_cake(x)
+                    tth = get_partial_value(self.model.cake_tth, y - 0.5)
+                    azi = get_partial_value(self.model.cake_azi, x - 0.5)
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
@@ -635,8 +635,9 @@ class ImageController(object):
                 if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):
                     return
                 y = np.array([y])
-                tth = self.model.calibration_model.get_two_theta_cake(y) / 180 * np.pi
-                azi = self.model.calibration_model.get_azi_cake(np.array([x]))
+                x = np.array([x])
+                tth = get_partial_value(self.model.cake_tth, y-0.5) / 180 * np.pi
+                azi = get_partial_value(self.model.cake_azi, x-0.5)
             elif self.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:

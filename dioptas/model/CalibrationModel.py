@@ -526,30 +526,6 @@ class CalibrationModel(object):
         y *= self.supersampling_factor
         return self.spectrum_geometry.chi(x, y)[0]
 
-    def get_two_theta_cake(self, x):
-        """
-        Gives the two_theta value for the x coordinate in the cake
-        :param x:
-            x-coordinate on image
-        :return:
-            two theta in degree
-        """
-        x = x - 0.5
-        cake_step = self.cake_tth[1] - self.cake_tth[0]
-        tth = self.cake_tth[int(np.floor(x))] + (x - np.floor(x)) * cake_step
-        return tth
-
-    def get_azi_cake(self, x):
-        """
-        Gives the azimuth value for a cake.
-        :param x:
-            x-coordinate in pixel
-        :return:
-            azimuth in degree
-        """
-        x = x - 0.5
-        azi_step = self.cake_azi[1] - self.cake_azi[0]
-        azi = self.cake_azi[int(np.floor(x))] + (x - np.floor(x)) * azi_step
         return azi
 
     def get_two_theta_array(self):
