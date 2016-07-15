@@ -85,6 +85,8 @@ class ImgModel(QtCore.QObject):
         self._background_scaling = 1
         self._background_offset = 0
 
+        self._factor = 1
+
         self.file_info = ''
         self.motors_info = {}
         self._img_corrections = ImgCorrectionManager()
@@ -110,7 +112,7 @@ class ImgModel(QtCore.QObject):
         will be notified after the process.
         :param filename: path of the image file to be loaded
         """
-        filename = str(filename) # since it could also be QString
+        filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
@@ -323,30 +325,30 @@ class ImgModel(QtCore.QObject):
         """
         if self.supersampling_factor == 1:
             if self._background_data is None and not self._img_corrections.has_items():
-                return self._img_data
+                return self._img_data * self.factor
 
             elif self._background_data is not None and not self._img_corrections.has_items():
-                return self._img_data_background_subtracted
+                return self._img_data_background_subtracted * self.factor
 
             elif self._background_data is None and self._img_corrections.has_items():
-                return self._img_data_absorption_corrected
+                return self._img_data_absorption_corrected * self.factor
 
             elif self._background_data is not None and self._img_corrections.has_items():
-                return self._img_data_background_subtracted_absorption_corrected
+                return self._img_data_background_subtracted_absorption_corrected * self.factor
 
         else:
             if self._background_data is None and not self._img_corrections.has_items():
-                return self._img_data_supersampled
+                return self._img_data_supersampled * self.factor
 
             elif self._background_data is not None and not self._img_corrections.has_items():
-                return self._img_data_supersampled_background_subtracted
+                return self._img_data_supersampled_background_subtracted * self.factor
 
             elif self._background_data is None and self._img_corrections.has_items():
-                return self._img_data_supersampled_absorption_corrected
+                return self._img_data_supersampled_absorption_corrected * self.factor
 
             elif self._background_data is not None and self._img_corrections.has_items():
-                return self._img_data_supersampled_background_subtracted_absorption_corrected
-        return self._img_data
+                return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
+        return self._img_data * self.factor
 
     def rotate_img_p90(self):
         """
@@ -543,6 +545,16 @@ class ImgModel(QtCore.QObject):
             self._directory_watcher.activate()
         else:
             self._directory_watcher.deactivate()
+
+    @property
+    def factor(self):
+        return self._factor
+
+    @factor.setter
+    def factor(self, new_value):
+        self._factor = new_value
+        self.img_changed.emit()
+
 
 class BackgroundDimensionWrongException(Exception):
     pass
