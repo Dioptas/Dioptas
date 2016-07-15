@@ -34,6 +34,7 @@ class ConfigurationController(object):
 
         self.model.configuration_added.connect(self.update_configuration_widget)
         self.model.configuration_removed.connect(self.update_configuration_widget)
+        self.model.configuration_selected.connect(self.configuration_selected)
 
         self.widget.factor_txt.editingFinished.connect(self.factor_txt_changed)
 
@@ -45,6 +46,9 @@ class ConfigurationController(object):
             configurations=self.model.configurations,
             cur_ind=self.model.configuration_ind
         )
+
+    def configuration_selected(self):
+        self.widget.factor_txt.setText(str(self.model.img_model.factor))
 
     def combine_patterns_btn_clicked(self):
         self.model.combine_patterns = self.widget.combine_patterns_btn.isChecked()

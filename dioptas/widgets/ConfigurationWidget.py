@@ -42,8 +42,7 @@ class ConfigurationWidget(QtGui.QWidget):
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.factor_lbl)
         self.main_layout.addWidget(self.factor_txt)
-        self.main_layout.addSpacerItem(
-            QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum))
+        self.main_layout.addSpacerItem(QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum))
         self.main_layout.addWidget(self.combine_patterns_btn)
         self.main_layout.addWidget(self.combine_cakes_btn)
         self.setLayout(self.main_layout)
