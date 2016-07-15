@@ -92,16 +92,31 @@ class CalibrationController(object):
         """
         Connects all the rotation GUI controls.
         """
-        self.connect_click_function(self.widget.rotate_m90_btn, self.model.img_model.rotate_img_m90)
-        self.connect_click_function(self.widget.rotate_m90_btn, self.clear_peaks_btn_click)
-        self.connect_click_function(self.widget.rotate_p90_btn, self.model.img_model.rotate_img_p90)
-        self.connect_click_function(self.widget.rotate_p90_btn, self.clear_peaks_btn_click)
-        self.connect_click_function(self.widget.invert_horizontal_btn, self.model.img_model.flip_img_horizontally)
-        self.connect_click_function(self.widget.invert_horizontal_btn, self.clear_peaks_btn_click)
-        self.connect_click_function(self.widget.invert_vertical_btn, self.model.img_model.flip_img_vertically)
-        self.connect_click_function(self.widget.invert_vertical_btn, self.clear_peaks_btn_click)
-        self.connect_click_function(self.widget.reset_transformations_btn, self.model.img_model.reset_img_transformations)
-        self.connect_click_function(self.widget.reset_transformations_btn, self.clear_peaks_btn_click)
+        self.connect_click_function(self.widget.rotate_m90_btn, self.rotate_m90_btn_clicked)
+        self.connect_click_function(self.widget.rotate_p90_btn, self.rotate_p90_btn_clicked)
+        self.connect_click_function(self.widget.invert_horizontal_btn, self.invert_horizontal_btn_clicked)
+        self.connect_click_function(self.widget.invert_vertical_btn, self.invert_vertical_btn_clicked)
+        self.connect_click_function(self.widget.reset_transformations_btn, self.reset_transformations_btn_clicked)
+
+    def rotate_m90_btn_clicked(self):
+        self.model.img_model.rotate_img_m90()
+        self.clear_peaks_btn_click()
+
+    def rotate_p90_btn_clicked(self):
+        self.model.img_model.rotate_img_p90()
+        self.clear_peaks_btn_click()
+
+    def invert_horizontal_btn_clicked(self):
+        self.model.img_model.flip_img_horizontally()
+        self.clear_peaks_btn_click()
+
+    def invert_vertical_btn_clicked(self):
+        self.model.img_model.flip_img_vertically()
+        self.clear_peaks_btn_click()
+
+    def reset_transformations_btn_clicked(self):
+        self.model.img_model.reset_img_transformations()
+        self.clear_peaks_btn_click()
 
     def create_update_signals(self):
         """
@@ -249,7 +264,7 @@ class CalibrationController(object):
         :param y:
             y-Position for the search
         """
-        x, y = y, x #indeces for the img array are transposed compared to the mouse position
+        x, y = y, x  # indeces for the img array are transposed compared to the mouse position
         peak_ind = self.widget.peak_num_sb.value()
         if self.widget.automatic_peak_search_rb.isChecked():
             points = self.model.calibration_model.find_peaks_automatic(x, y, peak_ind - 1)
@@ -412,7 +427,7 @@ class CalibrationController(object):
         refinement_canceled = False
         for i in range(num_rings - 2):
             points = self.model.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
-                                                                 intensity_max, mask)
+                                                                       intensity_max, mask)
             self.widget.peak_num_sb.setValue(i + 4)
             if len(self.model.calibration_model.points):
                 self.plot_points(points)
