@@ -299,5 +299,11 @@ class ImgModelTest(unittest.TestCase):
         self.img_model.add(os.path.join(data_path, 'image_001.tif'))
         self.assertTrue(np.array_equal(2*data1, self.img_model._img_data))
 
+    def test_summing_rotated(self):
+        self.img_model.rotate_img_m90()
+        data1 = np.copy(self.img_model._img_data)
+        self.img_model.add(os.path.join(data_path, 'image_001.tif'))
+        self.assertTrue(np.array_equal(2 * data1, self.img_model._img_data))
+
 if __name__ == '__main__':
     unittest.main()

@@ -188,10 +188,12 @@ class ImgModel(QtCore.QObject):
         if not self._img_data.shape == img_data.shape:
             return
 
+        for transformation in self.img_transformations:
+            img_data = transformation(img_data)
+
         logger.info("Adding {0}.".format(filename))
         self._img_data += img_data
 
-        self._perform_img_transformations()
         self._calculate_img_data()
         self.img_changed.emit()
 
