@@ -182,7 +182,7 @@ class FileNameIterator(QtCore.QObject):
         elif mode == 'number':
             return self._iterate_file_number(self.complete_path, -step, pos)
 
-    def get_next_folder(self, filename):
+    def get_next_folder(self, filename=None):
         if filename is not None:
             self.complete_path = filename
 
@@ -190,7 +190,7 @@ class FileNameIterator(QtCore.QObject):
             return None
         return self._iterate_folder_number(self.complete_path, 1)
 
-    def get_previous_folder(self, filename):
+    def get_previous_folder(self, filename=None):
         if filename is not None:
             self.complete_path = filename
 
