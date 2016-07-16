@@ -246,15 +246,27 @@ class ImgModel(QtCore.QObject):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def load_next_file(self, step=1):
-        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step)
+    def load_next_file(self, step=1, pos=None):
+        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step, pos=pos)
         if next_file_name is not None:
             self.load(next_file_name)
 
-    def load_previous_file(self, step=1):
-        previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode, step=step)
+    def load_previous_file(self, step=1, pos=None):
+        previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode,
+                                                                           step=step,
+                                                                           pos=pos)
         if previous_file_name is not None:
             self.load(previous_file_name)
+
+    def load_next_folder(self):
+        next_file_name = self.file_name_iterator.get_next_folder()
+        if next_file_name is not None:
+            self.load(next_file_name)
+
+    def load_previous_folder(self):
+        next_previous_name = self.file_name_iterator.get_previous_folder()
+        if next_previous_name is not None:
+            self.load(next_previous_name)
 
     def set_file_iteration_mode(self, mode):
         if mode == 'number':
