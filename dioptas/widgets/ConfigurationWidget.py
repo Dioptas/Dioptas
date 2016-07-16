@@ -5,7 +5,7 @@ from functools import partial
 from PyQt4 import QtGui, QtCore
 
 from widgets.CustomWidgets import LabelAlignRight, HorizontalSpacerItem, CheckableFlatButton, FlatButton, \
-    NumberTextField, IntegerTextField
+    NumberTextField, IntegerTextField, VerticalLine
 
 
 class ConfigurationWidget(QtGui.QWidget):
@@ -36,6 +36,10 @@ class ConfigurationWidget(QtGui.QWidget):
         self.file_iterator_pos_lbl = LabelAlignRight(" Pos: ")
         self.file_iterator_pos_txt = IntegerTextField("1")
 
+        self.folder_lbl = LabelAlignRight(" Folder:")
+        self.next_folder_btn = FlatButton(">")
+        self.previous_folder_btn = FlatButton("<")
+
         self.combine_patterns_btn = CheckableFlatButton("Combine Patterns")
         self.combine_cakes_btn = CheckableFlatButton("Combine Cakes")
 
@@ -46,11 +50,17 @@ class ConfigurationWidget(QtGui.QWidget):
         self.main_layout.addWidget(self.remove_configuration_btn)
         self.main_layout.addWidget(self.configurations_btn_widget)
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
+        self.main_layout.addWidget(VerticalLine())
         self.main_layout.addWidget(self.file_lbl)
         self.main_layout.addWidget(self.previous_file_btn)
         self.main_layout.addWidget(self.next_file_btn)
         self.main_layout.addWidget(self.file_iterator_pos_lbl)
         self.main_layout.addWidget(self.file_iterator_pos_txt)
+        self.main_layout.addWidget(VerticalLine())
+        self.main_layout.addWidget(self.folder_lbl)
+        self.main_layout.addWidget(self.previous_folder_btn)
+        self.main_layout.addWidget(self.next_folder_btn)
+        self.main_layout.addWidget(VerticalLine())
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.factor_lbl)
         self.main_layout.addWidget(self.factor_txt)
@@ -62,9 +72,11 @@ class ConfigurationWidget(QtGui.QWidget):
         self.configurations_btn_layout = QtGui.QHBoxLayout(self.configurations_btn_widget)
 
     def style_widgets(self):
-        self.main_layout.setSpacing(2)
+        self.main_layout.setSpacing(7)
         self.next_file_btn.setMaximumWidth(25)
         self.file_iterator_pos_txt.setMaximumWidth(25)
+        self.next_folder_btn.setMaximumWidth(25)
+        self.previous_folder_btn.setMaximumWidth(25)
         self.previous_file_btn.setMaximumWidth(25)
         self.main_layout.setContentsMargins(5, 5, 5, 3)
         self.factor_txt.setMaximumWidth(35)

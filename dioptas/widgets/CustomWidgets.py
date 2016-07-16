@@ -78,6 +78,12 @@ class HorizontalLine(QtGui.QFrame):
         self.setFrameShape(QtGui.QFrame.HLine)
         self.setFrameShadow(QtGui.QFrame.Sunken)
 
+class VerticalLine(QtGui.QFrame):
+    def __init__(self):
+        super(VerticalLine, self).__init__()
+        self.setFrameShape(QtGui.QFrame.VLine)
+        self.setFrameShadow(QtGui.QFrame.Sunken)
+
 
 class ListTableWidget(QtGui.QTableWidget):
     def __init__(self, columns=3):
