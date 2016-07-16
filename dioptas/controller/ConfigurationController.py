@@ -74,8 +74,8 @@ class ConfigurationController(object):
         self.model.previous_image(pos)
 
     def load_next_folder(self):
-        self.model.next_folder(mec_mode=self.widget.mec_cb.isChecked())
+        self.model.next_folder(mec_mode=bool(self.widget.mec_cb.isChecked()))
 
     def load_previous_folder(self):
-        self.model.previous_folder(mec_mode=self.widget.mec_cb.isChecked())
+        self.model.previous_folder(mec_mode=bool(self.widget.mec_cb.isChecked()))
 

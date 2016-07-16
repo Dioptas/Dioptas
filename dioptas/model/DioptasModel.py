@@ -438,8 +438,8 @@ class DioptasModel(QtCore.QObject):
 
     def next_folder(self, mec_mode=False):
         for configuration in self.configurations:
-            configuration.img_model.load_next_folder()
+            configuration.img_model.load_next_folder(mec_mode=mec_mode)
 
     def previous_folder(self, mec_mode=False):
         for configuration in self.configurations:
-            configuration.img_model.load_previous_folder()
+            configuration.img_model.load_previous_folder(mec_mode=mec_mode)
