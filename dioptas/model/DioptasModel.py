@@ -139,7 +139,7 @@ class ImgConfiguration(QtCore.QObject):
         if new_value:
             self.img_model.img_changed.connect(self.integrate_image_2d)
         else:
-            self.img_model.img_changed.connect(self.integrate_image_2d)
+            self.img_model.img_changed.disconnect(self.integrate_image_2d)
 
     @property
     def cake_img(self):
