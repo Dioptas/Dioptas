@@ -39,8 +39,8 @@ class ConfigurationController(object):
         self.widget.next_file_btn.clicked.connect(self.load_next_file)
         self.widget.previous_file_btn.clicked.connect(self.load_previous_file)
 
-        self.widget.next_folder_btn.clicked.connect(self.model.next_folder)
-        self.widget.previous_folder_btn.clicked.connect(self.model.previous_folder)
+        self.widget.next_folder_btn.clicked.connect(self.load_next_folder)
+        self.widget.previous_folder_btn.clicked.connect(self.load_previous_folder)
 
         self.widget.factor_txt.editingFinished.connect(self.factor_txt_changed)
 
@@ -72,4 +72,10 @@ class ConfigurationController(object):
     def load_previous_file(self):
         pos = int(str(self.widget.file_iterator_pos_txt.text()))
         self.model.previous_image(pos)
+
+    def load_next_folder(self):
+        self.model.next_folder(mec_mode=self.widget.mec_cb.isChecked())
+
+    def load_previous_folder(self):
+        self.model.previous_folder(mec_mode=self.widget.mec_cb.isChecked())
 

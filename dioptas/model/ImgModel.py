@@ -258,13 +258,13 @@ class ImgModel(QtCore.QObject):
         if previous_file_name is not None:
             self.load(previous_file_name)
 
-    def load_next_folder(self):
-        next_file_name = self.file_name_iterator.get_next_folder()
+    def load_next_folder(self, mec_mode=False):
+        next_file_name = self.file_name_iterator.get_next_folder(mec_mode=mec_mode)
         if next_file_name is not None:
             self.load(next_file_name)
 
-    def load_previous_folder(self):
-        next_previous_name = self.file_name_iterator.get_previous_folder()
+    def load_previous_folder(self, mec_mode=False):
+        next_previous_name = self.file_name_iterator.get_previous_folder(mec_mode=mec_mode)
         if next_previous_name is not None:
             self.load(next_previous_name)
 

@@ -109,7 +109,7 @@ class FileNameIterator(QtCore.QObject):
                     return new_complete_path
         return None
 
-    def _iterate_folder_number(self, path, step):
+    def _iterate_folder_number(self, path, step, mec_mode=False):
         directory_str, file_str = os.path.split(path)
         pattern = re.compile(r'\d+')
 
@@ -126,7 +126,24 @@ class FileNameIterator(QtCore.QObject):
                 len=right_ind - left_ind,
                 right_str=directory_str[right_ind:]
             )
-            new_complete_path = os.path.join(new_directory_str, file_str)
+            if mec_mode:
+                match_file_iterator = pattern.finditer(file_str)
+                for ind_file, match_file in enumerate(reversed(list(match_file_iterator))):
+                    if ind_file != 2:
+                        continue
+                    number_span = match_file.span()
+                    left_ind = number_span[0]
+                    right_ind = number_span[1]
+                    number = int(file_str[left_ind:right_ind]) + step
+                    new_file_str = "{left_str}{number:0{len}}{right_str}".format(
+                        left_str=file_str[:left_ind],
+                        number=number,
+                        len=right_ind - left_ind,
+                        right_str=file_str[right_ind:]
+                    )
+                new_complete_path = os.path.join(new_directory_str, new_file_str)
+            else:
+                new_complete_path = os.path.join(new_directory_str, file_str)
             print(new_complete_path)
             if os.path.exists(new_complete_path):
                 self.complete_path = new_complete_path
@@ -182,21 +199,21 @@ class FileNameIterator(QtCore.QObject):
         elif mode == 'number':
             return self._iterate_file_number(self.complete_path, -step, pos)
 
-    def get_next_folder(self, filename=None):
+    def get_next_folder(self, filename=None, mec_mode=False):
         if filename is not None:
             self.complete_path = filename
 
         if self.complete_path is None:
             return None
-        return self._iterate_folder_number(self.complete_path, 1)
+        return self._iterate_folder_number(self.complete_path, 1, mec_mode)
 
-    def get_previous_folder(self, filename=None):
+    def get_previous_folder(self, filename=None, mec_mode=False):
         if filename is not None:
             self.complete_path = filename
 
         if self.complete_path is None:
             return None
-        return self._iterate_folder_number(self.complete_path, -1)
+        return self._iterate_folder_number(self.complete_path, -1, mec_mode)
 
     def update_filename(self, new_filename):
         self.complete_path = os.path.abspath(new_filename)
