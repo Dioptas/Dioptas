@@ -126,6 +126,7 @@ class FileNameIterator(QtCore.QObject):
                 len=right_ind - left_ind,
                 right_str=directory_str[right_ind:]
             )
+            print(mec_mode)
             if mec_mode:
                 match_file_iterator = pattern.finditer(file_str)
                 for ind_file, match_file in enumerate(reversed(list(match_file_iterator))):
@@ -142,9 +143,9 @@ class FileNameIterator(QtCore.QObject):
                         right_str=file_str[right_ind:]
                     )
                 new_complete_path = os.path.join(new_directory_str, new_file_str)
+                print(new_complete_path)
             else:
                 new_complete_path = os.path.join(new_directory_str, file_str)
-            print(new_complete_path)
             if os.path.exists(new_complete_path):
                 self.complete_path = new_complete_path
                 return new_complete_path

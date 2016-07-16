@@ -63,3 +63,9 @@ class HelperModuleTest(unittest.TestCase):
         self.file_iterator = FileNameIterator()
         new_filename = self.file_iterator.get_next_folder(filename, mec_mode=True)
         self.assertEqual(new_filename, os.path.join(data_path, 'run2', "run_2_evt_2.0.txt"))
+
+    def test_get_previous_folder_mec(self):
+        filename = os.path.join(data_path, "run2", "run_2_evt_2.0.txt")
+        self.file_iterator = FileNameIterator()
+        new_filename = self.file_iterator.get_previous_folder(filename, mec_mode=True)
+        self.assertEqual(new_filename, os.path.join(data_path, 'run1', "run_1_evt_2.0.txt"))
