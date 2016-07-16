@@ -442,4 +442,4 @@ class DioptasModel(QtCore.QObject):
 
     def previous_folder(self):
         for configuration in self.configurations:
-            configuration.img_model.load_previous_file()
+            configuration.img_model.load_previous_folder()
