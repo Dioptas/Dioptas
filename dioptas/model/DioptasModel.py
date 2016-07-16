@@ -428,18 +428,37 @@ class DioptasModel(QtCore.QObject):
             del configuration.mask_model
         del self.configurations
 
+    def _setup_multiple_file_loading(self):
+        if self.combine_cakes:
+            for configuration in self.configurations:
+                configuration.cake_changed.disconnect(self.calculate_combined_cake)
+
+    def _teardown_multiple_file_loading(self):
+        if self.combine_cakes:
+            for configuration in self.configurations:
+                configuration.cake_changed.connect(self.calculate_combined_cake)
+            self.calculate_combined_cake()
+
     def next_image(self, pos=None):
+        self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_next_file(pos=pos)
+        self._teardown_multiple_file_loading()
 
     def previous_image(self, pos=None):
+        self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_previous_file(pos=pos)
+        self._teardown_multiple_file_loading()
 
     def next_folder(self, mec_mode=False):
+        self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_next_folder(mec_mode=mec_mode)
+        self._teardown_multiple_file_loading()
 
     def previous_folder(self, mec_mode=False):
+        self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_previous_folder(mec_mode=mec_mode)
+        self._teardown_multiple_file_loading()
