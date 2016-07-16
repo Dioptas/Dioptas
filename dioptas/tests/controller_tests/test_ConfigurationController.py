@@ -137,3 +137,27 @@ class ConfigurationControllerTest(unittest.TestCase):
         self.assertEqual(self.model.img_model.factor, 2.5)
         self.assertEqual(float(str(self.config_widget.factor_txt.text())), 2.5)
 
+    def test_file_browsing(self):
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+        self.model.add_configuration()
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+
+        self.config_widget.file_iterator_pos_txt.setText("0")
+
+        click_button(self.config_widget.next_file_btn)
+
+        self.assertEqual(os.path.abspath(self.model.configurations[0].img_model.filename),
+                         os.path.abspath(os.path.join(data_path, "image_002.tif")))
+
+        self.assertEqual(self.model.configurations[1].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "image_002.tif")))
+
+        click_button(self.config_widget.previous_file_btn)
+
+        self.assertEqual(os.path.abspath(self.model.configurations[0].img_model.filename),
+                         os.path.abspath(os.path.join(data_path, "image_001.tif")))
+
+        self.assertEqual(self.model.configurations[1].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "image_001.tif")))
+
+

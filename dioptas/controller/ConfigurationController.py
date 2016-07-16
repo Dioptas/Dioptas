@@ -36,6 +36,9 @@ class ConfigurationController(object):
         self.model.configuration_removed.connect(self.update_configuration_widget)
         self.model.configuration_selected.connect(self.configuration_selected)
 
+        self.widget.next_file_btn.clicked.connect(self.load_next_file)
+        self.widget.previous_file_btn.clicked.connect(self.load_previous_file)
+
         self.widget.factor_txt.editingFinished.connect(self.factor_txt_changed)
 
         self.widget.combine_patterns_btn.clicked.connect(self.combine_patterns_btn_clicked)
@@ -58,3 +61,12 @@ class ConfigurationController(object):
 
     def factor_txt_changed(self):
         self.model.img_model.factor = float(str(self.widget.factor_txt.text()))
+
+    def load_next_file(self):
+        pos = int(str(self.widget.file_iterator_pos_txt.text()))
+        self.model.next_image(pos)
+
+    def load_previous_file(self):
+        pos = int(str(self.widget.file_iterator_pos_txt.text()))
+        self.model.previous_image(pos)
+

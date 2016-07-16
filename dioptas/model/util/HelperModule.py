@@ -138,6 +138,7 @@ class FileNameIterator(QtCore.QObject):
 
         if self.complete_path is None:
             return None
+
         if mode == 'time':
             time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))

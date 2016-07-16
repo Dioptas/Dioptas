@@ -427,3 +427,19 @@ class DioptasModel(QtCore.QObject):
             del configuration.img_model
             del configuration.mask_model
         del self.configurations
+
+    def next_image(self, pos=None):
+        for configuration in self.configurations:
+            configuration.img_model.load_next_file(pos=pos)
+
+    def previous_image(self, pos=None):
+        for configuration in self.configurations:
+            configuration.img_model.load_previous_file(pos=pos)
+
+    def next_folder(self):
+        for configuration in self.configurations:
+            configuration.img_model.load_next_folder()
+
+    def previous_folder(self):
+        for configuration in self.configurations:
+            configuration.img_model.load_previous_file()

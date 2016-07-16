@@ -143,3 +143,29 @@ class ImgConfigurationManagerTest(unittest.TestCase):
         data1 = np.copy(self.model.img_data)
         self.model.img_model.factor = 2
         self.assertTrue(np.array_equal(2 * data1, self.model.img_data))
+
+    def test_iterate_next_image(self):
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+        self.model.add_configuration()
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+
+        self.model.next_image()
+
+        self.assertEqual(self.model.configurations[0].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "image_002.tif")))
+        self.assertEqual(self.model.configurations[1].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "image_002.tif")))
+
+    def test_iterate_previous_image(self):
+        self.model.img_model.load(os.path.join(data_path, "image_002.tif"))
+        self.model.add_configuration()
+        self.model.img_model.load(os.path.join(data_path, "image_002.tif"))
+
+        self.model.previous_image()
+
+        self.assertEqual(self.model.configurations[0].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "image_001.tif")))
+        self.assertEqual(self.model.configurations[1].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "image_001.tif")))
+
+
