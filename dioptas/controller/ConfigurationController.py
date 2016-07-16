@@ -39,6 +39,9 @@ class ConfigurationController(object):
         self.widget.next_file_btn.clicked.connect(self.load_next_file)
         self.widget.previous_file_btn.clicked.connect(self.load_previous_file)
 
+        self.widget.next_folder_btn.clicked.connect(self.model.next_folder)
+        self.widget.previous_folder_btn.clicked.connect(self.model.previous_folder)
+
         self.widget.factor_txt.editingFinished.connect(self.factor_txt_changed)
 
         self.widget.combine_patterns_btn.clicked.connect(self.combine_patterns_btn_clicked)
