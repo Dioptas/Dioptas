@@ -160,4 +160,26 @@ class ConfigurationControllerTest(unittest.TestCase):
         self.assertEqual(self.model.configurations[1].img_model.filename,
                          os.path.abspath(os.path.join(data_path, "image_001.tif")))
 
+    def test_folder_browsing(self):
+        self.model.img_model.load(os.path.join(data_path, "FileIterator", "run1", "image_1.tif"))
+        self.model.add_configuration()
+        self.model.img_model.load(os.path.join(data_path, "FileIterator", "run1", "image_1.tif"))
+
+        click_button(self.config_widget.next_folder_btn)
+
+        self.assertEqual(self.model.configurations[0].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "FileIterator", "run2", "image_1.tif")))
+
+        self.assertEqual(self.model.configurations[1].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "FileIterator", "run2", "image_1.tif")))
+
+        click_button(self.config_widget.previous_folder_btn)
+
+        self.assertEqual(self.model.configurations[0].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "FileIterator", "run1", "image_1.tif")))
+
+        self.assertEqual(self.model.configurations[1].img_model.filename,
+                         os.path.abspath(os.path.join(data_path, "FileIterator", "run1", "image_1.tif")))
+
+
 

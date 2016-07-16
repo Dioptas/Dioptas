@@ -39,6 +39,7 @@ class ConfigurationWidget(QtGui.QWidget):
         self.folder_lbl = LabelAlignRight(" Folder:")
         self.next_folder_btn = FlatButton(">")
         self.previous_folder_btn = FlatButton("<")
+        self.mec_cb = QtGui.QCheckBox("MEC")
 
         self.combine_patterns_btn = CheckableFlatButton("Combine Patterns")
         self.combine_cakes_btn = CheckableFlatButton("Combine Cakes")
@@ -60,6 +61,7 @@ class ConfigurationWidget(QtGui.QWidget):
         self.main_layout.addWidget(self.folder_lbl)
         self.main_layout.addWidget(self.previous_folder_btn)
         self.main_layout.addWidget(self.next_folder_btn)
+        self.main_layout.addWidget(self.mec_cb)
         self.main_layout.addWidget(VerticalLine())
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.factor_lbl)
