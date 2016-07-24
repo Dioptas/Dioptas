@@ -4,6 +4,7 @@ import os
 from scipy.interpolate import interp1d, interp2d
 import numpy as np
 from PyQt4 import QtCore
+from copy import deepcopy
 
 from .util import Pattern
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
@@ -153,6 +154,17 @@ class ImgConfiguration(QtCore.QObject):
     def roi(self, new_val):
         self.mask_model.roi = new_val
         self.integrate_image_1d()
+
+    def copy(self):
+        new_configuration = ImgConfiguration(self.working_directories)
+        new_configuration.img_model._img_data = self.img_model._img_data
+        new_configuration.img_model.img_transformations = deepcopy(self.img_model.img_transformations)
+
+        new_configuration.calibration_model.set_pyFAI(self.calibration_model.get_calibration_parameter()[0])
+        new_configuration.integrate_image_1d()
+
+        return new_configuration
+
 
 
 class DioptasModel(QtCore.QObject):
