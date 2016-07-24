@@ -431,7 +431,7 @@ class CalibrationModel(object):
         self.filename = filename
 
     def create_file_header(self):
-        return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
+        return self.spectrum_geometry.makeHeaders(polarization_factor=self.polarization_factor)
 
     def set_fit2d(self, fit2d_parameter):
         """

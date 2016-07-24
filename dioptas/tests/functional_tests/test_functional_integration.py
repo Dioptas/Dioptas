@@ -31,8 +31,6 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
 
     def setUp(self):
         self.model = DioptasModel()
-        self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
-                                                                            self.model.calibration_model.int))
 
         self.integration_widget = IntegrationWidget()
         self.integration_controller = IntegrationController({'spectrum': data_path},
@@ -40,6 +38,10 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
                                                             dioptas_model=self.model)
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.model.current_configuration.integrate_image_1d()
+
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
+                                                                            self.model.calibration_model.int))
 
         self.integration_spectrum_controller = self.integration_controller.spectrum_controller
         self.integration_image_controller = self.integration_controller.image_controller
@@ -272,11 +274,13 @@ class IntegrationFunctionalTest(unittest.TestCase):
     def test_configuration_selected_changes_img_mode(self):
         click_button(self.integration_widget.img_mode_btn)
         self.assertEqual(self.integration_image_controller.img_mode, "Cake")
+        self.assertTrue(self.model.current_configuration.integrate_cake)
 
         self.model.add_configuration()
         self.model.select_configuration(0)
         self.assertEqual(self.integration_image_controller.img_mode, "Cake")
         self.model.select_configuration(1)
+        self.assertFalse(self.model.current_configuration.integrate_cake)
         self.assertEqual(self.integration_image_controller.img_mode, "Image")
 
     def test_configuration_selected_changes_green_line_position_in_image_mode(self):

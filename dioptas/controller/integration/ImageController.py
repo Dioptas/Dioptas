@@ -441,17 +441,20 @@ class ImageController(object):
             self.activate_image_mode()
 
     def activate_cake_mode(self):
-        self.model.current_configuration.integrate_cake = True
+        if not self.model.current_configuration.integrate_cake:
+            self.model.current_configuration.integrate_cake = True
+
         self.model.current_configuration.integrate_image_2d()
 
-        self.widget.img_widget.deactivate_circle_scatter()
+        self._update_cake_line_pos()
+        self._update_cake_mouse_click_pos()
         self.widget.img_widget.activate_vertical_line()
+        self.widget.img_widget.deactivate_circle_scatter()
+
         self.widget.img_widget.img_view_box.setAspectLocked(False)
 
         if self.roi_active:
             self.widget.img_widget.deactivate_roi()
-        self._update_cake_line_pos()
-        self._update_cake_mouse_click_pos()
         self.widget.img_mode_btn.setText('Image')
         self.img_mode = str("Cake")
 
@@ -464,14 +467,16 @@ class ImageController(object):
         self.plot_cake()
 
     def activate_image_mode(self):
-        self.model.current_configuration.integrate_cake = False
-        self.widget.img_widget.activate_circle_scatter()
-        self.widget.img_widget.deactivate_vertical_line()
-        self.widget.img_widget.img_view_box.setAspectLocked(True)
-        if self.roi_active:
-            self.widget.img_widget.activate_roi()
+        if self.model.current_configuration.integrate_cake:
+            self.model.current_configuration.integrate_cake = False
+
         self._update_image_line_pos()
         self._update_image_mouse_click_pos()
+        self.widget.img_widget.deactivate_vertical_line()
+        self.widget.img_widget.activate_circle_scatter()
+        if self.roi_active:
+            self.widget.img_widget.activate_roi()
+        self.widget.img_widget.img_view_box.setAspectLocked(True)
         self.widget.img_mode_btn.setText('Cake')
         self.img_mode = str("Image")
 
@@ -495,10 +500,11 @@ class ImageController(object):
     def _update_cake_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()
         if cur_tth < np.min(self.model.cake_tth) or cur_tth > np.max(self.model.cake_tth):
-            new_pos = np.nan
+            self.widget.img_widget.vertical_line.hide()
         else:
             new_pos = get_partial_index(self.model.cake_tth, cur_tth) + 0.5
-        self.widget.img_widget.vertical_line.setValue(new_pos)
+            self.widget.img_widget.vertical_line.setValue(new_pos)
+            self.widget.img_widget.vertical_line.show()
 
     def _update_cake_mouse_click_pos(self):
         if self.clicked_tth is None or not self.model.calibration_model.is_calibrated:
@@ -512,10 +518,11 @@ class ImageController(object):
         cake_azi = self.model.cake_azi
 
         if tth < np.min(cake_tth) or tth > np.max(cake_tth):
-            self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
+            self.widget.img_widget.mouse_click_item.hide()
         elif azi < np.min(cake_azi) or tth > np.max(cake_azi):
-            self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
+            self.widget.img_widget.mouse_click_item.hide()
         else:
+            self.widget.img_widget.mouse_click_item.show()
             x_pos = get_partial_index(cake_tth, tth) + 0.5
             y_pos = get_partial_index(cake_azi, azi) + 0.5
             self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
@@ -536,10 +543,11 @@ class ImageController(object):
 
         new_pos = self.model.calibration_model.get_pixel_ind(tth, azi)
         if len(new_pos) == 0:
-            self.widget.img_widget.set_mouse_click_position(np.nan, np.nan)
+            self.widget.img_widget.mouse_click_item.hide()
         else:
             x_ind, y_ind = new_pos
             self.widget.img_widget.set_mouse_click_position(y_ind + 0.5, x_ind + 0.5)
+            self.widget.img_widget.mouse_click_item.show()
 
     def get_current_spectrum_tth(self):
         cur_pos = self.widget.pattern_widget.pos_line.getPos()[0]
