@@ -176,7 +176,7 @@ class PatternController(object):
             if filename.endswith('.xy'):
                 header = self.model.calibration_model.create_file_header()
                 if subtract_background:
-                    if self.model.pattern_model.bkg_ind is not -1:
+                    if self.model.pattern_model.background_pattern is not None:
                         header += "\n# \n# BackgroundFile: " + self.model.pattern_model.overlays[
                             self.model.pattern_model.bkg_ind].name
                 header = header.replace('\r\n', '\n')
