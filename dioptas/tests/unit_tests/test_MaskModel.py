@@ -7,6 +7,8 @@ import numpy as np
 
 from model.MaskModel import MaskModel
 
+from tests.utility import delete_if_exists
+
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
@@ -18,6 +20,7 @@ class MaskModelTest(unittest.TestCase):
         self.mask_model.set_dimension(self.img.shape)
 
     def tearDown(self):
+        delete_if_exists(os.path.join(data_path, "test_save.mask"))
         del self.mask_model
         del self.img
         gc.collect()
@@ -117,3 +120,9 @@ class MaskModelTest(unittest.TestCase):
                                                  [1, 1, 1, 1, 1, 1],
                                                  [1, 1, 1, 1, 1, 1]]))
                         )
+
+    def test_save_mask(self):
+        self.mask_model.mask_below_threshold(self.img, 1)
+        self.mask_model.save_mask(os.path.join(data_path, "test_save.mask"))
+
+        self.assertTrue(os.path.exists(os.path.join(data_path, "test_save.mask")))

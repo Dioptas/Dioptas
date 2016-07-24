@@ -257,7 +257,14 @@ class MaskModel(object):
     def save_mask(self, filename):
         im_array = np.int8(self.get_img())
         im = Image.fromarray(im_array)
-        im.save(filename, "tiff", compression="tiff_deflate")
+        try:
+            im.save(filename, "tiff", compression="tiff_deflate")
+        except OSError:
+            try:
+                im.save(filename, "tiff", compression="tiff_adobe_deflate")
+            except IOError:
+                im.save(filename, "tiff")
+
         self.filename = filename
 
     def load_mask(self, filename):
