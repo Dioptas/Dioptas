@@ -41,6 +41,8 @@ Executable versions for Windows, Mac OsX and Linux (all 64bit) can be downloaded
 or
 [http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/](http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/)
 
+The executable versions are self-contained folders, which do not need any python installation.
+
 ###Code
 
 In order to make changes to the source code yourself or always get the latest development versions you need to install
