@@ -216,9 +216,13 @@ class MainController(object):
         Loads previously used Dioptas directory paths.
         """
         working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
-        if os.path.exists(working_directories_path):
-            reader = csv.reader(open(working_directories_path, 'r'))
-            self.working_directories = dict(x for x in reader)
+        try:
+            if os.path.exists(working_directories_path):
+                reader = csv.reader(open(working_directories_path, 'r'))
+                self.working_directories = dict(x for x in reader)
+        except:
+            self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
+                                        'phase': ''}
 
     def load_xml_settings(self):
         """
