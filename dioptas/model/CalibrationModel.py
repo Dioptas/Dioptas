@@ -348,7 +348,7 @@ class CalibrationModel(object):
 
         t1 = time.time()
 
-        res = self.cake_geometry.integrate2d(self.img_model._img_data, dimensions[0], dimensions[1], method=method,
+        res = self.cake_geometry.integrate2d(self.img_model.img_data, dimensions[0], dimensions[1], method=method,
                                              mask=mask,
                                              unit=unit, polarization_factor=polarization_factor)
         logger.info('2d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
@@ -371,10 +371,10 @@ class CalibrationModel(object):
         return self.create_point_array(self.points, self.points_index)
 
     def get_calibration_parameter(self):
-        pyFAI_parameter = self.cake_geometry.getPyFAI()
+        pyFAI_parameter = self.spectrum_geometry.getPyFAI()
         pyFAI_parameter['polarization_factor'] = self.polarization_factor
         try:
-            fit2d_parameter = self.cake_geometry.getFit2D()
+            fit2d_parameter = self.spectrum_geometry.getFit2D()
             fit2d_parameter['polarization_factor'] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
@@ -431,7 +431,7 @@ class CalibrationModel(object):
         self.filename = filename
 
     def create_file_header(self):
-        return self.cake_geometry.makeHeaders(polarization_factor=self.polarization_factor)
+        return self.spectrum_geometry.makeHeaders(polarization_factor=self.polarization_factor)
 
     def set_fit2d(self, fit2d_parameter):
         """
@@ -526,34 +526,11 @@ class CalibrationModel(object):
         y *= self.supersampling_factor
         return self.spectrum_geometry.chi(x, y)[0]
 
-    def get_two_theta_cake(self, x):
-        """
-        Gives the two_theta value for the x coordinate in the cake
-        :param x:
-            x-coordinate on image
-        :return:
-            two theta in degree
-        """
-        x -= 0.5
-        cake_step = self.cake_tth[1] - self.cake_tth[0]
-        tth = self.cake_tth[int(np.floor(x))] + (x  - np.floor(x)) * cake_step
-        return tth
-
-    def get_azi_cake(self, x):
-        """
-        Gives the azimuth value for a cake.
-        :param x:
-            x-coordinate in pixel
-        :return:
-            azimuth in degree
-        """
-        x -= 0.5
-        azi_step = self.cake_azi[1] - self.cake_azi[0]
-        azi = self.cake_azi[int(np.floor(x))] + (x - np.floor(x)) * azi_step
         return azi
 
     def get_two_theta_array(self):
-        return self.spectrum_geometry.twoThetaArray()[::self.supersampling_factor, ::self.supersampling_factor]
+        return self.spectrum_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,
+               ::self.supersampling_factor]
 
     def get_pixel_ind(self, tth, azi):
         """
@@ -565,7 +542,10 @@ class CalibrationModel(object):
         :return:
             tuple of index 1 and 2
         """
+
         tth_ind = find_contours(self.spectrum_geometry.ttha, tth)
+        if len(tth_ind) == 0:
+            return []
         tth_ind = np.vstack(tth_ind)
         azi_values = self.spectrum_geometry.chi(tth_ind[:, 0], tth_ind[:, 1])
         min_index = np.argmin(np.abs(azi_values - azi))

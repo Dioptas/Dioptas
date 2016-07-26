@@ -11,8 +11,7 @@ from mock import MagicMock
 
 from controller.integration import BackgroundController
 from controller.integration import PatternController
-from model import ImgModel
-from model import PatternModel
+from model.DioptasModel import DioptasModel
 from widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
@@ -25,23 +24,21 @@ class IntegrationBackgroundControllerTest(QtTest):
 
     def setUp(self):
         self.widget = IntegrationWidget()
-        self.spectrum_model = PatternModel()
-        self.img_model = ImgModel()
-        self.spectrum_controller = PatternController({}, self.widget, self.img_model,
-                                                     None, None, self.spectrum_model)
-        self.background_controller = BackgroundController({}, self.widget, self.img_model, self.spectrum_model)
+        self.model = DioptasModel()
+
+        self.pattern_controller = PatternController({}, self.widget, self.model)
+        self.background_controller = BackgroundController({}, self.widget, self.model)
         self.overlay_tw = self.widget.overlay_tw
 
     def tearDown(self):
-        del self.spectrum_model
-        del self.spectrum_controller
+        del self.pattern_controller
         del self.background_controller
-        del self.img_model
         del self.widget
+        del self.model
         gc.collect()
 
     def test_spectrum_bkg_toggle_inspect_button(self):
-        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.bkg_spectrum_gb.setChecked(True)
         self.widget.bkg_spectrum_inspect_btn.toggle()
         x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
@@ -52,7 +49,7 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.assertEqual(len(x_bkg), 0)
 
     def test_spectrum_bkg_inspect_btn_is_untoggled_when_disabling_spectrum_gb(self):
-        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.bkg_spectrum_gb.setChecked(True)
         self.widget.bkg_spectrum_inspect_btn.toggle()
         self.widget.bkg_spectrum_gb.setChecked(False)
@@ -60,7 +57,7 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.assertEqual(len(x_bkg), 0)
 
     def test_spectrum_bkg_linear_region_changes_txt_fields(self):
-        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.bkg_spectrum_gb.setChecked(True)
         self.widget.bkg_spectrum_inspect_btn.toggle()
 
@@ -73,7 +70,7 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.assertEqual(x_max, 11)
 
     def test_spectrum_bkg_txt_fields_change_linear_regions(self):
-        self.spectrum_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         self.widget.bkg_spectrum_gb.setChecked(True)
         self.widget.bkg_spectrum_inspect_btn.toggle()
 

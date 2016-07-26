@@ -1,67 +1,56 @@
 # -*- coding: utf8 -*-
-
-
 import gc
 import os
 import unittest
+
+import numpy as np
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
 from mock import MagicMock
 
-from controller.integration import IntegrationController
-from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
+from model.DioptasModel import DioptasModel
 from widgets.integration import IntegrationWidget
+from controller.integration import IntegrationController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
 
-class IntegrationFunctionalTest(unittest.TestCase):
+def click_button(widget):
+    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
+
+
+class IntegrationMockFunctionalTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
 
     def setUp(self):
-        self.img_model = ImgModel()
-        self.mask_model = MaskModel()
-        self.spectrum_model = PatternModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.calibration_model.integrate_1d = MagicMock(return_value=(self.calibration_model.tth,
-                                                                      self.calibration_model.int))
-
-        self.phase_model = PhaseModel()
+        self.model = DioptasModel()
 
         self.integration_widget = IntegrationWidget()
-
         self.integration_controller = IntegrationController({'spectrum': data_path},
                                                             widget=self.integration_widget,
-                                                            img_model=self.img_model,
-                                                            mask_model=self.mask_model,
-                                                            calibration_model=self.calibration_model,
-                                                            spectrum_model=self.spectrum_model,
-                                                            phase_model=self.phase_model)
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+                                                            dioptas_model=self.model)
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.model.current_configuration.integrate_image_1d()
+
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
+                                                                            self.model.calibration_model.int))
 
         self.integration_spectrum_controller = self.integration_controller.spectrum_controller
         self.integration_image_controller = self.integration_controller.image_controller
 
     def tearDown(self):
         del self.integration_spectrum_controller
-        del self.mask_model
-        del self.img_model
-        del self.calibration_model.cake_geometry
-        del self.calibration_model.spectrum_geometry
-        del self.calibration_model
-        del self.integration_widget
         del self.integration_controller
+        self.model.clear()
+        del self.model
         gc.collect()
 
     def enter_value_into_text_field(self, text_field, value):
@@ -80,17 +69,17 @@ class IntegrationFunctionalTest(unittest.TestCase):
 
         # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
         # smoother
-        previous_number_of_points = len(self.spectrum_model.pattern.x)
+        previous_number_of_points = len(self.model.pattern.x)
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
-        self.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
-                                                               mask=None, unit='2th_deg')
+        self.model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
+                                                                     mask=None, unit='2th_deg')
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
-        self.calibration_model.integrate_1d.assert_called_with(num_points=None,
-                                                               mask=None, unit='2th_deg')
+        self.model.calibration_model.integrate_1d.assert_called_with(num_points=None,
+                                                                     mask=None, unit='2th_deg')
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
         # Edith opens the program, calibrates everything and looks in to the options menu. She sees that there is a
@@ -101,21 +90,21 @@ class IntegrationFunctionalTest(unittest.TestCase):
         # smoother
 
         # values before:
-        px1 = self.calibration_model.spectrum_geometry.pixel1
-        px2 = self.calibration_model.spectrum_geometry.pixel2
+        px1 = self.model.calibration_model.spectrum_geometry.pixel1
+        px2 = self.model.calibration_model.spectrum_geometry.pixel2
 
-        img_shape = self.img_model.img_data.shape
+        img_shape = self.model.img_data.shape
 
         self.integration_widget.supersampling_sb.setValue(2)
-        self.assertEqual(self.calibration_model.spectrum_geometry.pixel1, 0.5 * px1)
-        self.assertEqual(self.calibration_model.spectrum_geometry.pixel2, 0.5 * px2)
-        self.assertEqual(self.calibration_model.cake_geometry.pixel1, px1)
-        self.assertEqual(self.calibration_model.cake_geometry.pixel2, px2)
+        self.assertEqual(self.model.calibration_model.spectrum_geometry.pixel1, 0.5 * px1)
+        self.assertEqual(self.model.calibration_model.spectrum_geometry.pixel2, 0.5 * px2)
+        self.assertEqual(self.model.calibration_model.cake_geometry.pixel1, px1)
+        self.assertEqual(self.model.calibration_model.cake_geometry.pixel2, px2)
 
-        self.assertEqual(self.img_model.img_data.shape[0], 2 * img_shape[0])
-        self.assertEqual(self.img_model.img_data.shape[1], 2 * img_shape[1])
+        self.assertEqual(self.model.img_data.shape[0], 2 * img_shape[0])
+        self.assertEqual(self.model.img_data.shape[1], 2 * img_shape[1])
 
-        self.mask_model.load_mask(os.path.join(data_path, 'test.mask'))
+        self.model.mask_model.load_mask(os.path.join(data_path, 'test.mask'))
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
 
@@ -183,5 +172,131 @@ class IntegrationFunctionalTest(unittest.TestCase):
         os.remove(os.path.join(data_path, 'image_002.xy'))
 
 
-if __name__ == '__main__':
-    unittest.main()
+class IntegrationFunctionalTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
+
+    def setUp(self):
+        self.model = DioptasModel()
+
+        self.integration_widget = IntegrationWidget()
+        self.integration_controller = IntegrationController({'spectrum': data_path},
+                                                            widget=self.integration_widget,
+                                                            dioptas_model=self.model)
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.integration_spectrum_controller = self.integration_controller.spectrum_controller
+        self.integration_image_controller = self.integration_controller.image_controller
+
+    def test_activating_mask_mode(self):
+        y1 = self.model.pattern.y
+
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
+        click_button(self.integration_widget.img_mask_btn)
+        y2 = self.model.pattern.y
+        self.assertFalse(np.array_equal(y1, y2))
+
+        click_button(self.integration_widget.img_mask_btn)
+        y3 = self.model.pattern.y
+        self.assertTrue(np.array_equal(y1, y3))
+
+    def test_activating_roi_mode(self):
+        y1 = self.model.pattern.y
+
+        click_button(self.integration_widget.img_roi_btn)
+        self.assertIsNotNone(self.model.current_configuration.mask_model.roi_mask)
+
+        y2 = self.model.pattern.y
+        self.assertFalse(np.array_equal(y1, y2))
+
+        click_button(self.integration_widget.img_roi_btn)
+        y3 = self.model.pattern.y
+        self.assertTrue(np.array_equal(y1, y3))
+
+    def test_activating_roi_mode_and_mask_mode(self):
+        y1 = self.model.pattern.y
+
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
+        click_button(self.integration_widget.img_mask_btn)
+        y2 = self.model.pattern.y
+
+        click_button(self.integration_widget.img_roi_btn)
+        y3 = self.model.pattern.y
+
+        click_button(self.integration_widget.img_roi_btn)
+        y4 = self.model.pattern.y
+
+        click_button(self.integration_widget.img_mask_btn)
+        y5 = self.model.pattern.y
+
+        self.assertFalse(np.array_equal(y3, y1))
+        self.assertFalse(np.array_equal(y3, y2))
+        self.assertFalse(np.array_equal(y3, y4))
+
+        self.assertFalse(np.array_equal(y1, y2))
+        self.assertFalse(np.array_equal(y1, y4))
+        self.assertFalse(np.array_equal(y1, y3))
+        self.assertTrue(np.array_equal(y1, y5))
+
+    def test_moving_roi(self):
+        click_button(self.integration_widget.img_roi_btn)
+        roi_limits1 = self.integration_widget.img_widget.roi.getRoiLimits()
+        y1 = self.model.pattern.y
+        self.integration_widget.img_widget.roi.setX(30)
+        self.integration_widget.img_widget.roi.setPos((31, 31))
+        self.integration_widget.img_widget.roi.setSize((100, 100))
+        roi_limits2 = self.integration_widget.img_widget.roi.getRoiLimits()
+        y2 = self.model.pattern.y
+
+        self.assertNotEqual(roi_limits1, roi_limits2)
+        self.assertFalse(np.array_equal(y1, y2))
+
+    def test_changing_integration_unit(self):
+        x1, y1 = self.model.pattern.data
+
+        click_button(self.integration_widget.spec_q_btn)
+        x2, y2 = self.model.pattern.data
+        self.assertLess(np.max(x2), np.max(x1))
+
+        click_button(self.integration_widget.spec_d_btn)
+        x3, y3 = self.model.pattern.data
+        self.assertGreater(np.max(x3), np.max(x2))
+
+        click_button(self.integration_widget.spec_tth_btn)
+        x4, y4 = self.model.pattern.data
+        self.assertTrue(np.array_equal(x1, x4))
+        self.assertTrue(np.array_equal(y1, y4))
+
+    def test_configuration_selected_changes_img_mode(self):
+        click_button(self.integration_widget.img_mode_btn)
+        self.assertEqual(self.integration_image_controller.img_mode, "Cake")
+        self.assertTrue(self.model.current_configuration.integrate_cake)
+
+        self.model.add_configuration()
+        self.model.select_configuration(0)
+        self.assertEqual(self.integration_image_controller.img_mode, "Cake")
+        self.model.select_configuration(1)
+        self.assertFalse(self.model.current_configuration.integrate_cake)
+        self.assertEqual(self.integration_image_controller.img_mode, "Image")
+
+    def test_configuration_selected_changes_green_line_position_in_image_mode(self):
+        self.integration_image_controller.img_mouse_click(0, 500)
+        self.model.add_configuration()
+        self.model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M_2.poni"))
+        self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+        self.integration_image_controller.img_mouse_click(0, 500)
+        self.model.select_configuration(0)
+
+    def test_configuration_selected_changes_green_line_position_in_cake_mode(self):
+        self.integration_image_controller.img_mouse_click(0, 500)
+        click_button(self.integration_widget.img_mode_btn)
+        self.model.add_configuration()
+        self.model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M_2.poni"))
+        click_button(self.integration_widget.img_mode_btn)
+        self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+        self.integration_image_controller.img_mouse_click(1840, 500)
+        self.model.select_configuration(0)
