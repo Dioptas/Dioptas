@@ -494,16 +494,16 @@ class CalibrationController(object):
             progress_dialog = self.create_progress_dialog('Integrating to cake.', '',
                                                           0, show_cancel_btn=False)
             QtGui.QApplication.processEvents()
-            self.model.calibration_model.integrate_2d()
+            self.model.current_configuration.integrate_image_1d()
             progress_dialog.setLabelText('Integrating to spectrum.')
             QtGui.QApplication.processEvents()
             QtGui.QApplication.processEvents()
-            self.model.calibration_model.integrate_1d()
+            self.model.current_configuration.integrate_image_2d()
             progress_dialog.close()
         self.widget.cake_widget.plot_image(self.model.cake_data, False)
         self.widget.cake_widget.auto_range()
 
-        self.widget.spectrum_widget.plot_data(self.model.calibration_model.tth, self.model.calibration_model.int)
+        self.widget.spectrum_widget.plot_data(*self.model.pattern.data)
         self.widget.spectrum_widget.plot_vertical_lines(np.array(self.model.calibration_model.calibrant.get_2th()) /
                                                         np.pi * 180)
         self.widget.spectrum_widget.view_box.autoRange()
@@ -561,7 +561,8 @@ class CalibrationController(object):
         # x, y = pos
         try:
             if x > 0 and y > 0:
-                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.cake_widget.img_data.T[np.round(x), np.round(y)])
+                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.cake_widget.img_data.T[int(np.round(x)),
+                                                                                            int(np.round(y))])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):
