@@ -156,16 +156,28 @@ class CalibrationWidget(QtGui.QWidget):
             polarization_factor, pixel1, pixel2
         """
         pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
-        pyfai_widget.distance_txt.setText('%.6f' % (pyfai_parameter['dist'] * 1000))
-        pyfai_widget.poni1_txt.setText('%.6f' % (pyfai_parameter['poni1']))
-        pyfai_widget.poni2_txt.setText('%.6f' % (pyfai_parameter['poni2']))
-        pyfai_widget.rotation1_txt.setText('%.8f' % (pyfai_parameter['rot1']))
-        pyfai_widget.rotation2_txt.setText('%.8f' % (pyfai_parameter['rot2']))
-        pyfai_widget.rotation3_txt.setText('%.8f' % (pyfai_parameter['rot3']))
-        pyfai_widget.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
-        pyfai_widget.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
-        pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
-        pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
+        try:
+            pyfai_widget.distance_txt.setText('%.6f' % (pyfai_parameter['dist'] * 1000))
+            pyfai_widget.poni1_txt.setText('%.6f' % (pyfai_parameter['poni1']))
+            pyfai_widget.poni2_txt.setText('%.6f' % (pyfai_parameter['poni2']))
+            pyfai_widget.rotation1_txt.setText('%.8f' % (pyfai_parameter['rot1']))
+            pyfai_widget.rotation2_txt.setText('%.8f' % (pyfai_parameter['rot2']))
+            pyfai_widget.rotation3_txt.setText('%.8f' % (pyfai_parameter['rot3']))
+            pyfai_widget.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
+            pyfai_widget.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
+            pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
+            pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
+        except (AttributeError, TypeError):
+            pyfai_widget.distance_txt.setText('')
+            pyfai_widget.poni1_txt.setText('')
+            pyfai_widget.poni2_txt.setText('')
+            pyfai_widget.rotation1_txt.setText('')
+            pyfai_widget.rotation2_txt.setText('')
+            pyfai_widget.rotation3_txt.setText('')
+            pyfai_widget.wavelength_txt.setText('')
+            pyfai_widget.polarization_txt.setText('')
+            pyfai_widget.pixel_width_txt.setText('')
+            pyfai_widget.pixel_height_txt.setText('')
 
     def get_pyFAI_parameter(self):
         """
@@ -193,15 +205,26 @@ class CalibrationWidget(QtGui.QWidget):
             tiltPlanRotation, wavelength, pixelX, pixelY
         """
         fit2d_widget = self.calibration_control_widget.fit2d_parameters_widget
-        fit2d_widget.distance_txt.setText('%.4f' % (fit2d_parameter['directDist']))
-        fit2d_widget.center_x_txt.setText('%.3f' % (fit2d_parameter['centerX']))
-        fit2d_widget.center_y_txt.setText('%.3f' % (fit2d_parameter['centerY']))
-        fit2d_widget.tilt_txt.setText('%.6f' % (fit2d_parameter['tilt']))
-        fit2d_widget.rotation_txt.setText('%.6f' % (fit2d_parameter['tiltPlanRotation']))
-        fit2d_widget.wavelength_txt.setText('%.4f' % (fit2d_parameter['wavelength'] * 1e10))
-        fit2d_widget.polarization_txt.setText('%.3f' % (fit2d_parameter['polarization_factor']))
-        fit2d_widget.pixel_width_txt.setText('%.4f' % (fit2d_parameter['pixelX']))
-        fit2d_widget.pixel_height_txt.setText('%.4f' % (fit2d_parameter['pixelY']))
+        try:
+            fit2d_widget.distance_txt.setText('%.4f' % (fit2d_parameter['directDist']))
+            fit2d_widget.center_x_txt.setText('%.3f' % (fit2d_parameter['centerX']))
+            fit2d_widget.center_y_txt.setText('%.3f' % (fit2d_parameter['centerY']))
+            fit2d_widget.tilt_txt.setText('%.6f' % (fit2d_parameter['tilt']))
+            fit2d_widget.rotation_txt.setText('%.6f' % (fit2d_parameter['tiltPlanRotation']))
+            fit2d_widget.wavelength_txt.setText('%.4f' % (fit2d_parameter['wavelength'] * 1e10))
+            fit2d_widget.polarization_txt.setText('%.3f' % (fit2d_parameter['polarization_factor']))
+            fit2d_widget.pixel_width_txt.setText('%.4f' % (fit2d_parameter['pixelX']))
+            fit2d_widget.pixel_height_txt.setText('%.4f' % (fit2d_parameter['pixelY']))
+        except (AttributeError, TypeError):
+            fit2d_widget.distance_txt.setText('')
+            fit2d_widget.center_x_txt.setText('')
+            fit2d_widget.center_y_txt.setText('')
+            fit2d_widget.tilt_txt.setText('')
+            fit2d_widget.rotation_txt.setText('')
+            fit2d_widget.wavelength_txt.setText('')
+            fit2d_widget.polarization_txt.setText('')
+            fit2d_widget.pixel_width_txt.setText('')
+            fit2d_widget.pixel_height_txt.setText('')
 
     def get_fit2d_parameter(self):
         """

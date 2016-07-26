@@ -457,33 +457,13 @@ class MyROI(pg.ROI):
             self.currentPen = self.pen
         self.update()
 
-    def getIndexLimits(self, img_shape):
+    def getRoiLimits(self):
         rect = self.parentBounds()
         x1 = np.round(rect.top())
-        if x1 < 0:
-            x1 = 0
         x2 = np.round(rect.top() + rect.height())
-        if x2 > img_shape[0]:
-            x2 = img_shape[0]
         y1 = np.round(rect.left())
-        if y1 < 0:
-            y1 = 0
         y2 = np.round(rect.left() + rect.width())
-        if y2 > img_shape[1]:
-            y2 = img_shape[1]
         return x1, x2, y1, y2
-
-    def getRoiMask(self, img_shape):
-        if not np.array_equal(np.array(img_shape), np.array(self.img_shape)):
-            self.base_mask = np.ones(img_shape)
-        if self.getState() == self.last_state:
-            return self.roi_mask
-        else:
-            x1, x2, y1, y2 = self.getIndexLimits(img_shape)
-            self.roi_mask = np.copy(self.base_mask)
-            self.roi_mask[x1:x2, y1:y2] = 0
-            self.last_state = self.getState()
-            return self.roi_mask
 
 
 class RoiShade(object):

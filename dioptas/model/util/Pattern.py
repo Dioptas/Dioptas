@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Pattern(QtCore.QObject):
-    spectrum_changed = QtCore.pyqtSignal(np.ndarray, np.ndarray)
+    pattern_changed = QtCore.pyqtSignal(np.ndarray, np.ndarray)
     
     def __init__(self, x=None, y=None, name=''):
         super(Pattern, self).__init__()
@@ -74,7 +74,7 @@ class Pattern(QtCore.QObject):
         :type pattern: Pattern
         """
         self._background_pattern = pattern
-        self._background_pattern.spectrum_changed.connect(self.recalculate_pattern)
+        self._background_pattern.pattern_changed.connect(self.recalculate_pattern)
         self.recalculate_pattern()
 
     def unset_background_spectrum(self):
@@ -146,7 +146,7 @@ class Pattern(QtCore.QObject):
         self._spectrum_x = x
         self._spectrum_y = y
 
-        self.spectrum_changed.emit(self._spectrum_x, self._spectrum_y)
+        self.pattern_changed.emit(self._spectrum_x, self._spectrum_y)
 
 
     @property

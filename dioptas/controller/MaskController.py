@@ -25,26 +25,21 @@ import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.MaskWidget import MaskWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
+from model.DioptasModel import DioptasModel
 
 
 class MaskController(object):
-    def __init__(self, working_dir, widget, img_model, mask_model):
+    def __init__(self, working_dir, widget, dioptas_model):
         """
         :param working_dir: Dictionary of working directories
         :param widget: Reference to a MaskView object
         :type widget: MaskWidget
-        :param img_model: Reference to an ImgData object
-        :type img_model: ImgModel
-        :param mask_model: Reference to an MaskData object
-        :type mask_model: MaskModel
+        :param dioptas_model: Reference to an DioptasModel object
+        :type dioptas_model: DioptasModel
         """
         self.working_dir = working_dir
         self.widget = widget
-        self.img_model = img_model
-        self.mask_model = mask_model
-
+        self.model = dioptas_model
 
         self.state = None
         self.clicks = 0
@@ -61,7 +56,7 @@ class MaskController(object):
     def create_signals(self):
         self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
 
-        self.img_model.img_changed.connect(self.update_mask_dimension)
+        self.model.img_changed.connect(self.update_mask_dimension)
 
         self.connect_click_function(self.widget.circle_btn, self.activate_circle_btn)
         self.connect_click_function(self.widget.rectangle_btn, self.activate_rectangle_btn)
@@ -91,7 +86,7 @@ class MaskController(object):
         self.widget.keyPressEvent = self.key_press_event
 
     def update_mask_dimension(self):
-        self.mask_model.set_dimension(self.img_model._img_data.shape)
+        self.model.mask_model.set_dimension(self.model.img_model._img_data.shape)
 
     def uncheck_all_btn(self, except_btn=None):
         btns = [self.widget.circle_btn, self.widget.rectangle_btn, self.widget.polygon_btn, \
@@ -156,15 +151,15 @@ class MaskController(object):
             self.uncheck_all_btn()
 
     def undo_btn_click(self):
-        self.mask_model.undo()
+        self.model.mask_model.undo()
         self.plot_mask()
 
     def redo_btn_click(self):
-        self.mask_model.redo()
+        self.model.mask_model.redo()
         self.plot_mask()
 
     def plot_image(self):
-        self.widget.img_widget.plot_image(self.img_model.img_data, False)
+        self.widget.img_widget.plot_image(self.model.img_data, False)
         self.widget.img_widget.auto_range()
 
     def process_click(self, x, y):
@@ -184,7 +179,7 @@ class MaskController(object):
             self.widget.img_widget.mouse_moved.connect(self.circle.set_size)
         elif self.clicks == 1:
             self.clicks = 0
-            self.mask_model.mask_QGraphicsEllipseItem(self.circle)
+            self.model.mask_model.mask_QGraphicsEllipseItem(self.circle)
             self.widget.img_widget.img_view_box.removeItem(self.circle)
             self.plot_mask()
             self.widget.img_widget.mouse_moved.disconnect(self.circle.set_size)
@@ -197,7 +192,7 @@ class MaskController(object):
             self.widget.img_widget.mouse_moved.connect(self.rect.set_size)
         elif self.clicks == 1:
             self.clicks = 0
-            self.mask_model.mask_QGraphicsRectItem(self.rect)
+            self.model.mask_model.mask_QGraphicsRectItem(self.rect)
             self.widget.img_widget.img_view_box.removeItem(self.rect)
             self.plot_mask()
             self.widget.img_widget.mouse_moved.disconnect(self.rect.set_size)
@@ -205,7 +200,7 @@ class MaskController(object):
 
     def draw_point(self, x, y):
         radius = self.widget.point_size_sb.value()
-        self.mask_model.mask_ellipse(x, y, radius, radius)
+        self.model.mask_model.mask_ellipse(x, y, radius, radius)
         self.plot_mask()
 
     def set_point_size(self, radius):
@@ -229,44 +224,44 @@ class MaskController(object):
         self.widget.img_widget.mouse_left_double_clicked.disconnect(self.finish_polygon)
         self.polygon.add_point(x, y)
         self.clicks = 0
-        self.mask_model.mask_QGraphicsPolygonItem(self.polygon)
+        self.model.mask_model.mask_QGraphicsPolygonItem(self.polygon)
         self.plot_mask()
         self.widget.img_widget.img_view_box.removeItem(self.polygon)
         self.polygon = None
 
     def below_thresh_btn_click(self):
         thresh = np.float64(self.widget.below_thresh_txt.text())
-        self.mask_model.mask_below_threshold(self.img_model.img_data, thresh)
+        self.model.mask_model.mask_below_threshold(self.model.img_data, thresh)
         self.plot_mask()
 
     def above_thresh_btn_click(self):
         thresh = np.float64(self.widget.above_thresh_txt.text())
-        self.mask_model.mask_above_threshold(self.img_model.img_data, thresh)
+        self.model.mask_model.mask_above_threshold(self.model.img_data, thresh)
         self.plot_mask()
 
     def grow_btn_click(self):
-        self.mask_model.grow()
+        self.model.mask_model.grow()
         self.plot_mask()
 
     def shrink_btn_click(self):
-        self.mask_model.shrink()
+        self.model.mask_model.shrink()
         self.plot_mask()
 
     def invert_mask_btn_click(self):
-        self.mask_model.invert_mask()
+        self.model.mask_model.invert_mask()
         self.plot_mask()
 
     def clear_mask_btn_click(self):
-        self.mask_model.clear_mask()
+        self.model.mask_model.clear_mask()
         self.plot_mask()
 
     def cosmic_btn_click(self):
-        self.mask_model.remove_cosmic(self.img_model.img_data)
+        self.model.mask_model.remove_cosmic(self.model.img_data)
         self.plot_mask()
 
     def save_mask_btn_click(self, filename=None):
         if filename is None:
-            img_filename, _ = os.path.splitext(os.path.basename(self.img_model.filename))
+            img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
             filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save mask data",
                                                              os.path.join(self.working_dir['mask'],
                                                                           img_filename+'.mask'),
@@ -274,7 +269,7 @@ class MaskController(object):
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
-            self.mask_model.save_mask(filename)
+            self.model.mask_model.save_mask(filename)
 
     def load_mask_btn_click(self, filename=None):
         if filename is None:
@@ -283,7 +278,7 @@ class MaskController(object):
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
-            if self.mask_model.load_mask(filename):
+            if self.model.mask_model.load_mask(filename):
                 self.plot_mask()
             else:
                 QtGui.QMessageBox.critical(self.widget, 'Error',
@@ -297,7 +292,7 @@ class MaskController(object):
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
-            if self.mask_model.add_mask(filename):
+            if self.model.mask_model.add_mask(filename):
                 self.plot_mask()
             else:
                 QtGui.QMessageBox.critical(self.widget, 'Error',
@@ -305,7 +300,7 @@ class MaskController(object):
                                            'the same shape. Mask could not be added.')
 
     def plot_mask(self):
-        self.widget.img_widget.plot_mask(self.mask_model.get_img())
+        self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
 
     def key_press_event(self, ev):
         if self.state == "point":
@@ -327,10 +322,10 @@ class MaskController(object):
                 self.add_mask_btn_click()
 
     def mask_rb_click(self):
-        self.mask_model.set_mode(True)
+        self.model.mask_model.set_mode(True)
 
     def unmask_rb_click(self):
-        self.mask_model.set_mode(False)
+        self.model.mask_model.set_mode(False)
 
     def fill_rb_click(self):
         self.widget.img_widget.set_color([255, 0, 0, 255])

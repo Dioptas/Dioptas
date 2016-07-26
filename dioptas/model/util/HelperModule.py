@@ -80,13 +80,13 @@ class FileNameIterator(QtCore.QObject):
         self.file_list = self._get_files_list()
         self._order_file_list()
 
-    def _iterate_file_number(self, path, step):
+    def _iterate_file_number(self, path, step, pos=None):
         directory, file_str = os.path.split(path)
         pattern = re.compile(r'\d+')
 
         match_iterator = pattern.finditer(file_str)
 
-        for match in reversed(list(match_iterator)):
+        for ind, match in enumerate(reversed(list(match_iterator))):
             number_span = match.span()
             left_ind = number_span[0]
             right_ind = number_span[1]
@@ -97,18 +97,66 @@ class FileNameIterator(QtCore.QObject):
                 len=right_ind - left_ind,
                 right_str=file_str[right_ind:]
             )
-            new_complete_path = os.path.join(directory, new_file_str)
+            if pos is None:
+                new_complete_path = os.path.join(directory, new_file_str)
+                if os.path.exists(new_complete_path):
+                    self.complete_path = new_complete_path
+                    return new_complete_path
+            elif ind == pos:
+                new_complete_path = os.path.join(directory, new_file_str)
+                if os.path.exists(new_complete_path):
+                    self.complete_path = new_complete_path
+                    return new_complete_path
+        return None
+
+    def _iterate_folder_number(self, path, step, mec_mode=False):
+        directory_str, file_str = os.path.split(path)
+        pattern = re.compile(r'\d+')
+
+        match_iterator = pattern.finditer(directory_str)
+
+        for ind, match in enumerate(reversed(list(match_iterator))):
+            number_span = match.span()
+            left_ind = number_span[0]
+            right_ind = number_span[1]
+            number = int(directory_str[left_ind:right_ind]) + step
+            new_directory_str = "{left_str}{number:0{len}}{right_str}".format(
+                left_str=directory_str[:left_ind],
+                number=number,
+                len=right_ind - left_ind,
+                right_str=directory_str[right_ind:]
+            )
+            print(mec_mode)
+            if mec_mode:
+                match_file_iterator = pattern.finditer(file_str)
+                for ind_file, match_file in enumerate(reversed(list(match_file_iterator))):
+                    if ind_file != 2:
+                        continue
+                    number_span = match_file.span()
+                    left_ind = number_span[0]
+                    right_ind = number_span[1]
+                    number = int(file_str[left_ind:right_ind]) + step
+                    new_file_str = "{left_str}{number:0{len}}{right_str}".format(
+                        left_str=file_str[:left_ind],
+                        number=number,
+                        len=right_ind - left_ind,
+                        right_str=file_str[right_ind:]
+                    )
+                new_complete_path = os.path.join(new_directory_str, new_file_str)
+                print(new_complete_path)
+            else:
+                new_complete_path = os.path.join(new_directory_str, file_str)
             if os.path.exists(new_complete_path):
                 self.complete_path = new_complete_path
                 return new_complete_path
-        return None
 
-    def get_next_filename(self, step=1, filename=None, mode='number'):
+    def get_next_filename(self, step=1, filename=None, mode='number', pos=None):
         if filename is not None:
             self.complete_path = filename
 
         if self.complete_path is None:
             return None
+
         if mode == 'time':
             time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
@@ -119,20 +167,26 @@ class FileNameIterator(QtCore.QObject):
             except IndexError:
                 return None
         elif mode == 'number':
-            return self._iterate_file_number(self.complete_path, step)
+            return self._iterate_file_number(self.complete_path, step, pos)
 
-    def get_previous_filename(self, step=1, mode='number'):
+    def get_previous_filename(self, step=1, filename=None, mode='number', pos=None):
         """
         Tries to get the previous filename.
 
         :param mode:
             can have two values either number or mode. Number will decrement the last digits of the file name \
             and time will get the next file by creation time.
+        :param filename:
+            Filename to get previous number from
         :return:
             either new filename as a string if it exists or None
         """
+        if filename is not None:
+            self.complete_path = filename
+
         if self.complete_path is None:
             return None
+
         if mode == 'time':
             time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
@@ -144,7 +198,23 @@ class FileNameIterator(QtCore.QObject):
                 except IndexError:
                     return None
         elif mode == 'number':
-            return self._iterate_file_number(self.complete_path, -step)
+            return self._iterate_file_number(self.complete_path, -step, pos)
+
+    def get_next_folder(self, filename=None, mec_mode=False):
+        if filename is not None:
+            self.complete_path = filename
+
+        if self.complete_path is None:
+            return None
+        return self._iterate_folder_number(self.complete_path, 1, mec_mode)
+
+    def get_previous_folder(self, filename=None, mec_mode=False):
+        if filename is not None:
+            self.complete_path = filename
+
+        if self.complete_path is None:
+            return None
+        return self._iterate_folder_number(self.complete_path, -1, mec_mode)
 
     def update_filename(self, new_filename):
         self.complete_path = os.path.abspath(new_filename)
@@ -234,6 +304,18 @@ def get_partial_index(array, value):
 
     return new_pos
 
+
+def get_partial_value(array, ind):
+    """
+    Calculates the value for a non-integer array from an array using linear interpolation.
+    e.g. with array = [0,2,4,6,8,10] and value = 2.5 it would return 5, since it is in between the second and third
+    element.
+    :param array: list or numpy array
+    :param ind: float index for which to get value
+    """
+    step = array[int(np.floor(ind)) + 1] - array[int(np.floor(ind))]
+    value = array[int(np.floor(ind))] + (ind - np.floor(ind)) * step
+    return value
 
 
 def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, delta2=0.1):

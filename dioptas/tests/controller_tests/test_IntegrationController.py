@@ -6,11 +6,11 @@ from tests.utility import QtTest
 
 import mock
 import numpy as np
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtCore
 from PyQt4.QtTest import QTest
 
 from controller.integration import IntegrationController
-from model import ImgModel, CalibrationModel, MaskModel, PatternModel, PhaseModel
+from model.DioptasModel import DioptasModel
 from widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
@@ -18,39 +18,28 @@ data_path = os.path.join(unittest_path, '../data')
 
 
 class IntegrationControllerTest(QtTest):
-
     def setUp(self):
-        self.img_model = ImgModel()
-        self.mask_model = MaskModel()
-        self.spectrum_model = PatternModel()
+        self.model = DioptasModel()
 
         # setting up the calibration model but mocking the integration for speed
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.calibration_model.num_points = 1000
+        self.model.calibration_model.num_points = 1000
         dummy_x = np.linspace(0, 25, 1000)
         dummy_y = np.sin(dummy_x)
-        self.calibration_model.integrate_1d = mock.Mock(return_value=(dummy_x, dummy_y))
+        self.model.calibration_model.integrate_1d = mock.Mock(return_value=(dummy_x, dummy_y))
 
-        self.phase_model = PhaseModel()
         self.widget = IntegrationWidget()
         self.integration_controller = IntegrationController({'spectrum': data_path},
                                                             widget=self.widget,
-                                                            img_model=self.img_model,
-                                                            mask_model=self.mask_model,
-                                                            calibration_model=self.calibration_model,
-                                                            spectrum_model=self.spectrum_model,
-                                                            phase_model=self.phase_model)
+                                                            dioptas_model=self.model)
         self.image_controller = self.integration_controller.image_controller
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
     def tearDown(self):
-        del self.calibration_model
-        del self.img_model
-        del self.phase_model
-        del self.widget
         del self.integration_controller
         del self.image_controller
+        del self.model
+        del self.widget
         gc.collect()
 
     def _setup_batch_integration(self):
@@ -98,7 +87,6 @@ class IntegrationControllerTest(QtTest):
 
         os.rmdir(os.path.join(working_dir, 'bkg_subtracted'))
         os.rmdir(working_dir)
-
 
     def test_switching_to_cake_mode_without_having_clicked_the_image_before(self):
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
