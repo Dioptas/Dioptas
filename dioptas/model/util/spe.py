@@ -276,7 +276,7 @@ class SpeFile(object):
         if self.num_frames > 1:
             img_temp = []
             img_temp.append(self.img)
-            for n in xrange(self.num_frames - 1):
+            for n in range(self.num_frames - 1):
                 img_temp.append(self._read_frame())
             self.img = img_temp
 

@@ -477,7 +477,7 @@ class PhasePlot(object):
         del self.line_visible[ind]
 
     def clear_lines(self):
-        for dummy_ind in xrange(len(self.line_items)):
+        for dummy_ind in range(len(self.line_items)):
             self.remove_line()
 
     def update_intensities(self, positions, intensities, baseline=0):

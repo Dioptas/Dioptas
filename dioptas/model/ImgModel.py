@@ -18,6 +18,7 @@
 
 import logging
 import os
+import time
 from past.builtins import basestring
 
 import numpy as np
@@ -27,6 +28,7 @@ from PyQt4 import QtCore
 import fabio
 
 from .util.spe import SpeFile
+from .util.NewFileWatcher import NewFileInDirectoryWatcher
 
 from model.util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, \
     FileNameIterator
@@ -83,11 +85,22 @@ class ImgModel(QtCore.QObject):
         self._background_scaling = 1
         self._background_offset = 0
 
+        self._factor = 1
+
         self.file_info = ''
         self.motors_info = {}
         self._img_corrections = ImgCorrectionManager()
 
         self._create_dummy_img()
+
+        ### setting up autoprocess
+        self._autoprocess = False
+        self._directory_watcher = NewFileInDirectoryWatcher(
+            file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                        '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                        '.mccd', '.mar3450', '.pnm', 'spe']
+        )
+        self._directory_watcher.file_added.connect(self.load)
 
     def _create_dummy_img(self):
         self._img_data = np.zeros((2048, 2048))
@@ -99,13 +112,14 @@ class ImgModel(QtCore.QObject):
         will be notified after the process.
         :param filename: path of the image file to be loaded
         """
+        filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
             im = Image.open(filename)
+            self._img_data = np.array(im)[::-1]
             self.file_info = self._get_file_info(im)
             self.motors_info = self._get_motors_info(im)
-            self._img_data = np.array(im)[::-1]
         except IOError:
             if os.path.splitext(filename)[1].lower() == '.spe':
                 spe = SpeFile(filename)
@@ -114,6 +128,7 @@ class ImgModel(QtCore.QObject):
                 self._img_data_fabio = fabio.open(filename)
                 self._img_data = self._img_data_fabio.data[::-1]
         self.file_name_iterator.update_filename(filename)
+        self._directory_watcher.path = os.path.dirname(str(filename))
 
         self._perform_img_transformations()
         self._calculate_img_data()
@@ -143,8 +158,45 @@ class ImgModel(QtCore.QObject):
             self._background_data_fabio = fabio.open(filename)
             self._background_data = self._img_data_fabio.data[::-1]
         self._perform_background_transformations()
-        self._calculate_img_data()
 
+        if self._background_data.shape != self._img_data.shape:
+            self._background_data = None
+            self._calculate_img_data()
+            self.img_changed.emit()
+            raise BackgroundDimensionWrongException()
+
+        self._calculate_img_data()
+        self.img_changed.emit()
+
+    def add(self, filename):
+        """
+        Adds an image file in any format known by fabIO. Automatically performs all previous img transformations,
+        performs supersampling and recalculates background subtracted and absorption corrected image data. Observers
+        will be notified after the process.
+        :param filename: path of the image file to be loaded
+        """
+        filename = str(filename)  # since it could also be QString
+        try:
+            im = Image.open(filename)
+            img_data = np.array(im)[::-1]
+        except IOError:
+            if os.path.splitext(filename)[1].lower() == '.spe':
+                spe = SpeFile(filename)
+                img_data = spe.img
+            else:
+                img_data_fabio = fabio.open(filename)
+                img_data = img_data_fabio.data[::-1]
+
+        if not self._img_data.shape == img_data.shape:
+            return
+
+        for transformation in self.img_transformations:
+            img_data = transformation(img_data)
+
+        logger.info("Adding {0}.".format(filename))
+        self._img_data += img_data
+
+        self._calculate_img_data()
         self.img_changed.emit()
 
     def _image_and_background_shape_equal(self):
@@ -174,25 +226,47 @@ class ImgModel(QtCore.QObject):
     def has_background(self):
         return self._background_data is not None
 
-    def set_background_scaling(self, value):
-        self._background_scaling = value
+    @property
+    def background_scaling(self):
+        return self._background_scaling
+
+    @background_scaling.setter
+    def background_scaling(self, new_value):
+        self._background_scaling = new_value
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def set_background_offset(self, value):
-        self._background_offset = value
+    @property
+    def background_offset(self):
+        return self._background_offset
+
+    @background_offset.setter
+    def background_offset(self, new_value):
+        self._background_offset = new_value
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def load_next_file(self, step=1):
-        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step)
+    def load_next_file(self, step=1, pos=None):
+        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step, pos=pos)
         if next_file_name is not None:
             self.load(next_file_name)
 
-    def load_previous_file(self, step=1):
-        previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode, step=step)
+    def load_previous_file(self, step=1, pos=None):
+        previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode,
+                                                                           step=step,
+                                                                           pos=pos)
         if previous_file_name is not None:
             self.load(previous_file_name)
+
+    def load_next_folder(self, mec_mode=False):
+        next_file_name = self.file_name_iterator.get_next_folder(mec_mode=mec_mode)
+        if next_file_name is not None:
+            self.load(next_file_name)
+
+    def load_previous_folder(self, mec_mode=False):
+        next_previous_name = self.file_name_iterator.get_previous_folder(mec_mode=mec_mode)
+        if next_previous_name is not None:
+            self.load(next_previous_name)
 
     def set_file_iteration_mode(self, mode):
         if mode == 'number':
@@ -263,30 +337,30 @@ class ImgModel(QtCore.QObject):
         """
         if self.supersampling_factor == 1:
             if self._background_data is None and not self._img_corrections.has_items():
-                return self._img_data
+                return self._img_data * self.factor
 
             elif self._background_data is not None and not self._img_corrections.has_items():
-                return self._img_data_background_subtracted
+                return self._img_data_background_subtracted * self.factor
 
             elif self._background_data is None and self._img_corrections.has_items():
-                return self._img_data_absorption_corrected
+                return self._img_data_absorption_corrected * self.factor
 
             elif self._background_data is not None and self._img_corrections.has_items():
-                return self._img_data_background_subtracted_absorption_corrected
+                return self._img_data_background_subtracted_absorption_corrected * self.factor
 
         else:
             if self._background_data is None and not self._img_corrections.has_items():
-                return self._img_data_supersampled
+                return self._img_data_supersampled * self.factor
 
             elif self._background_data is not None and not self._img_corrections.has_items():
-                return self._img_data_supersampled_background_subtracted
+                return self._img_data_supersampled_background_subtracted * self.factor
 
             elif self._background_data is None and self._img_corrections.has_items():
-                return self._img_data_supersampled_absorption_corrected
+                return self._img_data_supersampled_absorption_corrected * self.factor
 
             elif self._background_data is not None and self._img_corrections.has_items():
-                return self._img_data_supersampled_background_subtracted_absorption_corrected
-        return self._img_data
+                return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
+        return self._img_data * self.factor
 
     def rotate_img_p90(self):
         """
@@ -392,6 +466,7 @@ class ImgModel(QtCore.QObject):
         """
         self.supersampling_factor = factor
         self._calculate_img_data()
+        self.img_changed.emit()
 
     def supersample_data(self, img_data, factor):
         """
@@ -459,9 +534,39 @@ class ImgModel(QtCore.QObject):
 
         useful_tags = ['Horizontal:', 'Vertical:', 'Focus:', 'Omega:']
 
-        for value in tags.itervalues():
+        try:
+            tag_values = tags.itervalues()
+        except AttributeError:
+            tag_values = tags.values()
+
+        for value in tag_values:
             for key in useful_tags:
                 if key in str(value):
                     k, v = str(value[0]).split(':')
-                    result[str(k)] = str(v)
+                    result[str(k)] = float(v)
         return result
+
+    @property
+    def autoprocess(self):
+        return self._autoprocess
+
+    @autoprocess.setter
+    def autoprocess(self, new_val):
+        self._autoprocess = new_val
+        if new_val:
+            self._directory_watcher.activate()
+        else:
+            self._directory_watcher.deactivate()
+
+    @property
+    def factor(self):
+        return self._factor
+
+    @factor.setter
+    def factor(self, new_value):
+        self._factor = new_value
+        self.img_changed.emit()
+
+
+class BackgroundDimensionWrongException(Exception):
+    pass

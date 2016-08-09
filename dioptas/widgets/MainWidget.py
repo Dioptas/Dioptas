@@ -20,6 +20,7 @@ import os
 
 from PyQt4 import QtGui
 
+from .ConfigurationWidget import ConfigurationWidget
 from .CalibrationWidget import CalibrationWidget
 from .MaskWidget import MaskWidget
 from .integration import IntegrationWidget
@@ -31,9 +32,12 @@ class MainWidget(QtGui.QWidget):
     def __init__(self, *args, **kwargs):
         super(MainWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QHBoxLayout()
+        self._layout = QtGui.QVBoxLayout()
         self._layout.setContentsMargins(10, 2, 2, 2)
         self._layout.setSpacing(6)
+
+        self.configuration_widget = ConfigurationWidget(self)
+        self._layout.addWidget(self.configuration_widget)
 
         self.tabWidget = QtGui.QTabWidget()
         self.tabWidget.setTabPosition(QtGui.QTabWidget.West)

@@ -32,6 +32,8 @@ class MaskModel(object):
         self.reset_dimension()
         self.filename = ''
         self.mode = True
+        self.roi = None
+
         self._mask_data = np.zeros(self.mask_dimension, dtype=bool)
         self._undo_deque = deque(maxlen=50)
         self._redo_deque = deque(maxlen=50)
@@ -60,11 +62,41 @@ class MaskModel(object):
                 for col in range(factor):
                     self._mask_data_supersampled[row::factor, col::factor] = self._mask_data
 
+    @property
+    def roi_mask(self):
+        if self.roi is not None:
+            roi_mask = np.ones(self.mask_dimension)
+            x1, x2, y1, y2 = self.roi
+            if x1 < 0:
+                x1 = 0
+            if y1 < 0:
+                y1 = 0
+            roi_mask[x1:x2, y1:y2] = 0
+
+            if self.supersampling_factor == None or self.supersampling_factor == 1:
+                return roi_mask
+            else:
+                factor = self.supersampling_factor
+                roi_mask_supersampled = np.zeros((self._mask_data.shape[0] * factor,
+                                                  self._mask_data.shape[1] * factor))
+                for row in range(factor):
+                    for col in range(factor):
+                        roi_mask_supersampled[row::factor, col::factor] = roi_mask
+                return roi_mask_supersampled
+        else:
+            return None
+
     def get_mask(self):
         if self.supersampling_factor == 1:
-            return self._mask_data
+            if self.roi is None:
+                return self._mask_data
+            elif self.roi is not None:
+                return np.logical_or(self._mask_data, self.roi_mask)
         else:
-            return self._mask_data_supersampled
+            if self.roi is None:
+                return self._mask_data_supersampled
+            else:
+                return np.logical_or(self._mask_data_supersampled, self.roi_mask)
 
     def get_img(self):
         return self._mask_data
@@ -178,7 +210,7 @@ class MaskModel(object):
         """
         self.update_deque()
         rr, cc = skimage.draw.ellipse(
-                cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
+            cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
         self._mask_data[rr, cc] = self.mode
 
     def grow(self):
@@ -225,7 +257,14 @@ class MaskModel(object):
     def save_mask(self, filename):
         im_array = np.int8(self.get_img())
         im = Image.fromarray(im_array)
-        im.save(filename, "tiff", compression="tiff_deflate")
+        try:
+            im.save(filename, "tiff", compression="tiff_deflate")
+        except OSError:
+            try:
+                im.save(filename, "tiff", compression="tiff_adobe_deflate")
+            except IOError:
+                im.save(filename, "tiff")
+
         self.filename = filename
 
     def load_mask(self, filename):

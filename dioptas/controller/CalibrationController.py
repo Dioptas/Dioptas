@@ -23,9 +23,7 @@ import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.CalibrationWidget import CalibrationWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.CalibrationModel import CalibrationModel
+from model.DioptasModel import DioptasModel
 
 
 class CalibrationController(object):
@@ -33,7 +31,7 @@ class CalibrationController(object):
     CalibrationController handles all the interaction between the CalibrationView and the CalibrationData class
     """
 
-    def __init__(self, working_dir, widget, img_model, mask_model, calibration_model):
+    def __init__(self, working_dir, widget, dioptas_model):
         """Manages the connection between the calibration GUI and data
 
         :param working_dir: dictionary with working directories
@@ -41,22 +39,15 @@ class CalibrationController(object):
         :param widget: Gives the Calibration Widget
         :type widget: CalibrationWidget
 
-        :param img_model: Reference to an ImgData object
-        :type img_model: ImgModel
+        :param dioptas_model: Reference to DioptasModel Object
+        :type dioptas_model: DioptasModel
 
-        :param mask_model: Reference to an MaskData object
-        :type mask_model: MaskModel
-
-        :param calibration_model: Reference to an CalibrationData object
-        :type calibration_model: CalibrationModel
         """
         self.working_dir = working_dir
         self.widget = widget
-        self.img_model = img_model
-        self.mask_model = mask_model
-        self.calibration_model = calibration_model
+        self.model = dioptas_model
 
-        self.widget.set_start_values(self.calibration_model.start_values)
+        self.widget.set_start_values(self.model.calibration_model.start_values)
         self._first_plot = True
         self.create_signals()
         self.plot_image()
@@ -66,7 +57,8 @@ class CalibrationController(object):
         """
         Connects the GUI signals to the appropriate Controller methods.
         """
-        self.img_model.img_changed.connect(self.plot_image)
+        self.model.img_changed.connect(self.plot_image)
+        self.model.configuration_selected.connect(self.update_calibration_parameter_in_view)
 
         self.create_transformation_signals()
         self.create_update_signals()
@@ -100,16 +92,31 @@ class CalibrationController(object):
         """
         Connects all the rotation GUI controls.
         """
-        self.connect_click_function(self.widget.rotate_m90_btn, self.img_model.rotate_img_m90)
-        self.connect_click_function(self.widget.rotate_m90_btn, self.clear_peaks_btn_click)
-        self.connect_click_function(self.widget.rotate_p90_btn, self.img_model.rotate_img_p90)
-        self.connect_click_function(self.widget.rotate_p90_btn, self.clear_peaks_btn_click)
-        self.connect_click_function(self.widget.invert_horizontal_btn, self.img_model.flip_img_horizontally)
-        self.connect_click_function(self.widget.invert_horizontal_btn, self.clear_peaks_btn_click)
-        self.connect_click_function(self.widget.invert_vertical_btn, self.img_model.flip_img_vertically)
-        self.connect_click_function(self.widget.invert_vertical_btn, self.clear_peaks_btn_click)
-        self.connect_click_function(self.widget.reset_transformations_btn, self.img_model.reset_img_transformations)
-        self.connect_click_function(self.widget.reset_transformations_btn, self.clear_peaks_btn_click)
+        self.connect_click_function(self.widget.rotate_m90_btn, self.rotate_m90_btn_clicked)
+        self.connect_click_function(self.widget.rotate_p90_btn, self.rotate_p90_btn_clicked)
+        self.connect_click_function(self.widget.invert_horizontal_btn, self.invert_horizontal_btn_clicked)
+        self.connect_click_function(self.widget.invert_vertical_btn, self.invert_vertical_btn_clicked)
+        self.connect_click_function(self.widget.reset_transformations_btn, self.reset_transformations_btn_clicked)
+
+    def rotate_m90_btn_clicked(self):
+        self.model.img_model.rotate_img_m90()
+        self.clear_peaks_btn_click()
+
+    def rotate_p90_btn_clicked(self):
+        self.model.img_model.rotate_img_p90()
+        self.clear_peaks_btn_click()
+
+    def invert_horizontal_btn_clicked(self):
+        self.model.img_model.flip_img_horizontally()
+        self.clear_peaks_btn_click()
+
+    def invert_vertical_btn_clicked(self):
+        self.model.img_model.flip_img_vertically()
+        self.clear_peaks_btn_click()
+
+    def reset_transformations_btn_clicked(self):
+        self.model.img_model.reset_img_transformations()
+        self.clear_peaks_btn_click()
 
     def create_update_signals(self):
         """
@@ -135,7 +142,7 @@ class CalibrationController(object):
         Takes all parameters inserted into the fit2d txt-fields and updates the current calibration accordingly.
         """
         fit2d_parameter = self.widget.get_fit2d_parameter()
-        self.calibration_model.set_fit2d(fit2d_parameter)
+        self.model.calibration_model.set_fit2d(fit2d_parameter)
         self.update_all()
 
     def update_pyFAI_btn_click(self):
@@ -143,7 +150,7 @@ class CalibrationController(object):
         Takes all parameters inserted into the fit2d txt-fields and updates the current calibration accordingly.
         """
         pyFAI_parameter = self.widget.get_pyFAI_parameter()
-        self.calibration_model.set_pyFAI(pyFAI_parameter)
+        self.model.calibration_model.set_pyFAI(pyFAI_parameter)
         self.update_all()
 
     def load_img(self, filename=None):
@@ -158,20 +165,20 @@ class CalibrationController(object):
 
         if filename is not '':
             self.working_dir['image'] = os.path.dirname(filename)
-            self.img_model.load(filename)
+            self.model.img_model.load(filename)
 
     def load_next_img(self):
-        self.img_model.load_next_file()
+        self.model.img_model.load_next_file()
 
     def load_previous_img(self):
-        self.img_model.load_previous_file()
+        self.model.img_model.load_previous_file()
 
     def update_filename_txt(self):
         """
         Updates the filename in the GUI corresponding to the filename in img_data
         """
-        current_filename = os.path.basename(self.img_model.filename)
-        current_directory = os.path.dirname(self.img_model.filename)
+        current_filename = os.path.basename(self.model.img_model.filename)
+        current_directory = os.path.dirname(self.model.img_model.filename)
         new_filename = str(self.widget.filename_txt.text())
         if current_filename == new_filename:
             return
@@ -189,7 +196,7 @@ class CalibrationController(object):
         """
         self._calibrants_file_list = []
         self._calibrants_file_names_list = []
-        for file in os.listdir(self.calibration_model._calibrants_working_dir):
+        for file in os.listdir(self.model.calibration_model._calibrants_working_dir):
             if file.endswith('.D'):
                 self._calibrants_file_list.append(file)
                 self._calibrants_file_names_list.append(file.split('.')[:-1][0])
@@ -208,15 +215,15 @@ class CalibrationController(object):
         :param wavelength_from: determines which wavelength to use possible values: "start_values", "pyFAI"
         """
         current_index = self.widget.calibrant_cb.currentIndex()
-        filename = os.path.join(self.calibration_model._calibrants_working_dir,
+        filename = os.path.join(self.model.calibration_model._calibrants_working_dir,
                                 self._calibrants_file_list[current_index])
-        self.calibration_model.set_calibrant(filename)
+        self.model.calibration_model.set_calibrant(filename)
 
         if wavelength_from == 'start_values':
             start_values = self.widget.get_start_values()
             wavelength = start_values['wavelength']
         elif wavelength_from == 'pyFAI':
-            pyFAI_parameter, _ = self.calibration_model.get_calibration_parameter()
+            pyFAI_parameter, _ = self.model.calibration_model.get_calibration_parameter()
             if pyFAI_parameter['wavelength'] is not 0:
                 wavelength = pyFAI_parameter['wavelength']
             else:
@@ -226,9 +233,9 @@ class CalibrationController(object):
             start_values = self.widget.get_start_values()
             wavelength = start_values['wavelength']
 
-        self.calibration_model.calibrant.setWavelength_change2th(wavelength)
+        self.model.calibration_model.calibrant.setWavelength_change2th(wavelength)
         self.widget.spectrum_widget.plot_vertical_lines(
-            np.array(self.calibration_model.calibrant.get_2th()) / np.pi * 180,
+            np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180,
             name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
@@ -244,9 +251,9 @@ class CalibrationController(object):
         Plots the current image loaded in img_data and autoscales the intensity.
         :return:
         """
-        self.widget.img_widget.plot_image(self.img_model.img_data, True)
+        self.widget.img_widget.plot_image(self.model.img_data, True)
         self.widget.img_widget.auto_range()
-        self.widget.set_img_filename(self.img_model.filename)
+        self.widget.set_img_filename(self.model.img_model.filename)
 
     def search_peaks(self, x, y):
         """
@@ -257,13 +264,13 @@ class CalibrationController(object):
         :param y:
             y-Position for the search
         """
-        x, y = y, x #indeces for the img array are transposed compared to the mouse position
+        x, y = y, x  # indeces for the img array are transposed compared to the mouse position
         peak_ind = self.widget.peak_num_sb.value()
         if self.widget.automatic_peak_search_rb.isChecked():
-            points = self.calibration_model.find_peaks_automatic(x, y, peak_ind - 1)
+            points = self.model.calibration_model.find_peaks_automatic(x, y, peak_ind - 1)
         else:
             search_size = np.int(self.widget.search_size_sb.value())
-            points = self.calibration_model.find_peak(x, y, search_size, peak_ind - 1)
+            points = self.model.calibration_model.find_peak(x, y, search_size, peak_ind - 1)
         if len(points):
             self.plot_points(points)
             if self.widget.automatic_peak_num_inc_cb.checkState():
@@ -278,7 +285,7 @@ class CalibrationController(object):
         """
         if points is None:
             try:
-                points = self.calibration_model.get_point_array()
+                points = self.model.calibration_model.get_point_array()
             except IndexError:
                 points = []
         if len(points):
@@ -289,7 +296,7 @@ class CalibrationController(object):
         Deletes all points/peaks in the calibration_data and in the gui.
         :return:
         """
-        self.calibration_model.clear_peaks()
+        self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
 
@@ -309,7 +316,7 @@ class CalibrationController(object):
         self.widget.pf_wavelength_cb.blockSignals(False)
         self.widget.sv_wavelength_cb.blockSignals(False)
 
-        self.calibration_model.fit_wavelength = value
+        self.model.calibration_model.fit_wavelength = value
 
     def distance_cb_changed(self, value):
         """
@@ -327,16 +334,16 @@ class CalibrationController(object):
         self.widget.pf_distance_cb.blockSignals(False)
         self.widget.sv_distance_cb.blockSignals(False)
 
-        self.calibration_model.fit_distance = value
+        self.model.calibration_model.fit_distance = value
 
     def calibrate(self):
         """
         Performs calibration based on the previously inputted/searched peaks and start values.
         """
         self.load_calibrant()  # load the right calibration file...
-        self.calibration_model.set_start_values(self.widget.get_start_values())
+        self.model.calibration_model.set_start_values(self.widget.get_start_values())
         progress_dialog = self.create_progress_dialog('Calibrating.', '', 0, show_cancel_btn=False)
-        self.calibration_model.calibrate()
+        self.model.calibration_model.calibrate()
 
         progress_dialog.close()
 
@@ -397,20 +404,20 @@ class CalibrationController(object):
         intensity_min_factor = np.float(self.widget.options_intensity_mean_factor_sb.value())
         intensity_max = np.float(self.widget.options_intensity_limit_txt.text())
 
-        self.calibration_model.setup_peak_search_algorithm(algorithm)
+        self.model.calibration_model.setup_peak_search_algorithm(algorithm)
 
         if self.widget.use_mask_cb.isChecked():
-            mask = self.mask_model.get_img()
+            mask = self.model.mask_model.get_img()
         else:
             mask = None
 
-        self.calibration_model.search_peaks_on_ring(0, delta_tth, intensity_min_factor, intensity_max, mask)
+        self.model.calibration_model.search_peaks_on_ring(0, delta_tth, intensity_min_factor, intensity_max, mask)
         self.widget.peak_num_sb.setValue(2)
         progress_dialog.setValue(1)
-        self.calibration_model.search_peaks_on_ring(1, delta_tth, intensity_min_factor, intensity_max, mask)
+        self.model.calibration_model.search_peaks_on_ring(1, delta_tth, intensity_min_factor, intensity_max, mask)
         self.widget.peak_num_sb.setValue(3)
-        if len(self.calibration_model.points):
-            self.calibration_model.refine()
+        if len(self.model.calibration_model.points):
+            self.model.calibration_model.refine()
             self.plot_points()
         else:
             print('Did not find any Points with the specified parameters for the first two rings!')
@@ -419,14 +426,14 @@ class CalibrationController(object):
 
         refinement_canceled = False
         for i in range(num_rings - 2):
-            points = self.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
-                                                                 intensity_max, mask)
+            points = self.model.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
+                                                                       intensity_max, mask)
             self.widget.peak_num_sb.setValue(i + 4)
-            if len(self.calibration_model.points):
+            if len(self.model.calibration_model.points):
                 self.plot_points(points)
                 QtGui.QApplication.processEvents()
                 QtGui.QApplication.processEvents()
-                self.calibration_model.refine()
+                self.model.calibration_model.refine()
             else:
                 print('Did not find enough points with the specified parameters!')
             progress_dialog.setLabelText("Refining Calibration. \n"
@@ -454,7 +461,7 @@ class CalibrationController(object):
                                                              filter='*.poni'))
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
-            self.calibration_model.load(filename)
+            self.model.calibration_model.load(filename)
             if update_all:
                 self.update_all()
 
@@ -464,9 +471,9 @@ class CalibrationController(object):
         """
         state = self.widget.use_mask_cb.isChecked()
         if state:
-            self.widget.img_widget.plot_mask(self.mask_model.get_img())
+            self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
         else:
-            self.widget.img_widget.plot_mask(np.zeros(self.mask_model.get_img().shape))
+            self.widget.img_widget.plot_mask(np.zeros(self.model.mask_model.get_img().shape))
 
     def mask_transparent_status_changed(self, state):
         """
@@ -487,17 +494,17 @@ class CalibrationController(object):
             progress_dialog = self.create_progress_dialog('Integrating to cake.', '',
                                                           0, show_cancel_btn=False)
             QtGui.QApplication.processEvents()
-            self.calibration_model.integrate_2d()
+            self.model.current_configuration.integrate_image_1d()
             progress_dialog.setLabelText('Integrating to spectrum.')
             QtGui.QApplication.processEvents()
             QtGui.QApplication.processEvents()
-            self.calibration_model.integrate_1d()
+            self.model.current_configuration.integrate_image_2d()
             progress_dialog.close()
-        self.widget.cake_widget.plot_image(self.calibration_model.cake_img, False)
+        self.widget.cake_widget.plot_image(self.model.cake_data, False)
         self.widget.cake_widget.auto_range()
 
-        self.widget.spectrum_widget.plot_data(self.calibration_model.tth, self.calibration_model.int)
-        self.widget.spectrum_widget.plot_vertical_lines(np.array(self.calibration_model.calibrant.get_2th()) /
+        self.widget.spectrum_widget.plot_data(*self.model.pattern.data)
+        self.widget.spectrum_widget.plot_vertical_lines(np.array(self.model.calibration_model.calibrant.get_2th()) /
                                                         np.pi * 180)
         self.widget.spectrum_widget.view_box.autoRange()
         if self.widget.tab_widget.currentIndex() == 0:
@@ -514,7 +521,7 @@ class CalibrationController(object):
         Reads the calibration parameter from the calibration_data object and displays them in the GUI.
         :return:
         """
-        pyFAI_parameter, fit2d_parameter = self.calibration_model.get_calibration_parameter()
+        pyFAI_parameter, fit2d_parameter = self.model.calibration_model.get_calibration_parameter()
         self.widget.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
 
     def save_calibration(self, filename=None):
@@ -530,7 +537,7 @@ class CalibrationController(object):
                                                              self.working_dir['calibration'], '*.poni'))
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
-            self.calibration_model.save(filename)
+            self.model.calibration_model.save(filename)
 
     def update_img_mouse_position_lbl(self, x, y):
         """
@@ -539,7 +546,8 @@ class CalibrationController(object):
         # x, y = pos
         try:
             if x > 0 and y > 0:
-                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.img_widget.img_data.T[np.round(x), np.round(y)])
+                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.img_widget.img_data.T[int(np.round(x)),
+                                                                                           int(np.round(y))])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):
@@ -553,7 +561,8 @@ class CalibrationController(object):
         # x, y = pos
         try:
             if x > 0 and y > 0:
-                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.cake_widget.img_data.T[np.round(x), np.round(y)])
+                str = "x: %.1f y: %.1f I: %.0f" % (x, y, self.widget.cake_widget.img_data.T[int(np.round(x)),
+                                                                                            int(np.round(y))])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):

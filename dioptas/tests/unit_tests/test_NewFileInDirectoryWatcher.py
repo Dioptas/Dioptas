@@ -7,7 +7,7 @@ import shutil
 from PyQt4 import QtGui
 from mock import MagicMock
 
-from controller.integration.ImageController import NewFileInDirectoryWatcher
+from model.util.NewFileWatcher import NewFileInDirectoryWatcher
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
@@ -15,11 +15,9 @@ unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 class NewFileInDirectoryWatcherTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
 
     def setUp(self):
         self.directory_watcher = NewFileInDirectoryWatcher(path=None)

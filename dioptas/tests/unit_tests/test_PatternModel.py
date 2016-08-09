@@ -20,40 +20,15 @@ class PatternModelTest(unittest.TestCase):
 
     def test_set_spectrum(self):
         self.pattern_model.set_pattern(self.x, self.y, 'hoho')
-        assert_array_almost_equal(self.pattern_model.get_spectrum().x, self.x)
-        assert_array_almost_equal(self.pattern_model.get_spectrum().y, self.y)
-        self.assertEqual(self.pattern_model.get_spectrum().name, 'hoho')
+        assert_array_almost_equal(self.pattern_model.get_pattern().x, self.x)
+        assert_array_almost_equal(self.pattern_model.get_pattern().y, self.y)
+        self.assertEqual(self.pattern_model.get_pattern().name, 'hoho')
 
     def test_load_spectrum(self):
         self.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
-        self.assertEqual(self.pattern_model.get_spectrum().name, 'spectrum_001')
-        self.assertNotEqual(len(self.x), len(self.pattern_model.get_spectrum().x))
-        self.assertNotEqual(len(self.y), len(self.pattern_model.get_spectrum().y))
-
-    def test_add_overlay(self):
-        x_overlay = np.linspace(0, 10)
-        y_overlay = np.linspace(0, 100)
-        self.pattern_model.add_overlay(x_overlay, y_overlay, "dummy")
-
-        self.assertEqual(len(self.pattern_model.overlays), 1)
-        new_overlay = self.pattern_model.get_overlay(0)
-        self.assertEqual(new_overlay.name, "dummy")
-        assert_array_almost_equal(new_overlay.x, x_overlay)
-        assert_array_almost_equal(new_overlay.y, y_overlay)
-
-    def test_add_overlay_from_file(self):
-        filename = os.path.join(data_path, 'spectrum_001.xy')
-        self.pattern_model.add_overlay_file(filename)
-
-        self.assertEqual(len(self.pattern_model.overlays), 1)
-        self.assertEqual(self.pattern_model.get_overlay(0).name, ''.join(os.path.basename(filename).split('.')[0:-1]))
-
-    def test_add_spectrum_as_overlay(self):
-        self.pattern_model.add_spectrum_as_overlay()
-        self.assertEqual(len(self.pattern_model.overlays), 1)
-
-        assert_array_almost_equal(self.pattern_model.get_overlay(0).x, self.pattern_model.pattern.x)
-        assert_array_almost_equal(self.pattern_model.get_overlay(0).y, self.pattern_model.pattern.y)
+        self.assertEqual(self.pattern_model.get_pattern().name, 'spectrum_001')
+        self.assertNotEqual(len(self.x), len(self.pattern_model.get_pattern().x))
+        self.assertNotEqual(len(self.y), len(self.pattern_model.get_pattern().y))
 
     def test_auto_background_subtraction(self):
         x = np.linspace(0, 24, 2500)
