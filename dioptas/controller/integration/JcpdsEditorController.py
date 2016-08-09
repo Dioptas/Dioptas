@@ -24,7 +24,7 @@ from PyQt4 import QtGui, QtCore
 from widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from model.util.jcpds import jcpds
-from model.CalibrationModel import CalibrationModel
+from model.DioptasModel import DioptasModel
 
 
 class JcpdsEditorController(QtCore.QObject):
@@ -42,19 +42,19 @@ class JcpdsEditorController(QtCore.QObject):
 
     phase_modified = QtCore.pyqtSignal()
 
-    def __init__(self, working_dir, parent_widget, calibration_model=None, jcpds_phase=None):
+    def __init__(self, working_dir, parent_widget, dioptas_model=None, jcpds_phase=None):
         """
         :param working_dir: dictionary of working directories
-        :param calibration_model: Reference to CalibrationData object
+        :param dioptas_model: Reference to DioptasModel object
         :param jcpds_phase: Reference to JcpdsPhase object
 
-        :type calibration_model: CalibrationModel
+        :type dioptas_model: DioptasModel
         :type jcpds_phase: jcpds
         """
         super(JcpdsEditorController, self).__init__()
         self.widget = JcpdsEditorWidget(parent_widget)
         self.working_dir = working_dir
-        self.calibration_model = calibration_model
+        self.model = dioptas_model
         self.active = False
         self.create_connections()
         if jcpds_phase is not None:
@@ -64,15 +64,15 @@ class JcpdsEditorController(QtCore.QObject):
         self.start_jcpds_phase = deepcopy(jcpds_phase)
         self.jcpds_phase = jcpds_phase
         if wavelength is None:
-            if self.calibration_model is not None:
-                wavelength = self.calibration_model.wavelength * 1e10
+            if self.model.calibration_model is not None:
+                wavelength = self.model.calibration_model.wavelength * 1e10
         self.widget.show_jcpds(jcpds_phase, wavelength)
 
     def update_phase_view(self, jcpds_phase):
-        if self.calibration_model is None:
+        if self.model.calibration_model is None:
             wavelength = None
         else:
-            wavelength = self.calibration_model.wavelength * 1e10
+            wavelength = self.model.calibration_model.wavelength * 1e10
         self.widget.show_jcpds(jcpds_phase, wavelength=wavelength)
 
     def update_view(self):
@@ -357,7 +357,7 @@ class JcpdsEditorController(QtCore.QObject):
         elif ind == 5 or ind == 7:
             self.jcpds_phase.sort_reflections_by_d(not reversed)
 
-        self.widget.show_jcpds(self.jcpds_phase, wavelength=self.calibration_model.wavelength * 1e10)
+        self.widget.show_jcpds(self.jcpds_phase, wavelength=self.model.calibration_model.wavelength * 1e10)
         self.widget.reflection_table.resizeColumnsToContents()
 
         if self.previous_header_item_index_sorted == ind:

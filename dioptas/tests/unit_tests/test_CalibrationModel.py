@@ -19,12 +19,9 @@ calibrant_path = os.path.join(unittest_path, '../../calibrants')
 class CalibrationModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
-        cls.app.deleteLater()
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
 
     def setUp(self):
         self.img_model = ImgModel()

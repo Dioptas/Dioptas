@@ -17,30 +17,25 @@
 
 import unittest
 from mock import MagicMock
-import gc
 import os
 from PyQt4 import QtGui
 
 import numpy as np
 
-from model.ImgModel import ImgModel
+from model.ImgModel import ImgModel, BackgroundDimensionWrongException
 from model.util.ImgCorrection import DummyCorrection
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 spe_path = os.path.join(data_path, 'spe')
 
-app = QtGui.QApplication([])
-
 
 class ImgModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication([])
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.app.quit()
+        cls.app = QtGui.QApplication.instance()
+        if cls.app is None:
+            cls.app = QtGui.QApplication([])
 
     def setUp(self):
         self.img_model = ImgModel()
@@ -153,24 +148,25 @@ class ImgModelTest(unittest.TestCase):
                                        self.img_model._img_data - self.img_model._background_data))
 
         # set scaling and see difference
-        self.img_model.set_background_scaling(2.4)
+        self.img_model.background_scaling = 2.4
         self.assertTrue(np.array_equal(self.img_model.get_img_data(),
                                        self.img_model._img_data - 2.4 * self.img_model._background_data))
 
         # set offset and see the difference
-        self.img_model.set_background_scaling(1.0)
-        self.img_model.set_background_offset(100.0)
+        self.img_model.background_scaling = 1.0
+        self.img_model.background_offset = 100.0
         self.assertTrue(np.array_equal(self.img_model.img_data,
                                        self.img_model._img_data - (self.img_model._background_data + 100.0)))
 
         # use offset and scaling combined
-        self.img_model.set_background_scaling(2.3)
-        self.img_model.set_background_offset(100.0)
+        self.img_model.background_scaling = 2.3
+        self.img_model.background_offset = 100.0
         self.assertTrue(np.array_equal(self.img_model.img_data,
                                        self.img_model._img_data - (2.3 * self.img_model._background_data + 100)))
 
     def test_background_with_different_shape(self):
-        self.img_model.load_background(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        with self.assertRaises(BackgroundDimensionWrongException):
+            self.img_model.load_background(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.assertEqual(self.img_model._background_data, None)
 
         self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
@@ -298,6 +294,16 @@ class ImgModelTest(unittest.TestCase):
         self.img_model.load(os.path.join(spe_path, 'CeO2_PI_CCD_Mo.SPE'))
         self.assertEqual(self.img_model.img_data.shape, (1042, 1042))
 
+    def test_summing_files(self):
+        data1 = np.copy(self.img_model._img_data)
+        self.img_model.add(os.path.join(data_path, 'image_001.tif'))
+        self.assertTrue(np.array_equal(2*data1, self.img_model._img_data))
+
+    def test_summing_rotated(self):
+        self.img_model.rotate_img_m90()
+        data1 = np.copy(self.img_model._img_data)
+        self.img_model.add(os.path.join(data_path, 'image_001.tif'))
+        self.assertTrue(np.array_equal(2 * data1, self.img_model._img_data))
 
 if __name__ == '__main__':
     unittest.main()

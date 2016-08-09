@@ -7,6 +7,8 @@ import numpy as np
 
 from model.MaskModel import MaskModel
 
+from tests.utility import delete_if_exists
+
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
@@ -18,6 +20,7 @@ class MaskModelTest(unittest.TestCase):
         self.mask_model.set_dimension(self.img.shape)
 
     def tearDown(self):
+        delete_if_exists(os.path.join(data_path, "test_save.mask"))
         del self.mask_model
         del self.img
         gc.collect()
@@ -97,6 +100,29 @@ class MaskModelTest(unittest.TestCase):
         self.assertTrue(np.array_equal(mask_array, self.mask_model.get_img()))
         os.remove(filename)
 
+    def test_use_roi(self):
+        self.mask_model.roi = [0, 2, 0, 2]
 
-if __name__ == '__main__':
-    unittest.main()
+        self.assertTrue(np.array_equal(self.mask_model.get_mask()[0:3, 0:3],
+                                       np.array([[0, 0, 1],
+                                                 [0, 0, 1],
+                                                 [1, 1, 1]]))
+                        )
+
+    def test_use_roi_with_supersampling(self):
+        self.mask_model.roi = [0, 2, 0, 2]
+        self.mask_model.set_supersampling(2)
+        self.assertTrue(np.array_equal(self.mask_model.get_mask()[0:6, 0:6],
+                                       np.array([[0, 0, 0, 0, 1, 1],
+                                                 [0, 0, 0, 0, 1, 1],
+                                                 [0, 0, 0, 0, 1, 1],
+                                                 [0, 0, 0, 0, 1, 1],
+                                                 [1, 1, 1, 1, 1, 1],
+                                                 [1, 1, 1, 1, 1, 1]]))
+                        )
+
+    def test_save_mask(self):
+        self.mask_model.mask_below_threshold(self.img, 1)
+        self.mask_model.save_mask(os.path.join(data_path, "test_save.mask"))
+
+        self.assertTrue(os.path.exists(os.path.join(data_path, "test_save.mask")))

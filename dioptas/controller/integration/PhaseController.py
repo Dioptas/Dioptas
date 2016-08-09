@@ -28,10 +28,7 @@ from .JcpdsEditorController import JcpdsEditorController
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from widgets.integration import IntegrationWidget
 from widgets.UtilityWidgets import CifConversionParametersDialog
-from model.CalibrationModel import CalibrationModel
-from model.PatternModel import PatternModel
-from model.PhaseModel import PhaseModel
-
+from model.DioptasModel import DioptasModel
 
 class PhaseController(object):
     """
@@ -40,13 +37,11 @@ class PhaseController(object):
     the spectrum plot and it needs the calibration data to have access to the currently used wavelength.
     """
 
-    def __init__(self, working_dir, widget, calibration_model, spectrum_model, phase_model):
+    def __init__(self, working_dir, widget, dioptas_model):
         """
         :param working_dir: dictionary with working directories
         :param widget: Reference to an IntegrationWidget
-        :param calibration_model: reference to CalibrationModel object
-        :param spectrum_model: reference to SpectrumModel object
-        :param phase_model: reference to PhaseModel object
+        :param dioptas_model: reference to DioptasModel object
 
         :type widget: IntegrationWidget
         :type calibration_model: CalibrationModel
@@ -56,10 +51,8 @@ class PhaseController(object):
         self.working_dir = working_dir
         self.widget = widget
         self.cif_conversion_dialog = CifConversionParametersDialog(self.widget)
-        self.calibration_model = calibration_model
-        self.spectrum_model = spectrum_model
-        self.phase_model = phase_model
-        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.calibration_model)
+        self.model = dioptas_model
+        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.model)
         self.phase_lw_items = []
         self.create_signals()
 
@@ -84,7 +77,7 @@ class PhaseController(object):
         self.widget.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
         # self.widget.spectrum_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
         self.widget.pattern_widget.spectrum_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
-        self.spectrum_model.pattern_changed.connect(self.spectrum_data_changed)
+        self.model.pattern_changed.connect(self.spectrum_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
 
@@ -107,7 +100,7 @@ class PhaseController(object):
         :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
         :return:
         """
-        if not self.calibration_model.is_calibrated:
+        if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not load phase without calibration.")
 
         if filename is None:
@@ -142,30 +135,31 @@ class PhaseController(object):
     def _add_phase(self, filename):
         try:
             if filename.endswith("jcpds"):
-                self.phase_model.add_jcpds(filename)
+                self.model.phase_model.add_jcpds(filename)
             elif filename.endswith(".cif"):
                 self.cif_conversion_dialog.exec_()
-                self.phase_model.add_cif(filename,
+                self.model.phase_model.add_cif(filename,
                                          self.cif_conversion_dialog.int_cutoff,
                                          self.cif_conversion_dialog.min_d_spacing)
 
             if self.widget.phase_apply_to_all_cb.isChecked():
                 pressure = np.float(self.widget.phase_pressure_sb.value())
                 temperature = np.float(self.widget.phase_temperature_sb.value())
-                self.phase_model.phases[-1].compute_d(pressure=pressure,
+                self.model.phase_model.phases[-1].compute_d(pressure=pressure,
                                                       temperature=temperature)
             else:
                 pressure = 0
                 temperature = 298
 
-            self.phase_model.get_lines_d(-1)
+            self.model.phase_model.get_lines_d(-1)
             color = self.add_phase_plot()
-            self.widget.add_phase(get_base_name(filename), '#%02x%02x%02x' % (color[0], color[1], color[2]))
+            self.widget.add_phase(get_base_name(filename), '#%02x%02x%02x' % (int(color[0]), int(color[1]),
+                                                                              int(color[2])))
 
-            self.widget.set_phase_pressure(len(self.phase_model.phases) - 1, pressure)
-            self.update_phase_temperature(len(self.phase_model.phases) - 1, temperature)
+            self.widget.set_phase_pressure(len(self.model.phase_model.phases) - 1, pressure)
+            self.update_phase_temperature(len(self.model.phase_model.phases) - 1, temperature)
             if self.jcpds_editor_controller.active:
-                self.jcpds_editor_controller.show_phase(self.phase_model.phases[-1])
+                self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
         except PhaseLoadError as e:
             self.widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
@@ -180,12 +174,12 @@ class PhaseController(object):
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline = \
-            self.phase_model.get_rescaled_reflections(
-                    -1, self.spectrum_model.pattern,
+            self.model.phase_model.get_rescaled_reflections(
+                    -1, self.model.pattern,
                     x_range, y_range,
-                    self.calibration_model.wavelength * 1e10,
+                    self.model.calibration_model.wavelength * 1e10,
                     self.get_unit())
-        color = self.widget.pattern_widget.add_phase(self.phase_model.phases[-1].name,
+        color = self.widget.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
                                                      positions,
                                                      intensities,
                                                      baseline)
@@ -193,7 +187,7 @@ class PhaseController(object):
 
     def edit_btn_click_callback(self):
         cur_ind = self.widget.get_selected_phase_row()
-        self.jcpds_editor_controller.show_phase(self.phase_model.phases[cur_ind])
+        self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
         self.jcpds_editor_controller.show_view()
 
     def remove_btn_click_callback(self):
@@ -203,13 +197,13 @@ class PhaseController(object):
         cur_ind = self.widget.get_selected_phase_row()
         if cur_ind >= 0:
             self.widget.del_phase(cur_ind)
-            self.phase_model.del_phase(cur_ind)
+            self.model.phase_model.del_phase(cur_ind)
             self.widget.pattern_widget.del_phase(cur_ind)
             self.update_temperature_control_visibility()
             if self.jcpds_editor_controller.active:
                 cur_ind = self.widget.get_selected_phase_row()
                 if cur_ind >= 0:
-                    self.jcpds_editor_controller.show_phase(self.phase_model.phases[cur_ind])
+                    self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
                 else:
                     self.jcpds_editor_controller.widget.close()
 
@@ -235,14 +229,14 @@ class PhaseController(object):
         positions and intensities.
         """
         if self.widget.phase_apply_to_all_cb.isChecked():
-            for ind in range(len(self.phase_model.phases)):
-                self.phase_model.set_pressure(ind, np.float(val))
+            for ind in range(len(self.model.phase_model.phases)):
+                self.model.phase_model.set_pressure(ind, np.float(val))
                 self.widget.set_phase_pressure(ind, val)
             self.update_all_phase_intensities()
 
         else:
             cur_ind = self.widget.get_selected_phase_row()
-            self.phase_model.set_pressure(cur_ind, np.float(val))
+            self.model.phase_model.set_pressure(cur_ind, np.float(val))
             self.widget.set_phase_pressure(cur_ind, val)
             self.update_phase_intensities(cur_ind)
 
@@ -254,7 +248,7 @@ class PhaseController(object):
         positions and intensities.
         """
         if self.widget.phase_apply_to_all_cb.isChecked():
-            for ind in range(len(self.phase_model.phases)):
+            for ind in range(len(self.model.phase_model.phases)):
                 self.update_phase_temperature(ind, val)
             self.update_all_phase_intensities()
 
@@ -266,23 +260,23 @@ class PhaseController(object):
         self.update_jcpds_editor()
 
     def update_phase_temperature(self, ind, val):
-        if self.phase_model.phases[ind].has_thermal_expansion():
-            self.phase_model.set_temperature(ind, np.float(val))
+        if self.model.phase_model.phases[ind].has_thermal_expansion():
+            self.model.phase_model.set_temperature(ind, np.float(val))
             self.widget.set_phase_temperature(ind, val)
         else:
-            self.phase_model.set_temperature(ind, 298)
+            self.model.phase_model.set_temperature(ind, 298)
             self.widget.set_phase_temperature(ind, '-')
 
     def phase_show_parameter_cb_state_changed(self):
         value = self.widget.phase_show_parameter_in_spectrum_cb.isChecked()
         self.widget.show_parameter_in_spectrum = value
-        for ind in range(len(self.phase_model.phases)):
+        for ind in range(len(self.model.phase_model.phases)):
             self.widget.update_phase_parameters_in_legend(ind)
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
         cur_ind = row
-        pressure = self.phase_model.phases[cur_ind].pressure
-        temperature = self.phase_model.phases[cur_ind].temperature
+        pressure = self.model.phase_model.phases[cur_ind].pressure
+        temperature = self.model.phase_model.phases[cur_ind].temperature
 
         self.widget.phase_pressure_sb.blockSignals(True)
         self.widget.phase_pressure_sb.setValue(pressure)
@@ -294,7 +288,7 @@ class PhaseController(object):
         self.update_temperature_control_visibility(row)
 
         if self.jcpds_editor_controller.active:
-            self.jcpds_editor_controller.show_phase(self.phase_model.phases[cur_ind])
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
 
     def update_temperature_control_visibility(self, row_ind=None):
         if row_ind is None:
@@ -303,7 +297,7 @@ class PhaseController(object):
         if row_ind == -1:
             return
 
-        if self.phase_model.phases[row_ind].has_thermal_expansion():
+        if self.model.phase_model.phases[row_ind].has_thermal_expansion():
             self.widget.phase_temperature_sb.setEnabled(True)
             self.widget.phase_temperature_step_txt.setEnabled(True)
         else:
@@ -354,7 +348,7 @@ class PhaseController(object):
         """
         axis_range = self.widget.pattern_widget.view_box.viewRange()
 
-        for ind in range(len(self.phase_model.phases)):
+        for ind in range(len(self.model.phase_model.phases)):
             self.update_phase_intensities(ind, axis_range)
 
     def update_phase_intensities(self, ind, axis_range=None):
@@ -368,10 +362,10 @@ class PhaseController(object):
 
         x_range = axis_range[0]
         y_range = axis_range[1]
-        positions, intensities, baseline = self.phase_model.get_rescaled_reflections(
-                ind, self.spectrum_model.pattern,
+        positions, intensities, baseline = self.model.phase_model.get_rescaled_reflections(
+                ind, self.model.pattern,
                 x_range, y_range,
-                self.calibration_model.wavelength * 1e10,
+                self.model.calibration_model.wavelength * 1e10,
                 self.get_unit()
         )
 
@@ -380,26 +374,26 @@ class PhaseController(object):
 
     def update_cur_phase_name(self):
         cur_ind = self.widget.get_selected_phase_row()
-        self.widget.rename_phase(cur_ind, self.phase_model.phases[cur_ind].name)
+        self.widget.rename_phase(cur_ind, self.model.phase_model.phases[cur_ind].name)
 
     ###JCPDS editor callbacks:
     def update_jcpds_editor(self, cur_ind=None):
         if cur_ind is None:
             cur_ind = self.widget.get_selected_phase_row()
         if self.jcpds_editor_controller.widget.isVisible():
-            self.jcpds_editor_controller.update_phase_view(self.phase_model.phases[cur_ind])
+            self.jcpds_editor_controller.update_phase_view(self.model.phase_model.phases[cur_ind])
 
     def jcpds_editor_reload_phase(self, jcpds):
         cur_ind = self.widget.get_selected_phase_row()
-        self.phase_model.phases[cur_ind] = jcpds
+        self.model.phase_model.phases[cur_ind] = jcpds
         self.widget.pattern_widget.phases[cur_ind].clear_lines()
-        for dummy_line_ind in self.phase_model.phases[cur_ind].reflections:
+        for dummy_line_ind in self.model.phase_model.phases[cur_ind].reflections:
             self.widget.pattern_widget.phases[cur_ind].add_line()
         self.update_cur_phase_parameters()
 
     def update_cur_phase_parameters(self):
         cur_ind = self.widget.get_selected_phase_row()
-        self.phase_model.get_lines_d(cur_ind)
+        self.model.phase_model.get_lines_d(cur_ind)
         self.update_phase_intensities(cur_ind)
         self.update_temperature_control_visibility(cur_ind)
         self.widget.pattern_widget.update_phase_line_visibility(cur_ind)
@@ -407,13 +401,13 @@ class PhaseController(object):
     def jcpds_editor_reflection_removed(self, reflection_ind):
         cur_phase_ind = self.widget.get_selected_phase_row()
         self.widget.pattern_widget.phases[cur_phase_ind].remove_line(reflection_ind)
-        self.phase_model.get_lines_d(cur_phase_ind)
+        self.model.phase_model.get_lines_d(cur_phase_ind)
         self.update_phase_intensities(cur_phase_ind)
 
     def jcpds_editor_reflection_added(self):
         cur_ind = self.widget.get_selected_phase_row()
         self.widget.pattern_widget.phases[cur_ind].add_line()
-        self.phase_model.get_lines_d(cur_ind)
+        self.model.phase_model.get_lines_d(cur_ind)
 
     def jcpds_editor_reflection_cleared(self):
         cur_phase_ind = self.widget.get_selected_phase_row()

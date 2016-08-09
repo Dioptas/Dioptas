@@ -25,14 +25,15 @@ import xml.etree.cElementTree as ET
 from PyQt4 import QtGui, QtCore
 
 from widgets.MainWidget import MainWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
+
+from model.DioptasModel import DioptasModel
 from model.PatternModel import PatternModel
-from model.CalibrationModel import CalibrationModel
 from model.PhaseModel import PhaseModel
+
 from . import CalibrationController
 from .integration import IntegrationController
 from .MaskController import MaskController
+from .ConfigurationController import ConfigurationController
 
 from . import versioneer
 
@@ -71,36 +72,39 @@ class MainController(object):
         self.use_settings = use_settings
 
         self.widget = MainWidget()
+
         # create data
-        self.img_model = ImgModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.mask_model = MaskModel()
-        self.spectrum_model = PatternModel()
-        self.phase_model = PhaseModel()
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
                                     'phase': ''}
+
+        self.model = DioptasModel(self.working_directories)
 
         if use_settings:
             self.load_settings()
 
         self.calibration_controller = CalibrationController(self.working_directories,
                                                             self.widget.calibration_widget,
-                                                            self.img_model,
-                                                            self.mask_model,
-                                                            self.calibration_model)
+                                                            self.model)
         self.mask_controller = MaskController(self.working_directories,
                                               self.widget.mask_widget,
-                                              self.img_model,
-                                              self.mask_model)
+                                              self.model)
         self.integration_controller = IntegrationController(self.working_directories,
                                                             self.widget.integration_widget,
-                                                            self.img_model,
-                                                            self.mask_model,
-                                                            self.calibration_model,
-                                                            self.spectrum_model,
-                                                            self.phase_model)
+                                                            self.model)
+
+        self.configuration_controller = ConfigurationController(
+            configuration_widget=self.widget.configuration_widget,
+            dioptas_model=self.model,
+            controllers=[
+                self.calibration_controller,
+                self.mask_controller,
+                self.integration_controller,
+                self
+            ]
+        )
+
         self.create_signals()
         self.update_title()
 
@@ -124,8 +128,8 @@ class MainController(object):
         """
         self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
-        self.img_model.img_changed.connect(self.update_title)
-        self.spectrum_model.pattern_changed.connect(self.update_title)
+        self.model.img_changed.connect(self.update_title)
+        self.model.pattern_changed.connect(self.update_title)
 
     def tab_changed(self, ind):
         """
@@ -152,12 +156,20 @@ class MainController(object):
 
         # update the GUI
         if ind == 2:  # integration tab
-            self.mask_model.set_supersampling()
+            self.model.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
-            self.integration_controller.widget.calibration_lbl.setText(self.calibration_model.calibration_name)
+            self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
-            self.integration_controller.spectrum_controller.image_changed()
-            self.integration_controller.image_controller.update_img()
+
+            if self.integration_controller.image_controller.img_mode == "Image":
+                self.integration_controller.image_controller.plot_img()
+
+            if self.model.use_mask:
+                self.model.current_configuration.integrate_image_1d()
+                if self.model.current_configuration.integrate_cake:
+                    self.model.current_configuration.integrate_image_2d()
+            else:
+                self.model.pattern_changed.emit()
             self.widget.integration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
             self.widget.integration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
         elif ind == 1:  # mask tab
@@ -179,13 +191,13 @@ class MainController(object):
         Updates the title bar of the main window. The title bar will always show the current version of Dioptas, the
         image or spectrum filenames loaded and the current calibration name.
         """
-        img_filename = os.path.basename(self.img_model.filename)
-        spec_filename = os.path.basename(self.spectrum_model.pattern_filename)
-        calibration_name = self.calibration_model.calibration_name
+        img_filename = os.path.basename(self.model.img_model.filename)
+        spec_filename = os.path.basename(self.model.pattern_model.pattern_filename)
+        calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':
-            self.widget.setWindowTitle(str + u' - © 2015 C. Prescher')
-            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2015 C. Prescher')
+            self.widget.setWindowTitle(str + u' - © 2016 C. Prescher')
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2016 C. Prescher')
             return
 
         if img_filename is not '' or spec_filename is not '':
@@ -199,7 +211,7 @@ class MainController(object):
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += u' - © 2015 C. Prescher'
+        str += u' - © 2016 C. Prescher'
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 
@@ -218,7 +230,9 @@ class MainController(object):
         working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
         if os.path.exists(working_directories_path):
             reader = csv.reader(open(working_directories_path, 'r'))
-            self.working_directories = dict(x for x in reader)
+            for x in reader:
+                if len(x) > 1:
+                    self.working_directories[x[0]] = x[1]
 
     def load_xml_settings(self):
         """
@@ -232,7 +246,7 @@ class MainController(object):
             filenames = root.find("filenames")
             calibration_path = filenames.find("calibration").text
             if os.path.exists(str(calibration_path)):
-                self.calibration_model.load(calibration_path)
+                self.model.calibration_model.load(calibration_path)
 
     def save_settings(self):
         """
@@ -253,7 +267,6 @@ class MainController(object):
         writer = csv.writer(open(working_directories_path, 'w'))
         for key, value in list(self.working_directories.items()):
             writer.writerow([key, value])
-            writer.writerow([key, value])
 
     def save_xml_settings(self):
         """
@@ -263,7 +276,7 @@ class MainController(object):
         root = ET.Element("DioptasSettings")
         filenames = ET.SubElement(root, "filenames")
         calibration_filename = ET.SubElement(filenames, "calibration")
-        calibration_filename.text = self.calibration_model.filename
+        calibration_filename.text = self.model.calibration_model.filename
         tree = ET.ElementTree(root)
         tree.write(os.path.join(self.settings_directory, "settings.xml"))
 

@@ -18,7 +18,6 @@
 
 import logging
 
-from copy import deepcopy
 from PyQt4 import QtCore
 
 from model.util.HelperModule import FileNameIterator, get_base_name
@@ -29,32 +28,24 @@ logger = logging.getLogger(__name__)
 
 class PatternModel(QtCore.QObject):
     """
-    Main Pattern handling class. Supporting several features:
-      - loading spectra from any tabular source (readable by numpy)
-      - having overlays
-      - setting overlays as background
-      - spectra and overlays can be scaled and have offset values
+    Main Pattern handling class. Supporting:
+        - setting background pattern
+        - setting automatic background subtraction
+        - file browsing
 
-    all changes to the internal data throw pyqtSignals.
+    all changes to the internal data throw a pattern_changed signal.
     """
     pattern_changed = QtCore.pyqtSignal()
-    overlay_changed = QtCore.pyqtSignal(int)  # changed index
-    overlay_added = QtCore.pyqtSignal()
-    overlay_removed = QtCore.pyqtSignal(int)  # removed index
-    overlay_set_as_bkg = QtCore.pyqtSignal(int)  # index set as background
-    overlay_unset_as_bkg = QtCore.pyqtSignal(int)  # index unset os background
 
     def __init__(self):
         super(PatternModel, self).__init__()
         self.pattern = Pattern()
-        self.overlays = []
-        self.phases = []
+        self.pattern_filename = ''
 
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 
-        self.bkg_ind = -1
-        self.pattern_filename = ''
+        self._background_pattern = None
 
     def set_pattern(self, x, y, filename='', unit=''):
         """
@@ -107,17 +98,17 @@ class PatternModel(QtCore.QObject):
                 file_handle.write("       {0}\n".format(num_points))
             else:
                 file_handle.write(header)
-            for ind in xrange(num_points):
+            for ind in range(num_points):
                 file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
         else:
             if header is not None:
                 file_handle.write(header)
                 file_handle.write('\n')
-            for ind in xrange(num_points):
+            for ind in range(num_points):
                 file_handle.write('{0:.9E}  {1:.9E}\n'.format(x[ind], y[ind]))
         file_handle.close()
 
-    def get_spectrum(self):
+    def get_pattern(self):
         return self.pattern
 
     def load_next_file(self, step=1):
@@ -151,147 +142,25 @@ class PatternModel(QtCore.QObject):
             self.file_name_iterator.create_timed_file_list = True
             self.file_name_iterator.update_filename(self.filename)
 
-    def add_overlay(self, x, y, name=''):
-        """
-        Adds an overlay to the list of overlays
-        :param x: x-values
-        :param y: y-values
-        :param name: name of overlay to be used for displaying etc.
-        """
-        self.overlays.append(Pattern(x, y, name))
-        self.overlay_added.emit()
+    @property
+    def background_pattern(self):
+        return self._background_pattern
 
-    def remove_overlay(self, ind):
-        """
-        Removes an overlay from the list of overlays
-        :param ind: index of the overlay
-        """
-        if ind >= 0:
-            del self.overlays[ind]
-            if self.bkg_ind > ind:
-                self.bkg_ind -= 1
-            elif self.bkg_ind == ind:
-                self.pattern.unset_background_spectrum()
-                self.bkg_ind = -1
-                self.pattern_changed.emit()
-            self.overlay_removed.emit(ind)
-
-    def get_overlay(self, ind):
-        """
-        :param ind: overlay ind
-        :return: returns overlay if existent or None if it does not exist
-        :type return: Pattern
-        """
-        try:
-            return self.overlays[ind]
-        except IndexError:
-            return None
-
-    def add_spectrum_as_overlay(self):
-        """
-        Adds the current data spectrum as overlay to the list of overlays
-        """
-        current_spectrum = deepcopy(self.pattern)
-        overlay_spectrum = Pattern(current_spectrum.x,
-                                   current_spectrum.y,
-                                   current_spectrum.name)
-        self.overlays.append(overlay_spectrum)
-        self.overlay_added.emit()
-
-    def add_overlay_file(self, filename):
-        """
-        Reads a 2-column (x,y) text file and adds it as overlay to the list of overlays
-        :param filename: path of the file to be loaded
-        """
-        self.overlays.append(Pattern())
-        self.overlays[-1].load(filename)
-        self.overlay_added.emit()
-
-    def get_overlay_name(self, ind):
-        """
-        :param ind: overlay index
-        """
-        return self.overlays[-1].name
-
-    def set_overlay_scaling(self, ind, scaling):
-        """
-        Sets the scaling of the specified overlay
-        :param ind: index of the overlay
-        :param scaling: new scaling value
-        """
-        self.overlays[ind].scaling = scaling
-        self.overlay_changed.emit(ind)
-        if self.bkg_ind == ind:
-            self.pattern_changed.emit()
-
-    def get_overlay_scaling(self, ind):
-        """
-        Returns the scaling of the specified overlay
-        :param ind: index of the overlay
-        :return: scaling value
-        """
-        return self.overlays[ind].scaling
-
-    def set_overlay_offset(self, ind, offset):
-        """
-        Sets the offset of the specified overlay
-        :param ind: index of the overlay
-        :param offset: new offset value
-        """
-        self.overlays[ind].offset = offset
-        self.overlay_changed.emit(ind)
-        if self.bkg_ind == ind:
-            self.pattern_changed.emit()
-
-    def get_overlay_offset(self, ind):
-        """
-        Return the offset of the specified overlay
-        :param ind: index of the overlay
-        :return: overlay value
-        """
-        return self.overlays[ind].offset
-
-    def set_overlay_as_bkg(self, ind):
-        """
-        Sets an overlay as background for the data spectrum, and unsets any previously used background
-        :param ind: index of the overlay
-        """
-        if self.bkg_ind >= 0:
-            self.unset_overlay_as_bkg()
-        self.bkg_ind = ind
-        self.pattern.background_pattern = self.overlays[ind]
+    @background_pattern.setter
+    def background_pattern(self, pattern):
+        if pattern is not None:
+            self.pattern.background_pattern = pattern
+        else:
+            self.pattern.unset_background_spectrum()
+        self._background_pattern = pattern
         self.pattern_changed.emit()
-        self.overlay_set_as_bkg.emit(ind)
 
-    def set_spectrum_as_bkg(self):
-        """
-        Adds the current spectrum as Overlay and sets it as background spectrum and unsets any previously used
-        background.
-        """
-        self.add_spectrum_as_overlay()
-        self.set_overlay_as_bkg(len(self.overlays) - 1)
-
-    def unset_overlay_as_bkg(self):
-        """
-        Unsets the currently used background overlay.
-        """
-        previous_bkg_ind = self.bkg_ind
-        self.bkg_ind = -1
-        self.pattern.unset_background_spectrum()
-        self.pattern_changed.emit()
-        self.overlay_unset_as_bkg.emit(previous_bkg_ind)
-
-    def overlay_is_bkg(self, ind):
-        """
-        :param ind: overlay ind
-        """
-        return ind == self.bkg_ind and self.bkg_ind != -1
 
     def set_auto_background_subtraction(self, parameters, roi=None):
         """
-        Enables auto background extraction and removal from the data spectrum
+        Enables auto background extraction and removal from the data pattern
         :param parameters: array of parameters with [window_width, iterations, polynomial_order]
-        :param roi: array of size two with [xmin, xmax] specifying the range for which the background subtraction
+        :param roi: array of size two with [x_min, x_max] specifying the range for the background subtraction
         will be performed
         """
         self.pattern.set_auto_background_subtraction(parameters, roi)
@@ -304,15 +173,3 @@ class PatternModel(QtCore.QObject):
         self.pattern.unset_auto_background_subtraction()
         self.pattern_changed.emit()
 
-    def overlay_waterfall(self, separation):
-        offset = 0
-        for ind in range(len(self.overlays)):
-            if ind != self.bkg_ind:
-                offset -= separation
-                self.overlays[-(ind + 1)].offset = offset
-                self.overlay_changed.emit(len(self.overlays) - (ind + 1))
-
-    def reset_overlay_offsets(self):
-        for ind, overlay in enumerate(self.overlays):
-            overlay.offset = 0
-            self.overlay_changed.emit(ind)

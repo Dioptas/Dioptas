@@ -86,7 +86,6 @@ class JcpdsUnitTest(unittest.TestCase):
     def test_consistency_d_spacing_calculation(self):
         # loading a monoclinic jcpds and check if different signs will change the d spacing
         self.jcpds.load_file(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
-        print self.jcpds.symmetry
 
         d1_mon = self.get_reflection_d_spacing(self.jcpds.reflections, 2, 2, 1)
         d2_mon = self.get_reflection_d_spacing(self.jcpds.reflections, -2, 2, 1)
