@@ -84,9 +84,9 @@ sys.excepthook = excepthook
 if __name__ == "__main__":
 
     from sys import platform as _platform
-    from controller.MainController import MainController, get_version
-    dioptas_version = get_version()
-    print("Dioptas {}".format(dioptas_version))
+    from controller.MainController import MainController
+    from dioptas import __version__
+    print("Dioptas {}".format(__version__))
 
     if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
