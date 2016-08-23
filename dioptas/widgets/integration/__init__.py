@@ -24,6 +24,7 @@ from PyQt4 import QtGui, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
 from ..EpicsWidgets import MoveStageWidget
+from ..MapWidgets import Map2DWidget  # MAP2D
 from ..CustomWidgets import NoRectDelegate, FlatButton
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
@@ -99,6 +100,7 @@ class IntegrationWidget(QtGui.QWidget):
 
         self.file_info_widget = FileInfoWidget(self)
         self.move_widget = MoveStageWidget(self)
+        self.map_2D_widget = Map2DWidget(self)  # MAP2D
 
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
@@ -119,6 +121,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
         self.img_batch_mode_integrate_rb = self.integration_control_widget.img_control_widget.batch_mode_integrate_rb
         self.img_batch_mode_add_rb = self.integration_control_widget.img_control_widget.batch_mode_add_rb
+        self.map_2D_btn = self.integration_control_widget.img_control_widget.map_2D_btn  # MAP2D
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
         self.spec_load_btn = pattern_file_widget.load_btn

@@ -264,6 +264,8 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
+            self.widget.map_2D_widget.convert_all_units(previous_unit, self.integration_unit,
+                                                        self.model.calibration_model.wavelength)  # MAP2D
 
     def set_unit_q(self):
         previous_unit = self.integration_unit
@@ -278,6 +280,8 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
+            self.widget.map_2D_widget.convert_all_units(previous_unit, self.integration_unit,
+                                                        self.model.calibration_model.wavelength)  # MAP2D
 
     def set_unit_d(self):
         previous_unit = self.integration_unit
@@ -293,6 +297,8 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
+            self.widget.map_2D_widget.convert_all_units(previous_unit, self.integration_unit,
+                                                        self.model.calibration_model.wavelength)  # MAP2D
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()[0]
@@ -345,6 +351,9 @@ class PatternController(object):
         self.widget.click_d_lbl.setText(self.widget.mouse_d_lbl.text())
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
+
+        self.widget.map_2D_widget.theta_center = self.get_line_tth()  # MAP2D
+        self.widget.map_2D_widget.wavelength = self.model.calibration_model.wavelength
 
     def set_line_position(self, x):
         self.widget.pattern_widget.set_pos_line(x)
