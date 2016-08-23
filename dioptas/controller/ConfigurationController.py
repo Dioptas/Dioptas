@@ -4,8 +4,8 @@ import os
 from PyQt4 import QtGui, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.ConfigurationWidget import ConfigurationWidget
-from model.DioptasModel import DioptasModel
+from ..widgets.ConfigurationWidget import ConfigurationWidget
+from ..model.DioptasModel import DioptasModel
 
 
 class ConfigurationController(object):

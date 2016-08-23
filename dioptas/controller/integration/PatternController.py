@@ -19,11 +19,10 @@
 import os
 
 import numpy as np
-import pyFAI
 from PyQt4 import QtGui, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from model.DioptasModel import DioptasModel
+from ...model.DioptasModel import DioptasModel
 
 
 class PatternController(object):

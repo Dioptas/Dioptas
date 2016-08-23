@@ -19,10 +19,10 @@
 from PyQt4 import QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
-from widgets.plot_widgets import MaskImgWidget
+from .plot_widgets import MaskImgWidget
 
-from widgets.CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, \
-    HorizontalSpacerItem, CheckableFlatButton, FlatButton, VerticalSpacerItem, HorizontalLine
+from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, HorizontalSpacerItem, \
+    CheckableFlatButton, FlatButton, VerticalSpacerItem, HorizontalLine
 
 
 class MaskWidget(QtGui.QWidget):

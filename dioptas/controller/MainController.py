@@ -19,14 +19,12 @@
 import os
 import csv
 from sys import platform as _platform
+from PyQt4 import QtGui, QtCore
 
 import xml.etree.cElementTree as ET
 
-from PyQt4 import QtGui, QtCore
-
-from widgets.MainWidget import MainWidget
-
-from model.DioptasModel import DioptasModel
+from ..widgets.MainWidget import MainWidget
+from ..model.DioptasModel import DioptasModel
 
 from . import CalibrationController
 from .integration import IntegrationController

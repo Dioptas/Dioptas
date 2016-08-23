@@ -18,10 +18,10 @@
 
 from PyQt4 import QtGui, QtCore
 
-from widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
+from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
     VerticalSpacerItem, FlatButton, CleanLooksComboBox
 
-from model.util.HelperModule import convert_d_to_two_theta
+from ...model.util.HelperModule import convert_d_to_two_theta
 
 
 class JcpdsEditorWidget(QtGui.QWidget):
@@ -72,18 +72,18 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.lattice_c_sb.setSingleStep(0.01)
         self.lattice_length_step_txt = NumberTextField('0.01')
 
-        self.add_field(self._parameters_layout, self.lattice_a_sb, 'a0:',u"Å", 0, 0)
-        self.add_field(self._parameters_layout, self.lattice_b_sb, 'b0:',u"Å", 0, 3)
-        self.add_field(self._parameters_layout, self.lattice_c_sb, 'c0:',u"Å", 0, 6)
-        self.add_field(self._parameters_layout, self.lattice_length_step_txt, 'st:',u"Å", 0, 9)
+        self.add_field(self._parameters_layout, self.lattice_a_sb, 'a0:', u"Å", 0, 0)
+        self.add_field(self._parameters_layout, self.lattice_b_sb, 'b0:', u"Å", 0, 3)
+        self.add_field(self._parameters_layout, self.lattice_c_sb, 'c0:', u"Å", 0, 6)
+        self.add_field(self._parameters_layout, self.lattice_length_step_txt, 'st:', u"Å", 0, 9)
 
         self.lattice_eos_a_txt = NumberTextField()
         self.lattice_eos_b_txt = NumberTextField()
         self.lattice_eos_c_txt = NumberTextField()
 
-        self.add_field(self._parameters_layout, self.lattice_eos_a_txt, 'a:',u"Å", 1, 0)
-        self.add_field(self._parameters_layout, self.lattice_eos_b_txt, 'b:',u"Å", 1, 3)
-        self.add_field(self._parameters_layout, self.lattice_eos_c_txt, 'c:',u"Å", 1, 6)
+        self.add_field(self._parameters_layout, self.lattice_eos_a_txt, 'a:', u"Å", 1, 0)
+        self.add_field(self._parameters_layout, self.lattice_eos_b_txt, 'b:', u"Å", 1, 3)
+        self.add_field(self._parameters_layout, self.lattice_eos_c_txt, 'c:', u"Å", 1, 6)
 
         self.lattice_alpha_sb = DoubleSpinBoxAlignRight()
         self.lattice_alpha_sb.setMaximum(180)
@@ -93,10 +93,10 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.lattice_gamma_sb.setMaximum(180)
         self.lattice_angle_step_txt = NumberTextField('1')
 
-        self.add_field(self._parameters_layout, self.lattice_alpha_sb, u'α:',u"°", 2, 0)
-        self.add_field(self._parameters_layout, self.lattice_beta_sb, u'β:',u"°", 2, 3)
-        self.add_field(self._parameters_layout, self.lattice_gamma_sb, u'γ:',u"°", 2, 6)
-        self.add_field(self._parameters_layout, self.lattice_angle_step_txt, u'st:',u"°", 2, 9)
+        self.add_field(self._parameters_layout, self.lattice_alpha_sb, u'α:', u"°", 2, 0)
+        self.add_field(self._parameters_layout, self.lattice_beta_sb, u'β:', u"°", 2, 3)
+        self.add_field(self._parameters_layout, self.lattice_gamma_sb, u'γ:', u"°", 2, 6)
+        self.add_field(self._parameters_layout, self.lattice_angle_step_txt, u'st:', u"°", 2, 9)
 
         self.lattice_volume_txt = NumberTextField()
         self.lattice_eos_volume_txt = NumberTextField()
@@ -116,7 +116,6 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.add_field(self._parameters_layout, self.lattice_ca_sb, 'c/a:', None, 4, 3)
         self.add_field(self._parameters_layout, self.lattice_cb_sb, 'c/b:', None, 4, 6)
         self.add_field(self._parameters_layout, self.lattice_ratio_step_txt, 'st:', None, 4, 9)
-
 
         self._lattice_parameters_layout.addLayout(self._parameters_layout)
         self.lattice_parameters_gb.setLayout(self._lattice_parameters_layout)
@@ -158,7 +157,6 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self._body_layout.addWidget(self.eos_gb, 0, 0)
         self._body_layout.addItem(VerticalSpacerItem(), 1, 0)
         self._body_layout.addWidget(self.reflections_gb, 0, 1, 2, 1)
-
 
         self._button_layout = QtGui.QHBoxLayout()
         self.save_as_btn = FlatButton('Save As')
@@ -217,9 +215,9 @@ class JcpdsEditorWidget(QtGui.QWidget):
 
     def add_field(self, layout, widget, label_str, unit, x, y):
         layout.addWidget(LabelAlignRight(label_str), x, y)
-        layout.addWidget(widget, x, y+1)
+        layout.addWidget(widget, x, y + 1)
         if unit:
-            layout.addWidget(QtGui.QLabel(unit), x, y+2)
+            layout.addWidget(QtGui.QLabel(unit), x, y + 2)
 
     def show_jcpds(self, jcpds_phase, wavelength=None):
         self.blockAllSignals(True)
@@ -539,6 +537,7 @@ if __name__ == '__main__':
     app = QtGui.QApplication([])
     from model.util.jcpds import jcpds
     import os
+
     test_phase = jcpds()
     path = os.path.join(os.path.dirname(__file__), '../../')
     path = os.path.join(path, 'tests', 'data', 'jcpds', 'ag.jcpds')
@@ -549,4 +548,3 @@ if __name__ == '__main__':
     widget.show()
     widget.raise_()
     app.exec_()
-

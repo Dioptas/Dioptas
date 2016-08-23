@@ -29,9 +29,9 @@ from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
 from skimage.measure import find_contours
-from model.util.HelperModule import get_base_name
-from model import ImgModel
-import calibrants
+from .util.HelperModule import get_base_name
+from . import ImgModel
+from ..calibrants import calibrants_folder
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -64,7 +64,7 @@ class CalibrationModel(object):
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
-        self._calibrants_working_dir = os.path.dirname(calibrants.__file__)
+        self._calibrants_working_dir = calibrants_folder
 
         self.cake_img = np.zeros((2048, 2048))
         self.tth = np.linspace(0, 25)

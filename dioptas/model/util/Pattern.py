@@ -5,19 +5,18 @@ import os
 import logging
 from PyQt4 import QtCore
 
-
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
 
-from model.util import extract_background
+from . import extract_background
 
 logger = logging.getLogger(__name__)
 
 
 class Pattern(QtCore.QObject):
     pattern_changed = QtCore.pyqtSignal(np.ndarray, np.ndarray)
-    
+
     def __init__(self, x=None, y=None, name=''):
         super(Pattern, self).__init__()
         if x is None:
@@ -138,7 +137,7 @@ class Pattern(QtCore.QObject):
                                        self.auto_background_subtraction_parameters[0],
                                        self.auto_background_subtraction_parameters[1],
                                        self.auto_background_subtraction_parameters[2])
-            self._auto_background_spectrum = Pattern (x, y_bkg)
+            self._auto_background_spectrum = Pattern(x, y_bkg)
 
             y -= y_bkg
 
@@ -150,11 +149,9 @@ class Pattern(QtCore.QObject):
 
         self.pattern_changed.emit(self._spectrum_x, self._spectrum_y)
 
-
     @property
     def data(self):
         return self._spectrum_x, self._spectrum_y
-
 
     @data.setter
     def data(self, data):
@@ -218,7 +215,6 @@ class Pattern(QtCore.QObject):
     @property
     def auto_background_pattern(self):
         return self._auto_background_spectrum
-
 
     def has_background(self):
         return (self.background_pattern is not None) or self.auto_background_subtraction
