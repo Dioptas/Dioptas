@@ -209,19 +209,19 @@ class PatternController(object):
         step = int(str(self.widget.spec_browse_step_txt.text()))
         self.model.pattern_model.load_previous_file(step=step)
         self.widget.spec_filename_txt.setText(
-            os.path.basename(self.model.pattern_filename))
+            os.path.basename(self.model.pattern.filename))
 
     def load_next(self):
         step = int(str(self.widget.spec_browse_step_txt.text()))
         self.model.pattern_model.load_next_file(step=step)
         self.widget.spec_filename_txt.setText(
-            os.path.basename(self.model.pattern_filename))
+            os.path.basename(self.model.pattern.filename))
 
     def autocreate_cb_changed(self):
         self.autocreate_pattern = self.widget.spec_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
-        current_filename = os.path.basename(self.model.pattern_filename)
+        current_filename = os.path.basename(self.model.pattern.filename)
         current_directory = str(self.widget.spec_directory_txt.text())
         new_filename = str(self.widget.spec_filename_txt.text())
         if os.path.isfile(os.path.join(current_directory, new_filename)):

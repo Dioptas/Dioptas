@@ -192,7 +192,7 @@ class MainController(object):
         image or spectrum filenames loaded and the current calibration name.
         """
         img_filename = os.path.basename(self.model.img_model.filename)
-        spec_filename = os.path.basename(self.model.pattern_model.pattern_filename)
+        spec_filename = os.path.basename(self.model.pattern.filename)
         calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':
