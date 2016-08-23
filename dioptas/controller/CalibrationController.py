@@ -22,8 +22,8 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.CalibrationWidget import CalibrationWidget
-from model.DioptasModel import DioptasModel
+from ..widgets.CalibrationWidget import CalibrationWidget
+from ..model.DioptasModel import DioptasModel
 
 
 class CalibrationController(object):

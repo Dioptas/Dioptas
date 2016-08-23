@@ -7,9 +7,9 @@ import os
 import time
 
 folders = [x[0] for x in os.walk(os.path.dirname(os.path.abspath(__file__)))]
-print folders
-print os.path.dirname('.')
-print os.path.abspath(__file__)
+print(folders)
+print(os.path.dirname('.'))
+print(os.path.abspath(__file__))
 test_files = []
 
 for folder in folders:

@@ -7,8 +7,8 @@ from copy import copy
 from PyQt4 import QtCore
 import numpy as np
 
-from model.util.HelperModule import FileNameIterator, get_base_name
-from model.util import Pattern
+from .util.HelperModule import FileNameIterator, get_base_name
+from .util import Pattern
 
 logger = logging.getLogger(__name__)
 

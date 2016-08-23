@@ -19,12 +19,13 @@
 from __future__ import absolute_import, print_function
 
 import pyqtgraph as pg
-from widgets.plot_widgets.ExLegendItem import LegendItem
 import numpy as np
-from model.util.HelperModule import calculate_color
 from PyQt4 import QtCore
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
+
+from .ExLegendItem import LegendItem
+from ...model.util.HelperModule import calculate_color
 
 
 # TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show,

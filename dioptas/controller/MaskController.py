@@ -24,8 +24,8 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.MaskWidget import MaskWidget
-from model.DioptasModel import DioptasModel
+from ..widgets.MaskWidget import MaskWidget
+from ..model.DioptasModel import DioptasModel
 
 
 class MaskController(object):
