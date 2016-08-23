@@ -140,6 +140,8 @@ class ImageController(object):
 
         self.connect_click_function(self.widget.file_info_btn, self.show_file_info)
 
+        self.connect_click_function(self.widget.map_2D_btn, self.map_2d)  # MAP2D
+
         self.connect_click_function(self.widget.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.widget.mask_transparent_cb, self.update_mask_transparency)
@@ -230,6 +232,8 @@ class ImageController(object):
                                                           len(filenames))
         self._set_up_multiple_file_integration()
 
+        self.widget.map_2D_widget.reset_map_data()  # MAP2D
+
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
             base_filename = os.path.basename(filename)
@@ -241,6 +245,8 @@ class ImageController(object):
 
             x, y = self.integrate_spectrum()
             self._save_spectrum(base_filename, working_directory, x, y)
+            # MAP2D
+            self.widget.map_2D_widget.add_map_data(filename, working_directory, self.model.img_model.motors_info)
 
             QtGui.QApplication.processEvents()
             if progress_dialog.wasCanceled():
@@ -307,6 +313,9 @@ class ImageController(object):
     def show_file_info(self):
         self.widget.file_info_widget.raise_widget()
 
+    def map_2d(self):  # MAP2D
+        self.widget.map_2D_widget.raise_widget(self.model.img_model, self.widget.pattern_widget.spectrum_plot,
+                                               self.working_dir)
     def get_integration_unit(self):
         if self.widget.spec_tth_btn.isChecked():
             return '2th_deg'
@@ -354,7 +363,7 @@ class ImageController(object):
 
     def change_mask_mode(self):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
-        self.widget.mask_transparent_cb.setVisible(not self.widget.mask_transparent_cb.isVisible())
+        self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
         self.plot_mask()
         self.model.img_model.img_changed.emit()
 

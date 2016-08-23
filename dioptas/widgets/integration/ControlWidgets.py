@@ -77,6 +77,7 @@ class ImageControlWidget(QtGui.QWidget):
         self.file_widget = BrowseFileWidget(files='Image', checkbox_text='autoprocess')
         self.file_info_btn = FlatButton('File Info')
         self.move_btn = FlatButton('Position')
+        self.map_2D_btn = FlatButton('2D Map')  # MAP2D
 
         self.batch_mode_widget = QtGui.QWidget()
         self.batch_mode_lbl = LabelAlignRight("Batch Mode:")
@@ -92,6 +93,7 @@ class ImageControlWidget(QtGui.QWidget):
         self._file_info_layout = QtGui.QHBoxLayout()
         self._file_info_layout.addWidget(self.file_info_btn)
         self._file_info_layout.addWidget(self.move_btn)
+        self._file_info_layout.addWidget(self.map_2D_btn)  # MAP2D
         self._file_info_layout.addSpacerItem(HorizontalSpacerItem())
 
         self._batch_layout = QtGui.QHBoxLayout()

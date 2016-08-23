@@ -18,3 +18,4 @@
 
 from .ImgWidget import MaskImgWidget, ImgWidget, CalibrationCakeWidget
 from .SpectrumWidget import SpectrumWidget
+from .HistogramLUTItem import HistogramLUTItem
