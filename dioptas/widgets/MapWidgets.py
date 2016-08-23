@@ -383,7 +383,7 @@ class Map2DWidget(QtGui.QWidget):
         try:
             hor, ver = self.xy_to_horver(x, y)
             file_name = self.horver_to_file_name(hor, ver)
-            self.lbl_map_pos.setText(str(file_name) + ":\t hor=" + str(hor) + '\tver:=' + str(ver))
+            self.lbl_map_pos.setText(str(file_name) + ":\t hor=" + str(round(hor, 3)) + '\tver:=' + str(round(ver, 3)))
         except Exception:
             pass
 
