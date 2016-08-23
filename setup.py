@@ -17,7 +17,7 @@ setup(
     author='Clemens Prescher',
     author_email="clemens.prescher@gmail.com",
     url='https://github.com/Dioptas/Dioptas/',
-    install_requires=['numpy', 'scipy', 'lmfit', 'pyqtgraph', 'future', 'pycifrw', 'fabio', 'pyfai', 'scikit-image'],
+    install_requires=['numpy'],
     description='GUI program for reduction and exploration of 2D X-ray diffraction data',
     classifiers=['Intended Audience :: Science/Research',
                  'Operating System :: OS Independent',
