@@ -30,6 +30,7 @@ class Pattern(QtCore.QObject):
             self._original_y = y
 
         self.name = name
+        self.filename = ""
         self._offset = 0
         self._scaling = 1
         self._smoothing = 0
@@ -50,6 +51,7 @@ class Pattern(QtCore.QObject):
             if filename.endswith('.chi'):
                 skiprows = 4
             data = np.loadtxt(filename, skiprows=skiprows)
+            self.filename = filename
             self._original_x = data.T[0]
             self._original_y = data.T[1]
             self.name = os.path.basename(filename).split('.')[:-1][0]
