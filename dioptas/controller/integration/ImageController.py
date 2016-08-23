@@ -24,11 +24,11 @@ import numpy as np
 from PIL import Image
 from PyQt4 import QtGui, QtCore
 
-from model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.integration import IntegrationWidget
-from model.DioptasModel import DioptasModel
-from model.util.HelperModule import get_partial_index, get_partial_value
+from ...widgets.integration import IntegrationWidget
+from ...model.DioptasModel import DioptasModel
+from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
 

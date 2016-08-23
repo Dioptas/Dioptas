@@ -18,7 +18,6 @@
 
 import logging
 import os
-import time
 from past.builtins import basestring
 
 import numpy as np
@@ -29,11 +28,8 @@ import fabio
 
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
-
-from model.util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, \
-    FileNameIterator
-
-from model.util.ImgCorrection import ImgCorrectionManager
+from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
+from .util.ImgCorrection import ImgCorrectionManager
 
 logger = logging.getLogger(__name__)
 

@@ -21,14 +21,15 @@ import os
 import numpy as np
 from PyQt4 import QtGui, QtCore
 
-from model.PhaseModel import PhaseLoadError
-from model.util.HelperModule import get_base_name
+from ...model.PhaseModel import PhaseLoadError
+from ...model.util.HelperModule import get_base_name
 from .JcpdsEditorController import JcpdsEditorController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.integration import IntegrationWidget
-from widgets.UtilityWidgets import CifConversionParametersDialog
-from model.DioptasModel import DioptasModel
+from ...model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+from ...widgets.UtilityWidgets import CifConversionParametersDialog
+
 
 class PhaseController(object):
     """
@@ -105,7 +106,7 @@ class PhaseController(object):
 
         if filename is None:
             filenames = QtGui.QFileDialog.getOpenFileNames(
-                    self.widget, "Load Phase(s).", self.working_dir['phase'])
+                self.widget, "Load Phase(s).", self.working_dir['phase'])
             if len(filenames):
                 self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
                 progress_dialog = QtGui.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
@@ -139,14 +140,14 @@ class PhaseController(object):
             elif filename.endswith(".cif"):
                 self.cif_conversion_dialog.exec_()
                 self.model.phase_model.add_cif(filename,
-                                         self.cif_conversion_dialog.int_cutoff,
-                                         self.cif_conversion_dialog.min_d_spacing)
+                                               self.cif_conversion_dialog.int_cutoff,
+                                               self.cif_conversion_dialog.min_d_spacing)
 
             if self.widget.phase_apply_to_all_cb.isChecked():
                 pressure = np.float(self.widget.phase_pressure_sb.value())
                 temperature = np.float(self.widget.phase_temperature_sb.value())
                 self.model.phase_model.phases[-1].compute_d(pressure=pressure,
-                                                      temperature=temperature)
+                                                            temperature=temperature)
             else:
                 pressure = 0
                 temperature = 298
@@ -163,7 +164,7 @@ class PhaseController(object):
         except PhaseLoadError as e:
             self.widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
-                format(e.filename))
+                    format(e.filename))
 
     def add_phase_plot(self):
         """
@@ -175,10 +176,10 @@ class PhaseController(object):
         y_range = axis_range[1]
         positions, intensities, baseline = \
             self.model.phase_model.get_rescaled_reflections(
-                    -1, self.model.pattern,
-                    x_range, y_range,
-                    self.model.calibration_model.wavelength * 1e10,
-                    self.get_unit())
+                -1, self.model.pattern,
+                x_range, y_range,
+                self.model.calibration_model.wavelength * 1e10,
+                self.get_unit())
         color = self.widget.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
                                                      positions,
                                                      intensities,
@@ -363,14 +364,14 @@ class PhaseController(object):
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline = self.model.phase_model.get_rescaled_reflections(
-                ind, self.model.pattern,
-                x_range, y_range,
-                self.model.calibration_model.wavelength * 1e10,
-                self.get_unit()
+            ind, self.model.pattern,
+            x_range, y_range,
+            self.model.calibration_model.wavelength * 1e10,
+            self.get_unit()
         )
 
         self.widget.pattern_widget.update_phase_intensities(
-                ind, positions, intensities, y_range[0])
+            ind, positions, intensities, y_range[0])
 
     def update_cur_phase_name(self):
         cur_ind = self.widget.get_selected_phase_row()

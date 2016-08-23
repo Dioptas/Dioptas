@@ -22,8 +22,8 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.integration import IntegrationWidget
-from model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+from ...model.DioptasModel import DioptasModel
 
 class OverlayController(object):
     """

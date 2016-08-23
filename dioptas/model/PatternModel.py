@@ -20,8 +20,8 @@ import logging
 
 from PyQt4 import QtCore
 
-from model.util.HelperModule import FileNameIterator, get_base_name
-from model.util import Pattern
+from .util.HelperModule import FileNameIterator, get_base_name
+from .util import Pattern
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +155,6 @@ class PatternModel(QtCore.QObject):
         self._background_pattern = pattern
         self.pattern_changed.emit()
 
-
     def set_auto_background_subtraction(self, parameters, roi=None):
         """
         Enables auto background extraction and removal from the data pattern
@@ -172,4 +171,3 @@ class PatternModel(QtCore.QObject):
         """
         self.pattern.unset_auto_background_subtraction()
         self.pattern_changed.emit()
-
