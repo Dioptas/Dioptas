@@ -25,8 +25,8 @@ except ImportError:
 
 from .econfig import epics_config
 
-from widgets.integration import IntegrationWidget
-from model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+from ...model.DioptasModel import DioptasModel
 
 
 class EpicsController(object):
