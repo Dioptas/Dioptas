@@ -27,40 +27,13 @@ from PyQt4 import QtGui, QtCore
 from widgets.MainWidget import MainWidget
 
 from model.DioptasModel import DioptasModel
-from model.PatternModel import PatternModel
-from model.PhaseModel import PhaseModel
 
 from . import CalibrationController
 from .integration import IntegrationController
 from .MaskController import MaskController
 from .ConfigurationController import ConfigurationController
 
-from . import versioneer
-
-versioneer.VCS = 'git'
-versioneer.versionfile_source = ''
-versioneer.versionfile_build = ''
-versioneer.tag_prefix = ''
-versioneer.parentdir_prefix = ''
-
-
-def get_version():
-    version = versioneer.get_version()
-    if version not in __name__:
-        write_version_file(version)
-        return version
-    else:
-        import _version
-        return _version.__version__
-
-
-def write_version_file(version_str):
-    path = os.path.dirname(__file__)
-    with open(os.path.join(path, '_version.py'), 'w') as f:
-        f.write('__version__="{}"'.format(version_str))
-
-
-__version__ = get_version()
+from dioptas import __version__
 
 
 class MainController(object):
