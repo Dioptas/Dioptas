@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from tests.utility import QtTest
+from ..utility import QtTest
 import os
 import gc
 
@@ -8,10 +8,10 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 from mock import MagicMock
 
-from controller.integration import PatternController
-from controller.integration import PhaseController
-from model.DioptasModel import DioptasModel
-from widgets.integration import IntegrationWidget
+from ...controller.integration import PatternController
+from ...controller.integration import PhaseController
+from ...model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

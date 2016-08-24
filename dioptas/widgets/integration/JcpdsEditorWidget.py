@@ -535,7 +535,7 @@ class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    from model.util.jcpds import jcpds
+    from ...model.util.jcpds import jcpds
     import os
 
     test_phase = jcpds()

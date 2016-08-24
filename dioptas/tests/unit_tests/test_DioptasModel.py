@@ -7,8 +7,8 @@ from mock import MagicMock
 
 from PyQt4 import QtGui
 
-from model.DioptasModel import DioptasModel
-from model.util import Pattern
+from ...model.DioptasModel import DioptasModel
+from ...model.util import Pattern
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

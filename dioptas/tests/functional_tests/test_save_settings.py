@@ -7,7 +7,7 @@ import gc
 
 from PyQt4 import QtGui
 
-from controller.MainController import MainController
+from ...controller.MainController import MainController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
