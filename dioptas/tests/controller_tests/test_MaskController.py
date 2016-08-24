@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tests.utility import QtTest
+from ..utility import QtTest
 import os
 import gc
 import numpy as np
@@ -8,9 +8,9 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from model.DioptasModel import DioptasModel
-from controller.MaskController import MaskController
-from widgets.MaskWidget import MaskWidget
+from ...model.DioptasModel import DioptasModel
+from ...controller.MaskController import MaskController
+from ...widgets.MaskWidget import MaskWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

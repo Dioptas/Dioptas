@@ -7,8 +7,8 @@ from PyQt4 import QtGui
 
 import numpy as np
 
-from model.CalibrationModel import CalibrationModel
-from model.ImgModel import ImgModel
+from ...model.CalibrationModel import CalibrationModel
+from ...model.ImgModel import ImgModel
 import gc
 
 unittest_path = os.path.dirname(__file__)

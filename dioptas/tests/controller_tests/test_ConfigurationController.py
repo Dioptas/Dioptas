@@ -10,9 +10,9 @@ from mock import MagicMock
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from controller.ConfigurationController import ConfigurationController
-from model.DioptasModel import DioptasModel
-from widgets.ConfigurationWidget import ConfigurationWidget
+from ...controller.ConfigurationController import ConfigurationController
+from ...model.DioptasModel import DioptasModel
+from ...widgets.ConfigurationWidget import ConfigurationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

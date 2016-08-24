@@ -7,7 +7,7 @@ import shutil
 from PyQt4 import QtGui
 from mock import MagicMock
 
-from model.util.NewFileWatcher import NewFileInDirectoryWatcher
+from ...model.util.NewFileWatcher import NewFileInDirectoryWatcher
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 

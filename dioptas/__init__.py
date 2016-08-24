@@ -80,10 +80,10 @@ def excepthook(exc_type, exc_value, traceback_obj):
     errorbox.exec_()
 
 
-sys.excepthook = excepthook
 
 
 def main():
+    sys.excepthook = excepthook
     from sys import platform as _platform
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))

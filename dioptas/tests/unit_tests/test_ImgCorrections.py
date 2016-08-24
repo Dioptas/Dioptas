@@ -5,7 +5,7 @@ import gc
 
 import numpy as np
 
-from model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
+from ...model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
     ObliqueAngleDetectorAbsorptionCorrection
 
 
@@ -89,7 +89,7 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
 
 
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-from model.util.ImgCorrection import CbnCorrection
+from ...model.util.ImgCorrection import CbnCorrection
 
 
 class CbnCorrectionTest(unittest.TestCase):
@@ -140,9 +140,9 @@ class CbnCorrectionTest(unittest.TestCase):
         self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)
 
 
-from model.CalibrationModel import CalibrationModel
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
+from ...model.CalibrationModel import CalibrationModel
+from ...model.ImgModel import ImgModel
+from ...model.MaskModel import MaskModel
 from lmfit import Parameters, minimize, report_fit
 from scipy.ndimage import gaussian_filter1d
 import os
