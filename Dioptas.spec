@@ -36,12 +36,12 @@ matplotlib_path = os.path.dirname(matplotlib.__file__)
 lib2to3_path = os.path.dirname(lib2to3.__file__)
 
 extra_datas = [
-    ("calibrants", "calibrants"),
-    ("widgets/stylesheet.qss", "widgets"),
+    ("dioptas/calibrants", "dioptas/calibrants"),
+    ("dioptas/widgets/stylesheet.qss", "dioptas/widgets"),
     (os.path.join(pyFAI_path, 'calibration'), 'pyFAI/calibration'),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
-    ("model/util/data/*.json", "model/util/data")
+    ("dioptas/model/util/data/*.json", "dioptas/model/util/data")
 ]
 
 binaries = []
@@ -126,9 +126,7 @@ else:
     platform += "32"
 
 # getting the current version of Dioptas
-from controller.MainController import get_version
-
-version = get_version()
+from dioptas import __version__
 
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
@@ -147,9 +145,9 @@ coll = COLLECT(exe,
                a.datas,
                strip=False,
                upx=True,
-               name='Dioptas_{}_{}'.format(platform, version))
+               name='Dioptas_{}_{}'.format(platform, __version__))
 
 if _platform == "darwin":
     app = BUNDLE(coll,
-                 name='Dioptas_{}.app'.format(version),
+                 name='Dioptas_{}.app'.format(__version__),
                  icon='widgets/icns/icon.icns')
