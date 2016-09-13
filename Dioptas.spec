@@ -38,7 +38,6 @@ lib2to3_path = os.path.dirname(lib2to3.__file__)
 extra_datas = [
     ("dioptas/calibrants", "dioptas/calibrants"),
     ("dioptas/widgets/stylesheet.qss", "dioptas/widgets"),
-    (os.path.join(pyFAI_path, 'calibration'), 'pyFAI/calibration'),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
     ("dioptas/model/util/data/*.json", "dioptas/model/util/data")
