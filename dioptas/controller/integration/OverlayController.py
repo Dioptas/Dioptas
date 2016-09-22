@@ -25,6 +25,7 @@ from PyQt5 import QtWidgets, QtCore
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
 
+
 class OverlayController(object):
     """
     IntegrationOverlayController handles all the interaction between the Overlay controls of the integration view and
@@ -80,19 +81,20 @@ class OverlayController(object):
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
 
-    def add_overlay_btn_click_callback(self, filename=None):
+    def add_overlay_btn_click_callback(self):
         """
 
         :param filename: filepath of an overlay file, if set to None (default value) it will open a QFileDialog to
             select a spectrum file
         """
-        if filename is None:
-            filenames = QtWidgets.QFileDialog.getOpenFileNames(self.widget, "Load Overlay(s).", self.working_dir['overlay'])
-            if len(filenames):
-                for filename in filenames:
-                    filename = str(filename)
-                    self.model.overlay_model.add_overlay_file(filename)
-                self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
+        filenames = QtWidgets.QFileDialog.getOpenFileNames(self.widget, "Load Overlay(s).",
+                                                           self.working_dir['overlay'])[0]
+        print(filenames)
+        if len(filenames):
+            for filename in filenames:
+                filename = str(filename)
+                self.model.overlay_model.add_overlay_file(filename)
+            self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
         else:
             self.model.overlay_model.add_overlay_file(filename)
             self.working_dir['overlay'] = os.path.dirname(str(filename))
@@ -233,7 +235,7 @@ class OverlayController(object):
         if not self.widget.overlay_set_as_bkg_btn.isChecked():
             ## if the overlay is not currently a background
             # it will unset the current background and redisplay
-            self.model.pattern_model.background_pattern=None
+            self.model.pattern_model.background_pattern = None
         else:
             # if the overlay is currently the active background
             self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[cur_ind]
@@ -250,7 +252,6 @@ class OverlayController(object):
         self.widget.overlay_set_as_bkg_btn.setChecked(True)
         self.widget.overlay_show_cb_set_checked(-1, False)
 
-
     def overlay_set_as_bkg(self, ind):
         cur_selected_ind = self.widget.get_selected_overlay_row()
         self.widget.overlay_set_as_bkg_btn.setChecked(ind == cur_selected_ind)
@@ -262,7 +263,6 @@ class OverlayController(object):
         self.widget.overlay_show_cb_set_checked(ind, True)
         if self.model.pattern_model.bkg_ind == -1:
             self.widget.overlay_set_as_bkg_btn.setChecked(False)
-
 
     def overlay_show_cb_state_changed(self, ind, state):
         """

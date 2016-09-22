@@ -87,8 +87,8 @@ def main():
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))
 
-    if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
-        app.setStyle('plastique')
+    # if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
+    app.setStyle('plastique')
 
     controller = MainController()
     controller.show_window()

@@ -644,8 +644,8 @@ class ImageController(object):
                     return
                 y = np.array([y])
                 x = np.array([x])
-                tth = get_partial_value(self.model.cake_tth, y-0.5) / 180 * np.pi
-                azi = get_partial_value(self.model.cake_azi, x-0.5)
+                tth = get_partial_value(self.model.cake_tth, y - 0.5) / 180 * np.pi
+                azi = get_partial_value(self.model.cake_azi, x - 0.5)
             elif self.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
@@ -713,13 +713,12 @@ class ImageController(object):
             res = 0
         return res
 
-    def load_calibration(self, filename=None):
-        if filename is None:
-            filename = str(QtWidgets.QFileDialog.getOpenFileName(
-                self.widget, "Load calibration...",
-                self.working_dir[
-                    'calibration'],
-                '*.poni'))
+    def load_calibration(self):
+        filename = str(QtWidgets.QFileDialog.getOpenFileName(
+            self.widget, "Load calibration...",
+            self.working_dir[
+                'calibration'],
+            '*.poni')[0])
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
@@ -730,13 +729,12 @@ class ImageController(object):
     def auto_process_cb_click(self):
         self.model.img_model.autoprocess = self.widget.autoprocess_cb.isChecked()
 
-    def save_img(self, filename=None):
-        if filename is None:
-            img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
-            filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save Image.",
+    def save_img(self):
+        img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
+        filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save Image.",
                                                              os.path.join(self.working_dir['image'],
                                                                           img_filename + '.png'),
-                                                             ('Image (*.png);;Data (*.tiff)')))
+                                                             ('Image (*.png);;Data (*.tiff)'))[0])
         if filename is not '':
             if filename.endswith('.png'):
                 if self.img_mode == 'Cake':
@@ -767,9 +765,9 @@ class ImageController(object):
         if not self.model.calibration_model.is_calibrated:
             self.widget.cbn_groupbox.setChecked(False)
             QtWidgets.QMessageBox.critical(self.widget,
-                                       'ERROR',
-                                       'Please calibrate the geometry first or load an existent calibration file. ' + \
-                                       'The cBN seat correction needs a calibrated geometry.')
+                                           'ERROR',
+                                           'Please calibrate the geometry first or load an existent calibration file. ' + \
+                                           'The cBN seat correction needs a calibrated geometry.')
             return
 
         if self.widget.cbn_groupbox.isChecked():
@@ -886,9 +884,9 @@ class ImageController(object):
             self.widget.cbn_groupbox.setChecked(False)
             self.widget.oiadac_groupbox.setChecked(False)
             QtWidgets.QMessageBox.critical(self.widget,
-                                       'ERROR',
-                                       'Due to a change in image dimensions the absorption ' +
-                                       'corrections have been removed')
+                                           'ERROR',
+                                           'Due to a change in image dimensions the absorption ' +
+                                           'corrections have been removed')
 
     def update_gui(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)

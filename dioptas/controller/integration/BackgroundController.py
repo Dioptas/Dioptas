@@ -81,11 +81,10 @@ class BackgroundController(object):
         """
         emitter.clicked.connect(function)
 
-    def load_background_image(self, filename=None):
-        if filename is None:
-            filename = str(QtWidgets.QFileDialog.getOpenFileName(
+    def load_background_image(self):
+        filename = str(QtWidgets.QFileDialog.getOpenFileName(
                 self.widget, "Load an image background file",
-                self.working_dir['image']))
+                self.working_dir['image'])[0])
 
         if filename is not None and filename is not '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
