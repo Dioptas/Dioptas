@@ -95,7 +95,7 @@ class PhaseController(object):
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
 
-    def add_btn_click_callback(self, filename=None):
+    def add_btn_click_callback(self):
         """
         Loads a new phase from jcpds file.
         :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
@@ -104,33 +104,29 @@ class PhaseController(object):
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not load phase without calibration.")
 
-        if filename is None:
-            filenames = QtWidgets.QFileDialog.getOpenFileNames(
-                self.widget, "Load Phase(s).", self.working_dir['phase'])
-            if len(filenames):
-                self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
-                progress_dialog = QtWidgets.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
+        filenames = QtWidgets.QFileDialog.getOpenFileNames(
+            self.widget, "Load Phase(s).", self.working_dir['phase'])[0]
+
+        if len(filenames):
+            self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
+            progress_dialog = QtWidgets.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
                                                         self.widget)
-                progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
-                progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-                progress_dialog.show()
+            progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+            progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+            progress_dialog.show()
+            QtWidgets.QApplication.processEvents()
+            for ind, filename in enumerate(filenames):
+                filename = str(filename)
+                progress_dialog.setValue(ind)
+                progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
                 QtWidgets.QApplication.processEvents()
-                for ind, filename in enumerate(filenames):
-                    filename = str(filename)
-                    progress_dialog.setValue(ind)
-                    progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
-                    QtWidgets.QApplication.processEvents()
 
-                    self._add_phase(filename)
+                self._add_phase(filename)
 
-                    if progress_dialog.wasCanceled():
-                        break
-                progress_dialog.close()
-                QtWidgets.QApplication.processEvents()
-                self.update_temperature_control_visibility()
-        else:
-            self._add_phase(filename)
-            self.working_dir['phase'] = os.path.dirname(str(filename))
+                if progress_dialog.wasCanceled():
+                    break
+            progress_dialog.close()
+            QtWidgets.QApplication.processEvents()
             self.update_temperature_control_visibility()
 
     def _add_phase(self, filename):

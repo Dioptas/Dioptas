@@ -153,17 +153,15 @@ class PatternController(object):
         self.model.calibration_model.set_supersampling(value)
         self.model.img_model.set_supersampling(value)
 
-    def save_pattern(self, filename=None, subtract_background=False):
-        if filename is None:
-            img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
-            filename = str(QtWidgets.QFileDialog.getSaveFileName(
-                self.widget, "Save Spectrum Data.",
-                os.path.join(self.working_dir['spectrum'],
-                             img_filename + '.xy'),
-                ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))
-            )
+    def save_pattern(self):
+        img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
+        filename = str(QtWidgets.QFileDialog.getSaveFileName(
+            self.widget, "Save Spectrum Data.",
+            os.path.join(self.working_dir['spectrum'],
+                         img_filename + '.xy'),
+            ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))[0])
 
-            subtract_background = True  # when manually saving the spectrum the background will be subtracted
+        subtract_background = True  # when manually saving the spectrum the background will be subtracted
 
         if filename is not '':
             print(filename)
@@ -186,11 +184,11 @@ class PatternController(object):
             elif filename.endswith('.svg'):
                 self.widget.pattern_widget.save_svg(filename)
 
-    def load(self, filename=None):
-        if filename is None:
-            filename = str(QtWidgets.QFileDialog.getOpenFileName(
-                self.widget, caption="Load Spectrum",
-                directory=self.working_dir['spectrum']))
+    def load(self):
+        filename = str(QtWidgets.QFileDialog.getOpenFileName(
+            self.widget, caption="Load Spectrum",
+            directory=self.working_dir['spectrum'])[0])
+
         if filename is not '':
             self.working_dir['spectrum'] = os.path.dirname(filename)
             self.widget.spec_filename_txt.setText(os.path.basename(filename))
