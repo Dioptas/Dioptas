@@ -40,7 +40,7 @@ class LabelAlignRight(QtWidgets.QLabel):
 
 
 class CleanLooksComboBox(QtWidgets.QComboBox):
-    cleanlooks = QtWidgets.QStyleFactory.create('cleanlooks')
+    cleanlooks = QtWidgets.QStyleFactory.create('motif')
 
     def __init__(self, *args, **kwargs):
         super(CleanLooksComboBox, self).__init__(*args, **kwargs)

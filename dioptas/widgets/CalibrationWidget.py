@@ -283,8 +283,8 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
 
     def style_widgets(self):
         self.spectrum_widget.deactivate_pos_line()
-        self.calibrate_btn.setMinimumWidth(140)
-        self.refine_btn.setMinimumWidth(140)
+        self.calibrate_btn.setMinimumWidth(130)
+        self.refine_btn.setMinimumWidth(130)
 
 
 class CalibrationControlWidget(QtWidgets.QWidget):
@@ -327,10 +327,10 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         self.style_widgets()
 
     def style_widgets(self):
-        self.load_previous_img_btn.setMaximumWidth(60)
-        self.load_next_img_btn.setMaximumWidth(60)
-        self.setMaximumWidth(340)
-        self.setMinimumWidth(340)
+        self.load_previous_img_btn.setMaximumWidth(50)
+        self.load_next_img_btn.setMaximumWidth(50)
+        self.setMaximumWidth(350)
+        self.setMinimumWidth(350)
 
 
 class CalibrationParameterWidget(QtWidgets.QWidget):
@@ -462,7 +462,7 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
 
         self.automatic_refinement_cb = QtWidgets.QCheckBox('automatic refinement')
         self.automatic_refinement_cb.setChecked(True)
-        self._layout.addWidget(self.automatic_refinement_cb, 0, 0, 1, 2)
+        self._layout.addWidget(self.automatic_refinement_cb, 0, 0, 1, 1)
 
         self.use_mask_cb = QtWidgets.QCheckBox('use mask')
         self._layout.addWidget(self.use_mask_cb, 1, 0)
@@ -623,13 +623,3 @@ class Fit2dParametersWidget(QtWidgets.QWidget):
                              11, 0, 1, 4)
 
         self.setLayout(self._layout)
-
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication([])
-    widget = CalibrationWidget()
-    widget.show()
-    widget.setWindowState(widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-    widget.activateWindow()
-    widget.raise_()
-    app.exec_()
