@@ -1,6 +1,6 @@
 import unittest
 import os
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from ...model.util.HelperModule import FileNameIterator
 
@@ -11,9 +11,9 @@ data_path = os.path.join(unittest_path, '../data')
 class FileNameIteratorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.filename_iterator = FileNameIterator()

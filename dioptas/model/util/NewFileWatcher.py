@@ -1,7 +1,7 @@
 import os
 import time
 
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 class NewFileInDirectoryWatcher(QtCore.QObject):
     """

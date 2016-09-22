@@ -6,8 +6,8 @@ from ..utility import QtTest
 
 import mock
 import numpy as np
-from PyQt4 import QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtCore
+from PyQt5.QtTest import QTest
 
 from ...controller.integration import IntegrationController
 from ...model.DioptasModel import DioptasModel

@@ -1,16 +1,16 @@
 # -*- coding: utf8 -*-
 
 import unittest
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 import os
 
 
 class QtTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
 
 def delete_if_exists(data_path):

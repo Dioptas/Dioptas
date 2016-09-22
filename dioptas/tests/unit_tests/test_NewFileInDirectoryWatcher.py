@@ -4,7 +4,7 @@ import unittest
 import os
 import shutil
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 from mock import MagicMock
 
 from ...model.util.NewFileWatcher import NewFileInDirectoryWatcher
@@ -15,9 +15,9 @@ unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 class NewFileInDirectoryWatcherTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.directory_watcher = NewFileInDirectoryWatcher(path=None)

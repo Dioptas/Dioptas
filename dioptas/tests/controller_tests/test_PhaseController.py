@@ -4,8 +4,8 @@ import os
 import gc
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtTest import QTest
 from mock import MagicMock
 
 from ...controller.integration import PatternController
@@ -21,9 +21,9 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 class PhaseControllerTest(QtTest):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.model = DioptasModel()
@@ -49,7 +49,7 @@ class PhaseControllerTest(QtTest):
 
     def test_manual_deleting_phases(self):
         self.load_phases()
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.assertEqual(self.phase_tw.rowCount(), 6)
         self.assertEqual(len(self.model.phase_model.phases), 6)

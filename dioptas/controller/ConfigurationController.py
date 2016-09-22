@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import os
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.ConfigurationWidget import ConfigurationWidget

@@ -7,8 +7,8 @@ import numpy as np
 
 from mock import MagicMock
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtTest import QTest
 
 from ...controller.ConfigurationController import ConfigurationController
 from ...model.DioptasModel import DioptasModel
@@ -27,15 +27,15 @@ def enter_value_into_text_field(text_field, value):
     text_field.setText('')
     QTest.keyClicks(text_field, str(value))
     QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
-    QtGui.QApplication.processEvents()
+    QtWidgets.QApplication.processEvents()
 
 
 class ConfigurationControllerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.config_widget = ConfigurationWidget()

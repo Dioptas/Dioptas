@@ -18,7 +18,7 @@
 import unittest
 from mock import MagicMock
 import os
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 import numpy as np
 
@@ -33,9 +33,9 @@ spe_path = os.path.join(data_path, 'spe')
 class ImgModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.img_model = ImgModel()

@@ -20,7 +20,7 @@ from __future__ import absolute_import, print_function
 
 import pyqtgraph as pg
 import numpy as np
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
 

@@ -4,7 +4,7 @@
 import logging
 
 from copy import copy
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 import numpy as np
 
 from .util.HelperModule import FileNameIterator, get_base_name

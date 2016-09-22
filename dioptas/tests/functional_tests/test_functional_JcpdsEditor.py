@@ -22,8 +22,8 @@ import os
 import gc
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtTest import QTest
 
 from ...model.util import jcpds
 from ...model.DioptasModel import DioptasModel
@@ -43,10 +43,10 @@ def calculate_cubic_d_spacing(h, k, l, a):
 class JcpdsEditorFunctionalTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
-        QtGui.QApplication.processEvents = MagicMock()
+            cls.app = QtWidgets.QApplication([])
+        QtWidgets.QApplication.processEvents = MagicMock()
         cls.app.processEvents = MagicMock()
 
     def setUp(self):
@@ -67,16 +67,16 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         text_field.setText('')
         QTest.keyClicks(text_field, str(value))
         QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
     def enter_value_into_spinbox(self, spinbox, value):
         spinbox.setValue(value)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         self.assertEqual(spinbox.value(), value)
 
     def set_symmetry(self, symmetry):
         self.jcpds_widget.symmetry_cb.setCurrentIndex(self.jcpds_widget.symmetries.index(symmetry))
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
     def get_reflection_table_value(self, row, col):
         item = self.jcpds_widget.reflection_table.item(row, col)
@@ -156,7 +156,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # then he decides to put a new lattice parameter into the a box and realizes that all
         # others are changing too.
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 4.08)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         a = float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.'))
         b = float(str(self.jcpds_widget.lattice_b_sb.text()).replace(',', '.'))
         c = float(str(self.jcpds_widget.lattice_c_sb.text()).replace(',', '.'))
@@ -298,7 +298,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # then he changed his mind and wants to add the reflection back:
 
         QTest.mouseClick(self.jcpds_widget.reflections_add_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.assertEqual(len(self.jcpds.reflections), 13)
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
@@ -397,7 +397,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         # He changes some parameter but then realizes that he screwed it up and presses cancel to revert all his changes
 
@@ -414,7 +414,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller.widget.phase_tw.selectRow(1)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.phase_controller.widget.phase_tw.selectRow(2)
         self.assertTrue(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')),
@@ -424,7 +424,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         prev_line_pos = self.get_phase_line_position(2, 0)
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 3.4)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         # now he decides to have full control, changes the structure to TRICLINIC and plays with all parameters:
@@ -514,7 +514,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
         self.assertEqual(len(self.jcpds_phase.reflections), 13)
@@ -596,7 +596,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
         self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
 
@@ -622,7 +622,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         # he looks at the jcpds_editor and sees that there are not only hkl and intensity values for each reflection but
         # also d0, d, two_theta0 and two_theta

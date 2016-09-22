@@ -8,8 +8,8 @@ from mock import MagicMock
 
 from ..utility import QtTest
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtTest import QTest
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtTest import QTest
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.ImageController import ImageController

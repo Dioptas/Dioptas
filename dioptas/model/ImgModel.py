@@ -22,7 +22,7 @@ from past.builtins import basestring
 
 import numpy as np
 from PIL import Image
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 import fabio
 

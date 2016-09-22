@@ -3,7 +3,7 @@
 import unittest
 import os
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 import numpy as np
 
@@ -19,9 +19,9 @@ calibrant_path = os.path.join(unittest_path, '../../calibrants')
 class CalibrationModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.img_model = ImgModel()

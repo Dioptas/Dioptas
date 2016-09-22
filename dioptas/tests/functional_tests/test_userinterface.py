@@ -5,7 +5,7 @@ import gc
 
 import numpy as np
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 from ...controller import MainController
 
@@ -16,9 +16,9 @@ data_path = os.path.join(unittest_path, os.pardir, 'data')
 class UserInterFaceTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     @classmethod
     def tearDownClass(cls):

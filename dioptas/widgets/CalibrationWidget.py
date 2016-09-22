@@ -18,7 +18,7 @@
 
 import os
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
 from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
@@ -28,7 +28,7 @@ from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox,
     DoubleSpinBoxAlignRight, FlatButton
 
 
-class CalibrationWidget(QtGui.QWidget):
+class CalibrationWidget(QtWidgets.QWidget):
     """
     Defines the main structure of the calibration widget, which is separated into two parts.
     Calibration Display Widget - shows the image and pattern
@@ -41,7 +41,7 @@ class CalibrationWidget(QtGui.QWidget):
         self.calibration_display_widget = CalibrationDisplayWidget(self)
         self.calibration_control_widget = CalibrationControlWidget(self)
 
-        self._layout = QtGui.QHBoxLayout()
+        self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(10, 6, 6, 6)
         self._layout.addWidget(self.calibration_display_widget)
         self._layout.addWidget(self.calibration_control_widget)
@@ -245,11 +245,11 @@ class CalibrationWidget(QtGui.QWidget):
         return fit2d_parameter
 
 
-class CalibrationDisplayWidget(QtGui.QWidget):
+class CalibrationDisplayWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(CalibrationDisplayWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout(self)
+        self._layout = QtWidgets.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.img_layout_widget = GraphicsLayoutWidget()
@@ -260,21 +260,21 @@ class CalibrationDisplayWidget(QtGui.QWidget):
         self.cake_widget = CalibrationCakeWidget(self.cake_layout_widget)
         self.spectrum_widget = SpectrumWidget(self.spectrum_layout_widget)
 
-        self.tab_widget = QtGui.QTabWidget()
+        self.tab_widget = QtWidgets.QTabWidget()
         self.tab_widget.addTab(self.img_layout_widget, 'Image')
         self.tab_widget.addTab(self.cake_layout_widget, 'Cake')
         self.tab_widget.addTab(self.spectrum_layout_widget, 'Pattern')
         self._layout.addWidget(self.tab_widget)
 
-        self._status_layout = QtGui.QHBoxLayout()
+        self._status_layout = QtWidgets.QHBoxLayout()
         self.calibrate_btn = FlatButton("Calibrate")
         self.refine_btn = FlatButton("Refine")
-        self.position_lbl = QtGui.QLabel("position_lbl")
+        self.position_lbl = QtWidgets.QLabel("position_lbl")
 
         self._status_layout.addWidget(self.calibrate_btn)
         self._status_layout.addWidget(self.refine_btn)
-        self._status_layout.addSpacerItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
-                                                            QtGui.QSizePolicy.Minimum))
+        self._status_layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                                            QtWidgets.QSizePolicy.Minimum))
         self._status_layout.addWidget(self.position_lbl)
         self._layout.addLayout(self._status_layout)
 
@@ -287,13 +287,13 @@ class CalibrationDisplayWidget(QtGui.QWidget):
         self.refine_btn.setMinimumWidth(140)
 
 
-class CalibrationControlWidget(QtGui.QWidget):
+class CalibrationControlWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(CalibrationControlWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout(self)
+        self._layout = QtWidgets.QVBoxLayout(self)
 
-        self._file_layout = QtGui.QHBoxLayout()
+        self._file_layout = QtWidgets.QHBoxLayout()
         self.load_img_btn = FlatButton("Load File", self)
         self.load_previous_img_btn = FlatButton("<", self)
         self.load_next_img_btn = FlatButton(">", self)
@@ -304,10 +304,10 @@ class CalibrationControlWidget(QtGui.QWidget):
 
         self._layout.addLayout(self._file_layout)
 
-        self.filename_txt = QtGui.QLineEdit('', self)
+        self.filename_txt = QtWidgets.QLineEdit('', self)
         self._layout.addWidget(self.filename_txt)
 
-        self.toolbox = QtGui.QToolBox()
+        self.toolbox = QtWidgets.QToolBox()
         self.calibration_parameters_widget = CalibrationParameterWidget()
         self.pyfai_parameters_widget = PyfaiParametersWidget()
         self.fit2d_parameters_widget = Fit2dParametersWidget()
@@ -317,7 +317,7 @@ class CalibrationControlWidget(QtGui.QWidget):
         self.toolbox.addItem(self.fit2d_parameters_widget, 'Fit2d Parameters')
         self._layout.addWidget(self.toolbox)
 
-        self._bottom_layout = QtGui.QHBoxLayout()
+        self._bottom_layout = QtWidgets.QHBoxLayout()
         self.load_calibration_btn = FlatButton('Load Calibration')
         self.save_calibration_btn = FlatButton('Save Calibration')
         self._bottom_layout.addWidget(self.load_calibration_btn)
@@ -333,11 +333,11 @@ class CalibrationControlWidget(QtGui.QWidget):
         self.setMinimumWidth(340)
 
 
-class CalibrationParameterWidget(QtGui.QWidget):
+class CalibrationParameterWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(CalibrationParameterWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout(self)
+        self._layout = QtWidgets.QVBoxLayout(self)
 
         self.start_values_gb = StartValuesGroupBox(self)
         self.peak_selection_gb = PeakSelectionGroupBox()
@@ -346,33 +346,33 @@ class CalibrationParameterWidget(QtGui.QWidget):
         self._layout.addWidget(self.start_values_gb)
         self._layout.addWidget(self.peak_selection_gb)
         self._layout.addWidget(self.refinement_options_gb)
-        self._layout.addSpacerItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
-                                                     QtGui.QSizePolicy.Expanding))
+        self._layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                                     QtWidgets.QSizePolicy.Expanding))
 
         self.setLayout(self._layout)
 
 
-class StartValuesGroupBox(QtGui.QGroupBox):
+class StartValuesGroupBox(QtWidgets.QGroupBox):
     def __init__(self, *args, **kwargs):
         super(StartValuesGroupBox, self).__init__('Start values', *args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout(self)
+        self._layout = QtWidgets.QVBoxLayout(self)
 
-        self._grid_layout1 = QtGui.QGridLayout()
+        self._grid_layout1 = QtWidgets.QGridLayout()
 
         self._grid_layout1.addWidget(LabelAlignRight('Distance:'), 0, 0)
         self.distance_txt = NumberTextField('200')
-        self.distance_cb = QtGui.QCheckBox()
+        self.distance_cb = QtWidgets.QCheckBox()
         self.distance_cb.setChecked(True)
         self._grid_layout1.addWidget(self.distance_txt, 0, 1)
-        self._grid_layout1.addWidget(QtGui.QLabel('mm'), 0, 2)
+        self._grid_layout1.addWidget(QtWidgets.QLabel('mm'), 0, 2)
         self._grid_layout1.addWidget(self.distance_cb, 0, 3)
 
         self._grid_layout1.addWidget(LabelAlignRight('Wavelength:'), 1, 0)
         self.wavelength_txt = NumberTextField('0.3344')
-        self.wavelength_cb = QtGui.QCheckBox()
+        self.wavelength_cb = QtWidgets.QCheckBox()
         self._grid_layout1.addWidget(self.wavelength_txt, 1, 1)
-        self._grid_layout1.addWidget(QtGui.QLabel('A'), 1, 2)
+        self._grid_layout1.addWidget(QtWidgets.QLabel('A'), 1, 2)
         self._grid_layout1.addWidget(self.wavelength_cb, 1, 3)
 
         self._grid_layout1.addWidget(LabelAlignRight('Polarization:'), 2, 0)
@@ -382,18 +382,18 @@ class StartValuesGroupBox(QtGui.QGroupBox):
         self._grid_layout1.addWidget(LabelAlignRight('Pixel width:'), 3, 0)
         self.pixel_width_txt = NumberTextField('72')
         self._grid_layout1.addWidget(self.pixel_width_txt, 3, 1)
-        self._grid_layout1.addWidget(QtGui.QLabel('um'))
+        self._grid_layout1.addWidget(QtWidgets.QLabel('um'))
 
         self._grid_layout1.addWidget(LabelAlignRight('Pixel height:'), 4, 0)
         self.pixel_height_txt = NumberTextField('72')
         self._grid_layout1.addWidget(self.pixel_height_txt, 4, 1)
-        self._grid_layout1.addWidget(QtGui.QLabel('um'))
+        self._grid_layout1.addWidget(QtWidgets.QLabel('um'))
 
         self._grid_layout1.addWidget(LabelAlignRight('Calibrant:'), 5, 0)
         self.calibrant_cb = CleanLooksComboBox()
         self._grid_layout1.addWidget(self.calibrant_cb, 5, 1, 1, 2)
 
-        self._grid_layout2 = QtGui.QGridLayout()
+        self._grid_layout2 = QtWidgets.QGridLayout()
         self._grid_layout2.setSpacing(6)
 
         self.rotate_p90_btn = FlatButton('Rotate +90')
@@ -415,28 +415,28 @@ class StartValuesGroupBox(QtGui.QGroupBox):
         self.setLayout(self._layout)
 
 
-class PeakSelectionGroupBox(QtGui.QGroupBox):
+class PeakSelectionGroupBox(QtWidgets.QGroupBox):
     def __init__(self):
         super(PeakSelectionGroupBox, self).__init__('Peak Selection')
 
-        self._layout = QtGui.QGridLayout()
-        self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
-                                               QtGui.QSizePolicy.Minimum), 0, 0)
+        self._layout = QtWidgets.QGridLayout()
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                               QtWidgets.QSizePolicy.Minimum), 0, 0)
         self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
         self.peak_num_sb = SpinBoxAlignRight()
         self.peak_num_sb.setValue(1)
         self.peak_num_sb.setMinimum(1)
         self._layout.addWidget(self.peak_num_sb, 0, 3)
 
-        self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
-                                               QtGui.QSizePolicy.Minimum), 1, 0, 1, 2)
-        self.automatic_peak_num_inc_cb = QtGui.QCheckBox('automatic increase')
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                               QtWidgets.QSizePolicy.Minimum), 1, 0, 1, 2)
+        self.automatic_peak_num_inc_cb = QtWidgets.QCheckBox('automatic increase')
         self.automatic_peak_num_inc_cb.setChecked(True)
         self._layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
 
-        self.automatic_peak_search_rb = QtGui.QRadioButton('automatic peak search')
+        self.automatic_peak_search_rb = QtWidgets.QRadioButton('automatic peak search')
         self.automatic_peak_search_rb.setChecked(True)
-        self.select_peak_rb = QtGui.QRadioButton('single peak search')
+        self.select_peak_rb = QtWidgets.QRadioButton('single peak search')
         self._layout.addWidget(self.automatic_peak_search_rb, 2, 0, 1, 4)
         self._layout.addWidget(self.select_peak_rb, 3, 0, 1, 4)
 
@@ -445,8 +445,8 @@ class PeakSelectionGroupBox(QtGui.QGroupBox):
         self.search_size_sb.setValue(10)
         self.search_size_sb.setMaximumWidth(50)
         self._layout.addWidget(self.search_size_sb, 4, 1, 1, 2)
-        self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding,
-                                               QtGui.QSizePolicy.Minimum), 4, 2, 1, 2)
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                               QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
 
         self.clear_peaks_btn = FlatButton("Clear All Peaks")
         self._layout.addWidget(self.clear_peaks_btn, 5, 0, 1, 4)
@@ -454,20 +454,20 @@ class PeakSelectionGroupBox(QtGui.QGroupBox):
         self.setLayout(self._layout)
 
 
-class RefinementOptionsGroupBox(QtGui.QGroupBox):
+class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
     def __init__(self):
         super(RefinementOptionsGroupBox, self).__init__('Refinement Options')
 
-        self._layout = QtGui.QGridLayout()
+        self._layout = QtWidgets.QGridLayout()
 
-        self.automatic_refinement_cb = QtGui.QCheckBox('automatic refinement')
+        self.automatic_refinement_cb = QtWidgets.QCheckBox('automatic refinement')
         self.automatic_refinement_cb.setChecked(True)
         self._layout.addWidget(self.automatic_refinement_cb, 0, 0, 1, 2)
 
-        self.use_mask_cb = QtGui.QCheckBox('use mask')
+        self.use_mask_cb = QtWidgets.QCheckBox('use mask')
         self._layout.addWidget(self.use_mask_cb, 1, 0)
 
-        self.mask_transparent_cb = QtGui.QCheckBox('transparent')
+        self.mask_transparent_cb = QtWidgets.QCheckBox('transparent')
         self._layout.addWidget(self.mask_transparent_cb, 1, 1)
 
         self._layout.addWidget(LabelAlignRight('Peak Search Algorithm:'), 2, 0)
@@ -497,25 +497,25 @@ class RefinementOptionsGroupBox(QtGui.QGroupBox):
         self.setLayout(self._layout)
 
 
-class PyfaiParametersWidget(QtGui.QWidget):
+class PyfaiParametersWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(PyfaiParametersWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QGridLayout()
+        self._layout = QtWidgets.QGridLayout()
 
         self._layout.addWidget(LabelAlignRight('Distance:'), 0, 0)
         self.distance_txt = NumberTextField()
-        self.distance_cb = QtGui.QCheckBox()
+        self.distance_cb = QtWidgets.QCheckBox()
         self.distance_cb.setChecked(True)
         self._layout.addWidget(self.distance_txt, 0, 1)
-        self._layout.addWidget(QtGui.QLabel('mm'), 0, 2)
+        self._layout.addWidget(QtWidgets.QLabel('mm'), 0, 2)
         self._layout.addWidget(self.distance_cb, 0, 3)
 
         self._layout.addWidget(LabelAlignRight('Wavelength:'), 1, 0)
         self.wavelength_txt = NumberTextField()
-        self.wavelength_cb = QtGui.QCheckBox()
+        self.wavelength_cb = QtWidgets.QCheckBox()
         self._layout.addWidget(self.wavelength_txt, 1, 1)
-        self._layout.addWidget(QtGui.QLabel('A'), 1, 2)
+        self._layout.addWidget(QtWidgets.QLabel('A'), 1, 2)
         self._layout.addWidget(self.wavelength_cb, 1, 3)
 
         self._layout.addWidget(LabelAlignRight('Polarization:'), 2, 0)
@@ -525,11 +525,11 @@ class PyfaiParametersWidget(QtGui.QWidget):
         self._layout.addWidget(LabelAlignRight('PONI:'), 3, 0)
         self.poni1_txt = NumberTextField()
         self._layout.addWidget(self.poni1_txt, 3, 1)
-        self._layout.addWidget(QtGui.QLabel('m'), 3, 2)
+        self._layout.addWidget(QtWidgets.QLabel('m'), 3, 2)
 
         self.poni2_txt = NumberTextField()
         self._layout.addWidget(self.poni2_txt, 4, 1)
-        self._layout.addWidget(QtGui.QLabel('m'), 4, 2)
+        self._layout.addWidget(QtWidgets.QLabel('m'), 4, 2)
 
         self._layout.addWidget(LabelAlignRight('Rotations'), 5, 0)
         self.rotation1_txt = NumberTextField()
@@ -538,48 +538,48 @@ class PyfaiParametersWidget(QtGui.QWidget):
         self._layout.addWidget(self.rotation1_txt, 5, 1)
         self._layout.addWidget(self.rotation2_txt, 6, 1)
         self._layout.addWidget(self.rotation3_txt, 7, 1)
-        self._layout.addWidget(QtGui.QLabel('rad'), 5, 2)
-        self._layout.addWidget(QtGui.QLabel('rad'), 6, 2)
-        self._layout.addWidget(QtGui.QLabel('rad'), 7, 2)
+        self._layout.addWidget(QtWidgets.QLabel('rad'), 5, 2)
+        self._layout.addWidget(QtWidgets.QLabel('rad'), 6, 2)
+        self._layout.addWidget(QtWidgets.QLabel('rad'), 7, 2)
 
         self._layout.addWidget(LabelAlignRight('Pixel width:'), 8, 0)
         self.pixel_width_txt = NumberTextField()
         self._layout.addWidget(self.pixel_width_txt, 8, 1)
-        self._layout.addWidget(QtGui.QLabel('um'))
+        self._layout.addWidget(QtWidgets.QLabel('um'))
 
         self._layout.addWidget(LabelAlignRight('Pixel height:'), 9, 0)
         self.pixel_height_txt = NumberTextField()
         self._layout.addWidget(self.pixel_height_txt, 9, 1)
-        self._layout.addWidget(QtGui.QLabel('um'))
+        self._layout.addWidget(QtWidgets.QLabel('um'))
 
         self.update_btn = FlatButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
-        self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding),
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
                              11, 0, 1, 4)
 
         self.setLayout(self._layout)
 
 
-class Fit2dParametersWidget(QtGui.QWidget):
+class Fit2dParametersWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(Fit2dParametersWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QGridLayout()
+        self._layout = QtWidgets.QGridLayout()
 
         self._layout.addWidget(LabelAlignRight('Distance:'), 0, 0)
         self.distance_txt = NumberTextField()
-        self.distance_cb = QtGui.QCheckBox()
+        self.distance_cb = QtWidgets.QCheckBox()
         self.distance_cb.setChecked(True)
         self._layout.addWidget(self.distance_txt, 0, 1)
-        self._layout.addWidget(QtGui.QLabel('mm'), 0, 2)
+        self._layout.addWidget(QtWidgets.QLabel('mm'), 0, 2)
         self._layout.addWidget(self.distance_cb, 0, 3)
 
         self._layout.addWidget(LabelAlignRight('Wavelength:'), 1, 0)
         self.wavelength_txt = NumberTextField()
-        self.wavelength_cb = QtGui.QCheckBox()
+        self.wavelength_cb = QtWidgets.QCheckBox()
         self._layout.addWidget(self.wavelength_txt, 1, 1)
-        self._layout.addWidget(QtGui.QLabel('A'), 1, 2)
+        self._layout.addWidget(QtWidgets.QLabel('A'), 1, 2)
         self._layout.addWidget(self.wavelength_cb, 1, 3)
 
         self._layout.addWidget(LabelAlignRight('Polarization:'), 2, 0)
@@ -589,44 +589,44 @@ class Fit2dParametersWidget(QtGui.QWidget):
         self._layout.addWidget(LabelAlignRight('Center X:'), 3, 0)
         self.center_x_txt = NumberTextField()
         self._layout.addWidget(self.center_x_txt, 3, 1)
-        self._layout.addWidget(QtGui.QLabel('px'), 3, 2)
+        self._layout.addWidget(QtWidgets.QLabel('px'), 3, 2)
 
         self._layout.addWidget(LabelAlignRight('Center Y:'), 4, 0)
         self.center_y_txt = NumberTextField()
         self._layout.addWidget(self.center_y_txt, 4, 1)
-        self._layout.addWidget(QtGui.QLabel('px'), 4, 2)
+        self._layout.addWidget(QtWidgets.QLabel('px'), 4, 2)
 
         self._layout.addWidget(LabelAlignRight('Rotation:'), 5, 0)
         self.rotation_txt = NumberTextField()
         self._layout.addWidget(self.rotation_txt, 5, 1)
-        self._layout.addWidget(QtGui.QLabel('deg'), 5, 2)
+        self._layout.addWidget(QtWidgets.QLabel('deg'), 5, 2)
 
         self._layout.addWidget(LabelAlignRight('Tilt:'), 6, 0)
         self.tilt_txt = NumberTextField()
         self._layout.addWidget(self.tilt_txt, 6, 1)
-        self._layout.addWidget(QtGui.QLabel('deg'), 6, 2)
+        self._layout.addWidget(QtWidgets.QLabel('deg'), 6, 2)
 
         self._layout.addWidget(LabelAlignRight('Pixel width:'), 8, 0)
         self.pixel_width_txt = NumberTextField()
         self._layout.addWidget(self.pixel_width_txt, 8, 1)
-        self._layout.addWidget(QtGui.QLabel('um'))
+        self._layout.addWidget(QtWidgets.QLabel('um'))
 
         self._layout.addWidget(LabelAlignRight('Pixel height:'), 9, 0)
         self.pixel_height_txt = NumberTextField()
         self._layout.addWidget(self.pixel_height_txt, 9, 1)
-        self._layout.addWidget(QtGui.QLabel('um'))
+        self._layout.addWidget(QtWidgets.QLabel('um'))
 
         self.update_btn = FlatButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
-        self._layout.addItem(QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding),
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
                              11, 0, 1, 4)
 
         self.setLayout(self._layout)
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
     widget = CalibrationWidget()
     widget.show()
     widget.setWindowState(widget.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)

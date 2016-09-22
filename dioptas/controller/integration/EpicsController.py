@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtWidgets
 import numpy as np
 try:
     import epics
@@ -146,24 +146,24 @@ class EpicsController(object):
 
     @staticmethod
     def show_error_message_box(msg):
-        msg_box = QtGui.QMessageBox()
+        msg_box = QtWidgets.QMessageBox()
         msg_box.setWindowFlags(QtCore.Qt.Tool)
         msg_box.setText(msg)
-        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.setWindowTitle('Error')
-        msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
-        msg_box.setDefaultButton(QtGui.QMessageBox.Ok)
+        msg_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msg_box.setDefaultButton(QtWidgets.QMessageBox.Ok)
         msg_box.exec_()
 
     @staticmethod
     def show_continue_abort_message_box(msg):
-        msg_box = QtGui.QMessageBox()
+        msg_box = QtWidgets.QMessageBox()
         msg_box.setWindowFlags(QtCore.Qt.Tool)
         msg_box.setText("<p align='center' style='font-size:20px' >{}</p>".format(msg))
-        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.setWindowTitle('Continue?')
-        msg_box.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.Abort)
-        msg_box.setDefaultButton(QtGui.QMessageBox.Abort)
+        msg_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Abort)
+        msg_box.setDefaultButton(QtWidgets.QMessageBox.Abort)
         msg_box.exec_()
         return msg_box.result()
 
@@ -187,7 +187,7 @@ class EpicsController(object):
         if largest_distance > 0.2:
             reply = self.show_continue_abort_message_box(
                 'Current and image positions are far away from each other. Are you sure, you want to move?')
-            if reply == QtGui.QMessageBox.Abort:
+            if reply == QtWidgets.QMessageBox.Abort:
                 return False
 
         return True

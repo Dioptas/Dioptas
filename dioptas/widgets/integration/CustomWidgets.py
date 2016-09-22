@@ -16,16 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets, QtGui
 
 from ..CustomWidgets import LabelAlignRight, FlatButton
 
 
-class MouseCurrentAndClickedWidget(QtGui.QWidget):
+class MouseCurrentAndClickedWidget(QtWidgets.QWidget):
     def __init__(self, clicked_color):
         super(MouseCurrentAndClickedWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setSpacing(0)
 
         self.cur_pos_widget = MousePositionWidget()
@@ -37,16 +37,16 @@ class MouseCurrentAndClickedWidget(QtGui.QWidget):
         self.setLayout(self._layout)
 
 
-class MousePositionWidget(QtGui.QWidget):
+class MousePositionWidget(QtWidgets.QWidget):
     def __init__(self, color=None):
         super(MousePositionWidget, self).__init__()
 
-        self._layout = QtGui.QHBoxLayout()
+        self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
 
-        self.x_pos_lbl = QtGui.QLabel('X:')
-        self.y_pos_lbl = QtGui.QLabel('Y:')
-        self.int_lbl = QtGui.QLabel('I:')
+        self.x_pos_lbl = QtWidgets.QLabel('X:')
+        self.y_pos_lbl = QtWidgets.QLabel('Y:')
+        self.int_lbl = QtWidgets.QLabel('I:')
 
         self._layout.addWidget(self.x_pos_lbl)
         self._layout.addWidget(self.y_pos_lbl)
@@ -70,10 +70,10 @@ class MousePositionWidget(QtGui.QWidget):
             self.int_lbl.setStyleSheet(style_str)
 
 
-class MouseUnitCurrentAndClickedWidget(QtGui.QWidget):
+class MouseUnitCurrentAndClickedWidget(QtWidgets.QWidget):
     def __init__(self, clicked_color):
         super(MouseUnitCurrentAndClickedWidget, self).__init__()
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setSpacing(0)
 
         self.cur_unit_widget = MouseUnitWidget()
@@ -85,17 +85,17 @@ class MouseUnitCurrentAndClickedWidget(QtGui.QWidget):
         self.setLayout(self._layout)
 
 
-class MouseUnitWidget(QtGui.QWidget):
+class MouseUnitWidget(QtWidgets.QWidget):
     def __init__(self, color=None):
         super(MouseUnitWidget, self).__init__()
 
-        self._layout = QtGui.QHBoxLayout()
+        self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
 
-        self.tth_lbl = QtGui.QLabel(u"2θ:")
-        self.q_lbl = QtGui.QLabel('Q:')
-        self.d_lbl = QtGui.QLabel('d:')
-        self.azi_lbl = QtGui.QLabel('X:')
+        self.tth_lbl = QtWidgets.QLabel(u"2θ:")
+        self.q_lbl = QtWidgets.QLabel('Q:')
+        self.d_lbl = QtWidgets.QLabel('d:')
+        self.azi_lbl = QtWidgets.QLabel('X:')
 
         self._layout.addWidget(self.tth_lbl)
         self._layout.addWidget(self.q_lbl)
@@ -121,34 +121,34 @@ class MouseUnitWidget(QtGui.QWidget):
             self.azi_lbl.setStyleSheet(style_str)
 
 
-class BrowseFileWidget(QtGui.QWidget):
+class BrowseFileWidget(QtWidgets.QWidget):
     def __init__(self, files, checkbox_text):
         super(BrowseFileWidget, self).__init__()
 
-        self._layout = QtGui.QGridLayout()
+        self._layout = QtWidgets.QGridLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setVerticalSpacing(6)
         self._layout.setHorizontalSpacing(12)
 
         self.load_btn = FlatButton('Load {}(s)'.format(files))
-        self.file_cb = QtGui.QCheckBox(checkbox_text)
+        self.file_cb = QtWidgets.QCheckBox(checkbox_text)
         self.next_btn = FlatButton('>')
         self.previous_btn = FlatButton('<')
-        self.step_txt = QtGui.QLineEdit('1')
+        self.step_txt = QtWidgets.QLineEdit('1')
         self.step_txt.setValidator(QtGui.QIntValidator())
-        self.browse_by_name_rb = QtGui.QRadioButton('By Name')
+        self.browse_by_name_rb = QtWidgets.QRadioButton('By Name')
         self.browse_by_name_rb.setChecked(True)
-        self.browse_by_time_rb = QtGui.QRadioButton('By Time')
-        self.directory_txt = QtGui.QLineEdit('')
+        self.browse_by_time_rb = QtWidgets.QRadioButton('By Time')
+        self.directory_txt = QtWidgets.QLineEdit('')
         self.directory_btn = FlatButton('...')
-        self.file_txt = QtGui.QLineEdit('')
+        self.file_txt = QtWidgets.QLineEdit('')
 
         self._layout.addWidget(self.load_btn, 0, 0)
         self._layout.addWidget(self.file_cb, 1, 0)
 
         self._layout.addWidget(self.previous_btn, 0, 1)
         self._layout.addWidget(self.next_btn, 0, 2)
-        self._step_layout = QtGui.QHBoxLayout()
+        self._step_layout = QtWidgets.QHBoxLayout()
         self._step_layout.addWidget(LabelAlignRight('Step:'))
         self._step_layout.addWidget(self.step_txt)
         self._layout.addLayout(self._step_layout, 1, 1, 1, 2)

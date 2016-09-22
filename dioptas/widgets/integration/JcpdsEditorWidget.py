@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
     VerticalSpacerItem, FlatButton, CleanLooksComboBox
@@ -24,26 +24,26 @@ from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpi
 from ...model.util.HelperModule import convert_d_to_two_theta
 
 
-class JcpdsEditorWidget(QtGui.QWidget):
+class JcpdsEditorWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(JcpdsEditorWidget, self).__init__(parent)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
 
-        self._file_layout = QtGui.QGridLayout()
+        self._file_layout = QtWidgets.QGridLayout()
         self._file_layout.addWidget(LabelAlignRight('Filename:'), 0, 0)
         self._file_layout.addWidget(LabelAlignRight('Comment:'), 1, 0)
 
-        self.filename_txt = QtGui.QLineEdit('')
-        self.comments_txt = QtGui.QLineEdit('')
+        self.filename_txt = QtWidgets.QLineEdit('')
+        self.comments_txt = QtWidgets.QLineEdit('')
         self._file_layout.addWidget(self.filename_txt, 0, 1)
         self._file_layout.addWidget(self.comments_txt, 1, 1)
         self._layout.addLayout((self._file_layout))
 
-        self.lattice_parameters_gb = QtGui.QGroupBox('Lattice Parameters')
-        self._lattice_parameters_layout = QtGui.QVBoxLayout()
+        self.lattice_parameters_gb = QtWidgets.QGroupBox('Lattice Parameters')
+        self._lattice_parameters_layout = QtWidgets.QVBoxLayout()
 
-        self._symmetry_layout = QtGui.QHBoxLayout()
+        self._symmetry_layout = QtWidgets.QHBoxLayout()
         self._symmetry_layout.addWidget(LabelAlignRight('Symmetry'))
         self.symmetry_cb = CleanLooksComboBox()
         self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'rhombohedral',
@@ -53,7 +53,7 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self._symmetry_layout.addSpacerItem(HorizontalSpacerItem())
         self._lattice_parameters_layout.addLayout(self._symmetry_layout)
 
-        self._parameters_layout = QtGui.QGridLayout()
+        self._parameters_layout = QtWidgets.QGridLayout()
 
         self.lattice_a_sb = DoubleSpinBoxAlignRight()
         self.lattice_a_sb.setSingleStep(0.01)
@@ -120,8 +120,8 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self._lattice_parameters_layout.addLayout(self._parameters_layout)
         self.lattice_parameters_gb.setLayout(self._lattice_parameters_layout)
 
-        self.eos_gb = QtGui.QGroupBox('Equation of State')
-        self._eos_layout = QtGui.QGridLayout()
+        self.eos_gb = QtWidgets.QGroupBox('Equation of State')
+        self._eos_layout = QtWidgets.QGridLayout()
 
         self.eos_K_txt = NumberTextField()
         self.eos_Kp_txt = NumberTextField()
@@ -138,9 +138,9 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.add_field(self._eos_layout, self.eos_dKpdT_txt, "dK'/dT", '1/K', 5, 0)
         self.eos_gb.setLayout(self._eos_layout)
 
-        self.reflections_gb = QtGui.QGroupBox('Reflections')
-        self._reflection_layout = QtGui.QGridLayout()
-        self.reflection_table = QtGui.QTableWidget()
+        self.reflections_gb = QtWidgets.QGroupBox('Reflections')
+        self._reflection_layout = QtWidgets.QGridLayout()
+        self.reflection_table = QtWidgets.QTableWidget()
         self.reflection_table.setColumnCount(8)
         self.reflections_add_btn = FlatButton('Add')
         self.reflections_delete_btn = FlatButton('Delete')
@@ -153,12 +153,12 @@ class JcpdsEditorWidget(QtGui.QWidget):
 
         self.reflections_gb.setLayout(self._reflection_layout)
 
-        self._body_layout = QtGui.QGridLayout()
+        self._body_layout = QtWidgets.QGridLayout()
         self._body_layout.addWidget(self.eos_gb, 0, 0)
         self._body_layout.addItem(VerticalSpacerItem(), 1, 0)
         self._body_layout.addWidget(self.reflections_gb, 0, 1, 2, 1)
 
-        self._button_layout = QtGui.QHBoxLayout()
+        self._button_layout = QtWidgets.QHBoxLayout()
         self.save_as_btn = FlatButton('Save As')
         self.reload_file_btn = FlatButton('Reload File')
         self.ok_btn = FlatButton('Ok')
@@ -187,9 +187,9 @@ class JcpdsEditorWidget(QtGui.QWidget):
         )
         self.reflection_table.setItemDelegate(TextDoubleDelegate(self))
         self.reflection_table.setShowGrid(False)
-        self.reflection_table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.reflection_table.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self.reflection_table.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.reflection_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.reflection_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.reflection_table.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         self.eos_gb.setMaximumWidth(200)
         self.eos_gb.setStyleSheet("""
@@ -202,7 +202,7 @@ class JcpdsEditorWidget(QtGui.QWidget):
         reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20, 24))
 
         self.reflection_table.verticalHeader().setDefaultSectionSize(20)
-        # self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
+        # self.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
 
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
@@ -217,7 +217,7 @@ class JcpdsEditorWidget(QtGui.QWidget):
         layout.addWidget(LabelAlignRight(label_str), x, y)
         layout.addWidget(widget, x, y + 1)
         if unit:
-            layout.addWidget(QtGui.QLabel(unit), x, y + 2)
+            layout.addWidget(QtWidgets.QLabel(unit), x, y + 2)
 
     def show_jcpds(self, jcpds_phase, wavelength=None):
         self.blockAllSignals(True)
@@ -439,7 +439,7 @@ class JcpdsEditorWidget(QtGui.QWidget):
                                           CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(two_theta))))
 
         self.reflection_table.resizeColumnsToContents()
-        self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
+        self.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
         self.reflection_table.blockSignals(False)
 
     def remove_reflection_from_table(self, ind):
@@ -470,21 +470,21 @@ class JcpdsEditorWidget(QtGui.QWidget):
         #     self.jcpds_phase.dk0pdt = float(str(self.eos_dKpdT_txt.text()))
 
 
-class NoRectDelegate(QtGui.QItemDelegate):
+class NoRectDelegate(QtWidgets.QItemDelegate):
     def __init__(self, parent):
         super(NoRectDelegate, self).__init__(parent)
 
     def drawFocus(self, painter, option, rect):
-        option.state &= ~QtGui.QStyle.State_HasFocus
-        QtGui.QItemDelegate.drawFocus(self, painter, option, rect)
+        option.state &= ~QtWidgets.QStyle.State_HasFocus
+        QtWidgets.QItemDelegate.drawFocus(self, painter, option, rect)
 
 
-class TextDoubleDelegate(QtGui.QStyledItemDelegate):
+class TextDoubleDelegate(QtWidgets.QStyledItemDelegate):
     def __init__(self, parent):
         super(TextDoubleDelegate, self).__init__(parent)
 
     def createEditor(self, parent, _, model):
-        self.editor = QtGui.QLineEdit(parent)
+        self.editor = QtWidgets.QLineEdit(parent)
         self.editor.setFrame(False)
         self.editor.setValidator(QtGui.QDoubleValidator())
         self.editor.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
@@ -503,7 +503,7 @@ class TextDoubleDelegate(QtGui.QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
 
-class CenteredQTableWidgetItem(QtGui.QTableWidgetItem):
+class CenteredQTableWidgetItem(QtWidgets.QTableWidgetItem):
     def __init__(self, value):
         super(CenteredQTableWidgetItem, self).__init__(value)
         self.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
@@ -534,7 +534,7 @@ class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
     from ...model.util.jcpds import jcpds
     import os
 

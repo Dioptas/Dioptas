@@ -5,8 +5,8 @@ import unittest
 
 import numpy as np
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtTest import QTest
 
 from mock import MagicMock
 
@@ -25,9 +25,9 @@ def click_button(widget):
 class IntegrationMockFunctionalTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.model = DioptasModel()
@@ -57,7 +57,7 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
         text_field.setText('')
         QTest.keyClicks(text_field, str(value))
         QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
     def test_changing_number_of_integration_bins(self):
         # Edith wants to change the number of integration bins in order to see the effect of binning onto her line
@@ -175,9 +175,9 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
 class IntegrationFunctionalTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.model = DioptasModel()

@@ -5,7 +5,7 @@ import os
 import shutil
 import numpy as np
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from ...model.util.HelperModule import get_partial_index, FileNameIterator
 
@@ -16,9 +16,9 @@ data_path = os.path.join(unittest_path, '../data', 'FileIterator')
 class HelperModuleTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def test_get_partial_ind(self):
         data = np.arange(0, 10, 1)
