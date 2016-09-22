@@ -22,7 +22,7 @@ import time
 
 import numpy as np
 from PIL import Image
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -178,7 +178,7 @@ class ImageController(object):
         """
         Small helper function for the button-click connection.
         """
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
+        emitter.clicked.connect(function)
 
     def create_mouse_behavior(self):
         """
@@ -189,7 +189,7 @@ class ImageController(object):
 
     def load_file(self, filenames=None):
         if filenames is None:
-            filenames = list(QtGui.QFileDialog.getOpenFileNames(
+            filenames = list(QtWidgets.QFileDialog.getOpenFileNames(
                 self.widget, "Load image data file(s)",
                 self.working_dir['image']))
 
@@ -242,7 +242,7 @@ class ImageController(object):
             x, y = self.integrate_spectrum()
             self._save_spectrum(base_filename, working_directory, x, y)
 
-            QtGui.QApplication.processEvents()
+            QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
                 break
 
@@ -254,7 +254,7 @@ class ImageController(object):
             working_directory = self.working_dir['spectrum']
         else:
             # if there is no working directory selected A file dialog opens up to choose a directory...
-            working_directory = str(QtGui.QFileDialog.getExistingDirectory(
+            working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
                 self.widget, "Please choose the output directory for the integrated spectra.",
                 self.working_dir['spectrum']))
         return working_directory
@@ -390,7 +390,7 @@ class ImageController(object):
             self.widget.img_directory_txt.setText(self.working_dir['image'])
 
     def img_directory_btn_click(self):
-        directory = str(QtGui.QFileDialog.getExistingDirectory(
+        directory = str(QtWidgets.QFileDialog.getExistingDirectory(
             self.widget,
             "Please choose the image working directory.",
             self.working_dir['image']))
@@ -715,7 +715,7 @@ class ImageController(object):
 
     def load_calibration(self, filename=None):
         if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(
+            filename = str(QtWidgets.QFileDialog.getOpenFileName(
                 self.widget, "Load calibration...",
                 self.working_dir[
                     'calibration'],
@@ -733,7 +733,7 @@ class ImageController(object):
     def save_img(self, filename=None):
         if filename is None:
             img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Image.",
+            filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save Image.",
                                                              os.path.join(self.working_dir['image'],
                                                                           img_filename + '.png'),
                                                              ('Image (*.png);;Data (*.tiff)')))
@@ -745,7 +745,7 @@ class ImageController(object):
                     self.widget.img_widget.deactivate_circle_scatter()
                     self.widget.img_widget.deactivate_roi()
 
-                QtGui.QApplication.processEvents()
+                QtWidgets.QApplication.processEvents()
                 self.widget.img_widget.save_img(filename)
 
                 if self.img_mode == 'Cake':
@@ -766,7 +766,7 @@ class ImageController(object):
     def cbn_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
             self.widget.cbn_groupbox.setChecked(False)
-            QtGui.QMessageBox.critical(self.widget,
+            QtWidgets.QMessageBox.critical(self.widget,
                                        'ERROR',
                                        'Please calibrate the geometry first or load an existent calibration file. ' + \
                                        'The cBN seat correction needs a calibrated geometry.')
@@ -829,7 +829,7 @@ class ImageController(object):
     def oiadac_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
             self.widget.oiadac_groupbox.setChecked(False)
-            QtGui.QMessageBox.critical(
+            QtWidgets.QMessageBox.critical(
                 self.widget,
                 'ERROR',
                 'Please calibrate the geometry first or load an existent calibration file. ' + \
@@ -885,7 +885,7 @@ class ImageController(object):
         if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
             self.widget.cbn_groupbox.setChecked(False)
             self.widget.oiadac_groupbox.setChecked(False)
-            QtGui.QMessageBox.critical(self.widget,
+            QtWidgets.QMessageBox.critical(self.widget,
                                        'ERROR',
                                        'Due to a change in image dimensions the absorption ' +
                                        'corrections have been removed')

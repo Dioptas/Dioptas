@@ -19,7 +19,7 @@
 import os
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -78,7 +78,7 @@ class OverlayController(object):
         self.model.overlay_model.overlay_changed.connect(self.overlay_changed)
 
     def connect_click_function(self, emitter, function):
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
+        emitter.clicked.connect(function)
 
     def add_overlay_btn_click_callback(self, filename=None):
         """
@@ -87,7 +87,7 @@ class OverlayController(object):
             select a spectrum file
         """
         if filename is None:
-            filenames = QtGui.QFileDialog.getOpenFileNames(self.widget, "Load Overlay(s).", self.working_dir['overlay'])
+            filenames = QtWidgets.QFileDialog.getOpenFileNames(self.widget, "Load Overlay(s).", self.working_dir['overlay'])
             if len(filenames):
                 for filename in filenames:
                     filename = str(filename)
@@ -177,7 +177,7 @@ class OverlayController(object):
         :param button: button to color
         """
         previous_color = button.palette().color(1)
-        new_color = QtGui.QColorDialog.getColor(previous_color, self.widget)
+        new_color = QtWidgets.QColorDialog.getColor(previous_color, self.widget)
         if new_color.isValid():
             color = str(new_color.name())
         else:

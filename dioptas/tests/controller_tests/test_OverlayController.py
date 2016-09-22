@@ -5,8 +5,8 @@ import os
 import gc
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtTest import QTest
 
 from ...controller.integration import OverlayController
 from ...model.DioptasModel import DioptasModel
@@ -74,8 +74,8 @@ class OverlayControllerTest(QtTest):
     def test_automatic_deleting_overlays(self):
         self.load_overlays()
         self.load_overlays()
-        QtGui.QApplication.processEvents()
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         self.assertEqual(self.overlay_tw.rowCount(), 12)
         self.assertEqual(len(self.model.overlay_model.overlays), 12)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 12)
@@ -175,7 +175,7 @@ class OverlayControllerTest(QtTest):
     def test_setting_spectrum_as_bkg(self):
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 

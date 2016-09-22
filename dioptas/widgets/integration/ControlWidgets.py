@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from ..CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
     CheckableFlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, HorizontalLine, HorizontalSpacerItem, \
@@ -25,7 +25,7 @@ from ..CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, 
 from .CustomWidgets import BrowseFileWidget
 
 
-class IntegrationControlWidget(QtGui.QTabWidget):
+class IntegrationControlWidget(QtWidgets.QTabWidget):
     def __init__(self):
         super(IntegrationControlWidget, self).__init__()
 
@@ -65,7 +65,7 @@ class IntegrationControlWidget(QtGui.QTabWidget):
         """)
 
 
-class ImageControlWidget(QtGui.QWidget):
+class ImageControlWidget(QtWidgets.QWidget):
     def __init__(self):
         super(ImageControlWidget, self).__init__()
 
@@ -78,23 +78,23 @@ class ImageControlWidget(QtGui.QWidget):
         self.file_info_btn = FlatButton('File Info')
         self.move_btn = FlatButton('Position')
 
-        self.batch_mode_widget = QtGui.QWidget()
+        self.batch_mode_widget = QtWidgets.QWidget()
         self.batch_mode_lbl = LabelAlignRight("Batch Mode:")
-        self.batch_mode_integrate_rb = QtGui.QRadioButton("integrate")
-        self.batch_mode_add_rb = QtGui.QRadioButton("add")
+        self.batch_mode_integrate_rb = QtWidgets.QRadioButton("integrate")
+        self.batch_mode_add_rb = QtWidgets.QRadioButton("add")
 
     def _create_layout(self):
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
 
         self._layout.addWidget(self.file_widget)
         self._layout.addWidget(HorizontalLine())
 
-        self._file_info_layout = QtGui.QHBoxLayout()
+        self._file_info_layout = QtWidgets.QHBoxLayout()
         self._file_info_layout.addWidget(self.file_info_btn)
         self._file_info_layout.addWidget(self.move_btn)
         self._file_info_layout.addSpacerItem(HorizontalSpacerItem())
 
-        self._batch_layout = QtGui.QHBoxLayout()
+        self._batch_layout = QtWidgets.QHBoxLayout()
 
         self._batch_layout.addWidget(self.batch_mode_lbl)
         self._batch_layout.addWidget(self.batch_mode_integrate_rb)
@@ -113,29 +113,29 @@ class ImageControlWidget(QtGui.QWidget):
         self.batch_mode_integrate_rb.setChecked(True)
 
 
-class PatternControlWidget(QtGui.QWidget):
+class PatternControlWidget(QtWidgets.QWidget):
     def __init__(self):
         super(PatternControlWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
 
         self.file_widget = BrowseFileWidget(files='Pattern', checkbox_text='autocreate')
 
         self._layout.addWidget(self.file_widget)
         self._layout.addWidget(HorizontalLine())
 
-        self.pattern_types_gc = QtGui.QGroupBox('Pattern data types')
-        self.xy_cb = QtGui.QCheckBox('.xy')
+        self.pattern_types_gc = QtWidgets.QGroupBox('Pattern data types')
+        self.xy_cb = QtWidgets.QCheckBox('.xy')
         self.xy_cb.setChecked(True)
-        self.chi_cb = QtGui.QCheckBox('.chi')
-        self.dat_cb = QtGui.QCheckBox('.dat')
-        self._pattern_types_gb_layout = QtGui.QHBoxLayout()
+        self.chi_cb = QtWidgets.QCheckBox('.chi')
+        self.dat_cb = QtWidgets.QCheckBox('.dat')
+        self._pattern_types_gb_layout = QtWidgets.QHBoxLayout()
         self._pattern_types_gb_layout.addWidget(self.xy_cb)
         self._pattern_types_gb_layout.addWidget(self.chi_cb)
         self._pattern_types_gb_layout.addWidget(self.dat_cb)
         self.pattern_types_gc.setLayout(self._pattern_types_gb_layout)
 
-        self._pattern_types_layout = QtGui.QHBoxLayout()
+        self._pattern_types_layout = QtWidgets.QHBoxLayout()
         self._pattern_types_layout.addWidget(self.pattern_types_gc)
         self._pattern_types_layout.addSpacerItem(HorizontalSpacerItem())
 
@@ -146,15 +146,15 @@ class PatternControlWidget(QtGui.QWidget):
         self.setLayout(self._layout)
 
 
-class PhaseControlWidget(QtGui.QWidget):
+class PhaseControlWidget(QtWidgets.QWidget):
     def __init__(self):
         super(PhaseControlWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
 
-        self.button_widget = QtGui.QWidget(self)
+        self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('phase_control_button_widget')
-        self._button_layout = QtGui.QHBoxLayout()
+        self._button_layout = QtWidgets.QHBoxLayout()
         self._button_layout.setContentsMargins(0, 0, 0, 0)
         self._button_layout.setSpacing(6)
 
@@ -171,22 +171,22 @@ class PhaseControlWidget(QtGui.QWidget):
         self.button_widget.setLayout(self._button_layout)
         self._layout.addWidget(self.button_widget)
 
-        self.parameter_widget = QtGui.QWidget()
+        self.parameter_widget = QtWidgets.QWidget()
 
-        self._parameter_layout = QtGui.QGridLayout()
+        self._parameter_layout = QtWidgets.QGridLayout()
         self.pressure_sb = DoubleSpinBoxAlignRight()
         self.temperature_sb = DoubleSpinBoxAlignRight()
         self.pressure_step_txt = NumberTextField('0.5')
         self.temperature_step_txt = NumberTextField('100')
-        self.apply_to_all_cb = QtGui.QCheckBox('Apply to all phases')
-        self.show_in_spectrum_cb = QtGui.QCheckBox('Show in Spectrum')
+        self.apply_to_all_cb = QtWidgets.QCheckBox('Apply to all phases')
+        self.show_in_spectrum_cb = QtWidgets.QCheckBox('Show in Spectrum')
 
-        self._parameter_layout.addWidget(QtGui.QLabel('Parameter'), 0, 1)
-        self._parameter_layout.addWidget(QtGui.QLabel('Step'), 0, 3)
-        self._parameter_layout.addWidget(QtGui.QLabel('P:'), 1, 0)
-        self._parameter_layout.addWidget(QtGui.QLabel('T:'), 2, 0)
-        self._parameter_layout.addWidget(QtGui.QLabel('GPa'), 1, 2)
-        self._parameter_layout.addWidget(QtGui.QLabel('K'), 2, 2)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('Parameter'), 0, 1)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('Step'), 0, 3)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('P:'), 1, 0)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('T:'), 2, 0)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('GPa'), 1, 2)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('K'), 2, 2)
 
         self._parameter_layout.addWidget(self.pressure_sb, 1, 1)
         self._parameter_layout.addWidget(self.pressure_step_txt, 1, 3)
@@ -198,7 +198,7 @@ class PhaseControlWidget(QtGui.QWidget):
         self._parameter_layout.addItem(VerticalSpacerItem(), 5, 0)
         self.parameter_widget.setLayout(self._parameter_layout)
 
-        self._body_layout = QtGui.QHBoxLayout()
+        self._body_layout = QtWidgets.QHBoxLayout()
         self.phase_tw = ListTableWidget(columns=5)
         self._body_layout.addWidget(self.phase_tw, 10)
         self._body_layout.addWidget(self.parameter_widget, 0)
@@ -209,8 +209,8 @@ class PhaseControlWidget(QtGui.QWidget):
         self.style_widgets()
 
     def style_widgets(self):
-        self.phase_tw.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.MinimumExpanding)
-        self.parameter_widget.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+        self.phase_tw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.phase_tw.setMinimumHeight(130)
 
         self.temperature_step_txt.setMaximumWidth(60)
@@ -235,15 +235,15 @@ class PhaseControlWidget(QtGui.QWidget):
         self.show_in_spectrum_cb.setChecked(True)
 
 
-class OverlayControlWidget(QtGui.QWidget):
+class OverlayControlWidget(QtWidgets.QWidget):
     def __init__(self):
         super(OverlayControlWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
 
-        self.button_widget = QtGui.QWidget(self)
+        self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('overlay_control_widget')
-        self._button_layout = QtGui.QHBoxLayout(self.button_widget)
+        self._button_layout = QtWidgets.QHBoxLayout(self.button_widget)
         self._button_layout.setContentsMargins(0, 0, 0, 0)
         self._button_layout.setSpacing(6)
 
@@ -257,8 +257,8 @@ class OverlayControlWidget(QtGui.QWidget):
         self._button_layout.addSpacerItem(HorizontalSpacerItem())
         self._layout.addWidget(self.button_widget)
 
-        self.parameter_widget = QtGui.QWidget(self)
-        self._parameter_layout = QtGui.QGridLayout(self.parameter_widget)
+        self.parameter_widget = QtWidgets.QWidget(self)
+        self._parameter_layout = QtWidgets.QGridLayout(self.parameter_widget)
         self._parameter_layout.setSpacing(6)
 
         self.scale_sb = DoubleSpinBoxAlignRight()
@@ -270,7 +270,7 @@ class OverlayControlWidget(QtGui.QWidget):
         self.waterfall_reset_btn = FlatButton('Reset')
         self.set_as_background_btn = CheckableFlatButton('Set as Background')
 
-        self._parameter_layout.addWidget(QtGui.QLabel('Step'), 0, 2)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('Step'), 0, 2)
         self._parameter_layout.addWidget(LabelAlignRight('Scale:'), 1, 0)
         self._parameter_layout.addWidget(LabelAlignRight('Offset:'), 2, 0)
 
@@ -281,20 +281,20 @@ class OverlayControlWidget(QtGui.QWidget):
 
         self._parameter_layout.addItem(VerticalSpacerItem(), 3, 0, 1, 3)
 
-        self._waterfall_layout = QtGui.QHBoxLayout()
+        self._waterfall_layout = QtWidgets.QHBoxLayout()
         self._waterfall_layout.addWidget(self.waterfall_btn)
         self._waterfall_layout.addWidget(self.waterfall_separation_txt)
         self._waterfall_layout.addWidget(self.waterfall_reset_btn)
         self._parameter_layout.addLayout(self._waterfall_layout, 4, 0, 1, 3)
         self._parameter_layout.addItem(VerticalSpacerItem(), 5, 0, 1, 3)
 
-        self._background_layout = QtGui.QHBoxLayout()
+        self._background_layout = QtWidgets.QHBoxLayout()
         self._background_layout.addSpacerItem(HorizontalSpacerItem())
         self._background_layout.addWidget(self.set_as_background_btn)
         self._parameter_layout.addLayout(self._background_layout, 6, 0, 1, 3)
         self.parameter_widget.setLayout(self._parameter_layout)
 
-        self._body_layout = QtGui.QHBoxLayout()
+        self._body_layout = QtWidgets.QHBoxLayout()
         self.overlay_tw = ListTableWidget(columns=3)
         self._body_layout.addWidget(self.overlay_tw, 10)
         self._body_layout.addWidget(self.parameter_widget, 0)
@@ -331,14 +331,14 @@ class OverlayControlWidget(QtGui.QWidget):
         """)
 
 
-class CorrectionsControlWidget(QtGui.QWidget):
+class CorrectionsControlWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(CorrectionsControlWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
 
-        self.cbn_seat_gb = QtGui.QGroupBox('cBN Seat Correction')
-        self._cbn_seat_layout = QtGui.QGridLayout(self)
+        self.cbn_seat_gb = QtWidgets.QGroupBox('cBN Seat Correction')
+        self._cbn_seat_layout = QtWidgets.QGridLayout(self)
         self._cbn_seat_layout.setSpacing(6)
 
         self.anvil_thickness_txt = NumberTextField('2.3')
@@ -366,14 +366,14 @@ class CorrectionsControlWidget(QtGui.QWidget):
         self._cbn_seat_layout.addWidget(LabelAlignRight(u"Offs. 2θ  :"), 1, 12)
         self._cbn_seat_layout.addWidget(LabelAlignRight('Seat AL:'), 1, 16)
 
-        self._cbn_seat_layout.addWidget(QtGui.QLabel('mm'), 0, 2)
-        self._cbn_seat_layout.addWidget(QtGui.QLabel('mm'), 0, 6)
-        self._cbn_seat_layout.addWidget(QtGui.QLabel('mm'), 0, 14)
-        self._cbn_seat_layout.addWidget(QtGui.QLabel('mm'), 1, 2)
-        self._cbn_seat_layout.addWidget(QtGui.QLabel('mm'), 1, 6)
-        self._cbn_seat_layout.addWidget(QtGui.QLabel(u'°'), 0, 10)
-        self._cbn_seat_layout.addWidget(QtGui.QLabel(u'°'), 1, 10)
-        self._cbn_seat_layout.addWidget(QtGui.QLabel(u'°'), 1, 14)
+        self._cbn_seat_layout.addWidget(QtWidgets.QLabel('mm'), 0, 2)
+        self._cbn_seat_layout.addWidget(QtWidgets.QLabel('mm'), 0, 6)
+        self._cbn_seat_layout.addWidget(QtWidgets.QLabel('mm'), 0, 14)
+        self._cbn_seat_layout.addWidget(QtWidgets.QLabel('mm'), 1, 2)
+        self._cbn_seat_layout.addWidget(QtWidgets.QLabel('mm'), 1, 6)
+        self._cbn_seat_layout.addWidget(QtWidgets.QLabel(u'°'), 0, 10)
+        self._cbn_seat_layout.addWidget(QtWidgets.QLabel(u'°'), 1, 10)
+        self._cbn_seat_layout.addWidget(QtWidgets.QLabel(u'°'), 1, 14)
 
         self._cbn_seat_layout.addItem(HorizontalSpacerItem(3), 0, 3)
         self._cbn_seat_layout.addItem(HorizontalSpacerItem(3), 0, 7)
@@ -395,8 +395,8 @@ class CorrectionsControlWidget(QtGui.QWidget):
 
         self.cbn_seat_gb.setLayout(self._cbn_seat_layout)
 
-        self.oiadac_gb = QtGui.QGroupBox('Oblique Incidence Angle Detector Absorption Correction')
-        self._oiadac_layout = QtGui.QHBoxLayout()
+        self.oiadac_gb = QtWidgets.QGroupBox('Oblique Incidence Angle Detector Absorption Correction')
+        self._oiadac_layout = QtWidgets.QHBoxLayout()
 
         self.detector_thickness_txt = NumberTextField('40')
         self.detector_absorption_length_txt = NumberTextField('465.5')
@@ -404,11 +404,11 @@ class CorrectionsControlWidget(QtGui.QWidget):
 
         self._oiadac_layout.addWidget(LabelAlignRight('Det. Thickness:'))
         self._oiadac_layout.addWidget(self.detector_thickness_txt)
-        self._oiadac_layout.addWidget(QtGui.QLabel('mm'))
+        self._oiadac_layout.addWidget(QtWidgets.QLabel('mm'))
         self._oiadac_layout.addSpacing(10)
         self._oiadac_layout.addWidget(LabelAlignRight('Abs. Length:'))
         self._oiadac_layout.addWidget(self.detector_absorption_length_txt)
-        self._oiadac_layout.addWidget(QtGui.QLabel('um'))
+        self._oiadac_layout.addWidget(QtWidgets.QLabel('um'))
         self._oiadac_layout.addWidget(self.oiadac_plot_btn)
         self._oiadac_layout.addSpacerItem(HorizontalSpacerItem())
 
@@ -442,18 +442,18 @@ class CorrectionsControlWidget(QtGui.QWidget):
         self.detector_absorption_length_txt.setMaximumWidth(60)
 
 
-class BackgroundControlWidget(QtGui.QWidget):
+class BackgroundControlWidget(QtWidgets.QWidget):
     def __init__(self):
         super(BackgroundControlWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
 
-        self.image_background_gb = QtGui.QGroupBox('Image Background', self)
-        self._image_background_gb_layout = QtGui.QGridLayout(self.image_background_gb)
+        self.image_background_gb = QtWidgets.QGroupBox('Image Background', self)
+        self._image_background_gb_layout = QtWidgets.QGridLayout(self.image_background_gb)
         self._image_background_gb_layout.setSpacing(6)
 
         self.load_image_btn = FlatButton('Load')
-        self.filename_lbl = QtGui.QLabel('None')
+        self.filename_lbl = QtWidgets.QLabel('None')
         self.remove_image_btn = FlatButton('Remove')
         self.scale_sb = DoubleSpinBoxAlignRight()
         self.offset_sb = DoubleSpinBoxAlignRight()
@@ -478,8 +478,8 @@ class BackgroundControlWidget(QtGui.QWidget):
 
         self.setLayout(self._layout)
 
-        self.pattern_background_gb = QtGui.QGroupBox('Pattern Background')
-        self._pattern_background_gb = QtGui.QGridLayout()
+        self.pattern_background_gb = QtWidgets.QGroupBox('Pattern Background')
+        self._pattern_background_gb = QtWidgets.QGridLayout()
 
         self.smooth_with_sb = DoubleSpinBoxAlignRight()
         self.iterations_sb = SpinBoxAlignRight()
@@ -488,7 +488,7 @@ class BackgroundControlWidget(QtGui.QWidget):
         self.x_range_max_txt = NumberTextField('50')
         self.inspect_btn = CheckableFlatButton('Inspect')
 
-        self._smooth_layout = QtGui.QHBoxLayout()
+        self._smooth_layout = QtWidgets.QHBoxLayout()
         self._smooth_layout.addWidget(LabelAlignRight('Smooth Width:'))
         self._smooth_layout.addWidget(self.smooth_with_sb)
         self._smooth_layout.addWidget(LabelAlignRight('Iterations:'))
@@ -496,10 +496,10 @@ class BackgroundControlWidget(QtGui.QWidget):
         self._smooth_layout.addWidget(LabelAlignRight('Poly Order:'))
         self._smooth_layout.addWidget(self.poly_order_sb)
 
-        self._range_layout = QtGui.QHBoxLayout()
-        self._range_layout.addWidget(QtGui.QLabel('X-Range:'))
+        self._range_layout = QtWidgets.QHBoxLayout()
+        self._range_layout.addWidget(QtWidgets.QLabel('X-Range:'))
         self._range_layout.addWidget(self.x_range_min_txt)
-        self._range_layout.addWidget(QtGui.QLabel('-'))
+        self._range_layout.addWidget(QtWidgets.QLabel('-'))
         self._range_layout.addWidget(self.x_range_max_txt)
         self._range_layout.addSpacerItem(HorizontalSpacerItem())
 
@@ -565,17 +565,17 @@ class BackgroundControlWidget(QtGui.QWidget):
         self.inspect_btn.setMaximumHeight(150)
 
 
-class OptionsWidget(QtGui.QWidget):
+class OptionsWidget(QtWidgets.QWidget):
     def __init__(self):
         super(OptionsWidget, self).__init__()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
 
-        self.integration_gb = QtGui.QGroupBox('Integration')
-        self._integration_gb_layout = QtGui.QGridLayout()
+        self.integration_gb = QtWidgets.QGroupBox('Integration')
+        self._integration_gb_layout = QtWidgets.QGridLayout()
 
         self.bin_count_txt = IntegerTextField('0')
-        self.bin_count_cb = QtGui.QCheckBox('auto')
+        self.bin_count_cb = QtWidgets.QCheckBox('auto')
         self.supersampling_sb = SpinBoxAlignRight()
 
         self._integration_gb_layout.addWidget(LabelAlignRight('Number of Bins:'), 0, 0)
@@ -587,7 +587,7 @@ class OptionsWidget(QtGui.QWidget):
 
         self.integration_gb.setLayout(self._integration_gb_layout)
 
-        self._integration_layout = QtGui.QHBoxLayout()
+        self._integration_layout = QtWidgets.QHBoxLayout()
         self._integration_layout.addWidget(self.integration_gb)
         self._integration_layout.addSpacerItem(HorizontalSpacerItem())
 

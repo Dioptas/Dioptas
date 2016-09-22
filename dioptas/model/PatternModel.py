@@ -18,7 +18,7 @@
 
 import logging
 
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 from .util.HelperModule import FileNameIterator, get_base_name
 from .util import Pattern

@@ -5,8 +5,8 @@ import unittest
 
 from mock import MagicMock
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtTest import QTest
 
 from ...model.DioptasModel import DioptasModel
 from ...widgets.ConfigurationWidget import ConfigurationWidget
@@ -23,9 +23,9 @@ def click_button(widget):
 class ConfigurationWidgetTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def setUp(self):
         self.config_widget = ConfigurationWidget()

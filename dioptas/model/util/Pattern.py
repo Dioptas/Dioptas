@@ -3,7 +3,7 @@
 
 import os
 import logging
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 import numpy as np
 from scipy.interpolate import interp1d

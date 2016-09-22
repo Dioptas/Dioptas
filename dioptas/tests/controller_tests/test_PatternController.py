@@ -5,8 +5,8 @@ import os
 from ..utility import QtTest
 from mock import MagicMock
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtTest import QTest
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtTest import QTest
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.PatternController import PatternController
@@ -66,7 +66,7 @@ class PatternControllerTest(QtTest):
                          u"<span style='color: #ffffff'>d (A)</span>")
 
     def test_save_pattern_without_background(self):
-        QtGui.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(unittest_data_path, "test.xy"))
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(unittest_data_path, "test.xy"))
         self.model.calibration_model.create_file_header = MagicMock(return_value="None")
         click_button(self.widget.qa_save_spectrum_btn)
 

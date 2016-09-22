@@ -19,7 +19,7 @@
 import sys
 import os
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 import numpy as np
 
@@ -50,37 +50,33 @@ class MaskController(object):
         self.polygon = None
         self.point = None
 
-    def connect_click_function(self, emitter, function):
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
-
     def create_signals(self):
         self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
 
         self.model.img_changed.connect(self.update_mask_dimension)
 
-        self.connect_click_function(self.widget.circle_btn, self.activate_circle_btn)
-        self.connect_click_function(self.widget.rectangle_btn, self.activate_rectangle_btn)
-        self.connect_click_function(self.widget.polygon_btn, self.activate_polygon_btn)
-        self.connect_click_function(self.widget.point_btn, self.activate_point_btn)
-        self.connect_click_function(self.widget.undo_btn, self.undo_btn_click)
-        self.connect_click_function(self.widget.redo_btn, self.redo_btn_click)
-        self.connect_click_function(self.widget.below_thresh_btn, self.below_thresh_btn_click)
-        self.connect_click_function(self.widget.above_thresh_btn, self.above_thresh_btn_click)
-        self.connect_click_function(self.widget.cosmic_btn, self.cosmic_btn_click)
+        self.widget.circle_btn.clicked.connect(self.activate_circle_btn)
+        self.widget.rectangle_btn.clicked.connect(self.activate_rectangle_btn)
+        self.widget.polygon_btn.clicked.connect(self.activate_polygon_btn)
+        self.widget.point_btn.clicked.connect(self.activate_point_btn)
+        self.widget.undo_btn.clicked.connect(self.undo_btn_click)
+        self.widget.redo_btn.clicked.connect(self.redo_btn_click)
+        self.widget.below_thresh_btn.clicked.connect(self.below_thresh_btn_click)
+        self.widget.above_thresh_btn.clicked.connect(self.above_thresh_btn_click)
+        self.widget.cosmic_btn.clicked.connect(self.cosmic_btn_click)
+        self.widget.grow_btn.clicked.connect(self.grow_btn_click)
+        self.widget.shrink_btn.clicked.connect(self.shrink_btn_click)
+        self.widget.invert_mask_btn.clicked.connect(self.invert_mask_btn_click)
+        self.widget.clear_mask_btn.clicked.connect(self.clear_mask_btn_click)
+        self.widget.save_mask_btn.clicked.connect(self.save_mask_btn_click)
+        self.widget.load_mask_btn.clicked.connect(self.load_mask_btn_click)
+        self.widget.add_mask_btn.clicked.connect(self.add_mask_btn_click)
+        self.widget.mask_rb.clicked.connect(self.mask_rb_click)
+        self.widget.unmask_rb.clicked.connect(self.unmask_rb_click)
+        self.widget.fill_rb.clicked.connect(self.fill_rb_click)
+        self.widget.transparent_rb.clicked.connect(self.transparent_rb_click)
 
-        self.connect_click_function(self.widget.grow_btn, self.grow_btn_click)
-        self.connect_click_function(self.widget.shrink_btn, self.shrink_btn_click)
-        self.connect_click_function(self.widget.invert_mask_btn, self.invert_mask_btn_click)
-        self.connect_click_function(self.widget.clear_mask_btn, self.clear_mask_btn_click)
-        self.connect_click_function(self.widget.save_mask_btn, self.save_mask_btn_click)
-        self.connect_click_function(self.widget.load_mask_btn, self.load_mask_btn_click)
-        self.connect_click_function(self.widget.add_mask_btn, self.add_mask_btn_click)
-        self.connect_click_function(self.widget.mask_rb, self.mask_rb_click)
-        self.connect_click_function(self.widget.unmask_rb, self.unmask_rb_click)
-        self.connect_click_function(self.widget.fill_rb, self.fill_rb_click)
-        self.connect_click_function(self.widget.transparent_rb, self.transparent_rb_click)
-        self.widget.connect(self.widget.point_size_sb, QtCore.SIGNAL('valueChanged(int)'), self.set_point_size)
-
+        self.widget.point_size_sb.valueChanged.connect(self.set_point_size)
         self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
 
         self.widget.keyPressEvent = self.key_press_event
@@ -259,45 +255,42 @@ class MaskController(object):
         self.model.mask_model.remove_cosmic(self.model.img_data)
         self.plot_mask()
 
-    def save_mask_btn_click(self, filename=None):
-        if filename is None:
-            img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save mask data",
+    def save_mask_btn_click(self):
+        img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
+        filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save mask data",
                                                              os.path.join(self.working_dir['mask'],
-                                                                          img_filename+'.mask'),
-                                                             filter='Mask (*.mask)'))
+                                                                          img_filename + '.mask'),
+                                                             filter='Mask (*.mask)')[0])
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
             self.model.mask_model.save_mask(filename)
 
-    def load_mask_btn_click(self, filename=None):
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self.widget, caption="Load mask data",
-                                                             directory=self.working_dir['mask'], filter='*.mask'))
+    def load_mask_btn_click(self):
+        filename = str(QtWidgets.QFileDialog.getOpenFileName(self.widget, caption="Load mask data",
+                                                             directory=self.working_dir['mask'], filter='*.mask')[0])
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
             if self.model.mask_model.load_mask(filename):
                 self.plot_mask()
             else:
-                QtGui.QMessageBox.critical(self.widget, 'Error',
-                                           'Image data and mask data in selected file do not have '
-                                           'the same shape. Mask could not be loaded.')
+                QtWidgets.QMessageBox.critical(self.widget, 'Error',
+                                               'Image data and mask data in selected file do not have '
+                                               'the same shape. Mask could not be loaded.')
 
-    def add_mask_btn_click(self, filename=None):
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self.widget, caption="Add mask data",
-                                                             directory=self.working_dir['mask'], filter='*.mask'))
+    def add_mask_btn_click(self):
+        filename = str(QtWidgets.QFileDialog.getOpenFileName(self.widget, caption="Add mask data",
+                                                             directory=self.working_dir['mask'], filter='*.mask')[0])
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
             if self.model.mask_model.add_mask(filename):
                 self.plot_mask()
             else:
-                QtGui.QMessageBox.critical(self.widget, 'Error',
-                                           'Image data and mask data in selected file do not have '
-                                           'the same shape. Mask could not be added.')
+                QtWidgets.QMessageBox.critical(self.widget, 'Error',
+                                               'Image data and mask data in selected file do not have '
+                                               'the same shape. Mask could not be added.')
 
     def plot_mask(self):
         self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
@@ -349,6 +342,6 @@ class MaskController(object):
 
 
 if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     controller = MaskController()
     app.exec_()

@@ -5,8 +5,8 @@ import os
 import gc
 import numpy as np
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtTest import QTest
 
 from ...model.DioptasModel import DioptasModel
 from ...controller.MaskController import MaskController

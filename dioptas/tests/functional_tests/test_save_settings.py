@@ -5,7 +5,7 @@ from mock import MagicMock
 import os
 import gc
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from ...controller.MainController import MainController
 
@@ -16,9 +16,9 @@ data_path = os.path.join(unittest_path, os.pardir, 'data')
 class SaveSettingsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
+        cls.app = QtWidgets.QApplication.instance()
         if cls.app is None:
-            cls.app = QtGui.QApplication([])
+            cls.app = QtWidgets.QApplication([])
 
     def create_controller_and_data(self):
         self.controller = MainController()

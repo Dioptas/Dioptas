@@ -19,7 +19,7 @@
 from copy import deepcopy
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -278,7 +278,7 @@ class JcpdsEditorController(QtCore.QObject):
             self.reflection_line_removed.emit(rows[ind])
             rows = rows - 1
         self.widget.reflection_table.resizeColumnsToContents()
-        self.widget.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
+        self.widget.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
         self.update_filename()
         self.phase_modified.emit()
 
@@ -307,7 +307,7 @@ class JcpdsEditorController(QtCore.QObject):
         self.reflection_line_edited.emit()
 
     def reflection_table_key_pressed(self, key_press_event):
-        if key_press_event == QtGui.QKeySequence.Copy:
+        if key_press_event == QtWidgets.QKeySequence.Copy:
             res = ''
             selection_ranges = self.widget.reflection_table.selectedRanges()
             for range_ind in range(len(selection_ranges)):
@@ -322,8 +322,8 @@ class JcpdsEditorController(QtCore.QObject):
                         res += str(self.widget.reflection_table.item(
                                 selection_ranges[range_ind].topRow() + row_ind,
                                 selection_ranges[range_ind].leftColumn() + col_ind).text())
-            QtGui.QApplication.clipboard().setText(res)
-        elif key_press_event == QtGui.QKeySequence.SelectAll:
+            QtWidgets.QApplication.clipboard().setText(res)
+        elif key_press_event == QtWidgets.QKeySequence.SelectAll:
             self.widget.reflection_table.selectAll()
 
     def reflections_clear_btn_click(self):
@@ -367,7 +367,7 @@ class JcpdsEditorController(QtCore.QObject):
 
     def save_as_btn_clicked(self, filename=False):
         if filename is False:
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save JCPDS phase.",
+            filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save JCPDS phase.",
                                                              self.working_dir['phase'],
                                                              ('JCPDS Phase (*.jcpds)')))
 

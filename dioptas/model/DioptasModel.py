@@ -3,7 +3,7 @@ import os
 
 from scipy.interpolate import interp1d, interp2d
 import numpy as np
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 from copy import deepcopy
 
 from .util import Pattern

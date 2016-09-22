@@ -19,7 +19,7 @@
 import os
 import csv
 from sys import platform as _platform
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 import xml.etree.cElementTree as ET
 
@@ -257,4 +257,4 @@ class MainController(object):
         """
         if self.use_settings:
             self.save_settings()
-        QtGui.QApplication.closeAllWindows()
+        QtWidgets.QApplication.closeAllWindows()

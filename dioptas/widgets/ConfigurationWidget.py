@@ -2,13 +2,13 @@
 
 from functools import partial
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 from .CustomWidgets import LabelAlignRight, HorizontalSpacerItem, CheckableFlatButton, FlatButton, NumberTextField, \
     IntegerTextField, VerticalLine
 
 
-class ConfigurationWidget(QtGui.QWidget):
+class ConfigurationWidget(QtWidgets.QWidget):
     configuration_selected = QtCore.pyqtSignal(int)  # configuration index
 
     def __init__(self, parent=None):
@@ -21,8 +21,8 @@ class ConfigurationWidget(QtGui.QWidget):
         self.configuration_lbl = LabelAlignRight("Configuration:")
 
         self.configuration_btns = []
-        self.configurations_btn_widget = QtGui.QWidget()
-        self.configuration_btn_group = QtGui.QButtonGroup()
+        self.configurations_btn_widget = QtWidgets.QWidget()
+        self.configuration_btn_group = QtWidgets.QButtonGroup()
 
         self.add_configuration_btn = FlatButton("+")
         self.remove_configuration_btn = FlatButton("-")
@@ -39,13 +39,13 @@ class ConfigurationWidget(QtGui.QWidget):
         self.folder_lbl = LabelAlignRight(" Folder:")
         self.next_folder_btn = FlatButton(">")
         self.previous_folder_btn = FlatButton("<")
-        self.mec_cb = QtGui.QCheckBox("MEC")
+        self.mec_cb = QtWidgets.QCheckBox("MEC")
 
         self.combine_patterns_btn = CheckableFlatButton("Combine Patterns")
         self.combine_cakes_btn = CheckableFlatButton("Combine Cakes")
 
     def create_layout(self):
-        self.main_layout = QtGui.QHBoxLayout()
+        self.main_layout = QtWidgets.QHBoxLayout()
         self.main_layout.addWidget(self.configuration_lbl)
         self.main_layout.addWidget(self.add_configuration_btn)
         self.main_layout.addWidget(self.remove_configuration_btn)
@@ -64,12 +64,12 @@ class ConfigurationWidget(QtGui.QWidget):
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.factor_lbl)
         self.main_layout.addWidget(self.factor_txt)
-        self.main_layout.addSpacerItem(QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum))
+        self.main_layout.addSpacerItem(QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum))
         self.main_layout.addWidget(self.combine_patterns_btn)
         self.main_layout.addWidget(self.combine_cakes_btn)
         self.setLayout(self.main_layout)
 
-        self.configurations_btn_layout = QtGui.QHBoxLayout(self.configurations_btn_widget)
+        self.configurations_btn_layout = QtWidgets.QHBoxLayout(self.configurations_btn_widget)
 
     def style_widgets(self):
         self.main_layout.setSpacing(7)

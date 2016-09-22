@@ -18,7 +18,7 @@
 
 import os
 
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from .ConfigurationWidget import ConfigurationWidget
 from .CalibrationWidget import CalibrationWidget
@@ -28,19 +28,19 @@ from .integration import IntegrationWidget
 widget_path = os.path.dirname(__file__)
 
 
-class MainWidget(QtGui.QWidget):
+class MainWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(MainWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(10, 2, 2, 2)
         self._layout.setSpacing(6)
 
         self.configuration_widget = ConfigurationWidget(self)
         self._layout.addWidget(self.configuration_widget)
 
-        self.tabWidget = QtGui.QTabWidget()
-        self.tabWidget.setTabPosition(QtGui.QTabWidget.West)
+        self.tabWidget = QtWidgets.QTabWidget()
+        self.tabWidget.setTabPosition(QtWidgets.QTabWidget.West)
         self.tabWidget.setCurrentIndex(0)
 
         self.calibration_widget = CalibrationWidget(self)

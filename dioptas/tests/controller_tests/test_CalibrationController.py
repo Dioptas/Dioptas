@@ -7,8 +7,8 @@ import gc
 
 import numpy as np
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtTest import QTest
 
 from ...model.DioptasModel import DioptasModel
 from ...controller.CalibrationController import CalibrationController
@@ -18,8 +18,8 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 # mocking the functions which will block the unittest for some reason...
-QtGui.QApplication.processEvents = MagicMock()
-QtGui.QProgressDialog.setValue = MagicMock()
+QtWidgets.QApplication.processEvents = MagicMock()
+QtWidgets.QProgressDialog.setValue = MagicMock()
 
 
 class TestCalibrationController(QtTest):
@@ -54,7 +54,7 @@ class TestCalibrationController(QtTest):
         self.app.processEvents()
         self.model.calibration_model.integrate_1d.assert_called_once()
         self.model.calibration_model.integrate_2d.assert_called_once()
-        self.assertEqual(QtGui.QProgressDialog.setValue.call_count, 15)
+        self.assertEqual(QtWidgets.QProgressDialog.setValue.call_count, 15)
 
         calibration_parameter = self.model.calibration_model.get_calibration_parameter()[0]
         self.assertAlmostEqual(calibration_parameter['dist'], .1967, places=4)

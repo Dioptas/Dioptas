@@ -31,7 +31,7 @@ try:
 except ImportError:
     from io import StringIO
 import traceback
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 from .widgets.UtilityWidgets import ErrorMessageBox
 
@@ -80,15 +80,12 @@ def excepthook(exc_type, exc_value, traceback_obj):
     errorbox.exec_()
 
 
-
-
 def main():
-    sys.excepthook = excepthook
+    app = QtWidgets.QApplication([])
+    # sys.excepthook = excepthook
     from sys import platform as _platform
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))
-
-    app = QtGui.QApplication([])
 
     if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
