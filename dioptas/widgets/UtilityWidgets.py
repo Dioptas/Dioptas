@@ -189,11 +189,11 @@ def open_file_dialog(parent_widget, caption, directory, filter=None):
 
 
 def open_files_dialog(parent_widget, caption, directory, filter=None):
-    filename = QtWidgets.QFileDialog.getOpenFileNames(parent_widget, caption=caption,
+    filenames = QtWidgets.QFileDialog.getOpenFileNames(parent_widget, caption=caption,
                                                       directory=directory,
                                                       filter=filter)
-    if len(filename) == 2:  # PyQt5
-        filename = str(filename[0])
+    if len(filenames) == 2:  # PyQt5
+        filenames = filenames[0]
     else:  # PyQt4
-        filename = str(filename)
-    return filename
+        filenames = filenames
+    return filenames
