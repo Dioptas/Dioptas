@@ -21,7 +21,7 @@ import os
 import numpy as np
 from qtpy import QtWidgets, QtCore
 
-from ...widgets.UtilityWidgets import save_file_dialog
+from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -187,9 +187,8 @@ class PatternController(object):
                 self.widget.pattern_widget.save_svg(filename)
 
     def load(self):
-        filename = str(QtWidgets.QFileDialog.getOpenFileName(
-            self.widget, caption="Load Spectrum",
-            directory=self.working_dir['spectrum'])[0])
+        filename = open_file_dialog(self.widget, caption="Load Spectrum",
+                                    directory=self.working_dir['spectrum'])
 
         if filename is not '':
             self.working_dir['spectrum'] = os.path.dirname(filename)
