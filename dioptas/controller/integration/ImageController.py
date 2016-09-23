@@ -24,7 +24,7 @@ import numpy as np
 from PIL import Image
 from qtpy import QtWidgets, QtCore
 
-from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog
+from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -723,10 +723,10 @@ class ImageController(object):
 
     def save_img(self):
         img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
-        filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save Image.",
-                                                             os.path.join(self.working_dir['image'],
-                                                                          img_filename + '.png'),
-                                                             ('Image (*.png);;Data (*.tiff)'))[0])
+        filename = save_file_dialog(self.widget, "Save Image.",
+                                    os.path.join(self.working_dir['image'],
+                                                 img_filename + '.png'),
+                                    ('Image (*.png);;Data (*.tiff)'))
         if filename is not '':
             if filename.endswith('.png'):
                 if self.img_mode == 'Cake':

@@ -23,7 +23,7 @@ from qtpy import QtWidgets, QtCore
 
 import numpy as np
 
-from ..widgets.UtilityWidgets import open_file_dialog
+from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.MaskWidget import MaskWidget
@@ -259,10 +259,10 @@ class MaskController(object):
 
     def save_mask_btn_click(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
-        filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save mask data",
-                                                             os.path.join(self.working_dir['mask'],
-                                                                          img_filename + '.mask'),
-                                                             filter='Mask (*.mask)')[0])
+        filename = save_file_dialog(self.widget, "Save mask data",
+                                    os.path.join(self.working_dir['mask'],
+                                                 img_filename + '.mask'),
+                                    filter='Mask (*.mask)')
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)

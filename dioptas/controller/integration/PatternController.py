@@ -21,6 +21,8 @@ import os
 import numpy as np
 from qtpy import QtWidgets, QtCore
 
+from ...widgets.UtilityWidgets import save_file_dialog
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
 
@@ -155,11 +157,11 @@ class PatternController(object):
 
     def save_pattern(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
-        filename = str(QtWidgets.QFileDialog.getSaveFileName(
+        filename = save_file_dialog(
             self.widget, "Save Spectrum Data.",
             os.path.join(self.working_dir['spectrum'],
                          img_filename + '.xy'),
-            ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))[0])
+            ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))
 
         subtract_background = True  # when manually saving the spectrum the background will be subtracted
 

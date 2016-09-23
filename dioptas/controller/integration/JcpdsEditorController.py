@@ -21,6 +21,7 @@ from copy import deepcopy
 import numpy as np
 from qtpy import QtWidgets, QtCore
 
+from ...widgets.UtilityWidgets import save_file_dialog
 from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.util.jcpds import jcpds
@@ -320,8 +321,8 @@ class JcpdsEditorController(QtCore.QObject):
                         if col_ind > 0:
                             res += '\t'
                         res += str(self.widget.reflection_table.item(
-                                selection_ranges[range_ind].topRow() + row_ind,
-                                selection_ranges[range_ind].leftColumn() + col_ind).text())
+                            selection_ranges[range_ind].topRow() + row_ind,
+                            selection_ranges[range_ind].leftColumn() + col_ind).text())
             QtWidgets.QApplication.clipboard().setText(res)
         elif key_press_event == QtWidgets.QKeySequence.SelectAll:
             self.widget.reflection_table.selectAll()
@@ -367,12 +368,12 @@ class JcpdsEditorController(QtCore.QObject):
 
     def save_as_btn_clicked(self, filename=False):
         if filename is False:
-            filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save JCPDS phase.",
-                                                             self.working_dir['phase'],
-                                                             ('JCPDS Phase (*.jcpds)')))
+            filename = save_file_dialog(self.widget, "Save JCPDS phase.",
+                                        self.working_dir['phase'],
+                                        ('JCPDS Phase (*.jcpds)'))
 
-        if filename != '':
-            self.jcpds_phase.save_file(filename)
+            if filename != '':
+                self.jcpds_phase.save_file(filename)
             self.show_phase(self.jcpds_phase)
             self.lattice_param_changed.emit()
             self.phase_modified.emit()
