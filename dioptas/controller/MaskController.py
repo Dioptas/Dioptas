@@ -19,7 +19,7 @@
 import sys
 import os
 
-from PyQt5 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 import numpy as np
 

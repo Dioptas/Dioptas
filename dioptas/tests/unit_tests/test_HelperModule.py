@@ -5,7 +5,7 @@ import os
 import shutil
 import numpy as np
 
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 
 from ...model.util.HelperModule import get_partial_index, FileNameIterator
 

@@ -5,8 +5,8 @@ import os
 import gc
 import unittest
 
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
 from mock import MagicMock
 
 from ...controller.integration import BackgroundController

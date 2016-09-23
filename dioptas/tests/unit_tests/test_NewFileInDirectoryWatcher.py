@@ -4,7 +4,7 @@ import unittest
 import os
 import shutil
 
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 from mock import MagicMock
 
 from ...model.util.NewFileWatcher import NewFileInDirectoryWatcher

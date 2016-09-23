@@ -4,7 +4,7 @@
 import logging
 
 from copy import copy
-from PyQt5 import QtCore
+from qtpy import QtCore
 import numpy as np
 
 from .util.HelperModule import FileNameIterator, get_base_name
@@ -18,9 +18,9 @@ class OverlayModel(QtCore.QObject):
     Main Overlay Pattern Handling Model. (Was previously included in the PatternModel),
     """
 
-    overlay_changed = QtCore.pyqtSignal(int)  # changed index
-    overlay_added = QtCore.pyqtSignal()
-    overlay_removed = QtCore.pyqtSignal(int)  # removed index
+    overlay_changed = QtCore.Signal(int)  # changed index
+    overlay_added = QtCore.Signal()
+    overlay_removed = QtCore.Signal(int)  # removed index
 
     def __init__(self):
         super(OverlayModel, self).__init__()

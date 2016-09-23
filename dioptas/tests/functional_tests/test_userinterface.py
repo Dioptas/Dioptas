@@ -5,7 +5,7 @@ import gc
 
 import numpy as np
 
-from PyQt5 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from ...controller import MainController
 

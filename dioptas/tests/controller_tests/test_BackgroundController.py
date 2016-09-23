@@ -3,8 +3,8 @@
 import os
 from ..utility import QtTest
 
-from PyQt5 import QtCore
-from PyQt5.QtTest import QTest
+from qtpy import QtCore
+from qtpy.QtTest import QTest
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BackgroundController import BackgroundController

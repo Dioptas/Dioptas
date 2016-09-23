@@ -12,7 +12,7 @@ Clemens Prescher (clemens.prescher@gmail.com)
 Requirements
 ------------
     * python 2.7
-    * PyQt5
+    * qtpy with PyQt5/PyQt4/PySide
     * numpy
     * scipy
     * future

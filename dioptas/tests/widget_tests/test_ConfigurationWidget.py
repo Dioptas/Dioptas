@@ -5,8 +5,8 @@ import unittest
 
 from mock import MagicMock
 
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
 
 from ...model.DioptasModel import DioptasModel
 from ...widgets.ConfigurationWidget import ConfigurationWidget

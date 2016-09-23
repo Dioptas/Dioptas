@@ -5,7 +5,7 @@ from mock import MagicMock
 import os
 import gc
 
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 
 from ...controller.MainController import MainController
 

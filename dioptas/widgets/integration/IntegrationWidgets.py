@@ -18,7 +18,7 @@
 
 import os
 
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 from pyqtgraph import GraphicsLayoutWidget
 
 from ..plot_widgets.ImgWidget import IntegrationImgWidget

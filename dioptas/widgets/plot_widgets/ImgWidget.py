@@ -23,15 +23,15 @@ from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from scipy.spatial import ConvexHull
 from skimage.measure import find_contours
-from PyQt5 import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
 
 
 class ImgWidget(QtCore.QObject):
-    mouse_moved = QtCore.pyqtSignal(float, float)
-    mouse_left_clicked = QtCore.pyqtSignal(float, float)
-    mouse_left_double_clicked = QtCore.pyqtSignal(float, float)
+    mouse_moved = QtCore.Signal(float, float)
+    mouse_left_clicked = QtCore.Signal(float, float)
+    mouse_left_double_clicked = QtCore.Signal(float, float)
 
     def __init__(self, pg_layout, orientation='vertical'):
         super(ImgWidget, self).__init__()

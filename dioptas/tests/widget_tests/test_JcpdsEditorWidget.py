@@ -19,7 +19,7 @@
 import os
 import unittest
 
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 
 from ...model.util import jcpds
 from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
