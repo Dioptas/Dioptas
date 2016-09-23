@@ -24,6 +24,7 @@ from qtpy import QtWidgets, QtCore
 from ...model.PhaseModel import PhaseLoadError
 from ...model.util.HelperModule import get_base_name
 from .JcpdsEditorController import JcpdsEditorController
+from ...widgets.UtilityWidgets import open_files_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -45,9 +46,7 @@ class PhaseController(object):
         :param dioptas_model: reference to DioptasModel object
 
         :type widget: IntegrationWidget
-        :type calibration_model: CalibrationModel
-        :type spectrum_model: PatternModel
-        :type phase_model: PhaseModel
+        :type dioptas_model: DioptasModel
         """
         self.working_dir = working_dir
         self.widget = widget
@@ -104,8 +103,7 @@ class PhaseController(object):
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not load phase without calibration.")
 
-        filenames = QtWidgets.QFileDialog.getOpenFileNames(
-            self.widget, "Load Phase(s).", self.working_dir['phase'])[0]
+        filenames = open_files_dialog(self.widget, "Load Phase(s).", self.working_dir['phase'])
 
         if len(filenames):
             self.working_dir['phase'] = os.path.dirname(str(filenames[0]))

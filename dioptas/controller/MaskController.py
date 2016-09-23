@@ -23,6 +23,8 @@ from qtpy import QtWidgets, QtCore
 
 import numpy as np
 
+from ..widgets.UtilityWidgets import open_file_dialog
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.MaskWidget import MaskWidget
 from ..model.DioptasModel import DioptasModel
@@ -267,8 +269,8 @@ class MaskController(object):
             self.model.mask_model.save_mask(filename)
 
     def load_mask_btn_click(self):
-        filename = str(QtWidgets.QFileDialog.getOpenFileName(self.widget, caption="Load mask data",
-                                                             directory=self.working_dir['mask'], filter='*.mask')[0])
+        filename = open_file_dialog(self.widget, caption="Load mask data",
+                                    directory=self.working_dir['mask'], filter='*.mask')
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)
@@ -280,8 +282,8 @@ class MaskController(object):
                                                'the same shape. Mask could not be loaded.')
 
     def add_mask_btn_click(self):
-        filename = str(QtWidgets.QFileDialog.getOpenFileName(self.widget, caption="Add mask data",
-                                                             directory=self.working_dir['mask'], filter='*.mask')[0])
+        filename = open_file_dialog(self.widget, caption="Add mask data",
+                                    directory=self.working_dir['mask'], filter='*.mask')
 
         if filename is not '':
             self.working_dir['mask'] = os.path.dirname(filename)

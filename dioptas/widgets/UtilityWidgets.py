@@ -20,7 +20,6 @@ from qtpy import QtCore, QtWidgets, QtGui
 import os
 from .CustomWidgets import FlatButton
 
-
 widget_path = os.path.dirname(__file__)
 
 
@@ -178,10 +177,23 @@ class ErrorMessageBox(QtWidgets.QDialog):
         self.text_lbl.setText(text_str)
 
 
+def open_file_dialog(parent_widget, caption, directory, filter=None):
+    filename = QtWidgets.QFileDialog.getOpenFileName(parent_widget, caption=caption,
+                                                     directory=directory,
+                                                     filter=filter)
+    if len(filename) == 2:  # PyQt5
+        filename = str(filename[0])
+    else:  # PyQt4
+        filename = str(filename)
+    return filename
 
-if __name__ == '__main__':
-    app = QtWidgets.QApplication([])
-    widget = MotorsSetup(None)
-    widget.show()
-    widget.raise_()
-    app.exec_()
+
+def open_files_dialog(parent_widget, caption, directory, filter=None):
+    filename = QtWidgets.QFileDialog.getOpenFileNames(parent_widget, caption=caption,
+                                                      directory=directory,
+                                                      filter=filter)
+    if len(filename) == 2:  # PyQt5
+        filename = str(filename[0])
+    else:  # PyQt4
+        filename = str(filename)
+    return filename

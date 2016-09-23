@@ -24,6 +24,7 @@ import numpy as np
 from PIL import Image
 from qtpy import QtWidgets, QtCore
 
+from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -187,18 +188,9 @@ class ImageController(object):
         self.widget.img_widget.mouse_left_clicked.connect(self.img_mouse_click)
         self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
 
-    def load_file(self, filenames=None):
-        if filenames is None:
-            filenames = list(QtWidgets.QFileDialog.getOpenFileNames(
-                self.widget, "Load image data file(s)",
-                self.working_dir['image']))
-
-        else:
-            if not isinstance(filenames, list):
-                if isinstance(filenames, str):
-                    filenames = [filenames]
-                else:
-                    filenames = [str(filenames)]
+    def load_file(self):
+        filenames = open_files_dialog(self.widget, "Load image data file(s)",
+                                      self.working_dir['image'])
 
         if filenames is not None and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))
@@ -714,11 +706,11 @@ class ImageController(object):
         return res
 
     def load_calibration(self):
-        filename = str(QtWidgets.QFileDialog.getOpenFileName(
+        filename = open_file_dialog(
             self.widget, "Load calibration...",
             self.working_dir[
                 'calibration'],
-            '*.poni')[0])
+            '*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)

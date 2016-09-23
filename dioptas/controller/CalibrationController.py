@@ -21,8 +21,11 @@ from qtpy import QtWidgets, QtCore
 
 import numpy as np
 
+from ..widgets.UtilityWidgets import open_file_dialog
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.CalibrationWidget import CalibrationWidget
+from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
 
 
@@ -156,12 +159,12 @@ class CalibrationController(object):
         :param filename:
             filename of image file. If not set it will pop up a QFileDialog where the file can be chosen.
         """
-        filename = str(QtWidgets.QFileDialog.getOpenFileName(self.widget, caption="Load Calibration Image",
-                                                             directory=self.working_dir['image'])[0])
+        filename = open_file_dialog(self.widget, caption="Load Calibration Image",
+                                    directory=self.working_dir['image'])
 
         if filename is not '':
             self.working_dir['image'] = os.path.dirname(filename)
-            self.model.img_model.load(filename)
+        self.model.img_model.load(filename)
 
     def load_next_img(self):
         self.model.img_model.load_next_file()
@@ -359,7 +362,7 @@ class CalibrationController(object):
         :rtype: QtWidgets.ProgressDialog
         """
         progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, end_value,
-                                                self.widget)
+                                                    self.widget)
 
         progress_dialog.move(self.widget.tab_widget.x() + self.widget.tab_widget.size().width() / 2.0 - \
                              progress_dialog.size().width() / 2.0,
@@ -451,13 +454,13 @@ class CalibrationController(object):
         :param filename:
             filename of the calibration file
         """
-        filename = str(QtWidgets.QFileDialog.getOpenFileName(self.widget, caption="Load calibration...",
-                                                             directory=self.working_dir['calibration'],
-                                                             filter='*.poni')[0])
+        filename = open_file_dialog(self.widget, caption="Load calibration...",
+                                    directory=self.working_dir['calibration'],
+                                    filter='*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
-            self.model.calibration_model.load(filename)
-            self.update_all()
+        self.model.calibration_model.load(filename)
+        self.update_all()
 
     def plot_mask(self):
         """
