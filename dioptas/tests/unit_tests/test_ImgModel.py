@@ -18,7 +18,7 @@
 import unittest
 from mock import MagicMock
 import os
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 
 import numpy as np
 

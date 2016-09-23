@@ -19,7 +19,7 @@
 import os
 
 import numpy as np
-from PyQt5 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel

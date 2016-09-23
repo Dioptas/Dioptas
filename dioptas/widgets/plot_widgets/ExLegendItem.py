@@ -20,7 +20,7 @@ from __future__ import absolute_import
 
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.LabelItem import LabelItem
-from pyqtgraph.Qt import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 from pyqtgraph import functions as fn
 from pyqtgraph.Point import Point
 from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem, drawSymbol

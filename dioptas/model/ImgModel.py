@@ -22,7 +22,7 @@ from past.builtins import basestring
 
 import numpy as np
 from PIL import Image
-from PyQt5 import QtCore
+from qtpy import QtCore
 
 import fabio
 
@@ -51,7 +51,7 @@ class ImgModel(QtCore.QObject):
 
     The function will be called every time the img_data has changed.
     """
-    img_changed = QtCore.pyqtSignal()
+    img_changed = QtCore.Signal()
 
     def __init__(self):
         """

@@ -18,7 +18,7 @@
 
 import os
 
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 
 from .ConfigurationWidget import ConfigurationWidget
 from .CalibrationWidget import CalibrationWidget

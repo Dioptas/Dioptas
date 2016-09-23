@@ -22,7 +22,7 @@ import time
 
 import numpy as np
 from PIL import Image
-from PyQt5 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 # imports for type hinting in PyCharm -- DO NOT DELETE

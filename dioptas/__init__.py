@@ -31,7 +31,7 @@ try:
 except ImportError:
     from io import StringIO
 import traceback
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 
 from .widgets.UtilityWidgets import ErrorMessageBox
 

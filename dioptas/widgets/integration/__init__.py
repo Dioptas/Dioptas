@@ -20,7 +20,7 @@ CLICKED_COLOR = '#00DD00'
 
 from functools import partial
 
-from PyQt5 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
 from ..EpicsWidgets import MoveStageWidget
@@ -40,11 +40,11 @@ class IntegrationWidget(QtWidgets.QWidget):
     Integration Status Widget - showing the current mouse position and current background filename
     """
 
-    overlay_color_btn_clicked = QtCore.pyqtSignal(int, QtWidgets.QWidget)
-    overlay_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
-    overlay_name_changed = QtCore.pyqtSignal(int, str)
-    phase_color_btn_clicked = QtCore.pyqtSignal(int, QtWidgets.QWidget)
-    phase_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
+    overlay_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    overlay_show_cb_state_changed = QtCore.Signal(int, bool)
+    overlay_name_changed = QtCore.Signal(int, str)
+    phase_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    phase_show_cb_state_changed = QtCore.Signal(int, bool)
 
     def __init__(self, *args, **kwargs):
         super(IntegrationWidget, self).__init__(*args, **kwargs)

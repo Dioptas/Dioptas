@@ -7,8 +7,8 @@ import numpy as np
 
 from mock import MagicMock
 
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
 
 from ...controller.ConfigurationController import ConfigurationController
 from ...model.DioptasModel import DioptasModel

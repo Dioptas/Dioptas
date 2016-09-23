@@ -5,7 +5,7 @@ import os
 import numpy as np
 from mock import MagicMock
 
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 
 from ...model.DioptasModel import DioptasModel
 from ...model.util import Pattern

@@ -18,7 +18,7 @@
 
 from __future__ import absolute_import
 
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
 from pyqtgraph.graphicsItems.GradientEditorItem import *
@@ -50,9 +50,9 @@ class HistogramLUTItem(GraphicsWidget):
     - Gradient editor to define color lookup table for single-channel images
     """
 
-    sigLookupTableChanged = QtCore.pyqtSignal(object)
-    sigLevelsChanged = QtCore.pyqtSignal(object)
-    sigLevelChangeFinished = QtCore.pyqtSignal(object)
+    sigLookupTableChanged = QtCore.Signal(object)
+    sigLevelsChanged = QtCore.Signal(object)
+    sigLevelChangeFinished = QtCore.Signal(object)
 
     def __init__(self, image=None, fillHistogram=False, orientation='horizontal', autoLevel=None):
         """

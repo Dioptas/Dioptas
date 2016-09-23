@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 import unittest
-from PyQt5 import QtWidgets
+from qtpy import QtWidgets
 import os
 
 

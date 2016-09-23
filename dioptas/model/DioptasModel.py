@@ -3,7 +3,7 @@ import os
 
 from scipy.interpolate import interp1d, interp2d
 import numpy as np
-from PyQt5 import QtCore
+from qtpy import QtCore
 from copy import deepcopy
 
 from .util import Pattern
@@ -11,7 +11,7 @@ from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, O
 
 
 class ImgConfiguration(QtCore.QObject):
-    cake_changed = QtCore.pyqtSignal()
+    cake_changed = QtCore.Signal()
 
     def __init__(self, working_directories):
         super(ImgConfiguration, self).__init__()
@@ -168,13 +168,13 @@ class ImgConfiguration(QtCore.QObject):
 
 
 class DioptasModel(QtCore.QObject):
-    configuration_added = QtCore.pyqtSignal()
-    configuration_selected = QtCore.pyqtSignal(int)  # new index
-    configuration_removed = QtCore.pyqtSignal(int)  # removed index
+    configuration_added = QtCore.Signal()
+    configuration_selected = QtCore.Signal(int)  # new index
+    configuration_removed = QtCore.Signal(int)  # removed index
 
-    img_changed = QtCore.pyqtSignal()
-    pattern_changed = QtCore.pyqtSignal()
-    cake_changed = QtCore.pyqtSignal()
+    img_changed = QtCore.Signal()
+    pattern_changed = QtCore.Signal()
+    cake_changed = QtCore.Signal()
 
     def __init__(self, working_directories=None):
         super(DioptasModel, self).__init__()

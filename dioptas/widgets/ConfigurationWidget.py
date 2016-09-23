@@ -2,14 +2,14 @@
 
 from functools import partial
 
-from PyQt5 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from .CustomWidgets import LabelAlignRight, HorizontalSpacerItem, CheckableFlatButton, FlatButton, NumberTextField, \
     IntegerTextField, VerticalLine
 
 
 class ConfigurationWidget(QtWidgets.QWidget):
-    configuration_selected = QtCore.pyqtSignal(int)  # configuration index
+    configuration_selected = QtCore.Signal(int)  # configuration index
 
     def __init__(self, parent=None):
         super(ConfigurationWidget, self).__init__(parent)

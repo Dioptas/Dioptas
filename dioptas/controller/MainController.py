@@ -19,7 +19,7 @@
 import os
 import csv
 from sys import platform as _platform
-from PyQt5 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 import xml.etree.cElementTree as ET
 

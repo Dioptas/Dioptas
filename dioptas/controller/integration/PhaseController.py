@@ -19,7 +19,7 @@
 import os
 
 import numpy as np
-from PyQt5 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from ...model.PhaseModel import PhaseLoadError
 from ...model.util.HelperModule import get_base_name

@@ -20,7 +20,7 @@ from __future__ import absolute_import, print_function
 
 import pyqtgraph as pg
 import numpy as np
-from PyQt5 import QtCore
+from qtpy import QtCore
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
 
@@ -33,10 +33,10 @@ from ...model.util.HelperModule import calculate_color
 
 
 class SpectrumWidget(QtCore.QObject):
-    mouse_moved = QtCore.pyqtSignal(float, float)
-    mouse_left_clicked = QtCore.pyqtSignal(float, float)
-    range_changed = QtCore.pyqtSignal(list)
-    auto_range_status_changed = QtCore.pyqtSignal(bool)
+    mouse_moved = QtCore.Signal(float, float)
+    mouse_left_clicked = QtCore.Signal(float, float)
+    range_changed = QtCore.Signal(list)
+    auto_range_status_changed = QtCore.Signal(bool)
 
     def __init__(self, pg_layout):
         super(SpectrumWidget, self).__init__()
