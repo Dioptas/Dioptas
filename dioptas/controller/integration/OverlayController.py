@@ -19,7 +19,8 @@
 import os
 
 import numpy as np
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets
+from ...widgets.UtilityWidgets import open_files_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -87,8 +88,8 @@ class OverlayController(object):
         :param filename: filepath of an overlay file, if set to None (default value) it will open a QFileDialog to
             select a spectrum file
         """
-        filenames = QtWidgets.QFileDialog.getOpenFileNames(self.widget, "Load Overlay(s).",
-                                                           self.working_dir['overlay'])[0]
+        filenames = open_files_dialog(self.widget, "Load Overlay(s).",
+                                      self.working_dir['overlay'])[0]
         print(filenames)
         if len(filenames):
             for filename in filenames:

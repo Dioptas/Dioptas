@@ -21,6 +21,8 @@ import os
 import numpy as np
 from qtpy import QtWidgets, QtCore
 
+from ...widgets.UtilityWidgets import open_file_dialog
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
@@ -82,9 +84,9 @@ class BackgroundController(object):
         emitter.clicked.connect(function)
 
     def load_background_image(self):
-        filename = str(QtWidgets.QFileDialog.getOpenFileName(
-                self.widget, "Load an image background file",
-                self.working_dir['image'])[0])
+        filename = open_file_dialog(
+            self.widget, "Load an image background file",
+            self.working_dir['image'])
 
         if filename is not None and filename is not '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
@@ -92,8 +94,8 @@ class BackgroundController(object):
                 self.model.img_model.load_background(filename)
             except BackgroundDimensionWrongException:
                 QtWidgets.QMessageBox.critical(self.widget, 'ERROR',
-                                           'Background image does not have the same dimensions as original Image. ' + \
-                                           'Resetting Background Image.')
+                                               'Background image does not have the same dimensions as original Image. ' + \
+                                               'Resetting Background Image.')
                 self.widget.bkg_image_filename_lbl.setText("None")
 
     def remove_background_image(self):
