@@ -21,7 +21,7 @@ from qtpy import QtWidgets, QtCore
 
 import numpy as np
 
-from ..widgets.UtilityWidgets import open_file_dialog
+from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.CalibrationWidget import CalibrationWidget
@@ -530,8 +530,8 @@ class CalibrationController(object):
         :return:
         """
 
-        filename = str(QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save calibration...",
-                                                             self.working_dir['calibration'], '*.poni')[0])
+        filename = save_file_dialog(self.widget, "Save calibration...",
+                                    self.working_dir['calibration'], '*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.save(filename)

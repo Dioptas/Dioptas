@@ -190,10 +190,21 @@ def open_file_dialog(parent_widget, caption, directory, filter=None):
 
 def open_files_dialog(parent_widget, caption, directory, filter=None):
     filenames = QtWidgets.QFileDialog.getOpenFileNames(parent_widget, caption=caption,
-                                                      directory=directory,
-                                                      filter=filter)
+                                                       directory=directory,
+                                                       filter=filter)
     if len(filenames) == 2:  # PyQt5
         filenames = filenames[0]
     else:  # PyQt4
         filenames = filenames
     return filenames
+
+
+def save_file_dialog(parent_widget, caption, directory, filter=None):
+    filename = QtWidgets.QFileDialog.getSaveFileName(parent_widget, caption,
+                                                     directory=directory,
+                                                     filter=filter)
+    if len(filename) == 2:  # PyQt5
+        filename = str(filename[0])
+    else:  # PyQt4
+        filename = str(filename)
+    return filename
