@@ -30,7 +30,8 @@ class TestCalibrationController(QtTest):
         self.model.calibration_model.integrate_2d = MagicMock()
 
         self.calibration_widget = CalibrationWidget()
-        self.working_dir = {}
+        self.working_dir = {'image': '',
+                            'calibration': ''}
         self.calibration_controller = CalibrationController(working_dir=self.working_dir,
                                                             widget=self.calibration_widget,
                                                             dioptas_model=self.model)
@@ -40,7 +41,8 @@ class TestCalibrationController(QtTest):
         gc.collect()
 
     def test_automatic_calibration(self):
-        self.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        QTest.mouseClick(self.calibration_widget.load_img_btn, QtCore.Qt.LeftButton)
         self.calibration_controller.search_peaks(1179.6, 1129.4)
         self.calibration_controller.search_peaks(1268.5, 1119.8)
         self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
@@ -60,8 +62,11 @@ class TestCalibrationController(QtTest):
         self.assertAlmostEqual(calibration_parameter['dist'], .1967, places=4)
 
     def test_loading_and_saving_of_calibration_files(self):
-        self.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
-        self.calibration_controller.save_calibration(os.path.join(data_path, 'calibration.poni'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        QTest.mouseClick(self.calibration_widget.load_calibration_btn, QtCore.Qt.LeftButton)
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, 'calibration.poni'))
+        QTest.mouseClick(self.calibration_widget.save_calibration_btn, QtCore.Qt.LeftButton)
         self.assertTrue(os.path.exists(os.path.join(data_path, 'calibration.poni')))
         os.remove(os.path.join(data_path, 'calibration.poni'))
 
