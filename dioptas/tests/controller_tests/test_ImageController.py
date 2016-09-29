@@ -115,12 +115,13 @@ class ImageControllerTest(QtTest):
         self.assertEqual(str(self.widget.calibration_lbl.text()), "calib2")
 
     def test_adding_images(self):
-        self.controller.load_file(os.path.join(unittest_data_path, 'image_001.tif'))
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+            return_value=[os.path.join(unittest_data_path, 'image_001.tif')])
+        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
         data1 = np.copy(self.widget.img_widget.img_data)
         click_checkbox(self.widget.img_batch_mode_add_rb)
-        self.controller.load_file([os.path.join(unittest_data_path, 'image_001.tif'),
-                                   os.path.join(unittest_data_path, 'image_001.tif')])
-        self.assertTrue(np.array_equal(2*data1, self.widget.img_widget.img_data))
-
-
-
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+            return_value=[os.path.join(unittest_data_path, 'image_001.tif'),
+                          os.path.join(unittest_data_path, 'image_001.tif')])
+        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.assertTrue(np.array_equal(2 * data1, self.widget.img_widget.img_data))
