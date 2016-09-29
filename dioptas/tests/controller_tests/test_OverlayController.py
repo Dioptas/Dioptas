@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 import os
 import gc
+from mock import MagicMock
 
 import numpy as np
 from qtpy import QtWidgets, QtCore
@@ -21,7 +22,7 @@ class OverlayControllerTest(QtTest):
     def setUp(self):
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
-        self.overlay_controller = OverlayController({}, self.widget, self.model)
+        self.overlay_controller = OverlayController({'overlay': data_path}, self.widget, self.model)
         self.overlay_tw = self.widget.overlay_tw
 
     def tearDown(self):
@@ -218,7 +219,8 @@ class OverlayControllerTest(QtTest):
         self.load_overlay('spectrum_001.xy')
 
     def load_overlay(self, filename):
-        self.overlay_controller.add_overlay_btn_click_callback(os.path.join(data_path, filename))
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(data_path, filename)])
+        click_button(self.widget.overlay_add_btn)
 
 
 if __name__ == '__main__':
