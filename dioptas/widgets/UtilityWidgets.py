@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets, QtGui, QT_VERSION
 import os
 from .CustomWidgets import FlatButton
 
@@ -181,7 +181,7 @@ def open_file_dialog(parent_widget, caption, directory, filter=None):
     filename = QtWidgets.QFileDialog.getOpenFileName(parent_widget, caption=caption,
                                                      directory=directory,
                                                      filter=filter)
-    if len(filename) == 2:  # PyQt5
+    if QT_VERSION[0] == 5:  # PyQt5
         filename = str(filename[0])
     else:  # PyQt4
         filename = str(filename)
@@ -192,7 +192,7 @@ def open_files_dialog(parent_widget, caption, directory, filter=None):
     filenames = QtWidgets.QFileDialog.getOpenFileNames(parent_widget, caption=caption,
                                                        directory=directory,
                                                        filter=filter)
-    if len(filenames) == 2:  # PyQt5
+    if QT_VERSION[0] == 5:  # PyQt5
         filenames = filenames[0]
     else:  # PyQt4
         filenames = filenames
@@ -203,7 +203,7 @@ def save_file_dialog(parent_widget, caption, directory, filter=None):
     filename = QtWidgets.QFileDialog.getSaveFileName(parent_widget, caption,
                                                      directory=directory,
                                                      filter=filter)
-    if len(filename) == 2:  # PyQt5
+    if QT_VERSION[0] == 5:  # PyQt5
         filename = str(filename[0])
     else:  # PyQt4
         filename = str(filename)
