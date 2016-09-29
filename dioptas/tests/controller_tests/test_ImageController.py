@@ -49,7 +49,9 @@ class ImageControllerTest(QtTest):
 
     def test_automatic_file_processing(self):
         # get into a specific folder
-        self.controller.load_file(os.path.join(unittest_data_path, 'image_001.tif'))
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+            return_value=(os.path.join(unittest_data_path, 'image_001.tif'),))
+        click_button(self.widget.load_img_btn)
         self.assertEqual(str(self.widget.img_filename_txt.text()), 'image_001.tif')
         self.assertEqual(self.controller.working_dir['image'], unittest_data_path)
 
@@ -117,11 +119,11 @@ class ImageControllerTest(QtTest):
     def test_adding_images(self):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif')])
-        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        click_button(self.widget.load_img_btn)
         data1 = np.copy(self.widget.img_widget.img_data)
         click_checkbox(self.widget.img_batch_mode_add_rb)
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif'),
                           os.path.join(unittest_data_path, 'image_001.tif')])
-        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        click_button(self.widget.load_img_btn)
         self.assertTrue(np.array_equal(2 * data1, self.widget.img_widget.img_data))
