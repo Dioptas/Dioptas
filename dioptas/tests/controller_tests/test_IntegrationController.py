@@ -2,11 +2,12 @@
 
 import os
 import gc
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 
 import mock
+from mock import MagicMock
 import numpy as np
-from qtpy import QtCore
+from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
 
 from ...controller.integration import IntegrationController
@@ -28,7 +29,8 @@ class IntegrationControllerTest(QtTest):
         self.model.calibration_model.integrate_1d = mock.Mock(return_value=(dummy_x, dummy_y))
 
         self.widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'spectrum': data_path},
+        self.integration_controller = IntegrationController({'spectrum': data_path,
+                                                             'image': data_path},
                                                             widget=self.widget,
                                                             dioptas_model=self.model)
         self.image_controller = self.integration_controller.image_controller
@@ -56,7 +58,9 @@ class IntegrationControllerTest(QtTest):
 
     def test_batch_integration_of_multiple_files(self):
         filenames, input_filenames, working_dir = self._setup_batch_integration()
-        self.image_controller.load_file(input_filenames)
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=input_filenames)
+        click_button(self.widget.load_img_btn)
 
         for filename in filenames:
             filename = filename.split('.')[0] + '.xy'
@@ -69,7 +73,9 @@ class IntegrationControllerTest(QtTest):
     def test_batch_integration_with_automatic_background_subtraction(self):
         filenames, input_filenames, working_dir = self._setup_batch_integration()
         self.widget.bkg_spectrum_gb.setChecked(True)
-        self.image_controller.load_file(input_filenames)
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=input_filenames)
+        click_button(self.widget.load_img_btn)
 
         self.assertTrue(os.path.exists(os.path.join(working_dir, 'bkg_subtracted')))
 

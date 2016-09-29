@@ -28,6 +28,7 @@ from pyFAI.blob_detection import BlobDetection
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.calibrant import Calibrant
+from pyFAI.io import DefaultAiWriter
 from skimage.measure import find_contours
 from .util.HelperModule import get_base_name
 from . import ImgModel
@@ -431,7 +432,10 @@ class CalibrationModel(object):
         self.filename = filename
 
     def create_file_header(self):
-        return self.spectrum_geometry.makeHeaders(polarization_factor=self.polarization_factor)
+        try:
+            return self.spectrum_geometry.makeHeaders(polarization_factor=self.polarization_factor)
+        except AttributeError:
+            return DefaultAiWriter(None, self.spectrum_geometry).make_headers()
 
     def set_fit2d(self, fit2d_parameter):
         """
