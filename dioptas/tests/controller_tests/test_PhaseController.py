@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 import os
 import gc
 
@@ -35,12 +35,12 @@ class PhaseControllerTest(QtTest):
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
 
-        self.spectrum_controller = PatternController({}, self.widget, self.model)
-        self.controller = PhaseController({}, self.widget, self.model)
-        self.spectrum_controller.load(os.path.join(data_path, 'spectrum_001.xy'))
+        self.pattern_controller = PatternController({}, self.widget, self.model)
+        self.controller = PhaseController({'phase': data_path}, self.widget, self.model)
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
 
     def tearDown(self):
-        del self.spectrum_controller
+        del self.pattern_controller
         del self.controller
         del self.widget
         self.model.clear()
@@ -220,8 +220,5 @@ class PhaseControllerTest(QtTest):
         self.load_phase('re.jcpds')
 
     def load_phase(self, filename):
-        self.controller.add_btn_click_callback(os.path.join(jcpds_path, filename))
-
-
-if __name__ == '__main__':
-    unittest.main()
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
+        click_button(self.widget.phase_add_btn)
