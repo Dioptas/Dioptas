@@ -89,16 +89,12 @@ class OverlayController(object):
             select a spectrum file
         """
         filenames = open_files_dialog(self.widget, "Load Overlay(s).",
-                                      self.working_dir['overlay'])[0]
-        print(filenames)
+                                      self.working_dir['overlay'])
         if len(filenames):
             for filename in filenames:
                 filename = str(filename)
                 self.model.overlay_model.add_overlay_file(filename)
             self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
-        else:
-            self.model.overlay_model.add_overlay_file(filename)
-            self.working_dir['overlay'] = os.path.dirname(str(filename))
 
     def overlay_added(self):
         """
