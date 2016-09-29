@@ -194,7 +194,6 @@ class ImageController(object):
 
         if filenames is not None and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))
-
             if len(filenames) == 1:
                 self.model.img_model.load(str(filenames[0]))
             else:
