@@ -166,7 +166,6 @@ class PatternController(object):
         subtract_background = True  # when manually saving the spectrum the background will be subtracted
 
         if filename is not '':
-            print(filename)
             if filename.endswith('.xy'):
                 header = self.model.calibration_model.create_file_header()
                 if subtract_background:
