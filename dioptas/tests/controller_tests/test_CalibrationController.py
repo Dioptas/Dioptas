@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from ..utility import QtTest
 from mock import MagicMock
 import os
 import gc
@@ -10,12 +9,10 @@ import numpy as np
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
 
+from ..utility import QtTest, unittest_data_path
 from ...model.DioptasModel import DioptasModel
 from ...controller.CalibrationController import CalibrationController
 from ...widgets.CalibrationWidget import CalibrationWidget
-
-unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
 
 # mocking the functions which will block the unittest for some reason...
 QtWidgets.QApplication.processEvents = MagicMock()
@@ -25,7 +22,7 @@ QtWidgets.QProgressDialog.setValue = MagicMock()
 class TestCalibrationController(QtTest):
     def setUp(self):
         self.model = DioptasModel()
-        self.model.calibration_model._calibrants_working_dir = os.path.join(data_path, 'calibrants')
+        self.model.calibration_model._calibrants_working_dir = os.path.join(unittest_data_path, 'calibrants')
         self.model.calibration_model.integrate_1d = MagicMock(return_value=([np.linspace(0, 100), np.linspace(0, 100)]))
         self.model.calibration_model.integrate_2d = MagicMock()
 
@@ -41,7 +38,8 @@ class TestCalibrationController(QtTest):
         gc.collect()
 
     def test_automatic_calibration(self):
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
         QTest.mouseClick(self.calibration_widget.load_img_btn, QtCore.Qt.LeftButton)
         self.calibration_controller.search_peaks(1179.6, 1129.4)
         self.calibration_controller.search_peaks(1268.5, 1119.8)
@@ -63,12 +61,13 @@ class TestCalibrationController(QtTest):
 
     def test_loading_and_saving_of_calibration_files(self):
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
-            return_value=os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni'))
         QTest.mouseClick(self.calibration_widget.load_calibration_btn, QtCore.Qt.LeftButton)
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, 'calibration.poni'))
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'calibration.poni'))
         QTest.mouseClick(self.calibration_widget.save_calibration_btn, QtCore.Qt.LeftButton)
-        self.assertTrue(os.path.exists(os.path.join(data_path, 'calibration.poni')))
-        os.remove(os.path.join(data_path, 'calibration.poni'))
+        self.assertTrue(os.path.exists(os.path.join(unittest_data_path, 'calibration.poni')))
+        os.remove(os.path.join(unittest_data_path, 'calibration.poni'))
 
     def test_selecting_configuration_updates_parameter_display(self):
         calibration1 = {
