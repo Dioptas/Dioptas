@@ -7,19 +7,14 @@ import numpy as np
 
 from qtpy import QtWidgets, QtCore
 
+from ..utility import QtTest
 from ...controller import MainController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
 
-class UserInterFaceTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtWidgets.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtWidgets.QApplication([])
-
+class UserInterFaceTest(QtTest):
     @classmethod
     def tearDownClass(cls):
         del cls.app

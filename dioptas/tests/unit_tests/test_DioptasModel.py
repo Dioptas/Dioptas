@@ -5,8 +5,7 @@ import os
 import numpy as np
 from mock import MagicMock
 
-from qtpy import QtWidgets
-
+from ..utility import QtTest
 from ...model.DioptasModel import DioptasModel
 from ...model.util import Pattern
 
@@ -14,13 +13,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class ImgConfigurationManagerTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtWidgets.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtWidgets.QApplication([])
-
+class ImgConfigurationManagerTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
 

@@ -19,8 +19,7 @@
 import os
 import unittest
 
-from qtpy import QtWidgets
-
+from ..utility import QtTest
 from ...model.util import jcpds
 from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 
@@ -28,10 +27,8 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
-app = QtWidgets.QApplication([])
 
-class JcpdsEditorTest(unittest.TestCase):
-
+class JcpdsEditorTest(QtTest):
     def setUp(self):
         self.jcpds = jcpds()
         self.jcpds.compute_v0()

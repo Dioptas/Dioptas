@@ -1,24 +1,16 @@
 # -*- coding: utf8 -*-
-
-import unittest
 import os
 import shutil
 
-from qtpy import QtWidgets
 from mock import MagicMock
 
+from ..utility import QtTest
 from ...model.util.NewFileWatcher import NewFileInDirectoryWatcher
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 
-class NewFileInDirectoryWatcherTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtWidgets.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtWidgets.QApplication([])
-
+class NewFileInDirectoryWatcherTest(QtTest):
     def setUp(self):
         self.directory_watcher = NewFileInDirectoryWatcher(path=None)
 
