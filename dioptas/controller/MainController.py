@@ -251,10 +251,11 @@ class MainController(object):
         tree = ET.ElementTree(root)
         tree.write(os.path.join(self.settings_directory, "settings.xml"))
 
-    def close_event(self, _):
+    def close_event(self, ev):
         """
         Intervention of the Dioptas close event to save settings before closing the Program.
         """
         if self.use_settings:
             self.save_settings()
         QtWidgets.QApplication.closeAllWindows()
+        ev.accept()
