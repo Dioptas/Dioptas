@@ -55,7 +55,7 @@ class MaskModel(object):
         else:
             self.supersampling_factor = factor
 
-        if factor != 1:
+        if self.supersampling_factor != 1:
             self._mask_data_supersampled = np.zeros((self._mask_data.shape[0] * factor,
                                                      self._mask_data.shape[1] * factor))
             for row in range(factor):
