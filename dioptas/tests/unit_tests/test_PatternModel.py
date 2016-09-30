@@ -11,7 +11,6 @@ data_path = os.path.join(unittest_path, '../data')
 
 
 class PatternModelTest(unittest.TestCase):
-    # TODO: needs to be rewritten to be more in small units etc.
     def setUp(self):
         self.x = np.linspace(0.1, 15, 100)
         self.y = np.sin(self.x)
