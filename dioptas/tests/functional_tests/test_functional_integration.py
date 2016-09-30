@@ -104,7 +104,7 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
         self.assertEqual(self.model.img_data.shape[0], 2 * img_shape[0])
         self.assertEqual(self.model.img_data.shape[1], 2 * img_shape[1])
 
-        self.model.mask_model.load_mask(os.path.join(data_path, 'test.mask'))
+        self.model.mask_model.mask_below_threshold(self.model.img_model._img_data, 100)
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
 

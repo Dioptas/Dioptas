@@ -51,7 +51,7 @@ class MaskModel(object):
 
     def set_supersampling(self, factor=None):
         if factor is None:
-            factor = self.supersampling_factor
+            self.supersampling_factor = 1
         else:
             self.supersampling_factor = factor
 

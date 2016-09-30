@@ -347,6 +347,7 @@ class ImageController(object):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
         self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
         self.plot_mask()
+        # print(self.model.mask_model.get_mask().shape)
         self.model.img_model.img_changed.emit()
 
     def load_next_img(self):

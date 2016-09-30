@@ -42,8 +42,8 @@ class ImgConfiguration(QtCore.QObject):
         self.connect_signals()
 
     def connect_signals(self):
-        self.img_model.img_changed.connect(self.integrate_image_1d)
         self.img_model.img_changed.connect(self.update_mask_dimension)
+        self.img_model.img_changed.connect(self.integrate_image_1d)
 
     def integrate_image_1d(self):
         if self.calibration_model.is_calibrated:
@@ -110,7 +110,7 @@ class ImgConfiguration(QtCore.QObject):
         return header
 
     def update_mask_dimension(self):
-        self.mask_model.set_dimension(self.img_model.img_data.shape)
+        self.mask_model.set_dimension(self.img_model._img_data.shape)
 
     @property
     def integration_num_points(self):
