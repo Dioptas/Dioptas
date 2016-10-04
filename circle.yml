@@ -30,5 +30,5 @@ dependencies:
 test:
   override:
     - py.test dioptas/tests/unit_tests
-      py.test dioptas/tests/controller_tests
-      py.test dioptas/tests/functional_tests
+    - py.test dioptas/tests/controller_tests
+    - py.test dioptas/tests/functional_tests
