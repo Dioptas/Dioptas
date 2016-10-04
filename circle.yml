@@ -22,7 +22,7 @@ dependencies:
           conda install --yes scikit-image cython future qtpy;
           conda config --add channels cprescher;
           conda install --yes pyfai pyqtgraph lmfit fabio pycifrw;
-          pip install mock pytest pytest-cov pycifrw pypeics;
+          pip install mock pytest pytest-cov pycifrw pyepics;
       else
           echo "Using cached Miniconda install";
       fi
