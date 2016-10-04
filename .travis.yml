@@ -29,13 +29,6 @@ before_install:
         ./miniconda.sh -b;
       fi
     fi
-  - if [ ! -d "/home/travis/build/Dioptas/Dioptas/pyFAI/build" ]; then
-      git clone https://github.com/kif/pyFAI;
-      cd pyFAI;
-      git checkout before_refactoring;
-      cd ..;
-    fi
-    
   - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
       export PATH=/home/travis/miniconda2/bin:$PATH;
     else
@@ -56,10 +49,9 @@ addons:
 
 install:
     - conda install --yes pip numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future qtpy
-    - pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pyepics
-    - cd pyFAI
-    - python setup.py install
-    - cd ..
+    - conda config --add channels cprescher
+    - conda install pyfai pyqtgraph lmfit fabio pycifrw
+    - pip install lmfit mock pytest pytest-cov pyepics
     - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
     - cd ../../../

@@ -20,12 +20,9 @@ dependencies:
           bash Miniconda-latest-Linux-x86_64.sh -b -p ${CONDA_ROOT};
           conda install --yes pip numpy pillow scipy pandas dateutil nose h5py pyqt;
           conda install --yes scikit-image cython future qtpy;
-          pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pypeics;
-          git clone https://github.com/kif/pyFAI;
-          cd pyFAI;
-          python setup.py install;
-          cd ..;
-          rm -rf pyFAI;
+          conda config --add channels cprescher;
+          conda install pyfai pyqtgraph lmfit fabio pycifrw;
+          pip install mock pytest pytest-cov pycifrw pypeics;
       else
           echo "Using cached Miniconda install";
       fi
