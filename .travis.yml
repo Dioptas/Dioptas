@@ -58,7 +58,7 @@ install:
     - conda install --yes pip numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future qtpy
     - pip install lmfit fabio mock pytest pytest-cov pycifrw pyepics
     - conda config --add channels cprescher
-    - conda install pyqtgraph
+    - conda install --yes pyqtgraph
     - cd pyFAI
     - python setup.py install
     - cd ..
