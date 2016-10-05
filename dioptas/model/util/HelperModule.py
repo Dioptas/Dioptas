@@ -23,7 +23,7 @@ import re
 import time
 
 import numpy as np
-from PyQt4 import QtCore
+from qtpy import QtCore
 from colorsys import hsv_to_rgb
 
 

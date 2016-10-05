@@ -1,25 +1,11 @@
 # -*- coding: utf8 -*-
 
 import os
-from ..utility import QtTest
 
-from PyQt4 import QtCore
-from PyQt4.QtTest import QTest
-
+from ..utility import QtTest, unittest_data_path
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BackgroundController import BackgroundController
 from ...model.DioptasModel import DioptasModel
-
-unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
-
-
-def click_button(widget):
-    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
-
-
-def click_checkbox(checkbox_widget):
-    QTest.mouseClick(checkbox_widget, QtCore.Qt.LeftButton,
-                     pos=QtCore.QPoint(2, checkbox_widget.height() / 2.0))
 
 
 class BackgroundControllerTest(QtTest):

@@ -2,26 +2,16 @@
 
 import os
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button, delete_if_exists
 from mock import MagicMock
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtTest import QTest
+from qtpy import QtWidgets
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.PatternController import PatternController
 from ...model.DioptasModel import DioptasModel
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
-
-
-def click_button(widget):
-    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
-
-
-def click_checkbox(checkbox_widget):
-    QTest.mouseClick(checkbox_widget, QtCore.Qt.LeftButton,
-                     pos=QtCore.QPoint(2, checkbox_widget.height() / 2.0))
 
 
 class PatternControllerTest(QtTest):
@@ -37,8 +27,7 @@ class PatternControllerTest(QtTest):
             dioptas_model=self.model)
 
     def tearDown(self):
-        if os.path.exists(os.path.join(unittest_data_path, "test.xy")):
-            os.remove(os.path.join(unittest_data_path, "test.xy"))
+        delete_if_exists(os.path.join(unittest_data_path, "test.xy"))
 
     def test_configuration_selected_changes_active_unit_btn(self):
         self.model.add_configuration()
@@ -66,7 +55,7 @@ class PatternControllerTest(QtTest):
                          u"<span style='color: #ffffff'>d (A)</span>")
 
     def test_save_pattern_without_background(self):
-        QtGui.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(unittest_data_path, "test.xy"))
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(unittest_data_path, "test.xy"))
         self.model.calibration_model.create_file_header = MagicMock(return_value="None")
         click_button(self.widget.qa_save_spectrum_btn)
 

@@ -18,7 +18,7 @@
 
 import logging
 
-from PyQt4 import QtCore
+from qtpy import QtCore
 
 from .util.HelperModule import FileNameIterator, get_base_name
 from .util import Pattern
@@ -35,7 +35,7 @@ class PatternModel(QtCore.QObject):
 
     all changes to the internal data throw a pattern_changed signal.
     """
-    pattern_changed = QtCore.pyqtSignal()
+    pattern_changed = QtCore.Signal()
 
     def __init__(self):
         super(PatternModel, self).__init__()
