@@ -32,10 +32,10 @@ before_install:
   - if [ ! -d "/home/travis/build/Dioptas/Dioptas/pyFAI/build" ]; then
       git clone https://github.com/kif/pyFAI;
       cd pyFAI;
-      git checkout before_refactoring;
+      git checkout v0.12.0;
       cd ..;
     fi
-    
+
   - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
       export PATH=/home/travis/miniconda2/bin:$PATH;
     else
@@ -55,8 +55,10 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes pip numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future
-    - pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pyepics
+    - conda install --yes nomkl numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future qtpy
+    - pip install lmfit fabio mock pytest pytest-cov pycifrw pyepics
+    - conda config --add channels cprescher
+    - conda install --yes pyqtgraph
     - cd pyFAI
     - python setup.py install
     - cd ..

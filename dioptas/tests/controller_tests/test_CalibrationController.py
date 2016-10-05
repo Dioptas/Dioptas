@@ -1,36 +1,34 @@
 # -*- coding: utf-8 -*-
 
-from ..utility import QtTest
 from mock import MagicMock
 import os
 import gc
 
 import numpy as np
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
 
+from ..utility import QtTest, unittest_data_path
 from ...model.DioptasModel import DioptasModel
 from ...controller.CalibrationController import CalibrationController
 from ...widgets.CalibrationWidget import CalibrationWidget
 
-unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
-
 # mocking the functions which will block the unittest for some reason...
-QtGui.QApplication.processEvents = MagicMock()
-QtGui.QProgressDialog.setValue = MagicMock()
+QtWidgets.QApplication.processEvents = MagicMock()
+QtWidgets.QProgressDialog.setValue = MagicMock()
 
 
 class TestCalibrationController(QtTest):
     def setUp(self):
         self.model = DioptasModel()
-        self.model.calibration_model._calibrants_working_dir = os.path.join(data_path, 'calibrants')
+        self.model.calibration_model._calibrants_working_dir = os.path.join(unittest_data_path, 'calibrants')
         self.model.calibration_model.integrate_1d = MagicMock(return_value=([np.linspace(0, 100), np.linspace(0, 100)]))
         self.model.calibration_model.integrate_2d = MagicMock()
 
         self.calibration_widget = CalibrationWidget()
-        self.working_dir = {}
+        self.working_dir = {'image': '',
+                            'calibration': ''}
         self.calibration_controller = CalibrationController(working_dir=self.working_dir,
                                                             widget=self.calibration_widget,
                                                             dioptas_model=self.model)
@@ -40,7 +38,9 @@ class TestCalibrationController(QtTest):
         gc.collect()
 
     def test_automatic_calibration(self):
-        self.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
+        QTest.mouseClick(self.calibration_widget.load_img_btn, QtCore.Qt.LeftButton)
         self.calibration_controller.search_peaks(1179.6, 1129.4)
         self.calibration_controller.search_peaks(1268.5, 1119.8)
         self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
@@ -54,16 +54,20 @@ class TestCalibrationController(QtTest):
         self.app.processEvents()
         self.model.calibration_model.integrate_1d.assert_called_once()
         self.model.calibration_model.integrate_2d.assert_called_once()
-        self.assertEqual(QtGui.QProgressDialog.setValue.call_count, 15)
+        self.assertEqual(QtWidgets.QProgressDialog.setValue.call_count, 15)
 
         calibration_parameter = self.model.calibration_model.get_calibration_parameter()[0]
         self.assertAlmostEqual(calibration_parameter['dist'], .1967, places=4)
 
     def test_loading_and_saving_of_calibration_files(self):
-        self.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
-        self.calibration_controller.save_calibration(os.path.join(data_path, 'calibration.poni'))
-        self.assertTrue(os.path.exists(os.path.join(data_path, 'calibration.poni')))
-        os.remove(os.path.join(data_path, 'calibration.poni'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni'))
+        QTest.mouseClick(self.calibration_widget.load_calibration_btn, QtCore.Qt.LeftButton)
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'calibration.poni'))
+        QTest.mouseClick(self.calibration_widget.save_calibration_btn, QtCore.Qt.LeftButton)
+        self.assertTrue(os.path.exists(os.path.join(unittest_data_path, 'calibration.poni')))
+        os.remove(os.path.join(unittest_data_path, 'calibration.poni'))
 
     def test_selecting_configuration_updates_parameter_display(self):
         calibration1 = {

@@ -19,7 +19,9 @@
 import os
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
+
+from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -68,27 +70,25 @@ class PatternController(object):
         """
 
         # file callbacks
-        self.connect_click_function(self.widget.spec_autocreate_cb, self.autocreate_cb_changed)
-        self.connect_click_function(self.widget.spec_load_btn, self.load)
-        self.connect_click_function(self.widget.spec_previous_btn, self.load_previous)
-        self.connect_click_function(self.widget.spec_next_btn, self.load_next)
+        self.widget.spec_autocreate_cb.clicked.connect(self.autocreate_cb_changed)
+        self.widget.spec_load_btn.clicked.connect(self.load)
+        self.widget.spec_previous_btn.clicked.connect(self.load_previous)
+        self.widget.spec_next_btn.clicked.connect(self.load_next)
         self.widget.spec_filename_txt.editingFinished.connect(self.filename_txt_changed)
 
-        self.connect_click_function(self.widget.spec_directory_btn, self.spec_directory_btn_click)
-        self.connect_click_function(self.widget.spec_browse_by_name_rb, self.set_iteration_mode_number)
-        self.connect_click_function(self.widget.spec_browse_by_time_rb, self.set_iteration_mode_time)
+        self.widget.spec_directory_btn.clicked.connect(self.spec_directory_btn_click)
+        self.widget.spec_browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
+        self.widget.spec_browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
 
-        self.widget.connect(self.widget.spec_directory_txt,
-                            QtCore.SIGNAL('editingFinished()'),
-                            self.spec_directory_txt_changed)
+        self.widget.spec_directory_txt.editingFinished.connect(self.spec_directory_txt_changed)
 
         # unit callbacks
-        self.connect_click_function(self.widget.spec_tth_btn, self.set_unit_tth)
-        self.connect_click_function(self.widget.spec_q_btn, self.set_unit_q)
-        self.connect_click_function(self.widget.spec_d_btn, self.set_unit_d)
+        self.widget.spec_tth_btn.clicked.connect(self.set_unit_tth)
+        self.widget.spec_q_btn.clicked.connect(self.set_unit_q)
+        self.widget.spec_d_btn.clicked.connect(self.set_unit_d)
 
         # quick actions
-        self.connect_click_function(self.widget.qa_save_spectrum_btn, self.save_pattern)
+        self.widget.qa_save_spectrum_btn.clicked.connect(self.save_pattern)
 
         # integration controls
         self.widget.automatic_binning_cb.stateChanged.connect(self.integration_binning_changed)
@@ -99,7 +99,7 @@ class PatternController(object):
         self.widget.keyPressEvent = self.key_press_event
 
         # spectrum_plot auto range functions
-        self.connect_click_function(self.widget.spec_auto_range_btn, self.spec_auto_range_btn_click_callback)
+        self.widget.spec_auto_range_btn.clicked.connect(self.spec_auto_range_btn_click_callback)
         self.widget.pattern_widget.auto_range_status_changed.connect(self.widget.spec_auto_range_btn.setChecked)
 
         # spectrum_plot antialias
@@ -108,9 +108,6 @@ class PatternController(object):
         self.widget.spectrum_header_xy_cb.clicked.connect(self.update_spectrum_file_endings)
         self.widget.spectrum_header_chi_cb.clicked.connect(self.update_spectrum_file_endings)
         self.widget.spectrum_header_dat_cb.clicked.connect(self.update_spectrum_file_endings)
-
-    def connect_click_function(self, emitter, function):
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def update_spectrum_file_endings(self):
         res = []
@@ -158,20 +155,17 @@ class PatternController(object):
         self.model.calibration_model.set_supersampling(value)
         self.model.img_model.set_supersampling(value)
 
-    def save_pattern(self, filename=None, subtract_background=False):
-        if filename is None:
-            img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
-            filename = str(QtGui.QFileDialog.getSaveFileName(
-                self.widget, "Save Spectrum Data.",
-                os.path.join(self.working_dir['spectrum'],
-                             img_filename + '.xy'),
-                ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))
-            )
+    def save_pattern(self):
+        img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
+        filename = save_file_dialog(
+            self.widget, "Save Spectrum Data.",
+            os.path.join(self.working_dir['spectrum'],
+                         img_filename + '.xy'),
+            ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))
 
-            subtract_background = True  # when manually saving the spectrum the background will be subtracted
+        subtract_background = True  # when manually saving the spectrum the background will be subtracted
 
         if filename is not '':
-            print(filename)
             if filename.endswith('.xy'):
                 header = self.model.calibration_model.create_file_header()
                 if subtract_background:
@@ -191,11 +185,10 @@ class PatternController(object):
             elif filename.endswith('.svg'):
                 self.widget.pattern_widget.save_svg(filename)
 
-    def load(self, filename=None):
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(
-                self.widget, caption="Load Spectrum",
-                directory=self.working_dir['spectrum']))
+    def load(self):
+        filename = open_file_dialog(self.widget, caption="Load Spectrum",
+                                    directory=self.working_dir['spectrum'])
+
         if filename is not '':
             self.working_dir['spectrum'] = os.path.dirname(filename)
             self.widget.spec_filename_txt.setText(os.path.basename(filename))
@@ -232,7 +225,7 @@ class PatternController(object):
             self.widget.spec_filename_txt.setText(current_filename)
 
     def spec_directory_btn_click(self):
-        directory = QtGui.QFileDialog.getExistingDirectory(
+        directory = QtWidgets.QFileDialog.getExistingDirectory(
             self.widget,
             "Please choose the default directory for autosaved spectra.",
             self.working_dir['spectrum'])

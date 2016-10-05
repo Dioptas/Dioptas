@@ -23,15 +23,15 @@ from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from scipy.spatial import ConvexHull
 from skimage.measure import find_contours
-from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
 
 
 class ImgWidget(QtCore.QObject):
-    mouse_moved = QtCore.pyqtSignal(float, float)
-    mouse_left_clicked = QtCore.pyqtSignal(float, float)
-    mouse_left_double_clicked = QtCore.pyqtSignal(float, float)
+    mouse_moved = QtCore.Signal(float, float)
+    mouse_left_clicked = QtCore.Signal(float, float)
+    mouse_left_double_clicked = QtCore.Signal(float, float)
 
     def __init__(self, pg_layout, orientation='vertical'):
         super(ImgWidget, self).__init__()
@@ -362,9 +362,9 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.roi.blockSignals(True)
 
 
-class MyPolygon(QtGui.QGraphicsPolygonItem):
+class MyPolygon(QtWidgets.QGraphicsPolygonItem):
     def __init__(self, x, y):
-        QtGui.QGraphicsPolygonItem.__init__(self)
+        QtWidgets.QGraphicsPolygonItem.__init__(self)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
 
@@ -374,16 +374,16 @@ class MyPolygon(QtGui.QGraphicsPolygonItem):
     def set_size(self, x, y):
         temp_points = list(self.vertices)
         temp_points.append(QtCore.QPointF(x, y))
-        self.setPolygon(QtGui.QPolygonF(temp_points))
+        self.setPolygon(QtWidgets.QPolygonF(temp_points))
 
     def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
-        self.setPolygon(QtGui.QPolygonF(self.vertices))
+        self.setPolygon(QtWidgets.QPolygonF(self.vertices))
 
 
-class MyCircle(QtGui.QGraphicsEllipseItem):
+class MyCircle(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, radius):
-        QtGui.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
+        QtWidgets.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
         self.radius = radius
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
@@ -398,9 +398,9 @@ class MyCircle(QtGui.QGraphicsEllipseItem):
         self.setRect(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
 
-class MyPoint(QtGui.QGraphicsEllipseItem):
+class MyPoint(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, radius):
-        QtGui.QGraphicsEllipseItem.__init__(self, 0, 0, radius * 2, radius * 2)
+        QtWidgets.QGraphicsEllipseItem.__init__(self, 0, 0, radius * 2, radius * 2)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
         self.radius = radius
@@ -423,9 +423,9 @@ class MyPoint(QtGui.QGraphicsEllipseItem):
         return self.radius
 
 
-class MyRectangle(QtGui.QGraphicsRectItem):
+class MyRectangle(QtWidgets.QGraphicsRectItem):
     def __init__(self, x, y, width, height):
-        QtGui.QGraphicsRectItem.__init__(self, x, y + height, width, height)
+        QtWidgets.QGraphicsRectItem.__init__(self, x, y + height, width, height)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
 
@@ -476,17 +476,17 @@ class RoiShade(object):
 
     def create_rect(self):
         color = QtGui.QColor(0, 0, 0, 100)
-        self.left_rect = QtGui.QGraphicsRectItem()
+        self.left_rect = QtWidgets.QGraphicsRectItem()
         self.left_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.left_rect.setBrush(QtGui.QBrush(color))
-        self.right_rect = QtGui.QGraphicsRectItem()
+        self.right_rect = QtWidgets.QGraphicsRectItem()
         self.right_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.right_rect.setBrush(QtGui.QBrush(color))
 
-        self.top_rect = QtGui.QGraphicsRectItem()
+        self.top_rect = QtWidgets.QGraphicsRectItem()
         self.top_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.top_rect.setBrush(QtGui.QBrush(color))
-        self.bottom_rect = QtGui.QGraphicsRectItem()
+        self.bottom_rect = QtWidgets.QGraphicsRectItem()
         self.bottom_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.bottom_rect.setBrush(QtGui.QBrush(color))
 
