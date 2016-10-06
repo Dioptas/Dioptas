@@ -2,15 +2,15 @@
 
 import os
 
-from tests.utility import QtTest
+from ..utility import QtTest
 from mock import MagicMock
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtTest import QTest
 
-from widgets.integration import IntegrationWidget
-from controller.integration.PatternController import PatternController
-from model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+from ...controller.integration.PatternController import PatternController
+from ...model.DioptasModel import DioptasModel
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 

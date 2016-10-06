@@ -1,14 +1,14 @@
 # -*- coding: utf8 -*-
 
 import os
-from tests.utility import QtTest
+from ..utility import QtTest
 
 from PyQt4 import QtCore
 from PyQt4.QtTest import QTest
 
-from widgets.integration import IntegrationWidget
-from controller.integration.BackgroundController import BackgroundController
-from model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+from ...controller.integration.BackgroundController import BackgroundController
+from ...model.DioptasModel import DioptasModel
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 

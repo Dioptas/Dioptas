@@ -24,11 +24,11 @@ import numpy as np
 from PIL import Image
 from PyQt4 import QtGui, QtCore
 
-from model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.integration import IntegrationWidget
-from model.DioptasModel import DioptasModel
-from model.util.HelperModule import get_partial_index, get_partial_value
+from ...widgets.integration import IntegrationWidget
+from ...model.DioptasModel import DioptasModel
+from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
 
@@ -354,7 +354,7 @@ class ImageController(object):
 
     def change_mask_mode(self):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
-        self.widget.mask_transparent_cb.setVisible(not self.widget.mask_transparent_cb.isVisible())
+        self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
         self.plot_mask()
         self.model.img_model.img_changed.emit()
 

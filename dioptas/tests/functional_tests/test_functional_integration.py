@@ -10,9 +10,9 @@ from PyQt4.QtTest import QTest
 
 from mock import MagicMock
 
-from model.DioptasModel import DioptasModel
-from widgets.integration import IntegrationWidget
-from controller.integration import IntegrationController
+from ...model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+from ...controller.integration import IntegrationController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')

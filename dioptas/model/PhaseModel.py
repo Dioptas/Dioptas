@@ -18,8 +18,8 @@
 
 import numpy as np
 
-from model.util import jcpds
-from model.util.cif import CifConverter
+from .util import jcpds
+from .util.cif import CifConverter
 
 
 class PhaseLoadError(Exception):

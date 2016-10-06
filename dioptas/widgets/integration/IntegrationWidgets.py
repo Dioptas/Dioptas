@@ -21,11 +21,10 @@ import os
 from PyQt4 import QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
-from widgets.plot_widgets.ImgWidget import IntegrationImgWidget
-from widgets.plot_widgets import SpectrumWidget
+from ..plot_widgets.ImgWidget import IntegrationImgWidget
+from ..plot_widgets import SpectrumWidget
 
-from widgets.CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, \
-    VerticalSpacerItem
+from ..CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 

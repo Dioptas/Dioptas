@@ -21,8 +21,8 @@ import os
 from PyQt4 import QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
-from widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
-from widgets.plot_widgets import SpectrumWidget
+from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
+from ..widgets.plot_widgets import SpectrumWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, FlatButton

@@ -32,7 +32,6 @@ dependencies:
 ## Customize test commands
 test:
   override:
-    - cd dioptas/tests
-      py.test unit_tests
-      py.test controller_tests
-      py.test functional_tests
+    - py.test dioptas/tests/unit_tests
+      py.test dioptas/tests/controller_tests
+      py.test dioptas/tests/functional_tests

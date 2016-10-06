@@ -19,7 +19,7 @@
 import unittest
 import gc
 import os
-from model.util import jcpds
+from ...model.util import jcpds
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
