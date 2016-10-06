@@ -4,8 +4,8 @@ from functools import partial
 
 from PyQt4 import QtGui, QtCore
 
-from widgets.CustomWidgets import LabelAlignRight, HorizontalSpacerItem, CheckableFlatButton, FlatButton, \
-    NumberTextField, IntegerTextField, VerticalLine
+from .CustomWidgets import LabelAlignRight, HorizontalSpacerItem, CheckableFlatButton, FlatButton, NumberTextField, \
+    IntegerTextField, VerticalLine
 
 
 class ConfigurationWidget(QtGui.QWidget):

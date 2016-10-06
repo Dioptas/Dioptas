@@ -22,8 +22,8 @@ from PyQt4 import QtGui
 
 import numpy as np
 
-from model.ImgModel import ImgModel, BackgroundDimensionWrongException
-from model.util.ImgCorrection import DummyCorrection
+from ...model.ImgModel import ImgModel, BackgroundDimensionWrongException
+from ...model.util.ImgCorrection import DummyCorrection
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

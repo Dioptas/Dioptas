@@ -19,48 +19,19 @@
 import os
 import csv
 from sys import platform as _platform
+from PyQt4 import QtGui, QtCore
 
 import xml.etree.cElementTree as ET
 
-from PyQt4 import QtGui, QtCore
-
-from widgets.MainWidget import MainWidget
-
-from model.DioptasModel import DioptasModel
-from model.PatternModel import PatternModel
-from model.PhaseModel import PhaseModel
+from ..widgets.MainWidget import MainWidget
+from ..model.DioptasModel import DioptasModel
 
 from . import CalibrationController
 from .integration import IntegrationController
 from .MaskController import MaskController
 from .ConfigurationController import ConfigurationController
 
-from . import versioneer
-
-versioneer.VCS = 'git'
-versioneer.versionfile_source = ''
-versioneer.versionfile_build = ''
-versioneer.tag_prefix = ''
-versioneer.parentdir_prefix = ''
-
-
-def get_version():
-    version = versioneer.get_version()
-    if version not in __name__:
-        write_version_file(version)
-        return version
-    else:
-        import _version
-        return _version.__version__
-
-
-def write_version_file(version_str):
-    path = os.path.dirname(__file__)
-    with open(os.path.join(path, '_version.py'), 'w') as f:
-        f.write('__version__="{}"'.format(version_str))
-
-
-__version__ = get_version()
+from dioptas import __version__
 
 
 class MainController(object):
@@ -192,7 +163,7 @@ class MainController(object):
         image or spectrum filenames loaded and the current calibration name.
         """
         img_filename = os.path.basename(self.model.img_model.filename)
-        spec_filename = os.path.basename(self.model.pattern_model.pattern_filename)
+        spec_filename = os.path.basename(self.model.pattern.filename)
         calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':
@@ -287,4 +258,3 @@ class MainController(object):
         if self.use_settings:
             self.save_settings()
         QtGui.QApplication.closeAllWindows()
-        QtGui.QApplication.quit()
