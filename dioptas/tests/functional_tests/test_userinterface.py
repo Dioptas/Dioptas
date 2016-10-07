@@ -7,7 +7,7 @@ import numpy as np
 
 from PyQt4 import QtGui, QtCore
 
-from controller import MainController
+from ...controller import MainController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')

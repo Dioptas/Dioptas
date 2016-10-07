@@ -2,16 +2,16 @@
 
 import os
 import gc
-from tests.utility import QtTest
+from ..utility import QtTest
 
 import mock
 import numpy as np
 from PyQt4 import QtCore
 from PyQt4.QtTest import QTest
 
-from controller.integration import IntegrationController
-from model.DioptasModel import DioptasModel
-from widgets.integration import IntegrationWidget
+from ...controller.integration import IntegrationController
+from ...model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

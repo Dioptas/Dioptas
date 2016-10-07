@@ -25,10 +25,10 @@ import numpy as np
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from model.util import jcpds
-from model.DioptasModel import DioptasModel
-from controller.integration import JcpdsEditorController
-from controller import MainController
+from ...model.util import jcpds
+from ...model.DioptasModel import DioptasModel
+from ...controller.integration import JcpdsEditorController
+from ...controller import MainController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')

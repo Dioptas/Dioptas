@@ -258,4 +258,3 @@ class MainController(object):
         if self.use_settings:
             self.save_settings()
         QtGui.QApplication.closeAllWindows()
-        QtGui.QApplication.quit()

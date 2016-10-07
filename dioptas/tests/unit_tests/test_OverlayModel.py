@@ -3,9 +3,9 @@ import os
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from model.util import Pattern
-from model.OverlayModel import OverlayModel
-from model.util.PeakShapes import gaussian
+from ...model.util import Pattern
+from ...model.OverlayModel import OverlayModel
+from ...model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

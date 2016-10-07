@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from tests.utility import QtTest
+from ..utility import QtTest
 from mock import MagicMock, patch
 
-from model.DioptasModel import DioptasModel
-from widgets.integration import IntegrationWidget
-from controller.integration.EpicsController import EpicsController
+from ...model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+from ...controller.integration.EpicsController import EpicsController
 
 from PyQt4 import QtGui
 

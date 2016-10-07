@@ -5,9 +5,9 @@ import os
 
 import numpy as np
 
-from model.util.Pattern import BkgNotInRangeError
-from model.util import Pattern
-from model.util.PeakShapes import gaussian
+from ...model.util.Pattern import BkgNotInRangeError
+from ...model.util import Pattern
+from ...model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

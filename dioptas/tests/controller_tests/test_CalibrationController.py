@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from tests.utility import QtTest
+from ..utility import QtTest
 from mock import MagicMock
 import os
 import gc
 
+import numpy as np
+
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtTest import QTest
 
-from model.DioptasModel import DioptasModel
-from controller.CalibrationController import CalibrationController
-from widgets.CalibrationWidget import CalibrationWidget
+from ...model.DioptasModel import DioptasModel
+from ...controller.CalibrationController import CalibrationController
+from ...widgets.CalibrationWidget import CalibrationWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -24,7 +26,7 @@ class TestCalibrationController(QtTest):
     def setUp(self):
         self.model = DioptasModel()
         self.model.calibration_model._calibrants_working_dir = os.path.join(data_path, 'calibrants')
-        self.model.calibration_model.integrate_1d = MagicMock()
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=([np.linspace(0, 100), np.linspace(0, 100)]))
         self.model.calibration_model.integrate_2d = MagicMock()
 
         self.calibration_widget = CalibrationWidget()
@@ -50,8 +52,8 @@ class TestCalibrationController(QtTest):
 
         QTest.mouseClick(self.calibration_widget.calibrate_btn, QtCore.Qt.LeftButton)
         self.app.processEvents()
-        self.model.calibration_model.integrate_1d.assert_called_once_with()
-        self.model.calibration_model.integrate_2d.assert_called_once_with()
+        self.model.calibration_model.integrate_1d.assert_called_once()
+        self.model.calibration_model.integrate_2d.assert_called_once()
         self.assertEqual(QtGui.QProgressDialog.setValue.call_count, 15)
 
         calibration_parameter = self.model.calibration_model.get_calibration_parameter()[0]
@@ -110,9 +112,4 @@ class TestCalibrationController(QtTest):
         del current_displayed_calibration['polarization_factor']
         self.assertEqual(model_calibration, current_displayed_calibration)
 
-
         current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
-
-
-if __name__ == '__main__':
-    unittest.main()

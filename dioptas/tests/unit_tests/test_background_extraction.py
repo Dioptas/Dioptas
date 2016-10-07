@@ -18,8 +18,8 @@
 import unittest
 import numpy as np
 
-from model.util import extract_background
-from model.util.PeakShapes import gaussian
+from ...model.util import extract_background
+from ...model.util.PeakShapes import gaussian
 
 
 class TestBackgroundExtraction(unittest.TestCase):

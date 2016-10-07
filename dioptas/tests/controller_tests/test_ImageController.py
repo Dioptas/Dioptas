@@ -6,14 +6,14 @@ import shutil
 import numpy as np
 from mock import MagicMock
 
-from tests.utility import QtTest
+from ..utility import QtTest
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtTest import QTest
 
-from widgets.integration import IntegrationWidget
-from controller.integration.ImageController import ImageController
-from model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+from ...controller.integration.ImageController import ImageController
+from ...model.DioptasModel import DioptasModel
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
