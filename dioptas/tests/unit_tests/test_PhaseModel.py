@@ -3,7 +3,7 @@
 import unittest
 import os
 
-from model.PhaseModel import PhaseModel
+from ...model.PhaseModel import PhaseModel
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, 'data')

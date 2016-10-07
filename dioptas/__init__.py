@@ -18,13 +18,14 @@
 from __future__ import absolute_import
 
 from ._version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions
-
 
 import sys
 import os
 import time
+
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -32,11 +33,7 @@ except ImportError:
 import traceback
 from PyQt4 import QtGui
 
-
 from .widgets.UtilityWidgets import ErrorMessageBox
-
-QtGui.QApplication.setGraphicsSystem("raster")
-app = QtGui.QApplication(sys.argv)
 
 dioptas_version = __version__[:5]
 
@@ -82,14 +79,16 @@ def excepthook(exc_type, exc_value, traceback_obj):
     errorbox.setText(str(notice) + str(msg) + str(version_info))
     errorbox.exec_()
 
-# sys.excepthook = excepthook
+
+
 
 def main():
+    sys.excepthook = excepthook
     from sys import platform as _platform
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))
 
-    app = QtGui.QApplication(sys.argv[1:])
+    app = QtGui.QApplication([])
 
     if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
@@ -98,6 +97,3 @@ def main():
     controller.show_window()
     app.exec_()
     del app
-
-if __name__ == '__main__':
-    main()

@@ -7,7 +7,7 @@ import numpy as np
 
 from PyQt4 import QtGui
 
-from model.util.HelperModule import get_partial_index, FileNameIterator
+from ...model.util.HelperModule import get_partial_index, FileNameIterator
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data', 'FileIterator')

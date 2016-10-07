@@ -5,9 +5,9 @@ import gc
 import os
 import numpy as np
 
-from model.MaskModel import MaskModel
+from ...model.MaskModel import MaskModel
 
-from tests.utility import delete_if_exists
+from ..utility import delete_if_exists
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
