@@ -7,11 +7,11 @@ from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.EpicsController import EpicsController
 
-from PyQt4 import QtGui
+from qtpy import QtWidgets
 
 # mocking the functions which will block the unittest for some reason...
-QtGui.QApplication.processEvents = MagicMock()
-QtGui.QProgressDialog.setValue = MagicMock()
+QtWidgets.QApplication.processEvents = MagicMock()
+QtWidgets.QProgressDialog.setValue = MagicMock()
 
 
 class TestEpicsController(QtTest):

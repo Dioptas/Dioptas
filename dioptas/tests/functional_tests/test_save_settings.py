@@ -5,21 +5,16 @@ from mock import MagicMock
 import os
 import gc
 
-from PyQt4 import QtGui
+from qtpy import QtWidgets
 
+from ..utility import QtTest
 from ...controller.MainController import MainController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
 
-class SaveSettingsTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtGui.QApplication([])
-
+class SaveSettingsTest(QtTest):
     def create_controller_and_data(self):
         self.controller = MainController()
         self.controller.model.calibration_model.integrate_1d = MagicMock(

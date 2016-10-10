@@ -51,11 +51,11 @@ class MaskModel(object):
 
     def set_supersampling(self, factor=None):
         if factor is None:
-            factor = self.supersampling_factor
+            self.supersampling_factor = 1
         else:
             self.supersampling_factor = factor
 
-        if factor != 1:
+        if self.supersampling_factor != 1:
             self._mask_data_supersampled = np.zeros((self._mask_data.shape[0] * factor,
                                                      self._mask_data.shape[1] * factor))
             for row in range(factor):
@@ -140,7 +140,7 @@ class MaskModel(object):
 
     def mask_QGraphicsPolygonItem(self, QGraphicsPolygonItem):
         """
-        Masks a polygon given by a QGraphicsPolygonItem from the QtGui Library.
+        Masks a polygon given by a QGraphicsPolygonItem from the QtWidgets Library.
         Uses the sklimage.draw.polygon function.
         """
 
@@ -156,7 +156,7 @@ class MaskModel(object):
 
     def mask_QGraphicsEllipseItem(self, QGraphicsEllipseItem):
         """
-        Masks an Ellipse given by a QGraphicsEllipseItem from the QtGui
+        Masks an Ellipse given by a QGraphicsEllipseItem from the QtWidgets
         Library. Uses the skimage.draw.ellipse function.
         """
         bounding_rect = QGraphicsEllipseItem.rect()

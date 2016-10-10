@@ -20,7 +20,7 @@ from __future__ import absolute_import
 
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.LabelItem import LabelItem
-from pyqtgraph.Qt import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 from pyqtgraph import functions as fn
 from pyqtgraph.Point import Point
 from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem, drawSymbol
@@ -75,7 +75,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         GraphicsWidget.__init__(self)
         GraphicsWidgetAnchor.__init__(self)
         self.setFlag(self.ItemIgnoresTransformations)
-        self.layout = QtGui.QGraphicsGridLayout()
+        self.layout = QtWidgets.QGraphicsGridLayout()
         self.layout.setVerticalSpacing(verSpacing)
         self.layout.setHorizontalSpacing(horSpacing)
         self._horSpacing = horSpacing
@@ -265,7 +265,7 @@ class ItemSample(GraphicsWidget):
         if opts.get('fillLevel', None) is not None and opts.get('fillBrush', None) is not None:
             p.setBrush(fn.mkBrush(opts['fillBrush']))
             p.setPen(fn.mkPen(None))
-            p.drawPolygon(QtGui.QPolygonF([QtCore.QPointF(2, 18), QtCore.QPointF(18, 2), QtCore.QPointF(18, 18)]))
+            p.drawPolygon(QtWidgets.QPolygonF([QtCore.QPointF(2, 18), QtCore.QPointF(18, 2), QtCore.QPointF(18, 18)]))
 
         if not isinstance(self.item, ScatterPlotItem):
             p.setPen(fn.mkPen(opts['pen']))

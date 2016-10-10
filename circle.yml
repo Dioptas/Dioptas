@@ -19,13 +19,10 @@ dependencies:
           wget --quiet https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh &&
           bash Miniconda-latest-Linux-x86_64.sh -b -p ${CONDA_ROOT};
           conda install --yes pip numpy pillow scipy pandas dateutil nose h5py pyqt;
-          conda install --yes scikit-image cython future;
-          pip install lmfit pyqtgraph fabio mock pytest pytest-cov pycifrw pypeics;
-          git clone https://github.com/kif/pyFAI;
-          cd pyFAI;
-          python setup.py install;
-          cd ..;
-          rm -rf pyFAI;
+          conda install --yes scikit-image cython future qtpy;
+          conda config --add channels cprescher;
+          conda install --yes pyfai pyqtgraph lmfit fabio pycifrw;
+          pip install mock pytest pytest-cov pycifrw pyepics;
       else
           echo "Using cached Miniconda install";
       fi
@@ -33,5 +30,5 @@ dependencies:
 test:
   override:
     - py.test dioptas/tests/unit_tests
-      py.test dioptas/tests/controller_tests
-      py.test dioptas/tests/functional_tests
+    - py.test dioptas/tests/controller_tests
+    - py.test dioptas/tests/functional_tests

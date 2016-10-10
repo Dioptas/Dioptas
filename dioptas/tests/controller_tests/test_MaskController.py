@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 import os
 import gc
 import numpy as np
+from mock import MagicMock
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
 
 from ...model.DioptasModel import DioptasModel
 from ...controller.MaskController import MaskController
@@ -17,9 +18,8 @@ data_path = os.path.join(unittest_path, '../data')
 
 
 class MaskControllerTest(QtTest):
-
     def setUp(self):
-        self.working_dir = {}
+        self.working_dir = {'mask': data_path}
 
         self.model = DioptasModel()
         self.mask_widget = MaskWidget()
@@ -37,16 +37,20 @@ class MaskControllerTest(QtTest):
         return stat_info.st_size
 
     def test_loading_and_saving_mask_files(self):
-        self.mask_controller.load_mask_btn_click(os.path.join(data_path, 'test.mask'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, 'test.mask'))
+        click_button(self.mask_widget.load_mask_btn)
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
         filename = os.path.join(data_path, 'dummy.mask')
-        self.mask_controller.save_mask_btn_click(filename)
+
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
+        click_button(self.mask_widget.save_mask_btn)
         self.assertTrue(os.path.exists(filename))
         os.remove(filename)
 
     def test_loading_and_saving_with_super_sampling(self):
         self.model.mask_model.set_supersampling(2)
-        self.mask_controller.load_mask_btn_click(os.path.join(data_path, 'test.mask'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, 'test.mask'))
+        click_button(self.mask_widget.load_mask_btn)
 
         self.assertEqual(self.model.mask_model.get_mask().shape[0], 4096)
         self.assertEqual(self.model.mask_model.get_mask().shape[1], 4096)
@@ -57,7 +61,8 @@ class MaskControllerTest(QtTest):
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
 
         filename = os.path.join(data_path, 'dummy.mask')
-        self.mask_controller.save_mask_btn_click(filename)
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
+        click_button(self.mask_widget.save_mask_btn)
         self.assertAlmostEqual(self.get_file_size(filename), self.get_file_size(os.path.join(data_path, 'test.mask')),
                                delta=1000)
 
