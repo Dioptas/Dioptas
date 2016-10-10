@@ -141,7 +141,6 @@ QSpinBox, QDoubleSpinBox {
 	color: black;
 	margin-left: -15px;
 	margin-right: -2px;
-	height: 30px;
 }
 
 QComboBox QAbstractItemView{
@@ -149,12 +148,17 @@ QComboBox QAbstractItemView{
 	color: #F1F1F1;
 	selection-background-color: rgba(221, 124, 40, 120);
 	border-radius: 5px;
+	min-height: 40px;
 
+}
+
+QComboBox QAbstractItemView:QScrollbar::vertical {
+    width:100px;
 }
 
 QComboBox:!editable {
     margin-left: 1px;
-    padding-left: 10px;
+    padding: 0px 10px 0px 10px;
     height: 23px;
     background-color: #3C3C3C;
 }

@@ -19,7 +19,9 @@
 import os
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
+
+from ...widgets.UtilityWidgets import open_file_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -79,22 +81,21 @@ class BackgroundController(object):
         """
         Small helper function for the button-click connection.
         """
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
+        emitter.clicked.connect(function)
 
-    def load_background_image(self, filename=None):
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(
-                self.widget, "Load an image background file",
-                self.working_dir['image']))
+    def load_background_image(self):
+        filename = open_file_dialog(
+            self.widget, "Load an image background file",
+            self.working_dir['image'])
 
         if filename is not None and filename is not '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
             try:
                 self.model.img_model.load_background(filename)
             except BackgroundDimensionWrongException:
-                QtGui.QMessageBox.critical(self.widget, 'ERROR',
-                                           'Background image does not have the same dimensions as original Image. ' + \
-                                           'Resetting Background Image.')
+                QtWidgets.QMessageBox.critical(self.widget, 'ERROR',
+                                               'Background image does not have the same dimensions as original Image. ' + \
+                                               'Resetting Background Image.')
                 self.widget.bkg_image_filename_lbl.setText("None")
 
     def remove_background_image(self):

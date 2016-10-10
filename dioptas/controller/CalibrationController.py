@@ -17,12 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
 import numpy as np
 
+from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.CalibrationWidget import CalibrationWidget
+from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
 
 
@@ -65,17 +68,17 @@ class CalibrationController(object):
         self.create_mouse_signals()
 
         self.widget.calibrant_cb.currentIndexChanged.connect(self.load_calibrant)
-        self.connect_click_function(self.widget.load_img_btn, self.load_img)
-        self.connect_click_function(self.widget.load_next_img_btn, self.load_next_img)
-        self.connect_click_function(self.widget.load_previous_img_btn, self.load_previous_img)
+        self.widget.load_img_btn.clicked.connect(self.load_img)
+        self.widget.load_next_img_btn.clicked.connect(self.load_next_img)
+        self.widget.load_previous_img_btn.clicked.connect(self.load_previous_img)
         self.widget.filename_txt.editingFinished.connect(self.update_filename_txt)
 
-        self.connect_click_function(self.widget.save_calibration_btn, self.save_calibration)
-        self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
-        self.connect_click_function(self.widget.calibrate_btn, self.calibrate)
-        self.connect_click_function(self.widget.refine_btn, self.refine)
+        self.widget.save_calibration_btn.clicked.connect(self.save_calibration)
+        self.widget.load_calibration_btn.clicked.connect(self.load_calibration)
+        self.widget.calibrate_btn.clicked.connect(self.calibrate)
+        self.widget.refine_btn.clicked.connect(self.refine)
 
-        self.connect_click_function(self.widget.clear_peaks_btn, self.clear_peaks_btn_click)
+        self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks_btn_click)
 
         self.widget.f2_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
         self.widget.pf_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
@@ -92,11 +95,11 @@ class CalibrationController(object):
         """
         Connects all the rotation GUI controls.
         """
-        self.connect_click_function(self.widget.rotate_m90_btn, self.rotate_m90_btn_clicked)
-        self.connect_click_function(self.widget.rotate_p90_btn, self.rotate_p90_btn_clicked)
-        self.connect_click_function(self.widget.invert_horizontal_btn, self.invert_horizontal_btn_clicked)
-        self.connect_click_function(self.widget.invert_vertical_btn, self.invert_vertical_btn_clicked)
-        self.connect_click_function(self.widget.reset_transformations_btn, self.reset_transformations_btn_clicked)
+        self.widget.rotate_m90_btn.clicked.connect(self.rotate_m90_btn_clicked)
+        self.widget.rotate_p90_btn.clicked.connect(self.rotate_p90_btn_clicked)
+        self.widget.invert_horizontal_btn.clicked.connect(self.invert_horizontal_btn_clicked)
+        self.widget.invert_vertical_btn.clicked.connect(self.invert_vertical_btn_clicked)
+        self.widget.reset_transformations_btn.clicked.connect(self.reset_transformations_btn_clicked)
 
     def rotate_m90_btn_clicked(self):
         self.model.img_model.rotate_img_m90()
@@ -122,8 +125,8 @@ class CalibrationController(object):
         """
         Connects all the txt box signals. Which specifically are the update buttons here.
         """
-        self.connect_click_function(self.widget.f2_update_btn, self.update_f2_btn_click)
-        self.connect_click_function(self.widget.pf_update_btn, self.update_pyFAI_btn_click)
+        self.widget.f2_update_btn.clicked.connect(self.update_f2_btn_click)
+        self.widget.pf_update_btn.clicked.connect(self.update_pyFAI_btn_click)
 
     def create_mouse_signals(self):
         """
@@ -133,9 +136,6 @@ class CalibrationController(object):
         self.widget.cake_widget.mouse_moved.connect(self.update_cake_mouse_position_lbl)
         self.widget.spectrum_widget.mouse_moved.connect(self.update_spectrum_mouse_position_lbl)
         self.widget.img_widget.mouse_left_clicked.connect(self.search_peaks)
-
-    def connect_click_function(self, emitter, function):
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
 
     def update_f2_btn_click(self):
         """
@@ -153,19 +153,18 @@ class CalibrationController(object):
         self.model.calibration_model.set_pyFAI(pyFAI_parameter)
         self.update_all()
 
-    def load_img(self, filename=None):
+    def load_img(self):
         """
         Loads an image file.
         :param filename:
             filename of image file. If not set it will pop up a QFileDialog where the file can be chosen.
         """
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self.widget, caption="Load Calibration Image",
-                                                             directory=self.working_dir['image']))
+        filename = open_file_dialog(self.widget, caption="Load Calibration Image",
+                                    directory=self.working_dir['image'])
 
         if filename is not '':
             self.working_dir['image'] = os.path.dirname(filename)
-            self.model.img_model.load(filename)
+        self.model.img_model.load(filename)
 
     def load_next_img(self):
         self.model.img_model.load_next_file()
@@ -360,10 +359,10 @@ class CalibrationController(object):
         :param end_value:  Number of steps for which the progressbar is being used
         :param show_cancel_btn: Whether the cancel button should be shown.
         :return: ProgressDialog reference which is already shown in the interface
-        :rtype: QtGui.ProgressDialog
+        :rtype: QtWidgets.ProgressDialog
         """
-        progress_dialog = QtGui.QProgressDialog(text_str, abort_str, 0, end_value,
-                                                self.widget)
+        progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, end_value,
+                                                    self.widget)
 
         progress_dialog.move(self.widget.tab_widget.x() + self.widget.tab_widget.size().width() / 2.0 - \
                              progress_dialog.size().width() / 2.0,
@@ -376,7 +375,7 @@ class CalibrationController(object):
         if not show_cancel_btn:
             progress_dialog.setCancelButton(None)
         progress_dialog.show()
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         return progress_dialog
 
     def refine(self):
@@ -431,8 +430,8 @@ class CalibrationController(object):
             self.widget.peak_num_sb.setValue(i + 4)
             if len(self.model.calibration_model.points):
                 self.plot_points(points)
-                QtGui.QApplication.processEvents()
-                QtGui.QApplication.processEvents()
+                QtWidgets.QApplication.processEvents()
+                QtWidgets.QApplication.processEvents()
                 self.model.calibration_model.refine()
             else:
                 print('Did not find enough points with the specified parameters!')
@@ -445,25 +444,23 @@ class CalibrationController(object):
         progress_dialog.close()
         del progress_dialog
 
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         if not refinement_canceled:
             self.update_all()
 
-    def load_calibration(self, filename=None, update_all=True):
+    def load_calibration(self):
         """
         Loads a '*.poni' file and updates the calibration data class
         :param filename:
             filename of the calibration file
         """
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self.widget, caption="Load calibration...",
-                                                             directory=self.working_dir['calibration'],
-                                                             filter='*.poni'))
+        filename = open_file_dialog(self.widget, caption="Load calibration...",
+                                    directory=self.working_dir['calibration'],
+                                    filter='*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
-            self.model.calibration_model.load(filename)
-            if update_all:
-                self.update_all()
+        self.model.calibration_model.load(filename)
+        self.update_all()
 
     def plot_mask(self):
         """
@@ -493,11 +490,11 @@ class CalibrationController(object):
         if integrate:
             progress_dialog = self.create_progress_dialog('Integrating to cake.', '',
                                                           0, show_cancel_btn=False)
-            QtGui.QApplication.processEvents()
+            QtWidgets.QApplication.processEvents()
             self.model.current_configuration.integrate_image_1d()
             progress_dialog.setLabelText('Integrating to spectrum.')
-            QtGui.QApplication.processEvents()
-            QtGui.QApplication.processEvents()
+            QtWidgets.QApplication.processEvents()
+            QtWidgets.QApplication.processEvents()
             self.model.current_configuration.integrate_image_2d()
             progress_dialog.close()
         self.widget.cake_widget.plot_image(self.model.cake_data, False)
@@ -524,7 +521,7 @@ class CalibrationController(object):
         pyFAI_parameter, fit2d_parameter = self.model.calibration_model.get_calibration_parameter()
         self.widget.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
 
-    def save_calibration(self, filename=None):
+    def save_calibration(self):
         """
         Saves the current calibration in a file.
         :param filename:
@@ -532,9 +529,9 @@ class CalibrationController(object):
             *.poni ending.
         :return:
         """
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save calibration...",
-                                                             self.working_dir['calibration'], '*.poni'))
+
+        filename = save_file_dialog(self.widget, "Save calibration...",
+                                    self.working_dir['calibration'], '*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.save(filename)

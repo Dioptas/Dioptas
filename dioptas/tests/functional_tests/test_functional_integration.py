@@ -3,10 +3,12 @@ import gc
 import os
 import unittest
 
+from ..utility import QtTest, click_button, delete_if_exists
+
 import numpy as np
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
 
 from mock import MagicMock
 
@@ -18,22 +20,13 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 
 
-def click_button(widget):
-    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
-
-
-class IntegrationMockFunctionalTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtGui.QApplication([])
-
+class IntegrationMockFunctionalTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
 
         self.integration_widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'spectrum': data_path},
+        self.integration_controller = IntegrationController({'spectrum': data_path,
+                                                             'image': data_path},
                                                             widget=self.integration_widget,
                                                             dioptas_model=self.model)
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
@@ -53,11 +46,14 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
         del self.model
         gc.collect()
 
+        delete_if_exists(os.path.join(data_path, 'Test_img.png'))
+        delete_if_exists(os.path.join(data_path, 'Test_img.tiff'))
+
     def enter_value_into_text_field(self, text_field, value):
         text_field.setText('')
         QTest.keyClicks(text_field, str(value))
         QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
     def test_changing_number_of_integration_bins(self):
         # Edith wants to change the number of integration bins in order to see the effect of binning onto her line
@@ -104,7 +100,7 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
         self.assertEqual(self.model.img_data.shape[0], 2 * img_shape[0])
         self.assertEqual(self.model.img_data.shape[1], 2 * img_shape[1])
 
-        self.model.mask_model.load_mask(os.path.join(data_path, 'test.mask'))
+        self.model.mask_model.mask_below_threshold(self.model.img_model._img_data, 100)
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
 
@@ -112,26 +108,30 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
         # the widget has to be shown to be able to save the image:
         self.integration_widget.show()
         # Tests if the image save procedures are working for the different possible file endings
-        self.integration_image_controller.save_img(os.path.join(data_path, 'Test_img.png'))
-        self.integration_image_controller.save_img(os.path.join(data_path, 'Test_img.tiff'))
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, 'Test_img.png'))
+        QTest.mouseClick(self.integration_widget.qa_save_img_btn, QtCore.Qt.LeftButton)
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, 'Test_img.tiff'))
+        QTest.mouseClick(self.integration_widget.qa_save_img_btn, QtCore.Qt.LeftButton)
 
         self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_img.png')))
         self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_img.tiff')))
-
-        os.remove(os.path.join(data_path, 'Test_img.png'))
-        os.remove(os.path.join(data_path, 'Test_img.tiff'))
 
     def test_saving_spectrum(self):
         # the widget has to be shown to be able to save the image:
         self.integration_widget.show()
 
-        # Tests if the spectrum save procedures is are working for all fileendings
+        # Tests if the spectrum save procedures is are working for all file-endings
         def save_spectra_test_for_size_and_delete(self):
-            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.xy'))
-            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.chi'))
-            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.dat'))
-            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.png'))
-            self.integration_spectrum_controller.save_pattern(os.path.join(data_path, 'Test_spec.svg'))
+
+            def save_spectrum(filename):
+                QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
+                click_button(self.integration_widget.qa_save_spectrum_btn)
+
+            save_spectrum(os.path.join(data_path, 'Test_spec.xy'))
+            save_spectrum(os.path.join(data_path, 'Test_spec.chi'))
+            save_spectrum(os.path.join(data_path, 'Test_spec.dat'))
+            save_spectrum(os.path.join(data_path, 'Test_spec.png'))
+            save_spectrum(os.path.join(data_path, 'Test_spec.svg'))
 
             self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_spec.xy')))
             self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_spec.chi')))
@@ -164,21 +164,19 @@ class IntegrationMockFunctionalTest(unittest.TestCase):
     def test_loading_multiple_images_and_batch_integrate_them(self):
         self.integration_widget.spec_autocreate_cb.setChecked(True)
         self.assertTrue(self.integration_widget.spec_autocreate_cb.isChecked())
-        self.integration_image_controller.load_file([os.path.join(data_path, 'image_001.tif'),
-                                                     os.path.join(data_path, 'image_002.tif')])
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'image_001.tif'),
+                                                            os.path.join(data_path, 'image_002.tif')])
+        click_button(self.integration_widget.load_img_btn)
+
         self.assertTrue(os.path.exists(os.path.join(data_path, 'image_001.xy')))
         self.assertTrue(os.path.exists(os.path.join(data_path, 'image_002.xy')))
         os.remove(os.path.join(data_path, 'image_001.xy'))
         os.remove(os.path.join(data_path, 'image_002.xy'))
 
 
-class IntegrationFunctionalTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtGui.QApplication([])
-
+class IntegrationFunctionalTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
 

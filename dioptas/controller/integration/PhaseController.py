@@ -19,11 +19,12 @@
 import os
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
 from ...model.PhaseModel import PhaseLoadError
 from ...model.util.HelperModule import get_base_name
 from .JcpdsEditorController import JcpdsEditorController
+from ...widgets.UtilityWidgets import open_files_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -45,9 +46,7 @@ class PhaseController(object):
         :param dioptas_model: reference to DioptasModel object
 
         :type widget: IntegrationWidget
-        :type calibration_model: CalibrationModel
-        :type spectrum_model: PatternModel
-        :type phase_model: PhaseModel
+        :type dioptas_model: DioptasModel
         """
         self.working_dir = working_dir
         self.widget = widget
@@ -93,9 +92,9 @@ class PhaseController(object):
         self.jcpds_editor_controller.phase_modified.connect(self.update_cur_phase_name)
 
     def connect_click_function(self, emitter, function):
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
+        emitter.clicked.connect(function)
 
-    def add_btn_click_callback(self, filename=None):
+    def add_btn_click_callback(self):
         """
         Loads a new phase from jcpds file.
         :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
@@ -104,33 +103,28 @@ class PhaseController(object):
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not load phase without calibration.")
 
-        if filename is None:
-            filenames = QtGui.QFileDialog.getOpenFileNames(
-                self.widget, "Load Phase(s).", self.working_dir['phase'])
-            if len(filenames):
-                self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
-                progress_dialog = QtGui.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
+        filenames = open_files_dialog(self.widget, "Load Phase(s).", self.working_dir['phase'])
+
+        if len(filenames):
+            self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
+            progress_dialog = QtWidgets.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
                                                         self.widget)
-                progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
-                progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-                progress_dialog.show()
-                QtGui.QApplication.processEvents()
-                for ind, filename in enumerate(filenames):
-                    filename = str(filename)
-                    progress_dialog.setValue(ind)
-                    progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
-                    QtGui.QApplication.processEvents()
+            progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+            progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+            progress_dialog.show()
+            QtWidgets.QApplication.processEvents()
+            for ind, filename in enumerate(filenames):
+                filename = str(filename)
+                progress_dialog.setValue(ind)
+                progress_dialog.setLabelText("Loading: " + os.path.basename(filename))
+                QtWidgets.QApplication.processEvents()
 
-                    self._add_phase(filename)
+                self._add_phase(filename)
 
-                    if progress_dialog.wasCanceled():
-                        break
-                progress_dialog.close()
-                QtGui.QApplication.processEvents()
-                self.update_temperature_control_visibility()
-        else:
-            self._add_phase(filename)
-            self.working_dir['phase'] = os.path.dirname(str(filename))
+                if progress_dialog.wasCanceled():
+                    break
+            progress_dialog.close()
+            QtWidgets.QApplication.processEvents()
             self.update_temperature_control_visibility()
 
     def _add_phase(self, filename):
@@ -307,7 +301,7 @@ class PhaseController(object):
 
     def phase_color_btn_clicked(self, ind, button):
         previous_color = button.palette().color(1)
-        new_color = QtGui.QColorDialog.getColor(previous_color, self.widget)
+        new_color = QtWidgets.QColorDialog.getColor(previous_color, self.widget)
         if new_color.isValid():
             color = str(new_color.name())
         else:
@@ -337,7 +331,7 @@ class PhaseController(object):
         """
         Function is called after the spectrum data has changed.
         """
-        # QtGui.QApplication.processEvents()
+        # QtWidgets.QApplication.processEvents()
         # self.update_phase_lines_slot()
         self.widget.pattern_widget.update_phase_line_visibilities()
 
