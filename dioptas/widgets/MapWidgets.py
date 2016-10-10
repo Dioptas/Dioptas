@@ -194,25 +194,25 @@ class Map2DWidget(QtGui.QWidget):
 
     def btn_roi_del_clicked(self):
         for each_roi in self.roi_list.selectedItems():
-            for key, item in self.map_roi.iteritems():
+            for key in self.map_roi:
                 if self.map_roi[key]['List_Obj'] == each_roi:
-                    self.spec_plot.removeItem(item['Obj'])
+                    self.spec_plot.removeItem(self.map_roi[key]['Obj'])
                     del self.map_roi[key]
                     break
             self.roi_list.takeItem(self.roi_list.row(each_roi))
 
     def btn_roi_clear_clicked(self):
         self.roi_list.clear()
-        for key, item in self.map_roi.iteritems():
-            self.spec_plot.removeItem(item['Obj'])
+        for key in self.map_roi:
+            self.spec_plot.removeItem(self.map_roi[key]['Obj'])
         self.map_roi.clear()
 
     def btn_roi_toggle_clicked(self):
         if self.roi_toggle_btn.isChecked():
-            for key, item in self.map_roi.iteritems():
+            for key in self.map_roi:
                 self.map_roi[key]['Obj'].show()
         else:
-            for key, item in self.map_roi.iteritems():
+            for key in self.map_roi:
                 self.map_roi[key]['Obj'].hide()
 
     # not in use
@@ -445,10 +445,10 @@ class Map2DWidget(QtGui.QWidget):
 
         useful_tags = ['Horizontal:', 'Vertical:']
 
-        for value in tags.itervalues():
+        for tag in tags:
             for key in useful_tags:
-                if key in str(value):
-                    k, v = str(value[0]).split(':')
+                if key in str(tags[tag]):
+                    k, v = str(tags[tag][0]).split(':')
                     result[str(k)] = str(v)
         return result
 
@@ -487,11 +487,10 @@ class Map2DWidget(QtGui.QWidget):
             # self.roi_list.takeItem(row)
             # self.roi_list.insertItem(row, roi_new_name)
             item.setText(roi_new_name)
-            for key, roi_item in self.map_roi.iteritems():
+            for key in self.map_roi:
                 if self.map_roi[key]['List_Obj'] == item:
                     self.map_roi[key]['Obj'].setRegion((roi_start, roi_end))
                     break
-        pass
 
     def convert_units(self, value, previous_unit, new_unit, wavelength):
         self.units = new_unit
