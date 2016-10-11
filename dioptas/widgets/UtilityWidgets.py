@@ -181,9 +181,8 @@ def open_file_dialog(parent_widget, caption, directory, filter=None):
     filename = QtWidgets.QFileDialog.getOpenFileName(parent_widget, caption=caption,
                                                      directory=directory,
                                                      filter=filter)
-    if len(filename) == 2:  # PyQt5
-        if filename[1] == '':
-            return str(filename[0])
+    if isinstance(filename, tuple):  # PyQt5 returns a tuple...
+        return str(filename[0])
     return str(filename)
 
 
@@ -191,9 +190,8 @@ def open_files_dialog(parent_widget, caption, directory, filter=None):
     filenames = QtWidgets.QFileDialog.getOpenFileNames(parent_widget, caption=caption,
                                                        directory=directory,
                                                        filter=filter)
-    if len(filenames) == 2:  # PyQt5
-        if filenames[1] == '':
-            return str(filenames[0])
+    if isinstance(filenames, tuple):  # PyQt5 returns a tuple...
+        filenames = filenames[0]
     return filenames
 
 
@@ -201,7 +199,6 @@ def save_file_dialog(parent_widget, caption, directory, filter=None):
     filename = QtWidgets.QFileDialog.getSaveFileName(parent_widget, caption,
                                                      directory=directory,
                                                      filter=filter)
-    if len(filename) == 2:  # PyQt5
-        if filename[1] == '':
-            return str(filename[0])
+    if isinstance(filename, tuple):  # PyQt5 returns a tuple...
+        return str(filename[0])
     return str(filename)

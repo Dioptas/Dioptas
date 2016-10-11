@@ -41,7 +41,7 @@ class ImageControllerTest(QtTest):
     def test_automatic_file_processing(self):
         # get into a specific folder
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
-            return_value=(os.path.join(unittest_data_path, 'image_001.tif'),))
+            return_value=[os.path.join(unittest_data_path, 'image_001.tif')])
         click_button(self.widget.load_img_btn)
         self.assertEqual(str(self.widget.img_filename_txt.text()), 'image_001.tif')
         self.assertEqual(self.controller.working_dir['image'], unittest_data_path)
