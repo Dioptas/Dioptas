@@ -1,13 +1,14 @@
-from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtGui, QtWidgets
 import pyqtgraph as pq
 from pyqtgraph import GraphicsLayoutWidget
 import os
 import numpy as np
 from .plot_widgets.HistogramLUTItem import HistogramLUTItem
 from PIL import Image
+import time
 
 
-class Map2DWidget(QtGui.QWidget):
+class Map2DWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(Map2DWidget, self).__init__(parent)
 
@@ -31,10 +32,10 @@ class Map2DWidget(QtGui.QWidget):
 
         # WIDGETS
         # not in use - file list
-        # self.all_file_list = QtGui.QListWidget(self)
-        # self.all_file_list.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.show_map_btn = QtGui.QPushButton(self)
-        self.lbl_map_pos = QtGui.QLabel()
+        # self.all_file_list = QtWidgets.QListWidget(self)
+        # self.all_file_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.show_map_btn = QtWidgets.QPushButton(self)
+        self.lbl_map_pos = QtWidgets.QLabel()
         # Map Image and Histogram
         self.map_image = pq.ImageItem()
         self.map_histogram_LUT = HistogramLUTItem(self.map_image, orientation='vertical')
@@ -45,28 +46,28 @@ class Map2DWidget(QtGui.QWidget):
         bg_rect = QtCore.QRectF(0, 0, 1920, 1200)
         self.map_bg_image.setImage(self.bg_image, opacity=0.5)
         self.map_bg_image.setRect(bg_rect)
-        self.reset_zoom_btn = QtGui.QPushButton(self)
+        self.reset_zoom_btn = QtWidgets.QPushButton(self)
 
         # ROI Widgets
-        self.roi_list = QtGui.QListWidget(self)
-        self.roi_list.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.roi_add_btn = QtGui.QPushButton(self)
-        self.roi_del_btn = QtGui.QPushButton(self)
-        self.roi_clear_btn = QtGui.QPushButton(self)
-        self.roi_toggle_btn = QtGui.QPushButton(self)
-        self.roi_select_all_btn = QtGui.QPushButton(self)
+        self.roi_list = QtWidgets.QListWidget(self)
+        self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.roi_add_btn = QtWidgets.QPushButton(self)
+        self.roi_del_btn = QtWidgets.QPushButton(self)
+        self.roi_clear_btn = QtWidgets.QPushButton(self)
+        self.roi_toggle_btn = QtWidgets.QPushButton(self)
+        self.roi_select_all_btn = QtWidgets.QPushButton(self)
 
         # Background control
-        self.add_bg_btn = QtGui.QPushButton(self)
-        self.show_bg_chk = QtGui.QCheckBox(self)
-        self.show_map_chk = QtGui.QCheckBox(self)
+        self.add_bg_btn = QtWidgets.QPushButton(self)
+        self.show_bg_chk = QtWidgets.QCheckBox(self)
+        self.show_map_chk = QtWidgets.QCheckBox(self)
 
         # positions
         # self.all_file_list.setGeometry(QtCore.QRect(10, 70, 200, 500))
         # self.all_file_list.setVisible(0)
 
         # ROI positions
-        self.roi_grid = QtGui.QGridLayout()
+        self.roi_grid = QtWidgets.QGridLayout()
         self.roi_grid.addWidget(self.roi_add_btn, 0, 0, 1, 1)
         self.roi_grid.addWidget(self.roi_del_btn, 0, 1, 1, 1)
         self.roi_grid.addWidget(self.roi_clear_btn, 1, 0, 1, 1)
@@ -89,11 +90,11 @@ class Map2DWidget(QtGui.QWidget):
         self.reset_zoom_btn.setText("Reset Zoom")
 
         # Layout
-        self.main_vbox = QtGui.QVBoxLayout()
-        self.hbox = QtGui.QHBoxLayout()
-        self.lbl_hbox = QtGui.QHBoxLayout()
-        self.bg_hbox = QtGui.QHBoxLayout()
-        self.roi_vbox = QtGui.QVBoxLayout()
+        self.main_vbox = QtWidgets.QVBoxLayout()
+        self.hbox = QtWidgets.QHBoxLayout()
+        self.lbl_hbox = QtWidgets.QHBoxLayout()
+        self.bg_hbox = QtWidgets.QHBoxLayout()
+        self.roi_vbox = QtWidgets.QVBoxLayout()
         self.roi_vbox.addWidget(self.show_map_btn)
         self.roi_vbox.addWidget(self.roi_list)
         self.roi_vbox.addLayout(self.roi_grid)
@@ -159,10 +160,10 @@ class Map2DWidget(QtGui.QWidget):
 
         # add ROI to list
         roi_name = self.generate_roi_name(roi_start, roi_end)
-        roi_list_item = QtGui.QListWidgetItem(self.roi_list)
+        roi_list_item = QtWidgets.QListWidgetItem(self.roi_list)
         roi_num = self.roi_num
         roi_list_item.setText(roi_name)
-        self.roi_list.setItemSelected(roi_list_item, True)
+        roi_list_item.setSelected(True)
         self.map_roi[roi_num] = {}
         self.map_roi[roi_num]['roi_name'] = roi_name
 
@@ -394,17 +395,17 @@ class Map2DWidget(QtGui.QWidget):
     def btn_add_bg_image_clicked(self):
         if not self.map_loaded:
             msg = "Please load a map, choose a region and update the map"
-            bg_msg = QtGui.QMessageBox()
-            bg_msg.setIcon(QtGui.QMessageBox.Information)
+            bg_msg = QtWidgets.QMessageBox()
+            bg_msg.setIcon(QtWidgets.QMessageBox.Information)
             bg_msg.setText("No Map Loaded")
             bg_msg.setInformativeText("See additional info...")
             bg_msg.setWindowTitle("Error: No Map")
-            bg_msg.setStandardButtons(QtGui.QMessageBox.Ok)
+            bg_msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
             bg_msg.setDetailedText(msg)
             bg_msg.exec_()
             return
 
-        load_name = QtGui.QFileDialog.getOpenFileName(self, 'Choose file name for loading background image',
+        load_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Choose file name for loading background image',
                                                       self.working_dir['image'], 'TIFF Files (*.tif)')
 
         if not load_name:
