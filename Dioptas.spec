@@ -48,7 +48,7 @@ binaries = []
 if _platform == "darwin":
     extra_datas.extend((
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtCore.4.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtGui.4.dylib'), '.'),
+        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtWidgets.4.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libpng16.16.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtSvg.4.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5.10.dylib'), '.'),

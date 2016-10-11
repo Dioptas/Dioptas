@@ -1,13 +1,9 @@
 # -*- coding: utf8 -*-
 
 import os
-import unittest
-
 from mock import MagicMock
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
-
+from ..utility import QtTest, click_button
 from ...model.DioptasModel import DioptasModel
 from ...widgets.ConfigurationWidget import ConfigurationWidget
 
@@ -16,17 +12,7 @@ data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
-def click_button(widget):
-    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
-
-
-class ConfigurationWidgetTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtGui.QApplication([])
-
+class ConfigurationWidgetTest(QtTest):
     def setUp(self):
         self.config_widget = ConfigurationWidget()
         self.model = DioptasModel()

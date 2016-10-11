@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui
+from qtpy import QtWidgets
 from pyqtgraph import GraphicsLayoutWidget
 
 from .plot_widgets import MaskImgWidget
@@ -25,7 +25,7 @@ from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, 
     CheckableFlatButton, FlatButton, VerticalSpacerItem, HorizontalLine
 
 
-class MaskWidget(QtGui.QWidget):
+class MaskWidget(QtWidgets.QWidget):
     """
     Defines the main structure of the mask widget, which is separated into two parts.
     Mask Display Widget - shows the image and pattern
@@ -34,7 +34,7 @@ class MaskWidget(QtGui.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(MaskWidget, self).__init__(*args, **kwargs)
-        self._layout = QtGui.QHBoxLayout()
+        self._layout = QtWidgets.QHBoxLayout()
         self.create_display_widget()
         self.create_control_widget()
 
@@ -47,15 +47,15 @@ class MaskWidget(QtGui.QWidget):
         self.setLayout(self._layout)
 
     def create_display_widget(self):
-        self._display_widget = QtGui.QFrame(self)
-        self._display_layout = QtGui.QVBoxLayout()
+        self._display_widget = QtWidgets.QFrame(self)
+        self._display_layout = QtWidgets.QVBoxLayout()
         self._display_layout.setContentsMargins(0, 0, 0, 0)
         self.img_layout_widget = GraphicsLayoutWidget()
         self.img_widget = MaskImgWidget(self.img_layout_widget)
 
         self._display_layout.addWidget(self.img_layout_widget)
 
-        self._status_layout = QtGui.QHBoxLayout()
+        self._status_layout = QtWidgets.QHBoxLayout()
         self._status_layout.addSpacerItem(HorizontalSpacerItem())
 
         self.pos_lbl = LabelAlignRight('')
@@ -65,20 +65,20 @@ class MaskWidget(QtGui.QWidget):
         self._display_widget.setLayout(self._display_layout)
 
     def create_control_widget(self):
-        self._control_widget = QtGui.QWidget(self)
-        self._control_layout = QtGui.QVBoxLayout(self._control_widget)
+        self._control_widget = QtWidgets.QWidget(self)
+        self._control_layout = QtWidgets.QVBoxLayout(self._control_widget)
         self._control_layout.setSpacing(6)
 
-        self._rb_layout = QtGui.QHBoxLayout()
-        self.mask_rb = QtGui.QRadioButton('mask')
-        self.unmask_rb = QtGui.QRadioButton('unmask')
+        self._rb_layout = QtWidgets.QHBoxLayout()
+        self.mask_rb = QtWidgets.QRadioButton('mask')
+        self.unmask_rb = QtWidgets.QRadioButton('unmask')
         self._rb_layout.addWidget(self.mask_rb)
         self._rb_layout.addWidget(self.unmask_rb)
         self._control_layout.addLayout(self._rb_layout)
 
         self._control_layout.addWidget(HorizontalLine())
 
-        self._geometry_layout = QtGui.QGridLayout()
+        self._geometry_layout = QtWidgets.QGridLayout()
         self.circle_btn = CheckableFlatButton('Circle')
         self.rectangle_btn = CheckableFlatButton('Rectangle')
         self.point_btn = CheckableFlatButton('Point')
@@ -93,7 +93,7 @@ class MaskWidget(QtGui.QWidget):
 
         self._control_layout.addWidget(HorizontalLine())
 
-        self._threshold_layout = QtGui.QGridLayout()
+        self._threshold_layout = QtWidgets.QGridLayout()
         self.above_thresh_btn = FlatButton('Above Thresh')
         self.below_thresh_btn = FlatButton('Below Thresh')
         self.above_thresh_txt = NumberTextField('')
@@ -106,7 +106,7 @@ class MaskWidget(QtGui.QWidget):
 
         self._control_layout.addWidget(HorizontalLine())
 
-        self._action_layout = QtGui.QGridLayout()
+        self._action_layout = QtWidgets.QGridLayout()
         self.grow_btn = FlatButton('Grow')
         self.shrink_btn = FlatButton('Shrink')
         self.invert_mask_btn = FlatButton('Invert')
@@ -128,10 +128,10 @@ class MaskWidget(QtGui.QWidget):
 
         self._control_layout.addWidget(HorizontalLine())
 
-        self._visibility_widget = QtGui.QWidget()
-        self._visibility_layout = QtGui.QHBoxLayout()
-        self.fill_rb = QtGui.QRadioButton('Fill')
-        self.transparent_rb = QtGui.QRadioButton('Transparent')
+        self._visibility_widget = QtWidgets.QWidget()
+        self._visibility_layout = QtWidgets.QHBoxLayout()
+        self.fill_rb = QtWidgets.QRadioButton('Fill')
+        self.transparent_rb = QtWidgets.QRadioButton('Transparent')
         self._visibility_layout.addWidget(self.fill_rb)
         self._visibility_layout.addWidget(self.transparent_rb)
         self._visibility_widget.setLayout(self._visibility_layout)
@@ -139,7 +139,7 @@ class MaskWidget(QtGui.QWidget):
 
         self._control_layout.addSpacerItem(VerticalSpacerItem())
 
-        self._file_layout = QtGui.QGridLayout()
+        self._file_layout = QtWidgets.QGridLayout()
         self.save_mask_btn = FlatButton('Save Mask')
         self.load_mask_btn = FlatButton('Load Mask')
         self.add_mask_btn = FlatButton('Add Mask')

@@ -16,15 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtWidgets, QtGui, QT_VERSION
 import os
 from .CustomWidgets import FlatButton
-
 
 widget_path = os.path.dirname(__file__)
 
 
-class CifConversionParametersDialog(QtGui.QDialog):
+class CifConversionParametersDialog(QtWidgets.QDialog):
     """
     Dialog which is asking for Intensity Cutoff and minimum d-spacing when loading cif files.
     """
@@ -43,16 +42,16 @@ class CifConversionParametersDialog(QtGui.QDialog):
         """
         Creates all necessary widgets.
         """
-        self.int_cutoff_lbl = QtGui.QLabel("Intensity Cutoff:")
-        self.min_d_spacing_lbl = QtGui.QLabel("Minimum d-spacing:")
+        self.int_cutoff_lbl = QtWidgets.QLabel("Intensity Cutoff:")
+        self.min_d_spacing_lbl = QtWidgets.QLabel("Minimum d-spacing:")
 
-        self.int_cutoff_txt = QtGui.QLineEdit("0.5")
+        self.int_cutoff_txt = QtWidgets.QLineEdit("0.5")
         self.int_cutoff_txt.setToolTip("Reflections with lower Intensity won't be considered.")
-        self.min_d_spacing_txt = QtGui.QLineEdit("0.5")
+        self.min_d_spacing_txt = QtWidgets.QLineEdit("0.5")
         self.min_d_spacing_txt.setToolTip("Reflections with smaller d_spacing won't be considered.")
 
-        self.int_cutoff_unit_lbl = QtGui.QLabel("%")
-        self.min_d_spacing_unit_lbl = QtGui.QLabel("A")
+        self.int_cutoff_unit_lbl = QtWidgets.QLabel("%")
+        self.min_d_spacing_unit_lbl = QtWidgets.QLabel("A")
 
         self.ok_btn = FlatButton("OK")
 
@@ -60,7 +59,7 @@ class CifConversionParametersDialog(QtGui.QDialog):
         """
         Layouts the widgets into a gridlayout
         """
-        self._layout = QtGui.QGridLayout()
+        self._layout = QtWidgets.QGridLayout()
         self._layout.addWidget(self.int_cutoff_lbl, 0, 0)
         self._layout.addWidget(self.int_cutoff_txt, 0, 1)
         self._layout.addWidget(self.int_cutoff_unit_lbl, 0, 2)
@@ -121,18 +120,18 @@ class CifConversionParametersDialog(QtGui.QDialog):
         super(CifConversionParametersDialog, self).exec_()
 
 
-class FileInfoWidget(QtGui.QWidget):
+class FileInfoWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(FileInfoWidget, self).__init__(parent)
         self.setWindowTitle("File Info")
 
-        self.text_lbl = QtGui.QLabel()
+        self.text_lbl = QtWidgets.QLabel()
         self.text_lbl.setWordWrap(True)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(5, 5, 5, 5)
         self._layout.addWidget(self.text_lbl)
-        self._layout.setSizeConstraint(QtGui.QLayout.SetFixedSize)
+        self._layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
 
         self.setStyleSheet(
             """
@@ -154,20 +153,20 @@ class FileInfoWidget(QtGui.QWidget):
         self.raise_()
 
 
-class ErrorMessageBox(QtGui.QDialog):
+class ErrorMessageBox(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs):
         super(ErrorMessageBox, self).__init__(*args, **kwargs)
         self.setWindowTitle("OOOPS! An error occurred!")
 
-        self.text_lbl = QtGui.QLabel()
+        self.text_lbl = QtWidgets.QLabel()
         self.text_lbl.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-        self.scroll_area = QtGui.QScrollArea()
+        self.scroll_area = QtWidgets.QScrollArea()
 
         self.scroll_area.setWidget(self.text_lbl)
         self.scroll_area.setWidgetResizable(True)
-        self.ok_btn = QtGui.QPushButton('OK')
+        self.ok_btn = QtWidgets.QPushButton('OK')
 
-        _layout = QtGui.QGridLayout()
+        _layout = QtWidgets.QGridLayout()
         _layout.addWidget(self.scroll_area, 0, 0, 1, 10)
         _layout.addWidget(self.ok_btn, 1, 9)
 
@@ -178,10 +177,28 @@ class ErrorMessageBox(QtGui.QDialog):
         self.text_lbl.setText(text_str)
 
 
+def open_file_dialog(parent_widget, caption, directory, filter=None):
+    filename = QtWidgets.QFileDialog.getOpenFileName(parent_widget, caption=caption,
+                                                     directory=directory,
+                                                     filter=filter)
+    if isinstance(filename, tuple):  # PyQt5 returns a tuple...
+        return str(filename[0])
+    return str(filename)
 
-if __name__ == '__main__':
-    app = QtGui.QApplication([])
-    widget = MotorsSetup(None)
-    widget.show()
-    widget.raise_()
-    app.exec_()
+
+def open_files_dialog(parent_widget, caption, directory, filter=None):
+    filenames = QtWidgets.QFileDialog.getOpenFileNames(parent_widget, caption=caption,
+                                                       directory=directory,
+                                                       filter=filter)
+    if isinstance(filenames, tuple):  # PyQt5 returns a tuple...
+        filenames = filenames[0]
+    return filenames
+
+
+def save_file_dialog(parent_widget, caption, directory, filter=None):
+    filename = QtWidgets.QFileDialog.getSaveFileName(parent_widget, caption,
+                                                     directory=directory,
+                                                     filter=filter)
+    if isinstance(filename, tuple):  # PyQt5 returns a tuple...
+        return str(filename[0])
+    return str(filename)

@@ -22,8 +22,9 @@ import time
 
 import numpy as np
 from PIL import Image
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
+from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -180,7 +181,7 @@ class ImageController(object):
         """
         Small helper function for the button-click connection.
         """
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
+        emitter.clicked.connect(function)
 
     def create_mouse_behavior(self):
         """
@@ -189,22 +190,12 @@ class ImageController(object):
         self.widget.img_widget.mouse_left_clicked.connect(self.img_mouse_click)
         self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
 
-    def load_file(self, filenames=None):
-        if filenames is None:
-            filenames = list(QtGui.QFileDialog.getOpenFileNames(
-                self.widget, "Load image data file(s)",
-                self.working_dir['image']))
-
-        else:
-            if not isinstance(filenames, list):
-                if isinstance(filenames, str):
-                    filenames = [filenames]
-                else:
-                    filenames = [str(filenames)]
+    def load_file(self):
+        filenames = open_files_dialog(self.widget, "Load image data file(s)",
+                                      self.working_dir['image'])
 
         if filenames is not None and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))
-
             if len(filenames) == 1:
                 self.model.img_model.load(str(filenames[0]))
             else:
@@ -248,7 +239,7 @@ class ImageController(object):
             # MAP2D
             self.widget.map_2D_widget.add_map_data(filename, working_directory, self.model.img_model.motors_info)
 
-            QtGui.QApplication.processEvents()
+            QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
                 break
 
@@ -260,7 +251,7 @@ class ImageController(object):
             working_directory = self.working_dir['spectrum']
         else:
             # if there is no working directory selected A file dialog opens up to choose a directory...
-            working_directory = str(QtGui.QFileDialog.getExistingDirectory(
+            working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
                 self.widget, "Please choose the output directory for the integrated spectra.",
                 self.working_dir['spectrum']))
         return working_directory
@@ -365,6 +356,7 @@ class ImageController(object):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
         self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
         self.plot_mask()
+        # print(self.model.mask_model.get_mask().shape)
         self.model.img_model.img_changed.emit()
 
     def load_next_img(self):
@@ -399,7 +391,7 @@ class ImageController(object):
             self.widget.img_directory_txt.setText(self.working_dir['image'])
 
     def img_directory_btn_click(self):
-        directory = str(QtGui.QFileDialog.getExistingDirectory(
+        directory = str(QtWidgets.QFileDialog.getExistingDirectory(
             self.widget,
             "Please choose the image working directory.",
             self.working_dir['image']))
@@ -653,8 +645,8 @@ class ImageController(object):
                     return
                 y = np.array([y])
                 x = np.array([x])
-                tth = get_partial_value(self.model.cake_tth, y-0.5) / 180 * np.pi
-                azi = get_partial_value(self.model.cake_azi, x-0.5)
+                tth = get_partial_value(self.model.cake_tth, y - 0.5) / 180 * np.pi
+                azi = get_partial_value(self.model.cake_azi, x - 0.5)
             elif self.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
@@ -722,13 +714,12 @@ class ImageController(object):
             res = 0
         return res
 
-    def load_calibration(self, filename=None):
-        if filename is None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(
-                self.widget, "Load calibration...",
-                self.working_dir[
-                    'calibration'],
-                '*.poni'))
+    def load_calibration(self):
+        filename = open_file_dialog(
+            self.widget, "Load calibration...",
+            self.working_dir[
+                'calibration'],
+            '*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
@@ -739,13 +730,12 @@ class ImageController(object):
     def auto_process_cb_click(self):
         self.model.img_model.autoprocess = self.widget.autoprocess_cb.isChecked()
 
-    def save_img(self, filename=None):
-        if filename is None:
-            img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
-            filename = str(QtGui.QFileDialog.getSaveFileName(self.widget, "Save Image.",
-                                                             os.path.join(self.working_dir['image'],
-                                                                          img_filename + '.png'),
-                                                             ('Image (*.png);;Data (*.tiff)')))
+    def save_img(self):
+        img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
+        filename = save_file_dialog(self.widget, "Save Image.",
+                                    os.path.join(self.working_dir['image'],
+                                                 img_filename + '.png'),
+                                    ('Image (*.png);;Data (*.tiff)'))
         if filename is not '':
             if filename.endswith('.png'):
                 if self.img_mode == 'Cake':
@@ -754,7 +744,7 @@ class ImageController(object):
                     self.widget.img_widget.deactivate_circle_scatter()
                     self.widget.img_widget.deactivate_roi()
 
-                QtGui.QApplication.processEvents()
+                QtWidgets.QApplication.processEvents()
                 self.widget.img_widget.save_img(filename)
 
                 if self.img_mode == 'Cake':
@@ -775,10 +765,10 @@ class ImageController(object):
     def cbn_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
             self.widget.cbn_groupbox.setChecked(False)
-            QtGui.QMessageBox.critical(self.widget,
-                                       'ERROR',
-                                       'Please calibrate the geometry first or load an existent calibration file. ' + \
-                                       'The cBN seat correction needs a calibrated geometry.')
+            QtWidgets.QMessageBox.critical(self.widget,
+                                           'ERROR',
+                                           'Please calibrate the geometry first or load an existent calibration file. ' + \
+                                           'The cBN seat correction needs a calibrated geometry.')
             return
 
         if self.widget.cbn_groupbox.isChecked():
@@ -838,7 +828,7 @@ class ImageController(object):
     def oiadac_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
             self.widget.oiadac_groupbox.setChecked(False)
-            QtGui.QMessageBox.critical(
+            QtWidgets.QMessageBox.critical(
                 self.widget,
                 'ERROR',
                 'Please calibrate the geometry first or load an existent calibration file. ' + \
@@ -894,10 +884,10 @@ class ImageController(object):
         if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
             self.widget.cbn_groupbox.setChecked(False)
             self.widget.oiadac_groupbox.setChecked(False)
-            QtGui.QMessageBox.critical(self.widget,
-                                       'ERROR',
-                                       'Due to a change in image dimensions the absorption ' +
-                                       'corrections have been removed')
+            QtWidgets.QMessageBox.critical(self.widget,
+                                           'ERROR',
+                                           'Due to a change in image dimensions the absorption ' +
+                                           'corrections have been removed')
 
     def update_gui(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)

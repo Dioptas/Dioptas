@@ -1,7 +1,7 @@
 import os
 import time
 
-from PyQt4 import QtCore
+from qtpy import QtCore
 
 class NewFileInDirectoryWatcher(QtCore.QObject):
     """
@@ -15,7 +15,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         watcher.file_added.connect(callback_fcn)
 
     """
-    file_added = QtCore.pyqtSignal(str)
+    file_added = QtCore.Signal(str)
 
     def __init__(self, path=None, file_types=None, activate=False):
         """
