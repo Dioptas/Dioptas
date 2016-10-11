@@ -16,81 +16,81 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtWidgets, QtGui
 
 
-class NumberTextField(QtGui.QLineEdit):
+class NumberTextField(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(NumberTextField, self).__init__(*args, **kwargs)
         self.setValidator(QtGui.QDoubleValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
-class IntegerTextField(QtGui.QLineEdit):
+class IntegerTextField(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(IntegerTextField, self).__init__(*args, **kwargs)
         self.setValidator(QtGui.QIntValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
-class LabelAlignRight(QtGui.QLabel):
+class LabelAlignRight(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
         super(LabelAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
-class CleanLooksComboBox(QtGui.QComboBox):
-    cleanlooks = QtGui.QStyleFactory.create('cleanlooks')
+class CleanLooksComboBox(QtWidgets.QComboBox):
+    cleanlooks = QtWidgets.QStyleFactory.create('motif')
 
     def __init__(self, *args, **kwargs):
         super(CleanLooksComboBox, self).__init__(*args, **kwargs)
         self.setStyle(CleanLooksComboBox.cleanlooks)
 
 
-class SpinBoxAlignRight(QtGui.QSpinBox):
+class SpinBoxAlignRight(QtWidgets.QSpinBox):
     def __init__(self, *args, **kwargs):
         super(SpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
 
 
-class DoubleSpinBoxAlignRight(QtGui.QDoubleSpinBox):
+class DoubleSpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
         super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
 
 
-class FlatButton(QtGui.QPushButton):
+class FlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):
         super(FlatButton, self).__init__(*args)
         self.setFlat(True)
 
 
-class CheckableFlatButton(QtGui.QPushButton):
+class CheckableFlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):
         super(CheckableFlatButton, self).__init__(*args)
         self.setFlat(True)
         self.setCheckable(True)
 
 
-class HorizontalLine(QtGui.QFrame):
+class HorizontalLine(QtWidgets.QFrame):
     def __init__(self):
         super(HorizontalLine, self).__init__()
-        self.setFrameShape(QtGui.QFrame.HLine)
-        self.setFrameShadow(QtGui.QFrame.Sunken)
+        self.setFrameShape(QtWidgets.QFrame.HLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
 
-class VerticalLine(QtGui.QFrame):
+class VerticalLine(QtWidgets.QFrame):
     def __init__(self):
         super(VerticalLine, self).__init__()
-        self.setFrameShape(QtGui.QFrame.VLine)
-        self.setFrameShadow(QtGui.QFrame.Sunken)
+        self.setFrameShape(QtWidgets.QFrame.VLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
 
 
-class ListTableWidget(QtGui.QTableWidget):
+class ListTableWidget(QtWidgets.QTableWidget):
     def __init__(self, columns=3):
         super(ListTableWidget, self).__init__()
 
-        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.setColumnCount(columns)
         self.horizontalHeader().setVisible(False)
         self.verticalHeader().setVisible(False)
@@ -98,18 +98,18 @@ class ListTableWidget(QtGui.QTableWidget):
         self.setShowGrid(False)
 
 
-class NoRectDelegate(QtGui.QItemDelegate):
+class NoRectDelegate(QtWidgets.QItemDelegate):
     def __init__(self):
         super(NoRectDelegate, self).__init__()
 
     def drawFocus(self, painter, option, rect):
-        option.state &= ~QtGui.QStyle.State_HasFocus
-        QtGui.QItemDelegate.drawFocus(self, painter, option, rect)
+        option.state &= ~QtWidgets.QStyle.State_HasFocus
+        QtWidgets.QItemDelegate.drawFocus(self, painter, option, rect)
 
 
 def HorizontalSpacerItem(minimum_width=0):
-    return QtGui.QSpacerItem(minimum_width, 0, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Minimum)
+    return QtWidgets.QSpacerItem(minimum_width, 0, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
 
 
 def VerticalSpacerItem():
-    return QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+    return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)

@@ -431,7 +431,13 @@ class CalibrationModel(object):
         self.filename = filename
 
     def create_file_header(self):
-        return self.spectrum_geometry.makeHeaders(polarization_factor=self.polarization_factor)
+        try:
+            # pyFAI version 0.12.0
+            return self.spectrum_geometry.makeHeaders(polarization_factor=self.polarization_factor)
+        except AttributeError:
+            # pyFAI after version 0.12.0
+            from pyFAI.io import DefaultAiWriter
+            return DefaultAiWriter(None, self.spectrum_geometry).make_headers()
 
     def set_fit2d(self, fit2d_parameter):
         """

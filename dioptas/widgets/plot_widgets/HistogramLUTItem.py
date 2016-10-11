@@ -18,7 +18,7 @@
 
 from __future__ import absolute_import
 
-from pyqtgraph.Qt import QtGui
+from qtpy import QtWidgets
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
 from pyqtgraph.graphicsItems.GradientEditorItem import *
@@ -50,9 +50,9 @@ class HistogramLUTItem(GraphicsWidget):
     - Gradient editor to define color lookup table for single-channel images
     """
 
-    sigLookupTableChanged = QtCore.pyqtSignal(object)
-    sigLevelsChanged = QtCore.pyqtSignal(object)
-    sigLevelChangeFinished = QtCore.pyqtSignal(object)
+    sigLookupTableChanged = QtCore.Signal(object)
+    sigLevelsChanged = QtCore.Signal(object)
+    sigLevelChangeFinished = QtCore.Signal(object)
 
     def __init__(self, image=None, fillHistogram=False, orientation='horizontal', autoLevel=None):
         """
@@ -67,7 +67,7 @@ class HistogramLUTItem(GraphicsWidget):
         self.orientation = orientation
         self.autoLevel = autoLevel
 
-        self.layout = QtGui.QGraphicsGridLayout()
+        self.layout = QtWidgets.QGraphicsGridLayout()
         self.setLayout(self.layout)
         self.layout.setContentsMargins(1, 1, 1, 1)
         self.layout.setSpacing(0)
@@ -125,7 +125,7 @@ class HistogramLUTItem(GraphicsWidget):
 
         if image is not None:
             self.setImageItem(image)
-            # self.setSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
+            # self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
 
         self.vb.mouseClickEvent = self.empty_function
         self.vb.mouseDragEvent = self.empty_function

@@ -1,12 +1,13 @@
 # -*- coding: utf8 -*-
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 import os
 import gc
+from mock import MagicMock
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
 
 from ...controller.integration import OverlayController
 from ...model.DioptasModel import DioptasModel
@@ -21,7 +22,7 @@ class OverlayControllerTest(QtTest):
     def setUp(self):
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
-        self.overlay_controller = OverlayController({}, self.widget, self.model)
+        self.overlay_controller = OverlayController({'overlay': data_path}, self.widget, self.model)
         self.overlay_tw = self.widget.overlay_tw
 
     def tearDown(self):
@@ -74,8 +75,8 @@ class OverlayControllerTest(QtTest):
     def test_automatic_deleting_overlays(self):
         self.load_overlays()
         self.load_overlays()
-        QtGui.QApplication.processEvents()
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         self.assertEqual(self.overlay_tw.rowCount(), 12)
         self.assertEqual(len(self.model.overlay_model.overlays), 12)
         self.assertEqual(len(self.widget.pattern_widget.overlays), 12)
@@ -175,7 +176,7 @@ class OverlayControllerTest(QtTest):
     def test_setting_spectrum_as_bkg(self):
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
         QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.assertTrue(self.widget.overlay_set_as_bkg_btn.isChecked())
 
@@ -218,7 +219,8 @@ class OverlayControllerTest(QtTest):
         self.load_overlay('spectrum_001.xy')
 
     def load_overlay(self, filename):
-        self.overlay_controller.add_overlay_btn_click_callback(os.path.join(data_path, filename))
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(data_path, filename)])
+        click_button(self.widget.overlay_add_btn)
 
 
 if __name__ == '__main__':

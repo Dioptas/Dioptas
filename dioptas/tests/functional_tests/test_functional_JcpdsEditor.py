@@ -22,8 +22,10 @@ import os
 import gc
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
+
+from ..utility import QtTest, click_button
 
 from ...model.util import jcpds
 from ...model.DioptasModel import DioptasModel
@@ -40,15 +42,7 @@ def calculate_cubic_d_spacing(h, k, l, a):
     return np.sqrt(1. / d_squared_inv)
 
 
-class JcpdsEditorFunctionalTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtGui.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtGui.QApplication([])
-        QtGui.QApplication.processEvents = MagicMock()
-        cls.app.processEvents = MagicMock()
-
+class JcpdsEditorFunctionalTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
         dummy_x = np.linspace(0, 30)
@@ -67,16 +61,16 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         text_field.setText('')
         QTest.keyClicks(text_field, str(value))
         QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
     def enter_value_into_spinbox(self, spinbox, value):
         spinbox.setValue(value)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         self.assertEqual(spinbox.value(), value)
 
     def set_symmetry(self, symmetry):
         self.jcpds_widget.symmetry_cb.setCurrentIndex(self.jcpds_widget.symmetries.index(symmetry))
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
     def get_reflection_table_value(self, row, col):
         item = self.jcpds_widget.reflection_table.item(row, col)
@@ -156,7 +150,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # then he decides to put a new lattice parameter into the a box and realizes that all
         # others are changing too.
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 4.08)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         a = float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.'))
         b = float(str(self.jcpds_widget.lattice_b_sb.text()).replace(',', '.'))
         c = float(str(self.jcpds_widget.lattice_c_sb.text()).replace(',', '.'))
@@ -298,7 +292,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         # then he changed his mind and wants to add the reflection back:
 
         QTest.mouseClick(self.jcpds_widget.reflections_add_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.assertEqual(len(self.jcpds.reflections), 13)
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
@@ -376,28 +370,28 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.main_controller = MainController()
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
-        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
-                                                                     update_all=False)
+
+        self.main_controller.model.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'mo.jcpds'))
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'ar.jcpds'))
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 're.jcpds'))
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(jcpds_path, 'au_Anderson.jcpds'),
+                                                            os.path.join(jcpds_path, 'mo.jcpds'),
+                                                            os.path.join(jcpds_path, 'ar.jcpds'),
+                                                            os.path.join(jcpds_path, 're.jcpds')])
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
+        click_button(self.phase_controller.widget.phase_add_btn)
+
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
 
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         # He changes some parameter but then realizes that he screwed it up and presses cancel to revert all his changes
 
@@ -414,7 +408,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller.widget.phase_tw.selectRow(1)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.phase_controller.widget.phase_tw.selectRow(2)
         self.assertTrue(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')),
@@ -424,7 +418,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         prev_line_pos = self.get_phase_line_position(2, 0)
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 3.4)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         # now he decides to have full control, changes the structure to TRICLINIC and plays with all parameters:
@@ -491,22 +485,22 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.main_controller = MainController()
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
-        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
-                                                                     update_all=False)
+
+        self.main_controller.model.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'mo.jcpds'))
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'ar.jcpds'))
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 're.jcpds'))
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(jcpds_path, 'au_Anderson.jcpds'),
+                                                            os.path.join(jcpds_path, 'mo.jcpds'),
+                                                            os.path.join(jcpds_path, 'ar.jcpds'),
+                                                            os.path.join(jcpds_path, 're.jcpds')])
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
+        click_button(self.phase_controller.widget.phase_add_btn)
+
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
@@ -514,7 +508,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
         self.assertEqual(len(self.jcpds_phase.reflections), 13)
@@ -574,14 +568,16 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
     def test_phase_name_difference_after_modified(self):
         self.main_controller = MainController(use_settings=False)
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
-        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
-                                                                     update_all=False)
+        self.main_controller.model.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+            return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
+        self.phase_controller = self.main_controller.integration_controller.phase_controller
+        click_button(self.phase_controller.widget.phase_add_btn)
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
         # change anything the names every are the same...
@@ -596,25 +592,26 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
         self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
         self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
         self.main_controller = MainController(use_settings=False)
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
-        self.main_controller.calibration_controller.load_calibration(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'),
-                                                                     update_all=False)
+        self.main_controller.model.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.main_controller.calibration_controller.set_calibrant(7)
-        self.main_controller.calibration_controller.load_img(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
         self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
-        self.main_controller.integration_controller.phase_controller.add_btn_click_callback(
-            os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+            return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
+        self.phase_controller = self.main_controller.integration_controller.phase_controller
+        click_button(self.phase_controller.widget.phase_add_btn)
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
-        self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
@@ -622,7 +619,7 @@ class JcpdsEditorFunctionalTest(unittest.TestCase):
 
         self.phase_controller.widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
-        QtGui.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
         # he looks at the jcpds_editor and sees that there are not only hkl and intensity values for each reflection but
         # also d0, d, two_theta0 and two_theta

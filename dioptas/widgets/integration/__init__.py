@@ -20,7 +20,7 @@ CLICKED_COLOR = '#00DD00'
 
 from functools import partial
 
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
 from ..EpicsWidgets import MoveStageWidget
@@ -32,7 +32,7 @@ from .ControlWidgets import IntegrationControlWidget
 from .IntegrationWidgets import IntegrationImgDisplayWidget, IntegrationPatternWidget, IntegrationStatusWidget
 
 
-class IntegrationWidget(QtGui.QWidget):
+class IntegrationWidget(QtWidgets.QWidget):
     """
     Defines the main structure of the integration widget, which is separated into four parts.
     Integration Image Widget - displaying the image, mask and/or cake
@@ -41,11 +41,11 @@ class IntegrationWidget(QtGui.QWidget):
     Integration Status Widget - showing the current mouse position and current background filename
     """
 
-    overlay_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
-    overlay_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
-    overlay_name_changed = QtCore.pyqtSignal(int, str)
-    phase_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
-    phase_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
+    overlay_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    overlay_show_cb_state_changed = QtCore.Signal(int, bool)
+    overlay_name_changed = QtCore.Signal(int, str)
+    phase_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    phase_show_cb_state_changed = QtCore.Signal(int, bool)
 
     def __init__(self, *args, **kwargs):
         super(IntegrationWidget, self).__init__(*args, **kwargs)
@@ -55,17 +55,17 @@ class IntegrationWidget(QtGui.QWidget):
         self.integration_pattern_widget = IntegrationPatternWidget()
         self.integration_status_widget = IntegrationStatusWidget()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setSpacing(6)
         self._layout.setContentsMargins(10, 6, 6, 6)
 
-        self.vertical_splitter = QtGui.QSplitter(self)
+        self.vertical_splitter = QtWidgets.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter.addWidget(self.integration_control_widget)
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
-        self.horizontal_splitter = QtGui.QSplitter()
+        self.horizontal_splitter = QtWidgets.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
         self.horizontal_splitter.addWidget(self.integration_image_widget)
         self.horizontal_splitter.addWidget(self.vertical_splitter)
@@ -83,11 +83,11 @@ class IntegrationWidget(QtGui.QWidget):
         self.phase_show_cbs = []
         self.phase_color_btns = []
         self.show_parameter_in_spectrum = True
-        header_view = QtGui.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
+        header_view = QtWidgets.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
         self.phase_tw.setHorizontalHeader(header_view)
-        header_view.setResizeMode(2, QtGui.QHeaderView.Stretch)
-        header_view.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
-        header_view.setResizeMode(4, QtGui.QHeaderView.ResizeToContents)
+        header_view.setResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        header_view.setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        header_view.setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
         header_view.hide()
         self.phase_tw.setItemDelegate(NoRectDelegate())
 
@@ -315,7 +315,7 @@ class IntegrationWidget(QtGui.QWidget):
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
 
     def get_progress_dialog(self, msg, title, num_points):
-        progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
+        progress_dialog = QtWidgets.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
                                                 num_points, self)
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
@@ -328,13 +328,13 @@ class IntegrationWidget(QtGui.QWidget):
         return progress_dialog
 
     def show_error_msg(self, msg):
-        msg_box = QtGui.QMessageBox(self)
+        msg_box = QtWidgets.QMessageBox(self)
         msg_box.setWindowFlags(QtCore.Qt.Tool)
         msg_box.setText(msg)
-        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.setWindowTitle('Error')
-        msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
-        msg_box.setDefaultButton(QtGui.QMessageBox.Ok)
+        msg_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msg_box.setDefaultButton(QtWidgets.QMessageBox.Ok)
         msg_box.exec_()
 
     # ###############################################################################################
@@ -346,7 +346,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.overlay_tw.setRowCount(current_rows + 1)
         self.overlay_tw.blockSignals(True)
 
-        show_cb = QtGui.QCheckBox()
+        show_cb = QtWidgets.QCheckBox()
         show_cb.setChecked(True)
         show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, show_cb))
         show_cb.setStyleSheet("background-color: transparent")
@@ -359,9 +359,9 @@ class IntegrationWidget(QtGui.QWidget):
         self.overlay_tw.setCellWidget(current_rows, 1, color_button)
         self.overlay_color_btns.append(color_button)
 
-        name_item = QtGui.QTableWidgetItem(name)
+        name_item = QtWidgets.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.overlay_tw.setItem(current_rows, 2, QtGui.QTableWidgetItem(name))
+        self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
 
         self.overlay_tw.setColumnWidth(0, 20)
         self.overlay_tw.setColumnWidth(1, 25)
@@ -420,7 +420,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.phase_tw.setRowCount(current_rows + 1)
         self.phase_tw.blockSignals(True)
 
-        show_cb = QtGui.QCheckBox()
+        show_cb = QtWidgets.QCheckBox()
         show_cb.setChecked(True)
         show_cb.stateChanged.connect(partial(self.phase_show_cb_changed, show_cb))
         show_cb.setStyleSheet("background-color: transparent")
@@ -433,17 +433,17 @@ class IntegrationWidget(QtGui.QWidget):
         self.phase_tw.setCellWidget(current_rows, 1, color_button)
         self.phase_color_btns.append(color_button)
 
-        name_item = QtGui.QTableWidgetItem(name)
+        name_item = QtWidgets.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         name_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 2, name_item)
 
-        pressure_item = QtGui.QTableWidgetItem('0 GPa')
+        pressure_item = QtWidgets.QTableWidgetItem('0 GPa')
         pressure_item.setFlags(pressure_item.flags() & ~QtCore.Qt.ItemIsEditable)
         pressure_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 3, pressure_item)
 
-        temperature_item = QtGui.QTableWidgetItem('298 K')
+        temperature_item = QtWidgets.QTableWidgetItem('298 K')
         temperature_item.setFlags(temperature_item.flags() & ~QtCore.Qt.ItemIsEditable)
         temperature_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 4, temperature_item)

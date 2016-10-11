@@ -5,8 +5,8 @@ import os
 import gc
 import unittest
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtTest import QTest
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
 from mock import MagicMock
 
 from ...controller.integration import BackgroundController
@@ -17,7 +17,7 @@ from ...widgets.integration import IntegrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
-QtGui.QApplication.processEvents = MagicMock()
+QtWidgets.QApplication.processEvents = MagicMock()
 
 
 class IntegrationBackgroundControllerTest(QtTest):

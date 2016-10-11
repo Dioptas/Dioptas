@@ -19,11 +19,13 @@
 import os
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets
+from ...widgets.UtilityWidgets import open_files_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
+
 
 class OverlayController(object):
     """
@@ -78,24 +80,21 @@ class OverlayController(object):
         self.model.overlay_model.overlay_changed.connect(self.overlay_changed)
 
     def connect_click_function(self, emitter, function):
-        self.widget.connect(emitter, QtCore.SIGNAL('clicked()'), function)
+        emitter.clicked.connect(function)
 
-    def add_overlay_btn_click_callback(self, filename=None):
+    def add_overlay_btn_click_callback(self):
         """
 
         :param filename: filepath of an overlay file, if set to None (default value) it will open a QFileDialog to
             select a spectrum file
         """
-        if filename is None:
-            filenames = QtGui.QFileDialog.getOpenFileNames(self.widget, "Load Overlay(s).", self.working_dir['overlay'])
-            if len(filenames):
-                for filename in filenames:
-                    filename = str(filename)
-                    self.model.overlay_model.add_overlay_file(filename)
-                self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
-        else:
-            self.model.overlay_model.add_overlay_file(filename)
-            self.working_dir['overlay'] = os.path.dirname(str(filename))
+        filenames = open_files_dialog(self.widget, "Load Overlay(s).",
+                                      self.working_dir['overlay'])
+        if len(filenames):
+            for filename in filenames:
+                filename = str(filename)
+                self.model.overlay_model.add_overlay_file(filename)
+            self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
 
     def overlay_added(self):
         """
@@ -177,7 +176,7 @@ class OverlayController(object):
         :param button: button to color
         """
         previous_color = button.palette().color(1)
-        new_color = QtGui.QColorDialog.getColor(previous_color, self.widget)
+        new_color = QtWidgets.QColorDialog.getColor(previous_color, self.widget)
         if new_color.isValid():
             color = str(new_color.name())
         else:
@@ -233,7 +232,7 @@ class OverlayController(object):
         if not self.widget.overlay_set_as_bkg_btn.isChecked():
             ## if the overlay is not currently a background
             # it will unset the current background and redisplay
-            self.model.pattern_model.background_pattern=None
+            self.model.pattern_model.background_pattern = None
         else:
             # if the overlay is currently the active background
             self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[cur_ind]
@@ -250,7 +249,6 @@ class OverlayController(object):
         self.widget.overlay_set_as_bkg_btn.setChecked(True)
         self.widget.overlay_show_cb_set_checked(-1, False)
 
-
     def overlay_set_as_bkg(self, ind):
         cur_selected_ind = self.widget.get_selected_overlay_row()
         self.widget.overlay_set_as_bkg_btn.setChecked(ind == cur_selected_ind)
@@ -262,7 +260,6 @@ class OverlayController(object):
         self.widget.overlay_show_cb_set_checked(ind, True)
         if self.model.pattern_model.bkg_ind == -1:
             self.widget.overlay_set_as_bkg_btn.setChecked(False)
-
 
     def overlay_show_cb_state_changed(self, ind, state):
         """
