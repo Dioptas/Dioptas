@@ -101,7 +101,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         """
         # since it is hard to ask the operating system for this directly, the change in file size is checked.
         size1 = os.stat(path).st_size
-        time.sleep(0.001)
+        time.sleep(0.10)
         size2 = os.stat(path).st_size
 
         return size1==size2
