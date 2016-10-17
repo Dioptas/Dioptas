@@ -108,7 +108,7 @@ class ImgModel(QtCore.QObject):
         will be notified after the process.
         :param filename: path of the image file to be loaded
         """
-        filename = str(filename)  # since it could also be QString
+        filename = str(filename).replace('\\', '/')  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
