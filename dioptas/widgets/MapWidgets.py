@@ -186,7 +186,7 @@ class Map2DWidget(QtWidgets.QWidget):
             self.roi_list.insertItem(row, new_roi_name)
             self.map_roi[curr_map_roi]['roi_name'] = new_roi_name
             self.map_roi[curr_map_roi]['List_Obj'] = self.roi_list.item(row)
-            self.roi_list.setItemSelected(self.roi_list.item(row), True)
+            self.roi_list.item(row).setSelected(True)
         return roi_changed
 
     def generate_roi_name(self, roi_start, roi_end):
