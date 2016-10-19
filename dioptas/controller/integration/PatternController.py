@@ -117,7 +117,7 @@ class PatternController(object):
             res.append('.chi')
         if self.widget.spectrum_header_dat_cb.isChecked():
             res.append('.dat')
-        self.model.current_configuration.integration_unit = res
+        self.model.current_configuration.integrated_patterns_file_formats = res
 
     def plot_pattern(self):
         if self.widget.bkg_spectrum_inspect_btn.isChecked():
@@ -211,6 +211,7 @@ class PatternController(object):
 
     def autocreate_cb_changed(self):
         self.autocreate_pattern = self.widget.spec_autocreate_cb.isChecked()
+        self.model.current_configuration.autosave_integrated_pattern = self.widget.spec_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.model.pattern.filename)
