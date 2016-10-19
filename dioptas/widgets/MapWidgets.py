@@ -268,7 +268,7 @@ class Map2DWidget(QtWidgets.QWidget):
             range_hor = self.pos_to_range(float(filedata['pos_hor']), self.min_hor, self.pix_per_hor, self.diff_hor)
             range_ver = self.pos_to_range(float(filedata['pos_ver']), self.min_ver, self.pix_per_ver, self.diff_ver)
 
-            spec_file = self.map_data[filename]['spectrum_file_name']
+            spec_file = self.map_data[filename]['spectrum_file_name'].replace('\\', '/')
             curr_spec_file = open(spec_file, 'r')
             sum_int = 0
             file_units = '2th_deg'
