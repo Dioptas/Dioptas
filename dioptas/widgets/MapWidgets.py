@@ -31,9 +31,6 @@ class Map2DWidget(QtWidgets.QWidget):
         self.wavelength = 0.3344
 
         # WIDGETS
-        # not in use - file list
-        # self.all_file_list = QtWidgets.QListWidget(self)
-        # self.all_file_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.show_map_btn = QtWidgets.QPushButton(self)
         self.lbl_map_pos = QtWidgets.QLabel()
         # Map Image and Histogram
@@ -63,8 +60,6 @@ class Map2DWidget(QtWidgets.QWidget):
         self.show_map_chk = QtWidgets.QCheckBox(self)
 
         # positions
-        # self.all_file_list.setGeometry(QtCore.QRect(10, 70, 200, 500))
-        # self.all_file_list.setVisible(0)
 
         # ROI positions
         self.roi_grid = QtWidgets.QGridLayout()
@@ -126,106 +121,10 @@ class Map2DWidget(QtWidgets.QWidget):
         self.main_vbox.addStretch(1)
         self.setLayout(self.main_vbox)
 
-        # button connections
-        self.show_map_btn.clicked.connect(self.btn_show_map_clicked)
-        # self.all_file_list.itemSelectionChanged.connect(self.all_file_list_selected)
-        self.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
-        self.roi_del_btn.clicked.connect(self.btn_roi_del_clicked)
-        self.roi_clear_btn.clicked.connect(self.btn_roi_clear_clicked)
-        self.roi_toggle_btn.clicked.connect(self.btn_roi_toggle_clicked)
-        self.roi_select_all_btn.clicked.connect(self.btn_roi_select_all_clicked)
-        self.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
-        self.show_bg_chk.stateChanged.connect(self.chk_show_bg_changed)
-        self.show_map_chk.stateChanged.connect(self.chk_show_map_changed)
-        self.reset_zoom_btn.clicked.connect(self.reset_zoom_btn_clicked)
-
-        self.map_image.mouseClickEvent = self.myMouseClickEvent
-        self.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
-        self.map_view_box.mouseClickEvent = self.do_nothing
-
         self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
                             QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
                             QtCore.Qt.X11BypassWindowManagerHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
-
-    def btn_show_map_clicked(self):
-        self.update_map()
-
-    def btn_roi_add_clicked(self):
-        # calculate ROI position
-        tth_start = self.theta_center - self.theta_range
-        tth_end = self.theta_center + self.theta_range
-        roi_start = self.convert_units(tth_start, '2th_deg', self.units, self.wavelength)
-        roi_end = self.convert_units(tth_end, '2th_deg', self.units, self.wavelength)
-
-        # add ROI to list
-        roi_name = self.generate_roi_name(roi_start, roi_end)
-        roi_list_item = QtWidgets.QListWidgetItem(self.roi_list)
-        roi_num = self.roi_num
-        roi_list_item.setText(roi_name)
-        roi_list_item.setSelected(True)
-        self.map_roi[roi_num] = {}
-        self.map_roi[roi_num]['roi_name'] = roi_name
-
-        # add ROI to pattern view
-        ov = pq.LinearRegionItem.Vertical
-        self.map_roi[roi_num]['Obj'] = pq.LinearRegionItem(values=[roi_start, roi_end], orientation=ov, movable=True,
-                                                          brush=pq.mkBrush(color=(255, 0, 255, 100)))
-        self.map_roi[roi_num]['List_Obj'] = self.roi_list.item(self.roi_list.count()-1)
-        self.spec_plot.addItem(self.map_roi[roi_num]['Obj'])
-        self.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
-        self.roi_num = self.roi_num + 1
-
-    # create a function for each ROI when ROI is modified
-    def make_roi_changed(self, curr_map_roi):
-        def roi_changed():
-            tth_start, tth_end = self.map_roi[curr_map_roi]['Obj'].getRegion()
-            new_roi_name = self.generate_roi_name(tth_start, tth_end)
-            row = self.roi_list.row(self.map_roi[curr_map_roi]['List_Obj'])
-            self.roi_list.takeItem(row)
-            self.roi_list.insertItem(row, new_roi_name)
-            self.map_roi[curr_map_roi]['roi_name'] = new_roi_name
-            self.map_roi[curr_map_roi]['List_Obj'] = self.roi_list.item(row)
-            self.roi_list.item(row).setSelected(True)
-        return roi_changed
-
-    def generate_roi_name(self, roi_start, roi_end):
-        roi_name = '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
-        return roi_name
-
-    def btn_roi_del_clicked(self):
-        for each_roi in self.roi_list.selectedItems():
-            for key in self.map_roi:
-                if self.map_roi[key]['List_Obj'] == each_roi:
-                    self.spec_plot.removeItem(self.map_roi[key]['Obj'])
-                    del self.map_roi[key]
-                    break
-            self.roi_list.takeItem(self.roi_list.row(each_roi))
-
-    def btn_roi_clear_clicked(self):
-        self.roi_list.clear()
-        for key in self.map_roi:
-            self.spec_plot.removeItem(self.map_roi[key]['Obj'])
-        self.map_roi.clear()
-
-    def btn_roi_toggle_clicked(self):
-        if self.roi_toggle_btn.isChecked():
-            for key in self.map_roi:
-                self.map_roi[key]['Obj'].show()
-        else:
-            for key in self.map_roi:
-                self.map_roi[key]['Obj'].hide()
-
-    # not in use
-    # def all_file_list_selected(self):
-    #     print self.all_file_list.selectedItems()
-        # print self.map_data[self.all_file_list.selectedItems()]
-        # self.update_map()
-        """
-        print str(len(self.all_file_list.selectedItems())) + " item(s) selected"
-        for each_selected_item in self.all_file_list.selectedItems():
-            print each_selected_item.text()
-        """
 
     def raise_widget(self, img_model, spec_plot, working_dir):
         self.img_model = img_model
@@ -334,9 +233,6 @@ class Map2DWidget(QtWidgets.QWidget):
                 return True
         return False
 
-    def btn_roi_select_all_clicked(self):
-        self.roi_list.selectAll()
-
     def add_map_data(self, filename, working_directory, motors_info):
             base_filename = os.path.basename(filename)
             # self.all_file_list.addItem(filename)
@@ -357,9 +253,6 @@ class Map2DWidget(QtWidgets.QWidget):
         min_level = hist_x[0]
         max_level = hist_x[-1]
         self.map_histogram_LUT.setLevels(min_level, max_level)
-
-    def reset_zoom_btn_clicked(self):
-        self.map_view_box.autoRange()
 
     # replaces the LMB click event for loading the spectrum according to map pos, complete unzoom on right-click
     def myMouseClickEvent(self, ev):
