@@ -32,6 +32,7 @@ from ...model.DioptasModel import DioptasModel
 from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
+from .MapController import MapController
 
 
 class ImageController(object):
@@ -54,6 +55,7 @@ class ImageController(object):
         self.model = dioptas_model
 
         self.epics_controller = EpicsController(self.widget, self.model)
+        self.map_controller = MapController(self.widget, self.model)
 
         self.img_mode = 'Image'
         self.img_docked = True
@@ -206,7 +208,8 @@ class ImageController(object):
                         self.model.img_model.add(filenames[ind])
                     self.model.img_model.blockSignals(False)
                     self.model.img_model.img_changed.emit()
-                elif self.widget.img_batch_mode_integrate_rb.isChecked():
+                elif self.widget.img_batch_mode_integrate_rb.isChecked() or \
+                        self.widget.img_batch_mode_map_rb.isChecked():
                     self._load_multiple_files(filenames)
             self._check_absorption_correction_shape()
 
@@ -223,7 +226,8 @@ class ImageController(object):
                                                           len(filenames))
         self._set_up_multiple_file_integration()
 
-        self.widget.map_2D_widget.reset_map_data()  # MAP2D
+        if self.widget.img_batch_mode_map_rb.isChecked():
+            self.widget.map_2D_widget.reset_map_data()  # MAP2D
 
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
@@ -237,7 +241,8 @@ class ImageController(object):
             x, y = self.integrate_spectrum()
             self._save_spectrum(base_filename, working_directory, x, y)
             # MAP2D
-            self.widget.map_2D_widget.add_map_data(filename, working_directory, self.model.img_model.motors_info)
+            if self.widget.img_batch_mode_map_rb.isChecked():
+                self.widget.map_2D_widget.add_map_data(filename, working_directory, self.model.img_model.motors_info)
 
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
