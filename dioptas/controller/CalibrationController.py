@@ -459,8 +459,8 @@ class CalibrationController(object):
                                     filter='*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
-        self.model.calibration_model.load(filename)
-        self.update_all()
+            self.model.calibration_model.load(filename)
+            self.update_all()
 
     def plot_mask(self):
         """
@@ -534,6 +534,8 @@ class CalibrationController(object):
                                     self.working_dir['calibration'], '*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
+            if filename.rsplit('.', 1)[-1] is not 'poni':
+                filename = filename + '.poni'
             self.model.calibration_model.save(filename)
 
     def update_img_mouse_position_lbl(self, x, y):
