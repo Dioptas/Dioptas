@@ -279,7 +279,6 @@ class MapController(object):
             self.map_widget.show_map_chk.setChecked(True)
             self.map_widget.show_map_chk.setEnabled(False)
 
-
     def chk_show_map_changed(self):
         if self.map_widget.show_map_chk.isChecked():
             if self.map_widget.show_bg_chk.isChecked():
