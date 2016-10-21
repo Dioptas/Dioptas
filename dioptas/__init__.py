@@ -63,6 +63,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
     time_string = time.strftime("%Y-%m-%d, %H:%M:%S")
     tb_info_file = StringIO()
     traceback.print_tb(traceback_obj, None, tb_info_file)
+    traceback.print_exception(exc_type, exc_value, traceback_obj)
     tb_info_file.seek(0)
     tb_info = tb_info_file.read()
     errmsg = '%s: \n%s' % (str(exc_type), str(exc_value))
@@ -82,7 +83,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
 
 def main():
     app = QtWidgets.QApplication([])
-    # sys.excepthook = excepthook
+    sys.excepthook = excepthook
     from sys import platform as _platform
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))

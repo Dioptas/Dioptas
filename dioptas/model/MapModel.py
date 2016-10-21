@@ -1,10 +1,8 @@
-from PyQt4 import QtCore
 import os
 import numpy as np
-from PIL import Image
 
 
-class MapModel(QtCore.QObject):
+class MapModel(object):
     """
     Model for 2D maps from loading multiple images
 
@@ -32,38 +30,6 @@ class MapModel(QtCore.QObject):
 
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
-
-    def btn_show_map_clicked(self):  # move to controller?
-        self.update_map()
-
-    def btn_roi_add_clicked(self):  # partially move to controller or widget?
-        # calculate ROI position
-        tth_start = self.theta_center - self.theta_range
-        tth_end = self.theta_center + self.theta_range
-        roi_start = self.convert_units(tth_start, '2th_deg', self.units, self.wavelength)
-        roi_end = self.convert_units(tth_end, '2th_deg', self.units, self.wavelength)
-
-        # add ROI to list
-        roi_name = self.generate_roi_name(roi_start, roi_end)
-        roi_list_item = QtGui.QListWidgetItem(self.roi_list)
-        roi_num = self.roi_num
-        roi_list_item.setText(roi_name)
-        self.roi_list.setItemSelected(roi_list_item, True)
-        self.map_roi[roi_num] = {}
-        self.map_roi[roi_num]['roi_name'] = roi_name
-
-        # add ROI to pattern view
-        ov = pq.LinearRegionItem.Vertical
-        self.map_roi[roi_num]['Obj'] = pq.LinearRegionItem(values=[roi_start, roi_end], orientation=ov, movable=True,
-                                                           brush=pq.mkBrush(color=(255, 0, 255, 100)))
-        self.map_roi[roi_num]['List_Obj'] = self.roi_list.item(self.roi_list.count() - 1)
-        self.spec_plot.addItem(self.map_roi[roi_num]['Obj'])
-        self.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
-        self.roi_num = self.roi_num + 1
-
-    def generate_roi_name(self, roi_start, roi_end):
-        roi_name = '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
-        return roi_name
 
     def update_map(self):
         # order map files
