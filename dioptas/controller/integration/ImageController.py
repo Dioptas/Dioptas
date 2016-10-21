@@ -225,7 +225,6 @@ class ImageController(object):
 
         if self.widget.img_batch_mode_map_rb.isChecked():
             self.widget.spectrum_header_xy_cb.setChecked(True)
-            # self.widget.map_2D_widget.reset_map_data()  # MAP2D
             self.model.map_model.reset_map_data()  # MAP2D
 
         for ind in range(len(filenames)):
@@ -241,8 +240,11 @@ class ImageController(object):
             self._save_spectrum(base_filename, working_directory, x, y)
             # MAP2D
             if self.widget.img_batch_mode_map_rb.isChecked():
-                # self.widget.map_2D_widget.add_map_data(filename, working_directory, self.model.img_model.motors_info)
-                self.model.map_model.add_map_data(filename, working_directory, self.model.img_model.motors_info)
+                if self.model.pattern.has_background():
+                    map_working_directory = os.path.join(working_directory, 'bkg_subtracted')
+                else:
+                    map_working_directory = working_directory
+                self.model.map_model.add_map_data(filename, map_working_directory, self.model.img_model.motors_info)
 
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
