@@ -7,7 +7,7 @@ from qtpy import QtCore
 from copy import deepcopy
 
 from .util import Pattern
-from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
+from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel, MapModel
 
 
 class ImgConfiguration(QtCore.QObject):
@@ -186,6 +186,7 @@ class DioptasModel(QtCore.QObject):
 
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
+        self.map_model = MapModel()
 
         self._combine_patterns = False
         self._combine_cakes = False
