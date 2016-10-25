@@ -4,8 +4,10 @@ from pyqtgraph import GraphicsLayoutWidget
 import os
 import numpy as np
 from .plot_widgets.HistogramLUTItem import HistogramLUTItem
-from PIL import Image
-import time
+
+from .CustomWidgets import FlatButton
+
+widget_path = os.path.dirname(__file__)
 
 
 class Map2DWidget(QtWidgets.QWidget):
@@ -32,6 +34,7 @@ class Map2DWidget(QtWidgets.QWidget):
 
         # WIDGETS
         self.show_map_btn = QtWidgets.QPushButton(self)
+        self.manual_map_positions_setup_btn = QtWidgets.QPushButton("Setup Map")
         self.lbl_map_pos = QtWidgets.QLabel()
         # Map Image and Histogram
         self.map_image = pq.ImageItem()
@@ -90,6 +93,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.lbl_hbox = QtWidgets.QHBoxLayout()
         self.bg_hbox = QtWidgets.QHBoxLayout()
         self.roi_vbox = QtWidgets.QVBoxLayout()
+        self.roi_vbox.addWidget(self.manual_map_positions_setup_btn)
         self.roi_vbox.addWidget(self.show_map_btn)
         self.roi_vbox.addWidget(self.roi_list)
         self.roi_vbox.addLayout(self.roi_grid)
@@ -134,3 +138,142 @@ class Map2DWidget(QtWidgets.QWidget):
         self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.activateWindow()
         self.raise_()
+
+
+class ManualMapPositionsDialog(QtWidgets.QDialog):
+    """
+    Dialog for inputting map positions manually
+    """
+
+    def __init__(self, parent):
+        super(ManualMapPositionsDialog, self).__init__()
+
+        self._parent = parent
+        self._create_widgets()
+        self._layout_widgets()
+        self._style_widgets()
+
+        self._connect_widgets()
+
+    def _create_widgets(self):
+        self.hor_lbl = QtWidgets.QLabel("Horizontal")
+        self.ver_lbl = QtWidgets.QLabel("Vertical")
+        self.min_lbl = QtWidgets.QLabel("Minimum")
+        self.step_lbl = QtWidgets.QLabel("Step")
+        self.num_lbl = QtWidgets.QLabel("Number")
+        self.first_lbl = QtWidgets.QLabel("First")
+
+        self.hor_min_txt = QtWidgets.QLineEdit()
+        self.hor_step_txt = QtWidgets.QLineEdit()
+        self.hor_num_txt = QtWidgets.QLineEdit()
+        self.ver_min_txt = QtWidgets.QLineEdit()
+        self.ver_step_txt = QtWidgets.QLineEdit()
+        self.ver_num_txt = QtWidgets.QLineEdit()
+        self.first_hor_rb = QtWidgets.QRadioButton("Horizontal")
+        self.first_ver_rb = QtWidgets.QRadioButton("Vertical")
+
+        self.first_hor_rb.setToolTip("Horizontal position changes between first two files")
+        self.first_ver_rb.setToolTip("Vertical position changes between first two files")
+
+        self.min_unit_lbl = QtWidgets.QLabel("mm")
+        self.step_unit_lbl = QtWidgets.QLabel("mm")
+
+        self.ok_btn = FlatButton("Done")
+
+    def _layout_widgets(self):
+        self._layout = QtWidgets.QGridLayout()
+        self._layout.addWidget(self.hor_lbl, 0, 1)
+        self._layout.addWidget(self.ver_lbl, 0, 2)
+        self._layout.addWidget(self.min_lbl, 1, 0)
+        self._layout.addWidget(self.hor_min_txt, 1, 1)
+        self._layout.addWidget(self.ver_min_txt, 1, 2)
+        self._layout.addWidget(self.min_unit_lbl, 1, 3)
+        self._layout.addWidget(self.step_lbl, 2, 0)
+        self._layout.addWidget(self.hor_step_txt, 2, 1)
+        self._layout.addWidget(self.ver_step_txt, 2, 2)
+        self._layout.addWidget(self.step_unit_lbl, 2, 3)
+        self._layout.addWidget(self.num_lbl, 3, 0)
+        self._layout.addWidget(self.hor_num_txt, 3, 1)
+        self._layout.addWidget(self.ver_num_txt, 3, 2)
+        self._layout.addWidget(self.first_lbl, 4, 0)
+        self._layout.addWidget(self.first_hor_rb, 4, 1)
+        self._layout.addWidget(self.first_ver_rb, 4, 2)
+        self._layout.addWidget(self.ok_btn, 5, 3)
+        self.setLayout(self._layout)
+
+    def _style_widgets(self):
+        """
+        Makes everything pretty and set double/int validators for the line edits.
+        """
+        self.hor_min_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.hor_min_txt.setMaximumWidth(40)
+        self.ver_min_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.ver_min_txt.setMaximumWidth(40)
+        self.hor_step_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.hor_step_txt.setMaximumWidth(40)
+        self.ver_step_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.ver_step_txt.setMaximumWidth(40)
+        self.hor_num_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.hor_num_txt.setMaximumWidth(40)
+        self.ver_num_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.ver_num_txt.setMaximumWidth(40)
+
+        self.hor_min_txt.setValidator(QtGui.QDoubleValidator())
+        self.ver_min_txt.setValidator(QtGui.QDoubleValidator())
+        self.hor_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.ver_step_txt.setValidator(QtGui.QDoubleValidator())
+        self.hor_num_txt.setValidator(QtGui.QIntValidator())
+        self.ver_num_txt.setValidator(QtGui.QIntValidator())
+
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+
+        file = open(os.path.join(widget_path, "stylesheet.qss"))
+        stylesheet = file.read()
+        self.setStyleSheet(stylesheet)
+        file.close()
+
+    def _connect_widgets(self):
+        """
+        Connecting actions to slots.
+        """
+        self.ok_btn.clicked.connect(self.accept)
+
+    @property
+    def hor_minimum(self):
+        return float(str(self.hor_min_txt.text()))
+
+    @property
+    def ver_minimum(self):
+        return float(str(self.ver_min_txt.text()))
+
+    @property
+    def hor_step_size(self):
+        return float(str(self.hor_step_txt.text()))
+
+    @property
+    def ver_step_size(self):
+        return float(str(self.ver_step_txt.text()))
+
+    @property
+    def hor_number(self):
+        return int(str(self.hor_num_txt.text()))
+
+    @property
+    def ver_number(self):
+        return int(str(self.ver_num_txt.text()))
+
+    @property
+    def is_hor_first(self):
+        """
+        Returns: True if horizontal is first, False if vertical is first
+        """
+        return self.first_hor_rb.isChecked()
+
+    def exec_(self):
+        """
+        Overwriting the dialog exec_ function to center the widget in the parent window before execution.
+        """
+        parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
+        self.move(parent_center.x() - 101, parent_center.y() - 48)
+        super(ManualMapPositionsDialog, self).exec_()
+

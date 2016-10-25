@@ -6,6 +6,8 @@ import numpy as np
 from PIL import Image
 import time
 
+from ...widgets.MapWidgets import Map2DWidget
+from ...widgets.MapWidgets import ManualMapPositionsDialog
 
 class MapController(object):
     def __init__(self, widget, dioptas_model):
@@ -15,11 +17,13 @@ class MapController(object):
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
+        :type widget.map_2D_widget: Map2DWidget
         """
 
         self.widget = widget
         self.model = dioptas_model
 
+        self.manual_map_positions_dialog = ManualMapPositionsDialog(self.widget)
         self.map_model = self.model.map_model
         self.map_widget = widget.map_2D_widget
         self.bg_opacity = 0.5
@@ -28,6 +32,7 @@ class MapController(object):
     def setup_connections(self):
         self.model.map_model.map_changed.connect(self.update_map_image)
 
+        self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
         self.map_widget.show_map_btn.clicked.connect(self.btn_show_map_clicked)
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
         self.map_widget.roi_del_btn.clicked.connect(self.btn_roi_del_clicked)
@@ -162,8 +167,7 @@ class MapController(object):
     # replaces the LMB click event for loading the spectrum according to map pos, complete unzoom on right-click
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
-                (ev.button() == QtCore.Qt.LeftButton and
-                         ev.modifiers() & QtCore.Qt.ControlModifier):
+                (ev.button() == QtCore.Qt.LeftButton and ev.modifiers() & QtCore.Qt.ControlModifier):
             self.map_widget.map_view_box.autoRange()
 
         elif ev.button() == QtCore.Qt.LeftButton:
@@ -290,3 +294,13 @@ class MapController(object):
         else:
             self.map_widget.map_image.setOpacity(0.0)
             self.map_widget.map_bg_image.setOpacity(1.0)
+
+    def manual_map_positions_setup_btn_clicked(self):
+        self.manual_map_positions_dialog.exec_()
+        self.map_model.add_manual_map_positions(self.manual_map_positions_dialog.hor_minimum,
+                                                self.manual_map_positions_dialog.ver_minimum,
+                                                self.manual_map_positions_dialog.hor_step_size,
+                                                self.manual_map_positions_dialog.ver_step_size,
+                                                self.manual_map_positions_dialog.hor_number,
+                                                self.manual_map_positions_dialog.ver_number,
+                                                self.manual_map_positions_dialog.is_hor_first)

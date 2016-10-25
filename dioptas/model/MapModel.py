@@ -1,6 +1,7 @@
 from qtpy import QtCore
 import os
 import numpy as np
+import re
 
 
 class MapModel(QtCore.QObject):
@@ -80,7 +81,7 @@ class MapModel(QtCore.QObject):
         if self.num_ver*self.num_hor == len(self.datalist):
             print("Correct number of files for map")
         else:
-            print("Warning! Number of files in map not consistent with map positions. tru setting up manually")
+            print("Warning! Number of files in map not consistent with map positions. try setting up manually")
 
     def read_map_files_and_prepare_map_data(self):
         for filename, filedata in self.map_data.items():
@@ -156,3 +157,45 @@ class MapModel(QtCore.QObject):
         else:
             res = 0
         return res
+
+    def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first):
+        self.datalist = []
+        for filename, filedata in self.map_data.items():
+            self.datalist.append([filename])
+        self.sorted_datalist = sorted(self.datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
+                                                                    re.split('(\d+)', s[0])])  # this is natural sort
+        print(self.sorted_datalist)
+        ind = 0
+        if is_hor_first:
+            for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
+                for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
+                    self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
+                    self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
+                    ind = ind + 1
+        else:
+            for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
+                for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
+                    self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
+                    self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
+                    ind = ind + 1
+        for filename, filedata in self.map_data.items():
+            print(filename)
+            print(filedata)
+        self.min_hor = hor_min
+        self.min_ver = ver_min
+
+        self.num_hor = hor_num
+        self.num_ver = ver_num
+
+        self.diff_hor = hor_step
+        self.diff_ver = ver_step
+
+        self.hor_size = self.pix_per_hor * self.num_hor
+        self.ver_size = self.pix_per_ver * self.num_ver
+
+        self.hor_um_per_px = self.diff_hor / self.pix_per_hor
+        self.ver_um_per_px = self.diff_ver / self.pix_per_ver
+
+        self.new_image = np.zeros([self.hor_size, self.ver_size])
+        self.positions_set_manually = True
+
