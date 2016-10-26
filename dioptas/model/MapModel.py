@@ -29,7 +29,7 @@ class MapModel(QtCore.QObject):
         self.pix_per_ver = 100
         self.units = '2th_deg'
         self.wavelength = 0.3344
-        self.all_positions_defined_in_files = True
+        self.all_positions_defined_in_files = False
         self.positions_set_manually = False
 
         # Background for image
@@ -37,7 +37,7 @@ class MapModel(QtCore.QObject):
 
     def reset_map_data(self):
         self.map_data = {}
-        self.all_positions_defined_in_files = True
+        self.all_positions_defined_in_files = False
 
     def add_map_data(self, filename, working_directory, motors_info):
         base_filename = os.path.basename(filename)
