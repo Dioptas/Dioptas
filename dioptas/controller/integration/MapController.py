@@ -221,7 +221,7 @@ class MapController(object):
             return
 
         load_name_file = str(load_name).rsplit('/', 1)[-1]
-        loaded_bg_image = Image.open(str(load_name).replace('/', '\\'))
+        loaded_bg_image = Image.open(str(load_name).replace('\\', '/'))
         bg_image_tags = loaded_bg_image.tag
 
         img_px_size_hor = gsecars_photo['img_px_size_hor']
