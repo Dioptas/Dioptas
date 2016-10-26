@@ -349,8 +349,8 @@ class PatternController(object):
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
 
-        self.widget.map_2D_widget.theta_center = self.get_line_tth()  # MAP2D
-        self.widget.map_2D_widget.wavelength = self.model.calibration_model.wavelength
+        self.model.map_model.theta_center = self.get_line_tth()  # MAP2D
+        self.model.map_model.wavelength = self.model.calibration_model.wavelength
 
     def set_line_position(self, x):
         self.widget.pattern_widget.set_pos_line(x)
