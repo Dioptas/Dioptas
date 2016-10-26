@@ -226,6 +226,7 @@ class ImageController(object):
         if self.widget.img_batch_mode_map_rb.isChecked():
             self.widget.spectrum_header_xy_cb.setChecked(True)
             self.model.map_model.reset_map_data()  # MAP2D
+            self.model.map_model.all_positions_defined_in_files = True
 
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
