@@ -236,7 +236,7 @@ class MapController(object):
         bg_ver_shift = -(-(bg_ver - img_height_mm / 2.0) + self.map_model.min_ver) / self.map_model.ver_um_per_px + \
                        self.map_model.pix_per_ver / 2
 
-        if load_name_file.split('_', 1)[0] == 'ds' or load_name_file.split('_', 1)[0] == 'ms':
+        if load_name_file.split('_', 1)[0] in gsecars_photo['flip_prefixes']:
             loaded_bg_image = np.fliplr(loaded_bg_image)
 
         self.bg_image = np.rot90(loaded_bg_image, 3)
