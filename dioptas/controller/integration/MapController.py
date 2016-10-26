@@ -1,11 +1,9 @@
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtWidgets
 import pyqtgraph as pq
-from pyqtgraph import GraphicsLayoutWidget
-import os
 import numpy as np
 from PIL import Image
-import time
 
+from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
 
@@ -218,10 +216,10 @@ class MapController(object):
         loaded_bg_image = Image.open(str(load_name).replace('/', '\\'))
         bg_image_tags = loaded_bg_image.tag
 
-        img_px_size_hor = 0.00035  # 3.5 microns in mm
-        img_px_size_ver = 0.00035
-        img_hor_px = 1920.0
-        img_ver_px = 1200.0
+        img_px_size_hor = gsecars_photo['img_px_size_hor']
+        img_px_size_ver = gsecars_photo['img_px_size_ver']
+        img_hor_px = gsecars_photo['img_hor_px']
+        img_ver_px = gsecars_photo['img_ver_px']
         img_width_mm = img_hor_px * img_px_size_hor
         img_height_mm = img_ver_px * img_px_size_ver
 
