@@ -164,7 +164,6 @@ class MapModel(QtCore.QObject):
             self.datalist.append([filename])
         self.sorted_datalist = sorted(self.datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
                                                                     re.split('(\d+)', s[0])])  # this is natural sort
-        print(self.sorted_datalist)
         ind = 0
         if is_hor_first:
             for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
@@ -178,9 +177,7 @@ class MapModel(QtCore.QObject):
                     self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
                     self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
                     ind = ind + 1
-        for filename, filedata in self.map_data.items():
-            print(filename)
-            print(filedata)
+
         self.min_hor = hor_min
         self.min_ver = ver_min
 
