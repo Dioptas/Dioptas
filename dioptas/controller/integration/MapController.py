@@ -78,7 +78,8 @@ class MapController(object):
         self.map_widget.map_roi[roi_num]['Obj'] = pq.LinearRegionItem(values=[roi_start, roi_end], orientation=ov,
                                                                       movable=True,
                                                                       brush=pq.mkBrush(color=(255, 0, 255, 100)))
-        self.map_widget.map_roi[roi_num]['List_Obj'] = self.map_widget.roi_list.item(self.map_widget.roi_list.count() - 1)
+        self.map_widget.map_roi[roi_num]['List_Obj'] = self.map_widget.roi_list.item(self.map_widget.roi_list.count()
+                                                                                     - 1)
         self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_num]['Obj'])
         self.map_widget.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
@@ -198,7 +199,8 @@ class MapController(object):
         try:
             hor, ver = self.xy_to_horver(x, y)
             file_name = self.horver_to_file_name(hor, ver)
-            self.map_widget.lbl_map_pos.setText(str(file_name) + ":\t hor=" + str(round(hor, 3)) + '\tver:=' + str(round(ver, 3)))
+            self.map_widget.lbl_map_pos.setText(str(file_name) + ":\t hor=" + str(round(hor, 3)) + '\tver:=' +
+                                                str(round(ver, 3)))
         except Exception:
             pass
 
@@ -229,8 +231,10 @@ class MapController(object):
         bg_hor = float(self.bg_hor_ver['Horizontal'])
         bg_ver = float(self.bg_hor_ver['Vertical'])
 
-        bg_hor_shift = -(-(bg_hor - img_width_mm / 2.0) + self.map_model.min_hor) / self.map_model.hor_um_per_px + self.map_model.pix_per_hor / 2
-        bg_ver_shift = -(-(bg_ver - img_height_mm / 2.0) + self.map_model.min_ver) / self.map_model.ver_um_per_px + self.map_model.pix_per_ver / 2
+        bg_hor_shift = -(-(bg_hor - img_width_mm / 2.0) + self.map_model.min_hor) / self.map_model.hor_um_per_px + \
+                       self.map_model.pix_per_hor / 2
+        bg_ver_shift = -(-(bg_ver - img_height_mm / 2.0) + self.map_model.min_ver) / self.map_model.ver_um_per_px + \
+                       self.map_model.pix_per_ver / 2
 
         if load_name_file.split('_', 1)[0] == 'ds' or load_name_file.split('_', 1)[0] == 'ms':
             loaded_bg_image = np.fliplr(loaded_bg_image)
@@ -256,7 +260,8 @@ class MapController(object):
             bg_msg.exec_()
             return
 
-        load_name, _ = QtWidgets.QFileDialog.getOpenFileName(QtWidgets.QFileDialog(), 'Choose file name for loading background image',
+        load_name, _ = QtWidgets.QFileDialog.getOpenFileName(QtWidgets.QFileDialog(),
+                                                             'Choose file name for loading background image',
                                                              self.map_widget.working_dir['image'], 'TIFF Files (*.tif)')
         return load_name
 

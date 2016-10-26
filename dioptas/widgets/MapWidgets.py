@@ -179,6 +179,7 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self.step_unit_lbl = QtWidgets.QLabel("mm")
 
         self.ok_btn = FlatButton("Done")
+        self.cancel_btn = FlatButton("Cancel")
 
     def _layout_widgets(self):
         self._layout = QtWidgets.QGridLayout()
@@ -198,7 +199,8 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self._layout.addWidget(self.first_lbl, 4, 0)
         self._layout.addWidget(self.first_hor_rb, 4, 1)
         self._layout.addWidget(self.first_ver_rb, 4, 2)
-        self._layout.addWidget(self.ok_btn, 5, 3)
+        self._layout.addWidget(self.ok_btn, 5, 2)
+        self._layout.addWidget(self.cancel_btn, 5, 3)
         self.setLayout(self._layout)
 
     def _style_widgets(self):
@@ -237,6 +239,7 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         Connecting actions to slots.
         """
         self.ok_btn.clicked.connect(self.accept)
+        self.cancel_btn.clicked.connect(self.reject)
 
     @property
     def hor_minimum(self):
