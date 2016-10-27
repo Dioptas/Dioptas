@@ -31,6 +31,7 @@ class MapController(object):
 
     def setup_connections(self):
         self.model.map_model.map_changed.connect(self.update_map_image)
+        self.model.map_model.map_cleared.connect(self.clear_map)
 
         self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
         self.map_widget.show_map_btn.clicked.connect(self.btn_show_map_clicked)
@@ -48,6 +49,10 @@ class MapController(object):
         self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
         self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
         self.map_widget.map_view_box.mouseClickEvent = self.do_nothing
+
+        self.manual_map_positions_dialog.hor_num_txt.textChanged.connect(self.manual_map_num_points_changed)
+        self.manual_map_positions_dialog.ver_num_txt.textChanged.connect(self.manual_map_num_points_changed)
+
 
     def toggle_map_widgets_enable(self, toggle=True):
         self.map_widget.show_map_btn.setEnabled(toggle)
@@ -110,7 +115,6 @@ class MapController(object):
         self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_num]['Obj'])
         self.map_widget.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
-        print(self.map_widget.roi_num)
         if self.map_widget.roi_num == 1:
             self.toggle_map_widgets_enable(True)
 
@@ -343,7 +347,14 @@ class MapController(object):
     #         self.map_widget.map_image.setOpacity(0.0)
     #         self.map_widget.map_bg_image.setOpacity(1.0)
 
+    def clear_map(self):
+        self.manual_map_positions_dialog.selected_map_files.clear()
+
     def manual_map_positions_setup_btn_clicked(self):
+        sorted_datalist = self.map_model.sort_map_files_by_natural_name()
+        for item in sorted_datalist:
+            self.manual_map_positions_dialog.selected_map_files.addItem(QtWidgets.QListWidgetItem(item[0]))
+        self.manual_map_positions_dialog.total_files_lbl.setText(str(len(sorted_datalist)) + ' files')
         dialog_result = self.manual_map_positions_dialog.exec_()
         if dialog_result == QtWidgets.QDialog.Accepted:
             self.map_model.add_manual_map_positions(self.manual_map_positions_dialog.hor_minimum,
@@ -353,3 +364,11 @@ class MapController(object):
                                                     self.manual_map_positions_dialog.hor_number,
                                                     self.manual_map_positions_dialog.ver_number,
                                                     self.manual_map_positions_dialog.is_hor_first)
+
+    def manual_map_num_points_changed(self):
+        try:
+            self.manual_map_positions_dialog.total_map_points_lbl.setText(str(
+                int(self.manual_map_positions_dialog.hor_num_txt.text()) *
+                int(self.manual_map_positions_dialog.ver_num_txt.text())) + ' points')
+        except ValueError:
+            self.manual_map_positions_dialog.total_map_points_lbl.setText('0 points')
