@@ -10,6 +10,7 @@ class MapModel(QtCore.QObject):
 
     """
     map_changed = QtCore.Signal()
+    map_cleared = QtCore.Signal()
 
     def __init__(self):
         """
@@ -38,6 +39,8 @@ class MapModel(QtCore.QObject):
     def reset_map_data(self):
         self.map_data = {}
         self.all_positions_defined_in_files = False
+        self.map_cleared.emit()
+
 
     def add_map_data(self, filename, working_directory, motors_info):
         base_filename = os.path.basename(filename)
@@ -52,10 +55,10 @@ class MapModel(QtCore.QObject):
             self.all_positions_defined_in_files = False
 
     def organize_map_files(self):
-        self.datalist = []
+        datalist = []
         for filename, filedata in self.map_data.items():
-            self.datalist.append([filename, round(float(filedata['pos_hor']), 3), round(float(filedata['pos_ver']), 3)])
-        self.sorted_datalist = sorted(self.datalist, key=lambda x: (x[1], x[2]))
+            datalist.append([filename, round(float(filedata['pos_hor']), 3), round(float(filedata['pos_ver']), 3)])
+        self.sorted_datalist = sorted(datalist, key=lambda x: (x[1], x[2]))
 
         self.transposed_list = [[row[i] for row in self.sorted_datalist] for i in range(len(self.sorted_datalist[1]))]
         self.min_hor = self.sorted_datalist[0][1]
@@ -78,7 +81,7 @@ class MapModel(QtCore.QObject):
         self.new_image = np.zeros([self.hor_size, self.ver_size])
 
     def check_map(self):
-        if self.num_ver*self.num_hor == len(self.datalist):
+        if self.num_ver*self.num_hor == len(self.sorted_datalist):
             print("Correct number of files for map")
         else:
             print("Warning! Number of files in map not consistent with map positions. try setting up manually")
@@ -159,11 +162,7 @@ class MapModel(QtCore.QObject):
         return res
 
     def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first):
-        self.datalist = []
-        for filename, filedata in self.map_data.items():
-            self.datalist.append([filename])
-        self.sorted_datalist = sorted(self.datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
-                                                                    re.split('(\d+)', s[0])])  # this is natural sort
+        self.sorted_datalist = self.sort_map_files_by_natural_name()
         ind = 0
         if is_hor_first:
             for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
@@ -196,3 +195,10 @@ class MapModel(QtCore.QObject):
         self.new_image = np.zeros([self.hor_size, self.ver_size])
         self.positions_set_manually = True
 
+    def sort_map_files_by_natural_name(self):
+        datalist = []
+        for filename, filedata in self.map_data.items():
+            datalist.append([filename])
+        sorted_datalist = sorted(datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
+                                                          re.split('(\d+)', s[0])])
+        return sorted_datalist
