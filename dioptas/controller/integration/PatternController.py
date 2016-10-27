@@ -23,6 +23,8 @@ from qtpy import QtWidgets, QtCore
 
 from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
+from .MapController import MapController
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
 
@@ -47,6 +49,8 @@ class PatternController(object):
         self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
+
+        self.map_controller = MapController(self.widget, self.model)
 
         self.integration_unit = '2th_deg'
         self.autocreate_pattern = False
@@ -257,8 +261,8 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
-            self.widget.map_2D_widget.convert_all_units(previous_unit, self.integration_unit,
-                                                        self.model.calibration_model.wavelength)  # MAP2D
+            self.map_controller.convert_all_units(previous_unit, self.integration_unit,
+                                                  self.model.calibration_model.wavelength)  # MAP2D
 
     def set_unit_q(self):
         previous_unit = self.integration_unit
@@ -273,8 +277,8 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
-            self.widget.map_2D_widget.convert_all_units(previous_unit, self.integration_unit,
-                                                        self.model.calibration_model.wavelength)  # MAP2D
+            self.map_controller.convert_all_units(previous_unit, self.integration_unit,
+                                                  self.model.calibration_model.wavelength)  # MAP2D
 
     def set_unit_d(self):
         previous_unit = self.integration_unit
@@ -290,8 +294,8 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
-            self.widget.map_2D_widget.convert_all_units(previous_unit, self.integration_unit,
-                                                        self.model.calibration_model.wavelength)  # MAP2D
+            self.map_controller.convert_all_units(previous_unit, self.integration_unit,
+                                                  self.model.calibration_model.wavelength)  # MAP2D
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()[0]
@@ -345,8 +349,8 @@ class PatternController(object):
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
 
-        self.widget.map_2D_widget.theta_center = self.get_line_tth()  # MAP2D
-        self.widget.map_2D_widget.wavelength = self.model.calibration_model.wavelength
+        self.model.map_model.theta_center = self.get_line_tth()  # MAP2D
+        self.model.map_model.wavelength = self.model.calibration_model.wavelength
 
     def set_line_position(self, x):
         self.widget.pattern_widget.set_pos_line(x)
