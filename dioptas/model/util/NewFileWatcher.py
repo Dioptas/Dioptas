@@ -101,7 +101,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         """
         # since it is hard to ask the operating system for this directly, the change in file size is checked.
         size1 = os.stat(path).st_size
-        time.sleep(0.10)
+        time.sleep(0.05)
         size2 = os.stat(path).st_size
 
         return size1==size2
@@ -115,6 +115,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         signal.
         :param path: file path of the watched file
         """
+        print("File Changed")
         if self._file_closed(path):
             self.file_added.emit(path)
             self._file_changed_watcher.removePath(path)
