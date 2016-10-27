@@ -96,6 +96,7 @@ class MapController(object):
         self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_num]['Obj'])
         self.map_widget.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
+        print(self.map_widget.roi_num)
         if self.map_widget.roi_num == 1:
             self.toggle_map_widgets_enable(True)
 
@@ -125,6 +126,7 @@ class MapController(object):
                     del self.map_widget.map_roi[key]
                     break
             self.map_widget.roi_list.takeItem(self.map_widget.roi_list.row(each_roi))
+            self.map_widget.roi_num = self.map_widget.roi_num - 1
         if self.map_widget.roi_num == 0:
             self.toggle_map_widgets_enable(False)
 
@@ -133,6 +135,7 @@ class MapController(object):
         for key in self.map_widget.map_roi:
             self.map_widget.spec_plot.removeItem(self.map_widget.map_roi[key]['Obj'])
         self.map_widget.map_roi.clear()
+        self.map_widget.roi_num = 0
         self.toggle_map_widgets_enable(False)
 
     def btn_roi_toggle_clicked(self):
