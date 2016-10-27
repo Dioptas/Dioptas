@@ -1,12 +1,15 @@
+from qtpy import QtCore
 import os
 import numpy as np
+import re
 
 
-class MapModel(object):
+class MapModel(QtCore.QObject):
     """
     Model for 2D maps from loading multiple images
 
     """
+    map_changed = QtCore.Signal()
 
     def __init__(self):
         """
@@ -16,7 +19,7 @@ class MapModel(object):
         super(MapModel, self).__init__()
 
         self.map_data = {}
-        self.map_roi = {}
+        self.map_roi_list = []
         self.theta_center = 5.9
         self.theta_range = 0.1
         self.num_hor = 0
@@ -24,15 +27,31 @@ class MapModel(object):
         self.roi_num = 0
         self.pix_per_hor = 100
         self.pix_per_ver = 100
-        self.map_loaded = False
         self.units = '2th_deg'
         self.wavelength = 0.3344
+        self.all_positions_defined_in_files = False
+        self.positions_set_manually = False
 
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
 
-    def update_map(self):
-        # order map files
+    def reset_map_data(self):
+        self.map_data = {}
+        self.all_positions_defined_in_files = False
+
+    def add_map_data(self, filename, working_directory, motors_info):
+        base_filename = os.path.basename(filename)
+        self.map_data[filename] = {}
+        self.map_data[filename]['image_file_name'] = filename.replace('\\', '/')
+        self.map_data[filename]['spectrum_file_name'] = working_directory + '/' + \
+                                                        os.path.splitext(base_filename)[0] + '.xy'
+        try:
+            self.map_data[filename]['pos_hor'] = str(round(float(motors_info['Horizontal']), 3))
+            self.map_data[filename]['pos_ver'] = str(round(float(motors_info['Vertical']), 3))
+        except KeyError:
+            self.all_positions_defined_in_files = False
+
+    def organize_map_files(self):
         self.datalist = []
         for filename, filedata in self.map_data.items():
             self.datalist.append([filename, round(float(filedata['pos_hor']), 3), round(float(filedata['pos_ver']), 3)])
@@ -58,12 +77,18 @@ class MapModel(object):
 
         self.new_image = np.zeros([self.hor_size, self.ver_size])
 
-        # read each file and prepare map image
+    def check_map(self):
+        if self.num_ver*self.num_hor == len(self.datalist):
+            print("Correct number of files for map")
+        else:
+            print("Warning! Number of files in map not consistent with map positions. try setting up manually")
+
+    def read_map_files_and_prepare_map_data(self):
         for filename, filedata in self.map_data.items():
             range_hor = self.pos_to_range(float(filedata['pos_hor']), self.min_hor, self.pix_per_hor, self.diff_hor)
             range_ver = self.pos_to_range(float(filedata['pos_ver']), self.min_ver, self.pix_per_ver, self.diff_ver)
 
-            spec_file = self.map_data[filename]['spectrum_file_name']
+            spec_file = self.map_data[filename]['spectrum_file_name'].replace('\\', '/')
             curr_spec_file = open(spec_file, 'r')
             sum_int = 0
             file_units = '2th_deg'
@@ -85,71 +110,29 @@ class MapModel(object):
 
             self.new_image[range_hor, range_ver] = sum_int
 
-        self.map_loaded = True
+    def update_map(self):
+        if not self.all_positions_defined_in_files and not self.positions_set_manually:
+            print("Not all files contain positions. Please define manually")
+            return
+
+        if self.all_positions_defined_in_files and not self.positions_set_manually:
+            self.organize_map_files()
+
+        self.read_map_files_and_prepare_map_data()
+
+        self.map_changed.emit()
+
+    def is_in_roi_range(self, tt):
+        for item in self.map_roi_list:
+            if float(item['roi_start']) < tt < float(item['roi_end']):
+                return True
+        return False
 
     def pos_to_range(self, pos, min_pos, pix_per_pos, diff_pos):
         range_start = (pos - min_pos) / diff_pos * pix_per_pos
         range_end = range_start + pix_per_pos
         pos_range = slice(range_start, range_end)
         return pos_range
-
-    def xy_to_horver(self, x, y):
-        hor = self.min_hor + x // self.pix_per_hor * self.diff_hor
-        ver = self.min_ver + y // self.pix_per_ver * self.diff_ver
-        return hor, ver
-
-    def horver_to_file_name(self, hor, ver):
-        for filename, filedata in self.map_data.items():
-            if abs(float(filedata['pos_hor']) - hor) < 2E-4 and abs(float(filedata['pos_ver']) - ver) < 2E-4:
-                return filename
-        dist_sqr = {}
-        for filename, filedata in self.map_data.items():
-            dist_sqr[filename] = abs(float(filedata['pos_hor']) - hor) ** 2 + abs(float(filedata['pos_ver']) - ver) ** 2
-
-        return min(dist_sqr, key=dist_sqr.get)
-
-    def check_map(self):
-        if self.num_ver * self.num_hor == len(self.datalist):
-            print("Correct number of files for map")
-        else:
-            print("Warning! Number of files in map not consistent with map positions")
-
-    def is_in_roi_range(self, tt):
-        for item in self.roi_list.selectedItems():
-            roi_name = item.text().split('-')
-            if float(roi_name[0]) < tt < float(roi_name[1]):
-                return True
-        return False
-
-    def add_map_data(self, filename, working_directory, motors_info):
-        base_filename = os.path.basename(filename)
-        # self.all_file_list.addItem(filename)
-        self.map_data[filename] = {}
-        self.map_data[filename]['image_file_name'] = filename
-        self.map_data[filename]['spectrum_file_name'] = working_directory + '\\' + \
-                                                        os.path.splitext(base_filename)[0] + '.xy'
-        self.map_data[filename]['pos_hor'] = str(round(float(motors_info['Horizontal']), 3))
-        self.map_data[filename]['pos_ver'] = str(round(float(motors_info['Vertical']), 3))
-
-    def reset_map_data(self):
-        self.map_data = {}
-
-    def convert_all_units(self, previous_unit, new_unit, wavelength):
-        # also, use this for converting the range if the file is in another unit.
-        self.roi_list.selectAll()
-        for item in self.roi_list.selectedItems():
-            roi_name = item.text().split('-')
-            roi_start = self.convert_units(float(roi_name[0]), previous_unit, new_unit, wavelength)
-            roi_end = self.convert_units(float(roi_name[1]), previous_unit, new_unit, wavelength)
-            roi_new_name = self.generate_roi_name(roi_start, roi_end)
-            # row = self.roi_list.row(item)
-            # self.roi_list.takeItem(row)
-            # self.roi_list.insertItem(row, roi_new_name)
-            item.setText(roi_new_name)
-            for key in self.map_roi:
-                if self.map_roi[key]['List_Obj'] == item:
-                    self.map_roi[key]['Obj'].setRegion((roi_start, roi_end))
-                    break
 
     def convert_units(self, value, previous_unit, new_unit, wavelength):
         self.units = new_unit
@@ -174,4 +157,42 @@ class MapModel(object):
         else:
             res = 0
         return res
+
+    def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first):
+        self.datalist = []
+        for filename, filedata in self.map_data.items():
+            self.datalist.append([filename])
+        self.sorted_datalist = sorted(self.datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
+                                                                    re.split('(\d+)', s[0])])  # this is natural sort
+        ind = 0
+        if is_hor_first:
+            for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
+                for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
+                    self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
+                    self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
+                    ind = ind + 1
+        else:
+            for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
+                for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
+                    self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
+                    self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
+                    ind = ind + 1
+
+        self.min_hor = hor_min
+        self.min_ver = ver_min
+
+        self.num_hor = hor_num
+        self.num_ver = ver_num
+
+        self.diff_hor = hor_step
+        self.diff_ver = ver_step
+
+        self.hor_size = self.pix_per_hor * self.num_hor
+        self.ver_size = self.pix_per_ver * self.num_ver
+
+        self.hor_um_per_px = self.diff_hor / self.pix_per_hor
+        self.ver_um_per_px = self.diff_ver / self.pix_per_ver
+
+        self.new_image = np.zeros([self.hor_size, self.ver_size])
+        self.positions_set_manually = True
 

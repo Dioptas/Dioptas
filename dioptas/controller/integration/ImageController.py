@@ -32,8 +32,6 @@ from ...model.DioptasModel import DioptasModel
 from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
-from .MapController import MapController
-
 
 class ImageController(object):
     """
@@ -55,7 +53,6 @@ class ImageController(object):
         self.model = dioptas_model
 
         self.epics_controller = EpicsController(self.widget, self.model)
-        self.map_controller = MapController(self.widget, self.model)
 
         self.img_mode = 'Image'
         self.img_docked = True
@@ -227,7 +224,9 @@ class ImageController(object):
         self._set_up_multiple_file_integration()
 
         if self.widget.img_batch_mode_map_rb.isChecked():
-            self.widget.map_2D_widget.reset_map_data()  # MAP2D
+            self.widget.spectrum_header_xy_cb.setChecked(True)
+            self.model.map_model.reset_map_data()  # MAP2D
+            self.model.map_model.all_positions_defined_in_files = True
 
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
@@ -246,7 +245,7 @@ class ImageController(object):
                     map_working_directory = os.path.join(working_directory, 'bkg_subtracted')
                 else:
                     map_working_directory = working_directory
-                self.widget.map_2D_widget.add_map_data(filename, map_working_directory, self.model.img_model.motors_info)
+                self.model.map_model.add_map_data(filename, map_working_directory, self.model.img_model.motors_info)
 
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
