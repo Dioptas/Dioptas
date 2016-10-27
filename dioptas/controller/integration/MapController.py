@@ -58,6 +58,20 @@ class MapController(object):
         self.map_widget.reset_zoom_btn.setEnabled(toggle)
         self.map_widget.add_bg_btn.setEnabled(toggle)
         self.map_widget.bg_opacity_slider.setEnabled(toggle)
+        if toggle:
+            self.set_map_widget_style('color: white')
+        else:
+            self.set_map_widget_style('color: black')
+
+    def set_map_widget_style(self, new_style):
+        self.map_widget.show_map_btn.setStyleSheet(new_style)
+        self.map_widget.manual_map_positions_setup_btn.setStyleSheet(new_style)
+        self.map_widget.roi_del_btn.setStyleSheet(new_style)
+        self.map_widget.roi_clear_btn.setStyleSheet(new_style)
+        self.map_widget.roi_select_all_btn.setStyleSheet(new_style)
+        self.map_widget.reset_zoom_btn.setStyleSheet(new_style)
+        self.map_widget.add_bg_btn.setStyleSheet(new_style)
+        self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
 
     def btn_show_map_clicked(self):
         self.map_model.map_roi_list = []
