@@ -27,6 +27,7 @@ class MapController(object):
         # self.bg_opacity = 0.5
         self.bg_image = None
         self.setup_connections()
+        self.toggle_map_widgets_enable(toggle=False)
 
     def setup_connections(self):
         self.model.map_model.map_changed.connect(self.update_map_image)
@@ -47,6 +48,16 @@ class MapController(object):
         self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
         self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
         self.map_widget.map_view_box.mouseClickEvent = self.do_nothing
+
+    def toggle_map_widgets_enable(self, toggle=True):
+        self.map_widget.show_map_btn.setEnabled(toggle)
+        self.map_widget.manual_map_positions_setup_btn.setEnabled(toggle)
+        self.map_widget.roi_del_btn.setEnabled(toggle)
+        self.map_widget.roi_clear_btn.setEnabled(toggle)
+        self.map_widget.roi_select_all_btn.setEnabled(toggle)
+        self.map_widget.reset_zoom_btn.setEnabled(toggle)
+        self.map_widget.add_bg_btn.setEnabled(toggle)
+        self.map_widget.bg_opacity_slider.setEnabled(toggle)
 
     def btn_show_map_clicked(self):
         self.map_model.map_roi_list = []
@@ -85,6 +96,8 @@ class MapController(object):
         self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_num]['Obj'])
         self.map_widget.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
+        if self.map_widget.roi_num == 1:
+            self.toggle_map_widgets_enable(True)
 
     # create a function for each ROI when ROI is modified
     def make_roi_changed(self, curr_map_roi):
@@ -112,12 +125,15 @@ class MapController(object):
                     del self.map_widget.map_roi[key]
                     break
             self.map_widget.roi_list.takeItem(self.map_widget.roi_list.row(each_roi))
+        if self.map_widget.roi_num == 0:
+            self.toggle_map_widgets_enable(False)
 
     def btn_roi_clear_clicked(self):
         self.map_widget.roi_list.clear()
         for key in self.map_widget.map_roi:
             self.map_widget.spec_plot.removeItem(self.map_widget.map_roi[key]['Obj'])
         self.map_widget.map_roi.clear()
+        self.toggle_map_widgets_enable(False)
 
     def btn_roi_toggle_clicked(self):
         if self.map_widget.roi_toggle_btn.isChecked():
@@ -311,11 +327,12 @@ class MapController(object):
     #         self.map_widget.map_bg_image.setOpacity(1.0)
 
     def manual_map_positions_setup_btn_clicked(self):
-        self.manual_map_positions_dialog.exec_()
-        self.map_model.add_manual_map_positions(self.manual_map_positions_dialog.hor_minimum,
-                                                self.manual_map_positions_dialog.ver_minimum,
-                                                self.manual_map_positions_dialog.hor_step_size,
-                                                self.manual_map_positions_dialog.ver_step_size,
-                                                self.manual_map_positions_dialog.hor_number,
-                                                self.manual_map_positions_dialog.ver_number,
-                                                self.manual_map_positions_dialog.is_hor_first)
+        dialog_result = self.manual_map_positions_dialog.exec_()
+        if dialog_result == QtWidgets.QDialog.Accepted:
+            self.map_model.add_manual_map_positions(self.manual_map_positions_dialog.hor_minimum,
+                                                    self.manual_map_positions_dialog.ver_minimum,
+                                                    self.manual_map_positions_dialog.hor_step_size,
+                                                    self.manual_map_positions_dialog.ver_step_size,
+                                                    self.manual_map_positions_dialog.hor_number,
+                                                    self.manual_map_positions_dialog.ver_number,
+                                                    self.manual_map_positions_dialog.is_hor_first)
