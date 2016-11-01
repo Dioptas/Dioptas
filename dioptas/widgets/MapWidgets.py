@@ -369,8 +369,9 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self._grid_layout.addWidget(self.img_px_size_lbl, 3, 0, 1, 1)
         self._grid_layout.addWidget(self.img_hor_px_size_txt, 3, 1, 1, 1)
         self._grid_layout.addWidget(self.img_ver_px_size_txt, 3, 2, 1, 1)
-        self._grid_layout.addWidget(self.img_hor_center_txt, 4, 0, 1, 1)
-        self._grid_layout.addWidget(self.img_ver_center_txt, 4, 1, 1, 1)
+        self._grid_layout.addWidget(self.img_center_lbl, 4, 0, 1, 1)
+        self._grid_layout.addWidget(self.img_hor_center_txt, 4, 1, 1, 1)
+        self._grid_layout.addWidget(self.img_ver_center_txt, 4, 2, 1, 1)
 
         self._grid_layout.addWidget(self.flip_prefixes_lbl, 5, 0, 1, 1)
         self._grid_layout.addWidget(self.flip_prefixes_txt, 5, 1, 1, 2)
@@ -384,17 +385,17 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         Makes everything pretty and set double/int validators for the line edits.
         """
         self.img_hor_px_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.img_hor_px_txt.setMaximumWidth(40)
+        self.img_hor_px_txt.setMaximumWidth(60)
         self.img_ver_px_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.img_ver_px_txt.setMaximumWidth(40)
+        self.img_ver_px_txt.setMaximumWidth(60)
         self.img_hor_px_size_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.img_hor_px_size_txt.setMaximumWidth(60)
         self.img_ver_px_size_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.img_ver_px_size_txt.setMaximumWidth(60)
         self.img_hor_center_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.img_hor_center_txt.setMaximumWidth(40)
+        self.img_hor_center_txt.setMaximumWidth(60)
         self.img_ver_center_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.img_ver_center_txt.setMaximumWidth(40)
+        self.img_ver_center_txt.setMaximumWidth(60)
 
         self.img_hor_px_size_txt.setValidator(QtGui.QDoubleValidator())
         self.img_ver_px_size_txt.setValidator(QtGui.QDoubleValidator())
@@ -451,7 +452,7 @@ class OpenBGImageDialog(QtWidgets.QDialog):
 
     @hor_center.setter
     def hor_center(self, center):
-        self.img_hor_center_txt.setText(str(center))
+        self.img_hor_center_txt.setText('{0:.4f}'.format(center))
 
     @property
     def ver_center(self):
@@ -459,7 +460,7 @@ class OpenBGImageDialog(QtWidgets.QDialog):
 
     @ver_center.setter
     def ver_center(self, center):
-        self.img_ver_center_txt.setText(str(center))
+        self.img_ver_center_txt.setText('{0:.4f}'.format(center))
 
     def exec_(self):
         """

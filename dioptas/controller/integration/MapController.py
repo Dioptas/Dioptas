@@ -265,8 +265,8 @@ class MapController(object):
         bg_image_tags = loaded_bg_image.tag
         self.bg_hor_ver = self.get_bg_hor_ver(bg_image_tags)
         if 'Horizontal' in self.bg_hor_ver and 'Vertical' in self.bg_hor_ver:
-            self.open_bg_image_dialog.hor_center = self.bg_hor_ver['Horizontal']
-            self.open_bg_image_dialog.ver_center = self.bg_hor_ver['Vertical']
+            self.open_bg_image_dialog.hor_center = float(self.bg_hor_ver['Horizontal'])
+            self.open_bg_image_dialog.ver_center = float(self.bg_hor_ver['Vertical'])
 
         self.open_bg_image_dialog.bg_file_name_lbl.setText(load_name)
         self.open_bg_image_dialog.exec_()
