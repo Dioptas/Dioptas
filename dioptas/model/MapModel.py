@@ -119,6 +119,7 @@ class MapModel(QtCore.QObject):
             return
 
         if self.all_positions_defined_in_files and not self.positions_set_manually:
+            print("positions read from files")
             self.organize_map_files()
 
         self.read_map_files_and_prepare_map_data()

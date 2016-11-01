@@ -168,6 +168,7 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self._style_widgets()
 
         self._connect_widgets()
+        self.approved = False
 
     def _create_widgets(self):
         self.selected_map_files = QtWidgets.QListWidget()
@@ -265,8 +266,16 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         """
         Connecting actions to slots.
         """
-        self.ok_btn.clicked.connect(self.accept)
-        self.cancel_btn.clicked.connect(self.reject)
+        self.ok_btn.clicked.connect(self.accept_manual_map_positions)
+        self.cancel_btn.clicked.connect(self.reject_manual_map_positions)
+
+    def accept_manual_map_positions(self):
+        self.approved = True
+        self.accept()
+
+    def reject_manual_map_positions(self):
+        self.approved = False
+        self.reject()
 
     @property
     def hor_minimum(self):
@@ -306,4 +315,157 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
         self.move(parent_center.x() - 101, parent_center.y() - 48)
         super(ManualMapPositionsDialog, self).exec_()
+
+
+class OpenBGImageDialog(QtWidgets.QDialog):
+    """
+    Dialog for setting up a background image
+    """
+
+    def __init__(self, parent, default_config):
+        super(OpenBGImageDialog, self).__init__()
+
+        self._parent = parent
+        self._default_config = default_config
+        self._create_widgets()
+        self._layout_widgets()
+        self._style_widgets()
+
+        self._connect_widgets()
+        self.approved = False
+
+    def _create_widgets(self):
+        self.bg_file_name_lbl = QtWidgets.QLabel()
+        self.hor_lbl = QtWidgets.QLabel("Horizontal")
+        self.ver_lbl = QtWidgets.QLabel("Vertical")
+        self.img_px_lbl = QtWidgets.QLabel("Number of Pixels")
+        self.img_px_size_lbl = QtWidgets.QLabel("Pixel Size")
+        self.img_center_lbl = QtWidgets.QLabel("Center Position")
+        self.flip_prefixes_lbl = QtWidgets.QLabel("Prefixes for flipping image")
+
+        self.img_hor_px_txt = QtWidgets.QLineEdit(str(self._default_config['img_hor_px']))
+        self.img_ver_px_txt = QtWidgets.QLineEdit(str(self._default_config['img_ver_px']))
+        self.img_hor_px_size_txt = QtWidgets.QLineEdit(str(self._default_config['img_px_size_hor']))
+        self.img_ver_px_size_txt = QtWidgets.QLineEdit(str(self._default_config['img_px_size_ver']))
+        self.img_hor_center_txt = QtWidgets.QLineEdit()
+        self.img_ver_center_txt = QtWidgets.QLineEdit()
+
+        self.flip_prefixes_txt = QtWidgets.QLineEdit(','.join(self._default_config['flip_prefixes']))
+
+        self.flip_prefixes_txt.setToolTip("separated by comma")
+
+        self.ok_btn = FlatButton("Done")
+        self.cancel_btn = FlatButton("Cancel")
+
+    def _layout_widgets(self):
+        self._grid_layout = QtWidgets.QGridLayout()
+
+        self._grid_layout.addWidget(self.hor_lbl, 1, 1, 1, 1)
+        self._grid_layout.addWidget(self.ver_lbl, 1, 2, 1, 1)
+
+        self._grid_layout.addWidget(self.img_px_lbl, 2, 0, 1, 1)
+        self._grid_layout.addWidget(self.img_hor_px_txt, 2, 1, 1, 1)
+        self._grid_layout.addWidget(self.img_ver_px_txt, 2, 2, 1, 1)
+        self._grid_layout.addWidget(self.img_px_size_lbl, 3, 0, 1, 1)
+        self._grid_layout.addWidget(self.img_hor_px_size_txt, 3, 1, 1, 1)
+        self._grid_layout.addWidget(self.img_ver_px_size_txt, 3, 2, 1, 1)
+        self._grid_layout.addWidget(self.img_hor_center_txt, 4, 0, 1, 1)
+        self._grid_layout.addWidget(self.img_ver_center_txt, 4, 1, 1, 1)
+
+        self._grid_layout.addWidget(self.flip_prefixes_lbl, 5, 0, 1, 1)
+        self._grid_layout.addWidget(self.flip_prefixes_txt, 5, 1, 1, 2)
+        self._grid_layout.addWidget(self.ok_btn, 6, 1, 1, 1)
+        self._grid_layout.addWidget(self.cancel_btn, 6, 2, 1, 1)
+
+        self.setLayout(self._grid_layout)
+
+    def _style_widgets(self):
+        """
+        Makes everything pretty and set double/int validators for the line edits.
+        """
+        self.img_hor_px_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.img_hor_px_txt.setMaximumWidth(40)
+        self.img_ver_px_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.img_ver_px_txt.setMaximumWidth(40)
+        self.img_hor_px_size_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.img_hor_px_size_txt.setMaximumWidth(60)
+        self.img_ver_px_size_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.img_ver_px_size_txt.setMaximumWidth(60)
+        self.img_hor_center_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.img_hor_center_txt.setMaximumWidth(40)
+        self.img_ver_center_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.img_ver_center_txt.setMaximumWidth(40)
+
+        self.img_hor_px_size_txt.setValidator(QtGui.QDoubleValidator())
+        self.img_ver_px_size_txt.setValidator(QtGui.QDoubleValidator())
+        self.img_hor_center_txt.setValidator(QtGui.QDoubleValidator())
+        self.img_ver_center_txt.setValidator(QtGui.QDoubleValidator())
+        self.img_hor_px_txt.setValidator(QtGui.QIntValidator())
+        self.img_ver_px_txt.setValidator(QtGui.QIntValidator())
+
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+
+        file = open(os.path.join(widget_path, "stylesheet.qss"))
+        stylesheet = file.read()
+        self.setStyleSheet(stylesheet)
+        file.close()
+
+    def _connect_widgets(self):
+        """
+        Connecting actions to slots.
+        """
+        self.ok_btn.clicked.connect(self.accept_bg_properties)
+        self.cancel_btn.clicked.connect(self.reject_bg_properties)
+
+    def accept_bg_properties(self):
+        self.approved = True
+        self.accept()
+
+    def reject_bg_properties(self):
+        self.approved = False
+        self.reject()
+
+    @property
+    def hor_num_pixels(self):
+        return int(str(self.img_hor_px_txt.text()))
+
+    @property
+    def ver_num_pixels(self):
+        return int(str(self.img_ver_px_txt.text()))
+
+    @property
+    def hor_pixel_size(self):
+        return float(str(self.img_hor_px_size_txt.text()))
+
+    @property
+    def ver_pixel_size(self):
+        return float(str(self.img_ver_px_size_txt.text()))
+
+    @property
+    def flip_prefixes(self):
+        return str(self.flip_prefixes_txt.text()).replace(' ', '')
+
+    @property
+    def hor_center(self):
+        return float(str(self.img_hor_center_txt.text()))
+
+    @hor_center.setter
+    def hor_center(self, center):
+        self.img_hor_center_txt.setText(str(center))
+
+    @property
+    def ver_center(self):
+        return float(str(self.img_ver_center_txt.text()))
+
+    @ver_center.setter
+    def ver_center(self, center):
+        self.img_ver_center_txt.setText(str(center))
+
+    def exec_(self):
+        """
+        Overwriting the dialog exec_ function to center the widget in the parent window before execution.
+        """
+        parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
+        self.move(parent_center.x() - 101, parent_center.y() - 48)
+        super(OpenBGImageDialog, self).exec_()
 
