@@ -6,6 +6,7 @@ from PIL import Image
 from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
+from ...widgets.MapWidgets import OpenBGImageDialog
 
 class MapController(object):
     def __init__(self, widget, dioptas_model):
@@ -20,10 +21,12 @@ class MapController(object):
 
         self.widget = widget
         self.model = dioptas_model
-
-        self.manual_map_positions_dialog = ManualMapPositionsDialog(self.widget)
-        self.map_model = self.model.map_model
         self.map_widget = widget.map_2D_widget
+
+        self.manual_map_positions_dialog = ManualMapPositionsDialog(self.map_widget)
+        self.open_bg_image_dialog = OpenBGImageDialog(self.map_widget, gsecars_photo)
+        self.map_model = self.model.map_model
+
         # self.bg_opacity = 0.5
         self.bg_image = None
         self.setup_connections()
@@ -110,8 +113,8 @@ class MapController(object):
         self.map_widget.map_roi[roi_num]['Obj'] = pq.LinearRegionItem(values=[roi_start, roi_end], orientation=ov,
                                                                       movable=True,
                                                                       brush=pq.mkBrush(color=(255, 0, 255, 100)))
-        self.map_widget.map_roi[roi_num]['List_Obj'] = self.map_widget.roi_list.item(self.map_widget.roi_list.count()
-                                                                                     - 1)
+        self.map_widget.map_roi[roi_num]['List_Obj'] = self.map_widget.roi_list.item(self.map_widget.roi_list.count() -
+                                                                                     1)
         self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_num]['Obj'])
         self.map_widget.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
@@ -171,7 +174,7 @@ class MapController(object):
         self.map_widget.map_view_box.autoRange()
 
     def update_map_image(self):
-        if self.bg_image:
+        if self.bg_image is not None:
             map_opacity = self.map_widget.bg_opacity_slider.value()
         else:
             map_opacity = 1.0
@@ -260,26 +263,36 @@ class MapController(object):
         load_name_file = str(load_name).rsplit('/', 1)[-1]
         loaded_bg_image = Image.open(str(load_name).replace('\\', '/'))
         bg_image_tags = loaded_bg_image.tag
+        self.bg_hor_ver = self.get_bg_hor_ver(bg_image_tags)
+        if 'Horizontal' in self.bg_hor_ver and 'Vertical' in self.bg_hor_ver:
+            self.open_bg_image_dialog.hor_center = self.bg_hor_ver['Horizontal']
+            self.open_bg_image_dialog.ver_center = self.bg_hor_ver['Vertical']
 
-        img_px_size_hor = gsecars_photo['img_px_size_hor']
-        img_px_size_ver = gsecars_photo['img_px_size_ver']
-        img_hor_px = gsecars_photo['img_hor_px']
-        img_ver_px = gsecars_photo['img_ver_px']
+        self.open_bg_image_dialog.bg_file_name_lbl.setText(load_name)
+        self.open_bg_image_dialog.exec_()
+        if not self.open_bg_image_dialog.approved:
+            return
+
+        img_px_size_hor = self.open_bg_image_dialog.hor_pixel_size
+        img_px_size_ver = self.open_bg_image_dialog.ver_pixel_size
+        img_hor_px = self.open_bg_image_dialog.hor_num_pixels
+        img_ver_px = self.open_bg_image_dialog.ver_num_pixels
+        flip_prefixes = str(self.open_bg_image_dialog.flip_prefixes).split(',')
+        bg_hor = self.open_bg_image_dialog.hor_center
+        bg_ver = self.open_bg_image_dialog.ver_center
+
         img_width_mm = img_hor_px * img_px_size_hor
         img_height_mm = img_ver_px * img_px_size_ver
 
-        self.bg_hor_ver = self.get_bg_hor_ver(bg_image_tags)
         bg_w_px = img_width_mm / self.map_model.hor_um_per_px
         bg_h_px = img_height_mm / self.map_model.ver_um_per_px
-        bg_hor = float(self.bg_hor_ver['Horizontal'])
-        bg_ver = float(self.bg_hor_ver['Vertical'])
 
         bg_hor_shift = -(-(bg_hor - img_width_mm / 2.0) + self.map_model.min_hor) / self.map_model.hor_um_per_px + \
                        self.map_model.pix_per_hor / 2
         bg_ver_shift = -(-(bg_ver - img_height_mm / 2.0) + self.map_model.min_ver) / self.map_model.ver_um_per_px + \
                        self.map_model.pix_per_ver / 2
 
-        if load_name_file.split('_', 1)[0] in gsecars_photo['flip_prefixes']:
+        if load_name_file.split('_', 1)[0] in flip_prefixes:
             loaded_bg_image = np.fliplr(loaded_bg_image)
 
         self.bg_image = np.rot90(loaded_bg_image, 3)
@@ -291,7 +304,6 @@ class MapController(object):
         # self.map_widget.show_bg_chk.setChecked(True)
 
     def load_bg_image_file(self):
-        load_name = None
         if not self.map_widget.map_loaded:
             msg = "Please load a map, choose a region and update the map"
             bg_msg = QtWidgets.QMessageBox()
@@ -355,8 +367,8 @@ class MapController(object):
         for item in sorted_datalist:
             self.manual_map_positions_dialog.selected_map_files.addItem(QtWidgets.QListWidgetItem(item[0]))
         self.manual_map_positions_dialog.total_files_lbl.setText(str(len(sorted_datalist)) + ' files')
-        dialog_result = self.manual_map_positions_dialog.exec_()
-        if dialog_result == QtWidgets.QDialog.Accepted:
+        self.manual_map_positions_dialog.exec_()
+        if self.manual_map_positions_dialog.approved:
             self.map_model.add_manual_map_positions(self.manual_map_positions_dialog.hor_minimum,
                                                     self.manual_map_positions_dialog.ver_minimum,
                                                     self.manual_map_positions_dialog.hor_step_size,
