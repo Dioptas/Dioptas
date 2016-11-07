@@ -534,7 +534,7 @@ class CalibrationController(object):
                                     self.working_dir['calibration'], '*.poni')
         if filename is not '':
             self.working_dir['calibration'] = os.path.dirname(filename)
-            if filename.rsplit('.', 1)[-1] is not 'poni':
+            if not filename.rsplit('.', 1)[-1] == 'poni':
                 filename = filename + '.poni'
             self.model.calibration_model.save(filename)
 
