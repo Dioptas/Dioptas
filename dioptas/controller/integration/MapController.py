@@ -286,6 +286,7 @@ class MapController(object):
 
         if load_name_file.split('_', 1)[0] in flip_prefixes:
             loaded_bg_image = np.fliplr(loaded_bg_image)
+        loaded_bg_image = np.flipud(loaded_bg_image)
 
         self.bg_image = np.rot90(loaded_bg_image, 3)
 
