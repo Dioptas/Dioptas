@@ -27,7 +27,6 @@ class MapController(object):
         self.open_bg_image_dialog = OpenBGImageDialog(self.map_widget, gsecars_photo)
         self.map_model = self.model.map_model
 
-        # self.bg_opacity = 0.5
         self.bg_image = None
         self.setup_connections()
         self.toggle_map_widgets_enable(toggle=False)
@@ -45,8 +44,6 @@ class MapController(object):
         self.map_widget.roi_select_all_btn.clicked.connect(self.btn_roi_select_all_clicked)
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
         self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
-        # self.map_widget.show_bg_chk.stateChanged.connect(self.chk_show_bg_changed)
-        # self.map_widget.show_map_chk.stateChanged.connect(self.chk_show_map_changed)
         self.map_widget.reset_zoom_btn.clicked.connect(self.reset_zoom_btn_clicked)
 
         self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
@@ -178,15 +175,10 @@ class MapController(object):
             map_opacity = self.map_widget.bg_opacity_slider.value()
         else:
             map_opacity = 1.0
-        # if self.map_widget.show_bg_chk.isChecked():
-        #     map_opacity = 1.0 - self.bg_opacity
-        # else:
-        #     map_opacity = 1.0
         self.map_widget.map_image.setOpacity(map_opacity)
         self.map_widget.map_image.setImage(self.map_model.new_image, True)
         self.auto_range()
         self.map_widget.map_loaded = True
-        # self.map_widget.show_map_chk.setChecked(True)
 
     # Auto-range for map image
     def auto_range(self):
@@ -301,7 +293,6 @@ class MapController(object):
         bg_rect = QtCore.QRectF(bg_hor_shift, bg_ver_shift, bg_w_px, bg_h_px)
         self.map_widget.map_bg_image.setRect(bg_rect)
         self.modify_map_opacity()
-        # self.map_widget.show_bg_chk.setChecked(True)
 
     def load_bg_image_file(self):
         if not self.map_widget.map_loaded:
@@ -335,29 +326,6 @@ class MapController(object):
         opacity = self.map_widget.bg_opacity_slider.value()/100.0
         self.map_widget.map_image.setOpacity(opacity)
         self.map_widget.map_bg_image.setOpacity(1.0 - opacity)
-
-    # def chk_show_bg_changed(self):
-    #     if self.map_widget.show_bg_chk.isChecked():
-    #         self.map_widget.map_image.setOpacity(0.5)
-    #         self.map_widget.map_bg_image.setOpacity(0.5)
-    #         self.map_widget.show_map_chk.setEnabled(True)
-    #     else:
-    #         self.map_widget.map_image.setOpacity(1.0)
-    #         self.map_widget.map_bg_image.setOpacity(0.0)
-    #         self.map_widget.show_map_chk.setChecked(True)
-    #         self.map_widget.show_map_chk.setEnabled(False)
-    #
-    # def chk_show_map_changed(self):
-    #     if self.map_widget.show_map_chk.isChecked():
-    #         if self.map_widget.show_bg_chk.isChecked():
-    #             self.map_widget.map_image.setOpacity(0.5)
-    #             self.map_widget.map_bg_image.setOpacity(0.5)
-    #         else:
-    #             self.map_widget.map_image.setOpacity(1.0)
-    #             self.map_widget.map_bg_image.setOpacity(0.0)
-    #     else:
-    #         self.map_widget.map_image.setOpacity(0.0)
-    #         self.map_widget.map_bg_image.setOpacity(1.0)
 
     def clear_map(self):
         self.manual_map_positions_dialog.selected_map_files.clear()

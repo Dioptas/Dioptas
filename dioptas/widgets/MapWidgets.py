@@ -60,8 +60,6 @@ class Map2DWidget(QtWidgets.QWidget):
         # Background control
         self.add_bg_btn = QtWidgets.QPushButton(self)
         self.bg_opacity_lbl = QtWidgets.QLabel("Opacity: BG")
-        # self.show_bg_chk = QtWidgets.QCheckBox(self)
-        # self.show_map_chk = QtWidgets.QCheckBox(self)
         self.bg_opacity_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.map_opacity_lbl = QtWidgets.QLabel("Map")
 
@@ -86,8 +84,6 @@ class Map2DWidget(QtWidgets.QWidget):
         self.roi_toggle_btn.setChecked(True)
         self.roi_select_all_btn.setText("Select All")
         self.add_bg_btn.setText("Add BG Image")
-        # self.show_bg_chk.setText("Show BG Image?")
-        # self.show_map_chk.setText("Show Map?")
         self.reset_zoom_btn.setText("Reset Zoom")
         self.bg_opacity_slider.setMinimum(0)
         self.bg_opacity_slider.setMaximum(100)
@@ -109,8 +105,6 @@ class Map2DWidget(QtWidgets.QWidget):
         self.hbox.addStretch(1)
 
         self.bg_hbox.addWidget(self.add_bg_btn)
-        # self.bg_hbox.addWidget(self.show_bg_chk)
-        # self.bg_hbox.addWidget(self.show_map_chk)
         self.bg_hbox.addWidget(self.bg_opacity_lbl)
         self.bg_hbox.addWidget(self.bg_opacity_slider)
         self.bg_hbox.addWidget(self.map_opacity_lbl)
