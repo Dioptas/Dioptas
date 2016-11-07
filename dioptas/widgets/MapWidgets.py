@@ -115,7 +115,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.lbl_hbox.addWidget(self.lbl_map_pos)
 
         self.hist_layout = GraphicsLayoutWidget()
-        self.map_view_box = self.hist_layout.addViewBox(0, 0)
+        self.map_view_box = self.hist_layout.addViewBox(0, 0, lockAspect=1.0)
 
         self.map_view_box.addItem(self.map_bg_image, ignoreBounds=True)  # MAPBG
         self.map_view_box.addItem(self.map_image)
