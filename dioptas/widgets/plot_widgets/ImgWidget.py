@@ -374,11 +374,11 @@ class MyPolygon(QtWidgets.QGraphicsPolygonItem):
     def set_size(self, x, y):
         temp_points = list(self.vertices)
         temp_points.append(QtCore.QPointF(x, y))
-        self.setPolygon(QtWidgets.QPolygonF(temp_points))
+        self.setPolygon(QtGui.QPolygonF(temp_points))
 
     def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
-        self.setPolygon(QtWidgets.QPolygonF(self.vertices))
+        self.setPolygon(QtGui.QPolygonF(self.vertices))
 
 
 class MyCircle(QtWidgets.QGraphicsEllipseItem):
