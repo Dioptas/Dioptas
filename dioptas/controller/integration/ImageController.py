@@ -235,7 +235,9 @@ class ImageController(object):
             progress_dialog.setValue(ind)
             progress_dialog.setLabelText("Integrating: " + base_filename)
 
+            self.model.img_model.blockSignals(True)
             self.model.img_model.load(filename)
+            self.model.img_model.blockSignals(False)
 
             x, y = self.integrate_spectrum()
             self._save_spectrum(base_filename, working_directory, x, y)
