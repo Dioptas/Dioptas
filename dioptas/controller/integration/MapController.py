@@ -7,6 +7,7 @@ from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
 from ...widgets.MapWidgets import OpenBGImageDialog
+from .MapErrors import MapError, no_map_loaded
 
 class MapController(object):
     def __init__(self, widget, dioptas_model):
@@ -297,15 +298,7 @@ class MapController(object):
 
     def load_bg_image_file(self):
         if not self.map_widget.map_loaded:
-            msg = "Please load a map, choose a region and update the map"
-            bg_msg = QtWidgets.QMessageBox()
-            bg_msg.setIcon(QtWidgets.QMessageBox.Information)
-            bg_msg.setText("No Map Loaded")
-            bg_msg.setInformativeText("See additional info...")
-            bg_msg.setWindowTitle("Error: No Map")
-            bg_msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            bg_msg.setDetailedText(msg)
-            bg_msg.exec_()
+            MapError(no_map_loaded)
             return
 
         load_name, _ = QtWidgets.QFileDialog.getOpenFileName(QtWidgets.QFileDialog(),
