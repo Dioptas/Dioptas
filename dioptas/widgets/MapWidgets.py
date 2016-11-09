@@ -335,7 +335,7 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self.img_px_lbl = QtWidgets.QLabel("Number of Pixels")
         self.img_px_size_lbl = QtWidgets.QLabel("Pixel Size")
         self.img_center_lbl = QtWidgets.QLabel("Center Position")
-        self.flip_prefixes_lbl = QtWidgets.QLabel("Prefixes for flipping image")
+        self.flip_lbl = QtWidgets.QLabel("Flip?")
 
         self.img_hor_px_txt = QtWidgets.QLineEdit(str(self._default_config['img_hor_px']))
         self.img_ver_px_txt = QtWidgets.QLineEdit(str(self._default_config['img_ver_px']))
@@ -343,10 +343,8 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self.img_ver_px_size_txt = QtWidgets.QLineEdit(str(self._default_config['img_px_size_ver']))
         self.img_hor_center_txt = QtWidgets.QLineEdit()
         self.img_ver_center_txt = QtWidgets.QLineEdit()
-
-        self.flip_prefixes_txt = QtWidgets.QLineEdit(','.join(self._default_config['flip_prefixes']))
-
-        self.flip_prefixes_txt.setToolTip("separated by comma")
+        self.flip_hor_cb = QtWidgets.QCheckBox()
+        self.flip_ver_cb = QtWidgets.QCheckBox()
 
         self.ok_btn = FlatButton("Done")
         self.cancel_btn = FlatButton("Cancel")
@@ -367,8 +365,10 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self._grid_layout.addWidget(self.img_hor_center_txt, 4, 1, 1, 1)
         self._grid_layout.addWidget(self.img_ver_center_txt, 4, 2, 1, 1)
 
-        self._grid_layout.addWidget(self.flip_prefixes_lbl, 5, 0, 1, 1)
-        self._grid_layout.addWidget(self.flip_prefixes_txt, 5, 1, 1, 2)
+        self._grid_layout.addWidget(self.flip_lbl, 5, 0, 1, 1)
+        self._grid_layout.addWidget(self.flip_hor_cb, 5, 1, 1, 1)
+        self._grid_layout.addWidget(self.flip_ver_cb, 5, 2, 1, 1)
+
         self._grid_layout.addWidget(self.ok_btn, 6, 1, 1, 1)
         self._grid_layout.addWidget(self.cancel_btn, 6, 2, 1, 1)
 
@@ -437,8 +437,20 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         return float(str(self.img_ver_px_size_txt.text()))
 
     @property
-    def flip_prefixes(self):
-        return str(self.flip_prefixes_txt.text()).replace(' ', '')
+    def hor_flip(self):
+        return self.flip_hor_cb.isChecked()
+
+    @hor_flip.setter
+    def hor_flip(self, flip_value):
+        self.flip_hor_cb.setChecked(flip_value)
+
+    @property
+    def ver_flip(self):
+        return self.flip_ver_cb.isChecked()
+
+    @ver_flip.setter
+    def ver_flip(self, flip_value):
+        self.flip_ver_cb.setChecked(flip_value)
 
     @property
     def hor_center(self):

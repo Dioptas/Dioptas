@@ -262,6 +262,23 @@ class MapController(object):
         load_name_file = str(load_name).rsplit('/', 1)[-1]
         loaded_bg_image = Image.open(str(load_name).replace('\\', '/'))
         bg_image_tags = loaded_bg_image.tag
+
+        if 'flip_hor_prefixes' in gsecars_photo:
+            if load_name_file.split('_')[0] in gsecars_photo['flip_hor_prefixes'].split(','):
+                self.open_bg_image_dialog.hor_flip = True
+            else:
+                self.open_bg_image_dialog.hor_flip = False
+        else:
+            self.open_bg_image_dialog.hor_flip = gsecars_photo['flip_hor']
+
+        if 'flip_ver_prefixes' in gsecars_photo:
+            if load_name_file.split('_')[0] in gsecars_photo['flip_ver_prefixes'].split(','):
+                self.open_bg_image_dialog.ver_flip = True
+            else:
+                self.open_bg_image_dialog.ver_flip = False
+        else:
+            self.open_bg_image_dialog.ver_flip = gsecars_photo['flip_ver']
+
         self.bg_hor_ver = self.get_bg_hor_ver(bg_image_tags)
         if 'Horizontal' in self.bg_hor_ver and 'Vertical' in self.bg_hor_ver:
             self.open_bg_image_dialog.hor_center = float(self.bg_hor_ver['Horizontal'])
@@ -276,7 +293,8 @@ class MapController(object):
         img_px_size_ver = self.open_bg_image_dialog.ver_pixel_size
         img_hor_px = self.open_bg_image_dialog.hor_num_pixels
         img_ver_px = self.open_bg_image_dialog.ver_num_pixels
-        flip_prefixes = str(self.open_bg_image_dialog.flip_prefixes).split(',')
+        hor_flip = self.open_bg_image_dialog.hor_flip
+        ver_flip = self.open_bg_image_dialog.ver_flip
         bg_hor = self.open_bg_image_dialog.hor_center
         bg_ver = self.open_bg_image_dialog.ver_center
 
@@ -291,9 +309,10 @@ class MapController(object):
         bg_ver_shift = -(-(bg_ver - img_height_mm / 2.0) + self.map_model.min_ver) / self.map_model.ver_um_per_px + \
                        self.map_model.pix_per_ver / 2
 
-        if load_name_file.split('_', 1)[0] in flip_prefixes:
+        if hor_flip:
             loaded_bg_image = np.fliplr(loaded_bg_image)
-        loaded_bg_image = np.flipud(loaded_bg_image)
+        if ver_flip:
+            loaded_bg_image = np.flipud(loaded_bg_image)
 
         self.bg_image = np.rot90(loaded_bg_image, 3)
 
