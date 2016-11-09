@@ -38,7 +38,6 @@ class MapController(object):
         self.model.map_model.map_cleared.connect(self.clear_map)
         self.model.map_model.map_problem.connect(self.map_positions_problem)
 
-        self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
         self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
         self.map_widget.roi_del_btn.clicked.connect(self.btn_roi_del_clicked)
@@ -53,8 +52,11 @@ class MapController(object):
         self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
         self.map_widget.map_view_box.mouseClickEvent = self.do_nothing
 
+        self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
         self.manual_map_positions_dialog.hor_num_txt.textChanged.connect(self.manual_map_num_points_changed)
         self.manual_map_positions_dialog.ver_num_txt.textChanged.connect(self.manual_map_num_points_changed)
+        self.manual_map_positions_dialog.move_up_btn.clicked.connect(self.move_files_up_in_list)
+        self.manual_map_positions_dialog.move_down_btn.clicked.connect(self.move_files_down_in_list)
 
     def toggle_map_widgets_enable(self, toggle=True):
         self.map_widget.update_map_btn.setEnabled(toggle)
@@ -351,7 +353,7 @@ class MapController(object):
     def manual_map_positions_setup_btn_clicked(self):
         sorted_datalist = self.map_model.sort_map_files_by_natural_name()
         for item in sorted_datalist:
-            self.manual_map_positions_dialog.selected_map_files.addItem(QtWidgets.QListWidgetItem(item[0]))
+            self.manual_map_positions_dialog.selected_map_files.addItem(QtWidgets.QListWidgetItem(item))
         self.manual_map_positions_dialog.total_files_lbl.setText(str(len(sorted_datalist)) + ' files')
         self.manual_map_positions_dialog.exec_()
         if self.manual_map_positions_dialog.approved:
@@ -361,7 +363,8 @@ class MapController(object):
                                                     self.manual_map_positions_dialog.ver_step_size,
                                                     self.manual_map_positions_dialog.hor_number,
                                                     self.manual_map_positions_dialog.ver_number,
-                                                    self.manual_map_positions_dialog.is_hor_first)
+                                                    self.manual_map_positions_dialog.is_hor_first,
+                                                    self.manual_map_positions_dialog.selected_map_files)
 
     def manual_map_num_points_changed(self):
         try:
@@ -370,3 +373,37 @@ class MapController(object):
                 int(self.manual_map_positions_dialog.ver_num_txt.text())) + ' points')
         except ValueError:
             self.manual_map_positions_dialog.total_map_points_lbl.setText('0 points')
+
+    def move_files_up_in_list(self):
+        files_list = self.manual_map_positions_dialog.selected_map_files
+        selected_files = self.sort_selected_files(files_list)
+        for file_name in selected_files:
+            row = files_list.row(file_name)
+            if row == 0:
+                continue
+            current_file_name = files_list.takeItem(row)
+            files_list.insertItem(row - 1, current_file_name)
+            files_list.item(row - 1).setSelected(True)
+
+    def move_files_down_in_list(self):
+        files_list = self.manual_map_positions_dialog.selected_map_files
+        selected_files = self.sort_selected_files(files_list)
+        for file_name in reversed(selected_files):
+            row = files_list.row(file_name)
+            if row == files_list.count() - 1:
+                continue
+            current_file_name = files_list.takeItem(row)
+            files_list.insertItem(row + 1, current_file_name)
+            files_list.item(row + 1).setSelected(True)
+
+    def sort_selected_files(self, files_list):
+        selected_files = files_list.selectedItems()
+        temp_dict = {}
+        for file_name in selected_files:
+            temp_dict[files_list.row(file_name)] = file_name
+
+        temp_index = sorted(temp_dict)
+        sorted_files = []
+        for index in temp_index:
+            sorted_files.append(temp_dict[index])
+        return sorted_files

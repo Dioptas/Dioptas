@@ -83,9 +83,7 @@ class MapModel(QtCore.QObject):
     def check_map(self):
         if self.num_ver*self.num_hor == len(self.sorted_datalist):
             pass
-            # print("Correct number of files for map")
         else:
-            # print("Warning! Number of files in map not consistent with map positions. try setting up manually")
             self.map_problem.emit()
 
     def read_map_files_and_prepare_map_data(self):
@@ -117,7 +115,6 @@ class MapModel(QtCore.QObject):
 
     def update_map(self):
         if not self.all_positions_defined_in_files and not self.positions_set_manually:
-            # print("Not all files contain positions. Please define manually")
             self.map_problem.emit()
             return
 
@@ -164,20 +161,24 @@ class MapModel(QtCore.QObject):
             res = 0
         return res
 
-    def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first):
-        self.sorted_datalist = self.sort_map_files_by_natural_name()
+    def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first, file_list):
+        # self.sorted_datalist = self.sort_map_files_by_natural_name()
+        self.sorted_datalist = []
+        for index in range(file_list.count()):
+            self.sorted_datalist.append(str(file_list.item(index).text()))
+
         ind = 0
         if is_hor_first:
             for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
                 for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
-                    self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
-                    self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
+                    self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
+                    self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
                     ind = ind + 1
         else:
             for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
                 for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
-                    self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
-                    self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
+                    self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
+                    self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
                     ind = ind + 1
 
         self.min_hor = hor_min
@@ -201,7 +202,7 @@ class MapModel(QtCore.QObject):
     def sort_map_files_by_natural_name(self):
         datalist = []
         for filename, filedata in self.map_data.items():
-            datalist.append([filename])
+            datalist.append(filename)
         sorted_datalist = sorted(datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
-                                                          re.split('(\d+)', s[0])])
+                                                          re.split('(\d+)', s)])
         return sorted_datalist

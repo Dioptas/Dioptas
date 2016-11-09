@@ -166,6 +166,9 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
 
     def _create_widgets(self):
         self.selected_map_files = QtWidgets.QListWidget()
+        self.move_up_btn = QtWidgets.QPushButton(u'\u2191')
+        self.move_down_btn = QtWidgets.QPushButton(u'\u2193')
+        self.add_empty_btn = QtWidgets.QPushButton('Empty')
 
         self.hor_lbl = QtWidgets.QLabel("Horizontal")
         self.ver_lbl = QtWidgets.QLabel("Vertical")
@@ -198,6 +201,7 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self._grid_layout = QtWidgets.QGridLayout()
         self._hbox_layout = QtWidgets.QHBoxLayout()
         self._vbox_list_layout = QtWidgets.QVBoxLayout()
+        self._vbox_list_controls_layout = QtWidgets.QVBoxLayout()
 
         self._grid_layout.addWidget(self.hor_lbl, 0, 1)
         self._grid_layout.addWidget(self.ver_lbl, 0, 2)
@@ -220,15 +224,25 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self._grid_layout.addWidget(self.cancel_btn, 5, 3)
 
         self._hbox_layout.addLayout(self._grid_layout)
+
         self._vbox_list_layout.addWidget(self.selected_map_files)
         self._vbox_list_layout.addWidget(self.total_files_lbl)
         self._hbox_layout.addLayout(self._vbox_list_layout)
+
+        self._vbox_list_controls_layout.addWidget(self.move_up_btn)
+        self._vbox_list_controls_layout.addWidget(self.add_empty_btn)
+        self._vbox_list_controls_layout.addWidget(self.move_down_btn)
+
+        self._hbox_layout.addLayout(self._vbox_list_controls_layout)
         self.setLayout(self._hbox_layout)
 
     def _style_widgets(self):
         """
         Makes everything pretty and set double/int validators for the line edits.
         """
+
+        self.selected_map_files.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
         self.hor_min_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.hor_min_txt.setMaximumWidth(40)
         self.ver_min_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
