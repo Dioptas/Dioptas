@@ -7,7 +7,8 @@ from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
 from ...widgets.MapWidgets import OpenBGImageDialog
-from .MapErrors import MapError, no_map_loaded
+from .MapErrors import *
+
 
 class MapController(object):
     def __init__(self, widget, dioptas_model):
@@ -35,9 +36,10 @@ class MapController(object):
     def setup_connections(self):
         self.model.map_model.map_changed.connect(self.update_map_image)
         self.model.map_model.map_cleared.connect(self.clear_map)
+        self.model.map_model.map_problem.connect(self.map_positions_problem)
 
         self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
-        self.map_widget.show_map_btn.clicked.connect(self.btn_show_map_clicked)
+        self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
         self.map_widget.roi_del_btn.clicked.connect(self.btn_roi_del_clicked)
         self.map_widget.roi_clear_btn.clicked.connect(self.btn_roi_clear_clicked)
@@ -54,9 +56,8 @@ class MapController(object):
         self.manual_map_positions_dialog.hor_num_txt.textChanged.connect(self.manual_map_num_points_changed)
         self.manual_map_positions_dialog.ver_num_txt.textChanged.connect(self.manual_map_num_points_changed)
 
-
     def toggle_map_widgets_enable(self, toggle=True):
-        self.map_widget.show_map_btn.setEnabled(toggle)
+        self.map_widget.update_map_btn.setEnabled(toggle)
         self.map_widget.manual_map_positions_setup_btn.setEnabled(toggle)
         self.map_widget.roi_del_btn.setEnabled(toggle)
         self.map_widget.roi_clear_btn.setEnabled(toggle)
@@ -70,7 +71,7 @@ class MapController(object):
             self.set_map_widget_style('color: black')
 
     def set_map_widget_style(self, new_style):
-        self.map_widget.show_map_btn.setStyleSheet(new_style)
+        self.map_widget.update_map_btn.setStyleSheet(new_style)
         self.map_widget.manual_map_positions_setup_btn.setStyleSheet(new_style)
         self.map_widget.roi_del_btn.setStyleSheet(new_style)
         self.map_widget.roi_clear_btn.setStyleSheet(new_style)
@@ -79,7 +80,7 @@ class MapController(object):
         self.map_widget.add_bg_btn.setStyleSheet(new_style)
         self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
 
-    def btn_show_map_clicked(self):
+    def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []
         for item in self.map_widget.roi_list.selectedItems():
             roi_name = item.text().split('-')
@@ -248,9 +249,14 @@ class MapController(object):
         pass
 
     def btn_add_bg_image_clicked(self):
+        if not self.map_widget.map_loaded:
+            MapError(no_map_loaded)
+            return
+
         load_name = self.load_bg_image_file()
+
         if not load_name:
-            print("No file chosen for background")
+            MapError(no_bg_image_selected)
             return
 
         load_name_file = str(load_name).rsplit('/', 1)[-1]
@@ -297,10 +303,6 @@ class MapController(object):
         self.modify_map_opacity()
 
     def load_bg_image_file(self):
-        if not self.map_widget.map_loaded:
-            MapError(no_map_loaded)
-            return ''
-
         load_name, _ = QtWidgets.QFileDialog.getOpenFileName(QtWidgets.QFileDialog(),
                                                              'Choose file name for loading background image',
                                                              self.map_widget.working_dir['image'], 'TIFF Files (*.tif)')
@@ -323,6 +325,9 @@ class MapController(object):
 
     def clear_map(self):
         self.manual_map_positions_dialog.selected_map_files.clear()
+
+    def map_positions_problem(self):
+        MapError(map_positions_bad)
 
     def manual_map_positions_setup_btn_clicked(self):
         sorted_datalist = self.map_model.sort_map_files_by_natural_name()

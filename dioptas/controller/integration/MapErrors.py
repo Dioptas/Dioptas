@@ -19,3 +19,20 @@ no_map_loaded = {
     'informative_text': 'See additional info...',
     'window_title': 'Error: No Map Shown',
 }
+
+no_bg_image_selected = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Please make sure to select an image when prompted to, and press "Open"',
+    'short_msg': 'No background image selected',
+    'informative_text': 'See additional info...',
+    'window_title': 'Error: No background image selected',
+}
+
+map_positions_bad = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Either not all map files ahve been loaded or, metadata does not contain map positions.\nPlease'
+                    ' set up the map positions manually by clicking "Setup Map"',
+    'short_msg': 'Map positions missing',
+    'informative_text': 'See additional info...',
+    'window_title': 'Warning: Map positions missing',
+}

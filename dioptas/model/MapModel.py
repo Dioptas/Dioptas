@@ -11,6 +11,7 @@ class MapModel(QtCore.QObject):
     """
     map_changed = QtCore.Signal()
     map_cleared = QtCore.Signal()
+    map_problem = QtCore.Signal()
 
     def __init__(self):
         """
@@ -40,7 +41,6 @@ class MapModel(QtCore.QObject):
         self.map_data = {}
         self.all_positions_defined_in_files = False
         self.map_cleared.emit()
-
 
     def add_map_data(self, filename, working_directory, motors_info):
         base_filename = os.path.basename(filename)
@@ -82,9 +82,11 @@ class MapModel(QtCore.QObject):
 
     def check_map(self):
         if self.num_ver*self.num_hor == len(self.sorted_datalist):
-            print("Correct number of files for map")
+            pass
+            # print("Correct number of files for map")
         else:
-            print("Warning! Number of files in map not consistent with map positions. try setting up manually")
+            # print("Warning! Number of files in map not consistent with map positions. try setting up manually")
+            self.map_problem.emit()
 
     def read_map_files_and_prepare_map_data(self):
         for filename, filedata in self.map_data.items():
@@ -115,11 +117,11 @@ class MapModel(QtCore.QObject):
 
     def update_map(self):
         if not self.all_positions_defined_in_files and not self.positions_set_manually:
-            print("Not all files contain positions. Please define manually")
+            # print("Not all files contain positions. Please define manually")
+            self.map_problem.emit()
             return
 
         if self.all_positions_defined_in_files and not self.positions_set_manually:
-            print("positions read from files")
             self.organize_map_files()
 
         self.read_map_files_and_prepare_map_data()
