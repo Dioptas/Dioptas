@@ -33,7 +33,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.wavelength = 0.3344
 
         # WIDGETS
-        self.show_map_btn = QtWidgets.QPushButton(self)
+        self.update_map_btn = QtWidgets.QPushButton(self)
         self.manual_map_positions_setup_btn = QtWidgets.QPushButton("Setup Map")
         self.lbl_map_pos = QtWidgets.QLabel()
         # Map Image and Histogram
@@ -75,7 +75,7 @@ class Map2DWidget(QtWidgets.QWidget):
 
         # Widget Properties
         self.setWindowTitle("2D Map")
-        self.show_map_btn.setText("Update Map")
+        self.update_map_btn.setText("Update Map")
         self.roi_add_btn.setText("Add Range")
         self.roi_del_btn.setText("Remove Range")
         self.roi_clear_btn.setText("Clear")
@@ -98,7 +98,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.bg_hbox = QtWidgets.QHBoxLayout()
         self.roi_vbox = QtWidgets.QVBoxLayout()
         self.roi_vbox.addWidget(self.manual_map_positions_setup_btn)
-        self.roi_vbox.addWidget(self.show_map_btn)
+        self.roi_vbox.addWidget(self.update_map_btn)
         self.roi_vbox.addWidget(self.roi_list)
         self.roi_vbox.addLayout(self.roi_grid)
         self.hbox.addLayout(self.roi_vbox)
