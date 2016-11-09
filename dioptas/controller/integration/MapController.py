@@ -299,7 +299,7 @@ class MapController(object):
     def load_bg_image_file(self):
         if not self.map_widget.map_loaded:
             MapError(no_map_loaded)
-            return
+            return ''
 
         load_name, _ = QtWidgets.QFileDialog.getOpenFileName(QtWidgets.QFileDialog(),
                                                              'Choose file name for loading background image',
