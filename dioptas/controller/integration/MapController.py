@@ -87,10 +87,15 @@ class MapController(object):
 
     def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []
+        roi_math = str(self.map_widget.roi_math_txt.text())
+        if not roi_math == '':
+            self.map_widget.roi_list.selectAll()
         for item in self.map_widget.roi_list.selectedItems():
-            roi_name = item.text().split('-')
-            self.map_model.map_roi_list.append({'roi_start': roi_name[0], 'roi_end': roi_name[1]})
-
+            roi_full_name = item.text().split('_')
+            roi_name = roi_full_name[1].split('-')
+            self.map_model.map_roi_list.append({'roi_letter': roi_full_name[0], 'roi_start': roi_name[0],
+                                                'roi_end': roi_name[1]})
+        self.map_model.roi_math = roi_math
         self.map_model.update_map()
         self.map_widget.map_loaded = True
 
@@ -104,24 +109,27 @@ class MapController(object):
         roi_end = self.map_model.convert_units(tth_end, '2th_deg', self.map_model.units, self.map_model.wavelength)
 
         # add ROI to list
-        roi_name = self.generate_roi_name(roi_start, roi_end)
-        roi_list_item = QtWidgets.QListWidgetItem(self.map_widget.roi_list)
         roi_num = self.map_widget.roi_num
+        roi_name = self.generate_roi_name(roi_start, roi_end, roi_num)
+        roi_list_item = QtWidgets.QListWidgetItem(self.map_widget.roi_list)
         roi_list_item.setText(roi_name)
         roi_list_item.setSelected(True)
-        self.map_widget.map_roi[roi_num] = {}
-        self.map_widget.map_roi[roi_num]['roi_name'] = roi_name
+        # self.map_widget.map_roi[roi_num]['roi_name'] = roi_name
 
         # add ROI to pattern view
+        roi_count = self.map_widget.roi_count
+        self.map_widget.map_roi[roi_count] = {}
         ov = pq.LinearRegionItem.Vertical
-        self.map_widget.map_roi[roi_num]['Obj'] = pq.LinearRegionItem(values=[roi_start, roi_end], orientation=ov,
-                                                                      movable=True,
-                                                                      brush=pq.mkBrush(color=(255, 0, 255, 100)))
-        self.map_widget.map_roi[roi_num]['List_Obj'] = self.map_widget.roi_list.item(self.map_widget.roi_list.count() -
-                                                                                     1)
-        self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_num]['Obj'])
-        self.map_widget.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
+        self.map_widget.map_roi[roi_count]['Obj'] = pq.LinearRegionItem(values=[roi_start, roi_end], orientation=ov,
+                                                                        movable=True,
+                                                                        brush=pq.mkBrush(color=(255, 0, 255, 100)))
+        self.map_widget.map_roi[roi_count]['List_Obj'] = self.map_widget.roi_list.item(
+            self.map_widget.roi_list.count() - 1)
+
+        self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_count]['Obj'])
+        self.map_widget.map_roi[roi_count]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_count))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
+        self.map_widget.roi_count = self.map_widget.roi_count + 1
         if self.map_widget.roi_num == 1:
             self.toggle_map_widgets_enable(True)
 
@@ -129,19 +137,28 @@ class MapController(object):
     def make_roi_changed(self, curr_map_roi):
         def roi_changed():
             tth_start, tth_end = self.map_widget.map_roi[curr_map_roi]['Obj'].getRegion()
-            new_roi_name = self.generate_roi_name(tth_start, tth_end)
             row = self.map_widget.roi_list.row(self.map_widget.map_roi[curr_map_roi]['List_Obj'])
+            new_roi_name = self.generate_roi_name(tth_start, tth_end, row)
             self.map_widget.roi_list.takeItem(row)
             self.map_widget.roi_list.insertItem(row, new_roi_name)
-            self.map_widget.map_roi[curr_map_roi]['roi_name'] = new_roi_name
+            # self.map_widget.map_roi[curr_map_roi]['roi_name'] = new_roi_name
             self.map_widget.map_roi[curr_map_roi]['List_Obj'] = self.map_widget.roi_list.item(row)
             self.map_widget.roi_list.item(row).setSelected(True)
 
         return roi_changed
 
-    def generate_roi_name(self, roi_start, roi_end):
-        roi_name = '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
+    def generate_roi_name(self, roi_start, roi_end, roi_num):
+        roi_name = chr(roi_num+65) + '_' + '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
         return roi_name
+
+    def update_roi_letters(self):
+        for row in range(self.map_widget.roi_list.count()):
+            curr_roi = self.map_widget.roi_list.item(row)
+            curr_roi.setText(chr(row+65) + '_' + curr_roi.text().split('_')[1])
+            # for key in self.map_widget.map_roi:
+            #     if self.map_widget.map_roi[key]['List_Obj'] == curr_roi:
+            #         self.map_widget.map_roi[key]['roi_name'] = 1
+            #         break
 
     def btn_roi_del_clicked(self):
         for each_roi in self.map_widget.roi_list.selectedItems():
@@ -154,6 +171,8 @@ class MapController(object):
             self.map_widget.roi_num = self.map_widget.roi_num - 1
         if self.map_widget.roi_num == 0:
             self.toggle_map_widgets_enable(False)
+        else:
+            self.update_roi_letters()
 
     def btn_roi_clear_clicked(self):
         self.map_widget.roi_list.clear()
@@ -198,10 +217,11 @@ class MapController(object):
         # also, use this for converting the range if the file is in another unit.
         self.map_widget.roi_list.selectAll()
         for item in self.map_widget.roi_list.selectedItems():
-            roi_name = item.text().split('-')
+            roi_full_name = item.text().split('_')
+            roi_name = roi_full_name[1].split('-')
             roi_start = self.model.map_model.convert_units(float(roi_name[0]), previous_unit, new_unit, wavelength)
             roi_end = self.model.map_model.convert_units(float(roi_name[1]), previous_unit, new_unit, wavelength)
-            roi_new_name = self.generate_roi_name(roi_start, roi_end)
+            roi_new_name = self.generate_roi_name(roi_start, roi_end, ord(roi_full_name[0])-65)
             item.setText(roi_new_name)
             for key in self.map_widget.map_roi:
                 if self.map_widget.map_roi[key]['List_Obj'] == item:
