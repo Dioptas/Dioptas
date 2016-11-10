@@ -51,6 +51,7 @@ class Map2DWidget(QtWidgets.QWidget):
         # ROI Widgets
         self.roi_list = QtWidgets.QListWidget(self)
         self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.roi_math_txt = QtWidgets.QLineEdit()
         self.roi_add_btn = QtWidgets.QPushButton(self)
         self.roi_del_btn = QtWidgets.QPushButton(self)
         self.roi_clear_btn = QtWidgets.QPushButton(self)
@@ -100,6 +101,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.roi_vbox.addWidget(self.manual_map_positions_setup_btn)
         self.roi_vbox.addWidget(self.update_map_btn)
         self.roi_vbox.addWidget(self.roi_list)
+        self.roi_vbox.addWidget(self.roi_math_txt)
         self.roi_vbox.addLayout(self.roi_grid)
         self.hbox.addLayout(self.roi_vbox)
         self.hbox.addStretch(1)
@@ -166,9 +168,11 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
 
     def _create_widgets(self):
         self.selected_map_files = QtWidgets.QListWidget()
+        self.read_list_btn = QtWidgets.QPushButton('Read Files')
         self.move_up_btn = QtWidgets.QPushButton(u'\u2191')
         self.move_down_btn = QtWidgets.QPushButton(u'\u2193')
         self.add_empty_btn = QtWidgets.QPushButton('Empty')
+        self.delete_btn = QtWidgets.QPushButton('Delete')
 
         self.hor_lbl = QtWidgets.QLabel("Horizontal")
         self.ver_lbl = QtWidgets.QLabel("Vertical")
@@ -229,8 +233,10 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self._vbox_list_layout.addWidget(self.total_files_lbl)
         self._hbox_layout.addLayout(self._vbox_list_layout)
 
+        self._vbox_list_controls_layout.addWidget(self.read_list_btn)
         self._vbox_list_controls_layout.addWidget(self.move_up_btn)
         self._vbox_list_controls_layout.addWidget(self.add_empty_btn)
+        self._vbox_list_controls_layout.addWidget(self.delete_btn)
         self._vbox_list_controls_layout.addWidget(self.move_down_btn)
 
         self._hbox_layout.addLayout(self._vbox_list_controls_layout)
@@ -262,6 +268,8 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self.ver_step_txt.setValidator(QtGui.QDoubleValidator())
         self.hor_num_txt.setValidator(QtGui.QIntValidator())
         self.ver_num_txt.setValidator(QtGui.QIntValidator())
+
+        self.ok_btn.setEnabled(False)
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 

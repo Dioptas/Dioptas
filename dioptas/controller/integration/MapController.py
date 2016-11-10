@@ -53,10 +53,13 @@ class MapController(object):
         self.map_widget.map_view_box.mouseClickEvent = self.do_nothing
 
         self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
+        self.manual_map_positions_dialog.read_list_btn.clicked.connect(self.read_list_btn_clicked)
         self.manual_map_positions_dialog.hor_num_txt.textChanged.connect(self.manual_map_num_points_changed)
         self.manual_map_positions_dialog.ver_num_txt.textChanged.connect(self.manual_map_num_points_changed)
         self.manual_map_positions_dialog.move_up_btn.clicked.connect(self.move_files_up_in_list)
         self.manual_map_positions_dialog.move_down_btn.clicked.connect(self.move_files_down_in_list)
+        self.manual_map_positions_dialog.add_empty_btn.clicked.connect(self.add_empty_btn_clicked)
+        self.manual_map_positions_dialog.delete_btn.clicked.connect(self.delete_btn_clicked)
 
     def toggle_map_widgets_enable(self, toggle=True):
         self.map_widget.update_map_btn.setEnabled(toggle)
@@ -351,10 +354,6 @@ class MapController(object):
         MapError(map_positions_bad)
 
     def manual_map_positions_setup_btn_clicked(self):
-        sorted_datalist = self.map_model.sort_map_files_by_natural_name()
-        for item in sorted_datalist:
-            self.manual_map_positions_dialog.selected_map_files.addItem(QtWidgets.QListWidgetItem(item))
-        self.manual_map_positions_dialog.total_files_lbl.setText(str(len(sorted_datalist)) + ' files')
         self.manual_map_positions_dialog.exec_()
         if self.manual_map_positions_dialog.approved:
             self.map_model.add_manual_map_positions(self.manual_map_positions_dialog.hor_minimum,
@@ -366,6 +365,15 @@ class MapController(object):
                                                     self.manual_map_positions_dialog.is_hor_first,
                                                     self.manual_map_positions_dialog.selected_map_files)
 
+    def read_list_btn_clicked(self):
+        self.manual_map_positions_dialog.selected_map_files.clear()
+        sorted_datalist = self.map_model.sort_map_files_by_natural_name()
+        for item in sorted_datalist:
+            self.manual_map_positions_dialog.selected_map_files.addItem(QtWidgets.QListWidgetItem(item))
+        self.manual_map_positions_dialog.total_files_lbl.setText(
+            str(self.manual_map_positions_dialog.selected_map_files.count()) + ' files')
+        self.check_num_points()
+
     def manual_map_num_points_changed(self):
         try:
             self.manual_map_positions_dialog.total_map_points_lbl.setText(str(
@@ -373,6 +381,18 @@ class MapController(object):
                 int(self.manual_map_positions_dialog.ver_num_txt.text())) + ' points')
         except ValueError:
             self.manual_map_positions_dialog.total_map_points_lbl.setText('0 points')
+        self.check_num_points()
+
+    def check_num_points(self):
+        try:
+            num_defined = int(self.manual_map_positions_dialog.hor_num_txt.text()) * \
+                          int(self.manual_map_positions_dialog.ver_num_txt.text())
+            num_in_list = self.manual_map_positions_dialog.selected_map_files.count()
+        except ValueError:
+            self.manual_map_positions_dialog.ok_btn.setEnabled(False)
+            return
+
+        self.manual_map_positions_dialog.ok_btn.setEnabled(num_defined == num_in_list)
 
     def move_files_up_in_list(self):
         files_list = self.manual_map_positions_dialog.selected_map_files
@@ -398,6 +418,8 @@ class MapController(object):
 
     def sort_selected_files(self, files_list):
         selected_files = files_list.selectedItems()
+        if not len(selected_files):
+            return []
         temp_dict = {}
         for file_name in selected_files:
             temp_dict[files_list.row(file_name)] = file_name
@@ -407,3 +429,24 @@ class MapController(object):
         for index in temp_index:
             sorted_files.append(temp_dict[index])
         return sorted_files
+
+    def add_empty_btn_clicked(self):
+        files_list = self.manual_map_positions_dialog.selected_map_files
+        selected_files = self.sort_selected_files(files_list)
+        if selected_files:
+            top_row = files_list.row(selected_files[0])
+        else:
+            top_row = 0
+        files_list.insertItem(top_row, "Empty")
+        self.manual_map_positions_dialog.total_files_lbl.setText(
+            str(self.manual_map_positions_dialog.selected_map_files.count()) + ' files')
+        self.check_num_points()
+
+    def delete_btn_clicked(self):
+        files_list = self.manual_map_positions_dialog.selected_map_files
+        selected_files = self.sort_selected_files(files_list)
+        for file_name in selected_files:
+            files_list.takeItem(files_list.row(file_name))
+        self.manual_map_positions_dialog.total_files_lbl.setText(
+            str(self.manual_map_positions_dialog.selected_map_files.count()) + ' files')
+        self.check_num_points()

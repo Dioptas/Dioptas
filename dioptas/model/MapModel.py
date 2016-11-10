@@ -171,14 +171,16 @@ class MapModel(QtCore.QObject):
         if is_hor_first:
             for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
                 for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
-                    self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
-                    self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
+                    if not self.sorted_datalist[ind] == 'Empty':
+                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
+                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
                     ind = ind + 1
         else:
             for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
                 for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
-                    self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
-                    self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
+                    if not self.sorted_datalist[ind] == 'Empty':
+                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
+                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
                     ind = ind + 1
 
         self.min_hor = hor_min
