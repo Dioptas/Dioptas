@@ -26,6 +26,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.num_hor = 0
         self.num_ver = 0
         self.roi_num = 0
+        self.roi_count = 0
         self.pix_per_hor = 100
         self.pix_per_ver = 100
         self.map_loaded = False
