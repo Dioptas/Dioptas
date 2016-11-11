@@ -32,6 +32,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.map_loaded = False
         self.units = '2th_deg'
         self.wavelength = 0.3344
+        self.old_roi_math_txt = ''
 
         # WIDGETS
         self.update_map_btn = QtWidgets.QPushButton(self)

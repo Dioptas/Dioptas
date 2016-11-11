@@ -2,6 +2,7 @@ from qtpy import QtCore, QtWidgets
 import pyqtgraph as pq
 import numpy as np
 from PIL import Image
+import re
 
 from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
@@ -47,6 +48,7 @@ class MapController(object):
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
         self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
         self.map_widget.reset_zoom_btn.clicked.connect(self.reset_zoom_btn_clicked)
+        self.map_widget.roi_math_txt.textEdited.connect(self.roi_math_txt_changed)
 
         self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
         self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
@@ -192,6 +194,19 @@ class MapController(object):
 
     def btn_roi_select_all_clicked(self):
         self.map_widget.roi_list.selectAll()
+
+    def roi_math_txt_changed(self):
+        existing_rois = []
+        roi_math_txt = str(self.map_widget.roi_math_txt.text()).upper()
+        roi_math_txt_rois = re.findall('[A-Z]', roi_math_txt)
+        for row in range(self.map_widget.roi_list.count()):
+            existing_rois.append(self.map_widget.roi_list.item(row).text().split('_')[0])
+        for roi in roi_math_txt_rois:
+            if roi not in existing_rois:
+                self.map_widget.roi_math_txt.setText(self.map_widget.old_roi_math_txt)
+                return
+        self.map_widget.old_roi_math_txt = roi_math_txt
+        self.map_widget.roi_math_txt.setText(roi_math_txt)
 
     def reset_zoom_btn_clicked(self):
         self.map_widget.map_view_box.autoRange()
