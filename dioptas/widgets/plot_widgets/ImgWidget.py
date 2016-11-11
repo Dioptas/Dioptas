@@ -282,6 +282,11 @@ class MaskImgWidget(ImgWidget):
         self.img_view_box.addItem(polygon)
         return polygon
 
+    def draw_arc(self, x, y):
+        arc = MyPolygon(x, y)
+        self.img_view_box.addItem(arc)
+        return arc
+
 
 class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
