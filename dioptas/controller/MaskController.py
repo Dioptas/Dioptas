@@ -51,6 +51,7 @@ class MaskController(object):
         self.circle = None
         self.polygon = None
         self.point = None
+        self.arc = None
 
     def create_signals(self):
         self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
@@ -60,6 +61,7 @@ class MaskController(object):
         self.widget.circle_btn.clicked.connect(self.activate_circle_btn)
         self.widget.rectangle_btn.clicked.connect(self.activate_rectangle_btn)
         self.widget.polygon_btn.clicked.connect(self.activate_polygon_btn)
+        self.widget.arc_btn.clicked.connect(self.activate_arc_btn)
         self.widget.point_btn.clicked.connect(self.activate_point_btn)
         self.widget.undo_btn.clicked.connect(self.undo_btn_click)
         self.widget.redo_btn.clicked.connect(self.redo_btn_click)
@@ -96,7 +98,7 @@ class MaskController(object):
         # if not except_btn.isChecked() and except_btn is not None:
         #     except_btn.toggle()
 
-        shapes = [self.rect, self.circle, self.polygon]
+        shapes = [self.rect, self.circle, self.polygon, self.arc]
         for shape in shapes:
             if shape is not None:
                 self.widget.img_widget.img_view_box.removeItem(shape)
@@ -137,6 +139,15 @@ class MaskController(object):
             self.state = None
             self.uncheck_all_btn()
 
+    def activate_arc_btn(self):
+        if self.widget.polygon_btn.isChecked():
+            self.state = 'arc'
+            self.clicks = 0
+            self.uncheck_all_btn(except_btn=self.widget.arc_btn)
+        else:
+            self.state = None
+            self.uncheck_all_btn()
+
     def activate_point_btn(self):
         if self.widget.point_btn.isChecked():
             self.state = 'point'
@@ -169,6 +180,8 @@ class MaskController(object):
             self.draw_point(x, y)
         elif self.state == 'polygon':
             self.draw_polygon(x, y)
+        elif self.state == 'arc':
+            self.draw_arc(x, y)
 
     def draw_circle(self, x, y):
         if self.clicks == 0:
@@ -217,6 +230,20 @@ class MaskController(object):
             self.polygon.set_size(x, y)
             self.polygon.add_point(x, y)
 
+    def draw_arc(self, x, y):
+        self.clicks += 1
+        if self.clicks == 1:
+            self.arc = self.widget.img_widget.draw_arc(x, y)
+            self.widget.img_widget.mouse_moved.connect(self.arc.set_size)
+            return
+        elif self.clicks == 2:
+            self.arc.set_size(x, y)
+            self.arc.add_point(x, y)
+        elif self.clicks == 3:
+            self.arc.set_size(x, y)
+            self.arc.add_point(x, y)
+            self.finish_arc(x, y)
+
     def finish_polygon(self, x, y):
         self.widget.img_widget.mouse_moved.disconnect(self.polygon.set_size)
         self.widget.img_widget.mouse_left_double_clicked.disconnect(self.finish_polygon)
@@ -225,6 +252,14 @@ class MaskController(object):
         self.model.mask_model.mask_QGraphicsPolygonItem(self.polygon)
         self.plot_mask()
         self.widget.img_widget.img_view_box.removeItem(self.polygon)
+        self.polygon = None
+
+    def finish_arc(self, x, y):
+        self.widget.img_widget.mouse_moved.disconnect(self.arc.set_size)
+        self.clicks = 0
+        self.model.mask_model.mask_QGraphicsPolygonItem(self.arc)
+        self.plot_mask()
+        self.widget.img_widget.img_view_box.removeItem(self.arc)
         self.polygon = None
 
     def below_thresh_btn_click(self):
