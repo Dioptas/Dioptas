@@ -2,11 +2,14 @@ from qtpy import QtCore, QtWidgets
 import pyqtgraph as pq
 import numpy as np
 from PIL import Image
+import re
 
 from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
 from ...widgets.MapWidgets import OpenBGImageDialog
+from .MapErrors import *
+
 
 class MapController(object):
     def __init__(self, widget, dioptas_model):
@@ -34,9 +37,9 @@ class MapController(object):
     def setup_connections(self):
         self.model.map_model.map_changed.connect(self.update_map_image)
         self.model.map_model.map_cleared.connect(self.clear_map)
+        self.model.map_model.map_problem.connect(self.map_positions_problem)
 
-        self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
-        self.map_widget.show_map_btn.clicked.connect(self.btn_show_map_clicked)
+        self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
         self.map_widget.roi_del_btn.clicked.connect(self.btn_roi_del_clicked)
         self.map_widget.roi_clear_btn.clicked.connect(self.btn_roi_clear_clicked)
@@ -45,17 +48,23 @@ class MapController(object):
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
         self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
         self.map_widget.reset_zoom_btn.clicked.connect(self.reset_zoom_btn_clicked)
+        self.map_widget.roi_math_txt.textEdited.connect(self.roi_math_txt_changed)
 
         self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
         self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
         self.map_widget.map_view_box.mouseClickEvent = self.do_nothing
 
+        self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
+        self.manual_map_positions_dialog.read_list_btn.clicked.connect(self.read_list_btn_clicked)
         self.manual_map_positions_dialog.hor_num_txt.textChanged.connect(self.manual_map_num_points_changed)
         self.manual_map_positions_dialog.ver_num_txt.textChanged.connect(self.manual_map_num_points_changed)
-
+        self.manual_map_positions_dialog.move_up_btn.clicked.connect(self.move_files_up_in_list)
+        self.manual_map_positions_dialog.move_down_btn.clicked.connect(self.move_files_down_in_list)
+        self.manual_map_positions_dialog.add_empty_btn.clicked.connect(self.add_empty_btn_clicked)
+        self.manual_map_positions_dialog.delete_btn.clicked.connect(self.delete_btn_clicked)
 
     def toggle_map_widgets_enable(self, toggle=True):
-        self.map_widget.show_map_btn.setEnabled(toggle)
+        self.map_widget.update_map_btn.setEnabled(toggle)
         self.map_widget.manual_map_positions_setup_btn.setEnabled(toggle)
         self.map_widget.roi_del_btn.setEnabled(toggle)
         self.map_widget.roi_clear_btn.setEnabled(toggle)
@@ -69,7 +78,7 @@ class MapController(object):
             self.set_map_widget_style('color: black')
 
     def set_map_widget_style(self, new_style):
-        self.map_widget.show_map_btn.setStyleSheet(new_style)
+        self.map_widget.update_map_btn.setStyleSheet(new_style)
         self.map_widget.manual_map_positions_setup_btn.setStyleSheet(new_style)
         self.map_widget.roi_del_btn.setStyleSheet(new_style)
         self.map_widget.roi_clear_btn.setStyleSheet(new_style)
@@ -78,12 +87,17 @@ class MapController(object):
         self.map_widget.add_bg_btn.setStyleSheet(new_style)
         self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
 
-    def btn_show_map_clicked(self):
+    def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []
+        roi_math = str(self.map_widget.roi_math_txt.text())
+        if not roi_math == '':
+            self.map_widget.roi_list.selectAll()
         for item in self.map_widget.roi_list.selectedItems():
-            roi_name = item.text().split('-')
-            self.map_model.map_roi_list.append({'roi_start': roi_name[0], 'roi_end': roi_name[1]})
-
+            roi_full_name = item.text().split('_')
+            roi_name = roi_full_name[1].split('-')
+            self.map_model.map_roi_list.append({'roi_letter': roi_full_name[0], 'roi_start': roi_name[0],
+                                                'roi_end': roi_name[1]})
+        self.map_model.roi_math = roi_math
         self.map_model.update_map()
         self.map_widget.map_loaded = True
 
@@ -97,24 +111,27 @@ class MapController(object):
         roi_end = self.map_model.convert_units(tth_end, '2th_deg', self.map_model.units, self.map_model.wavelength)
 
         # add ROI to list
-        roi_name = self.generate_roi_name(roi_start, roi_end)
-        roi_list_item = QtWidgets.QListWidgetItem(self.map_widget.roi_list)
         roi_num = self.map_widget.roi_num
+        roi_name = self.generate_roi_name(roi_start, roi_end, roi_num)
+        roi_list_item = QtWidgets.QListWidgetItem(self.map_widget.roi_list)
         roi_list_item.setText(roi_name)
         roi_list_item.setSelected(True)
-        self.map_widget.map_roi[roi_num] = {}
-        self.map_widget.map_roi[roi_num]['roi_name'] = roi_name
+        # self.map_widget.map_roi[roi_num]['roi_name'] = roi_name
 
         # add ROI to pattern view
+        roi_count = self.map_widget.roi_count
+        self.map_widget.map_roi[roi_count] = {}
         ov = pq.LinearRegionItem.Vertical
-        self.map_widget.map_roi[roi_num]['Obj'] = pq.LinearRegionItem(values=[roi_start, roi_end], orientation=ov,
-                                                                      movable=True,
-                                                                      brush=pq.mkBrush(color=(255, 0, 255, 100)))
-        self.map_widget.map_roi[roi_num]['List_Obj'] = self.map_widget.roi_list.item(self.map_widget.roi_list.count() -
-                                                                                     1)
-        self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_num]['Obj'])
-        self.map_widget.map_roi[roi_num]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_num))
+        self.map_widget.map_roi[roi_count]['Obj'] = pq.LinearRegionItem(values=[roi_start, roi_end], orientation=ov,
+                                                                        movable=True,
+                                                                        brush=pq.mkBrush(color=(255, 0, 255, 100)))
+        self.map_widget.map_roi[roi_count]['List_Obj'] = self.map_widget.roi_list.item(
+            self.map_widget.roi_list.count() - 1)
+
+        self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_count]['Obj'])
+        self.map_widget.map_roi[roi_count]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_count))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
+        self.map_widget.roi_count = self.map_widget.roi_count + 1
         if self.map_widget.roi_num == 1:
             self.toggle_map_widgets_enable(True)
 
@@ -122,19 +139,28 @@ class MapController(object):
     def make_roi_changed(self, curr_map_roi):
         def roi_changed():
             tth_start, tth_end = self.map_widget.map_roi[curr_map_roi]['Obj'].getRegion()
-            new_roi_name = self.generate_roi_name(tth_start, tth_end)
             row = self.map_widget.roi_list.row(self.map_widget.map_roi[curr_map_roi]['List_Obj'])
+            new_roi_name = self.generate_roi_name(tth_start, tth_end, row)
             self.map_widget.roi_list.takeItem(row)
             self.map_widget.roi_list.insertItem(row, new_roi_name)
-            self.map_widget.map_roi[curr_map_roi]['roi_name'] = new_roi_name
+            # self.map_widget.map_roi[curr_map_roi]['roi_name'] = new_roi_name
             self.map_widget.map_roi[curr_map_roi]['List_Obj'] = self.map_widget.roi_list.item(row)
             self.map_widget.roi_list.item(row).setSelected(True)
 
         return roi_changed
 
-    def generate_roi_name(self, roi_start, roi_end):
-        roi_name = '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
+    def generate_roi_name(self, roi_start, roi_end, roi_num):
+        roi_name = chr(roi_num+65) + '_' + '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
         return roi_name
+
+    def update_roi_letters(self):
+        for row in range(self.map_widget.roi_list.count()):
+            curr_roi = self.map_widget.roi_list.item(row)
+            curr_roi.setText(chr(row+65) + '_' + curr_roi.text().split('_')[1])
+            # for key in self.map_widget.map_roi:
+            #     if self.map_widget.map_roi[key]['List_Obj'] == curr_roi:
+            #         self.map_widget.map_roi[key]['roi_name'] = 1
+            #         break
 
     def btn_roi_del_clicked(self):
         for each_roi in self.map_widget.roi_list.selectedItems():
@@ -147,6 +173,8 @@ class MapController(object):
             self.map_widget.roi_num = self.map_widget.roi_num - 1
         if self.map_widget.roi_num == 0:
             self.toggle_map_widgets_enable(False)
+        else:
+            self.update_roi_letters()
 
     def btn_roi_clear_clicked(self):
         self.map_widget.roi_list.clear()
@@ -166,6 +194,19 @@ class MapController(object):
 
     def btn_roi_select_all_clicked(self):
         self.map_widget.roi_list.selectAll()
+
+    def roi_math_txt_changed(self):
+        existing_rois = []
+        roi_math_txt = str(self.map_widget.roi_math_txt.text()).upper()
+        roi_math_txt_rois = re.findall('[A-Z]', roi_math_txt)
+        for row in range(self.map_widget.roi_list.count()):
+            existing_rois.append(self.map_widget.roi_list.item(row).text().split('_')[0])
+        for roi in roi_math_txt_rois:
+            if roi not in existing_rois:
+                self.map_widget.roi_math_txt.setText(self.map_widget.old_roi_math_txt)
+                return
+        self.map_widget.old_roi_math_txt = roi_math_txt
+        self.map_widget.roi_math_txt.setText(roi_math_txt)
 
     def reset_zoom_btn_clicked(self):
         self.map_widget.map_view_box.autoRange()
@@ -191,10 +232,11 @@ class MapController(object):
         # also, use this for converting the range if the file is in another unit.
         self.map_widget.roi_list.selectAll()
         for item in self.map_widget.roi_list.selectedItems():
-            roi_name = item.text().split('-')
+            roi_full_name = item.text().split('_')
+            roi_name = roi_full_name[1].split('-')
             roi_start = self.model.map_model.convert_units(float(roi_name[0]), previous_unit, new_unit, wavelength)
             roi_end = self.model.map_model.convert_units(float(roi_name[1]), previous_unit, new_unit, wavelength)
-            roi_new_name = self.generate_roi_name(roi_start, roi_end)
+            roi_new_name = self.generate_roi_name(roi_start, roi_end, ord(roi_full_name[0])-65)
             item.setText(roi_new_name)
             for key in self.map_widget.map_roi:
                 if self.map_widget.map_roi[key]['List_Obj'] == item:
@@ -247,14 +289,36 @@ class MapController(object):
         pass
 
     def btn_add_bg_image_clicked(self):
+        if not self.map_widget.map_loaded:
+            MapError(no_map_loaded)
+            return
+
         load_name = self.load_bg_image_file()
+
         if not load_name:
-            print("No file chosen for background")
+            MapError(no_bg_image_selected)
             return
 
         load_name_file = str(load_name).rsplit('/', 1)[-1]
         loaded_bg_image = Image.open(str(load_name).replace('\\', '/'))
         bg_image_tags = loaded_bg_image.tag
+
+        if 'flip_hor_prefixes' in gsecars_photo:
+            if load_name_file.split('_')[0] in gsecars_photo['flip_hor_prefixes'].split(','):
+                self.open_bg_image_dialog.hor_flip = True
+            else:
+                self.open_bg_image_dialog.hor_flip = False
+        else:
+            self.open_bg_image_dialog.hor_flip = gsecars_photo['flip_hor']
+
+        if 'flip_ver_prefixes' in gsecars_photo:
+            if load_name_file.split('_')[0] in gsecars_photo['flip_ver_prefixes'].split(','):
+                self.open_bg_image_dialog.ver_flip = True
+            else:
+                self.open_bg_image_dialog.ver_flip = False
+        else:
+            self.open_bg_image_dialog.ver_flip = gsecars_photo['flip_ver']
+
         self.bg_hor_ver = self.get_bg_hor_ver(bg_image_tags)
         if 'Horizontal' in self.bg_hor_ver and 'Vertical' in self.bg_hor_ver:
             self.open_bg_image_dialog.hor_center = float(self.bg_hor_ver['Horizontal'])
@@ -269,7 +333,8 @@ class MapController(object):
         img_px_size_ver = self.open_bg_image_dialog.ver_pixel_size
         img_hor_px = self.open_bg_image_dialog.hor_num_pixels
         img_ver_px = self.open_bg_image_dialog.ver_num_pixels
-        flip_prefixes = str(self.open_bg_image_dialog.flip_prefixes).split(',')
+        hor_flip = self.open_bg_image_dialog.hor_flip
+        ver_flip = self.open_bg_image_dialog.ver_flip
         bg_hor = self.open_bg_image_dialog.hor_center
         bg_ver = self.open_bg_image_dialog.ver_center
 
@@ -284,9 +349,10 @@ class MapController(object):
         bg_ver_shift = -(-(bg_ver - img_height_mm / 2.0) + self.map_model.min_ver) / self.map_model.ver_um_per_px + \
                        self.map_model.pix_per_ver / 2
 
-        if load_name_file.split('_', 1)[0] in flip_prefixes:
+        if hor_flip:
             loaded_bg_image = np.fliplr(loaded_bg_image)
-        loaded_bg_image = np.flipud(loaded_bg_image)
+        if ver_flip:
+            loaded_bg_image = np.flipud(loaded_bg_image)
 
         self.bg_image = np.rot90(loaded_bg_image, 3)
 
@@ -296,18 +362,6 @@ class MapController(object):
         self.modify_map_opacity()
 
     def load_bg_image_file(self):
-        if not self.map_widget.map_loaded:
-            msg = "Please load a map, choose a region and update the map"
-            bg_msg = QtWidgets.QMessageBox()
-            bg_msg.setIcon(QtWidgets.QMessageBox.Information)
-            bg_msg.setText("No Map Loaded")
-            bg_msg.setInformativeText("See additional info...")
-            bg_msg.setWindowTitle("Error: No Map")
-            bg_msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            bg_msg.setDetailedText(msg)
-            bg_msg.exec_()
-            return
-
         load_name, _ = QtWidgets.QFileDialog.getOpenFileName(QtWidgets.QFileDialog(),
                                                              'Choose file name for loading background image',
                                                              self.map_widget.working_dir['image'], 'TIFF Files (*.tif)')
@@ -331,11 +385,10 @@ class MapController(object):
     def clear_map(self):
         self.manual_map_positions_dialog.selected_map_files.clear()
 
+    def map_positions_problem(self):
+        MapError(map_positions_bad)
+
     def manual_map_positions_setup_btn_clicked(self):
-        sorted_datalist = self.map_model.sort_map_files_by_natural_name()
-        for item in sorted_datalist:
-            self.manual_map_positions_dialog.selected_map_files.addItem(QtWidgets.QListWidgetItem(item[0]))
-        self.manual_map_positions_dialog.total_files_lbl.setText(str(len(sorted_datalist)) + ' files')
         self.manual_map_positions_dialog.exec_()
         if self.manual_map_positions_dialog.approved:
             self.map_model.add_manual_map_positions(self.manual_map_positions_dialog.hor_minimum,
@@ -344,7 +397,17 @@ class MapController(object):
                                                     self.manual_map_positions_dialog.ver_step_size,
                                                     self.manual_map_positions_dialog.hor_number,
                                                     self.manual_map_positions_dialog.ver_number,
-                                                    self.manual_map_positions_dialog.is_hor_first)
+                                                    self.manual_map_positions_dialog.is_hor_first,
+                                                    self.manual_map_positions_dialog.selected_map_files)
+
+    def read_list_btn_clicked(self):
+        self.manual_map_positions_dialog.selected_map_files.clear()
+        sorted_datalist = self.map_model.sort_map_files_by_natural_name()
+        for item in sorted_datalist:
+            self.manual_map_positions_dialog.selected_map_files.addItem(QtWidgets.QListWidgetItem(item))
+        self.manual_map_positions_dialog.total_files_lbl.setText(
+            str(self.manual_map_positions_dialog.selected_map_files.count()) + ' files')
+        self.check_num_points()
 
     def manual_map_num_points_changed(self):
         try:
@@ -353,3 +416,72 @@ class MapController(object):
                 int(self.manual_map_positions_dialog.ver_num_txt.text())) + ' points')
         except ValueError:
             self.manual_map_positions_dialog.total_map_points_lbl.setText('0 points')
+        self.check_num_points()
+
+    def check_num_points(self):
+        try:
+            num_defined = int(self.manual_map_positions_dialog.hor_num_txt.text()) * \
+                          int(self.manual_map_positions_dialog.ver_num_txt.text())
+            num_in_list = self.manual_map_positions_dialog.selected_map_files.count()
+        except ValueError:
+            self.manual_map_positions_dialog.ok_btn.setEnabled(False)
+            return
+
+        self.manual_map_positions_dialog.ok_btn.setEnabled(num_defined == num_in_list)
+
+    def move_files_up_in_list(self):
+        files_list = self.manual_map_positions_dialog.selected_map_files
+        selected_files = self.sort_selected_files(files_list)
+        for file_name in selected_files:
+            row = files_list.row(file_name)
+            if row == 0:
+                continue
+            current_file_name = files_list.takeItem(row)
+            files_list.insertItem(row - 1, current_file_name)
+            files_list.item(row - 1).setSelected(True)
+
+    def move_files_down_in_list(self):
+        files_list = self.manual_map_positions_dialog.selected_map_files
+        selected_files = self.sort_selected_files(files_list)
+        for file_name in reversed(selected_files):
+            row = files_list.row(file_name)
+            if row == files_list.count() - 1:
+                continue
+            current_file_name = files_list.takeItem(row)
+            files_list.insertItem(row + 1, current_file_name)
+            files_list.item(row + 1).setSelected(True)
+
+    def sort_selected_files(self, files_list):
+        selected_files = files_list.selectedItems()
+        if not len(selected_files):
+            return []
+        temp_dict = {}
+        for file_name in selected_files:
+            temp_dict[files_list.row(file_name)] = file_name
+
+        temp_index = sorted(temp_dict)
+        sorted_files = []
+        for index in temp_index:
+            sorted_files.append(temp_dict[index])
+        return sorted_files
+
+    def add_empty_btn_clicked(self):
+        files_list = self.manual_map_positions_dialog.selected_map_files
+        selected_files = self.sort_selected_files(files_list)
+        if selected_files:
+            top_row = files_list.row(selected_files[0])
+        else:
+            top_row = 0
+        files_list.insertItem(top_row, "Empty")
+        self.manual_map_positions_dialog.total_files_lbl.setText(
+            str(self.manual_map_positions_dialog.selected_map_files.count()) + ' files')
+        self.check_num_points()
+
+    def delete_btn_clicked(self):
+        files_list = self.manual_map_positions_dialog.selected_map_files
+        selected_files = self.sort_selected_files(files_list)
+        for file_name in selected_files:
+            files_list.takeItem(files_list.row(file_name))
+        self.manual_map_positions_dialog.total_files_lbl.setText(
+            str(self.manual_map_positions_dialog.selected_map_files.count()) + ' files')
+        self.check_num_points()

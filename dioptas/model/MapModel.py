@@ -11,6 +11,7 @@ class MapModel(QtCore.QObject):
     """
     map_changed = QtCore.Signal()
     map_cleared = QtCore.Signal()
+    map_problem = QtCore.Signal()
 
     def __init__(self):
         """
@@ -21,6 +22,7 @@ class MapModel(QtCore.QObject):
 
         self.map_data = {}
         self.map_roi_list = []
+        self.roi_math = ''
         self.theta_center = 5.9
         self.theta_range = 0.1
         self.num_hor = 0
@@ -40,7 +42,6 @@ class MapModel(QtCore.QObject):
         self.map_data = {}
         self.all_positions_defined_in_files = False
         self.map_cleared.emit()
-
 
     def add_map_data(self, filename, working_directory, motors_info):
         base_filename = os.path.basename(filename)
@@ -82,18 +83,17 @@ class MapModel(QtCore.QObject):
 
     def check_map(self):
         if self.num_ver*self.num_hor == len(self.sorted_datalist):
-            print("Correct number of files for map")
+            pass
         else:
-            print("Warning! Number of files in map not consistent with map positions. try setting up manually")
+            self.map_problem.emit()
 
     def read_map_files_and_prepare_map_data(self):
         for filename, filedata in self.map_data.items():
-            range_hor = self.pos_to_range(float(filedata['pos_hor']), self.min_hor, self.pix_per_hor, self.diff_hor)
-            range_ver = self.pos_to_range(float(filedata['pos_ver']), self.min_ver, self.pix_per_ver, self.diff_ver)
-
             spec_file = self.map_data[filename]['spectrum_file_name'].replace('\\', '/')
             curr_spec_file = open(spec_file, 'r')
-            sum_int = 0
+            sum_int = {}
+            for roi in self.map_roi_list:
+                sum_int[roi['roi_letter']] = 0
             file_units = '2th_deg'
             wavelength = self.wavelength
             for line in curr_spec_file:
@@ -108,19 +108,27 @@ class MapModel(QtCore.QObject):
                 elif line[0] is not '#':
                     x_val = float(line.split()[0])
                     x_val = self.convert_units(x_val, file_units, self.units, wavelength)
-                    if self.is_in_roi_range(x_val):
-                        sum_int += float(line.split()[1])
+                    in_roi = self.is_in_roi_range(x_val)
+                    if in_roi:
+                        sum_int[in_roi] += float(line.split()[1])
 
-            self.new_image[range_hor, range_ver] = sum_int
+            curr_math = self.calculate_roi_math(sum_int)
+            range_hor = self.pos_to_range(float(filedata['pos_hor']), self.min_hor, self.pix_per_hor, self.diff_hor)
+            range_ver = self.pos_to_range(float(filedata['pos_ver']), self.min_ver, self.pix_per_ver, self.diff_ver)
+            self.new_image[range_hor, range_ver] = curr_math
 
     def update_map(self):
         if not self.all_positions_defined_in_files and not self.positions_set_manually:
-            print("Not all files contain positions. Please define manually")
+            self.map_problem.emit()
             return
 
         if self.all_positions_defined_in_files and not self.positions_set_manually:
-            print("positions read from files")
             self.organize_map_files()
+
+        if self.roi_math == '':
+            for item in self.map_roi_list:
+                self.roi_math = self.roi_math + item['roi_letter'] + '+'
+            self.roi_math = self.roi_math.rsplit('+', 1)[0]
 
         self.read_map_files_and_prepare_map_data()
 
@@ -129,8 +137,14 @@ class MapModel(QtCore.QObject):
     def is_in_roi_range(self, tt):
         for item in self.map_roi_list:
             if float(item['roi_start']) < tt < float(item['roi_end']):
-                return True
+                return item['roi_letter']
         return False
+
+    def calculate_roi_math(self, sum_int):
+        curr_roi_math = self.roi_math
+        for key in sum_int:
+            curr_roi_math = curr_roi_math.replace(key, str(sum_int[key]))
+        return eval(curr_roi_math)
 
     def pos_to_range(self, pos, min_pos, pix_per_pos, diff_pos):
         range_start = (pos - min_pos) / diff_pos * pix_per_pos
@@ -162,20 +176,26 @@ class MapModel(QtCore.QObject):
             res = 0
         return res
 
-    def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first):
-        self.sorted_datalist = self.sort_map_files_by_natural_name()
+    def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first, file_list):
+        # self.sorted_datalist = self.sort_map_files_by_natural_name()
+        self.sorted_datalist = []
+        for index in range(file_list.count()):
+            self.sorted_datalist.append(str(file_list.item(index).text()))
+
         ind = 0
         if is_hor_first:
             for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
                 for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
-                    self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
-                    self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
+                    if not self.sorted_datalist[ind] == 'Empty':
+                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
+                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
                     ind = ind + 1
         else:
             for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
                 for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
-                    self.map_data[self.sorted_datalist[ind][0]]['pos_hor'] = hor_pos
-                    self.map_data[self.sorted_datalist[ind][0]]['pos_ver'] = ver_pos
+                    if not self.sorted_datalist[ind] == 'Empty':
+                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
+                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
                     ind = ind + 1
 
         self.min_hor = hor_min
@@ -199,7 +219,7 @@ class MapModel(QtCore.QObject):
     def sort_map_files_by_natural_name(self):
         datalist = []
         for filename, filedata in self.map_data.items():
-            datalist.append([filename])
+            datalist.append(filename)
         sorted_datalist = sorted(datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
-                                                          re.split('(\d+)', s[0])])
+                                                          re.split('(\d+)', s)])
         return sorted_datalist
