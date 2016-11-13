@@ -26,14 +26,16 @@ class Map2DWidget(QtWidgets.QWidget):
         self.num_hor = 0
         self.num_ver = 0
         self.roi_num = 0
+        self.roi_count = 0
         self.pix_per_hor = 100
         self.pix_per_ver = 100
         self.map_loaded = False
         self.units = '2th_deg'
         self.wavelength = 0.3344
+        self.old_roi_math_txt = ''
 
         # WIDGETS
-        self.show_map_btn = QtWidgets.QPushButton(self)
+        self.update_map_btn = QtWidgets.QPushButton(self)
         self.manual_map_positions_setup_btn = QtWidgets.QPushButton("Setup Map")
         self.lbl_map_pos = QtWidgets.QLabel()
         # Map Image and Histogram
@@ -51,6 +53,7 @@ class Map2DWidget(QtWidgets.QWidget):
         # ROI Widgets
         self.roi_list = QtWidgets.QListWidget(self)
         self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.roi_math_txt = QtWidgets.QLineEdit()
         self.roi_add_btn = QtWidgets.QPushButton(self)
         self.roi_del_btn = QtWidgets.QPushButton(self)
         self.roi_clear_btn = QtWidgets.QPushButton(self)
@@ -75,7 +78,7 @@ class Map2DWidget(QtWidgets.QWidget):
 
         # Widget Properties
         self.setWindowTitle("2D Map")
-        self.show_map_btn.setText("Update Map")
+        self.update_map_btn.setText("Update Map")
         self.roi_add_btn.setText("Add Range")
         self.roi_del_btn.setText("Remove Range")
         self.roi_clear_btn.setText("Clear")
@@ -98,8 +101,9 @@ class Map2DWidget(QtWidgets.QWidget):
         self.bg_hbox = QtWidgets.QHBoxLayout()
         self.roi_vbox = QtWidgets.QVBoxLayout()
         self.roi_vbox.addWidget(self.manual_map_positions_setup_btn)
-        self.roi_vbox.addWidget(self.show_map_btn)
+        self.roi_vbox.addWidget(self.update_map_btn)
         self.roi_vbox.addWidget(self.roi_list)
+        self.roi_vbox.addWidget(self.roi_math_txt)
         self.roi_vbox.addLayout(self.roi_grid)
         self.hbox.addLayout(self.roi_vbox)
         self.hbox.addStretch(1)
@@ -166,6 +170,11 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
 
     def _create_widgets(self):
         self.selected_map_files = QtWidgets.QListWidget()
+        self.read_list_btn = QtWidgets.QPushButton('Read Files')
+        self.move_up_btn = QtWidgets.QPushButton(u'\u2191')
+        self.move_down_btn = QtWidgets.QPushButton(u'\u2193')
+        self.add_empty_btn = QtWidgets.QPushButton('Empty')
+        self.delete_btn = QtWidgets.QPushButton('Delete')
 
         self.hor_lbl = QtWidgets.QLabel("Horizontal")
         self.ver_lbl = QtWidgets.QLabel("Vertical")
@@ -198,6 +207,7 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self._grid_layout = QtWidgets.QGridLayout()
         self._hbox_layout = QtWidgets.QHBoxLayout()
         self._vbox_list_layout = QtWidgets.QVBoxLayout()
+        self._vbox_list_controls_layout = QtWidgets.QVBoxLayout()
 
         self._grid_layout.addWidget(self.hor_lbl, 0, 1)
         self._grid_layout.addWidget(self.ver_lbl, 0, 2)
@@ -220,15 +230,27 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self._grid_layout.addWidget(self.cancel_btn, 5, 3)
 
         self._hbox_layout.addLayout(self._grid_layout)
+
         self._vbox_list_layout.addWidget(self.selected_map_files)
         self._vbox_list_layout.addWidget(self.total_files_lbl)
         self._hbox_layout.addLayout(self._vbox_list_layout)
+
+        self._vbox_list_controls_layout.addWidget(self.read_list_btn)
+        self._vbox_list_controls_layout.addWidget(self.move_up_btn)
+        self._vbox_list_controls_layout.addWidget(self.add_empty_btn)
+        self._vbox_list_controls_layout.addWidget(self.delete_btn)
+        self._vbox_list_controls_layout.addWidget(self.move_down_btn)
+
+        self._hbox_layout.addLayout(self._vbox_list_controls_layout)
         self.setLayout(self._hbox_layout)
 
     def _style_widgets(self):
         """
         Makes everything pretty and set double/int validators for the line edits.
         """
+
+        self.selected_map_files.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
         self.hor_min_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.hor_min_txt.setMaximumWidth(40)
         self.ver_min_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
@@ -248,6 +270,8 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         self.ver_step_txt.setValidator(QtGui.QDoubleValidator())
         self.hor_num_txt.setValidator(QtGui.QIntValidator())
         self.ver_num_txt.setValidator(QtGui.QIntValidator())
+
+        self.ok_btn.setEnabled(False)
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
@@ -335,7 +359,7 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self.img_px_lbl = QtWidgets.QLabel("Number of Pixels")
         self.img_px_size_lbl = QtWidgets.QLabel("Pixel Size")
         self.img_center_lbl = QtWidgets.QLabel("Center Position")
-        self.flip_prefixes_lbl = QtWidgets.QLabel("Prefixes for flipping image")
+        self.flip_lbl = QtWidgets.QLabel("Flip?")
 
         self.img_hor_px_txt = QtWidgets.QLineEdit(str(self._default_config['img_hor_px']))
         self.img_ver_px_txt = QtWidgets.QLineEdit(str(self._default_config['img_ver_px']))
@@ -343,10 +367,8 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self.img_ver_px_size_txt = QtWidgets.QLineEdit(str(self._default_config['img_px_size_ver']))
         self.img_hor_center_txt = QtWidgets.QLineEdit()
         self.img_ver_center_txt = QtWidgets.QLineEdit()
-
-        self.flip_prefixes_txt = QtWidgets.QLineEdit(','.join(self._default_config['flip_prefixes']))
-
-        self.flip_prefixes_txt.setToolTip("separated by comma")
+        self.flip_hor_cb = QtWidgets.QCheckBox()
+        self.flip_ver_cb = QtWidgets.QCheckBox()
 
         self.ok_btn = FlatButton("Done")
         self.cancel_btn = FlatButton("Cancel")
@@ -367,8 +389,10 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self._grid_layout.addWidget(self.img_hor_center_txt, 4, 1, 1, 1)
         self._grid_layout.addWidget(self.img_ver_center_txt, 4, 2, 1, 1)
 
-        self._grid_layout.addWidget(self.flip_prefixes_lbl, 5, 0, 1, 1)
-        self._grid_layout.addWidget(self.flip_prefixes_txt, 5, 1, 1, 2)
+        self._grid_layout.addWidget(self.flip_lbl, 5, 0, 1, 1)
+        self._grid_layout.addWidget(self.flip_hor_cb, 5, 1, 1, 1)
+        self._grid_layout.addWidget(self.flip_ver_cb, 5, 2, 1, 1)
+
         self._grid_layout.addWidget(self.ok_btn, 6, 1, 1, 1)
         self._grid_layout.addWidget(self.cancel_btn, 6, 2, 1, 1)
 
@@ -437,8 +461,20 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         return float(str(self.img_ver_px_size_txt.text()))
 
     @property
-    def flip_prefixes(self):
-        return str(self.flip_prefixes_txt.text()).replace(' ', '')
+    def hor_flip(self):
+        return self.flip_hor_cb.isChecked()
+
+    @hor_flip.setter
+    def hor_flip(self, flip_value):
+        self.flip_hor_cb.setChecked(flip_value)
+
+    @property
+    def ver_flip(self):
+        return self.flip_ver_cb.isChecked()
+
+    @ver_flip.setter
+    def ver_flip(self, flip_value):
+        self.flip_ver_cb.setChecked(flip_value)
 
     @property
     def hor_center(self):
