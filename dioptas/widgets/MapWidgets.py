@@ -55,6 +55,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.roi_math_txt = QtWidgets.QLineEdit()
         self.roi_add_btn = QtWidgets.QPushButton(self)
+        self.roi_add_phase_btn = QtWidgets.QPushButton(self)
         self.roi_del_btn = QtWidgets.QPushButton(self)
         self.roi_clear_btn = QtWidgets.QPushButton(self)
         self.roi_toggle_btn = QtWidgets.QPushButton(self)
@@ -71,15 +72,17 @@ class Map2DWidget(QtWidgets.QWidget):
         # ROI positions
         self.roi_grid = QtWidgets.QGridLayout()
         self.roi_grid.addWidget(self.roi_add_btn, 0, 0, 1, 1)
-        self.roi_grid.addWidget(self.roi_del_btn, 0, 1, 1, 1)
-        self.roi_grid.addWidget(self.roi_clear_btn, 1, 0, 1, 1)
-        self.roi_grid.addWidget(self.roi_toggle_btn, 1, 1, 1, 1)
+        self.roi_grid.addWidget(self.roi_add_phase_btn, 0, 1, 1, 1)
+        self.roi_grid.addWidget(self.roi_del_btn, 1, 0, 1, 1)
+        self.roi_grid.addWidget(self.roi_clear_btn, 1, 1, 1, 1)
+        self.roi_grid.addWidget(self.roi_toggle_btn, 2, 1, 1, 1)
         self.roi_grid.addWidget(self.roi_select_all_btn, 2, 0, 1, 1)
 
         # Widget Properties
         self.setWindowTitle("2D Map")
         self.update_map_btn.setText("Update Map")
         self.roi_add_btn.setText("Add Range")
+        self.roi_add_phase_btn.setText("Add Phase")
         self.roi_del_btn.setText("Remove Range")
         self.roi_clear_btn.setText("Clear")
         self.roi_toggle_btn.setText("Toggle Show")
