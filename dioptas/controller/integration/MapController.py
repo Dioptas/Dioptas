@@ -151,7 +151,7 @@ class MapController(object):
         if cur_ind < 0:
             return
         phase_lines = self.model.phase_model.get_lines_d(cur_ind)
-        for line in phase_lines:
+        for line in phase_lines[0:5]:
             tc = {'theta_center': self.map_model.convert_units(line[0], 'd_A', self.map_model.units,
                                                                self.map_model.wavelength)}
             self.btn_roi_add_clicked(tc)
