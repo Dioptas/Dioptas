@@ -30,9 +30,17 @@ no_bg_image_selected = {
 
 map_positions_bad = {
     'icon': 'QtWidgets.QMessageBox.Information',
-    'detailed_msg': 'Either not all map files ahve been loaded or, metadata does not contain map positions.\nPlease'
+    'detailed_msg': 'Either not all map files have been loaded or, metadata does not contain map positions.\nPlease'
                     ' set up the map positions manually by clicking "Setup Map"',
     'short_msg': 'Map positions missing',
     'informative_text': 'See additional info...',
     'window_title': 'Warning: Map positions missing',
+}
+
+too_many_rois = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Too many ranges created. try deleting some of the ranges',
+    'short_msg': 'Too many ranges',
+    'informative_text': 'See additional info...',
+    'window_title': 'Warning: Maximum of 26 ranges allowed',
 }
