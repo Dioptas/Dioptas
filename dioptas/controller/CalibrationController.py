@@ -233,9 +233,9 @@ class CalibrationController(object):
             wavelength = start_values['wavelength']
 
         self.model.calibration_model.calibrant.setWavelength_change2th(wavelength)
-        self.widget.spectrum_widget.plot_vertical_lines(
-            np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180,
-            name=self._calibrants_file_names_list[current_index])
+        self.widget.spectrum_widget.plot_vertical_lines(self.convert_x_value(np.array(
+            self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
+            self.model.current_configuration.integration_unit), name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -501,8 +501,17 @@ class CalibrationController(object):
         self.widget.cake_widget.auto_range()
 
         self.widget.spectrum_widget.plot_data(*self.model.pattern.data)
-        self.widget.spectrum_widget.plot_vertical_lines(np.array(self.model.calibration_model.calibrant.get_2th()) /
-                                                        np.pi * 180)
+        self.widget.spectrum_widget.plot_vertical_lines(self.convert_x_value(np.array(
+            self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
+            self.model.current_configuration.integration_unit))
+
+        if self.model.current_configuration.integration_unit == '2th_deg':
+            self.widget.spectrum_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
+        elif self.model.current_configuration.integration_unit == 'q_A^-1':
+            self.widget.spectrum_widget.spectrum_plot.setLabel('bottom', 'Q', 'A<sup>-1</sup>')
+        elif self.model.current_configuration.integration_unit == 'd_A':
+            self.widget.spectrum_widget.spectrum_plot.setLabel('bottom', 'd', 'A')
+
         self.widget.spectrum_widget.view_box.autoRange()
         if self.widget.tab_widget.currentIndex() == 0:
             self.widget.tab_widget.setCurrentIndex(1)
@@ -575,3 +584,27 @@ class CalibrationController(object):
         # x, y = pos
         str = "x: %.1f y: %.1f" % (x, y)
         self.widget.pos_lbl.setText(str)
+
+    def convert_x_value(self, value, previous_unit, new_unit):
+        wavelength = self.model.calibration_model.wavelength
+        if previous_unit == '2th_deg':
+            tth = value
+        elif previous_unit == 'q_A^-1':
+            tth = np.arcsin(
+                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
+        elif previous_unit == 'd_A':
+            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
+        else:
+            tth = 0
+
+        if new_unit == '2th_deg':
+            res = tth
+        elif new_unit == 'q_A^-1':
+            res = 4 * np.pi * \
+                  np.sin(tth / 360 * np.pi) / \
+                  wavelength / 1e10
+        elif new_unit == 'd_A':
+            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+        else:
+            res = 0
+        return res

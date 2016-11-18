@@ -250,6 +250,18 @@ class PatternController(object):
     def set_iteration_mode_time(self):
         self.model.pattern_model.set_file_iteration_mode('time')
 
+    def update_bg_linear_region_to_new_unit(self, previous_unit, new_unit):
+        (xmin, xmax) = self.widget.pattern_widget.get_linear_region()
+        xmin = self.convert_x_value(xmin, previous_unit, new_unit)
+        xmax = self.convert_x_value(xmax, previous_unit, new_unit)
+        if new_unit == 'd_A':
+            self.widget.pattern_widget.set_linear_region(xmax, xmin)
+        else:
+            self.widget.pattern_widget.set_linear_region(xmin, xmax)
+        smooth_width = self.widget.bkg_spectrum_smooth_width_sb.value()
+        smooth_width = self.convert_x_value(smooth_width, previous_unit, new_unit)
+        self.widget.bkg_spectrum_smooth_width_sb.setValue(smooth_width)
+
     def set_unit_tth(self):
         previous_unit = self.integration_unit
         if previous_unit == '2th_deg':
@@ -263,6 +275,8 @@ class PatternController(object):
             self.update_line_position(previous_unit, self.integration_unit)
             self.map_controller.convert_all_units(previous_unit, self.integration_unit,
                                                   self.model.calibration_model.wavelength)  # MAP2D
+
+        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
 
     def set_unit_q(self):
         previous_unit = self.integration_unit
@@ -280,6 +294,8 @@ class PatternController(object):
             self.map_controller.convert_all_units(previous_unit, self.integration_unit,
                                                   self.model.calibration_model.wavelength)  # MAP2D
 
+        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
     def set_unit_d(self):
         previous_unit = self.integration_unit
         if previous_unit == 'd_A':
@@ -296,6 +312,8 @@ class PatternController(object):
             self.update_line_position(previous_unit, self.integration_unit)
             self.map_controller.convert_all_units(previous_unit, self.integration_unit,
                                                   self.model.calibration_model.wavelength)  # MAP2D
+
+        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()[0]
