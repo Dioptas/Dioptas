@@ -233,9 +233,14 @@ class CalibrationController(object):
             wavelength = start_values['wavelength']
 
         self.model.calibration_model.calibrant.setWavelength_change2th(wavelength)
+        try:
+            integration_unit = self.model.current_configuration.integration_unit
+        except:
+            integration_unit = '2th_deg'
+
         self.widget.spectrum_widget.plot_vertical_lines(self.convert_x_value(np.array(
             self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
-            self.model.current_configuration.integration_unit), name=self._calibrants_file_names_list[current_index])
+            integration_unit), name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
