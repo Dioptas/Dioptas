@@ -240,7 +240,7 @@ class CalibrationController(object):
 
         self.widget.spectrum_widget.plot_vertical_lines(self.convert_x_value(np.array(
             self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
-            integration_unit), name=self._calibrants_file_names_list[current_index])
+            integration_unit, wavelength), name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -508,7 +508,7 @@ class CalibrationController(object):
         self.widget.spectrum_widget.plot_data(*self.model.pattern.data)
         self.widget.spectrum_widget.plot_vertical_lines(self.convert_x_value(np.array(
             self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
-            self.model.current_configuration.integration_unit))
+            self.model.current_configuration.integration_unit, None))
 
         if self.model.current_configuration.integration_unit == '2th_deg':
             self.widget.spectrum_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
@@ -590,8 +590,9 @@ class CalibrationController(object):
         str = "x: %.1f y: %.1f" % (x, y)
         self.widget.pos_lbl.setText(str)
 
-    def convert_x_value(self, value, previous_unit, new_unit):
-        wavelength = self.model.calibration_model.wavelength
+    def convert_x_value(self, value, previous_unit, new_unit, wavelength):
+        if wavelength is None:
+            wavelength = self.model.calibration_model.wavelength
         if previous_unit == '2th_deg':
             tth = value
         elif previous_unit == 'q_A^-1':
