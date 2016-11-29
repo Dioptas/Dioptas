@@ -514,9 +514,9 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         if self.show_parameter_in_spectrum:
             if pressure != 0:
-                parameter_str += '{0} GPa '.format(pressure)
+                parameter_str += '{:0.2f} GPa '.format(pressure)
             if temperature != 0 and temperature != 298 and temperature is not None:
-                parameter_str += '{0} K '.format(temperature)
+                parameter_str += '{:0.2f} K '.format(temperature)
 
         self.pattern_widget.rename_phase(ind, parameter_str + name_str)
 
