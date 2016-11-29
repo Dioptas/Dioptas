@@ -20,6 +20,7 @@ import logging
 
 from qtpy import QtCore
 
+from math import sqrt
 from .util.HelperModule import FileNameIterator, get_base_name
 from .util import Pattern
 
@@ -100,6 +101,12 @@ class PatternModel(QtCore.QObject):
                 file_handle.write(header)
             for ind in range(num_points):
                 file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
+        elif filename.endswith('.fxye'):
+            header = header + '\nBANK\t1\t' + str(num_points) + '\t' + str(num_points) + ' CONS\t0.44\t0.87 0 0 FXYE'
+            file_handle.write(header)
+            file_handle.write('\n')
+            for ind in range(num_points):
+                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(100*x[ind], y[ind], sqrt(y[ind])))
         else:
             if header is not None:
                 file_handle.write(header)

@@ -161,7 +161,7 @@ class PatternController(object):
             self.widget, "Save Spectrum Data.",
             os.path.join(self.working_dir['spectrum'],
                          img_filename + '.xy'),
-            ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))
+            ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;png (*.png);;svg (*.svg)'))
 
         subtract_background = True  # when manually saving the spectrum the background will be subtracted
 
@@ -180,6 +180,10 @@ class PatternController(object):
                 self.model.pattern_model.save_pattern(filename, subtract_background=subtract_background)
             elif filename.endswith('.dat'):
                 self.model.pattern_model.save_pattern(filename, subtract_background=subtract_background)
+            elif filename.endswith('.fxye'):
+                header = 'Generated file ' + filename + ' using DIOPTAS\n'
+                header = header + self.model.calibration_model.create_file_header()
+                self.model.pattern_model.save_pattern(filename, header, subtract_background=subtract_background)
             elif filename.endswith('.png'):
                 self.widget.pattern_widget.save_png(filename)
             elif filename.endswith('.svg'):
