@@ -106,7 +106,7 @@ class PatternModel(QtCore.QObject):
             file_handle.write(header)
             file_handle.write('\n')
             for ind in range(num_points):
-                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(100*x[ind], y[ind], sqrt(y[ind])))
+                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(100*x[ind], y[ind], sqrt(abs(y[ind]))))
         else:
             if header is not None:
                 file_handle.write(header)
