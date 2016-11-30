@@ -49,6 +49,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.map_bg_image.setImage(self.bg_image, opacity=0.5)
         self.map_bg_image.setRect(bg_rect)
         self.reset_zoom_btn = QtWidgets.QPushButton(self)
+        self.snapshot_btn = QtWidgets.QPushButton(self)
 
         # ROI Widgets
         self.roi_list = QtWidgets.QListWidget(self)
@@ -91,6 +92,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.roi_select_all_btn.setText("Select All")
         self.add_bg_btn.setText("Add BG Image")
         self.reset_zoom_btn.setText("Reset Zoom")
+        self.snapshot_btn.setText("Snapshot")
         self.bg_opacity_slider.setMinimum(0)
         self.bg_opacity_slider.setMaximum(100)
         self.bg_opacity_slider.setValue(50)
@@ -118,6 +120,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.bg_hbox.addStretch(1)
 
         self.lbl_hbox.addWidget(self.reset_zoom_btn)
+        self.lbl_hbox.addWidget(self.snapshot_btn)
         self.lbl_hbox.addStretch(1)
         self.lbl_hbox.addWidget(self.lbl_map_pos)
 
@@ -142,11 +145,10 @@ class Map2DWidget(QtWidgets.QWidget):
                             QtCore.Qt.X11BypassWindowManagerHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
-    def raise_widget(self, img_model, spec_plot, working_dir, widget):
+    def raise_widget(self, img_model, spec_plot, widget):
         self.img_model = img_model
         self.spec_plot = spec_plot
         self.widget = widget
-        self.working_dir = working_dir
 
         self.widget.img_batch_mode_map_rb.setChecked(True)
         self.show()

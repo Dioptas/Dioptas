@@ -1,18 +1,21 @@
 from qtpy import QtCore, QtWidgets
 import pyqtgraph as pq
+import pyqtgraph.exporters
 import numpy as np
 from PIL import Image
 import re
+import os
 
 from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
 from ...widgets.MapWidgets import OpenBGImageDialog
+from ...widgets.UtilityWidgets import save_file_dialog
 from .MapErrors import *
 
 
 class MapController(object):
-    def __init__(self, widget, dioptas_model):
+    def __init__(self, working_dir, widget, dioptas_model):
         """
         :param widget: Reference to IntegrationWidget
         :param dioptas_model: Reference to DioptasModel object
@@ -22,6 +25,7 @@ class MapController(object):
         :type widget.map_2D_widget: Map2DWidget
         """
 
+        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
         self.map_widget = widget.map_2D_widget
@@ -49,6 +53,7 @@ class MapController(object):
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
         self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
         self.map_widget.reset_zoom_btn.clicked.connect(self.reset_zoom_btn_clicked)
+        self.map_widget.snapshot_btn.clicked.connect(self.snapshot_btn_clicked)
         self.map_widget.roi_math_txt.textEdited.connect(self.roi_math_txt_changed)
         self.map_widget.roi_list.itemSelectionChanged.connect(self.roi_list_selection_changed)
 
@@ -72,6 +77,7 @@ class MapController(object):
         self.map_widget.roi_clear_btn.setEnabled(toggle)
         self.map_widget.roi_select_all_btn.setEnabled(toggle)
         self.map_widget.reset_zoom_btn.setEnabled(toggle)
+        self.map_widget.snapshot_btn.setEnabled(toggle)
         self.map_widget.add_bg_btn.setEnabled(toggle)
         self.map_widget.bg_opacity_slider.setEnabled(toggle)
         if toggle:
@@ -86,6 +92,7 @@ class MapController(object):
         self.map_widget.roi_clear_btn.setStyleSheet(new_style)
         self.map_widget.roi_select_all_btn.setStyleSheet(new_style)
         self.map_widget.reset_zoom_btn.setStyleSheet(new_style)
+        self.map_widget.snapshot_btn.setStyleSheet(new_style)
         self.map_widget.add_bg_btn.setStyleSheet(new_style)
         self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
 
@@ -242,6 +249,13 @@ class MapController(object):
     def reset_zoom_btn_clicked(self):
         self.map_widget.map_view_box.autoRange()
 
+    def snapshot_btn_clicked(self):
+        snapshot_filename = save_file_dialog(self.widget, "Save Map Snapshot.",
+                                             os.path.join(self.working_dir['spectrum'], 'map.png'),
+                                             'PNG (*.png);;JPG (*.jpg);;TIF (*.tif)')
+        exporter = pq.exporters.ImageExporter(self.map_widget.map_view_box)
+        exporter.export(snapshot_filename)
+
     def update_map_image(self):
         if self.bg_image is not None:
             map_opacity = self.map_widget.bg_opacity_slider.value()
@@ -395,7 +409,7 @@ class MapController(object):
     def load_bg_image_file(self):
         load_name, _ = QtWidgets.QFileDialog.getOpenFileName(QtWidgets.QFileDialog(),
                                                              'Choose file name for loading background image',
-                                                             self.map_widget.working_dir['image'], 'TIFF Files (*.tif)')
+                                                             self.working_dir['image'], 'TIFF Files (*.tif)')
         return load_name
 
     def get_bg_hor_ver(self, tags):
