@@ -316,7 +316,7 @@ class ImageController(object):
 
     def map_2d(self):  # MAP2D
         self.widget.map_2D_widget.raise_widget(self.model.img_model, self.widget.pattern_widget.spectrum_plot,
-                                               self.working_dir, self.widget)
+                                               self.widget)
 
     def get_integration_unit(self):
         if self.widget.spec_tth_btn.isChecked():

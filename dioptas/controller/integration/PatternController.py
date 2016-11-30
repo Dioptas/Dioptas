@@ -50,7 +50,7 @@ class PatternController(object):
         self.widget = widget
         self.model = dioptas_model
 
-        self.map_controller = MapController(self.widget, self.model)
+        self.map_controller = MapController(self.working_dir, self.widget, self.model)
 
         self.integration_unit = '2th_deg'
         self.autocreate_pattern = False
