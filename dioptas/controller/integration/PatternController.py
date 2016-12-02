@@ -261,22 +261,37 @@ class PatternController(object):
         self.model.pattern_model.set_file_iteration_mode('time')
 
     def update_bg_linear_region_to_new_unit(self, previous_unit, new_unit):
+        self.model.pattern_model.done_changing_unit = False
+        self.widget.pattern_widget.linear_region_item.blockSignals(True)
+        self.widget.bkg_spectrum_x_min_txt.blockSignals(True)
+        self.widget.bkg_spectrum_x_max_txt.blockSignals(True)
         (xmin, xmax) = self.widget.pattern_widget.get_linear_region()
         xmin = self.convert_x_value(xmin, previous_unit, new_unit)
         xmax = self.convert_x_value(xmax, previous_unit, new_unit)
         if new_unit == 'd_A':
             self.widget.pattern_widget.set_linear_region(xmax, xmin)
+            self.widget.bkg_spectrum_x_min_txt.setText('{0:.4g}'.format(xmax))
+            self.widget.bkg_spectrum_x_max_txt.setText('{0:.4g}'.format(xmin))
         else:
             self.widget.pattern_widget.set_linear_region(xmin, xmax)
+            self.widget.bkg_spectrum_x_min_txt.setText('{0:.4g}'.format(xmin))
+            self.widget.bkg_spectrum_x_max_txt.setText('{0:.4g}'.format(xmax))
         smooth_width = self.widget.bkg_spectrum_smooth_width_sb.value()
         smooth_width = self.convert_x_value(smooth_width, previous_unit, new_unit)
         self.widget.bkg_spectrum_smooth_width_sb.setValue(smooth_width)
+        self.widget.pattern_widget.linear_region_item.blockSignals(False)
+        self.widget.bkg_spectrum_x_min_txt.blockSignals(False)
+        self.widget.bkg_spectrum_x_max_txt.blockSignals(False)
+
+    def finish_update_bg_linear_region(self):
+        self.model.pattern_model.done_changing_unit = True
 
     def set_unit_tth(self):
         previous_unit = self.integration_unit
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
+        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
         self.model.current_configuration.integration_unit = '2th_deg'
         self.widget.pattern_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
         self.widget.pattern_widget.spectrum_plot.invertX(False)
@@ -284,13 +299,16 @@ class PatternController(object):
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
 
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+        self.finish_update_bg_linear_region()
+
 
     def set_unit_q(self):
         previous_unit = self.integration_unit
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
+        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
         self.model.current_configuration.integration_unit = "q_A^-1"
 
         self.widget.pattern_widget.spectrum_plot.invertX(False)
@@ -300,13 +318,15 @@ class PatternController(object):
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
 
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+        self.finish_update_bg_linear_region()
 
     def set_unit_d(self):
         previous_unit = self.integration_unit
         if previous_unit == 'd_A':
             return
         self.integration_unit = 'd_A'
+        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
         self.model.current_configuration.integration_unit = 'd_A'
 
         self.widget.pattern_widget.spectrum_plot.setLabel(
@@ -317,7 +337,7 @@ class PatternController(object):
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
 
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+        self.finish_update_bg_linear_region()
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()[0]
