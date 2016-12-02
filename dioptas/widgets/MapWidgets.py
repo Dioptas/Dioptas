@@ -129,6 +129,10 @@ class Map2DWidget(QtWidgets.QWidget):
 
         self.map_view_box.addItem(self.map_bg_image, ignoreBounds=True)  # MAPBG
         self.map_view_box.addItem(self.map_image)
+        # self.map_hor_axis = pq.AxisItem(orientation='bottom')
+        # self.hist_layout.addItem(self.map_hor_axis)
+        # self.map_ver_axis = pq.AxisItem(orientation='left')
+        # self.hist_layout.addItem(self.map_ver_axis)
         self.map_histogram_LUT = HistogramLUTItem(self.map_image, orientation='vertical')
         self.hist_layout.addItem(self.map_histogram_LUT, 0, 1)
 
