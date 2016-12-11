@@ -273,12 +273,6 @@ class ImgModel(QtCore.QObject):
             self.file_name_iterator.create_timed_file_list = True
             self.file_name_iterator.update_filename(self.filename)
 
-    def get_img_data(self):
-        return self.img_data
-
-    def get_raw_img_data(self):
-        return self._img_data
-
     def _calculate_img_data(self):
         """
         Calculates compound img_data based on the state of the object. This function is used internally to not compute
@@ -357,6 +351,11 @@ class ImgModel(QtCore.QObject):
             elif self._background_data is not None and self._img_corrections.has_items():
                 return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
         return self._img_data * self.factor
+
+
+    @property
+    def raw_img_data(self):
+        return self._img_data
 
     def rotate_img_p90(self):
         """

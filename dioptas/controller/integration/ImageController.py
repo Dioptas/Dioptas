@@ -82,8 +82,7 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_widget.plot_image(self.model.img_model.get_raw_img_data(),
-                                          False)
+        self.widget.img_widget.plot_image(self.model.img_model.raw_img_data, False)
 
         if auto_scale:
             self.widget.img_widget.auto_range()
