@@ -97,7 +97,7 @@ class ImgModel(QtCore.QObject):
         img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
-        filename = str(filename).replace('\\', '/')  # since it could also be QString
+        filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
@@ -235,22 +235,22 @@ class ImgModel(QtCore.QObject):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def load_next_file(self, step=1):
+    def load_next_file(self, step=1, pos=None):
         """
         Loads the next file based on the current iteration mode and the step you specify.
         :param step: Defining how much you want to increment the file number. (default=1)
         """
-        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step)
+        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step, pos=pos)
         if next_file_name is not None:
             self.load(next_file_name)
 
-    def load_previous_file(self, step=1):
+    def load_previous_file(self, step=1, pos=None):
         """
         Loads the previous file based on the current iteration mode and the step specified
         :param step: Defining how much you want to decrement the file number. (default=1)
         """
         previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode,
-                                                                           step=step)
+                                                                           step=step, pos=pos)
         if previous_file_name is not None:
             self.load(previous_file_name)
 
