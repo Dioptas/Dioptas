@@ -14,12 +14,11 @@ dependencies:
 
   override:
     # Download/install conda (if not already cached)
-    - unset PYTHONPATH
-    - env -u PYTHONPATH
     - if [ ! -d $CONDA_ROOT ]; then
           echo "Installing Miniconda...";
           wget --quiet https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh &&
           bash Miniconda-latest-Linux-x86_64.sh -b -p ${CONDA_ROOT};
+          export PATH=/home/ubuntu/miniconda/bin:$PATH;
           conda install --yes pip numpy pillow scipy pandas dateutil nose h5py pyqt;
           conda install --yes scikit-image cython future qtpy;
           conda config --add channels cprescher;
@@ -27,6 +26,7 @@ dependencies:
           pip install mock pytest pytest-cov pycifrw pyepics;
       else
           echo "Using cached Miniconda install";
+          export PATH=/home/ubuntu/miniconda/bin:$PATH;
       fi
 ## Customize test commands
 test:
