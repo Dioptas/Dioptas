@@ -154,12 +154,12 @@ class CalibrationModel(object):
         """
 
         if algorithm == 'Massif':
-            self.peak_search_algorithm = Massif(self.img_model.get_raw_img_data())
+            self.peak_search_algorithm = Massif(self.img_model.raw_img_data)
         elif algorithm == 'Blob':
             if mask is not None:
-                self.peak_search_algorithm = BlobDetection(self.img_model.get_raw_img_data() * mask)
+                self.peak_search_algorithm = BlobDetection(self.img_model.raw_img_data * mask)
             else:
-                self.peak_search_algorithm = BlobDetection(self.img_model.get_raw_img_data())
+                self.peak_search_algorithm = BlobDetection(self.img_model.raw_img_data)
             self.peak_search_algorithm.process()
         else:
             return
