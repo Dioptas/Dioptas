@@ -14,6 +14,7 @@ dependencies:
 
   override:
     # Download/install conda (if not already cached)
+    - unset PYTHONPATH
     - if [ ! -d $CONDA_ROOT ]; then
           echo "Installing Miniconda...";
           wget --quiet https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh &&
