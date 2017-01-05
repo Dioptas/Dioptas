@@ -13,7 +13,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class ImgConfigurationManagerTest(QtTest):
+class DioptasModelTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
 
@@ -161,4 +161,27 @@ class ImgConfigurationManagerTest(QtTest):
         self.assertEqual(self.model.configurations[1].img_model.filename,
                          os.path.abspath(os.path.join(data_path, "image_001.tif")))
 
+    def test_unit_change_with_auto_background_subtraction(self):
+        # load calibration and image
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
 
+        # check that background subtraction works
+        x, y = self.model.pattern_model.pattern.data
+        x_max_2th = np.max(x)
+        roi = (0, np.max(x)+1)
+        self.model.pattern_model.set_auto_background_subtraction((2, 50, 50), roi)
+        new_y = self.model.pattern_model.pattern.y
+        self.assertNotEqual(np.sum(y-new_y), 0)
+
+        # change the unit to q
+        self.model.integration_unit = 'q_A^-1'
+
+        # check that the pattern is integrated with different unit
+        x, y = self.model.pattern_model.pattern.data
+        x_max_q = np.max(x)
+        self.assertLess(x_max_q, x_max_2th)
+
+        # check that the background roi has changed
+        self.assertNotEqual(self.model.pattern_model.pattern.auto_background_subtraction_roi, roi)
+        self.assertTrue(self.model.pattern_model.pattern.auto_background_subtraction)
