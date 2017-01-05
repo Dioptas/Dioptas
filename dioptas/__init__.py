@@ -25,7 +25,6 @@ del get_versions
 if __version__ == "0+unknown":
     __version__ = "0.3.2.beta"
 
-
 import sys
 import os
 import time
