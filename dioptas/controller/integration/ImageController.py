@@ -188,11 +188,14 @@ class ImageController(object):
         self.widget.img_widget.mouse_left_clicked.connect(self.img_mouse_click)
         self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
 
-    def load_file(self):
-        filenames = open_files_dialog(self.widget, "Load image data file(s)",
-                                      self.working_dir['image'])
+    def load_file(self, filename=''):
+        if filename == '' or filename == False or filename is None:
+            filenames = open_files_dialog(self.widget, "Load image data file(s)",
+                                          self.working_dir['image'])
+        else:
+            filenames = [filename]
 
-        if filenames is not None and len(filenames) is not 0:
+        if filenames is not None and filenames is not False and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))
             if len(filenames) == 1:
                 self.model.img_model.load(str(filenames[0]))
@@ -366,7 +369,7 @@ class ImageController(object):
         new_filename = str(self.widget.img_filename_txt.text())
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
-                self.load_file(os.path.join(current_directory, new_filename))
+                self.load_file(os.path.join(current_directory, new_filename).replace('\\', '/'))
             except TypeError:
                 self.widget.img_filename_txt.setText(current_filename)
         else:
