@@ -97,8 +97,12 @@ class IntegrationMockFunctionalTest(QtTest):
         self.assertEqual(self.model.calibration_model.cake_geometry.pixel1, px1)
         self.assertEqual(self.model.calibration_model.cake_geometry.pixel2, px2)
 
+        # img data has doubled dimensions
         self.assertEqual(self.model.img_data.shape[0], 2 * img_shape[0])
         self.assertEqual(self.model.img_data.shape[1], 2 * img_shape[1])
+        # but plot should still be the same:
+        self.assertEqual(self.integration_widget.img_widget.img_data.shape[0], img_shape[0])
+        self.assertEqual(self.integration_widget.img_widget.img_data.shape[1], img_shape[1])
 
         self.model.mask_model.mask_below_threshold(self.model.img_model._img_data, 100)
         QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
