@@ -82,11 +82,12 @@ class Pattern(QtCore.QObject):
         self._background_pattern = None
         self.recalculate_pattern()
 
-    def set_auto_background_subtraction(self, parameters, roi=None):
+    def set_auto_background_subtraction(self, parameters, roi=None, recalc_pattern=True):
         self.auto_background_subtraction = True
         self.auto_background_subtraction_parameters = parameters
         self.auto_background_subtraction_roi = roi
-        self.recalculate_pattern()
+        if recalc_pattern:
+            self.recalculate_pattern()
 
     def unset_auto_background_subtraction(self):
         self.auto_background_subtraction = False

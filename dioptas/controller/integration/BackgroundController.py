@@ -148,7 +148,8 @@ class BackgroundController(object):
     def bkg_spectrum_parameters_changed(self):
         bkg_spectrum_parameters = self.widget.get_bkg_spectrum_parameters()
         bkg_spectrum_roi = self.widget.get_bkg_spectrum_roi()
-        self.model.pattern_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+        if self.widget.qa_bkg_spectrum_btn.isChecked():
+            self.model.pattern_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
 
     def bkg_spectrum_inspect_btn_toggled_callback(self, checked):
         self.widget.bkg_spectrum_inspect_btn.blockSignals(True)
