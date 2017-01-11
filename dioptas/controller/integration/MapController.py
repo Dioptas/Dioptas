@@ -1,18 +1,21 @@
 from qtpy import QtCore, QtWidgets
 import pyqtgraph as pq
+import pyqtgraph.exporters
 import numpy as np
 from PIL import Image
 import re
+import os
 
 from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
 from ...widgets.MapWidgets import OpenBGImageDialog
+from ...widgets.UtilityWidgets import save_file_dialog
 from .MapErrors import *
 
 
 class MapController(object):
-    def __init__(self, widget, dioptas_model):
+    def __init__(self, working_dir, widget, dioptas_model):
         """
         :param widget: Reference to IntegrationWidget
         :param dioptas_model: Reference to DioptasModel object
@@ -22,6 +25,7 @@ class MapController(object):
         :type widget.map_2D_widget: Map2DWidget
         """
 
+        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
         self.map_widget = widget.map_2D_widget
@@ -41,6 +45,7 @@ class MapController(object):
 
         self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
+        self.map_widget.roi_add_phase_btn.clicked.connect(self.btn_roi_add_phase_clicked)
         self.map_widget.roi_del_btn.clicked.connect(self.btn_roi_del_clicked)
         self.map_widget.roi_clear_btn.clicked.connect(self.btn_roi_clear_clicked)
         self.map_widget.roi_toggle_btn.clicked.connect(self.btn_roi_toggle_clicked)
@@ -48,7 +53,9 @@ class MapController(object):
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
         self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
         self.map_widget.reset_zoom_btn.clicked.connect(self.reset_zoom_btn_clicked)
+        self.map_widget.snapshot_btn.clicked.connect(self.snapshot_btn_clicked)
         self.map_widget.roi_math_txt.textEdited.connect(self.roi_math_txt_changed)
+        self.map_widget.roi_list.itemSelectionChanged.connect(self.roi_list_selection_changed)
 
         self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
         self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
@@ -70,6 +77,7 @@ class MapController(object):
         self.map_widget.roi_clear_btn.setEnabled(toggle)
         self.map_widget.roi_select_all_btn.setEnabled(toggle)
         self.map_widget.reset_zoom_btn.setEnabled(toggle)
+        self.map_widget.snapshot_btn.setEnabled(toggle)
         self.map_widget.add_bg_btn.setEnabled(toggle)
         self.map_widget.bg_opacity_slider.setEnabled(toggle)
         if toggle:
@@ -84,6 +92,7 @@ class MapController(object):
         self.map_widget.roi_clear_btn.setStyleSheet(new_style)
         self.map_widget.roi_select_all_btn.setStyleSheet(new_style)
         self.map_widget.reset_zoom_btn.setStyleSheet(new_style)
+        self.map_widget.snapshot_btn.setStyleSheet(new_style)
         self.map_widget.add_bg_btn.setStyleSheet(new_style)
         self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
 
@@ -103,15 +112,22 @@ class MapController(object):
 
     # Controls for ROI
 
-    def btn_roi_add_clicked(self):
+    def btn_roi_add_clicked(self, params):
         # calculate ROI position
-        tth_start = self.map_model.theta_center - self.map_model.theta_range
-        tth_end = self.map_model.theta_center + self.map_model.theta_range
+        try:
+            theta_center = params['theta_center']
+        except (KeyError, TypeError):
+            theta_center = self.map_model.theta_center
+        tth_start = theta_center - self.map_model.theta_range
+        tth_end = theta_center + self.map_model.theta_range
         roi_start = self.map_model.convert_units(tth_start, '2th_deg', self.map_model.units, self.map_model.wavelength)
         roi_end = self.map_model.convert_units(tth_end, '2th_deg', self.map_model.units, self.map_model.wavelength)
 
         # add ROI to list
         roi_num = self.map_widget.roi_num
+        if roi_num > 25:
+            MapError(too_many_rois)
+            return
         roi_name = self.generate_roi_name(roi_start, roi_end, roi_num)
         roi_list_item = QtWidgets.QListWidgetItem(self.map_widget.roi_list)
         roi_list_item.setText(roi_name)
@@ -135,6 +151,18 @@ class MapController(object):
         if self.map_widget.roi_num == 1:
             self.toggle_map_widgets_enable(True)
 
+        self.roi_list_selection_changed()
+
+    def btn_roi_add_phase_clicked(self):
+        cur_ind = self.widget.get_selected_phase_row()
+        if cur_ind < 0:
+            return
+        phase_lines = self.model.phase_model.get_lines_d(cur_ind)
+        for line in phase_lines[0:5]:
+            tc = {'theta_center': self.map_model.convert_units(line[0], 'd_A', self.map_model.units,
+                                                               self.map_model.wavelength)}
+            self.btn_roi_add_clicked(tc)
+
     # create a function for each ROI when ROI is modified
     def make_roi_changed(self, curr_map_roi):
         def roi_changed():
@@ -148,6 +176,16 @@ class MapController(object):
             self.map_widget.roi_list.item(row).setSelected(True)
 
         return roi_changed
+
+    def roi_list_selection_changed(self):
+        selected_rois = self.map_widget.roi_list.selectedItems()
+        for roi_item in self.map_widget.map_roi:
+            if self.map_widget.map_roi[roi_item]['List_Obj'] in selected_rois:
+                self.map_widget.map_roi[roi_item]['Obj'].setBrush(pq.mkBrush(color=(255, 255, 0, 100)))
+            else:
+                self.map_widget.map_roi[roi_item]['Obj'].setBrush(pq.mkBrush(color=(255, 0, 255, 100)))
+        # pq.QtGui.QGuiApplication.processEvents()
+        self.map_widget.widget.repaint()
 
     def generate_roi_name(self, roi_start, roi_end, roi_num):
         roi_name = chr(roi_num+65) + '_' + '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
@@ -210,6 +248,13 @@ class MapController(object):
 
     def reset_zoom_btn_clicked(self):
         self.map_widget.map_view_box.autoRange()
+
+    def snapshot_btn_clicked(self):
+        snapshot_filename = save_file_dialog(self.widget, "Save Map Snapshot.",
+                                             os.path.join(self.working_dir['spectrum'], 'map.png'),
+                                             'PNG (*.png);;JPG (*.jpg);;TIF (*.tif)')
+        exporter = pq.exporters.ImageExporter(self.map_widget.map_view_box)
+        exporter.export(snapshot_filename)
 
     def update_map_image(self):
         if self.bg_image is not None:
@@ -364,7 +409,7 @@ class MapController(object):
     def load_bg_image_file(self):
         load_name, _ = QtWidgets.QFileDialog.getOpenFileName(QtWidgets.QFileDialog(),
                                                              'Choose file name for loading background image',
-                                                             self.map_widget.working_dir['image'], 'TIFF Files (*.tif)')
+                                                             self.working_dir['image'], 'TIFF Files (*.tif)')
         return load_name
 
     def get_bg_hor_ver(self, tags):

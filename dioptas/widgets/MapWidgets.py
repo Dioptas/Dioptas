@@ -49,12 +49,14 @@ class Map2DWidget(QtWidgets.QWidget):
         self.map_bg_image.setImage(self.bg_image, opacity=0.5)
         self.map_bg_image.setRect(bg_rect)
         self.reset_zoom_btn = QtWidgets.QPushButton(self)
+        self.snapshot_btn = QtWidgets.QPushButton(self)
 
         # ROI Widgets
         self.roi_list = QtWidgets.QListWidget(self)
         self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.roi_math_txt = QtWidgets.QLineEdit()
         self.roi_add_btn = QtWidgets.QPushButton(self)
+        self.roi_add_phase_btn = QtWidgets.QPushButton(self)
         self.roi_del_btn = QtWidgets.QPushButton(self)
         self.roi_clear_btn = QtWidgets.QPushButton(self)
         self.roi_toggle_btn = QtWidgets.QPushButton(self)
@@ -71,15 +73,17 @@ class Map2DWidget(QtWidgets.QWidget):
         # ROI positions
         self.roi_grid = QtWidgets.QGridLayout()
         self.roi_grid.addWidget(self.roi_add_btn, 0, 0, 1, 1)
-        self.roi_grid.addWidget(self.roi_del_btn, 0, 1, 1, 1)
-        self.roi_grid.addWidget(self.roi_clear_btn, 1, 0, 1, 1)
-        self.roi_grid.addWidget(self.roi_toggle_btn, 1, 1, 1, 1)
+        self.roi_grid.addWidget(self.roi_add_phase_btn, 0, 1, 1, 1)
+        self.roi_grid.addWidget(self.roi_del_btn, 1, 0, 1, 1)
+        self.roi_grid.addWidget(self.roi_clear_btn, 1, 1, 1, 1)
+        self.roi_grid.addWidget(self.roi_toggle_btn, 2, 1, 1, 1)
         self.roi_grid.addWidget(self.roi_select_all_btn, 2, 0, 1, 1)
 
         # Widget Properties
         self.setWindowTitle("2D Map")
         self.update_map_btn.setText("Update Map")
         self.roi_add_btn.setText("Add Range")
+        self.roi_add_phase_btn.setText("Add Phase")
         self.roi_del_btn.setText("Remove Range")
         self.roi_clear_btn.setText("Clear")
         self.roi_toggle_btn.setText("Toggle Show")
@@ -88,6 +92,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.roi_select_all_btn.setText("Select All")
         self.add_bg_btn.setText("Add BG Image")
         self.reset_zoom_btn.setText("Reset Zoom")
+        self.snapshot_btn.setText("Snapshot")
         self.bg_opacity_slider.setMinimum(0)
         self.bg_opacity_slider.setMaximum(100)
         self.bg_opacity_slider.setValue(50)
@@ -115,6 +120,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.bg_hbox.addStretch(1)
 
         self.lbl_hbox.addWidget(self.reset_zoom_btn)
+        self.lbl_hbox.addWidget(self.snapshot_btn)
         self.lbl_hbox.addStretch(1)
         self.lbl_hbox.addWidget(self.lbl_map_pos)
 
@@ -123,6 +129,10 @@ class Map2DWidget(QtWidgets.QWidget):
 
         self.map_view_box.addItem(self.map_bg_image, ignoreBounds=True)  # MAPBG
         self.map_view_box.addItem(self.map_image)
+        # self.map_hor_axis = pq.AxisItem(orientation='bottom')
+        # self.hist_layout.addItem(self.map_hor_axis)
+        # self.map_ver_axis = pq.AxisItem(orientation='left')
+        # self.hist_layout.addItem(self.map_ver_axis)
         self.map_histogram_LUT = HistogramLUTItem(self.map_image, orientation='vertical')
         self.hist_layout.addItem(self.map_histogram_LUT, 0, 1)
 
@@ -139,11 +149,10 @@ class Map2DWidget(QtWidgets.QWidget):
                             QtCore.Qt.X11BypassWindowManagerHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
-    def raise_widget(self, img_model, spec_plot, working_dir, widget):
+    def raise_widget(self, img_model, spec_plot, widget):
         self.img_model = img_model
         self.spec_plot = spec_plot
         self.widget = widget
-        self.working_dir = working_dir
 
         self.widget.img_batch_mode_map_rb.setChecked(True)
         self.show()

@@ -81,8 +81,7 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_widget.plot_image(self.model.img_data,
-                                          False)
+        self.widget.img_widget.plot_image(self.model.img_model.raw_img_data, False)
 
         if auto_scale:
             self.widget.img_widget.auto_range()
@@ -189,9 +188,13 @@ class ImageController(object):
         self.widget.img_widget.mouse_left_clicked.connect(self.img_mouse_click)
         self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
 
-    def load_file(self):
-        filenames = open_files_dialog(self.widget, "Load image data file(s)",
-                                      self.working_dir['image'])
+    def load_file(self, *args, **kwargs):
+        filename = kwargs.get('filename', None)
+        if filename is None:
+            filenames = open_files_dialog(self.widget, "Load image data file(s)",
+                                          self.working_dir['image'])
+        else:
+            filenames = [filename]
 
         if filenames is not None and len(filenames) is not 0:
             self.working_dir['image'] = os.path.dirname(str(filenames[0]))
@@ -316,7 +319,8 @@ class ImageController(object):
 
     def map_2d(self):  # MAP2D
         self.widget.map_2D_widget.raise_widget(self.model.img_model, self.widget.pattern_widget.spectrum_plot,
-                                               self.working_dir, self.widget)
+                                               self.widget)
+
     def get_integration_unit(self):
         if self.widget.spec_tth_btn.isChecked():
             return '2th_deg'
@@ -383,7 +387,7 @@ class ImageController(object):
         new_filename = str(self.widget.img_filename_txt.text())
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
-                self.load_file(os.path.join(current_directory, new_filename))
+                self.load_file(filename=os.path.join(current_directory, new_filename).replace('\\', '/'))
             except TypeError:
                 self.widget.img_filename_txt.setText(current_filename)
         else:
