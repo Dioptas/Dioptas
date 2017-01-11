@@ -203,9 +203,11 @@ class PatternController(object):
             elif filename.endswith('.svg'):
                 self.widget.pattern_widget.save_svg(filename)
 
-    def load(self):
-        filename = open_file_dialog(self.widget, caption="Load Spectrum",
-                                    directory=self.working_dir['spectrum'])
+    def load(self, *args, **kwargs):
+        filename = kwargs.get('filename', None)
+        if filename is None:
+            filename = open_file_dialog(self.widget, caption="Load Spectrum",
+                                        directory=self.working_dir['spectrum'])
 
         if filename is not '':
             self.working_dir['spectrum'] = os.path.dirname(filename)
@@ -237,7 +239,7 @@ class PatternController(object):
         new_filename = str(self.widget.spec_filename_txt.text())
         if os.path.isfile(os.path.join(current_directory, new_filename)):
             try:
-                self.load(os.path.join(current_directory, new_filename))
+                self.load(filename=os.path.join(current_directory, new_filename))
             except TypeError:
                 self.widget.spec_filename_txt.setText(current_filename)
         else:
