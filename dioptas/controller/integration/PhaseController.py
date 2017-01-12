@@ -30,6 +30,7 @@ from ...widgets.UtilityWidgets import open_files_dialog
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 from ...widgets.UtilityWidgets import CifConversionParametersDialog
+from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 
 class PhaseController(object):
@@ -61,6 +62,8 @@ class PhaseController(object):
         self.connect_click_function(self.widget.phase_del_btn, self.remove_btn_click_callback)
         self.connect_click_function(self.widget.phase_clear_btn, self.clear_phases)
         self.connect_click_function(self.widget.phase_edit_btn, self.edit_btn_click_callback)
+        self.connect_click_function(self.widget.phase_save_btn, self.save_btn_clicked_callback)
+        self.connect_click_function(self.widget.phase_load_btn, self.load_btn_clicked_callback)
 
         self.widget.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
         self.widget.phase_temperature_step_txt.editingFinished.connect(self.update_phase_temperature_step)
@@ -94,7 +97,7 @@ class PhaseController(object):
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
 
-    def add_btn_click_callback(self):
+    def add_btn_click_callback(self, *args, **kwargs):
         """
         Loads a new phase from jcpds file.
         :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
@@ -103,7 +106,10 @@ class PhaseController(object):
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not load phase without calibration.")
 
-        filenames = open_files_dialog(self.widget, "Load Phase(s).", self.working_dir['phase'])
+        filenames = [kwargs.get('filenames', None)]
+
+        if filenames[0] is None:
+            filenames = open_files_dialog(self.widget, "Load Phase(s).", self.working_dir['phase'])
 
         if len(filenames):
             self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
@@ -201,6 +207,48 @@ class PhaseController(object):
                     self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
                 else:
                     self.jcpds_editor_controller.widget.close()
+
+    def load_btn_clicked_callback(self):
+        filename = open_file_dialog(self.widget, caption="Load Phase List", directory=self.working_dir['phase'])
+        with open(filename, 'r') as phase_file:
+            if phase_file == '':
+                return
+
+            for line in phase_file.readlines():
+                line = line.replace('\n', '')
+                phase, use_flag, color, name, pressure, temperature = line.split(',')
+                self.add_btn_click_callback(filenames=phase)
+                row = self.widget.phase_tw.rowCount() - 1
+                self.widget.phase_show_cbs[row].setChecked(bool(use_flag))
+                self.widget.phase_color_btns[row].setStyleSheet('background-color:' + color)
+                self.widget.pattern_widget.set_phase_color(row, color)
+                self.widget.phase_tw.item(row, 2).setText(name)
+                self.widget.set_phase_pressure(row, pressure.replace(' GPa', ''))
+                self.model.phase_model.set_pressure(row, float(pressure.replace(' GPa', '')))
+                temperature = temperature.replace(' K', '').replace('-', '')
+                if temperature is not '':
+                    self.widget.set_phase_temperature(row, temperature)
+                    self.model.phase_model.set_temperature(row, float(temperature))
+                self.update_phase_intensities(row)
+
+    def save_btn_clicked_callback(self):
+        if len(self.model.phase_model.phase_files) < 1:
+            return
+        filename = save_file_dialog(
+            self.widget, "Save Phase List.", os.path.join(self.working_dir['phase'], 'phase_list.txt'), 'Text (*.txt)')
+        if filename == '':
+            return
+
+        with open(filename, 'w') as phase_file:
+            for file_name, phase_cb, color_btn, row in zip(self.model.phase_model.phase_files,
+                                                           self.widget.phase_show_cbs,
+                                                           self.widget.phase_color_btns,
+                                                           range(self.widget.phase_tw.rowCount())):
+                phase_file.write(file_name + ',' + str(phase_cb.isChecked()) + ',' +
+                                 color_btn.styleSheet().replace('background-color:', '').replace(' ', '') + ',' +
+                                 self.widget.phase_tw.item(row, 2).text() + ',' +
+                                 self.widget.phase_tw.item(row, 3).text() + ',' +
+                                 self.widget.phase_tw.item(row, 4).text() + '\n')
 
     def clear_phases(self):
         """

@@ -140,6 +140,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_edit_btn = phase_control_widget.edit_btn
         self.phase_del_btn = phase_control_widget.delete_btn
         self.phase_clear_btn = phase_control_widget.clear_btn
+        self.phase_save_btn = phase_control_widget.save_btn
+        self.phase_load_btn = phase_control_widget.load_btn
         self.phase_tw = phase_control_widget.phase_tw
         self.phase_pressure_sb = phase_control_widget.pressure_sb
         self.phase_pressure_step_txt = phase_control_widget.pressure_step_txt
