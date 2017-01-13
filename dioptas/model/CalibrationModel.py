@@ -62,6 +62,7 @@ class CalibrationModel(object):
         self.use_mask = False
         self.filename = ''
         self.calibration_name = 'None'
+        self.spectrum_geometry.wavelength = 3.344e-11
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
         self._calibrants_working_dir = calibrants_folder
