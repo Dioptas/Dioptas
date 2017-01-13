@@ -18,7 +18,7 @@
 
 import os
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtGui
 
 from .ConfigurationWidget import ConfigurationWidget
 from .CalibrationWidget import CalibrationWidget
@@ -56,6 +56,8 @@ class MainWidget(QtWidgets.QWidget):
 
         self.set_system_dependent_stylesheet()
         self.set_stylesheet()
+
+        self.setWindowIcon(QtGui.QIcon(os.path.join(widget_path, 'icns/icon.svg')))
 
     def set_stylesheet(self):
         file = open(os.path.join(widget_path, "stylesheet.qss"))
