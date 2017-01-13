@@ -230,6 +230,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.qa_set_as_background_btn = pattern_widget.as_bkg_btn
         self.load_calibration_btn = pattern_widget.load_calibration_btn
         self.calibration_lbl = pattern_widget.calibration_lbl
+        self.set_wavelnegth_btn = pattern_widget.set_wavelength_btn
+        self.wavelength_lbl = pattern_widget.wavelength_lbl
         self.spec_tth_btn = pattern_widget.tth_btn
         self.spec_q_btn = pattern_widget.q_btn
         self.spec_d_btn = pattern_widget.d_btn
