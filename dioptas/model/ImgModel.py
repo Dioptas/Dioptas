@@ -29,7 +29,7 @@ import fabio
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
-from .util.ImgCorrection import ImgCorrectionManager
+from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface
 
 logger = logging.getLogger(__name__)
 
@@ -44,20 +44,12 @@ class ImgModel(QtCore.QObject):
         - setting an absorption correction (img_data is divided by this)
         - using supersampling (splitting each pixel into n**2 pixel with equal intensity)
 
-    It inherits the Observable interface for implementing the observer pattern. To subscribe a function to changes in
-    ImgData use:
-        img_data = ImgData()
-        img_data.subscribe(function)
-
-    The function will be called every time the img_data has changed.
+    In order to subscribe to changes of the data in the ImgModel, please use the img_changed QtSignal.
+    The Signal will be called every time the img_data has changed.
     """
     img_changed = QtCore.Signal()
 
     def __init__(self):
-        """
-        Defines all object variables and creates a dummy image.
-        :return:
-        """
         super(ImgModel, self).__init__()
         self.filename = ''
         self.img_transformations = []
@@ -87,7 +79,7 @@ class ImgModel(QtCore.QObject):
         self.motors_info = {}
         self._img_corrections = ImgCorrectionManager()
 
-        self._create_dummy_img()
+        self._img_data = np.zeros((2048, 2048))
 
         ### setting up autoprocess
         self._autoprocess = False
@@ -98,17 +90,14 @@ class ImgModel(QtCore.QObject):
         )
         self._directory_watcher.file_added.connect(self.load)
 
-    def _create_dummy_img(self):
-        self._img_data = np.zeros((2048, 2048))
-
     def load(self, filename):
         """
         Loads an image file in any format known by fabIO. Automatically performs all previous img transformations,
-        performs supersampling and recalculates background subtracted and absorption corrected image data. Observers
-        will be notified after the process.
+        performs supersampling and recalculates background subtracted and absorption corrected image data. The
+        img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
-        filename = str(filename).replace('\\', '/')  # since it could also be QString
+        filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
@@ -132,6 +121,10 @@ class ImgModel(QtCore.QObject):
         self.img_changed.emit()
 
     def save(self, filename):
+        """
+        Saves the current file as another image file, the raw data is used for saving.
+        :param filename: name of the saved file, extensions defines the format, please see fabio library for reference
+        """
         try:
             self._img_data_fabio.save(filename)
         except AttributeError:
@@ -143,7 +136,7 @@ class ImgModel(QtCore.QObject):
         """
         Loads an image file as background in any format known by fabIO. Automatically performs all previous img
         transformations, supersampling and recalculates background subtracted and absorption corrected image data.
-        Observers will be notified after the process.
+        The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
         self.background_filename = filename
@@ -167,8 +160,8 @@ class ImgModel(QtCore.QObject):
     def add(self, filename):
         """
         Adds an image file in any format known by fabIO. Automatically performs all previous img transformations,
-        performs supersampling and recalculates background subtracted and absorption corrected image data. Observers
-        will be notified after the process.
+        performs supersampling and recalculates background subtracted and absorption corrected image data.
+        The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
         filename = str(filename)  # since it could also be QString
@@ -243,28 +236,53 @@ class ImgModel(QtCore.QObject):
         self.img_changed.emit()
 
     def load_next_file(self, step=1, pos=None):
+        """
+        Loads the next file based on the current iteration mode and the step you specify.
+        :param step: Defining how much you want to increment the file number. (default=1)
+        """
         next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step, pos=pos)
         if next_file_name is not None:
             self.load(next_file_name)
 
     def load_previous_file(self, step=1, pos=None):
+        """
+        Loads the previous file based on the current iteration mode and the step specified
+        :param step: Defining how much you want to decrement the file number. (default=1)
+        """
         previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode,
-                                                                           step=step,
-                                                                           pos=pos)
+                                                                           step=step, pos=pos)
         if previous_file_name is not None:
             self.load(previous_file_name)
 
     def load_next_folder(self, mec_mode=False):
+        """
+        Loads a file with the current filename in the next folder, whereby the folder has to be iteratable by numbers.
+        :param mec_mode:    Boolean which enables specific mode for MEC beamline at SLAC, where the folders and the
+                            files change their during increment. (default = False)
+
+        """
         next_file_name = self.file_name_iterator.get_next_folder(mec_mode=mec_mode)
         if next_file_name is not None:
             self.load(next_file_name)
 
     def load_previous_folder(self, mec_mode=False):
+        """
+        Loads a file with the current filename in the previous folder, whereby the folder has to be iteratable by
+        numbers.
+        :param mec_mode:    Boolean which enables specific mode for MEC beamline at SLAC, where the folders and the
+                            files change their during increment. (default = False)
+        """
+
         next_previous_name = self.file_name_iterator.get_previous_folder(mec_mode=mec_mode)
         if next_previous_name is not None:
             self.load(next_previous_name)
 
     def set_file_iteration_mode(self, mode):
+        """
+        Sets the file iteration mode for the load_next_file and load_previous_file functions. Possible modes:
+            * 'number' will increment or decrement based on numbers in the filename.
+            * 'time' will increment or decrement based on creation time for the files.
+        """
         if mode == 'number':
             self.file_iteration_mode = 'number'
             self.file_name_iterator.create_timed_file_list = False
@@ -272,12 +290,6 @@ class ImgModel(QtCore.QObject):
             self.file_iteration_mode = 'time'
             self.file_name_iterator.create_timed_file_list = True
             self.file_name_iterator.update_filename(self.filename)
-
-    def get_img_data(self):
-        return self.img_data
-
-    def get_raw_img_data(self):
-        return self._img_data
 
     def _calculate_img_data(self):
         """
@@ -358,11 +370,16 @@ class ImgModel(QtCore.QObject):
                 return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
         return self._img_data * self.factor
 
+
+    @property
+    def raw_img_data(self):
+        return self._img_data
+
     def rotate_img_p90(self):
         """
         Rotates the image by 90 degree and updates the background accordingly (does not effect absorption correction).
         The transformation is saved and applied to every new image and background image loaded.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         self._img_data = rotate_matrix_p90(self._img_data)
 
@@ -378,7 +395,7 @@ class ImgModel(QtCore.QObject):
         """
         Rotates the image by -90 degree and updates the background accordingly (does not effect absorption correction).
         The transformation is saved and applied to every new image and background image loaded.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         self._img_data = rotate_matrix_m90(self._img_data)
         if self._background_data is not None:
@@ -392,7 +409,7 @@ class ImgModel(QtCore.QObject):
         """
         Flips image about a horizontal axis and updates the background accordingly (does not effect absorption
         correction). The transformation is saved and applied to every new image and background image loaded.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         self._img_data = np.fliplr(self._img_data)
         if self._background_data is not None:
@@ -406,7 +423,7 @@ class ImgModel(QtCore.QObject):
         """
         Flips image about a vertical axis and updates the background accordingly (does not effect absorption
         correction). The transformation is saved and applied to every new image and background image loaded.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         self._img_data = np.flipud(self._img_data)
         if self._background_data is not None:
@@ -419,7 +436,7 @@ class ImgModel(QtCore.QObject):
     def reset_img_transformations(self):
         """
         Reverts all image transformations and resets the transformation stack.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         for transformation in reversed(self.img_transformations):
             if transformation == rotate_matrix_p90:
@@ -457,7 +474,7 @@ class ImgModel(QtCore.QObject):
         """
         Stores the supersampling factor and calculates supersampled original and background image arrays.
         Updates all data calculations according to current ImgData object state.
-        Does not notify Observers!
+        The img_changed signal will be emitted after the process.
         :param factor: int - supersampling factor
         """
         self.supersampling_factor = factor
@@ -469,7 +486,7 @@ class ImgModel(QtCore.QObject):
         Creates a supersampled array from img_data.
         :param img_data: image array
         :param factor: int - supersampling factor
-        :return:
+        :return: supersampled image
         """
         if factor > 1:
             img_data_supersampled = np.zeros((img_data.shape[0] * factor,
@@ -483,14 +500,31 @@ class ImgModel(QtCore.QObject):
             return img_data
 
     def add_img_correction(self, correction, name=None):
+        """
+        Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
+        each other, depending on the order of addition.
+        :param correction: An Object inheriting the ImgCorrectionInterface.
+        :type correction: ImgCorrectionInterface
+        :param name: correction can be given a name, to selectively delete or obtain later.
+        :type name: basestring
+        """
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
         self.img_changed.emit()
 
     def get_img_correction(self, name):
+        """
+        :param name: correction name which was specified during the addition of the image correction.
+        :type basestring:
+        :return: the specified correction
+        """
         return self._img_corrections.get_correction(name)
 
     def delete_img_correction(self, name=None):
+        """
+        :param name: deletes a correction from the correction calculation with a specific name. if no name is specified
+         the last added correction is deleted.
+        """
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()

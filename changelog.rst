@@ -1,3 +1,11 @@
+0.3.2 (under development 01/04/2017)
+------------------------------------
+    - added the possibility to work with multiple detector configurations at the same time
+    - there is now a Dioptas Icon instead of the generic python icon
+
+Bugfixes:
+    -
+
 0.3.1 (stable 4/21/2016)
 ------------------------
     - added compatibility for *.spe files (from Princeton instruments).
