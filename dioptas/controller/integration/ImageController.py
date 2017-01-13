@@ -721,6 +721,7 @@ class ImageController(object):
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
             self.model.img_model.img_changed.emit()
 
     def auto_process_cb_click(self):

@@ -124,12 +124,14 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self.as_bkg_btn = FlatButton('As Bkg')
         self.load_calibration_btn = FlatButton('Load Calibration')
         self.calibration_lbl = LabelAlignRight('None')
+        self.wavelength_lbl = LabelAlignRight('0.3344 A')
 
         self._top_control_layout.addWidget(self.save_image_btn)
         self._top_control_layout.addWidget(self.save_pattern_btn)
         self._top_control_layout.addWidget(self.as_overlay_btn)
         self._top_control_layout.addWidget(self.as_bkg_btn)
         self._top_control_layout.addSpacerItem(HorizontalSpacerItem())
+        self._top_control_layout.addWidget(self.wavelength_lbl)
         self._top_control_layout.addWidget(self.load_calibration_btn)
         self._top_control_layout.addWidget(self.calibration_lbl)
 
