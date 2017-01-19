@@ -271,6 +271,7 @@ class PhaseController(object):
         Called when pressure spinbox emits a new value. Calculates the appropriate EOS values and updates line
         positions and intensities.
         """
+        self.update_phase_pressure_step()
         if self.widget.phase_apply_to_all_cb.isChecked():
             for ind in range(len(self.model.phase_model.phases)):
                 self.model.phase_model.set_pressure(ind, np.float(val))
@@ -290,6 +291,7 @@ class PhaseController(object):
         Called when temperature spinbox emits a new value. Calculates the appropriate EOS values and updates line
         positions and intensities.
         """
+        self.update_phase_temperature_step()
         if self.widget.phase_apply_to_all_cb.isChecked():
             for ind in range(len(self.model.phase_model.phases)):
                 self.update_phase_temperature(ind, val)
