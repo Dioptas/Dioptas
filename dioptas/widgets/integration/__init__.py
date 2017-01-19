@@ -492,7 +492,10 @@ class IntegrationWidget(QtWidgets.QWidget):
 
     def set_phase_temperature(self, ind, T):
         temperature_item = self.phase_tw.item(ind, 4)
-        temperature_item.setText("{0} K".format(T))
+        try:
+            temperature_item.setText("{0:.2f} K".format(T))
+        except ValueError:
+            temperature_item.setText("{0} K".format(T))
         self.update_phase_parameters_in_legend(ind)
 
     def get_phase_temperature(self, ind):
@@ -505,7 +508,10 @@ class IntegrationWidget(QtWidgets.QWidget):
 
     def set_phase_pressure(self, ind, P):
         pressure_item = self.phase_tw.item(ind, 3)
-        pressure_item.setText("{0} GPa".format(P))
+        try:
+            pressure_item.setText("{0:.2f} GPa".format(P))
+        except ValueError:
+            pressure_item.setText("{0} GPa".format(P))
         self.update_phase_parameters_in_legend(ind)
 
     def get_phase_pressure(self, ind):
