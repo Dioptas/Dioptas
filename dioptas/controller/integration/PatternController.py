@@ -292,9 +292,22 @@ class PatternController(object):
     def finish_update_bg_linear_region(self):
         self.model.pattern_model.done_changing_unit = True
 
+    def check_if_wavelength_set(self):
+        try:
+            wavelength = self.model.calibration_model.wavelength
+        except RuntimeWarning:
+            if self.integration_unit == '2th_deg':
+                self.widget.spec_tth_btn.click()
+            elif self.integration_unit == 'd_A':
+                self.widget.spec_d_btn.click()
+            elif self.integration_unit == 'q_A^-1':
+                self.widget.spec_q_btn.click()
+            return False
+        return True
+
     def set_unit_tth(self):
         previous_unit = self.integration_unit
-        if previous_unit == '2th_deg':
+        if previous_unit == '2th_deg' or not self.check_if_wavelength_set():
             return
         self.integration_unit = '2th_deg'
         self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
@@ -309,10 +322,9 @@ class PatternController(object):
 
         self.finish_update_bg_linear_region()
 
-
     def set_unit_q(self):
         previous_unit = self.integration_unit
-        if previous_unit == 'q_A^-1':
+        if previous_unit == 'q_A^-1' or not self.check_if_wavelength_set():
             return
         self.integration_unit = "q_A^-1"
         self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
@@ -332,7 +344,7 @@ class PatternController(object):
 
     def set_unit_d(self):
         previous_unit = self.integration_unit
-        if previous_unit == 'd_A':
+        if previous_unit == 'd_A' or not self.check_if_wavelength_set():
             return
         self.integration_unit = 'd_A'
         self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
@@ -404,7 +416,10 @@ class PatternController(object):
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
 
         self.model.map_model.theta_center = self.get_line_tth()  # MAP2D
-        self.model.map_model.wavelength = self.model.calibration_model.wavelength
+        try:
+            self.model.map_model.wavelength = self.model.calibration_model.wavelength
+        except RuntimeWarning:
+            self.model.map_model.wavelength = 3.344e-11
 
     def set_line_position(self, x):
         self.widget.pattern_widget.set_pos_line(x)

@@ -38,9 +38,11 @@ lib2to3_path = os.path.dirname(lib2to3.__file__)
 extra_datas = [
     ("dioptas/calibrants", "dioptas/calibrants"),
     ("dioptas/widgets/stylesheet.qss", "dioptas/widgets"),
+    ("dioptas/widgets/icns/icon.svg", "dioptas/widgets/icns"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
-    ("dioptas/model/util/data/*.json", "dioptas/model/util/data")
+    ("dioptas/model/util/data/*.json", "dioptas/model/util/data"),
+    (os.path.join(pyFAI_path, "calibration"), "pyfai/calibration")
 ]
 
 binaries = []
@@ -82,24 +84,25 @@ a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
 
 exclude_datas = [
     "IPython",
-    "matplotlib",
-    "mpl-data",
-    "_MEI",
-    "docutils",
-    "pytz",
-    "lib",
-    "include",
-    "sphinx",
-    ".py",
-    "tests",
-    "skimage",
-    "alabaster",
-    "boto",
-    "jsonschema",
-    "babel",
-    "idlelib",
-    "requests",
-    "qt4_plugins"
+#   "matplotlib",
+#   "mpl-data", #needs to be included
+#   "_MEI",
+#   "docutils",
+#   "pytz",
+#   "lib",
+   "include",
+   "sphinx",
+#   ".py",
+   "tests",
+   "skimage",
+   "alabaster",
+   "boto",
+   "jsonschema",
+   "babel",
+   "idlelib",
+   "requests",
+   "qt4_plugins",
+   "qt5_plugins"
 ]
 
 for exclude_data in exclude_datas:
@@ -136,7 +139,8 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False)
+          console=False,
+          icon="dioptas/widgets/icns/icon.ico")
 
 coll = COLLECT(exe,
                a.binaries,
