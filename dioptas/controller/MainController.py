@@ -130,6 +130,8 @@ class MainController(object):
             self.model.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
+            self.integration_controller.widget.wavelength_lbl.setText(
+                '{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
             self.integration_controller.image_controller._auto_scale = False
 
             if self.integration_controller.image_controller.img_mode == "Image":
@@ -167,8 +169,8 @@ class MainController(object):
         calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and spec_filename is '':
-            self.widget.setWindowTitle(str + u' - © 2016 C. Prescher')
-            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2016 C. Prescher')
+            self.widget.setWindowTitle(str + u' - © 2017 C. Prescher')
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2017 C. Prescher')
             return
 
         if img_filename is not '' or spec_filename is not '':
@@ -182,7 +184,7 @@ class MainController(object):
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += u' - © 2016 C. Prescher'
+        str += u' - © 2017 C. Prescher'
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 

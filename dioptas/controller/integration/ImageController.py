@@ -153,6 +153,7 @@ class ImageController(object):
 
         self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
+        self.connect_click_function(self.widget.set_wavelnegth_btn, self.set_wavelength)
 
         self.connect_click_function(self.widget.cbn_groupbox, self.cbn_groupbox_changed)
         self.widget.cbn_diamond_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
@@ -739,6 +740,14 @@ class ImageController(object):
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
+            self.model.img_model.img_changed.emit()
+
+    def set_wavelength(self):
+        wavelength, ok = QtWidgets.QInputDialog.getText(self.widget, 'Set Wavelength', 'Wavelength in Angstroms:')
+        if ok:
+            self.model.calibration_model.spectrum_geometry.wavelength = float(wavelength)*1e-10
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
             self.model.img_model.img_changed.emit()
 
     def auto_process_cb_click(self):
