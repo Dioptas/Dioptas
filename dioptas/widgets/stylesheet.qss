@@ -23,6 +23,11 @@ QTabWidget::tab-bar{
 	alignment: center;
 }
 
+QTabWidget::pane {
+  border:  1px solid #2F2F2F;
+  border-radius: 3px;
+}
+
 QWidget{
 	color: #F1F1F1;
 }

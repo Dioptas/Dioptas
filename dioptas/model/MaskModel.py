@@ -21,6 +21,7 @@ from collections import deque
 import numpy as np
 import skimage.draw
 from PIL import Image
+from qtpy import QtGui
 
 from .util.cosmics import cosmicsimage
 
@@ -145,7 +146,7 @@ class MaskModel(object):
         """
 
         # get polygon points
-        poly_list = list(QGraphicsPolygonItem.shape().toFillPolygon())
+        poly_list = list(QGraphicsPolygonItem.shape().toFillPolygon(QtGui.QTransform()))
         x = np.zeros(len(poly_list))
         y = np.zeros(len(poly_list))
 
