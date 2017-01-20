@@ -85,7 +85,7 @@ class ImgConfiguration(QtCore.QObject):
                 filename = os.path.join(
                     self.working_directories['spectrum'],
                     os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
-
+                filename = filename.replace('\\', '/')
             if file_ending == '.xy':
                 self.pattern_model.save_pattern(filename, header=self._create_xy_header())
             else:
@@ -97,6 +97,7 @@ class ImgConfiguration(QtCore.QObject):
                 if not os.path.exists(directory):
                     os.mkdir(directory)
                 filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
+                filename = filename.replace('\\', '/')
                 if file_ending == '.xy':
                     self.pattern_model.save_pattern(filename, header=self._create_xy_header(),
                                                     subtract_background=True)
@@ -106,7 +107,7 @@ class ImgConfiguration(QtCore.QObject):
     def _create_xy_header(self):
         header = self.calibration_model.create_file_header()
         header = header.replace('\r\n', '\n')
-        header += '\n#\n# ' + self.model.pattern_model.unit + '\t I'
+        header = header + '\n#\n# ' + self._integration_unit + '\t I'
         return header
 
     def update_mask_dimension(self):
