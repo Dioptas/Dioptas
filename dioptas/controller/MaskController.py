@@ -161,6 +161,7 @@ class MaskController(object):
         self.widget.img_widget.auto_range()
 
     def process_click(self, x, y):
+        x, y = int(x), int(y)
         if self.state == 'circle':
             self.draw_circle(x, y)
         elif self.state == 'rectangle':
