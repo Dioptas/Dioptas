@@ -264,6 +264,10 @@ class CalibrationController(object):
             y-Position for the search
         """
         x, y = y, x  # indeces for the img array are transposed compared to the mouse position
+
+        # convert pixel coord into pixel index
+        x, y = int(x), int(y)
+
         peak_ind = self.widget.peak_num_sb.value()
         if self.widget.automatic_peak_search_rb.isChecked():
             points = self.model.calibration_model.find_peaks_automatic(x, y, peak_ind - 1)
