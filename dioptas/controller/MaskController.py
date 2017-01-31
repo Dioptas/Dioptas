@@ -198,6 +198,9 @@ class MaskController(object):
 
     def draw_point(self, x, y):
         radius = self.widget.point_size_sb.value()
+        if radius <= 0:
+            # filter point with no radius
+            return
         self.model.mask_model.mask_ellipse(x, y, radius, radius)
         self.plot_mask()
 
