@@ -165,7 +165,7 @@ class MaskModel(object):
         cy = bounding_rect.center().y()
         x_radius = bounding_rect.width() * 0.5
         y_radius = bounding_rect.height() * 0.5
-        self.mask_ellipse(cx, cy, x_radius, y_radius)
+        self.mask_ellipse(int(cx), int(cy), int(x_radius), int(y_radius))
 
     def mask_rect(self, x, y, width, height):
         """
@@ -191,6 +191,7 @@ class MaskModel(object):
         if y_ind1 < 0:
             y_ind1 = 0
 
+        x_ind1, x_ind2, y_ind1, y_ind2 = int(x_ind1), int(x_ind2), int(y_ind1), int(y_ind2)
         self._mask_data[x_ind1:x_ind2, y_ind1:y_ind2] = self.mode
 
     def mask_polygon(self, x, y):
