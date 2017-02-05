@@ -27,7 +27,7 @@ setup(
     packages=find_packages(),
     package_data={'dioptas': ['calibrants/*',
                               'widgets/stylesheet.qss',
-                              'widgets/icns/icon*'
+                              'widgets/icns/icon*',
                               'model/util/data/*.json',
                               'model/util/smooth_bruckner.f95']},
     scripts=['scripts/dioptas'],
