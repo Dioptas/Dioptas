@@ -550,7 +550,6 @@ class ImgModel(QtCore.QObject):
         useful_keys.sort()
         for key in useful_keys:
             tag = tags[key][0]
-            print(tag)
             if isinstance(tag, basestring):
                 new_line = str(tag) + "\n"
                 new_line = new_line.replace(":", ":\t", 1)
