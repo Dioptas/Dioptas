@@ -540,6 +540,7 @@ class ImgModel(QtCore.QObject):
         reads the file info from tif_tags and returns a file info
         """
         result = ""
+        end_result = ""
         tags = image.tag
         useful_keys = []
         for key in tags.keys():
