@@ -549,11 +549,15 @@ class ImgModel(QtCore.QObject):
         useful_keys.sort()
         for key in useful_keys:
             tag = tags[key][0]
+            print(tag)
             if isinstance(tag, basestring):
                 new_line = str(tag) + "\n"
                 new_line = new_line.replace(":", ":\t", 1)
-                result += new_line
-        return result
+                if 'TIFFImageDescription' in new_line:
+                    end_result = new_line
+                else:
+                    result += new_line
+        return result + end_result
 
     def _get_motors_info(self, image):
         """
