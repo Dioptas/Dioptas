@@ -113,6 +113,20 @@ class PhaseControllerTest(QtTest):
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
+    def test_pressure_step_change(self):
+        self.load_phases()
+        old_pressure = float(self.widget.phase_pressure_sb.text())
+        self.widget.phase_pressure_sb.stepUp()
+        step = float(self.widget.phase_pressure_step_txt.text())
+        self.assertAlmostEqual(float(self.widget.phase_pressure_sb.text()), old_pressure + step, places=5)
+
+    def test_temperature_step_change(self):
+        self.load_phases()
+        old_temperature = float(self.widget.phase_temperature_sb.text())
+        self.widget.phase_temperature_sb.stepUp()
+        step = float(self.widget.phase_temperature_step_txt.text())
+        self.assertAlmostEqual(float(self.widget.phase_temperature_sb.text()), old_temperature + step, places=5)
+
     def test_pressure_change(self):
         self.load_phases()
         pressure = 200
