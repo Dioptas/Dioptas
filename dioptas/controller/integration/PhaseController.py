@@ -55,6 +55,8 @@ class PhaseController(object):
         self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.model)
         self.phase_lw_items = []
         self.create_signals()
+        self.update_phase_temperature_step()
+        self.update_phase_pressure_step()
 
     def create_signals(self):
         self.connect_click_function(self.widget.phase_add_btn, self.add_btn_click_callback)
