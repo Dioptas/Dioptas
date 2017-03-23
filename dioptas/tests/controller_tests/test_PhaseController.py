@@ -265,7 +265,5 @@ class PhaseControllerTest(QtTest):
         self.load_phase('re.jcpds')
 
     def load_phase(self, filename):
-        # self.previous_open_file_dialog = copy.copy(QtWidgets.QFileDialog.getOpenFileNames)
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
         click_button(self.widget.phase_add_btn)
-        # QtWidgets.QFileDialog.getOpenFileNames = self.previous_open_file_dialog
