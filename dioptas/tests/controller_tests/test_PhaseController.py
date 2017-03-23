@@ -225,6 +225,37 @@ class PhaseControllerTest(QtTest):
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
 
+    def test_save_and_load_phase_lists(self):
+        # load some phases
+        self.load_phases()
+        phase_list_file_name = 'phase_list.txt'
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, phase_list_file_name))
+        click_button(self.widget.phase_save_btn)
+        # make sure that phase list file was saved
+        self.assertTrue(os.path.isfile(os.path.join(data_path, phase_list_file_name)))
+
+        old_phase_list_length = self.widget.phase_tw.rowCount()
+        old_phase_list_data = [[0 for x in range(5)] for y in range(old_phase_list_length)]
+        for row in range(self.widget.phase_tw.rowCount()):
+            old_phase_list_data[row][2] = self.phase_tw.item(row, 2).text()
+            old_phase_list_data[row][3] = self.phase_tw.item(row, 3).text()
+            old_phase_list_data[row][4] = self.phase_tw.item(row, 4).text()
+
+        # clear and load the saved list to make sure all phases have been loaded
+        click_button(self.widget.phase_clear_btn)
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, phase_list_file_name))
+        click_button(self.widget.phase_load_btn)
+
+        self.assertEqual(self.widget.phase_tw.rowCount(), old_phase_list_length)
+
+        for row in range(self.widget.phase_tw.rowCount()):
+            self.assertEqual(self.phase_tw.item(row, 2).text(), old_phase_list_data[row][2])
+            self.assertEqual(self.phase_tw.item(row, 3).text(), old_phase_list_data[row][3])
+            self.assertEqual(self.phase_tw.item(row, 4).text(), old_phase_list_data[row][4])
+
+        # delete phase list file
+        os.remove(os.path.join(data_path, phase_list_file_name))
+
     def load_phases(self):
         self.load_phase('ar.jcpds')
         self.load_phase('ag.jcpds')
@@ -234,5 +265,7 @@ class PhaseControllerTest(QtTest):
         self.load_phase('re.jcpds')
 
     def load_phase(self, filename):
+        # self.previous_open_file_dialog = copy.copy(QtWidgets.QFileDialog.getOpenFileNames)
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
         click_button(self.widget.phase_add_btn)
+        # QtWidgets.QFileDialog.getOpenFileNames = self.previous_open_file_dialog
