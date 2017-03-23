@@ -4,7 +4,7 @@ import os
 
 from ..utility import QtTest, click_button, delete_if_exists
 from mock import MagicMock
-
+import numpy as np
 from qtpy import QtWidgets
 
 from ...widgets.integration import IntegrationWidget
@@ -60,3 +60,18 @@ class PatternControllerTest(QtTest):
         click_button(self.widget.qa_save_spectrum_btn)
 
         self.assertTrue(os.path.exists(os.path.join(unittest_data_path, "test.xy")))
+
+    def test_save_and_load_fxye_pattern(self):
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(unittest_data_path, "test.fxye"))
+        self.model.calibration_model.create_file_header = MagicMock(return_value="None")
+        self.model.current_configuration.integration_unit = '2th_deg'
+        self.model.calibration_model.spectrum_geometry.wavelength = 0.31E-10
+        old_data = self.model.pattern_model.pattern.data
+
+        click_button(self.widget.qa_save_spectrum_btn)
+        self.assertTrue(os.path.exists(os.path.join(unittest_data_path, "test.fxye")))
+
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, "test.fxye"))
+        click_button(self.widget.spec_load_btn)
+        new_data = self.model.pattern_model.pattern.data
+        self.assertTrue(np.allclose(old_data, new_data, 1e-5))
