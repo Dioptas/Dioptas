@@ -140,6 +140,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_edit_btn = phase_control_widget.edit_btn
         self.phase_del_btn = phase_control_widget.delete_btn
         self.phase_clear_btn = phase_control_widget.clear_btn
+        self.phase_save_btn = phase_control_widget.save_btn
+        self.phase_load_btn = phase_control_widget.load_btn
         self.phase_tw = phase_control_widget.phase_tw
         self.phase_pressure_sb = phase_control_widget.pressure_sb
         self.phase_pressure_step_txt = phase_control_widget.pressure_step_txt
@@ -224,6 +226,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.qa_set_as_background_btn = pattern_widget.as_bkg_btn
         self.load_calibration_btn = pattern_widget.load_calibration_btn
         self.calibration_lbl = pattern_widget.calibration_lbl
+        self.set_wavelnegth_btn = pattern_widget.set_wavelength_btn
+        self.wavelength_lbl = pattern_widget.wavelength_lbl
         self.spec_tth_btn = pattern_widget.tth_btn
         self.spec_q_btn = pattern_widget.q_btn
         self.spec_d_btn = pattern_widget.d_btn
@@ -484,7 +488,10 @@ class IntegrationWidget(QtWidgets.QWidget):
 
     def set_phase_temperature(self, ind, T):
         temperature_item = self.phase_tw.item(ind, 4)
-        temperature_item.setText("{0} K".format(T))
+        try:
+            temperature_item.setText("{0:.2f} K".format(T))
+        except ValueError:
+            temperature_item.setText("{0} K".format(T))
         self.update_phase_parameters_in_legend(ind)
 
     def get_phase_temperature(self, ind):
@@ -497,7 +504,10 @@ class IntegrationWidget(QtWidgets.QWidget):
 
     def set_phase_pressure(self, ind, P):
         pressure_item = self.phase_tw.item(ind, 3)
-        pressure_item.setText("{0} GPa".format(P))
+        try:
+            pressure_item.setText("{0:.2f} GPa".format(P))
+        except ValueError:
+            pressure_item.setText("{0} GPa".format(P))
         self.update_phase_parameters_in_legend(ind)
 
     def get_phase_pressure(self, ind):
@@ -514,9 +524,9 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         if self.show_parameter_in_spectrum:
             if pressure != 0:
-                parameter_str += '{0} GPa '.format(pressure)
+                parameter_str += '{:0.2f} GPa '.format(pressure)
             if temperature != 0 and temperature != 298 and temperature is not None:
-                parameter_str += '{0} K '.format(temperature)
+                parameter_str += '{:0.2f} K '.format(temperature)
 
         self.pattern_widget.rename_phase(ind, parameter_str + name_str)
 

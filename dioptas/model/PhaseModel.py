@@ -36,11 +36,13 @@ class PhaseModel(object):
         super(PhaseModel, self).__init__()
         self.phases = []
         self.reflections = []
+        self.phase_files = []
 
     def add_jcpds(self, filename):
         try:
             jcpds_object = jcpds()
             jcpds_object.load_file(filename)
+            self.phase_files.append(filename)
             self.phases.append(jcpds_object)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError):
