@@ -76,9 +76,9 @@ class CalibrationModel(object):
     def find_peaks_automatic(self, x, y, peak_ind):
         """
         Searches peaks by using the Massif algorithm
-        :param x:
+        :param int x:
             x-coordinate in pixel - should be from original image (not supersampled x-coordinate)
-        :param y:
+        :param int y:
             y-coordinate in pixel - should be from original image (not supersampled y-coordinate)
         :param peak_ind:
             peak/ring index to which the found points will be added
@@ -95,9 +95,9 @@ class CalibrationModel(object):
     def find_peak(self, x, y, search_size, peak_ind):
         """
         Searches a peak around the x,y position. It just searches for the maximum value in a specific search size.
-        :param x:
+        :param int x:
             x-coordinate in pixel - should be from original image (not supersampled x-coordinate)
-        :param y:
+        :param int y:
             y-coordinate in pixel - should be form original image (not supersampled y-coordinate)
         :param search_size:
             the length of the search rectangle in pixels in all direction in which the algorithm searches for
@@ -154,12 +154,12 @@ class CalibrationModel(object):
         """
 
         if algorithm == 'Massif':
-            self.peak_search_algorithm = Massif(self.img_model.get_raw_img_data())
+            self.peak_search_algorithm = Massif(self.img_model.raw_img_data)
         elif algorithm == 'Blob':
             if mask is not None:
-                self.peak_search_algorithm = BlobDetection(self.img_model.get_raw_img_data() * mask)
+                self.peak_search_algorithm = BlobDetection(self.img_model.raw_img_data * mask)
             else:
-                self.peak_search_algorithm = BlobDetection(self.img_model.get_raw_img_data())
+                self.peak_search_algorithm = BlobDetection(self.img_model.raw_img_data)
             self.peak_search_algorithm.process()
         else:
             return
