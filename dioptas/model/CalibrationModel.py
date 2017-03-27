@@ -86,7 +86,7 @@ class CalibrationModel(object):
             array of points found
         """
         massif = Massif(self.img_model._img_data)
-        cur_peak_points = massif.find_peaks([x, y], stdout=DummyStdOut())
+        cur_peak_points = massif.find_peaks([int(np.round(x)), int(np.round(y))], stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
@@ -107,14 +107,13 @@ class CalibrationModel(object):
         :return:
             point found (as array)
         """
-        left_ind = np.round(x - search_size * 0.5)
+        left_ind = int(np.round(x - search_size * 0.5))
         if left_ind < 0:
             left_ind = 0
-        top_ind = np.round(y - search_size * 0.5)
+        top_ind = int(np.round(y - search_size * 0.5))
         if top_ind < 0:
             top_ind = 0
-        search_array = self.img_model.img_data[left_ind:(left_ind + search_size),
-                       top_ind:(top_ind + search_size)]
+        search_array = self.img_model.img_data[left_ind:(left_ind + search_size), top_ind:(top_ind + search_size)]
         x_ind, y_ind = np.where(search_array == search_array.max())
         x_ind = x_ind[0] + left_ind
         y_ind = y_ind[0] + top_ind
