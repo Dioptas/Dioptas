@@ -24,6 +24,7 @@ import numpy as np
 from scipy.spatial import ConvexHull
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
+from math import sqrt, atan2, cos, sin
 
 from .HistogramLUTItem import HistogramLUTItem
 
@@ -284,7 +285,7 @@ class MaskImgWidget(ImgWidget):
         return polygon
 
     def draw_arc(self, x, y):
-        arc = MyPolygon(x, y)
+        arc = MyArc(x, y, self.mask_preview_fill_color)
         self.img_view_box.addItem(arc)
         return arc
 
@@ -375,12 +376,81 @@ class MyPolygon(QtWidgets.QGraphicsPolygonItem):
         self.setBrush(QtGui.QBrush(fill_color))
 
         self.vertices = []
-        self.vertices.append(QtCore.QPoint(x, y))
+        self.vertices.append(QtCore.QPointF(x, y))
+
+    def set_size(self, x, y):
+        temp_points = list(self.vertices)
+
+        temp_points.append(QtCore.QPointF(x, y))
+        self.setPolygon(QtGui.QPolygonF(temp_points))
+
+    def add_point(self, x, y):
+        self.vertices.append(QtCore.QPointF(x, y))
+        self.setPolygon(QtGui.QPolygonF(self.vertices))
+
+
+class MyArc(QtWidgets.QGraphicsPolygonItem):
+    def __init__(self, x, y, fill_color):
+        QtWidgets.QGraphicsPolygonItem.__init__(self)
+        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setBrush(QtGui.QBrush(fill_color))
+
+        self.vertices = []
+        self.vertices.append(QtCore.QPointF(x, y))
 
     def set_size(self, x, y):
         temp_points = list(self.vertices)
         temp_points.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(temp_points))
+
+    def generate_points_on_arc(self, cx, cy):
+        temp_points = list(self.vertices)
+        ax = temp_points[0].x()
+        ay = temp_points[0].y()
+        bx = temp_points[1].x()
+        by = temp_points[1].y()
+
+        mid_ab_x = (ax + bx)/2.0
+        mid_ab_y = (ay + by)/2.0
+        mid_bc_x = (bx + cx)/2.0
+        mid_bc_y = (by + cy)/2.0
+        slope_ab = (by - ay)/(bx - ax)
+        slope_bc = (cy - by)/(cx - bx)
+        slope_p_ab = -1.0/slope_ab
+        slope_p_bc = -1.0/slope_bc
+        b_p_ab = mid_ab_y - slope_p_ab * mid_ab_x
+        b_p_bc = mid_bc_y - slope_p_bc * mid_bc_x
+        x0 = (b_p_bc - b_p_ab)/(slope_p_ab - slope_p_bc)
+        y0 = slope_p_ab * x0 + b_p_ab
+        r = sqrt((ax - x0)**2 + (ay - y0)**2)
+        temp_points = []
+        phi_a = atan2(ay - y0, ax - x0)
+        phi_b = atan2(by - y0, bx - x0)
+        phi_c = atan2(cy - y0, cx - x0)
+
+        if phi_c < phi_a < phi_b or phi_b < phi_c < phi_a:
+            phi_range = np.linspace(phi_a, phi_c + 2 * np.pi, 25)
+        elif phi_a < phi_c < phi_b or phi_b < phi_a < phi_c:
+            phi_range = np.linspace(phi_a + 2 * np.pi, phi_c, 25)
+        elif phi_a < phi_b < phi_c or phi_c < phi_b < phi_a:
+            phi_range = np.linspace(phi_a, phi_c, 25)
+        else:
+            phi_range = np.linspace(phi_a, phi_c, 25)
+
+        for phi in phi_range:
+            xn = x0 + r * 0.99 * cos(phi)
+            yn = y0 + r * 0.99 * sin(phi)
+            temp_points.append(QtCore.QPointF(xn, yn))
+
+        for phi in reversed(phi_range):
+            xn = x0 + r * 1.01 * cos(phi)
+            yn = y0 + r * 1.01 * sin(phi)
+            temp_points.append(QtCore.QPointF(xn, yn))
+
+        self.setPolygon(QtGui.QPolygonF(temp_points))
+
+    def set_preview_arc(self, x, y):
+        self.generate_points_on_arc(x, y)
 
     def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
