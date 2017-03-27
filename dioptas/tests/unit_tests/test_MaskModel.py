@@ -138,9 +138,9 @@ class MaskModelTest(unittest.TestCase):
         p1 = (x0 + r * cos(phi1), y0 + r * sin(phi1))
         p2 = (x0 + r * cos(phi2), y0 + r * sin(phi2))
         p3 = (x0 + r * cos(phi3), y0 + r * sin(phi3))
-        p = self.mask_model.find_center_of_circle_from_three_points(p1, p2, p3)
-        self.assertAlmostEqual(x0, p[0], 6)
-        self.assertAlmostEqual(y0, p[1], 6)
+        self.mask_model.find_center_of_circle_from_three_points(p1, p2, p3)
+        self.assertAlmostEqual(x0, self.mask_model.center_for_arc[0], 6)
+        self.assertAlmostEqual(y0, self.mask_model.center_for_arc[1], 6)
 
     def test_find_radius_of_circle_from_center_and_point(self):
         x0 = 2.0
