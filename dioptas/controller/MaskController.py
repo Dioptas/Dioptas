@@ -242,13 +242,24 @@ class MaskController(object):
         elif self.clicks == 2:
             self.widget.img_widget.mouse_moved.disconnect(self.arc.set_size)
             self.arc.add_point(x, y)
-            self.widget.img_widget.mouse_moved.connect(self.arc.set_preview_arc)
+            self.widget.img_widget.mouse_moved.connect(self.arc_calc_and_preview)
         elif self.clicks == 3:
             self.arc.add_point(x, y)
-            self.widget.img_widget.mouse_moved.disconnect(self.arc.set_preview_arc)
+            self.widget.img_widget.mouse_moved.disconnect(self.arc_calc_and_preview)
             self.widget.img_widget.mouse_moved.connect(self.arc.set_preview_arc_width)
         elif self.clicks == 4:
             self.finish_arc(x, y)
+
+    def arc_calc_and_preview(self, x, y):
+        v = self.arc.vertices
+        new_v = QtCore.QPointF(x, y)
+        arc_center = self.model.mask_model.find_center_of_circle_from_three_points(v[0], v[1], new_v)
+        arc_r = self.model.mask_model.find_radius_of_circle_from_center_and_point(arc_center, new_v)
+        phi_range = self.model.mask_model.find_n_angles_on_arc_from_three_points_around_p0(arc_center, v[0], v[1], new_v
+                                                                                           , 50)
+        arc_points = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, 1, phi_range)
+
+        self.arc.set_preview_arc(x, y)
 
     def update_shape_preview_fill_color(self):
         try:
@@ -260,6 +271,8 @@ class MaskController(object):
                 self.point.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
             elif self.state == 'polygon':
                 self.polygon.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
+            elif self.state == 'arc':
+                self.arc.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
         except AttributeError:
             return
 
@@ -276,6 +289,7 @@ class MaskController(object):
     def finish_arc(self, x, y):
         self.widget.img_widget.mouse_moved.disconnect(self.arc.set_preview_arc_width)
         self.clicks = 0
+        self.arc.vertices = self.arc.temp_vertices
         self.model.mask_model.mask_QGraphicsPolygonItem(self.arc)
         self.plot_mask()
         self.widget.img_widget.img_view_box.removeItem(self.arc)
