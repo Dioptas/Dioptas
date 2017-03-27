@@ -424,7 +424,7 @@ class MaskController(object):
         try:
             if x > 0 and y > 0:
                 str = "x: %8.1f   y: %8.1f   I: %6.f" % (
-                    x, y, self.widget.img_widget.img_data.T[np.floor(x), np.floor(y)])
+                    x, y, self.widget.img_widget.img_data.T[int(np.floor(x)), int(np.floor(y))])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):
