@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 import os
-
+import numpy as np
 from ..utility import QtTest, click_button, delete_if_exists
 from mock import MagicMock
 
@@ -60,3 +60,11 @@ class PatternControllerTest(QtTest):
         click_button(self.widget.qa_save_spectrum_btn)
 
         self.assertTrue(os.path.exists(os.path.join(unittest_data_path, "test.xy")))
+
+    def test_load_pattern_with_manual_input_file_name(self):
+        file_name = os.path.join(unittest_data_path, 'spectrum_002.xy')
+        old_data = np.copy(self.model.pattern.data)
+        self.widget.spec_filename_txt.setText(file_name)
+        self.controller.filename_txt_changed()
+        new_data = self.model.pattern.data
+        self.assertFalse(np.array_equal(old_data, new_data))

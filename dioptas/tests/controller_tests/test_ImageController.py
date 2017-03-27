@@ -118,3 +118,14 @@ class ImageControllerTest(QtTest):
                           os.path.join(unittest_data_path, 'image_001.tif')])
         click_button(self.widget.load_img_btn)
         self.assertTrue(np.array_equal(2 * data1, self.widget.img_widget.img_data))
+
+    def test_load_image_with_manual_input_file_name(self):
+        file_name = os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif')
+        self.widget.img_filename_txt.setText(file_name)
+        self.controller.filename_txt_changed()
+        old_data = np.copy(self.model.img_data)
+        file_name = os.path.join(unittest_data_path, 'CeO2_Pilatus1M.tif')
+        self.widget.img_filename_txt.setText(file_name)
+        self.controller.filename_txt_changed()
+        new_data = self.model.img_data
+        self.assertFalse(np.array_equal(old_data, new_data))
