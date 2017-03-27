@@ -20,7 +20,7 @@ import sys
 import os
 
 from qtpy import QtWidgets, QtCore, QtGui
-
+from math import sqrt
 import numpy as np
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
@@ -90,7 +90,7 @@ class MaskController(object):
 
     def uncheck_all_btn(self, except_btn=None):
         btns = [self.widget.circle_btn, self.widget.rectangle_btn, self.widget.polygon_btn, \
-                self.widget.point_btn]
+                self.widget.point_btn, self.widget.arc_btn]
         for btn in btns:
             if btn is not except_btn:
                 if btn.isChecked():
@@ -246,20 +246,37 @@ class MaskController(object):
         elif self.clicks == 3:
             self.arc.add_point(x, y)
             self.widget.img_widget.mouse_moved.disconnect(self.arc_calc_and_preview)
-            self.widget.img_widget.mouse_moved.connect(self.arc.set_preview_arc_width)
+            self.widget.img_widget.mouse_moved.connect(self.arc_width_preview)
         elif self.clicks == 4:
-            self.finish_arc(x, y)
+            self.finish_arc()
 
     def arc_calc_and_preview(self, x, y):
         v = self.arc.vertices
         new_v = QtCore.QPointF(x, y)
         arc_center = self.model.mask_model.find_center_of_circle_from_three_points(v[0], v[1], new_v)
         arc_r = self.model.mask_model.find_radius_of_circle_from_center_and_point(arc_center, new_v)
+        self.arc.arc_center = arc_center
+        self.arc.arc_radius = arc_r
         phi_range = self.model.mask_model.find_n_angles_on_arc_from_three_points_around_p0(arc_center, v[0], v[1], new_v
                                                                                            , 50)
-        arc_points = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, 1, phi_range)
+        self.arc.phi_range = phi_range
+        arc_points_a = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, 1, phi_range)
+        arc_points_b = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, -1, phi_range)
+        arc_points = arc_points_a + list(reversed(arc_points_b))
 
-        self.arc.set_preview_arc(x, y)
+        self.arc.preview_arc(arc_points)
+
+    def arc_width_preview(self, x, y):
+        arc_center = self.arc.arc_center
+        arc_r = self.arc.arc_radius
+        phi_range = self.arc.phi_range
+        width = abs(arc_r - sqrt((x - arc_center.x())**2 + (y - arc_center.y())**2))
+
+        arc_points_a = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, -width, phi_range)
+        arc_points_b = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, width, phi_range)
+        arc_points = arc_points_a + list(reversed(arc_points_b))
+        self.arc.arc_points = arc_points
+        self.arc.preview_arc(arc_points)
 
     def update_shape_preview_fill_color(self):
         try:
@@ -286,10 +303,10 @@ class MaskController(object):
         self.widget.img_widget.img_view_box.removeItem(self.polygon)
         self.polygon = None
 
-    def finish_arc(self, x, y):
-        self.widget.img_widget.mouse_moved.disconnect(self.arc.set_preview_arc_width)
+    def finish_arc(self):
+        self.widget.img_widget.mouse_moved.disconnect(self.arc_width_preview)
         self.clicks = 0
-        self.arc.vertices = self.arc.temp_vertices
+        self.arc.vertices = self.arc.arc_points
         self.model.mask_model.mask_QGraphicsPolygonItem(self.arc)
         self.plot_mask()
         self.widget.img_widget.img_view_box.removeItem(self.arc)
