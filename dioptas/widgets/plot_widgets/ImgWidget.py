@@ -49,21 +49,30 @@ class ImgWidget(QtCore.QObject):
         # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         if self.orientation == 'horizontal':
 
-            self.img_view_box = self.pg_layout.addViewBox(1, 0)
+            self.img_view_box = self.pg_layout.addViewBox(1, 1)
+
             # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 0)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+            self.bottom_axis = pg.AxisItem('bottom', linkView=self.img_view_box)
+            self.left_axis = pg.AxisItem('left', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.bottom_axis, 2, 1)
+            self.pg_layout.addItem(self.left_axis, 1, 0)
 
         elif self.orientation == 'vertical':
-            self.img_view_box = self.pg_layout.addViewBox(0, 0)
+            self.img_view_box = self.pg_layout.addViewBox(0, 1)
             # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
             # self.img_histogram_LUT.axis.hide()
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 2)
+            self.bottom_axis = pg.AxisItem('bottom', linkView=self.img_view_box)
+            self.left_axis = pg.AxisItem('left', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.bottom_axis, 1, 1)
+            self.pg_layout.addItem(self.left_axis, 0, 0)
 
         self.img_view_box.setAspectLocked()
 
