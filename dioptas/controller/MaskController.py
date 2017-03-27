@@ -240,12 +240,14 @@ class MaskController(object):
             self.arc = self.widget.img_widget.draw_arc(x, y)
             self.widget.img_widget.mouse_moved.connect(self.arc.set_size)
         elif self.clicks == 2:
-            self.arc.set_size(x, y)
+            self.widget.img_widget.mouse_moved.disconnect(self.arc.set_size)
             self.arc.add_point(x, y)
             self.widget.img_widget.mouse_moved.connect(self.arc.set_preview_arc)
         elif self.clicks == 3:
-            self.arc.set_size(x, y)
             self.arc.add_point(x, y)
+            self.widget.img_widget.mouse_moved.disconnect(self.arc.set_preview_arc)
+            self.widget.img_widget.mouse_moved.connect(self.arc.set_preview_arc_width)
+        elif self.clicks == 4:
             self.finish_arc(x, y)
 
     def update_shape_preview_fill_color(self):
@@ -272,7 +274,7 @@ class MaskController(object):
         self.polygon = None
 
     def finish_arc(self, x, y):
-        self.widget.img_widget.mouse_moved.disconnect(self.arc.set_size)
+        self.widget.img_widget.mouse_moved.disconnect(self.arc.set_preview_arc_width)
         self.clicks = 0
         self.model.mask_model.mask_QGraphicsPolygonItem(self.arc)
         self.plot_mask()

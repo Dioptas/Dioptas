@@ -300,8 +300,7 @@ class MaskModel(object):
         self._mask_data = np.logical_or(self._mask_data,
                                         np.array(mask_data, dtype='bool'))
 
-    @staticmethod
-    def find_center_of_circle_from_three_points(a, b, c):
+    def find_center_of_circle_from_three_points(self, a, b, c):
         xa, ya = a
         xb, yb = b
         xc, yc = c
@@ -317,8 +316,7 @@ class MaskModel(object):
         b_p_bc = mid_bc_y - slope_p_bc * mid_bc_x
         x0 = (b_p_bc - b_p_ab)/(slope_p_ab - slope_p_bc)
         y0 = slope_p_ab * x0 + b_p_ab
-        p0 = (x0, y0)
-        return p0
+        self.center_for_arc = (x0, y0)
 
     @staticmethod
     def find_radius_of_circle_from_center_and_point(p0, a):

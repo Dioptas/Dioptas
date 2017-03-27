@@ -447,10 +447,32 @@ class MyArc(QtWidgets.QGraphicsPolygonItem):
             yn = y0 + r * 1.01 * sin(phi)
             temp_points.append(QtCore.QPointF(xn, yn))
 
+        self.phi_range = phi_range
+        self.x0 = x0
+        self.y0 = y0
+        self.r = r
+
         self.setPolygon(QtGui.QPolygonF(temp_points))
 
     def set_preview_arc(self, x, y):
         self.generate_points_on_arc(x, y)
+
+    def set_preview_arc_width(self, x, y):
+        temp_points = []
+        width = abs(self.r - sqrt((x - self.x0)**2 + (y - self.y0)**2))
+        if width >= self.r:
+            return None
+        for phi in self.phi_range:
+            xn = self.x0 + (self.r - width) * cos(phi)
+            yn = self.y0 + (self.r - width) * sin(phi)
+            temp_points.append(QtCore.QPointF(xn, yn))
+
+        for phi in reversed(self.phi_range):
+            xn = self.x0 + (self.r + width) * cos(phi)
+            yn = self.y0 + (self.r + width) * sin(phi)
+            temp_points.append(QtCore.QPointF(xn, yn))
+
+        self.setPolygon(QtGui.QPolygonF(temp_points))
 
     def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
