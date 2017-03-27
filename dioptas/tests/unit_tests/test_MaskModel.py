@@ -5,6 +5,7 @@ import gc
 import os
 import numpy as np
 from math import sqrt, atan2, cos, sin
+from qtpy import QtCore
 
 from ...model.MaskModel import MaskModel
 
@@ -135,9 +136,12 @@ class MaskModelTest(unittest.TestCase):
         phi1 = 0.1
         phi2 = 1.3
         phi3 = 6.0
-        p1 = (x0 + r * cos(phi1), y0 + r * sin(phi1))
-        p2 = (x0 + r * cos(phi2), y0 + r * sin(phi2))
-        p3 = (x0 + r * cos(phi3), y0 + r * sin(phi3))
+        p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
+        p2 = QtCore.QPointF(x0 + r * cos(phi2), y0 + r * sin(phi2))
+        p3 = QtCore.QPointF(x0 + r * cos(phi3), y0 + r * sin(phi3))
+        # p1 = (x0 + r * cos(phi1), y0 + r * sin(phi1))
+        # p2 = (x0 + r * cos(phi2), y0 + r * sin(phi2))
+        # p3 = (x0 + r * cos(phi3), y0 + r * sin(phi3))
         self.mask_model.find_center_of_circle_from_three_points(p1, p2, p3)
         self.assertAlmostEqual(x0, self.mask_model.center_for_arc[0], 6)
         self.assertAlmostEqual(y0, self.mask_model.center_for_arc[1], 6)
@@ -145,39 +149,30 @@ class MaskModelTest(unittest.TestCase):
     def test_find_radius_of_circle_from_center_and_point(self):
         x0 = 2.0
         y0 = 3.5
-        p0 = (x0, y0)
+        p0 = QtCore.QPointF(x0, y0)
         r = 1.2
         phi1 = 0.1
-        p1 = (x0 + r * cos(phi1), y0 + r * sin(phi1))
+        p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
         rcalc = self.mask_model.find_radius_of_circle_from_center_and_point(p0, p1)
         self.assertEqual(r, rcalc)
-
-    def test_calc_phi_from_xy(self):
-        phi1 = 0.1
-        phi2 = 1.3
-        phi3 = -0.2
-        r = 1.2
-        p1 = (r * cos(phi1), r * sin(phi1))
-        p2 = (r * cos(phi2), r * sin(phi2))
-        p3 = (r * cos(phi3), r * sin(phi3))
-        phia = atan2(p1[1], p1[0])
-        phib = atan2(p2[1], p2[0])
-        phic = atan2(p3[1], p3[0])
-        self.assertEqual(phi1, phia)
-        self.assertEqual(phi2, phib)
-        self.assertEqual(phi3, phic)
 
     def test_find_n_points_on_arc_from_three_points(self):
         n = 50
         x0 = 2.0
         y0 = 3.5
-        p0 = (x0, y0)
+        p0 = QtCore.QPointF(x0, y0)
         r = 1.2
+        width = 0
+
         phi1 = 0.1
         phi2 = 1.3
         phi3 = -0.2
-        n_angles = self.mask_model.find_n_angles_on_arc_from_three_points(phi1, phi2, phi3, n)
-        n_points = self.mask_model.calc_arc_points_from_angles(p0, r, n_angles)
+        p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
+        p2 = QtCore.QPointF(x0 + r * cos(phi2), y0 + r * sin(phi2))
+        p3 = QtCore.QPointF(x0 + r * cos(phi3), y0 + r * sin(phi3))
+
+        n_angles = self.mask_model.find_n_angles_on_arc_from_three_points_around_p0(p0, p1, p2, p3, n)
+        n_points = self.mask_model.calc_arc_points_from_angles(p0, r, width, n_angles)
         for p in n_points:
             rcalc = self.mask_model.find_radius_of_circle_from_center_and_point(p0, p)
             self.assertAlmostEqual(r, rcalc, 5)

@@ -394,7 +394,8 @@ class MyArc(QtWidgets.QGraphicsPolygonItem):
         QtWidgets.QGraphicsPolygonItem.__init__(self)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
         self.setBrush(QtGui.QBrush(fill_color))
-
+        self.arc_center = 0
+        self.arc_radius = 1
         self.vertices = []
         self.vertices.append(QtCore.QPointF(x, y))
 
@@ -473,10 +474,10 @@ class MyArc(QtWidgets.QGraphicsPolygonItem):
             temp_points.append(QtCore.QPointF(xn, yn))
 
         self.setPolygon(QtGui.QPolygonF(temp_points))
+        self.temp_vertices = temp_points
 
     def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
-        self.setPolygon(QtGui.QPolygonF(self.vertices))
 
 
 class MyCircle(QtWidgets.QGraphicsEllipseItem):
