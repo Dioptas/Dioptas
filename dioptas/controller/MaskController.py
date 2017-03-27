@@ -140,7 +140,7 @@ class MaskController(object):
             self.uncheck_all_btn()
 
     def activate_arc_btn(self):
-        if self.widget.polygon_btn.isChecked():
+        if self.widget.arc_btn.isChecked():
             self.state = 'arc'
             self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.arc_btn)
@@ -239,10 +239,10 @@ class MaskController(object):
         if self.clicks == 1:
             self.arc = self.widget.img_widget.draw_arc(x, y)
             self.widget.img_widget.mouse_moved.connect(self.arc.set_size)
-            return
         elif self.clicks == 2:
             self.arc.set_size(x, y)
             self.arc.add_point(x, y)
+            self.widget.img_widget.mouse_moved.connect(self.arc.set_preview_arc)
         elif self.clicks == 3:
             self.arc.set_size(x, y)
             self.arc.add_point(x, y)
