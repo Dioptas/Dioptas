@@ -292,7 +292,10 @@ class PatternController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+        if self.model.calibration_model.is_calibrated:
+            # bg_linear_region values need to be updated prior to actual changing the units
+            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
         self.model.current_configuration.integration_unit = '2th_deg'
         self.widget.pattern_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
         self.widget.pattern_widget.spectrum_plot.invertX(False)
@@ -307,13 +310,15 @@ class PatternController(object):
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
+        if self.model.calibration_model.is_calibrated:
+            # needs to be done before setting the integration unit in the configuration
+            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
 
         self.model.current_configuration.integration_unit = "q_A^-1"
 
         self.widget.pattern_widget.spectrum_plot.invertX(False)
-        self.widget.pattern_widget.spectrum_plot.setLabel(
-            'bottom', 'Q', 'A<sup>-1</sup>')
+        self.widget.pattern_widget.spectrum_plot.setLabel('bottom', 'Q', 'A<sup>-1</sup>')
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
@@ -325,7 +330,10 @@ class PatternController(object):
         if previous_unit == 'd_A':
             return
         self.integration_unit = 'd_A'
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
+        if self.model.calibration_model.is_calibrated:
+            # needs to be done before setting the integration unit in the configuration
+            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
 
         self.model.current_configuration.integration_unit = 'd_A'
 

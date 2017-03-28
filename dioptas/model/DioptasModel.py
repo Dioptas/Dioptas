@@ -215,10 +215,12 @@ class DioptasModel(QtCore.QObject):
 
     def add_configuration(self):
         self.configurations.append(ImgConfiguration(self.working_directories))
-        self.current_configuration.calibration_model.save(
-            os.path.join(os.path.expanduser("~"), '.Dioptas', 'transfer.poni'))
-        self.configurations[-1].calibration_model.load(
-            os.path.join(os.path.expanduser("~"), '.Dioptas', 'transfer.poni'))
+
+        if self.current_configuration.calibration_model.is_calibrated:
+            self.current_configuration.calibration_model.save(
+                os.path.join(os.path.expanduser("~"), '.Dioptas', 'transfer.poni'))
+            self.configurations[-1].calibration_model.load(
+                os.path.join(os.path.expanduser("~"), '.Dioptas', 'transfer.poni'))
 
         self.configurations[-1].img_model._img_data = self.current_configuration.img_model.img_data
 
