@@ -23,6 +23,7 @@ import time
 import numpy as np
 from PIL import Image
 from qtpy import QtWidgets, QtCore
+import pyqtgraph as pg
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
@@ -149,6 +150,7 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
+        self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.set_cake_axes_range)
 
         self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
@@ -460,8 +462,12 @@ class ImageController(object):
 
         self.model.cake_changed.connect(self.plot_mask)
         self.model.cake_changed.connect(self.plot_cake)
+
+        self.widget.integration_image_widget.img_view.replace_image_and_cake_axes('cake')
+
         self.plot_mask()
         self.plot_cake()
+        self.set_cake_axes_range()
 
     def activate_image_mode(self):
         if self.model.current_configuration.integrate_cake:
@@ -482,6 +488,8 @@ class ImageController(object):
 
         self.model.cake_changed.disconnect(self.plot_mask)
         self.model.cake_changed.disconnect(self.plot_cake)
+
+        self.widget.integration_image_widget.img_view.replace_image_and_cake_axes('image')
 
         self.plot_img()
         self.plot_mask()
@@ -557,6 +565,25 @@ class ImageController(object):
         else:
             cur_tth = None
         return cur_tth
+
+    def set_cake_axes_range(self):
+        if self.model.current_configuration.integrate_cake:
+            data_img_item = self.widget.integration_image_widget.img_view.data_img_item
+            width = data_img_item.viewRect().width()
+            height = data_img_item.viewRect().height()
+            left = data_img_item.viewRect().left()
+            bottom = data_img_item.viewRect().top()
+            v_scale = (np.max(self.model.cake_azi) - np.min(self.model.cake_azi))/data_img_item.boundingRect().height()
+            v_shift = np.min(self.model.cake_azi)
+            min_azi = v_scale*bottom + v_shift
+            max_azi = v_scale*(bottom + height) + v_shift
+            h_scale = (np.max(self.model.cake_tth) - np.min(self.model.cake_tth))/data_img_item.boundingRect().width()
+            h_shift = np.min(self.model.cake_tth)
+            min_tth = h_scale*left + h_shift
+            max_tth = h_scale*(left + width) + h_shift
+
+            self.widget.integration_image_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(min_tth, max_tth)
 
     def show_img_mouse_position(self, x, y):
         if self.img_mode == "Image":
