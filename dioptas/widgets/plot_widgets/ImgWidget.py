@@ -80,24 +80,24 @@ class ImgWidget(QtCore.QObject):
 
     def replace_image_and_cake_axes(self, mode='image'):
         if mode == 'image':
+            self.pg_layout.removeItem(self.bottom_axis_cake)
+            self.pg_layout.removeItem(self.left_axis_cake)
             self.pg_layout.addItem(self.left_axis_image, 1, 0)
             self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
             self.bottom_axis_cake.hide()
             self.left_axis_cake.hide()
             self.bottom_axis_image.show()
             self.left_axis_image.show()
-            self.pg_layout.removeItem(self.bottom_axis_cake)
-            self.pg_layout.removeItem(self.left_axis_cake)
 
         elif mode == 'cake':
+            self.pg_layout.removeItem(self.left_axis_image)
+            self.pg_layout.removeItem(self.bottom_axis_image)
             self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
             self.pg_layout.addItem(self.left_axis_cake, 1, 0)
             self.bottom_axis_cake.show()
             self.left_axis_cake.show()
             self.bottom_axis_image.hide()
             self.left_axis_image.hide()
-            self.pg_layout.removeItem(self.left_axis_image)
-            self.pg_layout.removeItem(self.bottom_axis_image)
 
     def create_scatter_plot(self):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))

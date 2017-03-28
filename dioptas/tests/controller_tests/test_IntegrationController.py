@@ -9,6 +9,7 @@ from mock import MagicMock
 import numpy as np
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
+import time
 
 from ...controller.integration import IntegrationController
 from ...model.DioptasModel import DioptasModel
@@ -97,3 +98,27 @@ class IntegrationControllerTest(QtTest):
     def test_switching_to_cake_mode_without_having_clicked_the_image_before(self):
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
+
+    def test_cake_changes_axes(self):
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Cake')
+        self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_image,
+                         self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+        self.widget.integration_image_widget.mode_btn.click()  # change to cake mode
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
+        self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_cake,
+                         self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+
+    def test_cake_zoom_changes_axes_scale(self):
+        self.widget.integration_image_widget.mode_btn.click()
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
+        print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
+        print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
+        rect = QtCore.QRectF(512, 512, 512, 512)
+        self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)
+        self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)  # for some reason must run twice
+
+        print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
+        print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
+
+        self.fail()
+
