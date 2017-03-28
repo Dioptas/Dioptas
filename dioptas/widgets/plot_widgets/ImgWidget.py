@@ -56,10 +56,14 @@ class ImgWidget(QtCore.QObject):
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
             self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
-            self.bottom_axis = pg.AxisItem('bottom', linkView=self.img_view_box)
-            self.left_axis = pg.AxisItem('left', linkView=self.img_view_box)
-            self.pg_layout.addItem(self.bottom_axis, 2, 1)
-            self.pg_layout.addItem(self.left_axis, 1, 0)
+            self.left_axis_image = pg.AxisItem('left', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.left_axis_image, 1, 0)
+            self.left_axis_cake = pg.AxisItem('left')
+            self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
+            self.bottom_axis_cake = pg.AxisItem('bottom')
+            self.left_axis_cake.hide()
+            self.bottom_axis_cake.hide()
 
         elif self.orientation == 'vertical':
             self.img_view_box = self.pg_layout.addViewBox(0, 1)
@@ -69,12 +73,31 @@ class ImgWidget(QtCore.QObject):
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
             # self.img_histogram_LUT.axis.hide()
             self.pg_layout.addItem(self.img_histogram_LUT, 0, 2)
-            self.bottom_axis = pg.AxisItem('bottom', linkView=self.img_view_box)
-            self.left_axis = pg.AxisItem('left', linkView=self.img_view_box)
-            self.pg_layout.addItem(self.bottom_axis, 1, 1)
-            self.pg_layout.addItem(self.left_axis, 0, 0)
+            self.left_axis_image = pg.AxisItem('left', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.left_axis_image, 0, 0)
+            self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.bottom_axis_image, 1, 1)
 
-        self.img_view_box.setAspectLocked()
+    def replace_image_and_cake_axes(self, mode='image'):
+        if mode == 'image':
+            self.pg_layout.addItem(self.left_axis_image, 1, 0)
+            self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
+            self.bottom_axis_cake.hide()
+            self.left_axis_cake.hide()
+            self.bottom_axis_image.show()
+            self.left_axis_image.show()
+            self.pg_layout.removeItem(self.bottom_axis_cake)
+            self.pg_layout.removeItem(self.left_axis_cake)
+
+        elif mode == 'cake':
+            self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
+            self.pg_layout.addItem(self.left_axis_cake, 1, 0)
+            self.bottom_axis_cake.show()
+            self.left_axis_cake.show()
+            self.bottom_axis_image.hide()
+            self.left_axis_image.hide()
+            self.pg_layout.removeItem(self.left_axis_image)
+            self.pg_layout.removeItem(self.bottom_axis_image)
 
     def create_scatter_plot(self):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
