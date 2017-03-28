@@ -138,15 +138,16 @@ class ImgConfiguration(QtCore.QObject):
 
         self.integrate_image_1d()
 
-        self.pattern_model.pattern.auto_background_subtraction_roi = \
-            convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
-                          self.calibration_model.wavelength,
-                          previous_unit,
-                          new_unit), \
-            convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
-                          self.calibration_model.wavelength,
-                          previous_unit,
-                          new_unit)
+        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
+            self.pattern_model.pattern.auto_background_subtraction_roi = \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
+                              self.calibration_model.wavelength,
+                              previous_unit,
+                              new_unit), \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
+                              self.calibration_model.wavelength,
+                              previous_unit,
+                              new_unit)
 
         if auto_bg_subtraction:
             self.pattern_model.pattern.auto_background_subtraction = True
@@ -214,6 +215,13 @@ class DioptasModel(QtCore.QObject):
 
     def add_configuration(self):
         self.configurations.append(ImgConfiguration(self.working_directories))
+        self.current_configuration.calibration_model.save(
+            os.path.join(os.path.expanduser("~"), '.Dioptas', 'transfer.poni'))
+        self.configurations[-1].calibration_model.load(
+            os.path.join(os.path.expanduser("~"), '.Dioptas', 'transfer.poni'))
+
+        self.configurations[-1].img_model._img_data = self.current_configuration.img_model.img_data
+
         self.select_configuration(len(self.configurations) - 1)
         self.configuration_added.emit()
 
