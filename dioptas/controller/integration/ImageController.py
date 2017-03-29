@@ -252,7 +252,8 @@ class ImageController(object):
                     map_working_directory = os.path.join(working_directory, 'bkg_subtracted')
                 else:
                     map_working_directory = working_directory
-                self.model.map_model.add_map_data(filename, map_working_directory, self.model.img_model.motors_info)
+                self.model.map_model.add_file_to_map_data(filename, map_working_directory,
+                                                          self.model.img_model.motors_info)
 
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():

@@ -97,3 +97,8 @@ class IntegrationControllerTest(QtTest):
     def test_switching_to_cake_mode_without_having_clicked_the_image_before(self):
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
+
+    def test_user_click_map2d_btn_changes_batch_mode(self):
+        self.assertTrue(self.widget.img_batch_mode_integrate_rb.isChecked())
+        click_button(self.widget.map_2D_btn)
+        self.assertTrue(self.widget.img_batch_mode_map_rb.isChecked())
