@@ -33,6 +33,7 @@ from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
 
+
 class ImageController(object):
     """
     The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
