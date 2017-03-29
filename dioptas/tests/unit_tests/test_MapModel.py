@@ -84,4 +84,55 @@ class MapModelTest(unittest.TestCase):
         self.assertAlmostEqual(self.map_model.diff_hor, 0.005, 5)
         self.assertAlmostEqual(self.map_model.diff_ver, 0.003, 5)
 
-        self.fail()
+    def test_check_map(self):
+        map_path = os.path.join(data_path, 'map')
+        map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
+        hor_pos = 0.123
+        ver_pos = -0.456
+        hor_step = 0.005
+        ver_step = 0.003
+        for map_file in map_files:
+            motor_info = {'Horizontal': hor_pos,
+                          'Vertical': ver_pos}
+            self.map_model.add_file_to_map_data(map_file,
+                                                os.path.join(map_path, 'patterns'),
+                                                motor_info)
+            hor_pos += hor_step
+            ver_pos += ver_step
+
+        self.assertEqual(len(self.map_model.map_data), len(map_files))
+        self.assertTrue(self.map_model.all_positions_defined_in_files)
+        # after all files loaded, test organization
+        self.map_model.organize_map_files()
+        self.assertFalse(self.map_model.check_map())
+
+    def test_add_roi_to_roi_list(self):
+        self.assertEqual(len(self.map_model.map_roi_list), 0)
+        self.helper_add_roi_to_roi_list()
+        self.assertEqual(len(self.map_model.map_roi_list), 1)
+        self.assertEqual(self.map_model.map_roi_list[0]['roi_letter'], self.roi_letter)
+        self.assertEqual(self.map_model.map_roi_list[0]['roi_start'], str(self.roi_start))
+        self.assertEqual(self.map_model.map_roi_list[0]['roi_end'], str(self.roi_end))
+
+    def helper_add_roi_to_roi_list(self):
+        self.roi_letter = 'A'
+        self.roi_start = 4.231
+        self.roi_end = 5.879
+        item = self.roi_letter + '_' + str(self.roi_start) + '-' + str(self.roi_end)
+        roi_full_name = item.split('_')
+        new_roi_name = roi_full_name[1].split('-')
+        new_roi = {'roi_letter': roi_full_name[0], 'roi_start': new_roi_name[0], 'roi_end': new_roi_name[1]}
+        self.map_model.add_roi_to_roi_list(new_roi)
+
+    def test_is_val_in_roi_range(self):
+        self.helper_add_roi_to_roi_list()
+        val1 = self.roi_start - 0.001
+        val2 = self.roi_end + 0.001
+        val3 = self.roi_start + 0.001
+        val4 = self.roi_end - 0.001
+        self.assertFalse(self.map_model.is_val_in_roi_range(val1))
+        self.assertFalse(self.map_model.is_val_in_roi_range(val2))
+        self.assertEqual(self.map_model.is_val_in_roi_range(val3), self.roi_letter)
+        self.assertEqual(self.map_model.is_val_in_roi_range(val4), self.roi_letter)
+
+

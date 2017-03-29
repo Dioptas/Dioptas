@@ -104,7 +104,7 @@ class MapController(object):
         for item in self.map_widget.roi_list.selectedItems():
             roi_full_name = item.text().split('_')
             roi_name = roi_full_name[1].split('-')
-            self.map_model.map_roi_list.append({'roi_letter': roi_full_name[0], 'roi_start': roi_name[0],
+            self.map_model.add_roi_to_roi_list({'roi_letter': roi_full_name[0], 'roi_start': roi_name[0],
                                                 'roi_end': roi_name[1]})
         self.map_model.roi_math = roi_math
         self.map_model.update_map()

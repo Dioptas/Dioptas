@@ -85,20 +85,21 @@ class MapModel(QtCore.QObject):
 
     def check_map(self):
         if self.num_ver*self.num_hor == len(self.sorted_datalist):
-            pass
+            return True
         else:
             self.map_problem.emit()
+            return False
 
     def read_map_files_and_prepare_map_data(self):
         for filepath, filedata in self.map_data.items():
-            spec_file = self.map_data[filepath]['pattern_file_name'].replace('\\', '/')
-            curr_spec_file = open(spec_file, 'r')
+            pattern_file = self.map_data[filepath]['pattern_file_name'].replace('\\', '/')
+            current_pattern_file = open(pattern_file, 'r')
             sum_int = {}
             for roi in self.map_roi_list:
                 sum_int[roi['roi_letter']] = 0
             file_units = '2th_deg'
             wavelength = self.wavelength
-            for line in curr_spec_file:
+            for line in current_pattern_file:
                 if 'Wavelength:' in line:
                     wavelength = float(line.split()[-1])
                 elif '2th_deg' in line:
@@ -110,14 +111,14 @@ class MapModel(QtCore.QObject):
                 elif line[0] is not '#':
                     x_val = float(line.split()[0])
                     x_val = self.convert_units(x_val, file_units, self.units, wavelength)
-                    in_roi = self.is_in_roi_range(x_val)
+                    in_roi = self.is_val_in_roi_range(x_val)
                     if in_roi:
                         sum_int[in_roi] += float(line.split()[1])
 
-            curr_math = self.calculate_roi_math(sum_int)
+            current_math = self.calculate_roi_math(sum_int)
             range_hor = self.pos_to_range(float(filedata['pos_hor']), self.min_hor, self.pix_per_hor, self.diff_hor)
             range_ver = self.pos_to_range(float(filedata['pos_ver']), self.min_ver, self.pix_per_ver, self.diff_ver)
-            self.new_image[range_hor, range_ver] = curr_math
+            self.new_image[range_hor, range_ver] = current_math
 
     def update_map(self):
         if not self.all_positions_defined_in_files and not self.positions_set_manually:
@@ -136,17 +137,20 @@ class MapModel(QtCore.QObject):
 
         self.map_changed.emit()
 
-    def is_in_roi_range(self, tt):
+    def is_val_in_roi_range(self, val):
         for item in self.map_roi_list:
-            if float(item['roi_start']) < tt < float(item['roi_end']):
+            if float(item['roi_start']) < val < float(item['roi_end']):
                 return item['roi_letter']
         return False
 
+    def add_roi_to_roi_list(self, roi):
+        self.map_roi_list.append(roi)
+
     def calculate_roi_math(self, sum_int):
-        curr_roi_math = self.roi_math
+        current_roi_math = self.roi_math
         for key in sum_int:
-            curr_roi_math = curr_roi_math.replace(key, str(sum_int[key]))
-        return eval(curr_roi_math)
+            current_roi_math = current_roi_math.replace(key, str(sum_int[key]))
+        return eval(current_roi_math)
 
     def pos_to_range(self, pos, min_pos, pix_per_pos, diff_pos):
         range_start = (pos - min_pos) / diff_pos * pix_per_pos
