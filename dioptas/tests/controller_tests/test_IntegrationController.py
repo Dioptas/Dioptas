@@ -119,6 +119,5 @@ class IntegrationControllerTest(QtTest):
 
         print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
         print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
-
-        self.fail()
-
+        print(self.widget.integration_image_widget.img_view.img_view_box.viewRect())
+        self.assertEqual(self.widget.integration_image_widget.img_view.img_view_box.viewRect(), rect)
