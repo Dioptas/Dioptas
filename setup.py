@@ -4,10 +4,10 @@ from numpy.distutils.core import Extension, setup
 
 import versioneer
 
-# smooth_bruckner = Extension(
-#     name='dioptas.model.util.smooth_bruckner',
-#     sources= ['dioptas/model/util/smooth_bruckner.f95']
-# )
+smooth_bruckner = Extension(
+    name='dioptas.model.util.smooth_bruckner',
+    sources= ['dioptas/model/util/smooth_bruckner.f95']
+)
 
 setup(
     name='dioptas',
@@ -27,8 +27,9 @@ setup(
     packages=find_packages(),
     package_data={'dioptas': ['calibrants/*',
                               'widgets/stylesheet.qss',
+                              'widgets/icns/icon*',
                               'model/util/data/*.json',
                               'model/util/smooth_bruckner.f95']},
     scripts=['scripts/dioptas'],
-    # ext_modules=[smooth_bruckner]
+    ext_modules=[smooth_bruckner]
 )

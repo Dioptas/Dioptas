@@ -19,7 +19,7 @@
 import sys
 import os
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 import numpy as np
 
@@ -161,6 +161,7 @@ class MaskController(object):
         self.widget.img_widget.auto_range()
 
     def process_click(self, x, y):
+        x, y = int(x), int(y)
         if self.state == 'circle':
             self.draw_circle(x, y)
         elif self.state == 'rectangle':
@@ -198,6 +199,9 @@ class MaskController(object):
 
     def draw_point(self, x, y):
         radius = self.widget.point_size_sb.value()
+        if radius <= 0:
+            # filter point with no radius
+            return
         self.model.mask_model.mask_ellipse(x, y, radius, radius)
         self.plot_mask()
 
@@ -216,6 +220,19 @@ class MaskController(object):
         elif self.clicks == 1:
             self.polygon.set_size(x, y)
             self.polygon.add_point(x, y)
+
+    def update_shape_preview_fill_color(self):
+        try:
+            if self.state == 'circle':
+                self.circle.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
+            elif self.state == 'rectangle':
+                self.rect.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
+            elif self.state == 'point':
+                self.point.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
+            elif self.state == 'polygon':
+                self.polygon.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
+        except AttributeError:
+            return
 
     def finish_polygon(self, x, y):
         self.widget.img_widget.mouse_moved.disconnect(self.polygon.set_size)
@@ -318,9 +335,13 @@ class MaskController(object):
 
     def mask_rb_click(self):
         self.model.mask_model.set_mode(True)
+        self.widget.img_widget.mask_preview_fill_color = QtGui.QColor(255, 0, 0, 150)
+        self.update_shape_preview_fill_color()
 
     def unmask_rb_click(self):
         self.model.mask_model.set_mode(False)
+        self.widget.img_widget.mask_preview_fill_color = QtGui.QColor(0, 255, 0, 150)
+        self.update_shape_preview_fill_color()
 
     def fill_rb_click(self):
         self.widget.img_widget.set_color([255, 0, 0, 255])
