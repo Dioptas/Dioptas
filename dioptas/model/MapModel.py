@@ -43,22 +43,24 @@ class MapModel(QtCore.QObject):
         self.all_positions_defined_in_files = False
         self.map_cleared.emit()
 
-    def add_map_data(self, filename, working_directory, motors_info):
-        base_filename = os.path.basename(filename)
-        self.map_data[filename] = {}
-        self.map_data[filename]['image_file_name'] = filename.replace('\\', '/')
-        self.map_data[filename]['spectrum_file_name'] = working_directory + '/' + \
-                                                        os.path.splitext(base_filename)[0] + '.xy'
+    def add_file_to_map_data(self, filepath, map_working_directory, motors_info):
+        if len(self.map_data) == 0:
+            self.all_positions_defined_in_files = True
+        base_filename = os.path.basename(filepath)
+        self.map_data[filepath] = {}
+        self.map_data[filepath]['image_file_name'] = filepath.replace('\\', '/')
+        self.map_data[filepath]['pattern_file_name'] = map_working_directory + '/' + \
+                                                       os.path.splitext(base_filename)[0] + '.xy'
         try:
-            self.map_data[filename]['pos_hor'] = str(round(float(motors_info['Horizontal']), 3))
-            self.map_data[filename]['pos_ver'] = str(round(float(motors_info['Vertical']), 3))
-        except KeyError:
+            self.map_data[filepath]['pos_hor'] = str(round(float(motors_info['Horizontal']), 3))
+            self.map_data[filepath]['pos_ver'] = str(round(float(motors_info['Vertical']), 3))
+        except (KeyError, TypeError):
             self.all_positions_defined_in_files = False
 
     def organize_map_files(self):
         datalist = []
-        for filename, filedata in self.map_data.items():
-            datalist.append([filename, round(float(filedata['pos_hor']), 3), round(float(filedata['pos_ver']), 3)])
+        for filepath, filedata in self.map_data.items():
+            datalist.append([filepath, round(float(filedata['pos_hor']), 3), round(float(filedata['pos_ver']), 3)])
         self.sorted_datalist = sorted(datalist, key=lambda x: (x[1], x[2]))
 
         self.transposed_list = [[row[i] for row in self.sorted_datalist] for i in range(len(self.sorted_datalist[1]))]
@@ -88,8 +90,8 @@ class MapModel(QtCore.QObject):
             self.map_problem.emit()
 
     def read_map_files_and_prepare_map_data(self):
-        for filename, filedata in self.map_data.items():
-            spec_file = self.map_data[filename]['spectrum_file_name'].replace('\\', '/')
+        for filepath, filedata in self.map_data.items():
+            spec_file = self.map_data[filepath]['pattern_file_name'].replace('\\', '/')
             curr_spec_file = open(spec_file, 'r')
             sum_int = {}
             for roi in self.map_roi_list:
@@ -218,8 +220,8 @@ class MapModel(QtCore.QObject):
 
     def sort_map_files_by_natural_name(self):
         datalist = []
-        for filename, filedata in self.map_data.items():
-            datalist.append(filename)
+        for filepath, filedata in self.map_data.items():
+            datalist.append(filepath)
         sorted_datalist = sorted(datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
                                                           re.split('(\d+)', s)])
         return sorted_datalist
