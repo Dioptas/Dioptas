@@ -436,6 +436,9 @@ class MapController(object):
     def manual_map_positions_setup_btn_clicked(self):
         self.manual_map_positions_dialog.exec_()
         if self.manual_map_positions_dialog.approved:
+            map_file_list = []
+            for index in range(self.manual_map_positions_dialog.selected_map_files.count()):
+                map_file_list.append(str(self.manual_map_positions_dialog.selected_map_files.item(index).text()))
             self.map_model.add_manual_map_positions(self.manual_map_positions_dialog.hor_minimum,
                                                     self.manual_map_positions_dialog.ver_minimum,
                                                     self.manual_map_positions_dialog.hor_step_size,
@@ -443,7 +446,7 @@ class MapController(object):
                                                     self.manual_map_positions_dialog.hor_number,
                                                     self.manual_map_positions_dialog.ver_number,
                                                     self.manual_map_positions_dialog.is_hor_first,
-                                                    self.manual_map_positions_dialog.selected_map_files)
+                                                    map_file_list)
 
     def read_list_btn_clicked(self):
         self.manual_map_positions_dialog.selected_map_files.clear()

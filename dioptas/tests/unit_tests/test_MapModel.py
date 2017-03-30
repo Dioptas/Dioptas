@@ -4,6 +4,8 @@ import unittest
 import gc
 import os
 import numpy as np
+import random
+import copy
 
 from mock import MagicMock
 
@@ -155,4 +157,39 @@ class MapModelTest(unittest.TestCase):
         self.assertAlmostEqual(range1.stop, 4 * pix_per_hor, 7)
 
     def test_sort_map_files_by_natural_name(self):
-        self.fail()
+        map_files = ['map1', 'map2', 'map3']
+        for map_file in map_files:
+            self.map_model.map_data[map_file] = {}
+        sorted_list = self.map_model.sort_map_files_by_natural_name()
+        self.assertEqual(sorted_list, map_files)
+
+    def test_add_manual_map_positions(self):
+        map_path = os.path.join(data_path, 'map')
+        map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
+        self.test_organize_map_data()
+        old_map_data = copy.deepcopy(self.map_model.map_data)
+
+        # First change the positions manually to something different and make sure that map_data changes
+
+        hor_min = 0.268
+        ver_min = -0.101
+        hor_step = 0.002
+        ver_step = 0.004
+
+        hor_num = 3
+        ver_num = 3
+        is_hor_first = True
+        self.map_model.add_manual_map_positions(hor_min, ver_min, hor_step, ver_step, hor_num, ver_num,
+                                                is_hor_first, map_files)
+        self.assertNotEqual(self.map_model.map_data, old_map_data)
+
+        # Then change bak manually to the same positions in the organize_map_test and make sure the map_data returns
+
+        hor_min = 0.123
+        ver_min = -0.456
+        hor_step = 0.005
+        ver_step = 0.003
+        self.map_model.add_manual_map_positions(hor_min, ver_min, hor_step, ver_step, hor_num, ver_num,
+                                                is_hor_first, map_files)
+        self.assertEqual(self.map_model.map_data, old_map_data)
+        self.assertDictEqual(self.map_model.map_data, old_map_data)
