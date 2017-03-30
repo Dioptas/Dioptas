@@ -219,24 +219,22 @@ class MapModel(QtCore.QObject):
 
     def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first, file_list):
         # self.sorted_datalist = self.sort_map_files_by_natural_name()
-        self.sorted_datalist = []
-        for index in range(file_list.count()):
-            self.sorted_datalist.append(str(file_list.item(index).text()))
+        self.sorted_datalist = file_list
 
         ind = 0
         if is_hor_first:
             for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
                 for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
                     if not self.sorted_datalist[ind] == 'Empty':
-                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
-                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
+                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = str(round(hor_pos, 3))
+                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = str(round(ver_pos, 3))
                     ind = ind + 1
         else:
             for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
                 for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
                     if not self.sorted_datalist[ind] == 'Empty':
-                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
-                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
+                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = str(round(hor_pos, 3))
+                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = str(round(ver_pos, 3))
                     ind = ind + 1
 
         self.min_hor = hor_min
@@ -258,6 +256,11 @@ class MapModel(QtCore.QObject):
         self.positions_set_manually = True
 
     def sort_map_files_by_natural_name(self):
+        """
+
+        Returns:
+            sorted_datalist: a list of all the map files, sorted by natural filename
+        """
         datalist = []
         for filepath, filedata in self.map_data.items():
             datalist.append(filepath)
