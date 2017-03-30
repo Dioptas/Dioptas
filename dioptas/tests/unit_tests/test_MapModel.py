@@ -135,4 +135,24 @@ class MapModelTest(unittest.TestCase):
         self.assertEqual(self.map_model.is_val_in_roi_range(val3), self.roi_letter)
         self.assertEqual(self.map_model.is_val_in_roi_range(val4), self.roi_letter)
 
+    def test_calculate_roi_math(self):
+        math_to_perform = '(A + B)/2.0'
+        self.map_model.roi_math = math_to_perform
+        sum_int = {'A': 1.3,
+                   'B': 4.7}
+        result = self.map_model.calculate_roi_math(sum_int)
+        for letter in sum_int:
+            math_to_perform = math_to_perform.replace(letter, str(sum_int[letter]))
+        self.assertEqual(result, eval(math_to_perform))
 
+    def test_pos_to_range(self):
+        min_hor = 0.14
+        pix_per_hor = 100
+        diff_hor = 0.005
+        hor1 = min_hor + 3 * diff_hor
+        range1 = self.map_model.pos_to_range(hor1, min_hor, pix_per_hor, diff_hor)
+        self.assertAlmostEqual(range1.start, 3 * pix_per_hor, 7)
+        self.assertAlmostEqual(range1.stop, 4 * pix_per_hor, 7)
+
+    def test_sort_map_files_by_natural_name(self):
+        self.fail()
