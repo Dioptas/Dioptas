@@ -218,7 +218,22 @@ class MapModel(QtCore.QObject):
         return res
 
     def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first, file_list):
-        # self.sorted_datalist = self.sort_map_files_by_natural_name()
+        """
+
+        Args:
+            hor_min: Horizontal minimum position
+            ver_min: Vertical minimum position
+            hor_step: Step in horizontal
+            ver_step: Step in vertical
+            hor_num: Number of horizontal positions
+            ver_num: Number of vertical positions
+            is_hor_first: True of horizontal changes first between files, False if vertical
+            file_list: List of the file names, as they appear in the map_data
+
+        Returns:
+            Does not return, but sets the positions_set_manually flag to True
+
+        """
         self.sorted_datalist = file_list
 
         ind = 0

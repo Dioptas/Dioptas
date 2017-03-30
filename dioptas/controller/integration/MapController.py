@@ -185,7 +185,7 @@ class MapController(object):
             else:
                 self.map_widget.map_roi[roi_item]['Obj'].setBrush(pq.mkBrush(color=(255, 0, 255, 100)))
         # pq.QtGui.QGuiApplication.processEvents()
-        self.map_widget.widget.repaint()
+        self.widget.repaint()
 
     def generate_roi_name(self, roi_start, roi_end, roi_num):
         roi_name = chr(roi_num+65) + '_' + '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)

@@ -58,6 +58,9 @@ class MapModelTest(unittest.TestCase):
     def test_organize_map_data(self):
         map_path = os.path.join(data_path, 'map')
         map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
+        working_dir = os.path.join(map_path, 'patterns')
+        if not os.path.exists(working_dir):
+            os.mkdir(working_dir)
         start_hor = 0.123
         hor_pos = start_hor
         ver_pos = -0.456
@@ -67,9 +70,7 @@ class MapModelTest(unittest.TestCase):
         for map_file in map_files:
             motor_info = {'Horizontal': hor_pos,
                           'Vertical': ver_pos}
-            self.map_model.add_file_to_map_data(map_file,
-                                                os.path.join(map_path, 'patterns'),
-                                                motor_info)
+            self.map_model.add_file_to_map_data(map_file, working_dir, motor_info)
             hor_pos += hor_step
             if counter == 3:
                 ver_pos += ver_step
@@ -89,6 +90,9 @@ class MapModelTest(unittest.TestCase):
     def test_check_map(self):
         map_path = os.path.join(data_path, 'map')
         map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
+        working_dir = os.path.join(map_path, 'patterns')
+        if not os.path.exists(working_dir):
+            os.mkdir(working_dir)
         hor_pos = 0.123
         ver_pos = -0.456
         hor_step = 0.005
@@ -96,9 +100,7 @@ class MapModelTest(unittest.TestCase):
         for map_file in map_files:
             motor_info = {'Horizontal': hor_pos,
                           'Vertical': ver_pos}
-            self.map_model.add_file_to_map_data(map_file,
-                                                os.path.join(map_path, 'patterns'),
-                                                motor_info)
+            self.map_model.add_file_to_map_data(map_file, working_dir, motor_info)
             hor_pos += hor_step
             ver_pos += ver_step
 
