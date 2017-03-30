@@ -44,6 +44,14 @@ class MapModel(QtCore.QObject):
         self.map_cleared.emit()
 
     def add_file_to_map_data(self, filepath, map_working_directory, motors_info):
+        """
+
+        Args:
+            filepath: path to the 2D XRD image file (needed for sending command to open the file when clicked)
+            map_working_directory: Where the integrated patterns are saved
+            motors_info: contains the horizontal/vertical positions needed for the map
+
+        """
         if len(self.map_data) == 0:
             self.all_positions_defined_in_files = True
         base_filename = os.path.basename(filepath)
@@ -111,9 +119,9 @@ class MapModel(QtCore.QObject):
                 elif line[0] is not '#':
                     x_val = float(line.split()[0])
                     x_val = self.convert_units(x_val, file_units, self.units, wavelength)
-                    in_roi = self.is_val_in_roi_range(x_val)
-                    if in_roi:
-                        sum_int[in_roi] += float(line.split()[1])
+                    roi_letter = self.is_val_in_roi_range(x_val)
+                    if roi_letter:
+                        sum_int[roi_letter] += float(line.split()[1])
 
             current_math = self.calculate_roi_math(sum_int)
             range_hor = self.pos_to_range(float(filedata['pos_hor']), self.min_hor, self.pix_per_hor, self.diff_hor)
@@ -138,6 +146,14 @@ class MapModel(QtCore.QObject):
         self.map_changed.emit()
 
     def is_val_in_roi_range(self, val):
+        """
+
+        Args:
+            val: x_value (ttheta, q, or d)
+
+        Returns: ROI letter of ROI containing x_value, or False if not in any ROI in map_roi_list
+
+        """
         for item in self.map_roi_list:
             if float(item['roi_start']) < val < float(item['roi_end']):
                 return item['roi_letter']
@@ -147,12 +163,31 @@ class MapModel(QtCore.QObject):
         self.map_roi_list.append(roi)
 
     def calculate_roi_math(self, sum_int):
+        """
+        evaluates current_roi_math by replacing each ROI letter with the sum of the values in that range
+        Args:
+            sum_int: dictionary containing the ROI letters
+
+        Returns:
+        evaluated current_roi_math
+        """
         current_roi_math = self.roi_math
-        for key in sum_int:
-            current_roi_math = current_roi_math.replace(key, str(sum_int[key]))
+        for roi_letter in sum_int:
+            current_roi_math = current_roi_math.replace(roi_letter, str(sum_int[roi_letter]))
         return eval(current_roi_math)
 
     def pos_to_range(self, pos, min_pos, pix_per_pos, diff_pos):
+        """
+
+        Args:
+            pos: hor/ver position of current map file
+            min_pos: minimum corresponding map position
+            pix_per_pos: pixels to draw for each map position in the corresponding direction
+            diff_pos: difference in corresponding position between subsequent map files
+
+        Returns:
+            pos_range: a slice with the start and end pixels for drawing the current map file
+        """
         range_start = (pos - min_pos) / diff_pos * pix_per_pos
         range_end = range_start + pix_per_pos
         pos_range = slice(range_start, range_end)
