@@ -31,7 +31,7 @@ class MapModel(QtCore.QObject):
         self.pix_per_hor = 100
         self.pix_per_ver = 100
         self.units = '2th_deg'
-        self.wavelength = 0.3344
+        self.wavelength = 3.344e-11
         self.all_positions_defined_in_files = False
         self.positions_set_manually = False
 

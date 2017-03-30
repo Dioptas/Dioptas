@@ -113,6 +113,8 @@ class MapController(object):
     # Controls for ROI
 
     def btn_roi_add_clicked(self, params):
+        # roi_num - number of existing ROIs.
+        # roi_count - number of rois created (includes deleted rois)
         # calculate ROI position
         try:
             theta_center = params['theta_center']

@@ -10,15 +10,15 @@ from mock import MagicMock
 import numpy as np
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
+import time
 
 from ...controller.integration import IntegrationController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
-from ...controller.integration import MapController
-from ...controller.integration import PatternController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
+jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class IntegrationControllerTest(QtTest):
@@ -28,12 +28,11 @@ class IntegrationControllerTest(QtTest):
 
         self.widget = IntegrationWidget()
         self.integration_controller = IntegrationController({'spectrum': data_path,
-                                                             'image': data_path},
+                                                             'image': data_path,
+                                                             'phase': data_path},
                                                             widget=self.widget,
                                                             dioptas_model=self.model)
-        # self.image_controller = self.integration_controller.image_controller
-        # self.pattern_controller = PatternController({}, self.widget, self.model)
-        # self.map_controller = MapController({}, self.widget, self.model)
+
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
@@ -85,6 +84,91 @@ class IntegrationControllerTest(QtTest):
         click_button(self.widget.map_2D_widget.roi_add_btn)
         self.assertTrue(self.widget.map_2D_widget.update_map_btn.isEnabled())
 
+    def helper_add_range_at_pos(self, pos):
+        current_count = self.widget.map_2D_widget.roi_list.count()
+        self.integration_controller.spectrum_controller.pattern_left_click(pos, 50.0)
+        click_button(self.widget.map_2D_widget.roi_add_btn)
+        self.assertEqual(self.widget.map_2D_widget.roi_list.count(), current_count + 1)
 
+    def test_add_range_btn_adds_roi_in_correct_place(self):
+        click_button(self.widget.map_2D_btn)
+        click_position_x = 10.2
+        self.helper_add_range_at_pos(click_position_x)
+        roi_range = self.widget.map_2D_widget.roi_list.item(0).text().rsplit('_', 1)[-1]
+        roi_center = (float(roi_range.split('-')[0]) + float(roi_range.split('-')[1]))/2.0
+        self.assertAlmostEqual(roi_center, click_position_x, 5)
 
+    def test_remove_roi_range_btn(self):
+        click_button(self.widget.map_2D_btn)
+        click_position_x = 10.2
+        self.helper_add_range_at_pos(click_position_x)
+        click_button(self.widget.map_2D_widget.roi_del_btn)
+        self.assertEqual(self.widget.map_2D_widget.roi_list.count(), 0)
 
+    def test_clear_roi_ranges_btn(self):
+        click_button(self.widget.map_2D_btn)
+        click_position_x = 10.2
+        self.helper_add_range_at_pos(click_position_x)
+        click_position_x = 11.8
+        self.helper_add_range_at_pos(click_position_x)
+        click_button(self.widget.map_2D_widget.roi_clear_btn)
+        self.assertEqual(self.widget.map_2D_widget.roi_list.count(), 0)
+
+    def test_select_all_btn(self):
+        click_button(self.widget.map_2D_btn)
+        click_position_x = 10.2
+        self.helper_add_range_at_pos(click_position_x)
+        click_position_x = 11.8
+        self.helper_add_range_at_pos(click_position_x)
+        selected_items = self.widget.map_2D_widget.roi_list.selectedItems()
+        self.assertEqual(len(selected_items), 2)
+        self.widget.map_2D_widget.roi_list.clearSelection()
+        self.widget.map_2D_widget.roi_list.setCurrentItem(selected_items[1])
+        self.assertEqual(len(self.widget.map_2D_widget.roi_list.selectedItems()), 1)
+        click_button(self.widget.map_2D_widget.roi_select_all_btn)
+        self.assertEqual(len(self.widget.map_2D_widget.roi_list.selectedItems()), 2)
+        click_button(self.widget.map_2D_widget.roi_del_btn)
+        self.assertEqual(len(self.widget.map_2D_widget.roi_list.selectedItems()), 0)
+
+    def test_deleting_roi_renames_other_rois(self):
+        click_button(self.widget.map_2D_btn)
+        click_position_x = 10.2
+        self.helper_add_range_at_pos(click_position_x)
+        click_position_x = 11.8
+        self.helper_add_range_at_pos(click_position_x)
+        click_position_x = 14.5
+        self.helper_add_range_at_pos(click_position_x)
+        selected_items = self.widget.map_2D_widget.roi_list.selectedItems()
+        self.widget.map_2D_widget.roi_list.clearSelection()
+        self.widget.map_2D_widget.roi_list.setCurrentItem(selected_items[1])
+        click_button(self.widget.map_2D_widget.roi_del_btn)
+        self.assertEqual(self.widget.map_2D_widget.roi_list.count(), 2)
+        roi_range = self.widget.map_2D_widget.roi_list.item(1).text().rsplit('_', 1)[-1]
+        roi_center = (float(roi_range.split('-')[0]) + float(roi_range.split('-')[1])) / 2.0
+        self.assertEqual(self.widget.map_2D_widget.roi_list.item(1).text().split('_')[0], 'B')
+        self.assertAlmostEqual(roi_center, click_position_x, 5)
+
+    def test_roi_add_phase_btn(self):
+        click_button(self.widget.map_2D_btn)
+        self.helper_load_phase('ar.jcpds')
+        self.assertEqual(self.widget.phase_tw.rowCount(), 1)
+        click_button(self.widget.map_2D_widget.roi_add_phase_btn)
+        self.assertEqual(self.widget.map_2D_widget.roi_list.count(), 5)
+
+        current_phase_ind = self.widget.get_selected_phase_row()
+        phase_lines = self.model.phase_model.get_lines_d(current_phase_ind)
+        xcenter = []
+        for line in phase_lines[0:5]:
+            xcenter.append(self.model.map_model.convert_units(line[0], 'd_A', self.model.map_model.units,
+                                                              self.model.map_model.wavelength))
+
+        for roi_item, xcen in zip(self.widget.map_2D_widget.roi_list.selectedItems(), xcenter):
+            print(roi_item.text())
+            print(xcen)
+            roi_range = roi_item.text().rsplit('_', 1)[-1]
+            roi_center = (float(roi_range.split('-')[0]) + float(roi_range.split('-')[1])) / 2.0
+            self.assertAlmostEqual(roi_center, xcen, 3)
+
+    def helper_load_phase(self, filename):
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
+        click_button(self.widget.phase_add_btn)
