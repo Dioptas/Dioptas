@@ -27,6 +27,8 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.add_configuration_btn = FlatButton("+")
         self.remove_configuration_btn = FlatButton("-")
 
+        self.save_configuration_btn = FlatButton("Save Configuration")
+
         self.factor_lbl = LabelAlignRight("Factor: ")
         self.factor_txt = NumberTextField("1")
 
