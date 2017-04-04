@@ -381,7 +381,7 @@ class CalibrationModel(object):
         try:
             pyFAI_parameter['wavelength'] = self.spectrum_geometry.wavelength
             fit2d_parameter['wavelength'] = self.spectrum_geometry.wavelength
-        except RuntimeWarning:
+        except (RuntimeWarning, TypeError):
             pyFAI_parameter['wavelength'] = 0
 
         return pyFAI_parameter, fit2d_parameter

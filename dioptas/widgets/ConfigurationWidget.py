@@ -28,6 +28,7 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.remove_configuration_btn = FlatButton("-")
 
         self.save_configuration_btn = FlatButton("Save Configuration")
+        self.load_configuration_button = FlatButton("Load Configuration")
 
         self.factor_lbl = LabelAlignRight("Factor: ")
         self.factor_txt = NumberTextField("1")
@@ -51,6 +52,8 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.main_layout.addWidget(self.configuration_lbl)
         self.main_layout.addWidget(self.add_configuration_btn)
         self.main_layout.addWidget(self.remove_configuration_btn)
+        self.main_layout.addWidget(self.save_configuration_btn)
+        self.main_layout.addWidget(self.load_configuration_button)
         self.main_layout.addWidget(self.configurations_btn_widget)
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.file_lbl)

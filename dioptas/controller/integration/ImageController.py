@@ -171,6 +171,10 @@ class ImageController(object):
         self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
+        # signals
+        self.model.use_mask_changed.connect(self.update_mask_mode)
+        self.model.transparent_mask_changed.connect(self.update_mask_mode)
+        self.model.img_model.autoprocess_changed.connect(self.update_gui)
         # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
@@ -354,6 +358,11 @@ class ImageController(object):
         self.plot_mask()
         # print(self.model.mask_model.get_mask().shape)
         self.model.img_model.img_changed.emit()
+
+    def update_mask_mode(self):
+        self.widget.integration_image_widget.mask_btn.setChecked(self.model.use_mask)
+        self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
+        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
 
     def load_next_img(self):
         step = int(str(self.widget.image_browse_step_txt.text()))

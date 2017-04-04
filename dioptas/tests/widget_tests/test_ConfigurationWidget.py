@@ -2,9 +2,6 @@
 
 import os
 from mock import MagicMock
-import h5py
-
-from qtpy import QtWidgets
 
 from ..utility import QtTest, click_button
 from ...model.DioptasModel import DioptasModel
@@ -50,9 +47,3 @@ class ConfigurationWidgetTest(QtTest):
         self.assertFalse(self.config_widget.configuration_btns[1].isChecked())
         self.assertFalse(self.config_widget.configuration_btns[2].isChecked())
         self.assertTrue(self.config_widget.configuration_btns[3].isChecked())
-
-    def test_save_configuration(self):
-        click_button(self.config_widget.save_configuration_btn)
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(
-            return_value=os.path.join(data_path, 'test_save_config.hdf5'))
-        self.assertTrue(os.path.isfile())
