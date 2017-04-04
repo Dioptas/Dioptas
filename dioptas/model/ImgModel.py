@@ -48,6 +48,7 @@ class ImgModel(QtCore.QObject):
     The Signal will be called every time the img_data has changed.
     """
     img_changed = QtCore.Signal()
+    autoprocess_changed = QtCore.Signal()
 
     def __init__(self):
         super(ImgModel, self).__init__()

@@ -42,6 +42,7 @@ class PatternModel(QtCore.QObject):
         self.pattern = Pattern()
         self.pattern_filename = ''
 
+        self.unit = ''
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 

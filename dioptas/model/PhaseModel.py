@@ -18,6 +18,7 @@
 
 import numpy as np
 
+from qtpy import QtCore
 from .util import jcpds
 from .util.cif import CifConverter
 
@@ -31,11 +32,16 @@ class PhaseLoadError(Exception):
         return "Could not load {0} as jcpds file".format(self.filename)
 
 
-class PhaseModel(object):
+class PhaseModel(QtCore.QObject):
+    phase_added = QtCore.Signal()
+
     def __init__(self):
         super(PhaseModel, self).__init__()
         self.phases = []
         self.reflections = []
+
+    def send_added_signal(self):
+        self.phase_added.emit()
 
     def add_jcpds(self, filename):
         try:
