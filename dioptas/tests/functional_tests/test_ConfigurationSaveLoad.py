@@ -74,6 +74,8 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.model.current_configuration.autosave_integrated_pattern = autosave_integrated_patterns
         self.model.current_configuration.integrated_patterns_file_formats = integrated_patterns_file_formats
         self.model.current_configuration.img_model.autoprocess = img_autoprocess
+        self.load_phase('ar.jcpds')
+        self.model.phase_model.phases[0].params['pressure'] = pressure
 
         self.raw_img_data = self.model.img_model.raw_img_data
         self.mask_data = np.eye(self.raw_img_data.shape[0], self.raw_img_data.shape[1], dtype=bool)
@@ -87,29 +89,34 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         # self.fail()
 
     def test_load_configuration(self):
-        # sys.excepthook = excepthook
+        sys.excepthook = excepthook
         self.model.working_directories = {'calibration': 'moo', 'mask': 'baa', 'image': '', 'spectrum': ''}
         config_file_path = os.path.join(data_path, 'test_save_load.hdf5')
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=config_file_path)
         click_button(self.config_widget.load_configuration_button)
 
-        self.assertDictEqual(self.model.working_directories, working_directories)
+        # self.assertDictEqual(self.model.working_directories, working_directories)
         self.assertEqual(self.model.current_configuration.integration_unit, integration_unit)
         self.assertEqual(self.model.use_mask, use_mask)
         self.assertEqual(self.model.transparent_mask, transparent_mask)
-        self.assertTrue(np.array_equal(self.model.img_model.raw_img_data, self.raw_img_data))
+        # self.assertTrue(np.array_equal(self.model.img_model.raw_img_data, self.raw_img_data))
         self.assertEqual(self.model.current_configuration.autosave_integrated_pattern, autosave_integrated_patterns)
         self.assertEqual(self.model.current_configuration.integrated_patterns_file_formats,
                          integrated_patterns_file_formats)
         self.assertEqual(self.model.current_configuration.img_model.autoprocess, img_autoprocess)
-        self.assertTrue(np.array_equal(self.model.mask_model.get_mask(), self.mask_data))
+        # self.assertTrue(np.array_equal(self.model.mask_model.get_mask(), self.mask_data))
         # need to test background img, bg img scaling and offset...
         saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
         self.assertDictEqual(saved_pyfai_params, pyfai_params)
-        # self.fail()
+        self.assertEqual(self.model.phase_model.phases[0].params['pressure'], pressure)
+        self.fail()
 
     def print_name(self, name):
         print(name)
+
+    def load_phase(self, filename):
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
+        click_button(self.controller.widget.integration_widget.phase_add_btn)
 
 # shared settings for save and load tests
 
@@ -139,3 +146,4 @@ pyfai_params = {'detector': 'Detector',
                 'wavelength': 3.1e-11,
                 'polarization_factor': 0.99,
                 'splineFile': None}
+pressure = 12.0
