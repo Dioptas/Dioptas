@@ -99,12 +99,12 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.assertEqual(self.model.current_configuration.integration_unit, integration_unit)
         self.assertEqual(self.model.use_mask, use_mask)
         self.assertEqual(self.model.transparent_mask, transparent_mask)
-        # self.assertTrue(np.array_equal(self.model.img_model.raw_img_data, self.raw_img_data))
+        self.assertTrue(np.array_equal(self.model.img_model.raw_img_data, self.raw_img_data))
         self.assertEqual(self.model.current_configuration.autosave_integrated_pattern, autosave_integrated_patterns)
         self.assertEqual(self.model.current_configuration.integrated_patterns_file_formats,
                          integrated_patterns_file_formats)
         self.assertEqual(self.model.current_configuration.img_model.autoprocess, img_autoprocess)
-        # self.assertTrue(np.array_equal(self.model.mask_model.get_mask(), self.mask_data))
+        self.assertTrue(np.array_equal(self.model.mask_model.get_mask(), self.mask_data))
         # need to test background img, bg img scaling and offset...
         saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
         self.assertDictEqual(saved_pyfai_params, pyfai_params)

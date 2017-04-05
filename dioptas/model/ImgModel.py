@@ -217,6 +217,16 @@ class ImgModel(QtCore.QObject):
         return self._background_data is not None
 
     @property
+    def background_data(self):
+        return self._background_data
+
+    @background_data.setter
+    def background_data(self, new_data):
+        self._background_data = new_data
+        self._calculate_img_data()
+        self.img_changed.emit()
+
+    @property
     def background_scaling(self):
         return self._background_scaling
 
