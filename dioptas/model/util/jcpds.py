@@ -195,7 +195,7 @@ class jcpds(object):
         if (pos >= 0): name = name[0:pos]
         self._name = name
         self.params['comments'] = []
-        self.params['reflections'] = []
+        self.reflections = []
 
         # Determine what version JCPDS file this is
         # In current files have the first line starts with the string VERSION:

@@ -170,9 +170,9 @@ class PhaseController(object):
                               (int(color[0]), int(color[1]), int(color[2])))
 
         self.widget.set_phase_pressure(len(self.model.phase_model.phases) - 1,
-                                       self.model.phase_model.phases[-1].pressure)
+                                       self.model.phase_model.phases[-1].params['pressure'])
         self.update_phase_temperature(len(self.model.phase_model.phases) - 1,
-                                      self.model.phase_model.phases[-1].temperature)
+                                      self.model.phase_model.phases[-1].params['temperature'])
         if self.jcpds_editor_controller.active:
             self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
 

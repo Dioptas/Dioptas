@@ -9,7 +9,8 @@ from copy import deepcopy
 
 import h5py
 
-from .util import Pattern
+from .util import Pattern, jcpds
+
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
 
 
@@ -342,9 +343,27 @@ class DioptasModel(QtCore.QObject):
             ph = phm.create_group('phase_' + phase.name)
             ph.attrs['name'] = phase.name
             ph.attrs['filename'] = phase.filename
-            ph.attrs['pressure'] = phase.pressure
-            ph.attrs['temperature'] = phase.temperature
-            # maybe add all the parameters and reflections?
+            phpars = ph.create_group('params')
+            for key in phase.params:
+                if key == 'comments':
+                    phc = ph.create_group('comments')
+                    ind = 0
+                    for comment in phase.params['comments']:
+                        phc.attrs['comment_' + str(ind)] = comment
+                        ind += 1
+                else:
+                    phpars.attrs[key] = phase.params[key]
+            phrefs = ph.create_group('reflections')
+            ind = 0
+            for reflection in phase.reflections:
+                phref = phrefs.create_group('reflection_' + str(ind))
+                phref.attrs['d0'] = reflection.d0
+                phref.attrs['d'] = reflection.d
+                phref.attrs['intensity'] = reflection.intensity
+                phref.attrs['h'] = reflection.h
+                phref.attrs['k'] = reflection.k
+                phref.attrs['l'] = reflection.l
+                ind += 1
 
         f.flush()
         f.close()
@@ -353,9 +372,15 @@ class DioptasModel(QtCore.QObject):
         if filename is '' or filename is None:
             return
         f = h5py.File(filename, 'r')
-        working_directories = {}
+        temp_path = os.path.join(os.getcwd(), 'temp')
+        if not os.path.isdir(temp_path):
+            os.mkdir(temp_path)
+        working_directories = {'temp': temp_path}
         for key, value in f.get('working_directories').attrs.items():
-            working_directories[key] = value
+            if os.path.isdir(value):
+                working_directories[key] = value
+            else:
+                working_directories[key] = temp_path
         self.working_directories = working_directories
         pyfai_parameters = {}
         for key, value in f.get('calibration_model').get('pyfai_parameters').attrs.items():
@@ -374,9 +399,10 @@ class DioptasModel(QtCore.QObject):
         # self.current_configuration.integrate_cake = f.get('current_config').attrs['integrate_cake']
         self.use_mask = f.get('current_config').attrs['use_mask']
         self.use_mask_changed.emit()
-
         self.transparent_mask = f.get('current_config').attrs['transparent_mask']
         self.transparent_mask_changed.emit()
+        self.mask_model.save_mask(os.path.join(self.working_directories['temp'], 'temp_mask.mask'))
+
         self.current_configuration.autosave_integrated_pattern = \
             f.get('current_config').attrs['autosave_integrated_pattern']
         self.current_configuration.integrated_patterns_file_formats = []
@@ -387,6 +413,8 @@ class DioptasModel(QtCore.QObject):
 
         self.current_configuration.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
         filename = f.get('image_model').attrs['filename']
+        (file_path, base_name) = os.path.split(filename)
+        filename = os.path.join(self.working_directories['temp'], base_name)
         self.current_configuration.img_model.save(filename)
 
         self.current_configuration.img_model.autoprocess = f.get('image_model').attrs['auto_process']
@@ -425,15 +453,38 @@ class DioptasModel(QtCore.QObject):
 
         def load_phase_from_configuration(name):
             if isinstance(f.get('phase_model').get(name), h5py.Group):
-                if f.get('phase_model').get(name).attrs['filename'].endswith('.jcpds'):
-                    self.phase_model.add_jcpds(f.get('phase_model').get(name).attrs['filename'])
-                elif f.get('phase_model').get(name).attrs['filename'].endswith('.cif'):
-                    self.phase_model.add_cif(f.get('phase_model').get(name).attrs['filename'])
-                ind = len(self.phase_model.phases) - 1
-                self.phase_model.phases[ind].pressure = f.get('phase_model').get(name).attrs['pressure']
-                self.phase_model.phases[ind].temperature = f.get('phase_model').get(name).attrs['temperature']
-                self.phase_model.phases[ind].compute_d()
-                self.phase_model.send_added_signal()
+                no_file = False
+                p_filename = f.get('phase_model').get(name).attrs.get('filename', None)
+                if p_filename is not None:
+                    if os.path.isfile(p_filename):
+                        if p_filename.endswith('.jcpds'):
+                            self.phase_model.add_jcpds(p_filename)
+                        elif p_filename.endswith('.cif'):
+                            self.phase_model.add_cif(p_filename)
+                        ind = len(self.phase_model.phases) - 1
+                        for p_key, p_value in f.get('phase_model').get(name).get('params').attrs.items():
+                            self.phase_model.phases[ind].params[p_key] = p_value
+                        for c_key, c_value in f.get('phase_model').get(name).get('comments').attrs.items():
+                            self.phase_model.phases[ind].params['comments'].append(c_value)
+                    else:
+                        no_file = True
+                        new_jcpds = jcpds()
+                        for p_key, p_value in f.get('phase_model').get(name).get('params').attrs.items():
+                            new_jcpds.params[p_key] = p_value
+                        for c_key, c_value in f.get('phase_model').get(name).get('comments').attrs.items():
+                            new_jcpds.params['comments'].append(c_value)
+                        for r_key, r_value in f.get('phase_model').get(name).get('reflections').items():
+                            ref = f.get('phase_model').get(name).get('reflections').get(r_key)
+                            new_jcpds.add_reflection(ref.attrs['h'], ref.attrs['k'], ref.attrs['l'],
+                                                     ref.attrs['intensity'], ref.attrs['d'])
+                        (p_path, p_base_name) = os.path.split(p_filename)
+                        new_jcpds.save_file(os.path.join(self.working_directories['temp'], p_base_name))
+                        ind = len(self.phase_model.phases) - 1
+                        self.phase_model.phases.append(new_jcpds)
+                        self.phase_model.reflections.append([])
+
+                    self.phase_model.phases[ind].compute_d()
+                    self.phase_model.send_added_signal()
 
         f.get('phase_model').visit(load_phase_from_configuration)
 
