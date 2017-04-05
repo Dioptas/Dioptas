@@ -118,7 +118,7 @@ class PhaseControllerTest(QtTest):
         pressure = 200
         self.widget.phase_pressure_sb.setValue(200)
         for ind, phase in enumerate(self.model.phase_model.phases):
-            self.assertEqual(phase.pressure, pressure)
+            self.assertEqual(phase.params['pressure'], pressure)
             self.assertEqual(self.widget.get_phase_pressure(ind), pressure)
 
     def test_temperature_change(self):
@@ -127,10 +127,10 @@ class PhaseControllerTest(QtTest):
         self.widget.phase_temperature_sb.setValue(temperature)
         for ind, phase in enumerate(self.model.phase_model.phases):
             if phase.has_thermal_expansion():
-                self.assertEqual(phase.temperature, temperature)
+                self.assertEqual(phase.params['temperature'], temperature)
                 self.assertEqual(self.widget.get_phase_temperature(ind), temperature)
             else:
-                self.assertEqual(phase.temperature, 298)
+                self.assertEqual(phase.params['temperature'], 298)
                 self.assertEqual(self.widget.get_phase_temperature(ind), None)
 
     def test_apply_to_all_for_new_added_phase_in_table_widget(self):
@@ -140,13 +140,13 @@ class PhaseControllerTest(QtTest):
         self.widget.phase_pressure_sb.setValue(pressure)
         self.load_phases()
         for ind, phase in enumerate(self.model.phase_model.phases):
-            self.assertEqual(phase.pressure, pressure)
+            self.assertEqual(phase.params['pressure'], pressure)
             self.assertEqual(self.widget.get_phase_pressure(ind), pressure)
             if phase.has_thermal_expansion():
-                self.assertEqual(phase.temperature, temperature)
+                self.assertEqual(phase.params['temperature'], temperature)
                 self.assertEqual(self.widget.get_phase_temperature(ind), temperature)
             else:
-                self.assertEqual(phase.temperature, 298)
+                self.assertEqual(phase.params['temperature'], 298)
                 self.assertEqual(self.widget.get_phase_temperature(ind), None)
 
     def test_apply_to_all_for_new_added_phase_d_positions(self):
