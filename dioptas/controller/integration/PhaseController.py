@@ -286,8 +286,8 @@ class PhaseController(object):
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
         cur_ind = row
-        pressure = self.model.phase_model.phases[cur_ind].pressure
-        temperature = self.model.phase_model.phases[cur_ind].temperature
+        pressure = self.model.phase_model.phases[cur_ind].params['pressure']
+        temperature = self.model.phase_model.phases[cur_ind].params['temperature']
 
         self.widget.phase_pressure_sb.blockSignals(True)
         self.widget.phase_pressure_sb.setValue(pressure)
