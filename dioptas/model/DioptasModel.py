@@ -269,6 +269,10 @@ class DioptasModel(QtCore.QObject):
         im.attrs['has_background'] = self.current_configuration.img_model.has_background()
         im.attrs['background_offset'] = self.current_configuration.img_model.background_offset
         im.attrs['background_scaling'] = self.current_configuration.img_model.background_scaling
+        background_data = self.current_configuration.img_model.background_data
+        if self.current_configuration.img_model.has_background():
+            im.create_dataset('background_data', background_data.shape, 'f', background_data)
+
         (base_filename, ext) = self.current_configuration.img_model.filename.rsplit('.', 1)
         im.attrs['filename'] = base_filename + '_temp.' + ext
         current_raw_image = self.current_configuration.img_model.raw_img_data
@@ -276,7 +280,7 @@ class DioptasModel(QtCore.QObject):
         raw_image_data[...] = current_raw_image
 
         mm = f.create_group('mask_model')
-        current_mask = self.mask_model.get_mask()
+        current_mask = self.current_configuration.mask_model.get_mask()
         mask_data = mm.create_dataset('mask_data', current_mask.shape, dtype=bool)
         mask_data[...] = current_mask
         cm = f.create_group('calibration_model')
@@ -287,7 +291,7 @@ class DioptasModel(QtCore.QObject):
             base_filename = self.current_configuration.calibration_model.filename
             ext = 'poni'
         cm.attrs['calibration_filename'] = base_filename + '_temp.' + ext
-        pyfai_param, fit2d_param = self.calibration_model.get_calibration_parameter()
+        pyfai_param, fit2d_param = self.current_configuration.calibration_model.get_calibration_parameter()
         pfp = cm.create_group('pyfai_parameters')
         for key in pyfai_param:
             try:
@@ -300,8 +304,8 @@ class DioptasModel(QtCore.QObject):
 
         bpm = f.create_group('background_pattern')
         try:
-            background_pattern_x = self.pattern_model.background_pattern.original_x
-            background_pattern_y = self.pattern_model.background_pattern.original_y
+            background_pattern_x = self.current_configuration.pattern_model.background_pattern.original_x
+            background_pattern_y = self.current_configuration.pattern_model.background_pattern.original_y
         except (TypeError, AttributeError):
             background_pattern_x = None
             background_pattern_y = None
@@ -313,8 +317,8 @@ class DioptasModel(QtCore.QObject):
 
         pm = f.create_group('pattern')
         try:
-            pattern_x = self.pattern_model.pattern.original_x
-            pattern_y = self.pattern_model.pattern.original_y
+            pattern_x = self.current_configuration.pattern_model.pattern.original_x
+            pattern_y = self.current_configuration.pattern_model.pattern.original_y
         except (TypeError, AttributeError):
             pattern_x = None
             pattern_y = None
@@ -323,9 +327,9 @@ class DioptasModel(QtCore.QObject):
             py = pm.create_dataset('pattern_y', pattern_y.shape, dtype='f')
             px[...] = pattern_x
             py[...] = pattern_y
-        pm.attrs['pattern_filename'] = self.pattern_model.pattern_filename
-        pm.attrs['unit'] = self.pattern_model.unit
-        pm.attrs['file_iteration_mode'] = self.pattern_model.file_iteration_mode
+        pm.attrs['pattern_filename'] = self.current_configuration.pattern_model.pattern_filename
+        pm.attrs['unit'] = self.current_configuration.pattern_model.unit
+        pm.attrs['file_iteration_mode'] = self.current_configuration.pattern_model.file_iteration_mode
 
         ovs = f.create_group('overlay_model')
         for overlay in self.overlay_model.overlays:
@@ -387,8 +391,8 @@ class DioptasModel(QtCore.QObject):
             pyfai_parameters[key] = value
 
         try:
-            self.calibration_model.set_pyFAI(pyfai_parameters)
-            self.calibration_model.save(f.get('calibration_model').attrs['calibration_filename'])
+            self.current_configuration.calibration_model.set_pyFAI(pyfai_parameters)
+            self.current_configuration.calibration_model.save(f.get('calibration_model').attrs['calibration_filename'])
         except (KeyError, ValueError):
             print("Problem with saved pyFAI calibration parameters")
             pass
@@ -401,7 +405,7 @@ class DioptasModel(QtCore.QObject):
         self.use_mask_changed.emit()
         self.transparent_mask = f.get('current_config').attrs['transparent_mask']
         self.transparent_mask_changed.emit()
-        self.mask_model.save_mask(os.path.join(self.working_directories['temp'], 'temp_mask.mask'))
+        self.current_configuration.mask_model.save_mask(os.path.join(self.working_directories['temp'], 'temp_mask.mask'))
 
         self.current_configuration.autosave_integrated_pattern = \
             f.get('current_config').attrs['autosave_integrated_pattern']
@@ -421,24 +425,25 @@ class DioptasModel(QtCore.QObject):
         self.current_configuration.img_model.autoprocess_changed.emit()
         self.current_configuration.img_model.load(filename)
         self.current_configuration.img_model.factor = f.get('image_model').attrs['factor']
-        if self.current_configuration.img_model.has_background:
-            pass  # add here something that loads the background data. Need to add it to save also.
-        self.current_configuration.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
-        self.current_configuration.img_model.background_offset = f.get('image_model').attrs['background_offset']
-        self.mask_model.set_mask(np.copy(f.get('mask_model').get('mask_data')[...]))
+        if f.get('image_model').attrs['has_background']:
+            self.current_configuration.img_model.background_data = f.get('image_model').get('background_data')
+            self.current_configuration.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
+            self.current_configuration.img_model.background_offset = f.get('image_model').attrs['background_offset']
+
+        self.current_configuration.mask_model.set_mask(np.copy(f.get('mask_model').get('mask_data')[...]))
 
         if f.get('pattern').get('pattern_x') and f.get('pattern').get('pattern_y'):
-            self.pattern_model.set_pattern(f.get('pattern').get('pattern_x')[...],
-                                           f.get('pattern').get('pattern_y')[...],
-                                           f.get('pattern').attrs['pattern_filename'],
-                                           f.get('pattern').attrs['unit'])
-            self.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
+            self.current_configuration.pattern_model.set_pattern(f.get('pattern').get('pattern_x')[...],
+                                                                 f.get('pattern').get('pattern_y')[...],
+                                                                 f.get('pattern').attrs['pattern_filename'],
+                                                                 f.get('pattern').attrs['unit'])
+            self.current_configuration.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
 
         if f.get('background_pattern') and f.get('background_pattern').get('background_pattern_x'):
             bg_pattern = self.overlay_model.add_overlay(f.get('background_pattern').get('background_pattern_x')[...],
                                                         f.get('background_pattern').get('background_pattern_y')[...],
                                                         'background_pattern')
-            self.pattern_model.background_pattern = bg_pattern
+            self.current_configuration.pattern_model.background_pattern = bg_pattern
 
         def load_overlay_from_configuration(name):
             if isinstance(f.get('overlay_model').get(name), h5py.Group):
