@@ -236,9 +236,10 @@ class DioptasModel(QtCore.QObject):
         if filename is '' or filename is None:
             return
         # print(self.current_configuration.roi)
-        # im.attrs['img_correction'] = self.current_configuration.img_model.get_img_correction()
 
         f = h5py.File(filename, 'w')
+
+        # general configuration
 
         cc = f.create_group('current_config')
         cc.attrs['integration_unit'] = self.current_configuration.integration_unit
@@ -253,6 +254,8 @@ class DioptasModel(QtCore.QObject):
         formats = [n.encode("ascii", "ignore") for n in self.current_configuration.integrated_patterns_file_formats]
         cc.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
 
+        # working directories
+
         wd = f.create_group('working_directories')
         try:
             for key in self.working_directories:
@@ -262,6 +265,8 @@ class DioptasModel(QtCore.QObject):
                                         'phase': ''}
             for key in self.working_directories:
                 wd.attrs[key] = self.working_directories[key]
+
+        # image model
 
         im = f.create_group('image_model')
         im.attrs['auto_process'] = self.current_configuration.img_model.autoprocess
@@ -273,16 +278,26 @@ class DioptasModel(QtCore.QObject):
         if self.current_configuration.img_model.has_background():
             im.create_dataset('background_data', background_data.shape, 'f', background_data)
 
+        imc = im.create_group('corrections')
+        imc.attrs['has_corrections'] = self.current_configuration.img_model.has_corrections()
+        for correction, correction_data in self.current_configuration.img_model.img_corrections.corrections.items():
+            imc.create_dataset(correction, correction_data.shape, 'f', correction_data)
+
         (base_filename, ext) = self.current_configuration.img_model.filename.rsplit('.', 1)
         im.attrs['filename'] = base_filename + '_temp.' + ext
         current_raw_image = self.current_configuration.img_model.raw_img_data
         raw_image_data = im.create_dataset("raw_image_data", current_raw_image.shape, dtype='f')
         raw_image_data[...] = current_raw_image
 
+        # mask model
+
         mm = f.create_group('mask_model')
         current_mask = self.current_configuration.mask_model.get_mask()
         mask_data = mm.create_dataset('mask_data', current_mask.shape, dtype=bool)
         mask_data[...] = current_mask
+
+        # calibration model
+
         cm = f.create_group('calibration_model')
         calibration_filename = self.current_configuration.calibration_model.filename
         if calibration_filename.endswith('.poni'):
@@ -298,9 +313,8 @@ class DioptasModel(QtCore.QObject):
                 pfp.attrs[key] = pyfai_param[key]
             except TypeError:
                 pfp.attrs[key] = ''
-        # maybe don't need these:
-        # cm.attrs['wavelength'] = self.calibration_model.wavelength
-        # cm.attrs['num_points'] = self.calibration_model.num_points
+
+        # pattern model and background pattern
 
         bpm = f.create_group('background_pattern')
         try:
@@ -331,6 +345,8 @@ class DioptasModel(QtCore.QObject):
         pm.attrs['unit'] = self.current_configuration.pattern_model.unit
         pm.attrs['file_iteration_mode'] = self.current_configuration.pattern_model.file_iteration_mode
 
+        # overlay model
+
         ovs = f.create_group('overlay_model')
         for overlay in self.overlay_model.overlays:
             ov = ovs.create_group('overlay_' + overlay.name)
@@ -341,6 +357,8 @@ class DioptasModel(QtCore.QObject):
             ov.create_dataset('overlay_y_data', overlay_y_data.shape, 'f', overlay_y_data)
             ov.attrs['scaling'] = overlay.scaling
             ov.attrs['offset'] = overlay.offset
+
+        # pahse model
 
         phm = f.create_group('phase_model')
         for phase in self.phase_model.phases:
@@ -376,6 +394,7 @@ class DioptasModel(QtCore.QObject):
         if filename is '' or filename is None:
             return
         f = h5py.File(filename, 'r')
+        # working directories
         temp_path = os.path.join(os.getcwd(), 'temp')
         if not os.path.isdir(temp_path):
             os.mkdir(temp_path)
@@ -386,6 +405,9 @@ class DioptasModel(QtCore.QObject):
             else:
                 working_directories[key] = temp_path
         self.working_directories = working_directories
+
+        # pyFAI parameters
+
         pyfai_parameters = {}
         for key, value in f.get('calibration_model').get('pyfai_parameters').attrs.items():
             pyfai_parameters[key] = value
@@ -396,6 +418,8 @@ class DioptasModel(QtCore.QObject):
         except (KeyError, ValueError):
             print("Problem with saved pyFAI calibration parameters")
             pass
+
+        # general configuration
 
         self.current_configuration.integration_unit = f.get('current_config').attrs['integration_unit']
         if f.get('current_config').attrs['integration_num_points']:
@@ -415,6 +439,8 @@ class DioptasModel(QtCore.QObject):
             file_formats.append(file_format[0].decode("utf-8"))
         self.current_configuration.integrated_patterns_file_formats = file_formats
 
+        # img_model
+
         self.current_configuration.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
         filename = f.get('image_model').attrs['filename']
         (file_path, base_name) = os.path.split(filename)
@@ -430,7 +456,19 @@ class DioptasModel(QtCore.QObject):
             self.current_configuration.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
             self.current_configuration.img_model.background_offset = f.get('image_model').attrs['background_offset']
 
+        def load_correction_from_configuration(name):
+            if isinstance(f.get('image_model').get('corrections').get(name), h5py.Group):
+                self.current_configuration.img_model.add_img_correction(
+                    f.get('image_model').get('corrections').get(name)[...], name)
+
+        if f.get('image_model').get('corrections').attrs['has_corrections']:
+            f.get('image_model').get('corrections').visit(load_correction_from_configuration)
+
+        # mask model
+
         self.current_configuration.mask_model.set_mask(np.copy(f.get('mask_model').get('mask_data')[...]))
+
+        # pattern model
 
         if f.get('pattern').get('pattern_x') and f.get('pattern').get('pattern_y'):
             self.current_configuration.pattern_model.set_pattern(f.get('pattern').get('pattern_x')[...],
@@ -445,6 +483,8 @@ class DioptasModel(QtCore.QObject):
                                                         'background_pattern')
             self.current_configuration.pattern_model.background_pattern = bg_pattern
 
+        # overlay model
+
         def load_overlay_from_configuration(name):
             if isinstance(f.get('overlay_model').get(name), h5py.Group):
                 self.overlay_model.add_overlay(f.get('overlay_model').get(name).get('overlay_x_data')[...],
@@ -455,6 +495,8 @@ class DioptasModel(QtCore.QObject):
                 self.overlay_model.set_overlay_scaling(ind, f.get('overlay_model').get(name).attrs['scaling'])
 
         f.get('overlay_model').visit(load_overlay_from_configuration)
+
+        # phase model
 
         def load_phase_from_configuration(name):
             if isinstance(f.get('phase_model').get(name), h5py.Group):
