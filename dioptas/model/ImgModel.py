@@ -540,6 +540,10 @@ class ImgModel(QtCore.QObject):
         self._calculate_img_data()
         self.img_changed.emit()
 
+    @property
+    def img_corrections(self):
+        return self._img_corrections
+
     def has_corrections(self):
         """
         :return: Whether the ImgData object has active absorption corrections or not

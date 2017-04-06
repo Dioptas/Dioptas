@@ -60,6 +60,10 @@ class ImgCorrectionManager(object):
         except KeyError:
             return None
 
+    @property
+    def corrections(self):
+        return self._corrections
+
 
 class ImgCorrectionInterface(object):
     def get_data(self):

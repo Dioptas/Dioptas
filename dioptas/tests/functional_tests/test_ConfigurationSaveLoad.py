@@ -63,7 +63,6 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
 
     def test_save_configuration(self):
         # sys.excepthook = excepthook
-        config_file_path = os.path.join(data_path, 'test_save_load.hdf5')
 
         self.model.img_model.load(test_image_file_name)
         self.model.calibration_model.set_pyFAI(pyfai_params)
@@ -77,9 +76,18 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.load_phase('ar.jcpds')
         self.model.phase_model.phases[0].params['pressure'] = pressure
 
-        self.raw_img_data = self.model.img_model.raw_img_data
+        self.raw_img_data = self.model.current_configuration.img_model.raw_img_data
         self.mask_data = np.eye(self.raw_img_data.shape[0], self.raw_img_data.shape[1], dtype=bool)
         self.model.mask_model.set_mask(self.mask_data)
+        self.current_pattern_x, self.current_pattern_y = \
+            self.model.current_configuration.pattern_model.get_pattern().data
+        self.controller.widget.integration_widget.cbn_groupbox.setChecked(True)
+        # self.controller.integration_controller.image_controller.cbn_groupbox_changed()
+        # self.model.current_configuration.pattern_model.get_pattern().recalculate_pattern()
+        # self.assertTrue(np.array_equal(self.current_pattern_x,
+        #                                self.model.current_configuration.pattern_model.get_pattern()._spectrum_x))
+        # self.assertFalse(np.array_equal(self.current_pattern_y,
+        #                                 self.model.current_configuration.pattern_model.get_pattern()._spectrum_y))
 
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=config_file_path)
 
@@ -89,13 +97,14 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         # self.fail()
 
     def test_load_configuration(self):
-        sys.excepthook = excepthook
+        # sys.excepthook = excepthook
         self.model.working_directories = {'calibration': 'moo', 'mask': 'baa', 'image': '', 'spectrum': ''}
-        config_file_path = os.path.join(data_path, 'test_save_load.hdf5')
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=config_file_path)
         click_button(self.config_widget.load_configuration_button)
+        saved_working_directories = self.model.working_directories
+        saved_working_directories.pop('temp', None)
 
-        # self.assertDictEqual(self.model.working_directories, working_directories)
+        self.assertDictEqual(saved_working_directories, working_directories)
         self.assertEqual(self.model.current_configuration.integration_unit, integration_unit)
         self.assertEqual(self.model.use_mask, use_mask)
         self.assertEqual(self.model.transparent_mask, transparent_mask)
@@ -105,11 +114,10 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
                          integrated_patterns_file_formats)
         self.assertEqual(self.model.current_configuration.img_model.autoprocess, img_autoprocess)
         self.assertTrue(np.array_equal(self.model.mask_model.get_mask(), self.mask_data))
-        # need to test background img, bg img scaling and offset...
         saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
         self.assertDictEqual(saved_pyfai_params, pyfai_params)
         self.assertEqual(self.model.phase_model.phases[0].params['pressure'], pressure)
-        self.fail()
+        # self.fail()
 
     def print_name(self, name):
         print(name)
@@ -120,12 +128,14 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
 
 # shared settings for save and load tests
 
-working_directories = {'image': 'Z:/github/Dioptas/dioptas/tests/data',
-                       'calibration': 'Z:/github/Dioptas/dioptas/tests/data',
-                       'phase': 'Z:/github/Dioptas/dioptas/tests/data/jcpds',
-                       'overlay': 'Z:/github/Dioptas/dioptas/tests/data',
-                       'mask': 'Z:/github/Dioptas/dioptas/tests/data',
-                       'spectrum': 'Z:/github/Dioptas/dioptas/tests/data'}
+config_file_path = os.path.join(data_path, 'test_save_load.hdf5')
+
+working_directories = {'image': data_path,
+                       'calibration': data_path,
+                       'phase': os.path.join(data_path, 'jcpds'),
+                       'overlay': data_path,
+                       'mask': data_path,
+                       'spectrum': data_path}
 
 integration_unit = 'q_A^-1'
 use_mask = True
