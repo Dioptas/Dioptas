@@ -175,6 +175,7 @@ class ImageController(object):
         self.model.use_mask_changed.connect(self.update_mask_mode)
         self.model.transparent_mask_changed.connect(self.update_mask_mode)
         self.model.img_model.autoprocess_changed.connect(self.update_gui)
+        self.model.img_model.cbn_correction_changed.connect(self.update_cbn_widgets)
         # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
@@ -819,7 +820,7 @@ class ImageController(object):
 
     def cbn_plot_correction_btn_clicked(self):
         if str(self.widget.cbn_plot_correction_btn.text()) == 'Plot':
-            self.widget.img_widget.plot_image(self.model.img_model._img_corrections.get_correction("cbn").get_data(),
+            self.widget.img_widget.plot_image(self.model.img_model.img_corrections.get_correction("cbn").get_data(),
                                               True)
             self.widget.cbn_plot_correction_btn.setText('Back')
             self.widget.oiadac_plot_btn.setText('Plot')
@@ -829,6 +830,20 @@ class ImageController(object):
                 self.plot_cake(True)
             elif self.img_mode == 'Image':
                 self.plot_img(True)
+
+    def update_cbn_widgets(self):
+        params = self.model.img_model.img_corrections.get_correction("cbn").get_params()
+        self.widget.cbn_diamond_thickness_txt.setText(str(params['diamond_thickness']))
+        self.widget.cbn_seat_thickness_txt.setText(str(params['seat_thickness']))
+        self.widget.cbn_inner_seat_radius_txt.setText(str(params['small_cbn_seat_radius']))
+        self.widget.cbn_outer_seat_radius_txt.setText(str(params['large_cbn_seat_radius']))
+        self.widget.cbn_cell_tilt_txt.setText(str(params['tilt']))
+        self.widget.cbn_tilt_rotation_txt.setText(str(params['tilt_rotation']))
+        self.widget.cbn_anvil_al_txt.setText(str(params['diamond_abs_length']))
+        self.widget.cbn_seat_al_txt.setText(str(params['seat_abs_length']))
+        self.widget.cbn_center_offset_txt.setText(str(params['center_offset']))
+        self.widget.cbn_center_offset_angle_txt.setText(str(params['center_offset_angle']))
+        self.widget.cbn_groupbox.setChecked(True)
 
     def oiadac_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:

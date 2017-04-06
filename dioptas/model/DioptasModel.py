@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import os
-
+import time
 from scipy.interpolate import interp1d, interp2d
 import numpy as np
 from qtpy import QtCore
@@ -10,6 +10,7 @@ from copy import deepcopy
 import h5py
 
 from .util import Pattern, jcpds
+from .util.ImgCorrection import CbnCorrection
 
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
 
@@ -239,7 +240,7 @@ class DioptasModel(QtCore.QObject):
 
         f = h5py.File(filename, 'w')
 
-        # general configuration
+        # save general configuration
 
         cc = f.create_group('current_config')
         cc.attrs['integration_unit'] = self.current_configuration.integration_unit
@@ -254,7 +255,7 @@ class DioptasModel(QtCore.QObject):
         formats = [n.encode("ascii", "ignore") for n in self.current_configuration.integrated_patterns_file_formats]
         cc.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
 
-        # working directories
+        # save working directories
 
         wd = f.create_group('working_directories')
         try:
@@ -266,7 +267,7 @@ class DioptasModel(QtCore.QObject):
             for key in self.working_directories:
                 wd.attrs[key] = self.working_directories[key]
 
-        # image model
+        # save image model
 
         im = f.create_group('image_model')
         im.attrs['auto_process'] = self.current_configuration.img_model.autoprocess
@@ -280,8 +281,12 @@ class DioptasModel(QtCore.QObject):
 
         imc = im.create_group('corrections')
         imc.attrs['has_corrections'] = self.current_configuration.img_model.has_corrections()
-        for correction, correction_data in self.current_configuration.img_model.img_corrections.corrections.items():
-            imc.create_dataset(correction, correction_data.shape, 'f', correction_data)
+        for correction, correction_object in self.current_configuration.img_model.img_corrections.corrections.items():
+            correction_data = correction_object.get_data()
+            imcd = imc.create_dataset(correction, correction_data.shape, 'f', correction_data)
+            if correction == 'cbn':
+                for param, value in correction_object.get_params().items():
+                    imcd.attrs[param] = value
 
         (base_filename, ext) = self.current_configuration.img_model.filename.rsplit('.', 1)
         im.attrs['filename'] = base_filename + '_temp.' + ext
@@ -289,14 +294,14 @@ class DioptasModel(QtCore.QObject):
         raw_image_data = im.create_dataset("raw_image_data", current_raw_image.shape, dtype='f')
         raw_image_data[...] = current_raw_image
 
-        # mask model
+        # save mask model
 
         mm = f.create_group('mask_model')
         current_mask = self.current_configuration.mask_model.get_mask()
         mask_data = mm.create_dataset('mask_data', current_mask.shape, dtype=bool)
         mask_data[...] = current_mask
 
-        # calibration model
+        # save calibration model
 
         cm = f.create_group('calibration_model')
         calibration_filename = self.current_configuration.calibration_model.filename
@@ -314,7 +319,7 @@ class DioptasModel(QtCore.QObject):
             except TypeError:
                 pfp.attrs[key] = ''
 
-        # pattern model and background pattern
+        # save pattern model and background pattern
 
         bpm = f.create_group('background_pattern')
         try:
@@ -345,7 +350,7 @@ class DioptasModel(QtCore.QObject):
         pm.attrs['unit'] = self.current_configuration.pattern_model.unit
         pm.attrs['file_iteration_mode'] = self.current_configuration.pattern_model.file_iteration_mode
 
-        # overlay model
+        # save overlay model
 
         ovs = f.create_group('overlay_model')
         for overlay in self.overlay_model.overlays:
@@ -358,7 +363,7 @@ class DioptasModel(QtCore.QObject):
             ov.attrs['scaling'] = overlay.scaling
             ov.attrs['offset'] = overlay.offset
 
-        # pahse model
+        # save phase model
 
         phm = f.create_group('phase_model')
         for phase in self.phase_model.phases:
@@ -394,7 +399,7 @@ class DioptasModel(QtCore.QObject):
         if filename is '' or filename is None:
             return
         f = h5py.File(filename, 'r')
-        # working directories
+        # load working directories
         temp_path = os.path.join(os.getcwd(), 'temp')
         if not os.path.isdir(temp_path):
             os.mkdir(temp_path)
@@ -406,7 +411,7 @@ class DioptasModel(QtCore.QObject):
                 working_directories[key] = temp_path
         self.working_directories = working_directories
 
-        # pyFAI parameters
+        # load pyFAI parameters
 
         pyfai_parameters = {}
         for key, value in f.get('calibration_model').get('pyfai_parameters').attrs.items():
@@ -419,7 +424,7 @@ class DioptasModel(QtCore.QObject):
             print("Problem with saved pyFAI calibration parameters")
             pass
 
-        # general configuration
+        # load general configuration
 
         self.current_configuration.integration_unit = f.get('current_config').attrs['integration_unit']
         if f.get('current_config').attrs['integration_num_points']:
@@ -439,7 +444,7 @@ class DioptasModel(QtCore.QObject):
             file_formats.append(file_format[0].decode("utf-8"))
         self.current_configuration.integrated_patterns_file_formats = file_formats
 
-        # img_model
+        # load img_model
 
         self.current_configuration.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
         filename = f.get('image_model').attrs['filename']
@@ -457,18 +462,26 @@ class DioptasModel(QtCore.QObject):
             self.current_configuration.img_model.background_offset = f.get('image_model').attrs['background_offset']
 
         def load_correction_from_configuration(name):
-            if isinstance(f.get('image_model').get('corrections').get(name), h5py.Group):
-                self.current_configuration.img_model.add_img_correction(
-                    f.get('image_model').get('corrections').get(name)[...], name)
+            if isinstance(f.get('image_model').get('corrections').get(name), h5py.Dataset):
+                if name == 'cbn':
+                    tth_array = 180.0 / np.pi * self.current_configuration.calibration_model.spectrum_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.current_configuration.calibration_model.spectrum_geometry.chia
+                    cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
+                    params = {}
+                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
+                        params[param] = val
+                    cbn_correction.set_params(params)
+                    cbn_correction.update()
+                    self.current_configuration.img_model.add_img_correction(cbn_correction, name, name)
 
         if f.get('image_model').get('corrections').attrs['has_corrections']:
             f.get('image_model').get('corrections').visit(load_correction_from_configuration)
 
-        # mask model
+        # load mask model
 
         self.current_configuration.mask_model.set_mask(np.copy(f.get('mask_model').get('mask_data')[...]))
 
-        # pattern model
+        # load pattern model
 
         if f.get('pattern').get('pattern_x') and f.get('pattern').get('pattern_y'):
             self.current_configuration.pattern_model.set_pattern(f.get('pattern').get('pattern_x')[...],
@@ -483,7 +496,7 @@ class DioptasModel(QtCore.QObject):
                                                         'background_pattern')
             self.current_configuration.pattern_model.background_pattern = bg_pattern
 
-        # overlay model
+        # load overlay model
 
         def load_overlay_from_configuration(name):
             if isinstance(f.get('overlay_model').get(name), h5py.Group):
@@ -496,7 +509,7 @@ class DioptasModel(QtCore.QObject):
 
         f.get('overlay_model').visit(load_overlay_from_configuration)
 
-        # phase model
+        # load phase model
 
         def load_phase_from_configuration(name):
             if isinstance(f.get('phase_model').get(name), h5py.Group):
