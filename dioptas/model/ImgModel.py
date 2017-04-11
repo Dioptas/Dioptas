@@ -50,6 +50,7 @@ class ImgModel(QtCore.QObject):
     img_changed = QtCore.Signal()
     autoprocess_changed = QtCore.Signal()
     cbn_correction_changed = QtCore.Signal()
+    oiadac_correction_changed = QtCore.Signal()
 
     def __init__(self):
         super(ImgModel, self).__init__()
@@ -525,6 +526,8 @@ class ImgModel(QtCore.QObject):
         self.img_changed.emit()
         if external == 'cbn':
             self.cbn_correction_changed.emit()
+        if external  == 'oiadac':
+            self.oiadac_correction_changed.emit()
 
     def get_img_correction(self, name):
         """

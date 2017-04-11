@@ -236,7 +236,7 @@ class CbnCorrection(ImgCorrectionInterface):
 
 
 class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
-    def __init__(self, tth_array, azi_array, detector_thickness, absorption_length, tilt, rotation):
+    def __init__(self, tth_array, azi_array, detector_thickness=40, absorption_length=150, tilt=0, rotation=0):
         self.tth_array = tth_array
         self.azi_array = azi_array
         self.detector_thickness = detector_thickness
@@ -246,6 +246,19 @@ class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
 
         self._data = None
         self.update()
+
+    def get_params(self):
+        return {'detector_thickness': self.detector_thickness,
+                'absorption_length': self.absorption_length,
+                'tilt': self.tilt,
+                'rotation': self.rotation
+                }
+
+    def set_params(self, params):
+        self.detector_thickness = params['detector_thickness']
+        self.absorption_length = params['absorption_length']
+        self.tilt = params['tilt']
+        self.rotation = params['rotation']
 
     def get_data(self):
         return self._data
