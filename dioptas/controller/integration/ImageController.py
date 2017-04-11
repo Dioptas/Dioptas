@@ -176,6 +176,7 @@ class ImageController(object):
         self.model.transparent_mask_changed.connect(self.update_mask_mode)
         self.model.img_model.autoprocess_changed.connect(self.update_gui)
         self.model.img_model.cbn_correction_changed.connect(self.update_cbn_widgets)
+        self.model.img_model.oiadac_correction_changed.connect(self.update_oiadac_widgets)
         # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
@@ -899,6 +900,12 @@ class ImageController(object):
                 self.plot_cake(True)
             elif self.img_mode == 'Image':
                 self.plot_img(True)
+
+    def update_oiadac_widgets(self):
+        params = self.model.img_model.img_corrections.get_correction("oiadac").get_params()
+        self.widget.oiadac_thickness_txt.setText(str(params['detector_thickness']))
+        self.widget.oiadac_abs_length_txt.setText(str(params['absorption_length']))
+        self.widget.oiadac_groupbox.setChecked(True)
 
     def _check_absorption_correction_shape(self):
         if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():

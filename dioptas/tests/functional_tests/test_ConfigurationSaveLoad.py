@@ -62,14 +62,16 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.test_load_configuration()
 
     def test_save_configuration(self):
-        # sys.excepthook = excepthook
+        sys.excepthook = excepthook
 
-        self.model.img_model.load(test_image_file_name)
-        self.model.calibration_model.set_pyFAI(pyfai_params)
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[test_image_file_name])
+        click_button(self.controller.integration_controller.widget.load_img_btn)  # load file
+
+        self.model.current_configuration.calibration_model.set_pyFAI(pyfai_params)
         self.model.working_directories = working_directories
         self.model.current_configuration.integration_unit = integration_unit
-        self.model.use_mask = True
-        self.model.transparent_mask = True
+        self.model.current_configuration.use_mask = True
+        self.model.current_configuration.transparent_mask = True
         self.model.current_configuration.autosave_integrated_pattern = autosave_integrated_patterns
         self.model.current_configuration.integrated_patterns_file_formats = integrated_patterns_file_formats
         self.model.current_configuration.img_model.autoprocess = img_autoprocess
@@ -82,12 +84,13 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.current_pattern_x, self.current_pattern_y = \
             self.model.current_configuration.pattern_model.get_pattern().data
         self.controller.widget.integration_widget.cbn_groupbox.setChecked(True)
-        # self.controller.integration_controller.image_controller.cbn_groupbox_changed()
-        # self.model.current_configuration.pattern_model.get_pattern().recalculate_pattern()
-        # self.assertTrue(np.array_equal(self.current_pattern_x,
-        #                                self.model.current_configuration.pattern_model.get_pattern()._spectrum_x))
-        # self.assertFalse(np.array_equal(self.current_pattern_y,
-        #                                 self.model.current_configuration.pattern_model.get_pattern()._spectrum_y))
+        self.controller.widget.integration_widget.cbn_diamond_thickness_txt.setText('1.9')
+        self.controller.integration_controller.image_controller.cbn_groupbox_changed()
+
+        self.controller.widget.integration_widget.oiadac_groupbox.setChecked(True)
+        self.controller.widget.integration_widget.oiadac_thickness_txt.setText('30')
+        self.controller.widget.integration_widget.oiadac_abs_length_txt.setText('175')
+        self.controller.integration_controller.image_controller.oiadac_groupbox_changed()
 
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=config_file_path)
 
@@ -96,7 +99,7 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
 
         # self.fail()
 
-    def test_load_configuration(self):
+    def test_load_configuration(self):  # for now requires the test_save_configuration
         # sys.excepthook = excepthook
         self.model.working_directories = {'calibration': 'moo', 'mask': 'baa', 'image': '', 'spectrum': ''}
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=config_file_path)
@@ -117,6 +120,10 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
         self.assertDictEqual(saved_pyfai_params, pyfai_params)
         self.assertEqual(self.model.phase_model.phases[0].params['pressure'], pressure)
+        self.assertEqual(self.model.current_configuration.img_model.img_corrections.
+                         corrections["oiadac"].detector_thickness, 30)
+        self.assertEqual(self.model.current_configuration.img_model.img_corrections.
+                         corrections["oiadac"].absorption_length, 175)
         # self.fail()
 
     def print_name(self, name):
@@ -143,6 +150,8 @@ transparent_mask = True
 autosave_integrated_patterns = True
 integrated_patterns_file_formats = ['.xy', '.chi']
 img_autoprocess = True
+detector_thickness = 30
+absorption_length = 175
 test_image_file_name = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
 pyfai_params = {'detector': 'Detector',
                 'dist': 0.196711580484,
