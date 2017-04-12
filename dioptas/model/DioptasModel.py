@@ -282,7 +282,6 @@ class DioptasModel(QtCore.QObject):
         imc = im.create_group('corrections')
         imc.attrs['has_corrections'] = self.current_configuration.img_model.has_corrections()
         for correction, correction_object in self.current_configuration.img_model.img_corrections.corrections.items():
-            print(correction)
             correction_data = correction_object.get_data()
             imcd = imc.create_dataset(correction, correction_data.shape, 'f', correction_data)
             if correction == 'cbn':
@@ -433,7 +432,8 @@ class DioptasModel(QtCore.QObject):
         self.current_configuration.integration_unit = f.get('current_config').attrs['integration_unit']
         if f.get('current_config').attrs['integration_num_points']:
             self.current_configuration.integration_num_points = f.get('current_config').attrs['integration_num_points']
-        # self.current_configuration.integrate_cake = f.get('current_config').attrs['integrate_cake']
+        if f.get('current_config').attrs['integrate_cake']:
+            self.current_configuration.integrate_cake = True
         self.use_mask = f.get('current_config').attrs['use_mask']
         self.use_mask_changed.emit()
         self.transparent_mask = f.get('current_config').attrs['transparent_mask']
@@ -466,7 +466,6 @@ class DioptasModel(QtCore.QObject):
             self.current_configuration.img_model.background_offset = f.get('image_model').attrs['background_offset']
 
         def load_correction_from_configuration(name):
-            print(name)
             if isinstance(f.get('image_model').get('corrections').get(name), h5py.Dataset):
                 if name == 'cbn':
                     tth_array = 180.0 / np.pi * self.current_configuration.calibration_model.spectrum_geometry.ttha
