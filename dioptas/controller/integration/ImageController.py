@@ -174,6 +174,7 @@ class ImageController(object):
         # signals
         self.model.use_mask_changed.connect(self.update_mask_mode)
         self.model.transparent_mask_changed.connect(self.update_mask_mode)
+        self.model.img_mode_changed.connect(self.update_img_mode)
         self.model.img_model.autoprocess_changed.connect(self.update_gui)
         self.model.img_model.cbn_correction_changed.connect(self.update_cbn_widgets)
         self.model.img_model.oiadac_correction_changed.connect(self.update_oiadac_widgets)
@@ -364,7 +365,11 @@ class ImageController(object):
     def update_mask_mode(self):
         self.widget.integration_image_widget.mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
-        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
+        if self.model.transparent_mask:
+            self.widget.mask_transparent_cb.click()
+
+    def update_img_mode(self):
+        self.widget.img_mode_btn.click()
 
     def load_next_img(self):
         step = int(str(self.widget.image_browse_step_txt.text()))
