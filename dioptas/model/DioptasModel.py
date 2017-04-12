@@ -202,6 +202,7 @@ class DioptasModel(QtCore.QObject):
     cake_changed = QtCore.Signal()
     use_mask_changed = QtCore.Signal()
     transparent_mask_changed = QtCore.Signal()
+    img_mode_changed = QtCore.Signal()
 
     def __init__(self, working_directories=None):
         super(DioptasModel, self).__init__()
@@ -433,7 +434,8 @@ class DioptasModel(QtCore.QObject):
         if f.get('current_config').attrs['integration_num_points']:
             self.current_configuration.integration_num_points = f.get('current_config').attrs['integration_num_points']
         if f.get('current_config').attrs['integrate_cake']:
-            self.current_configuration.integrate_cake = True
+            # self.current_configuration.integrate_cake = True
+            self.img_mode_changed.emit()
         self.use_mask = f.get('current_config').attrs['use_mask']
         self.use_mask_changed.emit()
         self.transparent_mask = f.get('current_config').attrs['transparent_mask']
