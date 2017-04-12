@@ -56,12 +56,12 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         gc.collect()
 
     def test_save_and_load_configuration(self):
-        self.test_save_configuration()
+        self.save_configuration()
         self.tearDown()
         self.setUp()
-        self.test_load_configuration()
+        self.load_configuration()
 
-    def test_save_configuration(self):
+    def save_configuration(self):
         sys.excepthook = excepthook
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[test_image_file_name])
@@ -89,8 +89,9 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
 
         self.controller.widget.integration_widget.oiadac_groupbox.setChecked(True)
         self.controller.widget.integration_widget.oiadac_thickness_txt.setText('30')
-        self.controller.widget.integration_widget.oiadac_abs_length_txt.setText('175')
+        self.controller.widget.integration_widget.oiadac_abs_length_txt.setText('450')
         self.controller.integration_controller.image_controller.oiadac_groupbox_changed()
+        self.controller.integration_controller.widget.img_mode_btn.click()
 
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=config_file_path)
 
@@ -99,7 +100,7 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
 
         # self.fail()
 
-    def test_load_configuration(self):  # for now requires the test_save_configuration
+    def load_configuration(self):
         # sys.excepthook = excepthook
         self.model.working_directories = {'calibration': 'moo', 'mask': 'baa', 'image': '', 'spectrum': ''}
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=config_file_path)
@@ -123,11 +124,9 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.assertEqual(self.model.current_configuration.img_model.img_corrections.
                          corrections["oiadac"].detector_thickness, 30)
         self.assertEqual(self.model.current_configuration.img_model.img_corrections.
-                         corrections["oiadac"].absorption_length, 175)
+                         corrections["oiadac"].absorption_length, 450)
+        self.assertTrue(self.model.current_configuration.integrate_cake)
         # self.fail()
-
-    def print_name(self, name):
-        print(name)
 
     def load_phase(self, filename):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
