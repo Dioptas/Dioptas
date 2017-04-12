@@ -193,6 +193,7 @@ class ImgConfiguration(QtCore.QObject):
 
 
 class DioptasModel(QtCore.QObject):
+
     configuration_added = QtCore.Signal()
     configuration_selected = QtCore.Signal(int)  # new index
     configuration_removed = QtCore.Signal(int)  # removed index
@@ -434,7 +435,6 @@ class DioptasModel(QtCore.QObject):
         if f.get('current_config').attrs['integration_num_points']:
             self.current_configuration.integration_num_points = f.get('current_config').attrs['integration_num_points']
         if f.get('current_config').attrs['integrate_cake']:
-            # self.current_configuration.integrate_cake = True
             self.img_mode_changed.emit()
         self.use_mask = f.get('current_config').attrs['use_mask']
         self.use_mask_changed.emit()
