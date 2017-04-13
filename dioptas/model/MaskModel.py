@@ -72,7 +72,7 @@ class MaskModel(object):
                 x1 = 0
             if y1 < 0:
                 y1 = 0
-            roi_mask[x1:x2, y1:y2] = 0
+            roi_mask[int(x1):int(x2), int(y1):int(y2)] = 0
 
             if self.supersampling_factor == None or self.supersampling_factor == 1:
                 return roi_mask

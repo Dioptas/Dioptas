@@ -178,6 +178,7 @@ class ImageController(object):
         self.model.img_model.autoprocess_changed.connect(self.update_gui)
         self.model.img_model.cbn_correction_changed.connect(self.update_cbn_widgets)
         self.model.img_model.oiadac_correction_changed.connect(self.update_oiadac_widgets)
+        self.model.roi_added.connect(self.update_roi_btn)
         # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
@@ -911,6 +912,14 @@ class ImageController(object):
         self.widget.oiadac_thickness_txt.setText(str(params['detector_thickness']))
         self.widget.oiadac_abs_length_txt.setText(str(params['absorption_length']))
         self.widget.oiadac_groupbox.setChecked(True)
+
+    def update_roi_btn(self):
+        roi = self.model.current_configuration.roi
+        pos = QtCore.QPoint(roi[2], roi[0])
+        size = QtCore.QPoint(roi[3] - roi[2], roi[1]-roi[0])
+        if not self.widget.img_roi_btn.isChecked():
+            self.widget.img_roi_btn.click()
+            self.widget.img_widget.roi.setRoiLimits(pos, size)
 
     def _check_absorption_correction_shape(self):
         if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
