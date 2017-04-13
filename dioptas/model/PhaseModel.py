@@ -36,12 +36,14 @@ class PhaseModel(object):
         super(PhaseModel, self).__init__()
         self.phases = []
         self.reflections = []
+        self.phase_files = []
 
     def add_jcpds(self, filename):
         try:
             jcpds_object = jcpds()
             jcpds_object.load_file(filename)
             self.phases.append(jcpds_object)
+            self.phase_files.append(filename)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
@@ -59,6 +61,7 @@ class PhaseModel(object):
     def del_phase(self, ind):
         del self.phases[ind]
         del self.reflections[ind]
+        del self.phase_files[ind]
 
     def set_pressure(self, ind, pressure):
         self.phases[ind].compute_d(pressure=pressure)
