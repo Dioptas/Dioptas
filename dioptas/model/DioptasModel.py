@@ -205,6 +205,7 @@ class DioptasModel(QtCore.QObject):
     transparent_mask_changed = QtCore.Signal()
     img_mode_changed = QtCore.Signal()
     roi_added = QtCore.Signal()
+    auto_background_set = QtCore.Signal(list, list)
 
     def __init__(self, working_directories=None):
         super(DioptasModel, self).__init__()
@@ -364,6 +365,19 @@ class DioptasModel(QtCore.QObject):
         pm.attrs['pattern_filename'] = self.current_configuration.pattern_model.pattern_filename
         pm.attrs['unit'] = self.current_configuration.pattern_model.unit
         pm.attrs['file_iteration_mode'] = self.current_configuration.pattern_model.file_iteration_mode
+        if self.current_configuration.pattern_model.pattern.auto_background_subtraction:
+            pm.attrs['auto_background_subtraction'] = True
+            pmab = pm.create_group('auto_background_settings')
+            pmab.attrs['smoothing'] = \
+                self.current_configuration.pattern_model.pattern.auto_background_subtraction_parameters[0]
+            pmab.attrs['iterations'] = \
+                self.current_configuration.pattern_model.pattern.auto_background_subtraction_parameters[1]
+            pmab.attrs['poly_order'] = \
+                self.current_configuration.pattern_model.pattern.auto_background_subtraction_parameters[2]
+            pmab.attrs['x_start'] = self.current_configuration.pattern_model.pattern.auto_background_subtraction_roi[0]
+            pmab.attrs['x_end'] = self.current_configuration.pattern_model.pattern.auto_background_subtraction_roi[1]
+        else:
+            pm.attrs['auto_background_subtraction'] = False
 
         # save overlay model
 
@@ -526,6 +540,16 @@ class DioptasModel(QtCore.QObject):
                                                         f.get('background_pattern').get('background_pattern_y')[...],
                                                         'background_pattern')
             self.current_configuration.pattern_model.background_pattern = bg_pattern
+
+        if f.get('pattern').attrs['auto_background_subtraction']:
+            bg_params = []
+            bg_roi = []
+            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['smoothing'])
+            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['iterations'])
+            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['poly_order'])
+            bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_start'])
+            bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_end'])
+            self.auto_background_set.emit(bg_params, bg_roi)
 
         # load overlay model
 
