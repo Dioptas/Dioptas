@@ -109,6 +109,10 @@ class PatternController(object):
         self.widget.spectrum_header_chi_cb.clicked.connect(self.update_spectrum_file_endings)
         self.widget.spectrum_header_dat_cb.clicked.connect(self.update_spectrum_file_endings)
 
+        # signals
+        self.model.current_configuration.autosave_integrated_pattern_changed.connect(self.update_autocreate_gui)
+        self.model.current_configuration.integrated_patterns_file_formats_changed.connect(self.update_autocreate_gui)
+
     def update_spectrum_file_endings(self):
         res = []
         if self.widget.spectrum_header_xy_cb.isChecked():
@@ -459,3 +463,12 @@ class PatternController(object):
         elif self.model.current_configuration.integration_unit == 'q_A^-1':
             self.widget.spec_q_btn.setChecked(True)
             self.set_unit_q()
+
+    def update_autocreate_gui(self):
+        self.widget.spec_autocreate_cb.setChecked(self.model.current_configuration.autosave_integrated_pattern)
+        self.widget.spectrum_header_xy_cb.setChecked(
+            '.xy' in self.model.current_configuration.integrated_patterns_file_formats)
+        self.widget.spectrum_header_chi_cb.setChecked(
+            '.chi' in self.model.current_configuration.integrated_patterns_file_formats)
+        self.widget.spectrum_header_dat_cb.setChecked(
+            '.dat' in self.model.current_configuration.integrated_patterns_file_formats)
