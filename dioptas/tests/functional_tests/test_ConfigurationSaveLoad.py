@@ -149,12 +149,18 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
     def cake_settings(self):
         self.controller.integration_controller.widget.img_mode_btn.click()
 
+    def test_save_and_load_with_fit_bg(self):
+        self.save_and_load_configuration(self.fit_bg_settings)
+        self.assertEqual(self.controller.integration_controller.widget.bkg_spectrum_poly_order_sb.value(), poly_order)
+
+    def fit_bg_settings(self):
+        self.controller.integration_controller.widget.qa_bkg_spectrum_btn.click()
+        self.controller.integration_controller.widget.bkg_spectrum_poly_order_sb.setValue(poly_order)
+
     def save_configuration(self):
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=config_file_path)
         click_button(self.config_widget.save_configuration_btn)
         self.assertTrue(os.path.isfile(config_file_path))
-
-        # self.fail()
 
     def load_configuration(self):
         self.model.working_directories = {'calibration': 'moo', 'mask': 'baa', 'image': '', 'spectrum': ''}
@@ -167,8 +173,6 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.assertTrue(np.array_equal(self.model.img_model.raw_img_data, self.raw_img_data))
         saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
         self.assertDictEqual(saved_pyfai_params, pyfai_params)
-
-        # self.fail()
 
     def load_phase(self, filename):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
@@ -195,6 +199,7 @@ img_autoprocess = True
 detector_thickness = 30
 absorption_length = 175
 test_image_file_name = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
+poly_order = 55
 pyfai_params = {'detector': 'Detector',
                 'dist': 0.196711580484,
                 'poni1': 0.0813975852141,
