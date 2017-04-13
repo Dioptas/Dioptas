@@ -44,6 +44,7 @@ class PatternModel(QtCore.QObject):
         self.pattern_filename = ''
         self.done_changing_unit = True
 
+        self.unit = ''
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 
@@ -103,17 +104,18 @@ class PatternModel(QtCore.QObject):
             for ind in range(num_points):
                 file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
         elif filename.endswith('.fxye'):
-            factor = 100
-            if 'CONQ' in header:
-                factor = 1
-            header = header.replace('NUM_POINTS', '{0:.6g}'.format(num_points))
-            header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor*x[0]))
-            header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor*(x[1]-x[0])))
+                factor = 100
+                if 'CONQ' in header:
+                    factor = 1
+                header = header.replace('NUM_POINTS', '{0:.6g}'.format(num_points))
+                header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor * x[0]))
+                header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor * (x[1] - x[0])))
 
-            file_handle.write(header)
-            file_handle.write('\n')
-            for ind in range(num_points):
-                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor*x[ind], y[ind], sqrt(abs(y[ind]))))
+                file_handle.write(header)
+                file_handle.write('\n')
+                for ind in range(num_points):
+                    file_handle.write(
+                        '\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor * x[ind], y[ind], sqrt(abs(y[ind]))))
         else:
             if header is not None:
                 file_handle.write(header)

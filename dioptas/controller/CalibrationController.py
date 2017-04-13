@@ -233,6 +233,9 @@ class CalibrationController(object):
             wavelength = start_values['wavelength']
 
         self.model.calibration_model.calibrant.setWavelength_change2th(wavelength)
+        self.widget.spectrum_widget.plot_vertical_lines(
+            np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180,
+            name=self._calibrants_file_names_list[current_index])
         try:
             integration_unit = self.model.current_configuration.integration_unit
         except:

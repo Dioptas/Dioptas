@@ -24,6 +24,7 @@ import numpy as np
 from scipy.spatial import ConvexHull
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
+from math import sqrt, atan2, cos, sin
 
 from .HistogramLUTItem import HistogramLUTItem
 
@@ -49,23 +50,55 @@ class ImgWidget(QtCore.QObject):
         # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         if self.orientation == 'horizontal':
 
-            self.img_view_box = self.pg_layout.addViewBox(1, 0)
+            self.img_view_box = self.pg_layout.addViewBox(1, 1)
+
             # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 0)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+            self.left_axis_image = pg.AxisItem('left', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.left_axis_image, 1, 0)
+            self.left_axis_cake = pg.AxisItem('left')
+            self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
+            self.bottom_axis_cake = pg.AxisItem('bottom')
+            self.left_axis_cake.hide()
+            self.bottom_axis_cake.hide()
 
         elif self.orientation == 'vertical':
-            self.img_view_box = self.pg_layout.addViewBox(0, 0)
+            self.img_view_box = self.pg_layout.addViewBox(0, 1)
             # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
             # self.img_histogram_LUT.axis.hide()
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 2)
+            self.left_axis_image = pg.AxisItem('left', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.left_axis_image, 0, 0)
+            self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
+            self.pg_layout.addItem(self.bottom_axis_image, 1, 1)
 
-        self.img_view_box.setAspectLocked()
+    def replace_image_and_cake_axes(self, mode='image'):
+        if mode == 'image':
+            self.pg_layout.removeItem(self.bottom_axis_cake)
+            self.pg_layout.removeItem(self.left_axis_cake)
+            self.pg_layout.addItem(self.left_axis_image, 1, 0)
+            self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
+            self.bottom_axis_cake.hide()
+            self.left_axis_cake.hide()
+            self.bottom_axis_image.show()
+            self.left_axis_image.show()
+
+        elif mode == 'cake':
+            self.pg_layout.removeItem(self.left_axis_image)
+            self.pg_layout.removeItem(self.bottom_axis_image)
+            self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
+            self.pg_layout.addItem(self.left_axis_cake, 1, 0)
+            self.bottom_axis_cake.show()
+            self.left_axis_cake.show()
+            self.bottom_axis_image.hide()
+            self.left_axis_image.hide()
 
     def create_scatter_plot(self):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
@@ -283,6 +316,11 @@ class MaskImgWidget(ImgWidget):
         self.img_view_box.addItem(polygon)
         return polygon
 
+    def draw_arc(self, x, y):
+        arc = MyArc(x, y, self.mask_preview_fill_color)
+        self.img_view_box.addItem(arc)
+        return arc
+
 
 class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
@@ -370,16 +408,40 @@ class MyPolygon(QtWidgets.QGraphicsPolygonItem):
         self.setBrush(QtGui.QBrush(fill_color))
 
         self.vertices = []
-        self.vertices.append(QtCore.QPoint(x, y))
+        self.vertices.append(QtCore.QPointF(x, y))
 
     def set_size(self, x, y):
         temp_points = list(self.vertices)
+
         temp_points.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(temp_points))
 
     def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(self.vertices))
+
+
+class MyArc(QtWidgets.QGraphicsPolygonItem):
+    def __init__(self, x, y, fill_color):
+        QtWidgets.QGraphicsPolygonItem.__init__(self)
+        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setBrush(QtGui.QBrush(fill_color))
+        self.arc_center = QtCore.QPointF(0, 0)
+        self.arc_radius = 1
+        self.phi_range = []
+        self.vertices = []
+        self.vertices.append(QtCore.QPointF(x, y))
+
+    def set_size(self, x, y):
+        temp_points = list(self.vertices)
+        temp_points.append(QtCore.QPointF(x, y))
+        self.setPolygon(QtGui.QPolygonF(temp_points))
+
+    def preview_arc(self, arc_points):
+        self.setPolygon(QtGui.QPolygonF(arc_points))
+
+    def add_point(self, x, y):
+        self.vertices.append(QtCore.QPointF(x, y))
 
 
 class MyCircle(QtWidgets.QGraphicsEllipseItem):
@@ -466,6 +528,10 @@ class MyROI(pg.ROI):
         y1 = np.round(rect.left())
         y2 = np.round(rect.left() + rect.width())
         return x1, x2, y1, y2
+
+    def setRoiLimits(self, pos, size):
+        self.setPos(pos)
+        self.setSize(size)
 
 
 class RoiShade(object):
