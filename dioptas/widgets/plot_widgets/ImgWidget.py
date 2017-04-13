@@ -24,6 +24,7 @@ import numpy as np
 from scipy.spatial import ConvexHull
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
+from math import sqrt, atan2, cos, sin
 
 from .HistogramLUTItem import HistogramLUTItem
 
@@ -283,6 +284,11 @@ class MaskImgWidget(ImgWidget):
         self.img_view_box.addItem(polygon)
         return polygon
 
+    def draw_arc(self, x, y):
+        arc = MyArc(x, y, self.mask_preview_fill_color)
+        self.img_view_box.addItem(arc)
+        return arc
+
 
 class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
@@ -370,16 +376,40 @@ class MyPolygon(QtWidgets.QGraphicsPolygonItem):
         self.setBrush(QtGui.QBrush(fill_color))
 
         self.vertices = []
-        self.vertices.append(QtCore.QPoint(x, y))
+        self.vertices.append(QtCore.QPointF(x, y))
 
     def set_size(self, x, y):
         temp_points = list(self.vertices)
+
         temp_points.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(temp_points))
 
     def add_point(self, x, y):
         self.vertices.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(self.vertices))
+
+
+class MyArc(QtWidgets.QGraphicsPolygonItem):
+    def __init__(self, x, y, fill_color):
+        QtWidgets.QGraphicsPolygonItem.__init__(self)
+        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setBrush(QtGui.QBrush(fill_color))
+        self.arc_center = QtCore.QPointF(0, 0)
+        self.arc_radius = 1
+        self.phi_range = []
+        self.vertices = []
+        self.vertices.append(QtCore.QPointF(x, y))
+
+    def set_size(self, x, y):
+        temp_points = list(self.vertices)
+        temp_points.append(QtCore.QPointF(x, y))
+        self.setPolygon(QtGui.QPolygonF(temp_points))
+
+    def preview_arc(self, arc_points):
+        self.setPolygon(QtGui.QPolygonF(arc_points))
+
+    def add_point(self, x, y):
+        self.vertices.append(QtCore.QPointF(x, y))
 
 
 class MyCircle(QtWidgets.QGraphicsEllipseItem):

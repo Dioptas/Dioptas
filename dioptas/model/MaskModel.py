@@ -21,7 +21,8 @@ from collections import deque
 import numpy as np
 import skimage.draw
 from PIL import Image
-from qtpy import QtGui
+from qtpy import QtGui, QtCore
+from math import sqrt, atan2, cos, sin
 
 from .util.cosmics import cosmicsimage
 
@@ -298,3 +299,55 @@ class MaskModel(object):
         self.update_deque()
         self._mask_data = np.logical_or(self._mask_data,
                                         np.array(mask_data, dtype='bool'))
+
+    def find_center_of_circle_from_three_points(self, a, b, c):
+        xa, ya = a.x(), a.y()
+        xb, yb = b.x(), b.y()
+        xc, yc = c.x(), c.y()
+        mid_ab_x = (xa + xb)/2.0
+        mid_ab_y = (ya + yb)/2.0
+        mid_bc_x = (xb + xc)/2.0
+        mid_bc_y = (yb + yc)/2.0
+        slope_ab = (yb - ya)/(xb - xa)
+        slope_bc = (yc - yb)/(xc - xb)
+        slope_p_ab = -1.0/slope_ab
+        slope_p_bc = -1.0/slope_bc
+        b_p_ab = mid_ab_y - slope_p_ab * mid_ab_x
+        b_p_bc = mid_bc_y - slope_p_bc * mid_bc_x
+        x0 = (b_p_bc - b_p_ab)/(slope_p_ab - slope_p_bc)
+        y0 = slope_p_ab * x0 + b_p_ab
+        self.center_for_arc = QtCore.QPointF(x0, y0)
+        return self.center_for_arc
+
+    @staticmethod
+    def find_radius_of_circle_from_center_and_point(p0, a):
+        r = sqrt((a.x() - p0.x()) ** 2 + (a.y() - p0.y()) ** 2)
+        return r
+
+    def find_n_angles_on_arc_from_three_points_around_p0(self, p0, pa, pb, pc, n):
+        phi_a = self.calc_angle_from_center_and_point(p0, pa)
+        phi_b = self.calc_angle_from_center_and_point(p0, pb)
+        phi_c = self.calc_angle_from_center_and_point(p0, pc)
+        if phi_c < phi_a < phi_b or phi_b < phi_c < phi_a:
+            phi_range = np.linspace(phi_a, phi_c + 2 * np.pi, n)
+        elif phi_a < phi_b < phi_c or phi_c < phi_b < phi_a:
+            phi_range = np.linspace(phi_a, phi_c, n)
+        elif phi_a < phi_c < phi_b or phi_b < phi_a < phi_c:
+            phi_range = np.linspace(phi_a + 2 * np.pi, phi_c, n)
+        else:
+            return None
+        return phi_range
+
+    @staticmethod
+    def calc_angle_from_center_and_point(p0, pa):
+        phi = atan2(pa.y() - p0.y(), pa.x() - p0.x())
+        return phi
+
+    @staticmethod
+    def calc_arc_points_from_angles(p0, r, width, phi_range):
+        p = []
+        for phi in phi_range:
+            xn = p0.x() + (r - width) * cos(phi)
+            yn = p0.y() + (r - width) * sin(phi)
+            p.append(QtCore.QPointF(xn, yn))
+        return p
