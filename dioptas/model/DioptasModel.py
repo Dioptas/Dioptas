@@ -167,7 +167,6 @@ class ImgConfiguration(QtCore.QObject):
         return new_configuration
 
 
-
 class DioptasModel(QtCore.QObject):
     configuration_added = QtCore.Signal()
     configuration_selected = QtCore.Signal(int)  # new index
@@ -308,6 +307,13 @@ class DioptasModel(QtCore.QObject):
             return self.calibration_model.cake_img
         else:
             return self._cake_data
+
+    @cake_data.setter
+    def cake_data(self, new_cake_data):
+        if not self.combine_cakes:
+            self.calibration_model.cake_img = new_cake_data
+        else:
+            self._cake_data = new_cake_data
 
     def calculate_combined_cake(self):
         self._activate_cake()
