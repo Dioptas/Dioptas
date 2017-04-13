@@ -49,6 +49,7 @@ class CalibrationModel(object):
         self.spectrum_geometry = AzimuthalIntegrator()
         self.cake_geometry = None
         self.calibrant = Calibrant()
+        self.spectrum_geometry.wavelength = 0.3344e-10
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
                              'pixel_width': 79e-6,
@@ -382,7 +383,7 @@ class CalibrationModel(object):
         try:
             pyFAI_parameter['wavelength'] = self.spectrum_geometry.wavelength
             fit2d_parameter['wavelength'] = self.spectrum_geometry.wavelength
-        except RuntimeWarning:
+        except (RuntimeWarning, TypeError):
             pyFAI_parameter['wavelength'] = 0
 
         return pyFAI_parameter, fit2d_parameter

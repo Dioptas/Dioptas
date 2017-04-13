@@ -19,7 +19,7 @@
 from copy import deepcopy
 
 import numpy as np
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 from ...widgets.UtilityWidgets import save_file_dialog
 from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
@@ -145,69 +145,69 @@ class JcpdsEditorController(QtCore.QObject):
         self.widget.filename_txt.setText(self.jcpds_phase.filename)
 
     def comments_changed(self):
-        self.jcpds_phase.comments[0] = str(self.widget.comments_txt.text())
+        self.jcpds_phase.params['comments'][0] = str(self.widget.comments_txt.text())
         self.phase_modified.emit()
 
     def symmetry_changed(self):
         new_symmetry = str(self.widget.symmetry_cb.currentText()).upper()
-        self.jcpds_phase.symmetry = new_symmetry
+        self.jcpds_phase.params['symmetry'] = new_symmetry
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_a_changed(self):
-        self.jcpds_phase.a0 = float(self.widget.lattice_a_sb.value())
+        self.jcpds_phase.params['a0'] = float(self.widget.lattice_a_sb.value())
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_b_changed(self):
-        self.jcpds_phase.b0 = float(self.widget.lattice_b_sb.value())
+        self.jcpds_phase.params['b0'] = float(self.widget.lattice_b_sb.value())
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_c_changed(self):
-        self.jcpds_phase.c0 = float(self.widget.lattice_c_sb.value())
+        self.jcpds_phase.params['c0'] = float(self.widget.lattice_c_sb.value())
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_ab_changed(self):
         ab_ratio = float(self.widget.lattice_ab_sb.value())
-        self.jcpds_phase.a0 = self.jcpds_phase.b0 * ab_ratio
+        self.jcpds_phase.params['a0'] = self.jcpds_phase.params['b0'] * ab_ratio
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_ca_changed(self):
         ca_ratio = float(self.widget.lattice_ca_sb.value())
-        self.jcpds_phase.c0 = self.jcpds_phase.a0 * ca_ratio
+        self.jcpds_phase.params['c0'] = self.jcpds_phase.params['a0'] * ca_ratio
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_cb_changed(self):
         cb_ratio = float(self.widget.lattice_cb_sb.value())
-        self.jcpds_phase.c0 = self.jcpds_phase.b0 * cb_ratio
+        self.jcpds_phase.params['c0'] = self.jcpds_phase.params['b0'] * cb_ratio
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_alpha_changed(self):
-        self.jcpds_phase.alpha0 = float(self.widget.lattice_alpha_sb.value())
+        self.jcpds_phase.params['alpha0'] = float(self.widget.lattice_alpha_sb.value())
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_beta_changed(self):
-        self.jcpds_phase.beta0 = float(self.widget.lattice_beta_sb.value())
+        self.jcpds_phase.params['beta0'] = float(self.widget.lattice_beta_sb.value())
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
 
     def lattice_gamma_changed(self):
-        self.jcpds_phase.gamma0 = float(self.widget.lattice_gamma_sb.value())
+        self.jcpds_phase.params['gamma0'] = float(self.widget.lattice_gamma_sb.value())
         self.update_view()
         self.phase_modified.emit()
         self.lattice_param_changed.emit()
@@ -231,37 +231,37 @@ class JcpdsEditorController(QtCore.QObject):
         self.widget.lattice_cb_sb.setSingleStep(value)
 
     def eos_K_changed(self):
-        self.jcpds_phase.k0 = float(str(self.widget.eos_K_txt.text()))
+        self.jcpds_phase.params['k0'] = float(str(self.widget.eos_K_txt.text()))
         self.update_view()
         self.eos_param_changed.emit()
         self.phase_modified.emit()
 
     def eos_Kp_changed(self):
-        self.jcpds_phase.k0p0 = float(str(self.widget.eos_Kp_txt.text()))
+        self.jcpds_phase.params['k0p0'] = float(str(self.widget.eos_Kp_txt.text()))
         self.update_view()
         self.eos_param_changed.emit()
         self.phase_modified.emit()
 
     def eos_alphaT_changed(self):
-        self.jcpds_phase.alpha_t0 = float(str(self.widget.eos_alphaT_txt.text()))
+        self.jcpds_phase.params['alpha_t0'] = float(str(self.widget.eos_alphaT_txt.text()))
         self.update_view()
         self.eos_param_changed.emit()
         self.phase_modified.emit()
 
     def eos_dalphadT_changed(self):
-        self.jcpds_phase.d_alpha_dt = float(str(self.widget.eos_dalphadT_txt.text()))
+        self.jcpds_phase.params['d_alpha_dt'] = float(str(self.widget.eos_dalphadT_txt.text()))
         self.update_view()
         self.eos_param_changed.emit()
         self.phase_modified.emit()
 
     def eos_dKdT_changed(self):
-        self.jcpds_phase.dk0dt = float(str(self.widget.eos_dKdT_txt.text()))
+        self.jcpds_phase.params['dk0dt'] = float(str(self.widget.eos_dKdT_txt.text()))
         self.update_view()
         self.eos_param_changed.emit()
         self.phase_modified.emit()
 
     def eos_dKpdT_changed(self):
-        self.jcpds_phase.dk0pdt = float(str(self.widget.eos_dKpdT_txt.text()))
+        self.jcpds_phase.params['dk0pdt'] = float(str(self.widget.eos_dKpdT_txt.text()))
         self.update_view()
         self.eos_param_changed.emit()
         self.phase_modified.emit()
@@ -308,7 +308,7 @@ class JcpdsEditorController(QtCore.QObject):
         self.reflection_line_edited.emit()
 
     def reflection_table_key_pressed(self, key_press_event):
-        if key_press_event == QtWidgets.QKeySequence.Copy:
+        if key_press_event == QtGui.QKeySequence.Copy:
             res = ''
             selection_ranges = self.widget.reflection_table.selectedRanges()
             for range_ind in range(len(selection_ranges)):
@@ -324,7 +324,7 @@ class JcpdsEditorController(QtCore.QObject):
                             selection_ranges[range_ind].topRow() + row_ind,
                             selection_ranges[range_ind].leftColumn() + col_ind).text())
             QtWidgets.QApplication.clipboard().setText(res)
-        elif key_press_event == QtWidgets.QKeySequence.SelectAll:
+        elif key_press_event == QtGui.QKeySequence.SelectAll:
             self.widget.reflection_table.selectAll()
 
     def reflections_clear_btn_click(self):
@@ -341,22 +341,22 @@ class JcpdsEditorController(QtCore.QObject):
     def horizontal_header_clicked(self, ind):
 
         if self.previous_header_item_index_sorted == ind:
-            reversed = True
+            reversed_toggle = True
         else:
-            reversed = False
+            reversed_toggle = False
 
         if ind == 0:
-            self.jcpds_phase.sort_reflections_by_h(reversed)
+            self.jcpds_phase.sort_reflections_by_h(reversed_toggle)
         elif ind == 1:
-            self.jcpds_phase.sort_reflections_by_k(reversed)
+            self.jcpds_phase.sort_reflections_by_k(reversed_toggle)
         elif ind == 2:
-            self.jcpds_phase.sort_reflections_by_l(reversed)
+            self.jcpds_phase.sort_reflections_by_l(reversed_toggle)
         elif ind == 3:
-            self.jcpds_phase.sort_reflections_by_intensity(reversed)
+            self.jcpds_phase.sort_reflections_by_intensity(reversed_toggle)
         elif ind == 4 or ind == 6:
-            self.jcpds_phase.sort_reflections_by_d(reversed)
+            self.jcpds_phase.sort_reflections_by_d(reversed_toggle)
         elif ind == 5 or ind == 7:
-            self.jcpds_phase.sort_reflections_by_d(not reversed)
+            self.jcpds_phase.sort_reflections_by_d(not reversed_toggle)
 
         self.widget.show_jcpds(self.jcpds_phase, wavelength=self.model.calibration_model.wavelength * 1e10)
         self.widget.reflection_table.resizeColumnsToContents()

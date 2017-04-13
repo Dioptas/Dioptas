@@ -24,7 +24,7 @@ from qtpy import QtWidgets, QtCore
 from ...model.PhaseModel import PhaseLoadError
 from ...model.util.HelperModule import get_base_name
 from .JcpdsEditorController import JcpdsEditorController
-from ...widgets.UtilityWidgets import open_files_dialog
+from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_files_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -56,6 +56,8 @@ class PhaseController(object):
         self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.model)
         self.phase_lw_items = []
         self.create_signals()
+        self.update_phase_temperature_step()
+        self.update_phase_pressure_step()
 
     def create_signals(self):
         self.connect_click_function(self.widget.phase_add_btn, self.add_btn_click_callback)
@@ -93,6 +95,9 @@ class PhaseController(object):
         self.jcpds_editor_controller.reflection_line_cleared.connect(self.jcpds_editor_reflection_cleared)
 
         self.jcpds_editor_controller.phase_modified.connect(self.update_cur_phase_name)
+
+        # Signals from phase model
+        self.model.phase_model.phase_added.connect(self.phase_added)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
@@ -166,6 +171,19 @@ class PhaseController(object):
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
                     format(e.filename))
 
+    def phase_added(self):
+        self.model.phase_model.get_lines_d(-1)
+        color = self.add_phase_plot()
+        self.widget.add_phase(get_base_name(self.model.phase_model.phases[-1].filename), '#%02x%02x%02x' %
+                              (int(color[0]), int(color[1]), int(color[2])))
+
+        self.widget.set_phase_pressure(len(self.model.phase_model.phases) - 1,
+                                       self.model.phase_model.phases[-1].params['pressure'])
+        self.update_phase_temperature(len(self.model.phase_model.phases) - 1,
+                                      self.model.phase_model.phases[-1].params['temperature'])
+        if self.jcpds_editor_controller.active:
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
+
     def add_phase_plot(self):
         """
         Adds a phase to the Pattern view.
@@ -209,11 +227,13 @@ class PhaseController(object):
                     self.jcpds_editor_controller.widget.close()
 
     def load_btn_clicked_callback(self):
-        filename = open_file_dialog(self.widget, caption="Load Phase List", directory=self.working_dir['phase'])
+        filename = open_file_dialog(self.widget, caption="Load Phase List", directory=self.working_dir['phase'],
+                                    filter="*.txt")
+        if filename == '':
+            return
         with open(filename, 'r') as phase_file:
             if phase_file == '':
                 return
-
             for line in phase_file.readlines():
                 line = line.replace('\n', '')
                 phase, use_flag, color, name, pressure, temperature = line.split(',')
@@ -226,16 +246,18 @@ class PhaseController(object):
                 self.widget.set_phase_pressure(row, pressure.replace(' GPa', ''))
                 self.model.phase_model.set_pressure(row, float(pressure.replace(' GPa', '')))
                 temperature = temperature.replace(' K', '').replace('-', '')
+
                 if temperature is not '':
                     self.widget.set_phase_temperature(row, temperature)
                     self.model.phase_model.set_temperature(row, float(temperature))
-                self.update_phase_intensities(row)
+                    self.update_phase_intensities(row)
 
     def save_btn_clicked_callback(self):
         if len(self.model.phase_model.phase_files) < 1:
             return
-        filename = save_file_dialog(
-            self.widget, "Save Phase List.", os.path.join(self.working_dir['phase'], 'phase_list.txt'), 'Text (*.txt)')
+        filename = save_file_dialog(self.widget, "Save Phase List.",
+                                    os.path.join(self.working_dir['phase'], 'phase_list.txt'), 'Text (*.txt)')
+
         if filename == '':
             return
 
@@ -320,8 +342,8 @@ class PhaseController(object):
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
         cur_ind = row
-        pressure = self.model.phase_model.phases[cur_ind].pressure
-        temperature = self.model.phase_model.phases[cur_ind].temperature
+        pressure = self.model.phase_model.phases[cur_ind].params['pressure']
+        temperature = self.model.phase_model.phases[cur_ind].params['temperature']
 
         self.widget.phase_pressure_sb.blockSignals(True)
         self.widget.phase_pressure_sb.setValue(pressure)
