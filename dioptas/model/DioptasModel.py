@@ -204,6 +204,7 @@ class DioptasModel(QtCore.QObject):
     use_mask_changed = QtCore.Signal()
     transparent_mask_changed = QtCore.Signal()
     img_mode_changed = QtCore.Signal()
+    roi_added = QtCore.Signal()
 
     def __init__(self, working_directories=None):
         super(DioptasModel, self).__init__()
@@ -238,7 +239,6 @@ class DioptasModel(QtCore.QObject):
     def save_configuration(self, filename):
         if filename is '' or filename is None:
             return
-        # print(self.current_configuration.roi)
 
         f = h5py.File(filename, 'w')
 
@@ -299,6 +299,13 @@ class DioptasModel(QtCore.QObject):
         raw_image_data = im.create_dataset("raw_image_data", current_raw_image.shape, dtype='f')
         raw_image_data[...] = current_raw_image
 
+        # save roi data
+        if self.current_configuration.roi is not None:
+            im.attrs['has_roi'] = True
+            im.create_dataset('roi', (4,), 'i8', tuple(self.current_configuration.roi))
+        else:
+            im.attrs['has_roi'] = False
+
         # save mask model
 
         mm = f.create_group('mask_model')
@@ -324,7 +331,7 @@ class DioptasModel(QtCore.QObject):
             except TypeError:
                 pfp.attrs[key] = ''
 
-        # save pattern model and background pattern
+        # save background pattern and pattern model
 
         bpm = f.create_group('background_pattern')
         try:
@@ -334,10 +341,13 @@ class DioptasModel(QtCore.QObject):
             background_pattern_x = None
             background_pattern_y = None
         if background_pattern_x is not None and background_pattern_y is not None:
+            bpm.attrs['has_background_pattern'] = True
             bgx = bpm.create_dataset("background_pattern_x", background_pattern_x.shape, dtype='f')
             bgy = bpm.create_dataset("background_pattern_y", background_pattern_y.shape, dtype='f')
             bgx[...] = background_pattern_x
             bgy[...] = background_pattern_y
+        else:
+            bpm.attrs['has_background_pattern'] = False
 
         pm = f.create_group('pattern')
         try:
@@ -493,6 +503,11 @@ class DioptasModel(QtCore.QObject):
         if f.get('image_model').get('corrections').attrs['has_corrections']:
             f.get('image_model').get('corrections').visit(load_correction_from_configuration)
 
+        # load roi data
+        if f.get('image_model').attrs['has_roi']:
+            self.current_configuration.roi = tuple(f.get('image_model').get('roi')[...])
+            self.roi_added.emit()
+
         # load mask model
 
         self.current_configuration.mask_model.set_mask(np.copy(f.get('mask_model').get('mask_data')[...]))
@@ -506,7 +521,7 @@ class DioptasModel(QtCore.QObject):
                                                                  f.get('pattern').attrs['unit'])
             self.current_configuration.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
 
-        if f.get('background_pattern') and f.get('background_pattern').get('background_pattern_x'):
+        if f.get('background_pattern').attrs['has_background_pattern']:
             bg_pattern = self.overlay_model.add_overlay(f.get('background_pattern').get('background_pattern_x')[...],
                                                         f.get('background_pattern').get('background_pattern_y')[...],
                                                         'background_pattern')

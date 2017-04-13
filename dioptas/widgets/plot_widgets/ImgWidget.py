@@ -467,6 +467,10 @@ class MyROI(pg.ROI):
         y2 = np.round(rect.left() + rect.width())
         return x1, x2, y1, y2
 
+    def setRoiLimits(self, pos, size):
+        self.setPos(pos)
+        self.setSize(size)
+
 
 class RoiShade(object):
     def __init__(self, view_box, roi, img_shape=(2048, 2048)):
