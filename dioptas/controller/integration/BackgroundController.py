@@ -63,6 +63,7 @@ class BackgroundController(object):
         self.widget.bkg_image_offset_sb.valueChanged.connect(self.background_img_offset_changed)
 
         self.model.img_changed.connect(self.update_background_image_filename)
+        self.model.auto_background_set.connect(self.auto_background_set)
 
     def create_spectrum_background_signals(self):
         self.widget.bkg_spectrum_gb.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
@@ -196,3 +197,13 @@ class BackgroundController(object):
     def update_gui(self):
         self.widget.bkg_image_offset_sb.setValue(self.model.img_model.background_offset)
         self.widget.bkg_image_scale_sb.setValue(self.model.img_model.background_scaling)
+
+    def auto_background_set(self, bg_params, bg_roi):
+        self.widget.bkg_spectrum_gb.setChecked(True)
+        self.widget.qa_bkg_spectrum_btn.setChecked(True)
+        self.widget.bkg_spectrum_smooth_width_sb.setValue(bg_params[0])
+        self.widget.bkg_spectrum_iterations_sb.setValue(bg_params[1])
+        self.widget.bkg_spectrum_poly_order_sb.setValue(bg_params[2])
+        self.widget.bkg_spectrum_x_min_txt.setText(str(bg_roi[0]))
+        self.widget.bkg_spectrum_x_max_txt.setText(str(bg_roi[1]))
+        self.bkg_spectrum_gb_toggled_callback(True)

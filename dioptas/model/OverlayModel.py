@@ -35,6 +35,7 @@ class OverlayModel(QtCore.QObject):
         """
         self.overlays.append(Pattern(x, y, name))
         self.overlay_added.emit()
+        return self.overlays[-1]
 
     def add_overlay_pattern(self, pattern):
         """
