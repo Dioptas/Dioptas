@@ -98,7 +98,7 @@ class MaskController(object):
         # if not except_btn.isChecked() and except_btn is not None:
         #     except_btn.toggle()
 
-        shapes = [self.rect, self.circle, self.polygon, self.arc]
+        shapes = [self.rect, self.circle, self.polygon]
         for shape in shapes:
             if shape is not None:
                 self.widget.img_widget.img_view_box.removeItem(shape)
@@ -111,21 +111,31 @@ class MaskController(object):
         except AttributeError:
             pass
 
+        if self.arc is not None:
+            if self.clicks == 1:
+                self.widget.img_widget.mouse_moved.disconnect(self.arc.set_size)
+            elif self.clicks == 2:
+                self.widget.img_widget.mouse_moved.disconnect(self.arc_calc_and_preview)
+            elif self.clicks == 3:
+                self.widget.img_widget.mouse_moved.disconnect(self.arc_width_preview)
+            self.widget.img_widget.img_view_box.removeItem(self.arc)
+            self.arc = None
+
     def activate_circle_btn(self):
         if self.widget.circle_btn.isChecked():
             self.state = 'circle'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.circle_btn)
+            self.clicks = 0
         else:
             self.state = None
-            self.clicks = 0
             self.uncheck_all_btn()
+            self.clicks = 0
 
     def activate_rectangle_btn(self):
         if self.widget.rectangle_btn.isChecked():
             self.state = 'rectangle'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.rectangle_btn)
+            self.clicks = 0
         else:
             self.state = None
             self.uncheck_all_btn()
@@ -133,17 +143,17 @@ class MaskController(object):
     def activate_polygon_btn(self):
         if self.widget.polygon_btn.isChecked():
             self.state = 'polygon'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.polygon_btn)
+            self.clicks = 0
         else:
-            self.state = None
             self.uncheck_all_btn()
+            self.state = None
 
     def activate_arc_btn(self):
         if self.widget.arc_btn.isChecked():
             self.state = 'arc'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.arc_btn)
+            self.clicks = 0
         else:
             self.state = None
             self.uncheck_all_btn()
@@ -151,8 +161,8 @@ class MaskController(object):
     def activate_point_btn(self):
         if self.widget.point_btn.isChecked():
             self.state = 'point'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.point_btn)
+            self.clicks = 0
             self.point = self.widget.img_widget.draw_point(self.widget.point_size_sb.value())
             self.widget.img_widget.mouse_moved.connect(self.point.set_position)
         else:
