@@ -78,6 +78,8 @@ class ImgWidget(QtCore.QObject):
             self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
             self.pg_layout.addItem(self.bottom_axis_image, 1, 1)
 
+            self.img_view_box.setAspectLocked(True)
+
     def replace_image_and_cake_axes(self, mode='image'):
         if mode == 'image':
             self.pg_layout.removeItem(self.bottom_axis_cake)
