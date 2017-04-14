@@ -304,6 +304,8 @@ class MaskModel(object):
         xa, ya = a.x(), a.y()
         xb, yb = b.x(), b.y()
         xc, yc = c.x(), c.y()
+        # if (xa == xb and ya == yb) or (xa == xc and ya == yc) or (xb == xc and yb == yc):
+        #     return None
         mid_ab_x = (xa + xb)/2.0
         mid_ab_y = (ya + yb)/2.0
         mid_bc_x = (xb + xc)/2.0
