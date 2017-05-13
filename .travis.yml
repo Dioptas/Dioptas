@@ -23,6 +23,7 @@ before_install:
         ./miniconda.sh -b;
       fi
     fi
+
   - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
       if [ ! -d "/home/travis/miniconda3/bin" ]; then
         rm -rf /home/travis/miniconda3;
@@ -31,18 +32,13 @@ before_install:
         ./miniconda.sh -b;
       fi
     fi
-  - if [ ! -d "/home/travis/build/Dioptas/Dioptas/pyFAI/build" ]; then
-      git clone https://github.com/kif/pyFAI;
-      cd pyFAI;
-      git checkout v0.12.0;
-      cd ..;
-    fi
 
   - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
       export PATH=/home/travis/miniconda2/bin:$PATH;
     else
       export PATH=/home/travis/miniconda3/bin:$PATH;
     fi
+
   - conda update --yes conda
   - export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
 
