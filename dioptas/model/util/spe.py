@@ -99,7 +99,12 @@ class SpeFile(object):
         rawtime = self._read_at(172, 6, np.int8)
         strdate = ''.join([chr(i) for i in rawdate])
         strdate += ''.join([chr(i) for i in rawtime])
-        self.date_time = datetime.datetime.strptime(strdate, "%d%b%Y%H%M%S")
+        try:
+            self.date_time = datetime.datetime.strptime(strdate, "%d%b%Y%H%M%S")
+        except ValueError:
+            # catching a strange error on Linux, where strptime does not work within Dioptas, but within the Terminal it
+            # runs without problems...
+            self.date_time = datetime.datetime(1, 1, 1)
 
     def _read_calibration_from_header(self):
         """Reads the calibration from the header into the x_calibration field"""
