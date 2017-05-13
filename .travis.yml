@@ -22,13 +22,13 @@ before_install:
         chmod +x miniconda.sh;
         ./miniconda.sh -b;
       fi
-    else
+    fi
+  - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
       if [ ! -d "/home/travis/miniconda3/bin" ]; then
         rm -rf /home/travis/miniconda3;
         wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
         ./miniconda.sh -b;
-        conda install --yes python=3.5;
       fi
     fi
 
@@ -36,6 +36,10 @@ before_install:
       export PATH=/home/travis/miniconda2/bin:$PATH;
     else
       export PATH=/home/travis/miniconda3/bin:$PATH;
+    fi
+
+  - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
+      conda install --yes python=3.5
     fi
 
   - conda update --yes conda
@@ -52,15 +56,10 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes numpy pillow scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock pytest pytest-cov -c conda-forge
+    - conda install --yes numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock pytest pytest-cov -c conda-forge
     - conda install --yes pyqtgraph -c cprescher
+    - conda install --yes pyepics -c  lightsource2
     - pip install pyepics
-    - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
-        pip install pycifrw;
-      else
-        conda install pycifrw -c cprescher;
-      fi
-    - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
     - cd ../../../
 
