@@ -22,6 +22,7 @@ import numpy as np
 from qtpy import QtWidgets, QtCore
 
 from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
+from ...model.util.calc import convert_units
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -191,7 +192,7 @@ class PatternController(object):
                     con = 'CONS'
 
                 header = header + '\nBANK\t1\tNUM_POINTS\tNUM_POINTS ' + con + '\tMIN_X_VAL\tSTEP_X_VAL ' + \
-                         '{0:.5g}'.format(lam*1e10) + ' 0.0 FXYE'
+                         '{0:.5g}'.format(lam * 1e10) + ' 0.0 FXYE'
 
                 self.model.pattern_model.save_pattern(filename, header, subtract_background=subtract_background)
             elif filename.endswith('.png'):
@@ -293,7 +294,10 @@ class PatternController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+        if self.model.calibration_model.is_calibrated:
+            # bg_linear_region values need to be updated prior to actual changing the units
+            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
         self.model.current_configuration.integration_unit = '2th_deg'
         self.widget.pattern_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
         self.widget.pattern_widget.spectrum_plot.invertX(False)
@@ -303,19 +307,20 @@ class PatternController(object):
 
         self.finish_update_bg_linear_region()
 
-
     def set_unit_q(self):
         previous_unit = self.integration_unit
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
+        if self.model.calibration_model.is_calibrated:
+            # needs to be done before setting the integration unit in the configuration
+            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
 
         self.model.current_configuration.integration_unit = "q_A^-1"
 
         self.widget.pattern_widget.spectrum_plot.invertX(False)
-        self.widget.pattern_widget.spectrum_plot.setLabel(
-            'bottom', 'Q', 'A<sup>-1</sup>')
+        self.widget.pattern_widget.spectrum_plot.setLabel('bottom', 'Q', 'A<sup>-1</sup>')
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
@@ -327,7 +332,10 @@ class PatternController(object):
         if previous_unit == 'd_A':
             return
         self.integration_unit = 'd_A'
-        self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
+
+        if self.model.calibration_model.is_calibrated:
+            # needs to be done before setting the integration unit in the configuration
+            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
 
         self.model.current_configuration.integration_unit = 'd_A'
 
@@ -363,27 +371,7 @@ class PatternController(object):
 
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.model.calibration_model.wavelength
-        if previous_unit == '2th_deg':
-            tth = value
-        elif previous_unit == 'q_A^-1':
-            tth = np.arcsin(
-                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
-        elif previous_unit == 'd_A':
-            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
-        else:
-            tth = 0
-
-        if new_unit == '2th_deg':
-            res = tth
-        elif new_unit == 'q_A^-1':
-            res = 4 * np.pi * \
-                  np.sin(tth / 360 * np.pi) / \
-                  wavelength / 1e10
-        elif new_unit == 'd_A':
-            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
-        else:
-            res = 0
-        return res
+        return convert_units(value, wavelength, previous_unit, new_unit)
 
     def pattern_left_click(self, x, y):
         self.set_line_position(x)
