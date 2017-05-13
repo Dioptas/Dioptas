@@ -53,8 +53,8 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes numpy pillow scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy fabio pyfai lmfit mock pytest pytest-cov -c conda-forge
-    - conda install --yes pyqtgraph -c cprescher
+    - conda install --yes numpy pillow scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy fabio lmfit mock pytest pytest-cov -c conda-forge
+    - conda install --yes pyqtgraph pyfai -c cprescher
     - pip install pyepics
     - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
         pip install pycifrw;
