@@ -54,7 +54,8 @@ install:
     - conda install --yes numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock pytest pytest-cov -c conda-forge
     - conda install --yes pyqtgraph -c cprescher
     - conda install --yes pyepics -c  lightsource2
-    - pip install pyepics
+
+    - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
     - cd ../../../
 
