@@ -246,6 +246,7 @@ class MaskImgWidget(ImgWidget):
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
         self.set_color()
+        self.mask_preview_fill_color = QtGui.QColor(255, 0, 0, 150)
 
     def plot_mask(self, mask_data):
         self.mask_data = np.int16(mask_data)
@@ -263,22 +264,22 @@ class MaskImgWidget(ImgWidget):
         self.mask_img_item.setLookupTable(self.create_color_map(color))
 
     def draw_circle(self, x=0, y=0):
-        circle = MyCircle(x, y, 0)
+        circle = MyCircle(x, y, 0, self.mask_preview_fill_color)
         self.img_view_box.addItem(circle)
         return circle
 
     def draw_rectangle(self, x, y):
-        rect = MyRectangle(x, y, 0, 0)
+        rect = MyRectangle(x, y, 0, 0, self.mask_preview_fill_color)
         self.img_view_box.addItem(rect)
         return rect
 
     def draw_point(self, radius=0):
-        point = MyPoint(radius)
+        point = MyPoint(radius, self.mask_preview_fill_color)
         self.img_view_box.addItem(point)
         return point
 
     def draw_polygon(self, x, y):
-        polygon = MyPolygon(x, y)
+        polygon = MyPolygon(x, y, self.mask_preview_fill_color)
         self.img_view_box.addItem(polygon)
         return polygon
 
@@ -363,10 +364,10 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
 
 
 class MyPolygon(QtWidgets.QGraphicsPolygonItem):
-    def __init__(self, x, y):
+    def __init__(self, x, y, fill_color):
         QtWidgets.QGraphicsPolygonItem.__init__(self)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+        self.setBrush(QtGui.QBrush(fill_color))
 
         self.vertices = []
         self.vertices.append(QtCore.QPoint(x, y))
@@ -382,11 +383,12 @@ class MyPolygon(QtWidgets.QGraphicsPolygonItem):
 
 
 class MyCircle(QtWidgets.QGraphicsEllipseItem):
-    def __init__(self, x, y, radius):
+    def __init__(self, x, y, radius, fill_color):
         QtWidgets.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
         self.radius = radius
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+        self.setBrush(QtGui.QBrush(fill_color))
+
         self.center_x = x
         self.center_y = y
 
@@ -399,10 +401,10 @@ class MyCircle(QtWidgets.QGraphicsEllipseItem):
 
 
 class MyPoint(QtWidgets.QGraphicsEllipseItem):
-    def __init__(self, radius):
+    def __init__(self, radius, fill_color):
         QtWidgets.QGraphicsEllipseItem.__init__(self, 0, 0, radius * 2, radius * 2)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+        self.setBrush(QtGui.QBrush(fill_color))
         self.radius = radius
         self.x = 0
         self.y = 0
@@ -424,10 +426,10 @@ class MyPoint(QtWidgets.QGraphicsEllipseItem):
 
 
 class MyRectangle(QtWidgets.QGraphicsRectItem):
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, fill_color):
         QtWidgets.QGraphicsRectItem.__init__(self, x, y + height, width, height)
         self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+        self.setBrush(QtGui.QBrush(fill_color))
 
         self.initial_x = x
         self.initial_y = y

@@ -6,7 +6,7 @@ import gc
 import numpy as np
 from mock import MagicMock
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtTest import QTest
 
 from ...model.DioptasModel import DioptasModel
@@ -76,6 +76,23 @@ class MaskControllerTest(QtTest):
         QTest.mouseClick(self.mask_widget.shrink_btn, QtCore.Qt.LeftButton)
         self.assertTrue(np.array_equal(previous_mask, self.model.mask_model._mask_data))
 
+    def test_mask_and_unmask(self):
+        # test that changing mask mode modifies the model and the color in img_widget
+        self.mask_widget.mask_rb.click()
+        self.assertEqual(self.model.mask_model.mode, True)
+        self.assertEqual(self.mask_widget.img_widget.mask_preview_fill_color, QtGui.QColor(255, 0, 0, 150))
+        self.mask_widget.unmask_rb.click()
+        self.assertEqual(self.model.mask_model.mode, False)
+        self.assertEqual(self.mask_widget.img_widget.mask_preview_fill_color, QtGui.QColor(0, 255, 0, 150))
+
+        # test that masking and unmasking the same area results in the same mask
+        previous_mask = np.copy(self.model.mask_model._mask_data)
+        self.mask_widget.mask_rb.click()
+        self.model.mask_model.mask_ellipse(100, 100, 20, 20)
+        self.assertFalse(np.array_equal(previous_mask, self.model.mask_model._mask_data))
+        self.mask_widget.unmask_rb.click()
+        self.model.mask_model.mask_ellipse(100, 100, 20, 20)
+        self.assertTrue(np.array_equal(previous_mask, self.model.mask_model._mask_data))
 
 if __name__ == '__main__':
     unittest.main()
