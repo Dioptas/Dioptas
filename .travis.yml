@@ -55,13 +55,9 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes nomkl numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future qtpy
-    - pip install lmfit fabio mock pytest pytest-cov pycifrw pyepics
+    - conda install --yes nomkl numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future qtpy pycifrw fabio lmfit pyepics mock pytest pytest-cov -c lightsource2 -c conda-forge
     - conda config --add channels cprescher
     - conda install --yes pyqtgraph
-    - cd pyFAI
-    - python setup.py install
-    - cd ..
     - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
     - cd ../../../
