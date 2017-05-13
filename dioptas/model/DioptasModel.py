@@ -7,6 +7,7 @@ from qtpy import QtCore
 from copy import deepcopy
 
 from .util import Pattern
+from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
 
 
@@ -127,9 +128,29 @@ class ImgConfiguration(QtCore.QObject):
         return self._integration_unit
 
     @integration_unit.setter
-    def integration_unit(self, new_value):
-        self._integration_unit = new_value
+    def integration_unit(self, new_unit):
+        previous_unit = self.integration_unit
+        self._integration_unit = new_unit
+
+        auto_bg_subtraction = self.pattern_model.pattern.auto_background_subtraction
+        if auto_bg_subtraction:
+            self.pattern_model.pattern.auto_background_subtraction = False
+
         self.integrate_image_1d()
+
+        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
+            self.pattern_model.pattern.auto_background_subtraction_roi = \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
+                              self.calibration_model.wavelength,
+                              previous_unit,
+                              new_unit), \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
+                              self.calibration_model.wavelength,
+                              previous_unit,
+                              new_unit)
+
+        if auto_bg_subtraction:
+            self.pattern_model.pattern.auto_background_subtraction = True
 
     @property
     def integrate_cake(self):
@@ -167,7 +188,6 @@ class ImgConfiguration(QtCore.QObject):
         return new_configuration
 
 
-
 class DioptasModel(QtCore.QObject):
     configuration_added = QtCore.Signal()
     configuration_selected = QtCore.Signal(int)  # new index
@@ -195,6 +215,18 @@ class DioptasModel(QtCore.QObject):
 
     def add_configuration(self):
         self.configurations.append(ImgConfiguration(self.working_directories))
+
+        if self.current_configuration.calibration_model.is_calibrated:
+            dioptas_config_folder = os.path.join(os.path.expanduser("~"), '.Dioptas')
+            if not os.path.isdir(dioptas_config_folder):
+                os.mkdir(dioptas_config_folder)
+            self.current_configuration.calibration_model.save(
+                os.path.join(dioptas_config_folder, 'transfer.poni'))
+            self.configurations[-1].calibration_model.load(
+                os.path.join(dioptas_config_folder, 'transfer.poni'))
+
+        self.configurations[-1].img_model._img_data = self.current_configuration.img_model.img_data
+
         self.select_configuration(len(self.configurations) - 1)
         self.configuration_added.emit()
 
@@ -297,6 +329,14 @@ class DioptasModel(QtCore.QObject):
     @transparent_mask.setter
     def transparent_mask(self, new_val):
         self.configurations[self.configuration_ind].transparent_mask = new_val
+
+    @property
+    def integration_unit(self):
+        return self.current_configuration.integration_unit
+
+    @integration_unit.setter
+    def integration_unit(self, new_val):
+        self.current_configuration.integration_unit = new_val
 
     @property
     def img_data(self):

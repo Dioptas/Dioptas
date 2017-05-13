@@ -39,7 +39,7 @@ class CalibrationModelTest(QtTest):
 
     def test_find_peaks_automatic(self):
         self.load_pilatus_1M_and_find_peaks()
-        self.assertEqual(len(self.calibration_model.points), 6)
+        self.assertEqual(len(self.calibration_model.points), 5)
         for points in self.calibration_model.points:
             self.assertGreater(len(points), 0)
 
@@ -65,12 +65,6 @@ class CalibrationModelTest(QtTest):
             peak_point = self.calibration_model.find_peak(pick_point[0], pick_point[1], 10, 0)
             self.assertEqual(peak_point[0][0], point[0])
             self.assertEqual(peak_point[0][1], point[1])
-
-    def test_search_peaks_on_ring(self):
-        """
-        Tests to search on the first ring of the calibrant after an inital calibration
-        """
-        pass
 
     def load_pilatus_1M_and_find_peaks(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
