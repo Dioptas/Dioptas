@@ -6,12 +6,12 @@ sudo: required
 
 python:
     - 2.7
+    - 3.6
     
 cache:
   directories:
     - /home/travis/miniconda2
     - /home/travis/miniconda3
-    - /home/travis/build/Dioptas/Dioptas/pyFAI
 
 before_install:
   - echo $TRAVIS_PYTHON_VERSION
@@ -59,7 +59,12 @@ addons:
 install:
     - conda install --yes numpy pillow scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy fabio pyfai lmfit mock pytest pytest-cov -c conda-forge
     - conda install --yes pyqtgraph -c cprescher
-    - pip install pyepics pycifrw
+    - pip install pyepics
+    - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
+        pip install pycifrw;
+      else
+        conda install pycifrw -c cprescher;
+      fi
     - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
     - cd ../../../
