@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 
-import unittest
 import os
 import numpy as np
 from mock import MagicMock
@@ -29,7 +28,7 @@ class DioptasModelTest(QtTest):
         self.assertTrue(np.array_equal(self.model.img_data,
                                        self.model.configurations[1].img_model.img_data))
 
-        self.assertNotEqual(prev_sum, new_sum)
+        self.assertEqual(prev_sum, new_sum)
 
     def test_remove_configuration(self):
         self.model.add_configuration()
