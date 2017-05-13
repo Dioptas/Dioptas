@@ -34,7 +34,7 @@ before_install:
     fi
 
   - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
-      conda install --yes python=3.5
+      conda install --yes python=3.5;
     fi
 
   - conda update --yes conda
