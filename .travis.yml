@@ -6,7 +6,7 @@ sudo: required
 
 python:
     - 2.7
-    - 3.6
+    - 3.5
     
 cache:
   directories:
@@ -22,14 +22,13 @@ before_install:
         chmod +x miniconda.sh;
         ./miniconda.sh -b;
       fi
-    fi
-
-  - if [ "$TRAVIS_PYTHON_VERSION" == "3.6" ]; then
+    else
       if [ ! -d "/home/travis/miniconda3/bin" ]; then
         rm -rf /home/travis/miniconda3;
         wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
         chmod +x miniconda.sh;
         ./miniconda.sh -b;
+        conda install --yes python=3.5
       fi
     fi
 
@@ -53,8 +52,8 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes numpy pillow scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy fabio lmfit mock pytest pytest-cov -c conda-forge
-    - conda install --yes pyqtgraph pyfai -c cprescher
+    - conda install --yes numpy pillow scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock pytest pytest-cov -c conda-forge
+    - conda install --yes pyqtgraph -c cprescher
     - pip install pyepics
     - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
         pip install pycifrw;
