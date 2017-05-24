@@ -82,7 +82,10 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_widget.plot_image(self.model.img_model.raw_img_data, False)
+        if self.widget.integration_image_widget.show_bg_subtracted_img_btn.isChecked():
+            self.widget.img_widget.plot_image(self.model.img_model.img_data, False)
+        else:
+            self.widget.img_widget.plot_image(self.model.img_model.raw_img_data, False)
 
         if auto_scale:
             self.widget.img_widget.auto_range()
@@ -149,6 +152,9 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
+
+        self.connect_click_function(self.widget.integration_image_widget.show_bg_subtracted_img_btn,
+                                    self.show_bg_subtracted_img_btn_clicked)
 
         self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
@@ -493,6 +499,9 @@ class ImageController(object):
     def img_dock_btn_clicked(self):
         self.img_docked = not self.img_docked
         self.widget.dock_img(self.img_docked)
+
+    def show_bg_subtracted_img_btn_clicked(self):
+        self.plot_img()
 
     def _update_cake_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()
