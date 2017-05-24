@@ -144,8 +144,8 @@ QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled{
 QSpinBox, QDoubleSpinBox {
 	background-color:  #F1F1F1;
 	color: black;
-	margin-left: -15px;
-	margin-right: -2px;
+	/*margin-left: -15px;
+	margin-right: -2px;*/
 }
 
 QComboBox QAbstractItemView{
