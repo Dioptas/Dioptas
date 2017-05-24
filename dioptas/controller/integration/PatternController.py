@@ -264,7 +264,6 @@ class PatternController(object):
         self.model.pattern_model.set_file_iteration_mode('time')
 
     def update_bg_linear_region_to_new_unit(self, previous_unit, new_unit):
-        self.model.pattern_model.done_changing_unit = False
         self.widget.pattern_widget.linear_region_item.blockSignals(True)
         self.widget.bkg_spectrum_x_min_txt.blockSignals(True)
         self.widget.bkg_spectrum_x_max_txt.blockSignals(True)
@@ -286,9 +285,6 @@ class PatternController(object):
         self.widget.bkg_spectrum_x_min_txt.blockSignals(False)
         self.widget.bkg_spectrum_x_max_txt.blockSignals(False)
 
-    def finish_update_bg_linear_region(self):
-        self.model.pattern_model.done_changing_unit = True
-
     def set_unit_tth(self):
         previous_unit = self.integration_unit
         if previous_unit == '2th_deg':
@@ -305,7 +301,6 @@ class PatternController(object):
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
 
-        self.finish_update_bg_linear_region()
 
     def set_unit_q(self):
         previous_unit = self.integration_unit
@@ -324,8 +319,6 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
-
-        self.finish_update_bg_linear_region()
 
     def set_unit_d(self):
         previous_unit = self.integration_unit
@@ -346,8 +339,6 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
-
-        self.finish_update_bg_linear_region()
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()[0]
