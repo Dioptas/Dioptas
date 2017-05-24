@@ -35,8 +35,8 @@ class Pattern(QtCore.QObject):
         self._smoothing = 0
         self._background_pattern = None
 
-        self._spectrum_x = self._original_x
-        self._spectrum_y = self._original_y
+        self._pattern_x = self._original_x
+        self._pattern_y = self._original_y
 
         self.auto_background_subtraction = False
         self.auto_background_subtraction_roi = None
@@ -129,8 +129,8 @@ class Pattern(QtCore.QObject):
         if self.auto_background_subtraction:
             self._auto_background_before_subtraction_spectrum = Pattern(x, y)
             if self.auto_background_subtraction_roi is not None:
-                ind = (x > self.auto_background_subtraction_roi[0]) & \
-                      (x < self.auto_background_subtraction_roi[1])
+                ind = (x > np.min(self.auto_background_subtraction_roi)) & \
+                      (x < np.max(self.auto_background_subtraction_roi))
                 x = x[ind]
                 y = y[ind]
 
@@ -145,14 +145,14 @@ class Pattern(QtCore.QObject):
         if self._smoothing > 0:
             y = gaussian_filter1d(y, self._smoothing)
 
-        self._spectrum_x = x
-        self._spectrum_y = y
+        self._pattern_x = x
+        self._pattern_y = y
 
-        self.pattern_changed.emit(self._spectrum_x, self._spectrum_y)
+        self.pattern_changed.emit(self._pattern_x, self._pattern_y)
 
     @property
     def data(self):
-        return self._spectrum_x, self._spectrum_y
+        return self._pattern_x, self._pattern_y
 
     @data.setter
     def data(self, data):
@@ -165,11 +165,11 @@ class Pattern(QtCore.QObject):
 
     @property
     def x(self):
-        return self._spectrum_x
+        return self._pattern_x
 
     @property
     def y(self):
-        return self._spectrum_y
+        return self._pattern_y
 
     @property
     def original_data(self):

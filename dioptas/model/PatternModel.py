@@ -42,7 +42,6 @@ class PatternModel(QtCore.QObject):
         super(PatternModel, self).__init__()
         self.pattern = Pattern()
         self.pattern_filename = ''
-        self.done_changing_unit = True
 
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
@@ -176,7 +175,7 @@ class PatternModel(QtCore.QObject):
         :param roi: array of size two with [x_min, x_max] specifying the range for the background subtraction
         will be performed
         """
-        self.pattern.set_auto_background_subtraction(parameters, roi, self.done_changing_unit)
+        self.pattern.set_auto_background_subtraction(parameters, roi)
         self.pattern_changed.emit()
 
     def unset_auto_background_subtraction(self):
