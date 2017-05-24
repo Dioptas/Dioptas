@@ -65,6 +65,7 @@ class BackgroundController(object):
         self.model.img_changed.connect(self.update_background_image_filename)
         self.model.auto_background_set.connect(self.auto_background_set)
 
+
     def create_spectrum_background_signals(self):
         self.widget.bkg_spectrum_gb.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
         self.widget.qa_bkg_spectrum_btn.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
