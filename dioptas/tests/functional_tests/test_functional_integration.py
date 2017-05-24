@@ -179,6 +179,18 @@ class IntegrationMockFunctionalTest(QtTest):
         os.remove(os.path.join(data_path, 'image_001.xy'))
         os.remove(os.path.join(data_path, 'image_002.xy'))
 
+    def test_loading_multiple_images_and_batch_saving_them(self):
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'image_001.tif'),
+                                                            os.path.join(data_path, 'image_002.tif')])
+        self.integration_widget.img_batch_mode_image_save_rb.setChecked(True)
+        click_button(self.integration_widget.load_img_btn)
+
+        self.assertTrue(os.path.exists(os.path.join(data_path, 'batch_image_001.tif')))
+        self.assertTrue(os.path.exists(os.path.join(data_path, 'batch_image_002.tif')))
+        os.remove(os.path.join(data_path, 'batch_image_001.tif'))
+        os.remove(os.path.join(data_path, 'batch_image_002.tif'))
+
 
 class IntegrationFunctionalTest(QtTest):
     def setUp(self):

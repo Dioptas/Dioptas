@@ -82,7 +82,10 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_widget.plot_image(self.model.img_model.raw_img_data, False)
+        if self.widget.integration_image_widget.show_bg_subtracted_img_btn.isChecked():
+            self.widget.img_widget.plot_image(self.model.img_model.img_data, False)
+        else:
+            self.widget.img_widget.plot_image(self.model.img_model.raw_img_data, False)
 
         if auto_scale:
             self.widget.img_widget.auto_range()
@@ -154,6 +157,9 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
         self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.set_cake_axes_range)
 
+        self.connect_click_function(self.widget.integration_image_widget.show_bg_subtracted_img_btn,
+                                    self.show_bg_subtracted_img_btn_clicked)
+
         self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
         self.connect_click_function(self.widget.set_wavelnegth_btn, self.set_wavelength)
@@ -223,6 +229,11 @@ class ImageController(object):
                 elif self.widget.img_batch_mode_integrate_rb.isChecked() or \
                         self.widget.img_batch_mode_map_rb.isChecked():
                     self._load_multiple_files(filenames)
+                elif self.widget.img_batch_mode_image_save_rb.isChecked():
+                    for filename in filenames:
+                        self.model.img_model.load(str(filename))
+                        new_filename = os.path.join(os.path.dirname(filename), 'batch_' + os.path.basename(filename))
+                        self.save_img(new_filename)
             self._check_absorption_correction_shape()
 
     def _load_multiple_files(self, filenames):
@@ -557,6 +568,12 @@ class ImageController(object):
         self.img_docked = not self.img_docked
         self.widget.dock_img(self.img_docked)
 
+    def show_bg_subtracted_img_btn_clicked(self):
+        if self.widget.img_mode_btn.text() == 'Cake':
+            self.plot_img()
+        else:
+            self.widget.integration_image_widget.show_bg_subtracted_img_btn.setChecked(False)
+
     def _update_cake_line_pos(self):
         cur_tth = self.get_current_spectrum_tth()
         if cur_tth < np.min(self.model.cake_tth) or cur_tth > np.max(self.model.cake_tth):
@@ -816,12 +833,14 @@ class ImageController(object):
     def auto_process_cb_click(self):
         self.model.img_model.autoprocess = self.widget.autoprocess_cb.isChecked()
 
-    def save_img(self):
-        img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
-        filename = save_file_dialog(self.widget, "Save Image.",
-                                    os.path.join(self.working_dir['image'],
-                                                 img_filename + '.png'),
-                                    ('Image (*.png);;Data (*.tiff)'))
+    def save_img(self, filename=None):
+        if filename is None:
+            img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
+            filename = save_file_dialog(self.widget, "Save Image.",
+                                        os.path.join(self.working_dir['image'],
+                                                     img_filename + '.png'),
+                                        ('Image (*.png);;Data (*.tiff)'))
+
         if filename is not '':
             if filename.endswith('.png'):
                 if self.img_mode == 'Cake':
@@ -839,7 +858,7 @@ class ImageController(object):
                     self.widget.img_widget.activate_circle_scatter()
                     if self.roi_active:
                         self.widget.img_widget.activate_roi()
-            elif filename.endswith('.tiff'):
+            elif filename.endswith('.tiff') or filename.endswith('.tif'):
                 if self.img_mode == 'Image':
                     im_array = np.int32(self.model.img_data)
                 elif self.img_mode == 'Cake':

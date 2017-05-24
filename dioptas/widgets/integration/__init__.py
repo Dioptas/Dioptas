@@ -123,6 +123,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_batch_mode_add_rb = self.integration_control_widget.img_control_widget.batch_mode_add_rb
         self.img_batch_mode_map_rb = self.integration_control_widget.img_control_widget.batch_mode_map_rb
         self.map_2D_btn = self.integration_control_widget.img_control_widget.map_2D_btn  # MAP2D
+        self.img_batch_mode_image_save_rb = self.integration_control_widget.img_control_widget.batch_mode_image_save_rb
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
         self.spec_load_btn = pattern_file_widget.load_btn
