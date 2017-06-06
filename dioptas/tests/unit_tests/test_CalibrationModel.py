@@ -119,7 +119,7 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.calibrate()
 
         self.assertGreater(self.calibration_model.pattern_geometry.poni1, 0)
-        self.assertAlmostEqual(self.calibration_model.pattern_geometry.dist, 0.100, delta=0.02)
+        self.assertAlmostEqual(self.calibration_model.pattern_geometry.dist, 0.090, delta=0.025)
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
 
     def test_get_pixel_ind(self):
