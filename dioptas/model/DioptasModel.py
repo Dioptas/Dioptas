@@ -138,16 +138,16 @@ class ImgConfiguration(QtCore.QObject):
 
         self.integrate_image_1d()
 
-        # if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
-        #     self.pattern_model.pattern.auto_background_subtraction_roi = \
-        #         convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
-        #                       self.calibration_model.wavelength,
-        #                       previous_unit,
-        #                       new_unit), \
-        #         convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
-        #                       self.calibration_model.wavelength,
-        #                       previous_unit,
-        #                       new_unit)
+        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
+            self.pattern_model.pattern.auto_background_subtraction_roi = \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
+                              self.calibration_model.wavelength,
+                              previous_unit,
+                              new_unit), \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
+                              self.calibration_model.wavelength,
+                              previous_unit,
+                              new_unit)
 
         if auto_bg_subtraction:
             self.pattern_model.pattern.auto_background_subtraction = True

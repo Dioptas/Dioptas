@@ -53,7 +53,6 @@ class BackgroundController(object):
         self.create_spectrum_background_signals()
 
     def create_image_background_signals(self):
-
         self.connect_click_function(self.widget.bkg_image_load_btn, self.load_background_image)
         self.connect_click_function(self.widget.bkg_image_delete_btn, self.remove_background_image)
 
@@ -76,6 +75,8 @@ class BackgroundController(object):
 
         self.widget.bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_toggled_callback)
         self.widget.qa_bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_toggled_callback)
+
+        self.model.pattern_changed.connect(self.update_bkg_gui_parameters)
 
     def connect_click_function(self, emitter, function):
         """
@@ -148,8 +149,18 @@ class BackgroundController(object):
     def bkg_spectrum_parameters_changed(self):
         bkg_spectrum_parameters = self.widget.get_bkg_spectrum_parameters()
         bkg_spectrum_roi = self.widget.get_bkg_spectrum_roi()
-        if self.widget.qa_bkg_spectrum_btn.isChecked():
+        if self.model.pattern_model.pattern.auto_background_subtraction:
             self.model.pattern_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+
+    def update_bkg_gui_parameters(self):
+        if self.model.pattern_model.pattern.auto_background_subtraction:
+            self.widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
+            self.widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
+
+            self.widget.pattern_widget.linear_region_item.blockSignals(True)
+            self.widget.pattern_widget.set_linear_region(
+                *self.model.pattern_model.pattern.auto_background_subtraction_roi)
+            self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
     def bkg_spectrum_inspect_btn_toggled_callback(self, checked):
         self.widget.bkg_spectrum_inspect_btn.blockSignals(True)
@@ -161,13 +172,6 @@ class BackgroundController(object):
 
         if checked:
             self.widget.pattern_widget.show_linear_region()
-            x_min, x_max = self.widget.get_bkg_spectrum_roi()
-            x_spec = self.model.pattern.auto_background_before_subtraction_spectrum.x
-            if x_min < x_spec[0]:
-                x_min = x_spec[0]
-            if x_max > x_spec[-1]:
-                x_max = x_spec[-1]
-            self.widget.pattern_widget.set_linear_region(x_min, x_max)
             self.widget.pattern_widget.linear_region_item.sigRegionChanged.connect(
                 self.bkg_spectrum_linear_region_callback
             )
