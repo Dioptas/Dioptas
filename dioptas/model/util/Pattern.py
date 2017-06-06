@@ -133,6 +133,15 @@ class Pattern(QtCore.QObject):
                       (x < np.max(self.auto_background_subtraction_roi))
                 x = x[ind]
                 y = y[ind]
+                self.auto_background_subtraction_roi = [np.min(x), np.max(x)]
+
+            # reset ROI if limits are larger or smaller than the actual data
+            x_min, x_max = np.min(x), np.max(x)
+            if self.auto_background_subtraction_roi[0]<x_min:
+                self.auto_background_subtraction_roi[0]=x_min
+
+            if self.auto_background_subtraction_roi[1]>x_max:
+                self.auto_background_subtraction_roi[1]=x_max
 
             y_bkg = extract_background(x, y,
                                        self.auto_background_subtraction_parameters[0],

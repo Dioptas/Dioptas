@@ -540,7 +540,30 @@ class IntegrationWidget(QtWidgets.QWidget):
         polynomial_order = int(self.bkg_spectrum_poly_order_sb.value())
         return smooth_width, iterations, polynomial_order
 
+    def set_bkg_pattern_parameters(self, bkg_pattern_parameters):
+        self.bkg_spectrum_smooth_width_sb.blockSignals(True)
+        self.bkg_spectrum_iterations_sb.blockSignals(True)
+        self.bkg_spectrum_poly_order_sb.blockSignals(True)
+
+        self.bkg_spectrum_smooth_width_sb.setValue(bkg_pattern_parameters[0])
+        self.bkg_spectrum_iterations_sb.setValue(bkg_pattern_parameters[1])
+        self.bkg_spectrum_poly_order_sb.setValue(bkg_pattern_parameters[2])
+
+        self.bkg_spectrum_smooth_width_sb.blockSignals(False)
+        self.bkg_spectrum_iterations_sb.blockSignals(False)
+        self.bkg_spectrum_poly_order_sb.blockSignals(False)
+
     def get_bkg_spectrum_roi(self):
         x_min = float(str(self.bkg_spectrum_x_min_txt.text()))
         x_max = float(str(self.bkg_spectrum_x_max_txt.text()))
         return x_min, x_max
+
+    def set_bkg_pattern_roi(self, roi):
+        self.bkg_spectrum_x_max_txt.blockSignals(True)
+        self.bkg_spectrum_x_min_txt.blockSignals(True)
+
+        self.bkg_spectrum_x_min_txt.setText('{:.3f}'.format(roi[0]))
+        self.bkg_spectrum_x_max_txt.setText('{:.3f}'.format(roi[1]))
+
+        self.bkg_spectrum_x_max_txt.blockSignals(False)
+        self.bkg_spectrum_x_min_txt.blockSignals(False)

@@ -263,36 +263,11 @@ class PatternController(object):
     def set_iteration_mode_time(self):
         self.model.pattern_model.set_file_iteration_mode('time')
 
-    def update_bg_linear_region_to_new_unit(self, previous_unit, new_unit):
-        self.widget.pattern_widget.linear_region_item.blockSignals(True)
-        self.widget.bkg_spectrum_x_min_txt.blockSignals(True)
-        self.widget.bkg_spectrum_x_max_txt.blockSignals(True)
-        (xmin, xmax) = self.widget.pattern_widget.get_linear_region()
-        xmin = self.convert_x_value(xmin, previous_unit, new_unit)
-        xmax = self.convert_x_value(xmax, previous_unit, new_unit)
-        if new_unit == 'd_A':
-            self.widget.pattern_widget.set_linear_region(xmax, xmin)
-            self.widget.bkg_spectrum_x_min_txt.setText('{0:.4g}'.format(xmax))
-            self.widget.bkg_spectrum_x_max_txt.setText('{0:.4g}'.format(xmin))
-        else:
-            self.widget.pattern_widget.set_linear_region(xmin, xmax)
-            self.widget.bkg_spectrum_x_min_txt.setText('{0:.4g}'.format(xmin))
-            self.widget.bkg_spectrum_x_max_txt.setText('{0:.4g}'.format(xmax))
-        smooth_width = self.widget.bkg_spectrum_smooth_width_sb.value()
-        smooth_width = self.convert_x_value(smooth_width, previous_unit, new_unit)
-        self.widget.bkg_spectrum_smooth_width_sb.setValue(smooth_width)
-        self.widget.pattern_widget.linear_region_item.blockSignals(False)
-        self.widget.bkg_spectrum_x_min_txt.blockSignals(False)
-        self.widget.bkg_spectrum_x_max_txt.blockSignals(False)
-
     def set_unit_tth(self):
         previous_unit = self.integration_unit
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
-        if self.model.calibration_model.is_calibrated:
-            # bg_linear_region values need to be updated prior to actual changing the units
-            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
 
         self.model.current_configuration.integration_unit = '2th_deg'
         self.widget.pattern_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
@@ -301,16 +276,11 @@ class PatternController(object):
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
 
-
     def set_unit_q(self):
         previous_unit = self.integration_unit
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
-
-        if self.model.calibration_model.is_calibrated:
-            # needs to be done before setting the integration unit in the configuration
-            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
 
         self.model.current_configuration.integration_unit = "q_A^-1"
 
@@ -326,15 +296,8 @@ class PatternController(object):
             return
         self.integration_unit = 'd_A'
 
-        if self.model.calibration_model.is_calibrated:
-            # needs to be done before setting the integration unit in the configuration
-            self.update_bg_linear_region_to_new_unit(previous_unit, self.integration_unit)
-
         self.model.current_configuration.integration_unit = 'd_A'
-
-        self.widget.pattern_widget.spectrum_plot.setLabel(
-            'bottom', 'd', 'A'
-        )
+        self.widget.pattern_widget.spectrum_plot.setLabel('bottom', 'd', 'A')
         self.widget.pattern_widget.spectrum_plot.invertX(True)
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)

@@ -173,6 +173,8 @@ class DioptasModelTest(QtTest):
         new_y = self.model.pattern_model.pattern.y
         self.assertNotEqual(np.sum(y-new_y), 0)
 
+        x_bkg, y_bkg = self.model.pattern_model.pattern.auto_background_pattern.data
+
         # change the unit to q
         self.model.integration_unit = 'q_A^-1'
 
@@ -184,3 +186,7 @@ class DioptasModelTest(QtTest):
         # check that the background roi has changed
         self.assertNotEqual(self.model.pattern_model.pattern.auto_background_subtraction_roi, roi)
         self.assertTrue(self.model.pattern_model.pattern.auto_background_subtraction)
+
+        # check that the background pattern has changed:
+        x_bkg_2, y_bkg_2 = self.model.pattern_model.pattern.auto_background_pattern.data
+        self.assertNotEqual(np.max(x_bkg), np.max(x_bkg_2))
