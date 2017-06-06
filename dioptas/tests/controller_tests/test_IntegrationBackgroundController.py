@@ -66,8 +66,8 @@ class IntegrationBackgroundControllerTest(QtTest):
         x_min = float(str(self.widget.bkg_pattern_x_min_txt.text()))
         x_max = float(str(self.widget.bkg_pattern_x_max_txt.text()))
 
-        self.assertEqual(x_min, 5)
-        self.assertEqual(x_max, 11)
+        self.assertAlmostEqual(x_min, 5,  delta=0.02)
+        self.assertAlmostEqual(x_max, 11, delta=0.02)
 
     def test_pattern_bkg_txt_fields_change_linear_regions(self):
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
