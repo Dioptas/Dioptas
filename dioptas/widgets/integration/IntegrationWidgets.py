@@ -22,7 +22,7 @@ from qtpy import QtWidgets
 from pyqtgraph import GraphicsLayoutWidget
 
 from ..plot_widgets.ImgWidget import IntegrationImgWidget
-from ..plot_widgets import SpectrumWidget
+from ..plot_widgets import PatternWidget
 
 from ..CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
 
@@ -169,11 +169,11 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self._central_layout = QtWidgets.QHBoxLayout()
         self._central_layout.setSpacing(0)
 
-        self.spectrum_pg_layout = GraphicsLayoutWidget()
-        self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
-        self.spectrum_pg_layout.ci.layout.setContentsMargins(5, 0, 0, 5)
+        self.pattern_pg_layout = GraphicsLayoutWidget()
+        self.pattern_view = PatternWidget(self.pattern_pg_layout)
+        self.pattern_pg_layout.ci.layout.setContentsMargins(5, 0, 0, 5)
 
-        self._central_layout.addWidget(self.spectrum_pg_layout)
+        self._central_layout.addWidget(self.pattern_pg_layout)
         self._central_layout.addWidget(self.right_control_widget)
         self._frame_layout.addLayout(self._central_layout)
 

@@ -165,8 +165,8 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
         detector_tilt = fit2d_parameter['tilt']
         detector_tilt_rotation = fit2d_parameter['tiltPlanRotation']
 
-        self.tth_array = self.calibration_data.spectrum_geometry.twoThetaArray((2048, 2048))
-        self.azi_array = self.calibration_data.spectrum_geometry.chiArray((2048, 2048))
+        self.tth_array = self.calibration_data.pattern_geometry.twoThetaArray((2048, 2048))
+        self.azi_array = self.calibration_data.pattern_geometry.chiArray((2048, 2048))
 
         self.oiadac_correction = ObliqueAngleDetectorAbsorptionCorrection(
                 self.tth_array, self.azi_array,
@@ -179,7 +179,7 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
 
     def tearDown(self):
         del self.calibration_data.cake_geometry
-        del self.calibration_data.spectrum_geometry
+        del self.calibration_data.pattern_geometry
 
     def test_the_world(self):
         params = Parameters()

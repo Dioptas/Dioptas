@@ -55,12 +55,12 @@ class BackgroundControllerTest(QtTest):
         self.model.img_model.load(os.path.join(unittest_data_path, "image_001.tif"))
 
         x_raw, y_raw = self.model.pattern_model.pattern.data
-        click_button(self.widget.qa_bkg_spectrum_btn)
+        click_button(self.widget.qa_bkg_pattern_btn)
         x_2th, y_2th = self.model.pattern_model.pattern.data
 
         self.assertNotEqual(np.sum(y_raw), np.sum(y_2th))
 
-        click_button(self.widget.spec_q_btn)
+        click_button(self.widget.pattern_q_btn)
         x_q, y_q = self.model.pattern_model.pattern.data
         x_q_bkg, y_q_bkg = self.model.pattern_model.pattern.auto_background_pattern.data
 

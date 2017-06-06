@@ -24,7 +24,7 @@ class PatternTest(unittest.TestCase):
         spec = Pattern()
         x, y = spec.data
 
-        spec.load(os.path.join(data_path, 'spectrum_001.chi'))
+        spec.load(os.path.join(data_path, 'pattern_001.chi'))
         new_x, new_y = spec.data
 
         self.assertNotEqual(len(x), len(new_x))
@@ -52,94 +52,94 @@ class PatternTest(unittest.TestCase):
 
     def test_plus_and_minus_operators(self):
         x = np.linspace(0, 10, 100)
-        spectrum1 = Pattern(x, np.sin(x))
-        spectrum2 = Pattern(x, np.sin(x))
+        pattern1 = Pattern(x, np.sin(x))
+        pattern2 = Pattern(x, np.sin(x))
 
-        spectrum3 = spectrum1 + spectrum2
-        self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 2))
-        self.assertTrue(np.array_equal(spectrum2.original_y, np.sin(x) * 1))
-        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
+        pattern3 = pattern1 + pattern2
+        self.assertTrue(np.array_equal(pattern3.y, np.sin(x) * 2))
+        self.assertTrue(np.array_equal(pattern2.original_y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(pattern1.original_y, np.sin(x) * 1))
 
-        spectrum3 = spectrum1 + spectrum1
-        self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 2))
-        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
-        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
+        pattern3 = pattern1 + pattern1
+        self.assertTrue(np.array_equal(pattern3.y, np.sin(x) * 2))
+        self.assertTrue(np.array_equal(pattern1.original_y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(pattern1.original_y, np.sin(x) * 1))
 
-        spectrum3 = spectrum2 - spectrum1
-        self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 0))
-        self.assertTrue(np.array_equal(spectrum2.original_y, np.sin(x) * 1))
-        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
+        pattern3 = pattern2 - pattern1
+        self.assertTrue(np.array_equal(pattern3.y, np.sin(x) * 0))
+        self.assertTrue(np.array_equal(pattern2.original_y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(pattern1.original_y, np.sin(x) * 1))
 
-        spectrum3 = spectrum1 - spectrum1
-        self.assertTrue(np.array_equal(spectrum3.y, np.sin(x) * 0))
-        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
-        self.assertTrue(np.array_equal(spectrum1.original_y, np.sin(x) * 1))
+        pattern3 = pattern1 - pattern1
+        self.assertTrue(np.array_equal(pattern3.y, np.sin(x) * 0))
+        self.assertTrue(np.array_equal(pattern1.original_y, np.sin(x) * 1))
+        self.assertTrue(np.array_equal(pattern1.original_y, np.sin(x) * 1))
 
     def test_plus_and_minus_operators_with_different_shapes(self):
         x = np.linspace(0, 10, 1000)
         x2 = np.linspace(0, 12, 1300)
-        spectrum1 = Pattern(x, np.sin(x))
-        spectrum2 = Pattern(x2, np.sin(x2))
+        pattern1 = Pattern(x, np.sin(x))
+        pattern2 = Pattern(x2, np.sin(x2))
 
-        spectrum3 = spectrum1 + spectrum2
-        self.array_almost_equal(spectrum3.x, spectrum1._original_x)
-        self.array_almost_equal(spectrum3.y, spectrum1._original_y * 2, 2)
+        pattern3 = pattern1 + pattern2
+        self.array_almost_equal(pattern3.x, pattern1._original_x)
+        self.array_almost_equal(pattern3.y, pattern1._original_y * 2, 2)
 
-        spectrum3 = spectrum1 + spectrum1
-        self.array_almost_equal(spectrum3.y, np.sin(x) * 2, 2)
+        pattern3 = pattern1 + pattern1
+        self.array_almost_equal(pattern3.y, np.sin(x) * 2, 2)
 
-        spectrum3 = spectrum1 - spectrum2
-        self.array_almost_equal(spectrum3.y, np.sin(x) * 0, 2)
+        pattern3 = pattern1 - pattern2
+        self.array_almost_equal(pattern3.y, np.sin(x) * 0, 2)
 
-        spectrum3 = spectrum1 - spectrum1
-        self.array_almost_equal(spectrum3.y, np.sin(x) * 0, 2)
+        pattern3 = pattern1 - pattern1
+        self.array_almost_equal(pattern3.y, np.sin(x) * 0, 2)
 
     def test_multiply_with_scalar_operator(self):
         x = np.linspace(0, 10, 100)
-        spectrum1 = 2 * Pattern(x, np.sin(x))
+        pattern1 = 2 * Pattern(x, np.sin(x))
 
-        spectrum2 = 2 * Pattern(x, np.sin(x))
+        pattern2 = 2 * Pattern(x, np.sin(x))
 
-        self.assertTrue(np.array_equal(spectrum2.y, np.sin(x) * 2))
+        self.assertTrue(np.array_equal(pattern2.y, np.sin(x) * 2))
 
-    def test_using_background_spectrum(self):
+    def test_using_background_pattern(self):
         x = np.linspace(-5, 5, 100)
-        spec_y = x ** 2
+        pattern_y = x ** 2
         bkg_y = x
 
-        spec = Pattern(x, spec_y)
-        background_spectrum = Pattern(x, bkg_y)
+        spec = Pattern(x, pattern_y)
+        background_pattern = Pattern(x, bkg_y)
 
-        spec.background_pattern = background_spectrum
+        spec.background_pattern = background_pattern
         new_x, new_y = spec.data
 
         self.array_almost_equal(new_x, x)
-        self.array_almost_equal(new_y, spec_y - bkg_y)
+        self.array_almost_equal(new_y, pattern_y - bkg_y)
 
-    def test_using_background_spectrum_with_different_spacing(self):
+    def test_using_background_pattern_with_different_spacing(self):
         x = np.linspace(-5, 5, 100)
-        spec_y = x ** 2
+        pattern_y = x ** 2
         x_bkg = np.linspace(-5, 5, 99)
         bkg_y = x_bkg
 
-        spec = Pattern(x, spec_y)
-        background_spectrum = Pattern(x_bkg, bkg_y)
+        spec = Pattern(x, pattern_y)
+        background_pattern = Pattern(x_bkg, bkg_y)
 
-        spec.background_pattern = background_spectrum
+        spec.background_pattern = background_pattern
         new_x, new_y = spec.data
 
         self.array_almost_equal(new_x, x)
-        self.array_almost_equal(new_y, spec_y - x)
+        self.array_almost_equal(new_y, pattern_y - x)
 
     def test_background_out_of_range_throws_error(self):
         x1 = np.linspace(0, 10)
         x2 = np.linspace(-10, -1)
 
         spec = Pattern(x1, x1)
-        background_spectrum = Pattern(x2, x2)
+        background_pattern = Pattern(x2, x2)
 
         with self.assertRaises(BkgNotInRangeError):
-            spec.background_pattern = background_spectrum
+            spec.background_pattern = background_pattern
 
     def test_automatic_background_subtraction(self):
         x = np.linspace(0, 24, 2500)

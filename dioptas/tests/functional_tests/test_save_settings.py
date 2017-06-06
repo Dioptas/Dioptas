@@ -31,13 +31,13 @@ class SaveSettingsTest(QtTest):
         self.create_controller_and_data()
         self.controller.model.calibration_model.load(os.path.join(data_path, "LaB6_40keV_MarCCD.poni"))
 
-        center_x = self.controller.model.calibration_model.spectrum_geometry.poni1
+        center_x = self.controller.model.calibration_model.pattern_geometry.poni1
 
         self.controller.save_settings()
         self.tearDown()
         self.create_controller_and_data()
 
-        self.assertEqual(self.controller.model.calibration_model.spectrum_geometry.poni1, center_x)
+        self.assertEqual(self.controller.model.calibration_model.pattern_geometry.poni1, center_x)
 
 
 if __name__ == '__main__':
