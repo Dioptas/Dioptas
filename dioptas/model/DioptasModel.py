@@ -129,7 +129,7 @@ class ImgConfiguration(QtCore.QObject):
 
     @integration_unit.setter
     def integration_unit(self, new_unit):
-        previous_unit = self.integration_unit
+        old_unit = self.integration_unit
         self._integration_unit = new_unit
 
         auto_bg_subtraction = self.pattern_model.pattern.auto_background_subtraction
@@ -138,21 +138,32 @@ class ImgConfiguration(QtCore.QObject):
 
         self.integrate_image_1d()
 
-        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
-            self.pattern_model.pattern.auto_background_subtraction_roi = \
-                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
-                              self.calibration_model.wavelength,
-                              previous_unit,
-                              new_unit), \
-                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
-                              self.calibration_model.wavelength,
-                              previous_unit,
-                              new_unit)
+        self.update_auto_background_parameters_unit(old_unit, new_unit)
 
         if auto_bg_subtraction:
             self.pattern_model.pattern.auto_background_subtraction = True
             self.pattern_model.pattern.recalculate_pattern()
             self.pattern_model.pattern_changed.emit()
+
+    def update_auto_background_parameters_unit(self, old_unit, new_unit):
+        self.pattern_model.pattern.auto_background_subtraction_parameters = \
+            convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
+                          self.calibration_model.wavelength,
+                          old_unit,
+                          new_unit), \
+            self.pattern_model.pattern.auto_background_subtraction_parameters[1], \
+            self.pattern_model.pattern.auto_background_subtraction_parameters[2]
+
+        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
+            self.pattern_model.pattern.auto_background_subtraction_roi = \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
+                              self.calibration_model.wavelength,
+                              old_unit,
+                              new_unit), \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
+                              self.calibration_model.wavelength,
+                              old_unit,
+                              new_unit)
 
     @property
     def integrate_cake(self):
