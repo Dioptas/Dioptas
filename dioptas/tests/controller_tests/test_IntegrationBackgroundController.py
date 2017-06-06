@@ -81,8 +81,8 @@ class IntegrationBackgroundControllerTest(QtTest):
 
         x_min, x_max = self.widget.pattern_widget.linear_region_item.getRegion()
 
-        self.assertEqual(x_min, 5)
-        self.assertEqual(x_max, 11)
+        self.assertAlmostEqual(x_min, 5,  delta=0.02)
+        self.assertAlmostEqual(x_max, 11, delta=0.02)
 
 
 if __name__ == '__main__':
