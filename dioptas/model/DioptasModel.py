@@ -84,7 +84,7 @@ class ImgConfiguration(QtCore.QObject):
         for file_ending in self.integrated_patterns_file_formats:
             if filename is not '':
                 filename = os.path.join(
-                    self.working_directories['spectrum'],
+                    self.working_directories['pattern'],
                     os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
                 filename = filename.replace('\\', '/')
             if file_ending == '.xy':
@@ -94,7 +94,7 @@ class ImgConfiguration(QtCore.QObject):
 
         if self.pattern_model.pattern.has_background():
             for file_ending in self.integrated_patterns_file_formats:
-                directory = os.path.join(self.working_directories['spectrum'], 'bkg_subtracted')
+                directory = os.path.join(self.working_directories['pattern'], 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
                 filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
@@ -489,7 +489,7 @@ class DioptasModel(QtCore.QObject):
     def clear(self):
         for configuration in self.configurations:
             del configuration.calibration_model.cake_geometry
-            del configuration.calibration_model.spectrum_geometry
+            del configuration.calibration_model.pattern_geometry
             del configuration.img_model
             del configuration.mask_model
         del self.configurations

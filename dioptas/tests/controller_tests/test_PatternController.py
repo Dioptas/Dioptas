@@ -16,7 +16,7 @@ data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 class PatternControllerTest(QtTest):
     def setUp(self):
-        self.working_dir = {'image': '', 'spectrum': ''}
+        self.working_dir = {'image': '', 'pattern': ''}
 
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
@@ -34,33 +34,33 @@ class PatternControllerTest(QtTest):
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
         self.model.add_configuration()
-        click_button(self.widget.spec_q_btn)
+        click_button(self.widget.pattern_q_btn)
 
         self.model.add_configuration()
-        click_button(self.widget.spec_d_btn)
+        click_button(self.widget.pattern_d_btn)
 
         self.model.select_configuration(0)
-        self.assertTrue(self.widget.spec_tth_btn.isChecked())
-        self.assertFalse(self.widget.spec_q_btn.isChecked())
-        self.assertFalse(self.widget.spec_d_btn.isChecked())
+        self.assertTrue(self.widget.pattern_tth_btn.isChecked())
+        self.assertFalse(self.widget.pattern_q_btn.isChecked())
+        self.assertFalse(self.widget.pattern_d_btn.isChecked())
 
-        self.assertEqual(self.widget.pattern_widget.spectrum_plot.getAxis('bottom').labelString(),
+        self.assertEqual(self.widget.pattern_widget.pattern_plot.getAxis('bottom').labelString(),
                          u"<span style='color: #ffffff'>2θ (°)</span>")
 
         self.model.select_configuration(1)
-        self.assertTrue(self.widget.spec_q_btn.isChecked())
+        self.assertTrue(self.widget.pattern_q_btn.isChecked())
 
-        self.assertEqual(self.widget.pattern_widget.spectrum_plot.getAxis('bottom').labelString(),
+        self.assertEqual(self.widget.pattern_widget.pattern_plot.getAxis('bottom').labelString(),
                          "<span style='color: #ffffff'>Q (A<sup>-1</sup>)</span>")
 
         self.model.select_configuration(2)
-        self.assertTrue(self.widget.spec_d_btn.isChecked())
-        self.assertEqual(self.widget.pattern_widget.spectrum_plot.getAxis('bottom').labelString(),
+        self.assertTrue(self.widget.pattern_d_btn.isChecked())
+        self.assertEqual(self.widget.pattern_widget.pattern_plot.getAxis('bottom').labelString(),
                          u"<span style='color: #ffffff'>d (kA)</span>")
 
     def test_save_pattern_without_background(self):
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, "test.xy"))
         self.model.calibration_model.create_file_header = MagicMock(return_value="None")
-        click_button(self.widget.qa_save_spectrum_btn)
+        click_button(self.widget.qa_save_pattern_btn)
 
         self.assertTrue(os.path.exists(os.path.join(data_path, "test.xy")))

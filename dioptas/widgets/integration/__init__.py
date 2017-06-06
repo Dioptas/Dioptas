@@ -81,7 +81,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self.phase_show_cbs = []
         self.phase_color_btns = []
-        self.show_parameter_in_spectrum = True
+        self.show_parameter_in_pattern = True
         header_view = QtWidgets.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
         self.phase_tw.setHorizontalHeader(header_view)
         header_view.setResizeMode(2, QtWidgets.QHeaderView.Stretch)
@@ -93,7 +93,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_image_scale_sb.setKeyboardTracking(False)
         self.bkg_image_offset_sb.setKeyboardTracking(False)
 
-        self.qa_bkg_spectrum_inspect_btn.setVisible(False)
+        self.qa_bkg_pattern_inspect_btn.setVisible(False)
 
         self.mask_transparent_cb.setVisible(False)
 
@@ -121,19 +121,19 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_batch_mode_add_rb = self.integration_control_widget.img_control_widget.batch_mode_add_rb
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
-        self.spec_load_btn = pattern_file_widget.load_btn
-        self.spec_autocreate_cb = pattern_file_widget.file_cb
-        self.spec_previous_btn = pattern_file_widget.previous_btn
-        self.spec_next_btn = pattern_file_widget.next_btn
-        self.spec_browse_step_txt = pattern_file_widget.step_txt
-        self.spec_browse_by_name_rb = pattern_file_widget.browse_by_name_rb
-        self.spec_browse_by_time_rb = pattern_file_widget.browse_by_time_rb
-        self.spec_filename_txt = pattern_file_widget.file_txt
-        self.spec_directory_txt = pattern_file_widget.directory_txt
-        self.spec_directory_btn = pattern_file_widget.directory_btn
-        self.spectrum_header_xy_cb = self.integration_control_widget.pattern_control_widget.xy_cb
-        self.spectrum_header_chi_cb = self.integration_control_widget.pattern_control_widget.chi_cb
-        self.spectrum_header_dat_cb = self.integration_control_widget.pattern_control_widget.dat_cb
+        self.pattern_load_btn = pattern_file_widget.load_btn
+        self.pattern_autocreate_cb = pattern_file_widget.file_cb
+        self.pattern_previous_btn = pattern_file_widget.previous_btn
+        self.pattern_next_btn = pattern_file_widget.next_btn
+        self.pattern_browse_step_txt = pattern_file_widget.step_txt
+        self.pattern_browse_by_name_rb = pattern_file_widget.browse_by_name_rb
+        self.pattern_browse_by_time_rb = pattern_file_widget.browse_by_time_rb
+        self.pattern_filename_txt = pattern_file_widget.file_txt
+        self.pattern_directory_txt = pattern_file_widget.directory_txt
+        self.pattern_directory_btn = pattern_file_widget.directory_btn
+        self.pattern_header_xy_cb = self.integration_control_widget.pattern_control_widget.xy_cb
+        self.pattern_header_chi_cb = self.integration_control_widget.pattern_control_widget.chi_cb
+        self.pattern_header_dat_cb = self.integration_control_widget.pattern_control_widget.dat_cb
 
         phase_control_widget = self.integration_control_widget.phase_control_widget
         self.phase_add_btn = phase_control_widget.add_btn
@@ -146,7 +146,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_temperature_sb = phase_control_widget.temperature_sb
         self.phase_temperature_step_txt = phase_control_widget.temperature_step_txt
         self.phase_apply_to_all_cb = phase_control_widget.apply_to_all_cb
-        self.phase_show_parameter_in_spectrum_cb = phase_control_widget.show_in_spectrum_cb
+        self.phase_show_parameter_in_pattern_cb = phase_control_widget.show_in_pattern_cb
 
         overlay_control_widget = self.integration_control_widget.overlay_control_widget
         self.overlay_add_btn = overlay_control_widget.add_btn
@@ -188,13 +188,13 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_image_scale_step_txt = background_control_widget.scale_step_txt
         self.bkg_image_offset_sb = background_control_widget.offset_sb
         self.bkg_image_offset_step_txt = background_control_widget.offset_step_txt
-        self.bkg_spectrum_gb = background_control_widget.pattern_background_gb
-        self.bkg_spectrum_smooth_width_sb = background_control_widget.smooth_with_sb
-        self.bkg_spectrum_iterations_sb = background_control_widget.iterations_sb
-        self.bkg_spectrum_poly_order_sb = background_control_widget.poly_order_sb
-        self.bkg_spectrum_x_min_txt = background_control_widget.x_range_min_txt
-        self.bkg_spectrum_x_max_txt = background_control_widget.x_range_max_txt
-        self.bkg_spectrum_inspect_btn = background_control_widget.inspect_btn
+        self.bkg_pattern_gb = background_control_widget.pattern_background_gb
+        self.bkg_pattern_smooth_width_sb = background_control_widget.smooth_with_sb
+        self.bkg_pattern_iterations_sb = background_control_widget.iterations_sb
+        self.bkg_pattern_poly_order_sb = background_control_widget.poly_order_sb
+        self.bkg_pattern_x_min_txt = background_control_widget.x_range_min_txt
+        self.bkg_pattern_x_max_txt = background_control_widget.x_range_max_txt
+        self.bkg_pattern_inspect_btn = background_control_widget.inspect_btn
 
         options_control_widget = self.integration_control_widget.integration_options_widget
         self.bin_count_txt = options_control_widget.bin_count_txt
@@ -219,19 +219,19 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         pattern_widget = self.integration_pattern_widget
         self.qa_save_img_btn = pattern_widget.save_image_btn
-        self.qa_save_spectrum_btn = pattern_widget.save_pattern_btn
+        self.qa_save_pattern_btn = pattern_widget.save_pattern_btn
         self.qa_set_as_overlay_btn = pattern_widget.as_overlay_btn
         self.qa_set_as_background_btn = pattern_widget.as_bkg_btn
         self.load_calibration_btn = pattern_widget.load_calibration_btn
         self.calibration_lbl = pattern_widget.calibration_lbl
-        self.spec_tth_btn = pattern_widget.tth_btn
-        self.spec_q_btn = pattern_widget.q_btn
-        self.spec_d_btn = pattern_widget.d_btn
-        self.qa_bkg_spectrum_btn = pattern_widget.background_btn
-        self.qa_bkg_spectrum_inspect_btn = pattern_widget.background_inspect_btn
+        self.pattern_tth_btn = pattern_widget.tth_btn
+        self.pattern_q_btn = pattern_widget.q_btn
+        self.pattern_d_btn = pattern_widget.d_btn
+        self.qa_bkg_pattern_btn = pattern_widget.background_btn
+        self.qa_bkg_pattern_inspect_btn = pattern_widget.background_inspect_btn
         self.antialias_btn = pattern_widget.antialias_btn
-        self.spec_auto_range_btn = pattern_widget.auto_range_btn
-        self.pattern_widget = pattern_widget.spectrum_view
+        self.pattern_auto_range_btn = pattern_widget.auto_range_btn
+        self.pattern_widget = pattern_widget.pattern_view
 
         image_widget = self.integration_image_widget
         self.img_frame = image_widget
@@ -512,7 +512,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         name_str = str(self.phase_tw.item(ind, 2).text())
         parameter_str = ''
 
-        if self.show_parameter_in_spectrum:
+        if self.show_parameter_in_pattern:
             if pressure != 0:
                 parameter_str += '{:0.2f} GPa '.format(pressure)
             if temperature != 0 and temperature != 298 and temperature is not None:
@@ -534,36 +534,36 @@ class IntegrationWidget(QtWidgets.QWidget):
         checkbox = self.phase_show_cbs[ind]
         return checkbox.isChecked()
 
-    def get_bkg_spectrum_parameters(self):
-        smooth_width = float(self.bkg_spectrum_smooth_width_sb.value())
-        iterations = int(self.bkg_spectrum_iterations_sb.value())
-        polynomial_order = int(self.bkg_spectrum_poly_order_sb.value())
+    def get_bkg_pattern_parameters(self):
+        smooth_width = float(self.bkg_pattern_smooth_width_sb.value())
+        iterations = int(self.bkg_pattern_iterations_sb.value())
+        polynomial_order = int(self.bkg_pattern_poly_order_sb.value())
         return smooth_width, iterations, polynomial_order
 
     def set_bkg_pattern_parameters(self, bkg_pattern_parameters):
-        self.bkg_spectrum_smooth_width_sb.blockSignals(True)
-        self.bkg_spectrum_iterations_sb.blockSignals(True)
-        self.bkg_spectrum_poly_order_sb.blockSignals(True)
+        self.bkg_pattern_smooth_width_sb.blockSignals(True)
+        self.bkg_pattern_iterations_sb.blockSignals(True)
+        self.bkg_pattern_poly_order_sb.blockSignals(True)
 
-        self.bkg_spectrum_smooth_width_sb.setValue(bkg_pattern_parameters[0])
-        self.bkg_spectrum_iterations_sb.setValue(bkg_pattern_parameters[1])
-        self.bkg_spectrum_poly_order_sb.setValue(bkg_pattern_parameters[2])
+        self.bkg_pattern_smooth_width_sb.setValue(bkg_pattern_parameters[0])
+        self.bkg_pattern_iterations_sb.setValue(bkg_pattern_parameters[1])
+        self.bkg_pattern_poly_order_sb.setValue(bkg_pattern_parameters[2])
 
-        self.bkg_spectrum_smooth_width_sb.blockSignals(False)
-        self.bkg_spectrum_iterations_sb.blockSignals(False)
-        self.bkg_spectrum_poly_order_sb.blockSignals(False)
+        self.bkg_pattern_smooth_width_sb.blockSignals(False)
+        self.bkg_pattern_iterations_sb.blockSignals(False)
+        self.bkg_pattern_poly_order_sb.blockSignals(False)
 
-    def get_bkg_spectrum_roi(self):
-        x_min = float(str(self.bkg_spectrum_x_min_txt.text()))
-        x_max = float(str(self.bkg_spectrum_x_max_txt.text()))
+    def get_bkg_pattern_roi(self):
+        x_min = float(str(self.bkg_pattern_x_min_txt.text()))
+        x_max = float(str(self.bkg_pattern_x_max_txt.text()))
         return x_min, x_max
 
     def set_bkg_pattern_roi(self, roi):
-        self.bkg_spectrum_x_max_txt.blockSignals(True)
-        self.bkg_spectrum_x_min_txt.blockSignals(True)
+        self.bkg_pattern_x_max_txt.blockSignals(True)
+        self.bkg_pattern_x_min_txt.blockSignals(True)
 
-        self.bkg_spectrum_x_min_txt.setText('{:.3f}'.format(roi[0]))
-        self.bkg_spectrum_x_max_txt.setText('{:.3f}'.format(roi[1]))
+        self.bkg_pattern_x_min_txt.setText('{:.3f}'.format(roi[0]))
+        self.bkg_pattern_x_max_txt.setText('{:.3f}'.format(roi[1]))
 
-        self.bkg_spectrum_x_max_txt.blockSignals(False)
-        self.bkg_spectrum_x_min_txt.blockSignals(False)
+        self.bkg_pattern_x_max_txt.blockSignals(False)
+        self.bkg_pattern_x_min_txt.blockSignals(False)
