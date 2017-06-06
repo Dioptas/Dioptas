@@ -40,7 +40,7 @@ class Pattern(QtCore.QObject):
 
         self.auto_background_subtraction = False
         self.auto_background_subtraction_roi = None
-        self.auto_background_subtraction_parameters = [2, 50, 50]
+        self.auto_background_subtraction_parameters = [0.1, 50, 50]
 
         self._auto_background_before_subtraction_spectrum = None
         self._auto_background_spectrum = None

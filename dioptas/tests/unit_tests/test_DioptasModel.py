@@ -169,7 +169,7 @@ class DioptasModelTest(QtTest):
         x, y = self.model.pattern_model.pattern.data
         x_max_2th = np.max(x)
         roi = (0, np.max(x)+1)
-        self.model.pattern_model.set_auto_background_subtraction((2, 50, 50), roi)
+        self.model.pattern_model.set_auto_background_subtraction((0.1, 50, 50), roi)
         new_y = self.model.pattern_model.pattern.y
         self.assertNotEqual(np.sum(y-new_y), 0)
 
@@ -182,6 +182,8 @@ class DioptasModelTest(QtTest):
         x, y = self.model.pattern_model.pattern.data
         x_max_q = np.max(x)
         self.assertLess(x_max_q, x_max_2th)
+
+        self.assertLess(self.model.pattern_model.pattern.auto_background_subtraction_parameters[0], 0.1)
 
         # check that the background roi has changed
         self.assertNotEqual(self.model.pattern_model.pattern.auto_background_subtraction_roi, roi)
