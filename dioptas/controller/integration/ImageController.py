@@ -594,7 +594,8 @@ class ImageController(object):
                 y = np.array([x_temp])
                 if self.img_mode == 'Cake':
                     tth = get_partial_value(self.model.cake_tth, y - 0.5)
-                    azi = get_partial_value(self.model.cake_azi, x - 0.5)
+                    shift_amount = self.widget.cake_shift_azimuth_sl.value()
+                    azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
