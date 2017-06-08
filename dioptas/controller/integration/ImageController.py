@@ -33,7 +33,6 @@ from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
 
-
 class ImageController(object):
     """
     The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
@@ -147,6 +146,7 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_roi_btn, self.change_roi_mode)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
+        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.shift_cake_azimuth)
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
 
@@ -437,6 +437,14 @@ class ImageController(object):
         elif str(self.widget.img_mode_btn.text()) == 'Image':
             self.activate_image_mode()
 
+    def shift_cake_azimuth(self, new_value):
+        shift_amount = new_value - self.model.old_cake_shift_value
+        self.model.old_cake_shift_value = new_value
+        new_cake_data = np.roll(self.model.cake_data, shift_amount, axis=0)
+        self.model.cake_data = np.copy(new_cake_data)
+        del new_cake_data
+        self.plot_cake()
+
     def activate_cake_mode(self):
         if not self.model.current_configuration.integrate_cake:
             self.model.current_configuration.integrate_cake = True
@@ -460,12 +468,22 @@ class ImageController(object):
 
         self.model.cake_changed.connect(self.plot_mask)
         self.model.cake_changed.connect(self.plot_cake)
+
         self.plot_mask()
         self.plot_cake()
+
+        self.widget.cake_shift_azimuth_sl.setVisible(True)
+        self.widget.cake_shift_azimuth_sl.setMinimum(0)
+        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi))
+        self.widget.cake_shift_azimuth_sl.setSingleStep(1)
+        self.widget.cake_shift_azimuth_sl.setValue(0)
+        self.model.old_cake_shift_value = self.widget.cake_shift_azimuth_sl.value()
 
     def activate_image_mode(self):
         if self.model.current_configuration.integrate_cake:
             self.model.current_configuration.integrate_cake = False
+
+        self.widget.cake_shift_azimuth_sl.setVisible(False)
 
         self._update_image_line_pos()
         self._update_image_mouse_click_pos()
