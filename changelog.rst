@@ -3,6 +3,7 @@
     - added the possibility to work with multiple detector configurations at the same time
     - there is now a Dioptas Icon instead of the generic python icon
     - unmasking geometric shapes are now green instead of red, to clarify which mode is selected
+    - it is now possible to use arcs for masking
     - Dioptas is now completely python 3.5/3.6 compatible
     - Dioptas can now save pattern files as "FXYE" files (GSAS-II format)
 
