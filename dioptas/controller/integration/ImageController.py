@@ -33,7 +33,6 @@ from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
 
-
 class ImageController(object):
     """
     The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
@@ -97,7 +96,8 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_widget.plot_image(self.model.cake_data)
+        shift_amount = self.widget.cake_shift_azimuth_sl.value()
+        self.widget.img_widget.plot_image(np.roll(self.model.cake_data, shift_amount, axis=0))
         if auto_scale:
             self.widget.img_widget.auto_range()
 
@@ -147,6 +147,8 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_roi_btn, self.change_roi_mode)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
+        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.plot_cake)
+        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
 
@@ -460,12 +462,20 @@ class ImageController(object):
 
         self.model.cake_changed.connect(self.plot_mask)
         self.model.cake_changed.connect(self.plot_cake)
+
         self.plot_mask()
         self.plot_cake()
+
+        self.widget.cake_shift_azimuth_sl.setVisible(True)
+        self.widget.cake_shift_azimuth_sl.setMinimum(0)
+        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi))
+        self.widget.cake_shift_azimuth_sl.setSingleStep(1)
 
     def activate_image_mode(self):
         if self.model.current_configuration.integrate_cake:
             self.model.current_configuration.integrate_cake = False
+
+        self.widget.cake_shift_azimuth_sl.setVisible(False)
 
         self._update_image_line_pos()
         self._update_image_mouse_click_pos()
@@ -506,7 +516,6 @@ class ImageController(object):
     def _update_cake_mouse_click_pos(self):
         if self.clicked_tth is None or not self.model.calibration_model.is_calibrated:
             return
-        import time
 
         tth = self.clicked_tth / np.pi * 180
         azi = self.clicked_azi
@@ -521,7 +530,8 @@ class ImageController(object):
         else:
             self.widget.img_widget.mouse_click_item.show()
             x_pos = get_partial_index(cake_tth, tth) + 0.5
-            y_pos = get_partial_index(cake_azi, azi) + 0.5
+            shift_amount = self.widget.cake_shift_azimuth_sl.value()
+            y_pos = (get_partial_index(self.model.cake_azi, azi) + 0.5 + shift_amount) % len(self.model.cake_azi)
             self.widget.img_widget.set_mouse_click_position(x_pos, y_pos)
 
     def _update_image_line_pos(self):
@@ -585,7 +595,8 @@ class ImageController(object):
                 y = np.array([x_temp])
                 if self.img_mode == 'Cake':
                     tth = get_partial_value(self.model.cake_tth, y - 0.5)
-                    azi = get_partial_value(self.model.cake_azi, x - 0.5)
+                    shift_amount = self.widget.cake_shift_azimuth_sl.value()
+                    azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
@@ -642,7 +653,8 @@ class ImageController(object):
                 y = np.array([y])
                 x = np.array([x])
                 tth = get_partial_value(self.model.cake_tth, y - 0.5) / 180 * np.pi
-                azi = get_partial_value(self.model.cake_azi, x - 0.5)
+                shift_amount = self.widget.cake_shift_azimuth_sl.value()
+                azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
             elif self.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
