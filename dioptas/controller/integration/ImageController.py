@@ -96,7 +96,8 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        self.widget.img_widget.plot_image(self.model.cake_data)
+        shift_amount = self.widget.cake_shift_azimuth_sl.value()
+        self.widget.img_widget.plot_image(np.roll(self.model.cake_data, shift_amount, axis=0))
         if auto_scale:
             self.widget.img_widget.auto_range()
 
@@ -146,7 +147,7 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_roi_btn, self.change_roi_mode)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.shift_cake_azimuth)
+        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.plot_cake)
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
 
@@ -437,14 +438,6 @@ class ImageController(object):
         elif str(self.widget.img_mode_btn.text()) == 'Image':
             self.activate_image_mode()
 
-    def shift_cake_azimuth(self, new_value):
-        shift_amount = new_value - self.model.old_cake_shift_value
-        self.model.old_cake_shift_value = new_value
-        new_cake_data = np.roll(self.model.cake_data, shift_amount, axis=0)
-        self.model.cake_data = np.copy(new_cake_data)
-        del new_cake_data
-        self.plot_cake()
-
     def activate_cake_mode(self):
         if not self.model.current_configuration.integrate_cake:
             self.model.current_configuration.integrate_cake = True
@@ -476,8 +469,6 @@ class ImageController(object):
         self.widget.cake_shift_azimuth_sl.setMinimum(0)
         self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi))
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
-        self.widget.cake_shift_azimuth_sl.setValue(0)
-        self.model.old_cake_shift_value = self.widget.cake_shift_azimuth_sl.value()
 
     def activate_image_mode(self):
         if self.model.current_configuration.integrate_cake:
