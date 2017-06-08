@@ -37,7 +37,7 @@ class OverlayController(object):
         """
         :param working_dir: dictionary of working directories
         :param widget: Reference to IntegrationWidget object
-        :param pattern_model: Reference to SpectrumModel object
+        :param pattern_model: Reference to PatternModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel

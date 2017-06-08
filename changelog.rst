@@ -61,9 +61,9 @@ Bugfixes:
 0.2.4 (stable 04/13/2015)
 -------------------------
     - Gui reorganization in the integration view: (1) autoscale button and transparent mask button are now shown within
-      the image view. (2) the quick action buttons save image, save spectrum etc. are now shown in the spectrum widget
+      the image view. (2) the quick action buttons save image, save pattern etc. are now shown in the pattern widget
     - New Feature: automatic background subtraction under BKG tab in the integration window. can also be accessed from
-      the bg button in the spectrum widget. By pressing inspect it shows both the original spectrum and background
+      the bg button in the pattern widget. By pressing inspect it shows both the original pattern and background
       within the limits for the extraction process. Please adjust the parameters according to your data.
     - File browsing step can now be modified to be different from 1 by entering an integer in the step text field
       below the arrows.
@@ -96,7 +96,7 @@ Bugfixes
         tab in the integration widget
     - it is now possible to do an absorption correction for cBN seats based on the geometry and rotation of the cell.
         Further details of the calculation can be found in the manual.
-    - the pressure of each phase is now shown next to it in the spectrum view and not only in the phase tab.
+    - the pressure of each phase is now shown next to it in the pattern view and not only in the phase tab.
     - the image window in the integration widget can now be undocked, which creates a separate window for the image
         view whereby the windows are still connected (the green line). This enables the use of Dioptas over 2 Monitors
         for having a better overview.
@@ -110,14 +110,14 @@ Bugfixes
 -------------------------
     - in the "X"-tab in the integration widget there are now two new options for integration available
     - it is now possible to change the number of bins for integration in the GUI (under X). After each change to the
-        number the spectrum will be integrated again automatically, to see the effects of different bin numbers easily.
+        number the pattern will be integrated again automatically, to see the effects of different bin numbers easily.
     - the standard number of bin has been increased by a factor of approximately 0.9
     - additionally, the images can now be supersampled, up to a factor of 5. Supersampling divides a pixel into equal
-        area subpixel which leads in the end to a smoother spectrum. A supersampling factor of 2 will divide each pixel
+        area subpixel which leads in the end to a smoother pattern. A supersampling factor of 2 will divide each pixel
         into four subpixel, a factor of 3 into 9 and so on. Depending on the initial image size the integration of the
         supersampled image can take very long (especially the first integration where the lookup table/sparse matrix is
         created). To reset the supersampling just type 1 into the spinbox.
-    - the available spectrum file formats checkboxes have been moved from the X menu to Spec to be more easily visible
+    - the available pattern file formats checkboxes have been moved from the X menu to Spec to be more easily visible
     - the speed of the calibration procedure has been improved
     - it is now possible to leave the detector distance constant during calibration (Warning: This is the pyFAI geometry
         detector distance, not the fit2d detector distance. The Fit2D detector distance could still vary a little bit
@@ -128,7 +128,7 @@ Bugfixes:
     - Polarization correction - fixed a bug which either caused the polarization correction to not be applied or being
                                 with the wrong sign. Checked now everything again against Fit2D and should be working
                                 correctly
-    - Saving the spectrum in the vector based .svg format is now working
+    - Saving the pattern in the vector based .svg format is now working
 
 
 0.2.0 (stable 08/29/2014)
@@ -150,10 +150,10 @@ Bugfixes:
 -------------------------
 
 - spectra can now be saved in .xy, .chi and dat format
-- they can be selected for automatic creation of spectrum files when loading images
+- they can be selected for automatic creation of pattern files when loading images
 
 Bugfixes:
-    - auto - creation of spectrum now also works when the folder was inserted by typing it into the line item.
+    - auto - creation of pattern now also works when the folder was inserted by typing it into the line item.
     - loading a new file was always creating an index by time of all the files, which slowed down the loading of new files
       considerably. - this is now done only once when loading a file from a new folder
     - setting the image working directory by typing it into the textfield now works correctly
@@ -169,4 +169,4 @@ Bugfixes:
     - implemented option to use mask for calibration refinement
 
 Bugfixes:
-    - fixed a bug when using phase lines which caused the spectrum plot to flow
+    - fixed a bug when using phase lines which caused the pattern plot to flow
