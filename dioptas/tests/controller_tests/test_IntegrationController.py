@@ -9,8 +9,6 @@ from mock import MagicMock
 import numpy as np
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
-import time
-import copy
 
 from ...controller.integration import IntegrationController
 from ...model.DioptasModel import DioptasModel
@@ -111,6 +109,8 @@ class IntegrationControllerTest(QtTest):
         self.widget.cake_shift_azimuth_sl.setValue(shift)
 
         self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), shift)
-        self.assertFalse(np.array_equal(self.model.cake_data, old_cake_data))
-        self.assertFalse(np.array_equal(self.model.cake_data[0], old_cake_data[0]))
-        self.assertTrue(np.array_equal(self.model.cake_data[shift], old_cake_data[0]))
+
+        displayed_cake_data = self.widget.img_widget.img_data
+        self.assertFalse(np.array_equal(displayed_cake_data, old_cake_data))
+        self.assertFalse(np.array_equal(displayed_cake_data[0], old_cake_data[0]))
+        self.assertTrue(np.array_equal(displayed_cake_data[shift], old_cake_data[0]))
