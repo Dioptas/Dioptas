@@ -97,3 +97,20 @@ class IntegrationControllerTest(QtTest):
     def test_switching_to_cake_mode_without_having_clicked_the_image_before(self):
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
+
+    def test_shift_cake_azimuth(self):
+        shift = 300
+        QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), 0)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi))
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.singleStep(), 1)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), 0)
+        old_cake_data = np.copy(self.model.cake_data)
+        self.widget.cake_shift_azimuth_sl.setValue(shift)
+
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), shift)
+
+        displayed_cake_data = self.widget.img_widget.img_data
+        self.assertFalse(np.array_equal(displayed_cake_data, old_cake_data))
+        self.assertFalse(np.array_equal(displayed_cake_data[0], old_cake_data[0]))
+        self.assertTrue(np.array_equal(displayed_cake_data[shift], old_cake_data[0]))
