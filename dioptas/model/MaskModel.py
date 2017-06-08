@@ -147,7 +147,7 @@ class MaskModel(object):
         """
 
         # get polygon points
-        poly_list = list(QGraphicsPolygonItem.shape().toFillPolygon(QtGui.QTransform()))
+        poly_list = list(QGraphicsPolygonItem.vertices)
         x = np.zeros(len(poly_list))
         y = np.zeros(len(poly_list))
 
