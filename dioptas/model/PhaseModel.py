@@ -109,7 +109,10 @@ class PhaseModel(object):
     def get_phase_line_intensities(self, ind, positions, pattern, x_range, y_range):
         x, y = pattern.data
         if len(y) is not 0:
-            max_spectrum_intensity = np.min([np.max(y[(x > x_range[0]) & (x < x_range[1])]), y_range[1]])
+            y_in_range = y[(x > x_range[0]) & (x < x_range[1])]
+            if len(y_in_range) is 0:
+                return [], 0
+            max_spectrum_intensity = np.min([np.max(y_in_range), y_range[1]])
         else:
             max_spectrum_intensity = 1
 

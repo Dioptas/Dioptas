@@ -4,7 +4,8 @@
     - there is now a Dioptas Icon instead of the generic python icon
 
 Bugfixes:
-    -
+    - fixed issues with changing units when having automatic background subtraction enabled
+    - strong zooming into pattern view will not cause an error due to rescaling of the phase lines anymore
 
 0.3.1 (stable 4/21/2016)
 ------------------------
