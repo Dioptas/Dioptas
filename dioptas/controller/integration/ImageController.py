@@ -216,7 +216,7 @@ class ImageController(object):
             self.widget.show_error_msg("Can not integrate multiple images without calibration.")
             return
 
-        working_directory = self._get_spectrum_working_directory()
+        working_directory = self._get_pattern_working_directory()
         if working_directory is '':
             return  # abort file processing if no directory was selected
 
@@ -235,8 +235,8 @@ class ImageController(object):
             self.model.img_model.load(filename)
             self.model.img_model.blockSignals(False)
 
-            x, y = self.integrate_spectrum()
-            self._save_spectrum(base_filename, working_directory, x, y)
+            x, y = self.integrate_pattern()
+            self._save_pattern(base_filename, working_directory, x, y)
 
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
@@ -245,14 +245,14 @@ class ImageController(object):
         self._tear_down_multiple_file_integration()
         progress_dialog.close()
 
-    def _get_spectrum_working_directory(self):
-        if self.widget.spec_autocreate_cb.isChecked():
-            working_directory = self.working_dir['spectrum']
+    def _get_pattern_working_directory(self):
+        if self.widget.pattern_autocreate_cb.isChecked():
+            working_directory = self.working_dir['pattern']
         else:
             # if there is no working directory selected A file dialog opens up to choose a directory...
             working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
-                self.widget, "Please choose the output directory for the integrated spectra.",
-                self.working_dir['spectrum']))
+                self.widget, "Please choose the output directory for the integrated .",
+                self.working_dir['pattern']))
         return working_directory
 
     def _set_up_multiple_file_integration(self):
@@ -262,13 +262,13 @@ class ImageController(object):
         self.model.blockSignals(False)
         self.model.img_changed.emit()
 
-    def _save_spectrum(self, base_filename, working_directory, x, y):
-        file_endings = self._get_spectrum_file_endings()
+    def _save_pattern(self, base_filename, working_directory, x, y):
+        file_endings = self._get_pattern_file_endings()
         for file_ending in file_endings:
             filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
             self.model.pattern_model.set_pattern(x, y, filename, unit=self.get_integration_unit())
             if file_ending == '.xy':
-                self.model.pattern_model.save_pattern(filename, header=self._create_spectrum_header())
+                self.model.pattern_model.save_pattern(filename, header=self._create_pattern_header())
             else:
                 self.model.pattern_model.save_pattern(filename)
 
@@ -279,24 +279,24 @@ class ImageController(object):
                     os.mkdir(directory)
                 filename = os.path.join(directory, self.model.pattern.name + file_ending)
                 if file_ending == '.xy':
-                    self.model.pattern_model.save_pattern(filename, header=self._create_spectrum_header(),
+                    self.model.pattern_model.save_pattern(filename, header=self._create_pattern_header(),
                                                           subtract_background=True)
                 else:
                     self.model.pattern_model.save_pattern(filename, subtract_background=True)
 
-    def _create_spectrum_header(self):
+    def _create_pattern_header(self):
         header = self.model.calibration_model.create_file_header()
         header = header.replace('\r\n', '\n')
         header += '\n#\n# ' + self.model.pattern_model.unit + '\t I'
         return header
 
-    def _get_spectrum_file_endings(self):
+    def _get_pattern_file_endings(self):
         res = []
-        if self.widget.spectrum_header_xy_cb.isChecked():
+        if self.widget.pattern_header_xy_cb.isChecked():
             res.append('.xy')
-        if self.widget.spectrum_header_chi_cb.isChecked():
+        if self.widget.pattern_header_chi_cb.isChecked():
             res.append('.chi')
-        if self.widget.spectrum_header_dat_cb.isChecked():
+        if self.widget.pattern_header_dat_cb.isChecked():
             res.append('.dat')
         return res
 
@@ -304,14 +304,14 @@ class ImageController(object):
         self.widget.file_info_widget.raise_widget()
 
     def get_integration_unit(self):
-        if self.widget.spec_tth_btn.isChecked():
+        if self.widget.pattern_tth_btn.isChecked():
             return '2th_deg'
-        elif self.widget.spec_q_btn.isChecked():
+        elif self.widget.pattern_q_btn.isChecked():
             return 'q_A^-1'
-        elif self.widget.spec_d_btn.isChecked():
+        elif self.widget.pattern_d_btn.isChecked():
             return 'd_A'
 
-    def integrate_spectrum(self):
+    def integrate_pattern(self):
         if self.widget.img_mask_btn.isChecked():
             mask = self.model.mask_model.get_mask()
         else:
@@ -331,11 +331,11 @@ class ImageController(object):
         elif roi_mask is not None and mask is not None:
             mask = np.logical_or(mask, roi_mask)
 
-        if self.widget.spec_tth_btn.isChecked():
+        if self.widget.pattern_tth_btn.isChecked():
             integration_unit = '2th_deg'
-        elif self.widget.spec_q_btn.isChecked():
+        elif self.widget.pattern_q_btn.isChecked():
             integration_unit = 'q_A^-1'
-        elif self.widget.spec_d_btn.isChecked():
+        elif self.widget.pattern_d_btn.isChecked():
             integration_unit = 'd_A'
         else:
             # in case something weird happened
@@ -495,7 +495,7 @@ class ImageController(object):
         self.widget.dock_img(self.img_docked)
 
     def _update_cake_line_pos(self):
-        cur_tth = self.get_current_spectrum_tth()
+        cur_tth = self.get_current_pattern_tth()
         if cur_tth < np.min(self.model.cake_tth) or cur_tth > np.max(self.model.cake_tth):
             self.widget.img_widget.vertical_line.hide()
         else:
@@ -527,7 +527,7 @@ class ImageController(object):
     def _update_image_line_pos(self):
         if not self.model.calibration_model.is_calibrated:
             return
-        cur_tth = self.get_current_spectrum_tth()
+        cur_tth = self.get_current_pattern_tth()
         self.widget.img_widget.set_circle_line(
             self.model.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
 
@@ -546,13 +546,13 @@ class ImageController(object):
             self.widget.img_widget.set_mouse_click_position(y_ind + 0.5, x_ind + 0.5)
             self.widget.img_widget.mouse_click_item.show()
 
-    def get_current_spectrum_tth(self):
+    def get_current_pattern_tth(self):
         cur_pos = self.widget.pattern_widget.pos_line.getPos()[0]
-        if self.widget.spec_q_btn.isChecked():
+        if self.widget.pattern_q_btn.isChecked():
             cur_tth = self.convert_x_value(cur_pos, 'q_A^-1', '2th_deg')
-        elif self.widget.spec_tth_btn.isChecked():
+        elif self.widget.pattern_tth_btn.isChecked():
             cur_tth = cur_pos
-        elif self.widget.spec_d_btn.isChecked():
+        elif self.widget.pattern_d_btn.isChecked():
             cur_tth = self.convert_x_value(cur_pos, 'd_A', '2th_deg')
         else:
             cur_tth = None
@@ -659,13 +659,13 @@ class ImageController(object):
             self.clicked_azi = azi
 
             # calculate right unit for the position line the pattern widget
-            if self.widget.spec_q_btn.isChecked():
+            if self.widget.pattern_q_btn.isChecked():
                 pos = 4 * np.pi * \
                       np.sin(tth / 2) / \
                       self.model.calibration_model.wavelength / 1e10
-            elif self.widget.spec_tth_btn.isChecked():
+            elif self.widget.pattern_tth_btn.isChecked():
                 pos = tth / np.pi * 180
-            elif self.widget.spec_d_btn.isChecked():
+            elif self.widget.pattern_d_btn.isChecked():
                 pos = self.model.calibration_model.wavelength / \
                       (2 * np.sin(tth / 2)) * 1e10
             else:
@@ -779,8 +779,8 @@ class ImageController(object):
             seat_absorption_length = float(str(self.widget.cbn_seat_al_txt.text()))
             anvil_absorption_length = float(str(self.widget.cbn_anvil_al_txt.text()))
 
-            tth_array = 180.0 / np.pi * self.model.calibration_model.spectrum_geometry.ttha
-            azi_array = 180.0 / np.pi * self.model.calibration_model.spectrum_geometry.chia
+            tth_array = 180.0 / np.pi * self.model.calibration_model.pattern_geometry.ttha
+            azi_array = 180.0 / np.pi * self.model.calibration_model.pattern_geometry.chia
 
             new_cbn_correction = CbnCorrection(
                 tth_array=tth_array,
@@ -841,8 +841,8 @@ class ImageController(object):
             detector_tilt = fit2d_parameter['tilt']
             detector_tilt_rotation = fit2d_parameter['tiltPlanRotation']
 
-            tth_array = self.model.calibration_model.spectrum_geometry.ttha
-            azi_array = self.model.calibration_model.spectrum_geometry.chia
+            tth_array = self.model.calibration_model.pattern_geometry.ttha
+            azi_array = self.model.calibration_model.pattern_geometry.chia
             import time
 
             t1 = time.time()

@@ -30,14 +30,14 @@ from ...model.DioptasModel import DioptasModel
 class OverlayController(object):
     """
     IntegrationOverlayController handles all the interaction between the Overlay controls of the integration view and
-    the corresponding overlay data in the SpectrumData
+    the corresponding overlay data in the Pattern Model.
     """
 
     def __init__(self, working_dir, widget, dioptas_model):
         """
         :param working_dir: dictionary of working directories
         :param widget: Reference to IntegrationWidget object
-        :param spectrum_model: Reference to SpectrumModel object
+        :param pattern_model: Reference to SpectrumModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
@@ -74,7 +74,7 @@ class OverlayController(object):
         self.connect_click_function(self.widget.qa_set_as_overlay_btn, self.set_current_pattern_as_overlay)
         self.connect_click_function(self.widget.qa_set_as_background_btn, self.set_current_pattern_as_background)
 
-        # spectrum_data signals
+        # pattern_data signals
         self.model.overlay_model.overlay_removed.connect(self.overlay_removed)
         self.model.overlay_model.overlay_added.connect(self.overlay_added)
         self.model.overlay_model.overlay_changed.connect(self.overlay_changed)
@@ -86,7 +86,7 @@ class OverlayController(object):
         """
 
         :param filename: filepath of an overlay file, if set to None (default value) it will open a QFileDialog to
-            select a spectrum file
+            select a pattern file
         """
         filenames = open_files_dialog(self.widget, "Load Overlay(s).",
                                       self.working_dir['overlay'])
@@ -98,7 +98,7 @@ class OverlayController(object):
 
     def overlay_added(self):
         """
-        callback when overlay is added to the SpectrumData
+        callback when overlay is added to the PatternData
         """
         color = self.widget.pattern_widget.add_overlay(self.model.overlay_model.overlays[-1])
         self.widget.add_overlay(self.model.overlay_model.overlays[-1].name,
@@ -106,7 +106,7 @@ class OverlayController(object):
 
     def remove_overlay_btn_click_callback(self):
         """
-        Removes the currently in the overlay table selected overlay from the table, spectrum_data and spectrum_view
+        Removes the currently in the overlay table selected overlay from the table, pattern_data and pattern_view
         """
         cur_ind = self.widget.get_selected_overlay_row()
         if cur_ind < 0:
@@ -117,7 +117,7 @@ class OverlayController(object):
 
     def overlay_removed(self, ind):
         """
-        callback when overlay is removed from SpectrumData
+        callback when overlay is removed from PatternData
         :param ind: index of overlay removed
         """
         self.widget.remove_overlay(ind)
@@ -263,7 +263,7 @@ class OverlayController(object):
 
     def overlay_show_cb_state_changed(self, ind, state):
         """
-        Callback for the checkboxes in the overlay tablewidget. Controls the visibility of the overlay in the spectrum
+        Callback for the checkboxes in the overlay tablewidget. Controls the visibility of the overlay in the pattern
         view
         :param ind: index of overlay
         :param state: boolean value whether the checkbox was checked or unchecked
@@ -276,7 +276,7 @@ class OverlayController(object):
     def rename_overlay(self, ind, name):
         """
         Callback for changing the name in the overlay tablewidget (by double clicking the name and entering a new one).
-        This will update the visible name in the spectrum view
+        This will update the visible name in the pattern view
         :param ind: index of overlay for which the name was changed
         :param name: new name
         """
