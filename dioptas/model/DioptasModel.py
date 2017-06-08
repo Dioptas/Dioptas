@@ -84,7 +84,7 @@ class ImgConfiguration(QtCore.QObject):
         for file_ending in self.integrated_patterns_file_formats:
             if filename is not '':
                 filename = os.path.join(
-                    self.working_directories['spectrum'],
+                    self.working_directories['pattern'],
                     os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
                 filename = filename.replace('\\', '/')
             if file_ending == '.xy':
@@ -94,7 +94,7 @@ class ImgConfiguration(QtCore.QObject):
 
         if self.pattern_model.pattern.has_background():
             for file_ending in self.integrated_patterns_file_formats:
-                directory = os.path.join(self.working_directories['spectrum'], 'bkg_subtracted')
+                directory = os.path.join(self.working_directories['pattern'], 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
                 filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
@@ -129,7 +129,7 @@ class ImgConfiguration(QtCore.QObject):
 
     @integration_unit.setter
     def integration_unit(self, new_unit):
-        previous_unit = self.integration_unit
+        old_unit = self.integration_unit
         self._integration_unit = new_unit
 
         auto_bg_subtraction = self.pattern_model.pattern.auto_background_subtraction
@@ -138,21 +138,32 @@ class ImgConfiguration(QtCore.QObject):
 
         self.integrate_image_1d()
 
-        # if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
-        #     self.pattern_model.pattern.auto_background_subtraction_roi = \
-        #         convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
-        #                       self.calibration_model.wavelength,
-        #                       previous_unit,
-        #                       new_unit), \
-        #         convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
-        #                       self.calibration_model.wavelength,
-        #                       previous_unit,
-        #                       new_unit)
+        self.update_auto_background_parameters_unit(old_unit, new_unit)
 
         if auto_bg_subtraction:
             self.pattern_model.pattern.auto_background_subtraction = True
             self.pattern_model.pattern.recalculate_pattern()
             self.pattern_model.pattern_changed.emit()
+
+    def update_auto_background_parameters_unit(self, old_unit, new_unit):
+        self.pattern_model.pattern.auto_background_subtraction_parameters = \
+            convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
+                          self.calibration_model.wavelength,
+                          old_unit,
+                          new_unit), \
+            self.pattern_model.pattern.auto_background_subtraction_parameters[1], \
+            self.pattern_model.pattern.auto_background_subtraction_parameters[2]
+
+        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
+            self.pattern_model.pattern.auto_background_subtraction_roi = \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
+                              self.calibration_model.wavelength,
+                              old_unit,
+                              new_unit), \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
+                              self.calibration_model.wavelength,
+                              old_unit,
+                              new_unit)
 
     @property
     def integrate_cake(self):
@@ -478,7 +489,7 @@ class DioptasModel(QtCore.QObject):
     def clear(self):
         for configuration in self.configurations:
             del configuration.calibration_model.cake_geometry
-            del configuration.calibration_model.spectrum_geometry
+            del configuration.calibration_model.pattern_geometry
             del configuration.img_model
             del configuration.mask_model
         del self.configurations

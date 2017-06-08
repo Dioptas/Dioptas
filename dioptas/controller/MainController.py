@@ -47,7 +47,7 @@ class MainController(object):
         # create data
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
+        self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
                                     'phase': ''}
 
         self.model = DioptasModel(self.working_directories)
@@ -160,25 +160,25 @@ class MainController(object):
     def update_title(self):
         """
         Updates the title bar of the main window. The title bar will always show the current version of Dioptas, the
-        image or spectrum filenames loaded and the current calibration name.
+        image or pattern filenames loaded and the current calibration name.
         """
         img_filename = os.path.basename(self.model.img_model.filename)
-        spec_filename = os.path.basename(self.model.pattern.filename)
+        pattern_filename = os.path.basename(self.model.pattern.filename)
         calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
-        if img_filename is '' and spec_filename is '':
+        if img_filename is '' and pattern_filename is '':
             self.widget.setWindowTitle(str + u' - © 2017 C. Prescher')
             self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2017 C. Prescher')
             return
 
-        if img_filename is not '' or spec_filename is not '':
+        if img_filename is not '' or pattern_filename is not '':
             str += ' - ['
         if img_filename is not '':
             str += img_filename
-        elif img_filename is '' and spec_filename is not '':
-            str += spec_filename
-        if not img_filename == spec_filename:
-            str += ', ' + spec_filename
+        elif img_filename is '' and pattern_filename is not '':
+            str += pattern_filename
+        if not img_filename == pattern_filename:
+            str += ', ' + pattern_filename
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
@@ -230,7 +230,7 @@ class MainController(object):
 
     def save_directories(self):
         """
-        Currently used working directories for images, spectra, etc. are saved as csv file in the users directory for
+        Currently used working directories for images, , etc. are saved as csv file in the users directory for
         reuse when Dioptas is started again
         """
 
