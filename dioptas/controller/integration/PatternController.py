@@ -109,6 +109,7 @@ class PatternController(object):
         self.widget.pattern_header_xy_cb.clicked.connect(self.update_pattern_file_endings)
         self.widget.pattern_header_chi_cb.clicked.connect(self.update_pattern_file_endings)
         self.widget.pattern_header_dat_cb.clicked.connect(self.update_pattern_file_endings)
+        self.widget.pattern_header_fxye_cb.clicked.connect(self.update_pattern_file_endings)
 
     def update_pattern_file_endings(self):
         res = []
@@ -118,6 +119,8 @@ class PatternController(object):
             res.append('.chi')
         if self.widget.pattern_header_dat_cb.isChecked():
             res.append('.dat')
+        if self.widget.pattern_header_fxye_cb.isChecked():
+            res.append('.fxye')
         self.model.current_configuration.integrated_patterns_file_formats = res
 
     def plot_pattern(self):
@@ -164,41 +167,13 @@ class PatternController(object):
                          img_filename + '.xy'),
             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;png (*.png);;svg (*.svg)'))
 
-        subtract_background = True  # when manually saving the pattern the background will be subtracted
-
         if filename is not '':
-            if filename.endswith('.xy'):
-                header = self.model.calibration_model.create_file_header()
-                if subtract_background:
-                    if self.model.pattern_model.background_pattern is not None:
-                        header += "\n# \n# BackgroundFile: " + self.model.pattern_model.overlays[
-                            self.model.pattern_model.bkg_ind].name
-                header = header.replace('\r\n', '\n')
-                header += '\n#\n# ' + self.integration_unit + '\t I'
-
-                self.model.pattern_model.save_pattern(filename, header, subtract_background)
-            elif filename.endswith('.chi'):
-                self.model.pattern_model.save_pattern(filename, subtract_background=subtract_background)
-            elif filename.endswith('.dat'):
-                self.model.pattern_model.save_pattern(filename, subtract_background=subtract_background)
-            elif filename.endswith('.fxye'):
-                header = 'Generated file ' + filename + ' using DIOPTAS\n'
-                header = header + self.model.calibration_model.create_file_header()
-                unit = self.model.current_configuration.integration_unit
-                lam = self.model.current_configuration.calibration_model.wavelength
-                if unit == 'q_A^-1':
-                    con = 'CONQ'
-                else:
-                    con = 'CONS'
-
-                header = header + '\nBANK\t1\tNUM_POINTS\tNUM_POINTS ' + con + '\tMIN_X_VAL\tSTEP_X_VAL ' + \
-                         '{0:.5g}'.format(lam * 1e10) + ' 0.0 FXYE'
-
-                self.model.pattern_model.save_pattern(filename, header, subtract_background=subtract_background)
-            elif filename.endswith('.png'):
+            if filename.endswith('.png'):
                 self.widget.pattern_widget.save_png(filename)
             elif filename.endswith('.svg'):
                 self.widget.pattern_widget.save_svg(filename)
+            else:
+                self.model.current_configuration.save_pattern(filename, subtract_background=True)
 
     def load(self, *args, **kwargs):
         filename = kwargs.get('filename', None)

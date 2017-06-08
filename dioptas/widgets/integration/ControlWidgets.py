@@ -129,10 +129,12 @@ class PatternControlWidget(QtWidgets.QWidget):
         self.xy_cb.setChecked(True)
         self.chi_cb = QtWidgets.QCheckBox('.chi')
         self.dat_cb = QtWidgets.QCheckBox('.dat')
+        self.fxye_cb = QtWidgets.QCheckBox('.fxye')
         self._pattern_types_gb_layout = QtWidgets.QHBoxLayout()
         self._pattern_types_gb_layout.addWidget(self.xy_cb)
         self._pattern_types_gb_layout.addWidget(self.chi_cb)
         self._pattern_types_gb_layout.addWidget(self.dat_cb)
+        self._pattern_types_gb_layout.addWidget(self.fxye_cb)
         self.pattern_types_gc.setLayout(self._pattern_types_gb_layout)
 
         self._pattern_types_layout = QtWidgets.QHBoxLayout()

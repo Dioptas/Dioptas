@@ -63,7 +63,7 @@ class ImgConfiguration(QtCore.QObject):
             self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
 
             if self.autosave_integrated_pattern:
-                self.save_pattern()
+                self._auto_save_patterns()
 
     def integrate_image_2d(self):
         if self.use_mask:
@@ -79,18 +79,47 @@ class ImgConfiguration(QtCore.QObject):
                                             dimensions=(2048, 2048))
         self.cake_changed.emit()
 
-    def save_pattern(self):
-        filename = self.img_model.filename
+    def save_pattern(self, filename=None, subtract_background=False):
+        if filename is None:
+            filename = self.img_model.filename
+
+        if filename.endswith('.xy'):
+            self.pattern_model.save_pattern(filename, header=self._create_xy_header(),
+                                            subtract_background=subtract_background)
+        elif filename.endswith('.fxye'):
+            self.pattern_model.save_pattern(filename, header=self._create_fxye_header(filename),
+                                            subtract_background=subtract_background)
+        else:
+            self.pattern_model.save_pattern(filename, subtract_background=subtract_background)
+
+
+    def _create_xy_header(self):
+        header = self.calibration_model.create_file_header()
+        header = header.replace('\r\n', '\n')
+        header = header + '\n#\n# ' + self._integration_unit + '\t I'
+        return header
+
+    def _create_fxye_header(self, filename):
+        header = 'Generated file ' + filename + ' using DIOPTAS\n'
+        header = header + self.calibration_model.create_file_header()
+        unit = self._integration_unit
+        lam = self.calibration_model.wavelength
+        if unit == 'q_A^-1':
+            con = 'CONQ'
+        else:
+            con = 'CONS'
+
+        header = header + '\nBANK\t1\tNUM_POINTS\tNUM_POINTS ' + con + '\tMIN_X_VAL\tSTEP_X_VAL ' + \
+                 '{0:.5g}'.format(lam * 1e10) + ' 0.0 FXYE'
+        return header
+
+    def _auto_save_patterns(self):
         for file_ending in self.integrated_patterns_file_formats:
-            if filename is not '':
-                filename = os.path.join(
+            filename = os.path.join(
                     self.working_directories['pattern'],
                     os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
-                filename = filename.replace('\\', '/')
-            if file_ending == '.xy':
-                self.pattern_model.save_pattern(filename, header=self._create_xy_header())
-            else:
-                self.pattern_model.save_pattern(filename)
+            filename = filename.replace('\\', '/')
+            self.save_pattern(filename)
 
         if self.pattern_model.pattern.has_background():
             for file_ending in self.integrated_patterns_file_formats:
@@ -99,17 +128,7 @@ class ImgConfiguration(QtCore.QObject):
                     os.mkdir(directory)
                 filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
                 filename = filename.replace('\\', '/')
-                if file_ending == '.xy':
-                    self.pattern_model.save_pattern(filename, header=self._create_xy_header(),
-                                                    subtract_background=True)
-                else:
-                    self.pattern_model.save_pattern(filename, subtract_background=True)
-
-    def _create_xy_header(self):
-        header = self.calibration_model.create_file_header()
-        header = header.replace('\r\n', '\n')
-        header = header + '\n#\n# ' + self._integration_unit + '\t I'
-        return header
+                self.save_pattern(filename, subtract_background=True)
 
     def update_mask_dimension(self):
         self.mask_model.set_dimension(self.img_model._img_data.shape)
