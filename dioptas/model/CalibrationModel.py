@@ -49,6 +49,7 @@ class CalibrationModel(object):
         self.pattern_geometry = AzimuthalIntegrator()
         self.cake_geometry = None
         self.calibrant = Calibrant()
+        self.spectrum_geometry.wavelength = 0.3344e-10
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
                              'pixel_width': 79e-6,

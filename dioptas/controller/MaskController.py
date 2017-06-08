@@ -20,7 +20,7 @@ import sys
 import os
 
 from qtpy import QtWidgets, QtCore, QtGui
-
+from math import sqrt
 import numpy as np
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
@@ -51,6 +51,7 @@ class MaskController(object):
         self.circle = None
         self.polygon = None
         self.point = None
+        self.arc = None
 
     def create_signals(self):
         self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
@@ -60,6 +61,7 @@ class MaskController(object):
         self.widget.circle_btn.clicked.connect(self.activate_circle_btn)
         self.widget.rectangle_btn.clicked.connect(self.activate_rectangle_btn)
         self.widget.polygon_btn.clicked.connect(self.activate_polygon_btn)
+        self.widget.arc_btn.clicked.connect(self.activate_arc_btn)
         self.widget.point_btn.clicked.connect(self.activate_point_btn)
         self.widget.undo_btn.clicked.connect(self.undo_btn_click)
         self.widget.redo_btn.clicked.connect(self.redo_btn_click)
@@ -88,7 +90,7 @@ class MaskController(object):
 
     def uncheck_all_btn(self, except_btn=None):
         btns = [self.widget.circle_btn, self.widget.rectangle_btn, self.widget.polygon_btn, \
-                self.widget.point_btn]
+                self.widget.point_btn, self.widget.arc_btn]
         for btn in btns:
             if btn is not except_btn:
                 if btn.isChecked():
@@ -109,21 +111,31 @@ class MaskController(object):
         except AttributeError:
             pass
 
+        if self.arc is not None:
+            if self.clicks == 1:
+                self.widget.img_widget.mouse_moved.disconnect(self.arc.set_size)
+            elif self.clicks == 2:
+                self.widget.img_widget.mouse_moved.disconnect(self.arc_calc_and_preview)
+            elif self.clicks == 3:
+                self.widget.img_widget.mouse_moved.disconnect(self.arc_width_preview)
+            self.widget.img_widget.img_view_box.removeItem(self.arc)
+            self.arc = None
+
     def activate_circle_btn(self):
         if self.widget.circle_btn.isChecked():
             self.state = 'circle'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.circle_btn)
+            self.clicks = 0
         else:
             self.state = None
-            self.clicks = 0
             self.uncheck_all_btn()
+            self.clicks = 0
 
     def activate_rectangle_btn(self):
         if self.widget.rectangle_btn.isChecked():
             self.state = 'rectangle'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.rectangle_btn)
+            self.clicks = 0
         else:
             self.state = None
             self.uncheck_all_btn()
@@ -131,8 +143,17 @@ class MaskController(object):
     def activate_polygon_btn(self):
         if self.widget.polygon_btn.isChecked():
             self.state = 'polygon'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.polygon_btn)
+            self.clicks = 0
+        else:
+            self.uncheck_all_btn()
+            self.state = None
+
+    def activate_arc_btn(self):
+        if self.widget.arc_btn.isChecked():
+            self.state = 'arc'
+            self.uncheck_all_btn(except_btn=self.widget.arc_btn)
+            self.clicks = 0
         else:
             self.state = None
             self.uncheck_all_btn()
@@ -140,8 +161,8 @@ class MaskController(object):
     def activate_point_btn(self):
         if self.widget.point_btn.isChecked():
             self.state = 'point'
-            self.clicks = 0
             self.uncheck_all_btn(except_btn=self.widget.point_btn)
+            self.clicks = 0
             self.point = self.widget.img_widget.draw_point(self.widget.point_size_sb.value())
             self.widget.img_widget.mouse_moved.connect(self.point.set_position)
         else:
@@ -170,6 +191,8 @@ class MaskController(object):
             self.draw_point(x, y)
         elif self.state == 'polygon':
             self.draw_polygon(x, y)
+        elif self.state == 'arc':
+            self.draw_arc(x, y)
 
     def draw_circle(self, x, y):
         if self.clicks == 0:
@@ -221,6 +244,61 @@ class MaskController(object):
             self.polygon.set_size(x, y)
             self.polygon.add_point(x, y)
 
+    def draw_arc(self, x, y):
+        self.clicks += 1
+        if self.clicks == 1:
+            self.arc = self.widget.img_widget.draw_arc(x, y)
+            self.widget.img_widget.mouse_moved.connect(self.arc.set_size)
+        elif self.clicks == 2:
+            self.widget.img_widget.mouse_moved.disconnect(self.arc.set_size)
+            self.arc.add_point(x, y)
+            if self.arc.vertices[0].x() == self.arc.vertices[1].x() and self.arc.vertices[0].y() == self.arc.vertices[1].y():
+                self.remove_bad_arc()
+                return
+            self.widget.img_widget.mouse_moved.connect(self.arc_calc_and_preview)
+        elif self.clicks == 3:
+            self.arc.add_point(x, y)
+            self.widget.img_widget.mouse_moved.disconnect(self.arc_calc_and_preview)
+            if (self.arc.vertices[0].x() == self.arc.vertices[2].x() and self.arc.vertices[0].y() == self.arc.vertices[2].y()) or (self.arc.vertices[1].x() == self.arc.vertices[2].x() and self.arc.vertices[1].y() == self.arc.vertices[2].y()):
+                self.remove_bad_arc()
+                return
+            self.widget.img_widget.mouse_moved.connect(self.arc_width_preview)
+        elif self.clicks == 4:
+            self.finish_arc()
+
+    def remove_bad_arc(self):
+        self.clicks = 0
+        self.widget.img_widget.img_view_box.removeItem(self.arc)
+        self.arc = None
+
+    def arc_calc_and_preview(self, x, y):
+        v = self.arc.vertices
+        new_v = QtCore.QPointF(x, y)
+        arc_center = self.model.mask_model.find_center_of_circle_from_three_points(v[0], v[1], new_v)
+        arc_r = self.model.mask_model.find_radius_of_circle_from_center_and_point(arc_center, new_v)
+        self.arc.arc_center = arc_center
+        self.arc.arc_radius = arc_r
+        phi_range = self.model.mask_model.find_n_angles_on_arc_from_three_points_around_p0(arc_center, v[0], v[1], new_v
+                                                                                           , 50)
+        self.arc.phi_range = phi_range
+        arc_points_a = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, 1, phi_range)
+        arc_points_b = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, -1, phi_range)
+        arc_points = arc_points_a + list(reversed(arc_points_b))
+
+        self.arc.preview_arc(arc_points)
+
+    def arc_width_preview(self, x, y):
+        arc_center = self.arc.arc_center
+        arc_r = self.arc.arc_radius
+        phi_range = self.arc.phi_range
+        width = abs(arc_r - sqrt((x - arc_center.x())**2 + (y - arc_center.y())**2))
+
+        arc_points_a = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, -width, phi_range)
+        arc_points_b = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, width, phi_range)
+        arc_points = arc_points_a + list(reversed(arc_points_b))
+        self.arc.arc_points = arc_points
+        self.arc.preview_arc(arc_points)
+
     def update_shape_preview_fill_color(self):
         try:
             if self.state == 'circle':
@@ -231,6 +309,8 @@ class MaskController(object):
                 self.point.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
             elif self.state == 'polygon':
                 self.polygon.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
+            elif self.state == 'arc':
+                self.arc.setBrush(QtGui.QBrush(self.widget.img_widget.mask_preview_fill_color))
         except AttributeError:
             return
 
@@ -243,6 +323,15 @@ class MaskController(object):
         self.plot_mask()
         self.widget.img_widget.img_view_box.removeItem(self.polygon)
         self.polygon = None
+
+    def finish_arc(self):
+        self.widget.img_widget.mouse_moved.disconnect(self.arc_width_preview)
+        self.clicks = 0
+        self.arc.vertices = self.arc.arc_points
+        self.model.mask_model.mask_QGraphicsPolygonItem(self.arc)
+        self.plot_mask()
+        self.widget.img_widget.img_view_box.removeItem(self.arc)
+        self.arc = None
 
     def below_thresh_btn_click(self):
         thresh = np.float64(self.widget.below_thresh_txt.text())
@@ -356,7 +445,7 @@ class MaskController(object):
         try:
             if x > 0 and y > 0:
                 str = "x: %8.1f   y: %8.1f   I: %6.f" % (
-                    x, y, self.widget.img_widget.img_data.T[np.floor(x), np.floor(y)])
+                    x, y, self.widget.img_widget.img_data.T[int(np.floor(x)), int(np.floor(y))])
             else:
                 str = "x: %.1f y: %.1f" % (x, y)
         except (IndexError, AttributeError):
