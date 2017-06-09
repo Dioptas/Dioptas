@@ -32,14 +32,14 @@ from ...model.util.HelperModule import calculate_color
 # should probably a class, making it more readable
 
 
-class SpectrumWidget(QtCore.QObject):
+class PatternWidget(QtCore.QObject):
     mouse_moved = QtCore.Signal(float, float)
     mouse_left_clicked = QtCore.Signal(float, float)
     range_changed = QtCore.Signal(list)
     auto_range_status_changed = QtCore.Signal(bool)
 
     def __init__(self, pg_layout):
-        super(SpectrumWidget, self).__init__()
+        super(PatternWidget, self).__init__()
         self.pg_layout = pg_layout
         self.create_graphics()
         self.create_main_plot()
@@ -53,26 +53,26 @@ class SpectrumWidget(QtCore.QObject):
         self.overlay_show = []
 
     def create_graphics(self):
-        self.spectrum_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
-        self.spectrum_plot.setLabel('bottom', u'2θ', u'°')
-        self.spectrum_plot.enableAutoRange(False)
-        self.spectrum_plot.buttonsHidden = True
-        self.view_box = self.spectrum_plot.vb
+        self.pattern_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
+        self.pattern_plot.setLabel('bottom', u'2θ', u'°')
+        self.pattern_plot.enableAutoRange(False)
+        self.pattern_plot.buttonsHidden = True
+        self.view_box = self.pattern_plot.vb
         self.legend = LegendItem(horSpacing=20, box=False, verSpacing=-3, labelAlignment='right', showLines=False)
         self.phases_legend = LegendItem(horSpacing=20, box=False, verSpacing=-3, labelAlignment='left', showLines=False)
 
     def create_main_plot(self):
         self.plot_item = pg.PlotDataItem(np.linspace(0, 10), np.sin(np.linspace(10, 3)),
                                          pen=pg.mkPen(color=(255, 255, 255), width=2))
-        self.spectrum_plot.addItem(self.plot_item)
+        self.pattern_plot.addItem(self.plot_item)
         self.bkg_item = pg.PlotDataItem([], [],
                                         pen=pg.mkPen(color=(255, 0, 0), width=2, style=QtCore.Qt.DashLine))
-        self.spectrum_plot.addItem(self.bkg_item)
+        self.pattern_plot.addItem(self.bkg_item)
         self.legend.addItem(self.plot_item, '')
         self.plot_name = ''
-        self.legend.setParentItem(self.spectrum_plot.vb)
+        self.legend.setParentItem(self.pattern_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
-        self.phases_legend.setParentItem(self.spectrum_plot.vb)
+        self.phases_legend.setParentItem(self.pattern_plot.vb)
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
 
         self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
@@ -92,10 +92,10 @@ class SpectrumWidget(QtCore.QObject):
 
     def create_pos_line(self):
         self.pos_line = pg.InfiniteLine(pen=pg.mkPen(color=(0, 255, 0), width=1.5, style=QtCore.Qt.DashLine))
-        self.spectrum_plot.addItem(self.pos_line)
+        self.pattern_plot.addItem(self.pos_line)
 
     def deactivate_pos_line(self):
-        self.spectrum_plot.removeItem(self.pos_line)
+        self.pattern_plot.removeItem(self.pos_line)
 
     def set_pos_line(self, x):
         self.pos_line.setPos(x)
@@ -161,13 +161,13 @@ class SpectrumWidget(QtCore.QObject):
         self.overlay_names.append(pattern.name)
         self.overlay_show.append(True)
         if show:
-            self.spectrum_plot.addItem(self.overlays[-1])
+            self.pattern_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], pattern.name)
             self.update_graph_range()
         return color
 
     def remove_overlay(self, ind):
-        self.spectrum_plot.removeItem(self.overlays[ind])
+        self.pattern_plot.removeItem(self.overlays[ind])
         self.legend.removeItem(self.overlays[ind])
         self.overlays.remove(self.overlays[ind])
         self.overlay_names.remove(self.overlay_names[ind])
@@ -175,13 +175,13 @@ class SpectrumWidget(QtCore.QObject):
         self.update_graph_range()
 
     def hide_overlay(self, ind):
-        self.spectrum_plot.removeItem(self.overlays[ind])
+        self.pattern_plot.removeItem(self.overlays[ind])
         self.legend.hideItem(ind + 1)
         self.overlay_show[ind] = False
         self.update_graph_range()
 
     def show_overlay(self, ind):
-        self.spectrum_plot.addItem(self.overlays[ind])
+        self.pattern_plot.addItem(self.overlays[ind])
         self.legend.showItem(ind + 1)
         self.overlay_show[ind] = True
         self.update_graph_range()
@@ -204,7 +204,7 @@ class SpectrumWidget(QtCore.QObject):
             overlay.updateItems()
 
     def add_phase(self, name, positions, intensities, baseline):
-        self.phases.append(PhasePlot(self.spectrum_plot, self.phases_legend, positions, intensities, name, baseline))
+        self.phases.append(PhasePlot(self.pattern_plot, self.phases_legend, positions, intensities, name, baseline))
         return self.phases[-1].color
 
     def set_phase_color(self, ind, color):
@@ -243,11 +243,11 @@ class SpectrumWidget(QtCore.QObject):
         if len(self.phases_vlines) > 0:
             self.phases_vlines[0].set_data(positions, name)
         else:
-            self.phases_vlines.append(PhaseLinesPlot(self.spectrum_plot, positions,
+            self.phases_vlines.append(PhaseLinesPlot(self.pattern_plot, positions,
                                                      pen=pg.mkPen(color=(200, 50, 50), style=QtCore.Qt.SolidLine)))
 
     def show_linear_region(self):
-        self.spectrum_plot.addItem(self.linear_region_item)
+        self.pattern_plot.addItem(self.linear_region_item)
 
     def set_linear_region(self, x_min, x_max):
         self.linear_region_item.setRegion((x_min, x_max))
@@ -256,34 +256,34 @@ class SpectrumWidget(QtCore.QObject):
         return self.linear_region_item.getRegion()
 
     def hide_linear_region(self):
-        self.spectrum_plot.removeItem(self.linear_region_item)
+        self.pattern_plot.removeItem(self.linear_region_item)
 
     def save_png(self, filename):
-        exporter = ImageExporter(self.spectrum_plot)
+        exporter = ImageExporter(self.pattern_plot)
         exporter.export(filename)
 
     def save_svg(self, filename):
         self._invert_color()
         previous_label = None
-        if self.spectrum_plot.getAxis('bottom').labelText == u'2θ':
+        if self.pattern_plot.getAxis('bottom').labelText == u'2θ':
             previous_label = (u'2θ', '°')
-            self.spectrum_plot.setLabel('bottom', '2th_deg', '')
-        exporter = SVGExporter(self.spectrum_plot)
+            self.pattern_plot.setLabel('bottom', '2th_deg', '')
+        exporter = SVGExporter(self.pattern_plot)
         exporter.export(filename)
         self._norm_color()
         if previous_label is not None:
-            self.spectrum_plot.setLabel('bottom', previous_label[0], previous_label[1])
+            self.pattern_plot.setLabel('bottom', previous_label[0], previous_label[1])
 
     def _invert_color(self):
-        self.spectrum_plot.getAxis('bottom').setPen('k')
-        self.spectrum_plot.getAxis('left').setPen('k')
+        self.pattern_plot.getAxis('bottom').setPen('k')
+        self.pattern_plot.getAxis('left').setPen('k')
         self.plot_item.setPen('k')
         self.legend.legendItems[0][1].setAttr('color', '000')
         self.legend.legendItems[0][1].setText(self.legend.legendItems[0][1].text)
 
     def _norm_color(self):
-        self.spectrum_plot.getAxis('bottom').setPen('w')
-        self.spectrum_plot.getAxis('left').setPen('w')
+        self.pattern_plot.getAxis('bottom').setPen('w')
+        self.pattern_plot.getAxis('left').setPen('w')
         self.plot_item.setPen('w')
         self.legend.legendItems[0][1].setAttr('color', 'FFF')
         self.legend.legendItems[0][1].setText(self.legend.legendItems[0][1].text)
@@ -383,7 +383,7 @@ class SpectrumWidget(QtCore.QObject):
             pg.ViewBox.wheelEvent(self.view_box, ev, axis)
 
             self.auto_range = False
-            # axis_range = self.spectrum_plot.viewRange()
+            # axis_range = self.pattern_plot.viewRange()
             # self.range_changed.emit(axis_range)
             self.emit_sig_range_changed()
         else:
@@ -435,7 +435,7 @@ class PhasePlot(object):
         self.visible = True
         self.line_items = []
         self.line_visible = []
-        self.spectrum_x_range = []
+        self.pattern_x_range = []
         self.index = PhasePlot.num_phases
         self.color = calculate_color(self.index + 9)
         self.pen = pg.mkPen(color=self.color, width=0.9, style=QtCore.Qt.SolidLine)
@@ -487,12 +487,12 @@ class PhasePlot(object):
                 self.line_items[ind].setData(y=[baseline, intensity],
                                              x=[positions[ind], positions[ind]])
 
-    def update_visibilities(self, spectrum_range):
+    def update_visibilities(self, pattern_range):
         if self.visible:
             for ind, line_item in enumerate(self.line_items):
                 data = line_item.getData()
                 position = data[0][0]
-                if position >= spectrum_range[0] and position <= spectrum_range[1]:
+                if position >= pattern_range[0] and position <= pattern_range[1]:
                     if not self.line_visible[ind]:
                         self.plot_item.addItem(line_item)
                         self.line_visible[ind] = True

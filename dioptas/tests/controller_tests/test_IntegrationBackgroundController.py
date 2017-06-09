@@ -37,52 +37,52 @@ class IntegrationBackgroundControllerTest(QtTest):
         del self.model
         gc.collect()
 
-    def test_spectrum_bkg_toggle_inspect_button(self):
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
-        self.widget.bkg_spectrum_gb.setChecked(True)
-        self.widget.bkg_spectrum_inspect_btn.toggle()
+    def test_pattern_bkg_toggle_inspect_button(self):
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.widget.bkg_pattern_gb.setChecked(True)
+        self.widget.bkg_pattern_inspect_btn.toggle()
         x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
         self.assertGreater(len(x_bkg), 0)
 
-        self.widget.bkg_spectrum_inspect_btn.toggle()
+        self.widget.bkg_pattern_inspect_btn.toggle()
         x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
         self.assertEqual(len(x_bkg), 0)
 
-    def test_spectrum_bkg_inspect_btn_is_untoggled_when_disabling_spectrum_gb(self):
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
-        self.widget.bkg_spectrum_gb.setChecked(True)
-        self.widget.bkg_spectrum_inspect_btn.toggle()
-        self.widget.bkg_spectrum_gb.setChecked(False)
+    def test_pattern_bkg_inspect_btn_is_untoggled_when_disabling_pattern_gb(self):
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.widget.bkg_pattern_gb.setChecked(True)
+        self.widget.bkg_pattern_inspect_btn.toggle()
+        self.widget.bkg_pattern_gb.setChecked(False)
         x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
         self.assertEqual(len(x_bkg), 0)
 
-    def test_spectrum_bkg_linear_region_changes_txt_fields(self):
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
-        self.widget.bkg_spectrum_gb.setChecked(True)
-        self.widget.bkg_spectrum_inspect_btn.toggle()
+    def test_pattern_bkg_linear_region_changes_txt_fields(self):
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.widget.bkg_pattern_gb.setChecked(True)
+        self.widget.bkg_pattern_inspect_btn.toggle()
 
         self.widget.pattern_widget.set_linear_region(5, 11)
 
-        x_min = float(str(self.widget.bkg_spectrum_x_min_txt.text()))
-        x_max = float(str(self.widget.bkg_spectrum_x_max_txt.text()))
+        x_min = float(str(self.widget.bkg_pattern_x_min_txt.text()))
+        x_max = float(str(self.widget.bkg_pattern_x_max_txt.text()))
 
-        self.assertEqual(x_min, 5)
-        self.assertEqual(x_max, 11)
+        self.assertAlmostEqual(x_min, 5,  delta=0.02)
+        self.assertAlmostEqual(x_max, 11, delta=0.02)
 
-    def test_spectrum_bkg_txt_fields_change_linear_regions(self):
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
-        self.widget.bkg_spectrum_gb.setChecked(True)
-        self.widget.bkg_spectrum_inspect_btn.toggle()
+    def test_pattern_bkg_txt_fields_change_linear_regions(self):
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.widget.bkg_pattern_gb.setChecked(True)
+        self.widget.bkg_pattern_inspect_btn.toggle()
 
-        self.widget.bkg_spectrum_x_min_txt.setText('5')
-        QTest.keyPress(self.widget.bkg_spectrum_x_min_txt, QtCore.Qt.Key_Enter)
-        self.widget.bkg_spectrum_x_max_txt.setText('11')
-        QTest.keyPress(self.widget.bkg_spectrum_x_max_txt, QtCore.Qt.Key_Enter)
+        self.widget.bkg_pattern_x_min_txt.setText('5')
+        QTest.keyPress(self.widget.bkg_pattern_x_min_txt, QtCore.Qt.Key_Enter)
+        self.widget.bkg_pattern_x_max_txt.setText('11')
+        QTest.keyPress(self.widget.bkg_pattern_x_max_txt, QtCore.Qt.Key_Enter)
 
         x_min, x_max = self.widget.pattern_widget.linear_region_item.getRegion()
 
-        self.assertEqual(x_min, 5)
-        self.assertEqual(x_max, 11)
+        self.assertAlmostEqual(x_min, 5,  delta=0.02)
+        self.assertAlmostEqual(x_max, 11, delta=0.02)
 
 
 if __name__ == '__main__':

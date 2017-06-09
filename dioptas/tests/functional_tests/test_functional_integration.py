@@ -25,7 +25,7 @@ class IntegrationMockFunctionalTest(QtTest):
         self.model = DioptasModel()
 
         self.integration_widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'spectrum': data_path,
+        self.integration_controller = IntegrationController({'pattern': data_path,
                                                              'image': data_path},
                                                             widget=self.integration_widget,
                                                             dioptas_model=self.model)
@@ -36,11 +36,11 @@ class IntegrationMockFunctionalTest(QtTest):
         self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
                                                                             self.model.calibration_model.int))
 
-        self.integration_spectrum_controller = self.integration_controller.spectrum_controller
+        self.integration_pattern_controller = self.integration_controller.pattern_controller
         self.integration_image_controller = self.integration_controller.image_controller
 
     def tearDown(self):
-        del self.integration_spectrum_controller
+        del self.integration_pattern_controller
         del self.integration_controller
         self.model.clear()
         del self.model
@@ -63,7 +63,7 @@ class IntegrationMockFunctionalTest(QtTest):
         self.integration_widget.automatic_binning_cb.setChecked(False)
         self.assertTrue(self.integration_widget.bin_count_txt.isEnabled())
 
-        # she sees that the current value and wants to double it and notices that the spectrum looks a little bit
+        # she sees that the current value and wants to double it and notices that the pattern looks a little bit
         # smoother
         previous_number_of_points = len(self.model.pattern.x)
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
@@ -82,18 +82,18 @@ class IntegrationMockFunctionalTest(QtTest):
         # miraculous parameter called supersampling. It is currently set to 1 which seems to be normal
         self.assertEqual(self.integration_widget.supersampling_sb.value(), 1)
 
-        # then she sets it to two and she sees that the number of spectrum bin changes and that the spectrum looks
+        # then she sets it to two and she sees that the number of pattern bin changes and that the pattern looks
         # smoother
 
         # values before:
-        px1 = self.model.calibration_model.spectrum_geometry.pixel1
-        px2 = self.model.calibration_model.spectrum_geometry.pixel2
+        px1 = self.model.calibration_model.pattern_geometry.pixel1
+        px2 = self.model.calibration_model.pattern_geometry.pixel2
 
         img_shape = self.model.img_data.shape
 
         self.integration_widget.supersampling_sb.setValue(2)
-        self.assertEqual(self.model.calibration_model.spectrum_geometry.pixel1, 0.5 * px1)
-        self.assertEqual(self.model.calibration_model.spectrum_geometry.pixel2, 0.5 * px2)
+        self.assertEqual(self.model.calibration_model.pattern_geometry.pixel1, 0.5 * px1)
+        self.assertEqual(self.model.calibration_model.pattern_geometry.pixel2, 0.5 * px2)
         self.assertEqual(self.model.calibration_model.cake_geometry.pixel1, px1)
         self.assertEqual(self.model.calibration_model.cake_geometry.pixel2, px2)
 
@@ -120,22 +120,22 @@ class IntegrationMockFunctionalTest(QtTest):
         self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_img.png')))
         self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_img.tiff')))
 
-    def test_saving_spectrum(self):
+    def test_saving_pattern(self):
         # the widget has to be shown to be able to save the image:
         self.integration_widget.show()
 
-        # Tests if the spectrum save procedures is are working for all file-endings
-        def save_spectra_test_for_size_and_delete(self):
+        # Tests if the pattern save procedures is are working for all file-endings
+        def save__test_for_size_and_delete(self):
 
-            def save_spectrum(filename):
+            def save_pattern(filename):
                 QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
-                click_button(self.integration_widget.qa_save_spectrum_btn)
+                click_button(self.integration_widget.qa_save_pattern_btn)
 
-            save_spectrum(os.path.join(data_path, 'Test_spec.xy'))
-            save_spectrum(os.path.join(data_path, 'Test_spec.chi'))
-            save_spectrum(os.path.join(data_path, 'Test_spec.dat'))
-            save_spectrum(os.path.join(data_path, 'Test_spec.png'))
-            save_spectrum(os.path.join(data_path, 'Test_spec.svg'))
+            save_pattern(os.path.join(data_path, 'Test_spec.xy'))
+            save_pattern(os.path.join(data_path, 'Test_spec.chi'))
+            save_pattern(os.path.join(data_path, 'Test_spec.dat'))
+            save_pattern(os.path.join(data_path, 'Test_spec.png'))
+            save_pattern(os.path.join(data_path, 'Test_spec.svg'))
 
             self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_spec.xy')))
             self.assertTrue(os.path.exists(os.path.join(data_path, 'Test_spec.chi')))
@@ -155,19 +155,19 @@ class IntegrationMockFunctionalTest(QtTest):
             os.remove(os.path.join(data_path, 'Test_spec.png'))
             os.remove(os.path.join(data_path, 'Test_spec.svg'))
 
-        save_spectra_test_for_size_and_delete(self)
-        QTest.mouseClick(self.integration_spectrum_controller.widget.spec_q_btn, QtCore.Qt.LeftButton)
-        save_spectra_test_for_size_and_delete(self)
-        QTest.mouseClick(self.integration_spectrum_controller.widget.spec_d_btn, QtCore.Qt.LeftButton)
-        save_spectra_test_for_size_and_delete(self)
+        save__test_for_size_and_delete(self)
+        QTest.mouseClick(self.integration_pattern_controller.widget.pattern_q_btn, QtCore.Qt.LeftButton)
+        save__test_for_size_and_delete(self)
+        QTest.mouseClick(self.integration_pattern_controller.widget.pattern_d_btn, QtCore.Qt.LeftButton)
+        save__test_for_size_and_delete(self)
 
     def test_undocking_and_docking_img_frame(self):
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
 
     def test_loading_multiple_images_and_batch_integrate_them(self):
-        self.integration_widget.spec_autocreate_cb.setChecked(True)
-        self.assertTrue(self.integration_widget.spec_autocreate_cb.isChecked())
+        self.integration_widget.pattern_autocreate_cb.setChecked(True)
+        self.assertTrue(self.integration_widget.pattern_autocreate_cb.isChecked())
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(data_path, 'image_001.tif'),
@@ -197,13 +197,13 @@ class IntegrationFunctionalTest(QtTest):
         self.model = DioptasModel()
 
         self.integration_widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'spectrum': data_path},
+        self.integration_controller = IntegrationController({'pattern': data_path},
                                                             widget=self.integration_widget,
                                                             dioptas_model=self.model)
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
-        self.integration_spectrum_controller = self.integration_controller.spectrum_controller
+        self.integration_pattern_controller = self.integration_controller.pattern_controller
         self.integration_image_controller = self.integration_controller.image_controller
 
     def test_activating_mask_mode(self):
@@ -272,15 +272,15 @@ class IntegrationFunctionalTest(QtTest):
     def test_changing_integration_unit(self):
         x1, y1 = self.model.pattern.data
 
-        click_button(self.integration_widget.spec_q_btn)
+        click_button(self.integration_widget.pattern_q_btn)
         x2, y2 = self.model.pattern.data
         self.assertLess(np.max(x2), np.max(x1))
 
-        click_button(self.integration_widget.spec_d_btn)
+        click_button(self.integration_widget.pattern_d_btn)
         x3, y3 = self.model.pattern.data
         self.assertGreater(np.max(x3), np.max(x2))
 
-        click_button(self.integration_widget.spec_tth_btn)
+        click_button(self.integration_widget.pattern_tth_btn)
         x4, y4 = self.model.pattern.data
         self.assertTrue(np.array_equal(x1, x4))
         self.assertTrue(np.array_equal(y1, y4))

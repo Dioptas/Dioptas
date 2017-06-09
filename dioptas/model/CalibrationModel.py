@@ -46,10 +46,10 @@ class CalibrationModel(object):
         self.img_model = img_model
         self.points = []
         self.points_index = []
-        self.spectrum_geometry = AzimuthalIntegrator()
+        self.pattern_geometry = AzimuthalIntegrator()
         self.cake_geometry = None
         self.calibrant = Calibrant()
-        self.spectrum_geometry.wavelength = 0.3344e-10
+        self.pattern_geometry.wavelength = 0.3344e-10
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
                              'pixel_width': 79e-6,
@@ -63,7 +63,6 @@ class CalibrationModel(object):
         self.use_mask = False
         self.filename = ''
         self.calibration_name = 'None'
-        self.spectrum_geometry.wavelength = 3.344e-11
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
         self._calibrants_working_dir = calibrants_folder
@@ -88,7 +87,7 @@ class CalibrationModel(object):
             array of points found
         """
         massif = Massif(self.img_model._img_data)
-        cur_peak_points = massif.find_peaks([x, y], stdout=DummyStdOut())
+        cur_peak_points = massif.find_peaks([int(np.round(x)), int(np.round(y))], stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
@@ -109,14 +108,13 @@ class CalibrationModel(object):
         :return:
             point found (as array)
         """
-        left_ind = np.round(x - search_size * 0.5)
+        left_ind = int(np.round(x - search_size * 0.5))
         if left_ind < 0:
             left_ind = 0
-        top_ind = np.round(y - search_size * 0.5)
+        top_ind = int(np.round(y - search_size * 0.5))
         if top_ind < 0:
             top_ind = 0
-        search_array = self.img_model.img_data[left_ind:(left_ind + search_size),
-                       top_ind:(top_ind + search_size)]
+        search_array = self.img_model.img_data[left_ind:(left_ind + search_size), top_ind:(top_ind + search_size)]
         x_ind, y_ind = np.where(search_array == search_array.max())
         x_ind = x_ind[0] + left_ind
         y_ind = y_ind[0] + top_ind
@@ -131,9 +129,9 @@ class CalibrationModel(object):
     def create_cake_geometry(self):
         self.cake_geometry = AzimuthalIntegrator()
 
-        pyFAI_parameter = self.spectrum_geometry.getPyFAI()
+        pyFAI_parameter = self.pattern_geometry.getPyFAI()
         pyFAI_parameter['polarization_factor'] = self.polarization_factor
-        pyFAI_parameter['wavelength'] = self.spectrum_geometry.wavelength
+        pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
 
         self.cake_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
                                     poni1=pyFAI_parameter['poni1'],
@@ -196,7 +194,7 @@ class CalibrationModel(object):
         tth_calibrant = np.float(tth_calibrant_list[ring_index])
 
         # get the calculated two theta values for the whole image
-        tth_array = self.spectrum_geometry.twoThetaArray(self.img_model._img_data.shape)
+        tth_array = self.pattern_geometry.twoThetaArray(self.img_model._img_data.shape)
 
         # create mask based on two_theta position
         ring_mask = abs(tth_array - tth_calibrant) <= delta_tth
@@ -232,19 +230,19 @@ class CalibrationModel(object):
             self.points_index.append(ring_index)
 
         self.set_supersampling()
-        self.spectrum_geometry.reset()
+        self.pattern_geometry.reset()
 
     def set_calibrant(self, filename):
         self.calibrant = Calibrant()
         self.calibrant.load_file(filename)
-        self.spectrum_geometry.calibrant = self.calibrant
+        self.pattern_geometry.calibrant = self.calibrant
 
     def set_start_values(self, start_values):
         self.start_values = start_values
         self.polarization_factor = start_values['polarization_factor']
 
     def calibrate(self):
-        self.spectrum_geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
+        self.pattern_geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
                                                     dist=self.start_values['dist'],
                                                     wavelength=self.start_values['wavelength'],
                                                     pixel1=self.start_values['pixel_width'],
@@ -260,11 +258,11 @@ class CalibrationModel(object):
         self.calibration_name = 'current'
         self.set_supersampling()
         # reset the integrator (not the geometric parameters)
-        self.spectrum_geometry.reset()
+        self.pattern_geometry.reset()
 
     def refine(self):
         self.reset_supersampling()
-        self.spectrum_geometry.data = self.create_point_array(self.points, self.points_index)
+        self.pattern_geometry.data = self.create_point_array(self.points, self.points_index)
 
         fix = ['wavelength']
         if self.fit_wavelength:
@@ -272,13 +270,13 @@ class CalibrationModel(object):
         if not self.fit_distance:
             fix.append('dist')
         if self.fit_wavelength:
-            self.spectrum_geometry.refine2()
-        self.spectrum_geometry.refine2_wavelength(fix=fix)
+            self.pattern_geometry.refine2()
+        self.pattern_geometry.refine2_wavelength(fix=fix)
 
         self.create_cake_geometry()
         self.set_supersampling()
         # reset the integrator (not the geometric parameters)
-        self.spectrum_geometry.reset()
+        self.pattern_geometry.reset()
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
                      unit='2th_deg', method='csr'):
@@ -286,47 +284,47 @@ class CalibrationModel(object):
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
-        if self.spectrum_geometry._polarization is not None:
-            if self.img_model.img_data.shape != self.spectrum_geometry._polarization.shape:
+        if self.pattern_geometry._polarization is not None:
+            if self.img_model.img_data.shape != self.pattern_geometry._polarization.shape:
                 # resetting the integrator if the polarization correction matrix has not the correct shape
-                self.spectrum_geometry.reset()
+                self.pattern_geometry.reset()
 
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
         if num_points is None:
-            num_points = self.calculate_number_of_spectrum_points(2)
+            num_points = self.calculate_number_of_pattern_points(2)
         self.num_points = num_points
 
         t1 = time.time()
 
         if unit is 'd_A':
             try:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_model.img_data, num_points,
+                self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                         method=method,
                                                                         unit='2th_deg',
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
             except NameError:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_model.img_data, num_points,
+                self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                         method='csr',
                                                                         unit='2th_deg',
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
-            self.tth = self.spectrum_geometry.wavelength / (2 * np.sin(self.tth / 360 * np.pi)) * 1e10
+            self.tth = self.pattern_geometry.wavelength / (2 * np.sin(self.tth / 360 * np.pi)) * 1e10
             self.int = self.int
         else:
             try:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_model.img_data, num_points,
+                self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                         method=method,
                                                                         unit=unit,
                                                                         mask=mask,
                                                                         polarization_factor=polarization_factor,
                                                                         filename=filename)
             except NameError:
-                self.tth, self.int = self.spectrum_geometry.integrate1d(self.img_model.img_data, num_points,
+                self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                         method='csr',
                                                                         unit=unit,
                                                                         mask=mask,
@@ -373,25 +371,25 @@ class CalibrationModel(object):
         return self.create_point_array(self.points, self.points_index)
 
     def get_calibration_parameter(self):
-        pyFAI_parameter = self.spectrum_geometry.getPyFAI()
+        pyFAI_parameter = self.pattern_geometry.getPyFAI()
         pyFAI_parameter['polarization_factor'] = self.polarization_factor
         try:
-            fit2d_parameter = self.spectrum_geometry.getFit2D()
+            fit2d_parameter = self.pattern_geometry.getFit2D()
             fit2d_parameter['polarization_factor'] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
         try:
-            pyFAI_parameter['wavelength'] = self.spectrum_geometry.wavelength
-            fit2d_parameter['wavelength'] = self.spectrum_geometry.wavelength
-        except (RuntimeWarning, TypeError):
+            pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+            fit2d_parameter['wavelength'] = self.pattern_geometry.wavelength
+        except RuntimeWarning:
             pyFAI_parameter['wavelength'] = 0
 
         return pyFAI_parameter, fit2d_parameter
 
-    def calculate_number_of_spectrum_points(self, max_dist_factor=1.5):
-        # calculates the number of points for an integrated spectrum, based on the distance of the beam center to the the
+    def calculate_number_of_pattern_points(self, max_dist_factor=1.5):
+        # calculates the number of points for an integrated pattern, based on the distance of the beam center to the the
         # image corners. Maximum value is determined by the shape of the image.
-        fit2d_parameter = self.spectrum_geometry.getFit2D()
+        fit2d_parameter = self.pattern_geometry.getFit2D()
         center_x = fit2d_parameter['centerX']
         center_y = fit2d_parameter['centerY']
         width, height = self.img_model.img_data.shape
@@ -413,10 +411,10 @@ class CalibrationModel(object):
         Loads a calibration file and and sets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
-        self.spectrum_geometry = AzimuthalIntegrator()
-        self.spectrum_geometry.load(filename)
-        self.orig_pixel1 = self.spectrum_geometry.pixel1
-        self.orig_pixel2 = self.spectrum_geometry.pixel2
+        self.pattern_geometry = AzimuthalIntegrator()
+        self.pattern_geometry.load(filename)
+        self.orig_pixel1 = self.pattern_geometry.pixel1
+        self.orig_pixel2 = self.pattern_geometry.pixel2
         self.calibration_name = get_base_name(filename)
         self.filename = filename
         self.is_calibrated = True
@@ -435,11 +433,11 @@ class CalibrationModel(object):
     def create_file_header(self):
         try:
             # pyFAI version 0.12.0
-            return self.spectrum_geometry.makeHeaders(polarization_factor=self.polarization_factor)
+            return self.pattern_geometry.makeHeaders(polarization_factor=self.polarization_factor)
         except AttributeError:
             # pyFAI after version 0.12.0
             from pyFAI.io import DefaultAiWriter
-            return DefaultAiWriter(None, self.spectrum_geometry).make_headers()
+            return DefaultAiWriter(None, self.pattern_geometry).make_headers()
 
     def set_fit2d(self, fit2d_parameter):
         """
@@ -447,14 +445,14 @@ class CalibrationModel(object):
         'directDist', 'centerX', 'centerY', 'tilt', 'tiltPlanRotation', 'pixelX', pixelY',
         'polarization_factor', 'wavelength'
         """
-        self.spectrum_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
+        self.pattern_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
                                         centerX=fit2d_parameter['centerX'],
                                         centerY=fit2d_parameter['centerY'],
                                         tilt=fit2d_parameter['tilt'],
                                         tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
                                         pixelX=fit2d_parameter['pixelX'],
                                         pixelY=fit2d_parameter['pixelY'])
-        self.spectrum_geometry.wavelength = fit2d_parameter['wavelength']
+        self.pattern_geometry.wavelength = fit2d_parameter['wavelength']
         self.create_cake_geometry()
         self.polarization_factor = fit2d_parameter['polarization_factor']
         self.orig_pixel1 = fit2d_parameter['pixelX'] * 1e-6
@@ -468,7 +466,7 @@ class CalibrationModel(object):
         'dist', 'poni1', 'poni2', 'rot1', 'rot2', 'rot3', 'pixel1', 'pixel2', 'wavelength',
         'polarization_factor'
         """
-        self.spectrum_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
+        self.pattern_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
                                         poni1=pyFAI_parameter['poni1'],
                                         poni2=pyFAI_parameter['poni2'],
                                         rot1=pyFAI_parameter['rot1'],
@@ -476,7 +474,7 @@ class CalibrationModel(object):
                                         rot3=pyFAI_parameter['rot3'],
                                         pixel1=pyFAI_parameter['pixel1'],
                                         pixel2=pyFAI_parameter['pixel2'])
-        self.spectrum_geometry.wavelength = pyFAI_parameter['wavelength']
+        self.pattern_geometry.wavelength = pyFAI_parameter['wavelength']
         self.create_cake_geometry()
         self.polarization_factor = pyFAI_parameter['polarization_factor']
         self.orig_pixel1 = pyFAI_parameter['pixel1']
@@ -497,16 +495,16 @@ class CalibrationModel(object):
         """
         if factor is None:
             factor = self.supersampling_factor
-        self.spectrum_geometry.pixel1 = self.orig_pixel1 / float(factor)
-        self.spectrum_geometry.pixel2 = self.orig_pixel2 / float(factor)
+        self.pattern_geometry.pixel1 = self.orig_pixel1 / float(factor)
+        self.pattern_geometry.pixel2 = self.orig_pixel2 / float(factor)
 
         if factor != self.supersampling_factor:
-            self.spectrum_geometry.reset()
+            self.pattern_geometry.reset()
             self.supersampling_factor = factor
 
     def reset_supersampling(self):
-        self.spectrum_geometry.pixel1 = self.orig_pixel1
-        self.spectrum_geometry.pixel2 = self.orig_pixel2
+        self.pattern_geometry.pixel1 = self.orig_pixel1
+        self.pattern_geometry.pixel2 = self.orig_pixel2
 
     def get_two_theta_img(self, x, y):
         """
@@ -518,7 +516,7 @@ class CalibrationModel(object):
         x = np.array([x]) * self.supersampling_factor
         y = np.array([y]) * self.supersampling_factor
 
-        return self.spectrum_geometry.tth(x - 0.5, y - 0.5)[0]  # deletes 0.5 because tth function uses pixel indices
+        return self.pattern_geometry.tth(x - 0.5, y - 0.5)[0]  # deletes 0.5 because tth function uses pixel indices
 
     def get_azi_img(self, x, y):
         """
@@ -532,12 +530,12 @@ class CalibrationModel(object):
         """
         x *= self.supersampling_factor
         y *= self.supersampling_factor
-        return self.spectrum_geometry.chi(x, y)[0]
+        return self.pattern_geometry.chi(x, y)[0]
 
         return azi
 
     def get_two_theta_array(self):
-        return self.spectrum_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,
+        return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,
                ::self.supersampling_factor]
 
     def get_pixel_ind(self, tth, azi):
@@ -551,17 +549,17 @@ class CalibrationModel(object):
             tuple of index 1 and 2
         """
 
-        tth_ind = find_contours(self.spectrum_geometry.ttha, tth)
+        tth_ind = find_contours(self.pattern_geometry.ttha, tth)
         if len(tth_ind) == 0:
             return []
         tth_ind = np.vstack(tth_ind)
-        azi_values = self.spectrum_geometry.chi(tth_ind[:, 0], tth_ind[:, 1])
+        azi_values = self.pattern_geometry.chi(tth_ind[:, 0], tth_ind[:, 1])
         min_index = np.argmin(np.abs(azi_values - azi))
         return tth_ind[min_index, 0], tth_ind[min_index, 1]
 
     @property
     def wavelength(self):
-        return self.spectrum_geometry.wavelength
+        return self.pattern_geometry.wavelength
 
 
 class DummyStdOut(object):

@@ -118,18 +118,21 @@ class PhaseModel(QtCore.QObject):
     def get_phase_line_intensities(self, ind, positions, pattern, x_range, y_range):
         x, y = pattern.data
         if len(y) is not 0:
-            max_spectrum_intensity = np.min([np.max(y[(x > x_range[0]) & (x < x_range[1])]), y_range[1]])
+            y_in_range = y[(x > x_range[0]) & (x < x_range[1])]
+            if len(y_in_range) is 0:
+                return [], 0
+            max_pattern_intensity = np.min([np.max(y_in_range), y_range[1]])
         else:
-            max_spectrum_intensity = 1
+            max_pattern_intensity = 1
 
         baseline = y_range[0]
         phase_line_intensities = self.reflections[ind][:, 1]
-        # search for reflections within current spectrum view range
+        # search for reflections within current pattern view range
         phase_line_intensities_in_range = phase_line_intensities[(positions > x_range[0]) & (positions < x_range[1])]
 
         # rescale intensity based on the lines visible
         if len(phase_line_intensities_in_range):
-            scale_factor = (max_spectrum_intensity - baseline) / \
+            scale_factor = (max_pattern_intensity - baseline) / \
                            np.max(phase_line_intensities_in_range)
         else:
             scale_factor = 1

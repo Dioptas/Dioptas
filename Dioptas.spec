@@ -42,7 +42,6 @@ extra_datas = [
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
     ("dioptas/model/util/data/*.json", "dioptas/model/util/data"),
-    (os.path.join(pyFAI_path, "calibration"), "pyfai/calibration")
 ]
 
 binaries = []
@@ -55,6 +54,10 @@ if _platform == "darwin":
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtSvg.4.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5.10.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5_hl.10.dylib'), '.'),
+    ))
+elif _platform == "linux":
+    extra_datas.extend((
+        (os.path.join(os.path.expanduser('~'), 'anaconda3/lib/libgomp.so.1'), '.'),
     ))
 
 a = Analysis(['Dioptas.py'],

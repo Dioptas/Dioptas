@@ -201,8 +201,9 @@ class CifConverter(object):
                 lorentz_factor = (1 + np.cos(2 * theta) ** 2) / (np.sin(theta) ** 2 * np.cos(theta))
 
                 if len(ind[0]) > 0:
-                    peaks[two_thetas[ind[0]]][0] += i_hkl * lorentz_factor
-                    peaks[two_thetas[ind[0]]][1].append(tuple(hkl))
+                    peak_ind = two_thetas[ind[0][0]]
+                    peaks[peak_ind][0] += i_hkl * lorentz_factor
+                    peaks[peak_ind][1].append(tuple(hkl))
                 else:
                     peaks[two_theta] = [i_hkl * lorentz_factor, [tuple(hkl)], d_hkl]
                     two_thetas.append(two_theta)

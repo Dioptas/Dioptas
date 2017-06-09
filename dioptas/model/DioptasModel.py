@@ -13,6 +13,7 @@ import h5py
 from .util import Pattern, jcpds
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
+from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
 
 
@@ -44,8 +45,8 @@ class ImgConfiguration(QtCore.QObject):
 
         self._integrate_cake = False
 
-        self._autosave_integrated_pattern = False
-        self._integrated_patterns_file_formats = ['.xy']
+        self.autosave_integrated_pattern = False
+        self.integrated_patterns_file_formats = ['.xy']
 
         self.connect_signals()
 
@@ -70,7 +71,7 @@ class ImgConfiguration(QtCore.QObject):
             self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
 
             if self.autosave_integrated_pattern:
-                self.save_pattern()
+                self._auto_save_patterns()
 
     def integrate_image_2d(self):
         if self.use_mask:
@@ -86,37 +87,56 @@ class ImgConfiguration(QtCore.QObject):
                                             dimensions=(2048, 2048))
         self.cake_changed.emit()
 
-    def save_pattern(self):
-        filename = self.img_model.filename
-        for file_ending in self.integrated_patterns_file_formats:
-            if filename is not '':
-                filename = os.path.join(
-                    self.working_directories['spectrum'],
-                    os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
-                filename = filename.replace('\\', '/')
-            if file_ending == '.xy':
-                self.pattern_model.save_pattern(filename, header=self._create_xy_header())
-            else:
-                self.pattern_model.save_pattern(filename)
+    def save_pattern(self, filename=None, subtract_background=False):
+        if filename is None:
+            filename = self.img_model.filename
 
-        if self.pattern_model.pattern.has_background():
-            for file_ending in self.integrated_patterns_file_formats:
-                directory = os.path.join(self.working_directories['spectrum'], 'bkg_subtracted')
-                if not os.path.exists(directory):
-                    os.mkdir(directory)
-                filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
-                filename = filename.replace('\\', '/')
-                if file_ending == '.xy':
-                    self.pattern_model.save_pattern(filename, header=self._create_xy_header(),
-                                                    subtract_background=True)
-                else:
-                    self.pattern_model.save_pattern(filename, subtract_background=True)
+        if filename.endswith('.xy'):
+            self.pattern_model.save_pattern(filename, header=self._create_xy_header(),
+                                            subtract_background=subtract_background)
+        elif filename.endswith('.fxye'):
+            self.pattern_model.save_pattern(filename, header=self._create_fxye_header(filename),
+                                            subtract_background=subtract_background)
+        else:
+            self.pattern_model.save_pattern(filename, subtract_background=subtract_background)
+
 
     def _create_xy_header(self):
         header = self.calibration_model.create_file_header()
         header = header.replace('\r\n', '\n')
         header = header + '\n#\n# ' + self._integration_unit + '\t I'
         return header
+
+    def _create_fxye_header(self, filename):
+        header = 'Generated file ' + filename + ' using DIOPTAS\n'
+        header = header + self.calibration_model.create_file_header()
+        unit = self._integration_unit
+        lam = self.calibration_model.wavelength
+        if unit == 'q_A^-1':
+            con = 'CONQ'
+        else:
+            con = 'CONS'
+
+        header = header + '\nBANK\t1\tNUM_POINTS\tNUM_POINTS ' + con + '\tMIN_X_VAL\tSTEP_X_VAL ' + \
+                 '{0:.5g}'.format(lam * 1e10) + ' 0.0 FXYE'
+        return header
+
+    def _auto_save_patterns(self):
+        for file_ending in self.integrated_patterns_file_formats:
+            filename = os.path.join(
+                    self.working_directories['pattern'],
+                    os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
+            filename = filename.replace('\\', '/')
+            self.save_pattern(filename)
+
+        if self.pattern_model.pattern.has_background():
+            for file_ending in self.integrated_patterns_file_formats:
+                directory = os.path.join(self.working_directories['pattern'], 'bkg_subtracted')
+                if not os.path.exists(directory):
+                    os.mkdir(directory)
+                filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
+                filename = filename.replace('\\', '/')
+                self.save_pattern(filename, subtract_background=True)
 
     def update_mask_dimension(self):
         self.mask_model.set_dimension(self.img_model._img_data.shape)
@@ -131,31 +151,46 @@ class ImgConfiguration(QtCore.QObject):
         self.integrate_image_1d()
 
     @property
-    def autosave_integrated_pattern(self):
-        return self._autosave_integrated_pattern
-
-    @autosave_integrated_pattern.setter
-    def autosave_integrated_pattern(self, new_value):
-        self._autosave_integrated_pattern = new_value
-        self.autosave_integrated_pattern_changed.emit()
-
-    @property
-    def integrated_patterns_file_formats(self):
-        return self._integrated_patterns_file_formats
-
-    @integrated_patterns_file_formats.setter
-    def integrated_patterns_file_formats(self, new_value):
-        self._integrated_patterns_file_formats = list(new_value)
-        self.integrated_patterns_file_formats_changed.emit()
-
-    @property
     def integration_unit(self):
         return self._integration_unit
 
     @integration_unit.setter
-    def integration_unit(self, new_value):
-        self._integration_unit = new_value
+    def integration_unit(self, new_unit):
+        old_unit = self.integration_unit
+        self._integration_unit = new_unit
+
+        auto_bg_subtraction = self.pattern_model.pattern.auto_background_subtraction
+        if auto_bg_subtraction:
+            self.pattern_model.pattern.auto_background_subtraction = False
+
         self.integrate_image_1d()
+
+        self.update_auto_background_parameters_unit(old_unit, new_unit)
+
+        if auto_bg_subtraction:
+            self.pattern_model.pattern.auto_background_subtraction = True
+            self.pattern_model.pattern.recalculate_pattern()
+            self.pattern_model.pattern_changed.emit()
+
+    def update_auto_background_parameters_unit(self, old_unit, new_unit):
+        self.pattern_model.pattern.auto_background_subtraction_parameters = \
+            convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
+                          self.calibration_model.wavelength,
+                          old_unit,
+                          new_unit), \
+            self.pattern_model.pattern.auto_background_subtraction_parameters[1], \
+            self.pattern_model.pattern.auto_background_subtraction_parameters[2]
+
+        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
+            self.pattern_model.pattern.auto_background_subtraction_roi = \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
+                              self.calibration_model.wavelength,
+                              old_unit,
+                              new_unit), \
+                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
+                              self.calibration_model.wavelength,
+                              old_unit,
+                              new_unit)
 
     @property
     def integrate_cake(self):
@@ -194,7 +229,6 @@ class ImgConfiguration(QtCore.QObject):
 
 
 class DioptasModel(QtCore.QObject):
-
     configuration_added = QtCore.Signal()
     configuration_selected = QtCore.Signal(int)  # new index
     configuration_removed = QtCore.Signal(int)  # removed index
@@ -227,6 +261,18 @@ class DioptasModel(QtCore.QObject):
 
     def add_configuration(self):
         self.configurations.append(ImgConfiguration(self.working_directories))
+
+        if self.current_configuration.calibration_model.is_calibrated:
+            dioptas_config_folder = os.path.join(os.path.expanduser("~"), '.Dioptas')
+            if not os.path.isdir(dioptas_config_folder):
+                os.mkdir(dioptas_config_folder)
+            self.current_configuration.calibration_model.save(
+                os.path.join(dioptas_config_folder, 'transfer.poni'))
+            self.configurations[-1].calibration_model.load(
+                os.path.join(dioptas_config_folder, 'transfer.poni'))
+
+        self.configurations[-1].img_model._img_data = self.current_configuration.img_model.img_data
+
         self.select_configuration(len(self.configurations) - 1)
         self.configuration_added.emit()
 
@@ -699,6 +745,14 @@ class DioptasModel(QtCore.QObject):
         self.configurations[self.configuration_ind].transparent_mask = new_val
 
     @property
+    def integration_unit(self):
+        return self.current_configuration.integration_unit
+
+    @integration_unit.setter
+    def integration_unit(self, new_val):
+        self.current_configuration.integration_unit = new_val
+
+    @property
     def img_data(self):
         return self.img_model.img_data
 
@@ -708,13 +762,6 @@ class DioptasModel(QtCore.QObject):
             return self.calibration_model.cake_img
         else:
             return self._cake_data
-
-    @cake_data.setter
-    def cake_data(self, new_cake_data):
-        if not self.combine_cakes:
-            self.calibration_model.cake_img = new_cake_data
-        else:
-            self._cake_data = new_cake_data
 
     def calculate_combined_cake(self):
         self._activate_cake()
@@ -843,7 +890,7 @@ class DioptasModel(QtCore.QObject):
     def clear(self):
         for configuration in self.configurations:
             del configuration.calibration_model.cake_geometry
-            del configuration.calibration_model.spectrum_geometry
+            del configuration.calibration_model.pattern_geometry
             del configuration.img_model
             del configuration.mask_model
         del self.configurations

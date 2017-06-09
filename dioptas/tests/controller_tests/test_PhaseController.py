@@ -28,7 +28,7 @@ class PhaseControllerTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
         self.model.calibration_model.is_calibrated = True
-        self.model.calibration_model.spectrum_geometry.wavelength = 0.31E-10
+        self.model.calibration_model.pattern_geometry.wavelength = 0.31E-10
         self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
                                                                       self.model.calibration_model.int))
         self.widget = IntegrationWidget()
@@ -37,7 +37,7 @@ class PhaseControllerTest(QtTest):
 
         self.pattern_controller = PatternController({}, self.widget, self.model)
         self.controller = PhaseController({'phase': data_path}, self.widget, self.model)
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
 
     def tearDown(self):
         del self.pattern_controller
@@ -179,15 +179,15 @@ class PhaseControllerTest(QtTest):
         QTest.mouseClick(self.widget.phase_del_btn, QtCore.Qt.LeftButton)
         self.widget.pattern_widget.hide_phase(1)
 
-    def test_auto_scaling_of_lines_in_spectrum_view(self):
-        spectrum_view = self.widget.pattern_widget
+    def test_auto_scaling_of_lines_in_pattern_view(self):
+        pattern_view = self.widget.pattern_widget
 
-        spectrum_view_range = spectrum_view.view_box.viewRange()
-        spectrum_y = spectrum_view.plot_item.getData()[1]
-        expected_maximum_height = np.max(spectrum_y) - spectrum_view_range[1][0]
+        pattern_view_range = pattern_view.view_box.viewRange()
+        pattern_y = pattern_view.plot_item.getData()[1]
+        expected_maximum_height = np.max(pattern_y) - pattern_view_range[1][0]
 
         self.load_phase('au_Anderson.jcpds')
-        phase_plot = spectrum_view.phases[0]
+        phase_plot = pattern_view.phases[0]
         line_heights = []
         for line in phase_plot.line_items:
             line_data = line.getData()
@@ -196,20 +196,20 @@ class PhaseControllerTest(QtTest):
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
 
-        spectrum_view_range = spectrum_view.view_box.viewRange()
-        spectrum_y = spectrum_view.plot_item.getData()[1]
-        expected_maximum_height = np.max(spectrum_y) - spectrum_view_range[1][0]
+        pattern_view_range = pattern_view.view_box.viewRange()
+        pattern_y = pattern_view.plot_item.getData()[1]
+        expected_maximum_height = np.max(pattern_y) - pattern_view_range[1][0]
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
 
-    def test_line_height_in_spectrum_view_after_zooming(self):
-        spectrum_view = self.widget.pattern_widget
+    def test_line_height_in_pattern_view_after_zooming(self):
+        pattern_view = self.widget.pattern_widget
         self.load_phase('au_Anderson.jcpds')
 
-        spectrum_view.view_box.setRange(xRange=[17, 30])
-        spectrum_view.emit_sig_range_changed()
+        pattern_view.view_box.setRange(xRange=[17, 30])
+        pattern_view.emit_sig_range_changed()
 
-        phase_plot = spectrum_view.phases[0]
+        phase_plot = pattern_view.phases[0]
         line_heights = []
         for line in phase_plot.line_items:
             line_data = line.getData()
@@ -217,11 +217,11 @@ class PhaseControllerTest(QtTest):
                 height = line_data[1][1] - line_data[1][0]
                 line_heights.append(height)
 
-        spectrum_view_range = spectrum_view.view_box.viewRange()
-        spectrum_x, spectrum_y = spectrum_view.plot_item.getData()
-        spectrum_y_max_in_range = np.max(spectrum_y[(spectrum_x > spectrum_view_range[0][0]) & \
-                                                    (spectrum_x < spectrum_view_range[0][1])])
-        expected_maximum_height = spectrum_y_max_in_range - spectrum_view_range[1][0]
+        pattern_view_range = pattern_view.view_box.viewRange()
+        pattern_x, pattern_y = pattern_view.plot_item.getData()
+        pattern_y_max_in_range = np.max(pattern_y[(pattern_x > pattern_view_range[0][0]) & \
+                                                    (pattern_x < pattern_view_range[0][1])])
+        expected_maximum_height = pattern_y_max_in_range - pattern_view_range[1][0]
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
 

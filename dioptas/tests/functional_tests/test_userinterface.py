@@ -36,11 +36,11 @@ class UserInterFaceTest(QtTest):
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
-        self.integration_spectrum_controller = self.integration_controller.spectrum_controller
+        self.integration_pattern_controller = self.integration_controller.pattern_controller
         self.integration_image_controller = self.integration_controller.image_controller
 
     def tearDown(self):
-        del self.integration_spectrum_controller
+        del self.integration_pattern_controller
         self.model.clear()
         del self.integration_widget
         del self.integration_controller

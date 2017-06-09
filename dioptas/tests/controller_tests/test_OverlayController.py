@@ -106,7 +106,7 @@ class OverlayControllerTest(QtTest):
         self.app.processEvents()
         self.assertEqual(self.model.overlay_model.get_overlay_scaling(2), 2)
 
-        # tests if overlay is updated in spectrum
+        # tests if overlay is updated in pattern
         x, y = self.model.overlay_model.overlays[2].data
         x_spec, y_spec = self.widget.pattern_widget.overlays[2].getData()
 
@@ -126,7 +126,7 @@ class OverlayControllerTest(QtTest):
 
     def test_setting_overlay_as_bkg(self):
         self.load_overlays()
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
@@ -138,7 +138,7 @@ class OverlayControllerTest(QtTest):
 
     def test_setting_overlay_as_bkg_and_changing_scale(self):
         self.load_overlays()
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
@@ -149,7 +149,7 @@ class OverlayControllerTest(QtTest):
 
     def test_setting_overlay_as_bkg_and_changing_offset(self):
         self.load_overlays()
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
@@ -159,7 +159,7 @@ class OverlayControllerTest(QtTest):
 
     def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(self):
         self.load_overlays()
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
         self.widget.select_overlay(0)
         QTest.mouseClick(self.widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
@@ -173,8 +173,8 @@ class OverlayControllerTest(QtTest):
         _, y = self.model.pattern.data
         self.assertNotEqual(np.sum(y), 0)
 
-    def test_setting_spectrum_as_bkg(self):
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+    def test_setting_pattern_as_bkg(self):
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
         QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
@@ -184,7 +184,7 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(np.sum(y), 0)
 
     def test_having_overlay_as_bkg_and_deleting_it(self):
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
         QTest.mouseClick(self.widget.qa_set_as_background_btn, QtCore.Qt.LeftButton)
         self.assertEqual(len(self.model.overlay_model.overlays), 1)
         self.assertIsNotNone(self.model.pattern_model.background_pattern)
@@ -211,12 +211,12 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(self.model.overlay_model.overlays[5].offset, 0)
 
     def load_overlays(self):
-        self.load_overlay('spectrum_001.xy')
-        self.load_overlay('spectrum_001.xy')
-        self.load_overlay('spectrum_001.xy')
-        self.load_overlay('spectrum_001.xy')
-        self.load_overlay('spectrum_001.xy')
-        self.load_overlay('spectrum_001.xy')
+        self.load_overlay('pattern_001.xy')
+        self.load_overlay('pattern_001.xy')
+        self.load_overlay('pattern_001.xy')
+        self.load_overlay('pattern_001.xy')
+        self.load_overlay('pattern_001.xy')
+        self.load_overlay('pattern_001.xy')
 
     def load_overlay(self, filename):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(data_path, filename)])
