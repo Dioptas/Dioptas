@@ -97,7 +97,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # and wants to edit the parameters
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
-        self.model.calibration_model.spectrum_geometry.wavelength = 0.31
+        self.model.calibration_model.pattern_geometry.wavelength = 0.31
 
         self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
@@ -188,7 +188,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.assertAlmostEqual(float(str(self.jcpds_widget.lattice_cb_sb.text()).replace(',', '.')), 6.0 / 5,
                                delta=0.0001)
 
-        # he decides to play with the ratios to be better able to fit it to the current spectrum:
+        # he decides to play with the ratios to be better able to fit it to the current pattern:
 
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_ca_sb, 1.5)
         self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 4.08)
@@ -258,7 +258,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds = jcpds()
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
-        self.model.configurations[0].calibration_model.spectrum_geometry.wavelength = 0.3344
+        self.model.configurations[0].calibration_model.pattern_geometry.wavelength = 0.3344
 
         self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, jcpds_phase=self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
@@ -326,8 +326,8 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # he finds this phase much more promising and wants to give it a new name
         self.enter_value_into_text_field(self.jcpds_widget.comments_txt,
-                                         'HAHA this is a phase you will never see in your spectrum')
-        self.assertEqual(self.jcpds.comments[0], 'HAHA this is a phase you will never see in your spectrum')
+                                         'HAHA this is a phase you will never see in your pattern')
+        self.assertEqual(self.jcpds.comments[0], 'HAHA this is a phase you will never see in your pattern')
 
         # then he sees the save_as button and is happy to save his non-sense for later users
         filename = os.path.join(jcpds_path, 'au_mal_anders.jcpds')
