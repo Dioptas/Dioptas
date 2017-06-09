@@ -22,6 +22,7 @@ import numpy as np
 from qtpy import QtWidgets, QtCore
 
 from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
+from ...model.util.calc import convert_units
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -29,8 +30,8 @@ from ...model.DioptasModel import DioptasModel
 
 class PatternController(object):
     """
-    IntegrationSpectrumController handles all the interaction from the IntegrationView with the spectrum data.
-    It manages the auto integration of image files to spectra in addition to spectrum browsing and changing of units
+    IntegrationPatternController handles all the interaction from the IntegrationView with the pattern data.
+    It manages the auto integration of image files to  in addition to pattern browsing and changing of units
     (2 Theta, Q, A)
     """
 
@@ -70,63 +71,62 @@ class PatternController(object):
         """
 
         # file callbacks
-        self.widget.spec_autocreate_cb.clicked.connect(self.autocreate_cb_changed)
-        self.widget.spec_load_btn.clicked.connect(self.load)
-        self.widget.spec_previous_btn.clicked.connect(self.load_previous)
-        self.widget.spec_next_btn.clicked.connect(self.load_next)
-        self.widget.spec_filename_txt.editingFinished.connect(self.filename_txt_changed)
+        self.widget.pattern_autocreate_cb.clicked.connect(self.autocreate_cb_changed)
+        self.widget.pattern_load_btn.clicked.connect(self.load)
+        self.widget.pattern_previous_btn.clicked.connect(self.load_previous)
+        self.widget.pattern_next_btn.clicked.connect(self.load_next)
+        self.widget.pattern_filename_txt.editingFinished.connect(self.filename_txt_changed)
 
-        self.widget.spec_directory_btn.clicked.connect(self.spec_directory_btn_click)
-        self.widget.spec_browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
-        self.widget.spec_browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
+        self.widget.pattern_directory_btn.clicked.connect(self.pattern_directory_btn_click)
+        self.widget.pattern_browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
+        self.widget.pattern_browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
 
-        self.widget.spec_directory_txt.editingFinished.connect(self.spec_directory_txt_changed)
+        self.widget.pattern_directory_txt.editingFinished.connect(self.pattern_directory_txt_changed)
 
         # unit callbacks
-        self.widget.spec_tth_btn.clicked.connect(self.set_unit_tth)
-        self.widget.spec_q_btn.clicked.connect(self.set_unit_q)
-        self.widget.spec_d_btn.clicked.connect(self.set_unit_d)
+        self.widget.pattern_tth_btn.clicked.connect(self.set_unit_tth)
+        self.widget.pattern_q_btn.clicked.connect(self.set_unit_q)
+        self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
 
         # quick actions
-        self.widget.qa_save_spectrum_btn.clicked.connect(self.save_pattern)
+        self.widget.qa_save_pattern_btn.clicked.connect(self.save_pattern)
 
         # integration controls
         self.widget.automatic_binning_cb.stateChanged.connect(self.integration_binning_changed)
         self.widget.bin_count_txt.editingFinished.connect(self.integration_binning_changed)
         self.widget.supersampling_sb.valueChanged.connect(self.supersampling_changed)
 
-        # spectrum_plot interaction
+        # pattern_plot interaction
         self.widget.keyPressEvent = self.key_press_event
 
-        # spectrum_plot auto range functions
-        self.widget.spec_auto_range_btn.clicked.connect(self.spec_auto_range_btn_click_callback)
-        self.widget.pattern_widget.auto_range_status_changed.connect(self.widget.spec_auto_range_btn.setChecked)
+        # pattern_plot auto range functions
+        self.widget.pattern_auto_range_btn.clicked.connect(self.pattern_auto_range_btn_click_callback)
+        self.widget.pattern_widget.auto_range_status_changed.connect(self.widget.pattern_auto_range_btn.setChecked)
 
-        # spectrum_plot antialias
+        # pattern_plot antialias
         self.widget.antialias_btn.toggled.connect(self.widget.pattern_widget.set_antialias)
 
-        self.widget.spectrum_header_xy_cb.clicked.connect(self.update_spectrum_file_endings)
-        self.widget.spectrum_header_chi_cb.clicked.connect(self.update_spectrum_file_endings)
-        self.widget.spectrum_header_dat_cb.clicked.connect(self.update_spectrum_file_endings)
+        self.widget.pattern_header_xy_cb.clicked.connect(self.update_pattern_file_endings)
+        self.widget.pattern_header_chi_cb.clicked.connect(self.update_pattern_file_endings)
+        self.widget.pattern_header_dat_cb.clicked.connect(self.update_pattern_file_endings)
+        self.widget.pattern_header_fxye_cb.clicked.connect(self.update_pattern_file_endings)
 
-        # signals
-        self.model.current_configuration.autosave_integrated_pattern_changed.connect(self.update_autocreate_gui)
-        self.model.current_configuration.integrated_patterns_file_formats_changed.connect(self.update_autocreate_gui)
-
-    def update_spectrum_file_endings(self):
+    def update_pattern_file_endings(self):
         res = []
-        if self.widget.spectrum_header_xy_cb.isChecked():
+        if self.widget.pattern_header_xy_cb.isChecked():
             res.append('.xy')
-        if self.widget.spectrum_header_chi_cb.isChecked():
+        if self.widget.pattern_header_chi_cb.isChecked():
             res.append('.chi')
-        if self.widget.spectrum_header_dat_cb.isChecked():
+        if self.widget.pattern_header_dat_cb.isChecked():
             res.append('.dat')
+        if self.widget.pattern_header_fxye_cb.isChecked():
+            res.append('.fxye')
         self.model.current_configuration.integrated_patterns_file_formats = res
 
     def plot_pattern(self):
-        if self.widget.bkg_spectrum_inspect_btn.isChecked():
+        if self.widget.bkg_pattern_inspect_btn.isChecked():
             self.widget.pattern_widget.plot_data(
-                *self.model.pattern.auto_background_before_subtraction_spectrum.data,
+                *self.model.pattern.auto_background_before_subtraction_pattern.data,
                 name=self.model.pattern.name)
             self.widget.pattern_widget.plot_bkg(*self.model.pattern.auto_background_pattern.data)
         else:
@@ -144,7 +144,7 @@ class PatternController(object):
     def reset_background(self, popup=True):
         self.widget.overlay_show_cb_set_checked(self.model.pattern_model.bkg_ind, True)  # show the old overlay again
         self.model.pattern_model.bkg_ind = -1
-        self.model.pattern.unset_background_spectrum()
+        self.model.pattern.unset_background_pattern()
         self.widget.overlay_set_as_bkg_btn.setChecked(False)
 
     def integration_binning_changed(self):
@@ -162,89 +162,75 @@ class PatternController(object):
     def save_pattern(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
         filename = save_file_dialog(
-            self.widget, "Save Spectrum Data.",
-            os.path.join(self.working_dir['spectrum'],
+            self.widget, "Save Pattern Data.",
+            os.path.join(self.working_dir['pattern'],
                          img_filename + '.xy'),
-            ('Data (*.xy);;Data (*.chi);;Data (*.dat);;png (*.png);;svg (*.svg)'))
-
-        subtract_background = True  # when manually saving the spectrum the background will be subtracted
+            ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;png (*.png);;svg (*.svg)'))
 
         if filename is not '':
-            if filename.endswith('.xy'):
-                header = self.model.calibration_model.create_file_header()
-                if subtract_background:
-                    if self.model.pattern_model.background_pattern is not None:
-                        header += "\n# \n# BackgroundFile: " + self.model.pattern_model.overlays[
-                            self.model.pattern_model.bkg_ind].name
-                header = header.replace('\r\n', '\n')
-                header += '\n#\n# ' + self.integration_unit + '\t I'
-
-                self.model.pattern_model.save_pattern(filename, header, subtract_background)
-            elif filename.endswith('.chi'):
-                self.model.pattern_model.save_pattern(filename, subtract_background=subtract_background)
-            elif filename.endswith('.dat'):
-                self.model.pattern_model.save_pattern(filename, subtract_background=subtract_background)
-            elif filename.endswith('.png'):
+            if filename.endswith('.png'):
                 self.widget.pattern_widget.save_png(filename)
             elif filename.endswith('.svg'):
                 self.widget.pattern_widget.save_svg(filename)
+            else:
+                self.model.current_configuration.save_pattern(filename, subtract_background=True)
 
     def load(self, *args, **kwargs):
         filename = kwargs.get('filename', None)
         if filename is None:
-            filename = open_file_dialog(self.widget, caption="Load Spectrum",
-                                        directory=self.working_dir['spectrum'])
+            filename = open_file_dialog(self.widget, caption="Load Pattern",
+                                        directory=self.working_dir['pattern'])
 
         if filename is not '':
-            self.working_dir['spectrum'] = os.path.dirname(filename)
-            self.widget.spec_filename_txt.setText(os.path.basename(filename))
-            self.widget.spec_directory_txt.setText(os.path.dirname(filename))
+            self.working_dir['pattern'] = os.path.dirname(filename)
+            self.widget.pattern_filename_txt.setText(os.path.basename(filename))
+            self.widget.pattern_directory_txt.setText(os.path.dirname(filename))
             self.model.pattern_model.load_pattern(filename)
-            self.widget.spec_next_btn.setEnabled(True)
-            self.widget.spec_previous_btn.setEnabled(True)
+            self.widget.pattern_next_btn.setEnabled(True)
+            self.widget.pattern_previous_btn.setEnabled(True)
 
     def load_previous(self):
-        step = int(str(self.widget.spec_browse_step_txt.text()))
+        step = int(str(self.widget.pattern_browse_step_txt.text()))
         self.model.pattern_model.load_previous_file(step=step)
-        self.widget.spec_filename_txt.setText(
+        self.widget.pattern_filename_txt.setText(
             os.path.basename(self.model.pattern.filename))
 
     def load_next(self):
-        step = int(str(self.widget.spec_browse_step_txt.text()))
+        step = int(str(self.widget.pattern_browse_step_txt.text()))
         self.model.pattern_model.load_next_file(step=step)
-        self.widget.spec_filename_txt.setText(
+        self.widget.pattern_filename_txt.setText(
             os.path.basename(self.model.pattern.filename))
 
     def autocreate_cb_changed(self):
-        self.autocreate_pattern = self.widget.spec_autocreate_cb.isChecked()
-        self.model.current_configuration.autosave_integrated_pattern = self.widget.spec_autocreate_cb.isChecked()
+        self.autocreate_pattern = self.widget.pattern_autocreate_cb.isChecked()
+        self.model.current_configuration.autosave_integrated_pattern = self.widget.pattern_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.model.pattern.filename)
-        current_directory = str(self.widget.spec_directory_txt.text())
-        new_filename = str(self.widget.spec_filename_txt.text())
+        current_directory = str(self.widget.pattern_directory_txt.text())
+        new_filename = str(self.widget.pattern_filename_txt.text())
         if os.path.isfile(os.path.join(current_directory, new_filename)):
             try:
                 self.load(filename=os.path.join(current_directory, new_filename))
             except TypeError:
-                self.widget.spec_filename_txt.setText(current_filename)
+                self.widget.pattern_filename_txt.setText(current_filename)
         else:
-            self.widget.spec_filename_txt.setText(current_filename)
+            self.widget.pattern_filename_txt.setText(current_filename)
 
-    def spec_directory_btn_click(self):
+    def pattern_directory_btn_click(self):
         directory = QtWidgets.QFileDialog.getExistingDirectory(
             self.widget,
-            "Please choose the default directory for autosaved spectra.",
-            self.working_dir['spectrum'])
+            "Please choose the default directory for autosaved .",
+            self.working_dir['pattern'])
         if directory is not '':
-            self.working_dir['spectrum'] = str(directory)
-            self.widget.spec_directory_txt.setText(directory)
+            self.working_dir['pattern'] = str(directory)
+            self.widget.pattern_directory_txt.setText(directory)
 
-    def spec_directory_txt_changed(self):
-        if os.path.exists(self.widget.spec_directory_txt.text()):
-            self.working_dir['spectrum'] = str(self.widget.spec_directory_txt.text())
+    def pattern_directory_txt_changed(self):
+        if os.path.exists(self.widget.pattern_directory_txt.text()):
+            self.working_dir['pattern'] = str(self.widget.pattern_directory_txt.text())
         else:
-            self.widget.spec_directory_txt.setText(self.working_dir['spectrum'])
+            self.widget.pattern_directory_txt.setText(self.working_dir['pattern'])
 
     def set_iteration_mode_number(self):
         self.model.pattern_model.set_file_iteration_mode('number')
@@ -257,9 +243,10 @@ class PatternController(object):
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
+
         self.model.current_configuration.integration_unit = '2th_deg'
-        self.widget.pattern_widget.spectrum_plot.setLabel('bottom', u'2θ', '°')
-        self.widget.pattern_widget.spectrum_plot.invertX(False)
+        self.widget.pattern_widget.pattern_plot.setLabel('bottom', u'2θ', '°')
+        self.widget.pattern_widget.pattern_plot.invertX(False)
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
@@ -269,11 +256,11 @@ class PatternController(object):
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
+
         self.model.current_configuration.integration_unit = "q_A^-1"
 
-        self.widget.pattern_widget.spectrum_plot.invertX(False)
-        self.widget.pattern_widget.spectrum_plot.setLabel(
-            'bottom', 'Q', 'A<sup>-1</sup>')
+        self.widget.pattern_widget.pattern_plot.invertX(False)
+        self.widget.pattern_widget.pattern_plot.setLabel('bottom', 'Q', 'A<sup>-1</sup>')
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
@@ -283,25 +270,23 @@ class PatternController(object):
         if previous_unit == 'd_A':
             return
         self.integration_unit = 'd_A'
-        self.model.current_configuration.integration_unit = 'd_A'
 
-        self.widget.pattern_widget.spectrum_plot.setLabel(
-            'bottom', 'd', 'A'
-        )
-        self.widget.pattern_widget.spectrum_plot.invertX(True)
+        self.model.current_configuration.integration_unit = 'd_A'
+        self.widget.pattern_widget.pattern_plot.setLabel('bottom', 'd', 'A')
+        self.widget.pattern_widget.pattern_plot.invertX(True)
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
 
     def update_x_range(self, previous_unit, new_unit):
-        old_x_axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()[0]
-        spectrum_x = self.model.pattern.data[0]
-        if np.min(spectrum_x) < old_x_axis_range[0] or np.max(spectrum_x) > old_x_axis_range[1]:
+        old_x_axis_range = self.widget.pattern_widget.pattern_plot.viewRange()[0]
+        pattern_x = self.model.pattern.data[0]
+        if np.min(pattern_x) < old_x_axis_range[0] or np.max(pattern_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
-            self.widget.pattern_widget.spectrum_plot.setRange(xRange=new_x_axis_range, padding=0)
+            self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
 
-    def spec_auto_range_btn_click_callback(self):
-        self.widget.pattern_widget.auto_range = self.widget.spec_auto_range_btn.isChecked()
+    def pattern_auto_range_btn_click_callback(self):
+        self.widget.pattern_widget.auto_range = self.widget.pattern_auto_range_btn.isChecked()
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.widget.pattern_widget.pos_line.getPos()[0]
@@ -315,27 +300,7 @@ class PatternController(object):
 
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.model.calibration_model.wavelength
-        if previous_unit == '2th_deg':
-            tth = value
-        elif previous_unit == 'q_A^-1':
-            tth = np.arcsin(
-                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
-        elif previous_unit == 'd_A':
-            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
-        else:
-            tth = 0
-
-        if new_unit == '2th_deg':
-            res = tth
-        elif new_unit == 'q_A^-1':
-            res = 4 * np.pi * \
-                  np.sin(tth / 360 * np.pi) / \
-                  wavelength / 1e10
-        elif new_unit == 'd_A':
-            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
-        else:
-            res = 0
-        return res
+        return convert_units(value, wavelength, previous_unit, new_unit)
 
     def pattern_left_click(self, x, y):
         self.set_line_position(x)
@@ -441,20 +406,11 @@ class PatternController(object):
 
     def update_gui(self):
         if self.model.current_configuration.integration_unit == '2th_deg':
-            self.widget.spec_tth_btn.setChecked(True)
+            self.widget.pattern_tth_btn.setChecked(True)
             self.set_unit_tth()
         elif self.model.current_configuration.integration_unit == 'd_A':
-            self.widget.spec_d_btn.setChecked(True)
+            self.widget.pattern_d_btn.setChecked(True)
             self.set_unit_d()
         elif self.model.current_configuration.integration_unit == 'q_A^-1':
-            self.widget.spec_q_btn.setChecked(True)
+            self.widget.pattern_q_btn.setChecked(True)
             self.set_unit_q()
-
-    def update_autocreate_gui(self):
-        self.widget.spec_autocreate_cb.setChecked(self.model.current_configuration.autosave_integrated_pattern)
-        self.widget.spectrum_header_xy_cb.setChecked(
-            '.xy' in self.model.current_configuration.integrated_patterns_file_formats)
-        self.widget.spectrum_header_chi_cb.setChecked(
-            '.chi' in self.model.current_configuration.integrated_patterns_file_formats)
-        self.widget.spectrum_header_dat_cb.setChecked(
-            '.dat' in self.model.current_configuration.integrated_patterns_file_formats)

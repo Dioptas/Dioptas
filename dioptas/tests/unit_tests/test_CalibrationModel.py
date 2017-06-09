@@ -26,20 +26,20 @@ class CalibrationModelTest(QtTest):
         del self.img_model
         if hasattr(self.calibration_model, 'cake_geometry'):
             del self.calibration_model.cake_geometry
-        del self.calibration_model.spectrum_geometry
+        del self.calibration_model.pattern_geometry
         del self.calibration_model
         gc.collect()
 
     def test_loading_calibration_gives_right_pixel_size(self):
-        self.calibration_model.spectrum_geometry.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.assertEqual(self.calibration_model.spectrum_geometry.pixel1, 0.000172)
+        self.calibration_model.pattern_geometry.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.assertEqual(self.calibration_model.pattern_geometry.pixel1, 0.000172)
 
         self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
-        self.assertEqual(self.calibration_model.spectrum_geometry.pixel1, 0.000079)
+        self.assertEqual(self.calibration_model.pattern_geometry.pixel1, 0.000079)
 
     def test_find_peaks_automatic(self):
         self.load_pilatus_1M_and_find_peaks()
-        self.assertEqual(len(self.calibration_model.points), 6)
+        self.assertEqual(len(self.calibration_model.points), 5)
         for points in self.calibration_model.points:
             self.assertGreater(len(points), 0)
 
@@ -66,12 +66,6 @@ class CalibrationModelTest(QtTest):
             self.assertEqual(peak_point[0][0], point[0])
             self.assertEqual(peak_point[0][1], point[1])
 
-    def test_search_peaks_on_ring(self):
-        """
-        Tests to search on the first ring of the calibrant after an inital calibration
-        """
-        pass
-
     def load_pilatus_1M_and_find_peaks(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.calibration_model.find_peaks_automatic(517.664434674, 647.529865592, 0)
@@ -85,11 +79,11 @@ class CalibrationModelTest(QtTest):
         self.load_pilatus_1M_and_find_peaks()
         self.calibration_model.set_calibrant(os.path.join(calibrant_path, 'LaB6.D'))
         self.calibration_model.calibrate()
-        normal_poni1 = self.calibration_model.spectrum_geometry.poni1
+        normal_poni1 = self.calibration_model.pattern_geometry.poni1
         self.img_model.set_supersampling(2)
         self.calibration_model.set_supersampling(2)
         self.calibration_model.calibrate()
-        self.assertAlmostEqual(normal_poni1, self.calibration_model.spectrum_geometry.poni1, places=5)
+        self.assertAlmostEqual(normal_poni1, self.calibration_model.pattern_geometry.poni1, places=5)
 
     def test_calibration1(self):
         self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
@@ -98,8 +92,8 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.set_calibrant(os.path.join(calibrant_path, 'LaB6.D'))
         self.calibration_model.calibrate()
 
-        self.assertGreater(self.calibration_model.spectrum_geometry.poni1, 0)
-        self.assertAlmostEqual(self.calibration_model.spectrum_geometry.dist, 0.18, delta=0.01)
+        self.assertGreater(self.calibration_model.pattern_geometry.poni1, 0)
+        self.assertAlmostEqual(self.calibration_model.pattern_geometry.dist, 0.18, delta=0.01)
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
 
     def test_calibration2(self):
@@ -112,8 +106,8 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.set_calibrant(os.path.join(calibrant_path, 'LaB6.D'))
         self.calibration_model.calibrate()
 
-        self.assertGreater(self.calibration_model.spectrum_geometry.poni1, 0)
-        self.assertAlmostEqual(self.calibration_model.spectrum_geometry.dist, 0.500, delta=0.01)
+        self.assertGreater(self.calibration_model.pattern_geometry.poni1, 0)
+        self.assertAlmostEqual(self.calibration_model.pattern_geometry.dist, 0.500, delta=0.01)
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
 
     def test_calibration3(self):
@@ -124,8 +118,8 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.set_calibrant(os.path.join(calibrant_path, 'LaB6.D'))
         self.calibration_model.calibrate()
 
-        self.assertGreater(self.calibration_model.spectrum_geometry.poni1, 0)
-        self.assertAlmostEqual(self.calibration_model.spectrum_geometry.dist, 0.100, delta=0.02)
+        self.assertGreater(self.calibration_model.pattern_geometry.poni1, 0)
+        self.assertAlmostEqual(self.calibration_model.pattern_geometry.dist, 0.090, delta=0.025)
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
 
     def test_get_pixel_ind(self):
@@ -134,8 +128,8 @@ class CalibrationModelTest(QtTest):
 
         self.calibration_model.integrate_1d(1000)
 
-        tth_array = self.calibration_model.spectrum_geometry.ttha
-        azi_array = self.calibration_model.spectrum_geometry.chia
+        tth_array = self.calibration_model.pattern_geometry.ttha
+        azi_array = self.calibration_model.pattern_geometry.chia
 
         for i in range(100):
             ind1 = np.random.random_integers(0, 2023)
