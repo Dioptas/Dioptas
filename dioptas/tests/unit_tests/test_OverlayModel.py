@@ -29,7 +29,7 @@ class OverlayModelTest(unittest.TestCase):
         assert_array_almost_equal(new_overlay.y, y_overlay)
 
     def test_add_overlay_from_file(self):
-        filename = os.path.join(data_path, 'spectrum_001.xy')
+        filename = os.path.join(data_path, 'pattern_001.xy')
         self.overlay_model.add_overlay_file(filename)
 
         self.assertEqual(len(self.overlay_model.overlays), 1)

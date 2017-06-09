@@ -35,15 +35,15 @@ class Pattern(QtCore.QObject):
         self._smoothing = 0
         self._background_pattern = None
 
-        self._spectrum_x = self._original_x
-        self._spectrum_y = self._original_y
+        self._pattern_x = self._original_x
+        self._pattern_y = self._original_y
 
         self.auto_background_subtraction = False
         self.auto_background_subtraction_roi = None
-        self.auto_background_subtraction_parameters = [2, 50, 50]
+        self.auto_background_subtraction_parameters = [0.1, 50, 50]
 
-        self._auto_background_before_subtraction_spectrum = None
-        self._auto_background_spectrum = None
+        self._auto_background_before_subtraction_pattern = None
+        self._auto_background_pattern = None
 
     def load(self, filename, skiprows=0):
         factor = 1.0
@@ -69,7 +69,7 @@ class Pattern(QtCore.QObject):
             self.recalculate_pattern()
 
         except ValueError:
-            print('Wrong data format for spectrum file! - ' + filename)
+            print('Wrong data format for pattern file! - ' + filename)
             return -1
 
     def save(self, filename, header=''):
@@ -83,14 +83,14 @@ class Pattern(QtCore.QObject):
     @background_pattern.setter
     def background_pattern(self, pattern):
         """
-        :param pattern: new background spectrum
+        :param pattern: new background pattern
         :type pattern: Pattern
         """
         self._background_pattern = pattern
         self._background_pattern.pattern_changed.connect(self.recalculate_pattern)
         self.recalculate_pattern()
 
-    def unset_background_spectrum(self):
+    def unset_background_pattern(self):
         self._background_pattern = None
         self.recalculate_pattern()
 
@@ -130,41 +130,52 @@ class Pattern(QtCore.QObject):
                 y = self._original_y[ind]
 
                 if len(x) == 0:
-                    # if there is no overlapping between background and spectrum, raise an error
+                    # if there is no overlapping between background and pattern, raise an error
                     raise BkgNotInRangeError(self.name)
 
                 y = y - f_bkg(x)
             else:
-                # if spectrum and bkg have the same x basis we just delete y-y_bkg
+                # if pattern and bkg have the same x basis we just delete y-y_bkg
                 y = y - y_bkg
 
         if self.auto_background_subtraction:
-            self._auto_background_before_subtraction_spectrum = Pattern(x, y)
+            self._auto_background_before_subtraction_pattern = Pattern(x, y)
             if self.auto_background_subtraction_roi is not None:
-                ind = (x > self.auto_background_subtraction_roi[0]) & \
-                      (x < self.auto_background_subtraction_roi[1])
+                ind = (x > np.min(self.auto_background_subtraction_roi)) & \
+                      (x < np.max(self.auto_background_subtraction_roi))
                 x = x[ind]
                 y = y[ind]
+                self.auto_background_subtraction_roi = [np.min(x), np.max(x)]
+            else:
+                self.auto_background_subtraction_roi = [np.min(x), np.max(x)]
+
+            # reset ROI if limits are larger or smaller than the actual data
+            x_min, x_max = np.min(x), np.max(x)
+            if self.auto_background_subtraction_roi[0]<x_min:
+                self.auto_background_subtraction_roi[0]=x_min
+
+            if self.auto_background_subtraction_roi[1]>x_max:
+                self.auto_background_subtraction_roi[1]=x_max
 
             y_bkg = extract_background(x, y,
                                        self.auto_background_subtraction_parameters[0],
                                        self.auto_background_subtraction_parameters[1],
                                        self.auto_background_subtraction_parameters[2])
-            self._auto_background_spectrum = Pattern(x, y_bkg)
+            self._auto_background_pattern = Pattern(x, y_bkg)
 
             y -= y_bkg
 
         if self._smoothing > 0:
             y = gaussian_filter1d(y, self._smoothing)
 
-        self._spectrum_x = x
-        self._spectrum_y = y
+        self._pattern_x = x
+        self._pattern_y = y
 
-        self.pattern_changed.emit(self._spectrum_x, self._spectrum_y)
+        self.pattern_changed.emit(self._pattern_x, self._pattern_y)
 
     @property
     def data(self):
-        return self._spectrum_x, self._spectrum_y
+        return self._pattern_x, self._pattern_y
 
     @data.setter
     def data(self, data):
@@ -177,11 +188,11 @@ class Pattern(QtCore.QObject):
 
     @property
     def x(self):
-        return self._spectrum_x
+        return self._pattern_x
 
     @property
     def y(self):
-        return self._spectrum_y
+        return self._pattern_y
 
     @property
     def original_data(self):
@@ -222,12 +233,12 @@ class Pattern(QtCore.QObject):
         self.recalculate_pattern()
 
     @property
-    def auto_background_before_subtraction_spectrum(self):
-        return self._auto_background_before_subtraction_spectrum
+    def auto_background_before_subtraction_pattern(self):
+        return self._auto_background_before_subtraction_pattern
 
     @property
     def auto_background_pattern(self):
-        return self._auto_background_spectrum
+        return self._auto_background_pattern
 
     def has_background(self):
         return (self.background_pattern is not None) or self.auto_background_subtraction
@@ -247,7 +258,7 @@ class Pattern(QtCore.QObject):
             y = orig_y[ind]
 
             if len(x) == 0:
-                # if there is no overlapping between background and spectrum, raise an error
+                # if there is no overlapping between background and pattern, raise an error
                 raise BkgNotInRangeError(self.name)
             return Pattern(x, y - other_fcn(x))
         else:
@@ -267,7 +278,7 @@ class Pattern(QtCore.QObject):
             y = orig_y[ind]
 
             if len(x) == 0:
-                # if there is no overlapping between background and spectrum, raise an error
+                # if there is no overlapping between background and pattern, raise an error
                 raise BkgNotInRangeError(self.name)
             return Pattern(x, y + other_fcn(x))
         else:

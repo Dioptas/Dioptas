@@ -403,10 +403,12 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.roi.blockSignals(True)
 
 
+mask_pen = QtGui.QPen(QtGui.QColor(255, 255, 255), 0.5)
+
 class MyPolygon(QtWidgets.QGraphicsPolygonItem):
     def __init__(self, x, y, fill_color):
         QtWidgets.QGraphicsPolygonItem.__init__(self)
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setPen(mask_pen)
         self.setBrush(QtGui.QBrush(fill_color))
 
         self.vertices = []
@@ -426,7 +428,7 @@ class MyPolygon(QtWidgets.QGraphicsPolygonItem):
 class MyArc(QtWidgets.QGraphicsPolygonItem):
     def __init__(self, x, y, fill_color):
         QtWidgets.QGraphicsPolygonItem.__init__(self)
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setPen(mask_pen)
         self.setBrush(QtGui.QBrush(fill_color))
         self.arc_center = QtCore.QPointF(0, 0)
         self.arc_radius = 1
@@ -450,7 +452,7 @@ class MyCircle(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, radius, fill_color):
         QtWidgets.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
         self.radius = radius
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setPen(mask_pen)
         self.setBrush(QtGui.QBrush(fill_color))
 
         self.center_x = x
@@ -467,7 +469,7 @@ class MyCircle(QtWidgets.QGraphicsEllipseItem):
 class MyPoint(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, radius, fill_color):
         QtWidgets.QGraphicsEllipseItem.__init__(self, 0, 0, radius * 2, radius * 2)
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setPen(mask_pen)
         self.setBrush(QtGui.QBrush(fill_color))
         self.radius = radius
         self.x = 0
@@ -492,7 +494,7 @@ class MyPoint(QtWidgets.QGraphicsEllipseItem):
 class MyRectangle(QtWidgets.QGraphicsRectItem):
     def __init__(self, x, y, width, height, fill_color):
         QtWidgets.QGraphicsRectItem.__init__(self, x, y + height, width, height)
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
+        self.setPen(mask_pen)
         self.setBrush(QtGui.QBrush(fill_color))
 
         self.initial_x = x

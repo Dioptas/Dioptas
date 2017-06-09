@@ -50,10 +50,9 @@ class BackgroundController(object):
 
         self.model.configuration_selected.connect(self.update_gui)
         self.create_image_background_signals()
-        self.create_spectrum_background_signals()
+        self.create_pattern_background_signals()
 
     def create_image_background_signals(self):
-
         self.connect_click_function(self.widget.bkg_image_load_btn, self.load_background_image)
         self.connect_click_function(self.widget.bkg_image_delete_btn, self.remove_background_image)
 
@@ -66,18 +65,20 @@ class BackgroundController(object):
         self.model.auto_background_set.connect(self.auto_background_set)
 
 
-    def create_spectrum_background_signals(self):
-        self.widget.bkg_spectrum_gb.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
-        self.widget.qa_bkg_spectrum_btn.toggled.connect(self.bkg_spectrum_gb_toggled_callback)
+    def create_pattern_background_signals(self):
+        self.widget.bkg_pattern_gb.toggled.connect(self.bkg_pattern_gb_toggled_callback)
+        self.widget.qa_bkg_pattern_btn.toggled.connect(self.bkg_pattern_gb_toggled_callback)
 
-        self.widget.bkg_spectrum_iterations_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
-        self.widget.bkg_spectrum_poly_order_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
-        self.widget.bkg_spectrum_smooth_width_sb.valueChanged.connect(self.bkg_spectrum_parameters_changed)
-        self.widget.bkg_spectrum_x_min_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
-        self.widget.bkg_spectrum_x_max_txt.editingFinished.connect(self.bkg_spectrum_parameters_changed)
+        self.widget.bkg_pattern_iterations_sb.valueChanged.connect(self.bkg_pattern_parameters_changed)
+        self.widget.bkg_pattern_poly_order_sb.valueChanged.connect(self.bkg_pattern_parameters_changed)
+        self.widget.bkg_pattern_smooth_width_sb.valueChanged.connect(self.bkg_pattern_parameters_changed)
+        self.widget.bkg_pattern_x_min_txt.editingFinished.connect(self.bkg_pattern_parameters_changed)
+        self.widget.bkg_pattern_x_max_txt.editingFinished.connect(self.bkg_pattern_parameters_changed)
 
-        self.widget.bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_toggled_callback)
-        self.widget.qa_bkg_spectrum_inspect_btn.toggled.connect(self.bkg_spectrum_inspect_btn_toggled_callback)
+        self.widget.bkg_pattern_inspect_btn.toggled.connect(self.bkg_pattern_inspect_btn_toggled_callback)
+        self.widget.qa_bkg_pattern_inspect_btn.toggled.connect(self.bkg_pattern_inspect_btn_toggled_callback)
+
+        self.model.pattern_changed.connect(self.update_bkg_gui_parameters)
 
     def connect_click_function(self, emitter, function):
         """
@@ -128,72 +129,75 @@ class BackgroundController(object):
     def background_img_offset_changed(self):
         self.model.img_model.background_offset = self.widget.bkg_image_offset_sb.value()
 
-    def bkg_spectrum_gb_toggled_callback(self, is_checked):
-        self.widget.bkg_spectrum_gb.blockSignals(True)
-        self.widget.qa_bkg_spectrum_btn.blockSignals(True)
-        self.widget.bkg_spectrum_gb.setChecked(is_checked)
-        self.widget.qa_bkg_spectrum_btn.setChecked(is_checked)
-        self.widget.bkg_spectrum_gb.blockSignals(False)
-        self.widget.qa_bkg_spectrum_btn.blockSignals(False)
-        self.widget.qa_bkg_spectrum_inspect_btn.setVisible(is_checked)
+    def bkg_pattern_gb_toggled_callback(self, is_checked):
+        self.widget.bkg_pattern_gb.blockSignals(True)
+        self.widget.qa_bkg_pattern_btn.blockSignals(True)
+        self.widget.bkg_pattern_gb.setChecked(is_checked)
+        self.widget.qa_bkg_pattern_btn.setChecked(is_checked)
+        self.widget.bkg_pattern_gb.blockSignals(False)
+        self.widget.qa_bkg_pattern_btn.blockSignals(False)
+        self.widget.qa_bkg_pattern_inspect_btn.setVisible(is_checked)
 
         if is_checked:
-            bkg_spectrum_parameters = self.widget.get_bkg_spectrum_parameters()
-            bkg_spectrum_roi = self.widget.get_bkg_spectrum_roi()
-            self.model.pattern_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+            bkg_pattern_parameters = self.widget.get_bkg_pattern_parameters()
+            bkg_pattern_roi = self.widget.get_bkg_pattern_roi()
+            self.model.pattern_model.set_auto_background_subtraction(bkg_pattern_parameters, bkg_pattern_roi)
         else:
-            self.widget.bkg_spectrum_inspect_btn.setChecked(False)
-            self.widget.qa_bkg_spectrum_inspect_btn.setChecked(False)
+            self.widget.bkg_pattern_inspect_btn.setChecked(False)
+            self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)
             self.widget.pattern_widget.hide_linear_region()
             self.model.pattern_model.unset_auto_background_subtraction()
 
-    def bkg_spectrum_parameters_changed(self):
-        bkg_spectrum_parameters = self.widget.get_bkg_spectrum_parameters()
-        bkg_spectrum_roi = self.widget.get_bkg_spectrum_roi()
-        if self.widget.qa_bkg_spectrum_btn.isChecked():
-            self.model.pattern_model.set_auto_background_subtraction(bkg_spectrum_parameters, bkg_spectrum_roi)
+    def bkg_pattern_parameters_changed(self):
+        bkg_pattern_parameters = self.widget.get_bkg_pattern_parameters()
+        bkg_pattern_roi = self.widget.get_bkg_pattern_roi()
+        if self.model.pattern_model.pattern.auto_background_subtraction:
+            self.model.pattern_model.set_auto_background_subtraction(bkg_pattern_parameters, bkg_pattern_roi)
 
-    def bkg_spectrum_inspect_btn_toggled_callback(self, checked):
-        self.widget.bkg_spectrum_inspect_btn.blockSignals(True)
-        self.widget.qa_bkg_spectrum_inspect_btn.blockSignals(True)
-        self.widget.bkg_spectrum_inspect_btn.setChecked(checked)
-        self.widget.qa_bkg_spectrum_inspect_btn.setChecked(checked)
-        self.widget.bkg_spectrum_inspect_btn.blockSignals(False)
-        self.widget.qa_bkg_spectrum_inspect_btn.blockSignals(False)
+    def update_bkg_gui_parameters(self):
+        if self.model.pattern_model.pattern.auto_background_subtraction:
+            self.widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
+            self.widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
+
+            self.widget.pattern_widget.linear_region_item.blockSignals(True)
+            self.widget.pattern_widget.set_linear_region(
+                *self.model.pattern_model.pattern.auto_background_subtraction_roi)
+            self.widget.pattern_widget.linear_region_item.blockSignals(False)
+
+    def bkg_pattern_inspect_btn_toggled_callback(self, checked):
+        self.widget.bkg_pattern_inspect_btn.blockSignals(True)
+        self.widget.qa_bkg_pattern_inspect_btn.blockSignals(True)
+        self.widget.bkg_pattern_inspect_btn.setChecked(checked)
+        self.widget.qa_bkg_pattern_inspect_btn.setChecked(checked)
+        self.widget.bkg_pattern_inspect_btn.blockSignals(False)
+        self.widget.qa_bkg_pattern_inspect_btn.blockSignals(False)
 
         if checked:
             self.widget.pattern_widget.show_linear_region()
-            x_min, x_max = self.widget.get_bkg_spectrum_roi()
-            x_spec = self.model.pattern.auto_background_before_subtraction_spectrum.x
-            if x_min < x_spec[0]:
-                x_min = x_spec[0]
-            if x_max > x_spec[-1]:
-                x_max = x_spec[-1]
-            self.widget.pattern_widget.set_linear_region(x_min, x_max)
             self.widget.pattern_widget.linear_region_item.sigRegionChanged.connect(
-                self.bkg_spectrum_linear_region_callback
+                self.bkg_pattern_linear_region_callback
             )
-            self.widget.bkg_spectrum_x_min_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
-            self.widget.bkg_spectrum_x_max_txt.editingFinished.connect(self.update_bkg_spectrum_linear_region)
+            self.widget.bkg_pattern_x_min_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
+            self.widget.bkg_pattern_x_max_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
         else:
             self.widget.pattern_widget.hide_linear_region()
             self.widget.pattern_widget.linear_region_item.sigRegionChanged.disconnect(
-                self.bkg_spectrum_linear_region_callback
+                self.bkg_pattern_linear_region_callback
             )
 
-            self.widget.bkg_spectrum_x_min_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
-            self.widget.bkg_spectrum_x_max_txt.editingFinished.disconnect(self.update_bkg_spectrum_linear_region)
+            self.widget.bkg_pattern_x_min_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
+            self.widget.bkg_pattern_x_max_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
         self.model.pattern_changed.emit()
 
-    def bkg_spectrum_linear_region_callback(self):
+    def bkg_pattern_linear_region_callback(self):
         x_min, x_max = self.widget.pattern_widget.get_linear_region()
-        self.widget.bkg_spectrum_x_min_txt.setText('{:.3f}'.format(x_min))
-        self.widget.bkg_spectrum_x_max_txt.setText('{:.3f}'.format(x_max))
-        self.bkg_spectrum_parameters_changed()
+        self.widget.bkg_pattern_x_min_txt.setText('{:.3f}'.format(x_min))
+        self.widget.bkg_pattern_x_max_txt.setText('{:.3f}'.format(x_max))
+        self.bkg_pattern_parameters_changed()
 
-    def update_bkg_spectrum_linear_region(self):
+    def update_bkg_pattern_linear_region(self):
         self.widget.pattern_widget.linear_region_item.blockSignals(True)
-        self.widget.pattern_widget.set_linear_region(*self.widget.get_bkg_spectrum_roi())
+        self.widget.pattern_widget.set_linear_region(*self.widget.get_bkg_pattern_roi())
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
     def update_gui(self):

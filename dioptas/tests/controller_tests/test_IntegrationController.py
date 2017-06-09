@@ -31,7 +31,7 @@ class IntegrationControllerTest(QtTest):
         self.model.calibration_model.integrate_1d = mock.Mock(return_value=(dummy_x, dummy_y))
 
         self.widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'spectrum': data_path,
+        self.integration_controller = IntegrationController({'pattern': data_path,
                                                              'image': data_path},
                                                             widget=self.widget,
                                                             dioptas_model=self.model)
@@ -53,8 +53,8 @@ class IntegrationControllerTest(QtTest):
         working_dir = os.path.join(data_path, 'out')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
-        self.image_controller.working_dir['spectrum'] = os.path.join(working_dir)
-        self.widget.spec_autocreate_cb.setChecked(True)
+        self.image_controller.working_dir['pattern'] = os.path.join(working_dir)
+        self.widget.pattern_autocreate_cb.setChecked(True)
 
         return filenames, input_filenames, working_dir
 
@@ -74,7 +74,7 @@ class IntegrationControllerTest(QtTest):
 
     def test_batch_integration_with_automatic_background_subtraction(self):
         filenames, input_filenames, working_dir = self._setup_batch_integration()
-        self.widget.bkg_spectrum_gb.setChecked(True)
+        self.widget.bkg_pattern_gb.setChecked(True)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=input_filenames)
         click_button(self.widget.load_img_btn)
@@ -111,9 +111,11 @@ class IntegrationControllerTest(QtTest):
         self.widget.cake_shift_azimuth_sl.setValue(shift)
 
         self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), shift)
-        self.assertFalse(np.array_equal(self.model.cake_data, old_cake_data))
-        self.assertFalse(np.array_equal(self.model.cake_data[0], old_cake_data[0]))
-        self.assertTrue(np.array_equal(self.model.cake_data[shift], old_cake_data[0]))
+
+        displayed_cake_data = self.widget.img_widget.img_data
+        self.assertFalse(np.array_equal(displayed_cake_data, old_cake_data))
+        self.assertFalse(np.array_equal(displayed_cake_data[0], old_cake_data[0]))
+        self.assertTrue(np.array_equal(displayed_cake_data[shift], old_cake_data[0]))
 
     def test_cake_changes_axes(self):
         self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Cake')

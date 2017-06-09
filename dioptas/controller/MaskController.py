@@ -89,9 +89,9 @@ class MaskController(object):
         self.model.mask_model.set_dimension(self.model.img_model._img_data.shape)
 
     def uncheck_all_btn(self, except_btn=None):
-        btns = [self.widget.circle_btn, self.widget.rectangle_btn, self.widget.polygon_btn, \
-                self.widget.point_btn, self.widget.arc_btn]
-        for btn in btns:
+        buttons = [self.widget.circle_btn, self.widget.rectangle_btn, self.widget.polygon_btn,
+                   self.widget.point_btn, self.widget.arc_btn]
+        for btn in buttons:
             if btn is not except_btn:
                 if btn.isChecked():
                     btn.toggle()
@@ -252,14 +252,17 @@ class MaskController(object):
         elif self.clicks == 2:
             self.widget.img_widget.mouse_moved.disconnect(self.arc.set_size)
             self.arc.add_point(x, y)
-            if self.arc.vertices[0].x() == self.arc.vertices[1].x() and self.arc.vertices[0].y() == self.arc.vertices[1].y():
+            if self.arc.vertices[0].x() == self.arc.vertices[1].x() and self.arc.vertices[0].y() == self.arc.vertices[
+                1].y():
                 self.remove_bad_arc()
                 return
             self.widget.img_widget.mouse_moved.connect(self.arc_calc_and_preview)
         elif self.clicks == 3:
             self.arc.add_point(x, y)
             self.widget.img_widget.mouse_moved.disconnect(self.arc_calc_and_preview)
-            if (self.arc.vertices[0].x() == self.arc.vertices[2].x() and self.arc.vertices[0].y() == self.arc.vertices[2].y()) or (self.arc.vertices[1].x() == self.arc.vertices[2].x() and self.arc.vertices[1].y() == self.arc.vertices[2].y()):
+            if (self.arc.vertices[0].x() == self.arc.vertices[2].x() and self.arc.vertices[0].y() == self.arc.vertices[
+                2].y()) or (self.arc.vertices[1].x() == self.arc.vertices[2].x() and self.arc.vertices[1].y() ==
+                self.arc.vertices[2].y()):
                 self.remove_bad_arc()
                 return
             self.widget.img_widget.mouse_moved.connect(self.arc_width_preview)
@@ -291,7 +294,7 @@ class MaskController(object):
         arc_center = self.arc.arc_center
         arc_r = self.arc.arc_radius
         phi_range = self.arc.phi_range
-        width = abs(arc_r - sqrt((x - arc_center.x())**2 + (y - arc_center.y())**2))
+        width = abs(arc_r - sqrt((x - arc_center.x()) ** 2 + (y - arc_center.y()) ** 2))
 
         arc_points_a = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, -width, phi_range)
         arc_points_b = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, width, phi_range)

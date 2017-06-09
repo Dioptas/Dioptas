@@ -42,7 +42,6 @@ class PatternModel(QtCore.QObject):
         super(PatternModel, self).__init__()
         self.pattern = Pattern()
         self.pattern_filename = ''
-        self.done_changing_unit = True
 
         self.unit = ''
         self.file_iteration_mode = 'number'
@@ -52,10 +51,10 @@ class PatternModel(QtCore.QObject):
 
     def set_pattern(self, x, y, filename='', unit=''):
         """
-        set the current data spectrum.
+        set the current data pattern.
         :param x: x-values
         :param y: y-values
-        :param filename: name for the spectrum, defaults to ''
+        :param filename: name for the pattern, defaults to ''
         :param unit: unit for the x values
         """
         self.pattern_filename = filename
@@ -66,10 +65,10 @@ class PatternModel(QtCore.QObject):
 
     def load_pattern(self, filename):
         """
-        Loads a spectrum from a tabular spectrum file (2 column txt file)
+        Loads a pattern from a tabular pattern file (2 column txt file)
         :param filename: filename of the data file
         """
-        logger.info("Load spectrum: {0}".format(filename))
+        logger.info("Load pattern: {0}".format(filename))
         self.pattern_filename = filename
 
         skiprows = 0
@@ -81,7 +80,7 @@ class PatternModel(QtCore.QObject):
 
     def save_pattern(self, filename, header=None, subtract_background=False):
         """
-        Saves the current data spectrum.
+        Saves the current data pattern.
         :param filename: where to save
         :param header: you can specify any specific header
         :param subtract_background: whether or not the background set will be used for saving or not
@@ -167,7 +166,7 @@ class PatternModel(QtCore.QObject):
         if pattern is not None:
             self.pattern.background_pattern = pattern
         else:
-            self.pattern.unset_background_spectrum()
+            self.pattern.unset_background_pattern()
         self._background_pattern = pattern
         self.pattern_changed.emit()
 
@@ -178,7 +177,7 @@ class PatternModel(QtCore.QObject):
         :param roi: array of size two with [x_min, x_max] specifying the range for the background subtraction
         will be performed
         """
-        self.pattern.set_auto_background_subtraction(parameters, roi, self.done_changing_unit)
+        self.pattern.set_auto_background_subtraction(parameters, roi)
         self.pattern_changed.emit()
 
     def unset_auto_background_subtraction(self):
