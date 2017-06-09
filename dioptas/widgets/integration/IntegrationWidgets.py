@@ -18,11 +18,11 @@
 
 import os
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
 from ..plot_widgets.ImgWidget import IntegrationImgWidget
-from ..plot_widgets import SpectrumWidget
+from ..plot_widgets import PatternWidget
 
 from ..CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
 
@@ -70,6 +70,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
 
         self.roi_btn = CheckableFlatButton('ROI')
         self.mode_btn = FlatButton('Cake')
+        self.cake_shift_azimuth_sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.mask_btn = CheckableFlatButton('Mask')
         self.transparent_cb = QtWidgets.QCheckBox('trans')
         self.autoscale_btn = CheckableFlatButton('AutoScale')
@@ -77,6 +78,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
 
         self._control_layout.addWidget(self.roi_btn)
         self._control_layout.addWidget(self.mode_btn)
+        self._control_layout.addWidget(self.cake_shift_azimuth_sl)
         self._control_layout.addWidget(self.mask_btn)
         self._control_layout.addWidget(self.transparent_cb)
         self._control_layout.addSpacerItem(HorizontalSpacerItem())
@@ -94,6 +96,8 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
         self.style_widgets()
+        self.cake_shift_azimuth_sl.setVisible(False)
+
 
     def style_widgets(self):
         self.setStyleSheet("""
@@ -169,11 +173,11 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self._central_layout = QtWidgets.QHBoxLayout()
         self._central_layout.setSpacing(0)
 
-        self.spectrum_pg_layout = GraphicsLayoutWidget()
-        self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
-        self.spectrum_pg_layout.ci.layout.setContentsMargins(5, 0, 0, 5)
+        self.pattern_pg_layout = GraphicsLayoutWidget()
+        self.pattern_view = PatternWidget(self.pattern_pg_layout)
+        self.pattern_pg_layout.ci.layout.setContentsMargins(5, 0, 0, 5)
 
-        self._central_layout.addWidget(self.spectrum_pg_layout)
+        self._central_layout.addWidget(self.pattern_pg_layout)
         self._central_layout.addWidget(self.right_control_widget)
         self._frame_layout.addLayout(self._central_layout)
 

@@ -129,10 +129,12 @@ class PatternControlWidget(QtWidgets.QWidget):
         self.xy_cb.setChecked(True)
         self.chi_cb = QtWidgets.QCheckBox('.chi')
         self.dat_cb = QtWidgets.QCheckBox('.dat')
+        self.fxye_cb = QtWidgets.QCheckBox('.fxye')
         self._pattern_types_gb_layout = QtWidgets.QHBoxLayout()
         self._pattern_types_gb_layout.addWidget(self.xy_cb)
         self._pattern_types_gb_layout.addWidget(self.chi_cb)
         self._pattern_types_gb_layout.addWidget(self.dat_cb)
+        self._pattern_types_gb_layout.addWidget(self.fxye_cb)
         self.pattern_types_gc.setLayout(self._pattern_types_gb_layout)
 
         self._pattern_types_layout = QtWidgets.QHBoxLayout()
@@ -179,7 +181,7 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self.pressure_step_txt = NumberTextField('0.5')
         self.temperature_step_txt = NumberTextField('100')
         self.apply_to_all_cb = QtWidgets.QCheckBox('Apply to all phases')
-        self.show_in_spectrum_cb = QtWidgets.QCheckBox('Show in Spectrum')
+        self.show_in_pattern_cb = QtWidgets.QCheckBox('Show in Pattern')
 
         self._parameter_layout.addWidget(QtWidgets.QLabel('Parameter'), 0, 1)
         self._parameter_layout.addWidget(QtWidgets.QLabel('Step'), 0, 3)
@@ -194,7 +196,7 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self._parameter_layout.addWidget(self.temperature_step_txt, 2, 3)
 
         self._parameter_layout.addWidget(self.apply_to_all_cb, 3, 0, 1, 5)
-        self._parameter_layout.addWidget(self.show_in_spectrum_cb, 4, 0, 1, 5)
+        self._parameter_layout.addWidget(self.show_in_pattern_cb, 4, 0, 1, 5)
         self._parameter_layout.addItem(VerticalSpacerItem(), 5, 0)
         self.parameter_widget.setLayout(self._parameter_layout)
 
@@ -232,7 +234,7 @@ class PhaseControlWidget(QtWidgets.QWidget):
         """)
 
         self.apply_to_all_cb.setChecked(True)
-        self.show_in_spectrum_cb.setChecked(True)
+        self.show_in_pattern_cb.setChecked(True)
 
 
 class OverlayControlWidget(QtWidgets.QWidget):

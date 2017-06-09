@@ -1,10 +1,12 @@
 # -*- coding: utf8 -*-
 
 import os
+import numpy as np
 
-from ..utility import QtTest, unittest_data_path
+from ..utility import QtTest, unittest_data_path, click_button
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BackgroundController import BackgroundController
+from ...controller.integration.PatternController import PatternController
 from ...model.DioptasModel import DioptasModel
 
 
@@ -16,6 +18,11 @@ class BackgroundControllerTest(QtTest):
         self.model = DioptasModel()
 
         self.controller = BackgroundController(
+            working_dir=self.working_dir,
+            widget=self.widget,
+            dioptas_model=self.model
+        )
+        self.pattern_controller = PatternController(
             working_dir=self.working_dir,
             widget=self.widget,
             dioptas_model=self.model
@@ -41,3 +48,23 @@ class BackgroundControllerTest(QtTest):
         self.widget.bkg_image_scale_sb.setValue(2)
         self.model.select_configuration(0)
         self.assertEqual(self.widget.bkg_image_scale_sb.value(), 1)
+
+    def test_changing_unit(self):
+        # load calibration and image
+        self.model.calibration_model.load(os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.model.img_model.load(os.path.join(unittest_data_path, "image_001.tif"))
+
+        x_raw, y_raw = self.model.pattern_model.pattern.data
+        click_button(self.widget.qa_bkg_pattern_btn)
+        x_2th, y_2th = self.model.pattern_model.pattern.data
+
+        self.assertNotEqual(np.sum(y_raw), np.sum(y_2th))
+
+        click_button(self.widget.pattern_q_btn)
+        x_q, y_q = self.model.pattern_model.pattern.data
+        x_q_bkg, y_q_bkg = self.model.pattern_model.pattern.auto_background_pattern.data
+
+        self.assertLess(np.max(x_q), np.max(x_2th))
+        self.assertEqual(x_q[0], x_q_bkg[0])
+        self.assertEqual(x_q[-1], x_q_bkg[-1])
+

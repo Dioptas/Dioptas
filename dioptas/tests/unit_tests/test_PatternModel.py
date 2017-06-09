@@ -17,15 +17,15 @@ class PatternModelTest(unittest.TestCase):
         self.pattern = Pattern(self.x, self.y)
         self.pattern_model = PatternModel()
 
-    def test_set_spectrum(self):
+    def test_set_pattern(self):
         self.pattern_model.set_pattern(self.x, self.y, 'hoho')
         assert_array_almost_equal(self.pattern_model.get_pattern().x, self.x)
         assert_array_almost_equal(self.pattern_model.get_pattern().y, self.y)
         self.assertEqual(self.pattern_model.get_pattern().name, 'hoho')
 
-    def test_load_spectrum(self):
-        self.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
-        self.assertEqual(self.pattern_model.get_pattern().name, 'spectrum_001')
+    def test_load_pattern(self):
+        self.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.assertEqual(self.pattern_model.get_pattern().name, 'pattern_001')
         self.assertNotEqual(len(self.x), len(self.pattern_model.get_pattern().x))
         self.assertNotEqual(len(self.y), len(self.pattern_model.get_pattern().y))
 
