@@ -35,8 +35,8 @@ from ...widgets.UtilityWidgets import CifConversionParametersDialog
 class PhaseController(object):
     """
     IntegrationPhaseController handles all the interaction between the phase controls in the IntegrationView and the
-    PhaseData object. It needs the SpectrumData object to properly handle the rescaling of the phase intensities in
-    the spectrum plot and it needs the calibration data to have access to the currently used wavelength.
+    PhaseData object. It needs the PatternData object to properly handle the rescaling of the phase intensities in
+    the pattern plot and it needs the calibration data to have access to the currently used wavelength.
     """
 
     def __init__(self, working_dir, widget, dioptas_model):
@@ -68,16 +68,16 @@ class PhaseController(object):
         self.widget.phase_pressure_sb.valueChanged.connect(self.phase_pressure_sb_changed)
         self.widget.phase_temperature_sb.valueChanged.connect(self.phase_temperature_sb_changed)
 
-        self.widget.phase_show_parameter_in_spectrum_cb.stateChanged.connect(self.phase_show_parameter_cb_state_changed)
+        self.widget.phase_show_parameter_in_pattern_cb.stateChanged.connect(self.phase_show_parameter_cb_state_changed)
 
         self.widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
         self.widget.phase_color_btn_clicked.connect(self.phase_color_btn_clicked)
         self.widget.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
 
         self.widget.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
-        # self.widget.spectrum_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
-        self.widget.pattern_widget.spectrum_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
-        self.model.pattern_changed.connect(self.spectrum_data_changed)
+        # self.widget.pattern_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
+        self.widget.pattern_widget.pattern_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
+        self.model.pattern_changed.connect(self.pattern_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
 
@@ -181,7 +181,7 @@ class PhaseController(object):
         Adds a phase to the Pattern view.
         :return:
         """
-        axis_range = self.widget.pattern_widget.spectrum_plot.viewRange()
+        axis_range = self.widget.pattern_widget.pattern_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline = \
@@ -279,8 +279,8 @@ class PhaseController(object):
             self.widget.set_phase_temperature(ind, '-')
 
     def phase_show_parameter_cb_state_changed(self):
-        value = self.widget.phase_show_parameter_in_spectrum_cb.isChecked()
-        self.widget.show_parameter_in_spectrum = value
+        value = self.widget.phase_show_parameter_in_pattern_cb.isChecked()
+        self.widget.show_parameter_in_pattern = value
         for ind in range(len(self.model.phase_model.phases)):
             self.widget.update_phase_parameters_in_legend(ind)
 
@@ -336,16 +336,16 @@ class PhaseController(object):
         returns the unit currently selected in the GUI
                 possible values: 'tth', 'q', 'd'
         """
-        if self.widget.spec_tth_btn.isChecked():
+        if self.widget.pattern_tth_btn.isChecked():
             return 'tth'
-        elif self.widget.spec_q_btn.isChecked():
+        elif self.widget.pattern_q_btn.isChecked():
             return 'q'
-        elif self.widget.spec_d_btn.isChecked():
+        elif self.widget.pattern_d_btn.isChecked():
             return 'd'
 
-    def spectrum_data_changed(self):
+    def pattern_data_changed(self):
         """
-        Function is called after the spectrum data has changed.
+        Function is called after the pattern data has changed.
         """
         # QtWidgets.QApplication.processEvents()
         # self.update_phase_lines_slot()
@@ -353,8 +353,8 @@ class PhaseController(object):
 
     def update_all_phase_intensities(self):
         """
-        Updates all intensities of all phases in the spectrum view. Also checks if phase lines are still visible.
-        (within range of spectrum and/or overlays
+        Updates all intensities of all phases in the pattern view. Also checks if phase lines are still visible.
+        (within range of pattern and/or overlays
         :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
         axis_range = self.widget.pattern_widget.view_box.viewRange()

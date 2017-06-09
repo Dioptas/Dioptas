@@ -22,7 +22,7 @@ from qtpy import QtWidgets
 from pyqtgraph import GraphicsLayoutWidget
 
 from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
-from ..widgets.plot_widgets import SpectrumWidget
+from ..widgets.plot_widgets import PatternWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, FlatButton
@@ -113,7 +113,7 @@ class CalibrationWidget(QtWidgets.QWidget):
 
         self.img_widget = self.calibration_display_widget.img_widget
         self.cake_widget = self.calibration_display_widget.cake_widget
-        self.spectrum_widget = self.calibration_display_widget.spectrum_widget
+        self.pattern_widget = self.calibration_display_widget.pattern_widget
 
     def set_img_filename(self, filename):
         self.filename_txt.setText(os.path.basename(filename))
@@ -254,16 +254,16 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
 
         self.img_layout_widget = GraphicsLayoutWidget()
         self.cake_layout_widget = GraphicsLayoutWidget()
-        self.spectrum_layout_widget = GraphicsLayoutWidget()
+        self.pattern_layout_widget = GraphicsLayoutWidget()
 
         self.img_widget = MaskImgWidget(self.img_layout_widget)
         self.cake_widget = CalibrationCakeWidget(self.cake_layout_widget)
-        self.spectrum_widget = SpectrumWidget(self.spectrum_layout_widget)
+        self.pattern_widget = PatternWidget(self.pattern_layout_widget)
 
         self.tab_widget = QtWidgets.QTabWidget()
         self.tab_widget.addTab(self.img_layout_widget, 'Image')
         self.tab_widget.addTab(self.cake_layout_widget, 'Cake')
-        self.tab_widget.addTab(self.spectrum_layout_widget, 'Pattern')
+        self.tab_widget.addTab(self.pattern_layout_widget, 'Pattern')
         self._layout.addWidget(self.tab_widget)
 
         self._status_layout = QtWidgets.QHBoxLayout()
@@ -282,7 +282,7 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self.style_widgets()
 
     def style_widgets(self):
-        self.spectrum_widget.deactivate_pos_line()
+        self.pattern_widget.deactivate_pos_line()
         self.calibrate_btn.setMinimumWidth(130)
         self.refine_btn.setMinimumWidth(130)
 

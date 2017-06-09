@@ -20,6 +20,7 @@ import logging
 
 from qtpy import QtCore
 
+from math import sqrt
 from .util.HelperModule import FileNameIterator, get_base_name
 from .util import Pattern
 
@@ -50,10 +51,10 @@ class PatternModel(QtCore.QObject):
 
     def set_pattern(self, x, y, filename='', unit=''):
         """
-        set the current data spectrum.
+        set the current data pattern.
         :param x: x-values
         :param y: y-values
-        :param filename: name for the spectrum, defaults to ''
+        :param filename: name for the pattern, defaults to ''
         :param unit: unit for the x values
         """
         self.pattern_filename = filename
@@ -64,10 +65,10 @@ class PatternModel(QtCore.QObject):
 
     def load_pattern(self, filename):
         """
-        Loads a spectrum from a tabular spectrum file (2 column txt file)
+        Loads a pattern from a tabular pattern file (2 column txt file)
         :param filename: filename of the data file
         """
-        logger.info("Load spectrum: {0}".format(filename))
+        logger.info("Load pattern: {0}".format(filename))
         self.pattern_filename = filename
 
         skiprows = 0
@@ -79,7 +80,7 @@ class PatternModel(QtCore.QObject):
 
     def save_pattern(self, filename, header=None, subtract_background=False):
         """
-        Saves the current data spectrum.
+        Saves the current data pattern.
         :param filename: where to save
         :param header: you can specify any specific header
         :param subtract_background: whether or not the background set will be used for saving or not
@@ -101,6 +102,18 @@ class PatternModel(QtCore.QObject):
                 file_handle.write(header)
             for ind in range(num_points):
                 file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
+        elif filename.endswith('.fxye'):
+            factor = 100
+            if 'CONQ' in header:
+                factor = 1
+            header = header.replace('NUM_POINTS', '{0:.6g}'.format(num_points))
+            header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor*x[0]))
+            header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor*(x[1]-x[0])))
+
+            file_handle.write(header)
+            file_handle.write('\n')
+            for ind in range(num_points):
+                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor*x[ind], y[ind], sqrt(abs(y[ind]))))
         else:
             if header is not None:
                 file_handle.write(header)
@@ -152,7 +165,7 @@ class PatternModel(QtCore.QObject):
         if pattern is not None:
             self.pattern.background_pattern = pattern
         else:
-            self.pattern.unset_background_spectrum()
+            self.pattern.unset_background_pattern()
         self._background_pattern = pattern
         self.pattern_changed.emit()
 

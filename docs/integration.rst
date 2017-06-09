@@ -3,7 +3,7 @@ Integration Module
 
 The integration module is the heart of Dioptas. Here you can automatically integrate multiple of spectra, browse between
 images and integrated spectra, compare multiple spectra to each other, perform background subtraction and compare
-spectrum peak positions to the ones of known phases.
+pattern peak positions to the ones of known phases.
 
 .. figure:: images/integration_view.png
     :align: center
@@ -11,11 +11,11 @@ spectrum peak positions to the ones of known phases.
 
     The integration module of Dioptas.
 
-In the integration module the current image is displayed on the left side with the integrated spectrum shown on the
+In the integration module the current image is displayed on the left side with the integrated pattern shown on the
 lower right. The control panel has several tabs for different functions.
 
 The "**Img**" and "**Spec**" tabs are primarily for loading and browsing images and spectra, respectively.
-In the "**Overlay**" tab integrated spectra can be loaded for comparing them to the currently loaded shown active spectrum.
+In the "**Overlay**" tab integrated spectra can be loaded for comparing them to the currently loaded shown active pattern.
 The "**Phase**" tab enables opening/editing jcpds files and changing the equation of state parameters of the loaded phases.
 The controls in the "**Bkg**" tab can be used to define an image as background prior to integration and the "**X**"
 (special) tab contains several additional optional features like cBN absorption correction, manual selection of the
@@ -27,7 +27,7 @@ File Handling
 
 Images and spectra can be loaded by clicking the **Load** button in the respective modules. Images can be in different
 file formats: *.img*, *.sfrm*, *.dm3*, *.edf*, *.xml*, *.cbf*, *.kccd*, *.msk*, *.spr*, *.tif*, *.mccd*, *.mar3450*,
-*.pnm*, or any other common image formats. Spectrum files should be 2 column files. If there is a header present it should be
+*.pnm*, or any other common image formats. Pattern files should be 2 column files. If there is a header present it should be
 commented by '#' signs.
 
 Images loaded will be automatically integrated if a calibration is available (either by performing it in the calibration
@@ -76,15 +76,15 @@ functions:
 *Save Image*:
     Saves the currently shown image as either a \*.png file for presentation or \*.tiff file as data.
 
-*Save Spectrum*:
-    Saves the current spectrum either in a two-column format (\*.xy) or the complete spectrum content in a \*.png or
+*Save Pattern*:
+    Saves the current pattern either in a two-column format (\*.xy) or the complete pattern content in a \*.png or
     vectorized \*.svg format.
 
 *As Overlay*:
-    Adds the currently active spectrum (white) to overlays.
+    Adds the currently active pattern (white) to overlays.
 
 *As Bkg*:
-    Adds the currently active spectrum (white) to overlays and sets it as background.
+    Adds the currently active pattern (white) to overlays and sets it as background.
 
 *Load Calibration*:
     Opens a dialog to open a *.poni calibration file and sets this as the new calibration parameters.
@@ -102,7 +102,7 @@ Overlays
 In the overlay control panel you can add, delete or clear overlays and adjust their scaling and offset.
 
 *Add*:
-    Loads a spectrum file (2-column file) as overlay. It is possible to select multiple spectra and load them all at once.
+    Loads a pattern file (2-column file) as overlay. It is possible to select multiple spectra and load them all at once.
 
 *Delete*:
     Deletes the currently selected overlay in the overlay list.
@@ -119,14 +119,14 @@ double-clicking the name in the overlay list.
 On the right side you can adjust the scale and offset of the overlays by either entering a specific number or using the
 spin-box controls. The **step** text fields control the steps of the spin-box.
 
-An overlay can be used as a background for the spectrum. In order to to so, you have to activate the
-"**Set as Background**" button. This button sets the currently selected overlay as background for the spectrum file.
+An overlay can be used as a background for the pattern. In order to to so, you have to activate the
+"**Set as Background**" button. This button sets the currently selected overlay as background for the pattern file.
 It can be seen that an overlay is set as background by the **Set as Background** button being activated for a
 specific overlay and by the background overlay name being shown in the lower right of the graphical user interface
 (right below the graph). The scaling and offset of the overlay/background can still be adjusted by using the respective
 spin boxes.
 The background overlay remains active until it is deactivated, therefore the background will be automatically subtracted
-from each newly integrated image or newly loaded spectrum. If autosave for spectra is set, Dioptas will create a
+from each newly integrated image or newly loaded pattern. If autosave for spectra is set, Dioptas will create a
 *bkg_subtracted* folder in the autosave folder and automatically save all subtracted spectra.
 
 
@@ -142,7 +142,7 @@ Phases
 The basic controls for phases are similar to the ones in overlay:
 
 *Add*:
-    Loads a *.jcpds file, calculates the line positions in the range of the current spectrum and shows the phase lines in
+    Loads a *.jcpds file, calculates the line positions in the range of the current pattern and shows the phase lines in
     the graph. You can select multiple spectra in the file dialog.
 
 *Edit*:
@@ -163,8 +163,8 @@ list. If for a particular phase thermal expansion is not in the jcpds file it wi
 
 On the right side the pressure and temperatures of the loaded phases can be adjusted. If *Apply to all phases* is checked
 the pressure and temperature will be set for all loaded phases. By default the pressure and temperature values will be
-displayed in the phase legend in the spectrum if they differ from ambient conditions. For disabling this feature please
-uncheck the *Show in Spectrum" checkbox.
+displayed in the phase legend in the pattern if they differ from ambient conditions. For disabling this feature please
+uncheck the *Show in Pattern" checkbox.
 
 JCPDS Editor
 ~~~~~~~~~~~~
@@ -176,7 +176,7 @@ JCPDS Editor
     Graphical JCPDS editor
 
 In the jcpds editor the content of the jcpds file can be modified. Every change will be immediately reflected in the
-position of the lines in the spectrum. You can edit the comment, the symmetry, lattice parameter and equation of state
+position of the lines in the pattern. You can edit the comment, the symmetry, lattice parameter and equation of state
 parameters. Reflections can be edited in the reflections table. h, k, l and intensities can be modified by double
 clicking in the table all other parameters are calculated correspondingly. A 0 after a parameters always means that this
 is the value at ambient condition and when there is no 0 the value corresponds to the current temperature and pressure

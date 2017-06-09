@@ -59,7 +59,7 @@ class IntegrationController(object):
         """
         Creates the sub controller with the appropriate data.
         """
-        self.spectrum_controller = PatternController(self.working_dir, self.widget, self.model)
+        self.pattern_controller = PatternController(self.working_dir, self.widget, self.model)
         self.image_controller = ImageController(self.working_dir, self.widget, self.model)
         self.overlay_controller = OverlayController(self.working_dir, self.widget, self.model)
         self.phase_controller = PhaseController(self.working_dir, self.widget, self.model)
