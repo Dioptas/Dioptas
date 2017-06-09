@@ -62,10 +62,10 @@ After the peaks/ring(s) have been selected we can start the calibration procedur
 "Calibrate" Button on the lower left of the interface. This will calculate the geometric parameters based on the current
 peak selection and then do automatically refine the calibration parameters.
 
-After refinement Dioptas will automatically create a 360 degree cake image and an integrated spectrum. When the procedure
+After refinement Dioptas will automatically create a 360 degree cake image and an integrated pattern. When the procedure
 is finished it will jump to the "Cake" tab (top tab-bar above the image) and show the cake image.
 In this image you can easily check if the calibration was successful (by checking if the cake lines are straight).
-Additionally, the spectrum is plotted with calculated calibrant positions in the "Spectrum" Tab. All peak maxima should
+Additionally, the pattern is plotted with calculated calibrant positions in the "Pattern" Tab. All peak maxima should
 coincide with phase line positions. The resulting calibration parameters are shown by clicking the **pyFAI parameters**
 or **Fit2d Parameters** tabs in the right control panel. The current calibration parameters can be saved by clicking the
 **Save Calibration** button on the lower right of the user interface. To fast reuse the current calibration later, the

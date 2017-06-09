@@ -40,10 +40,10 @@ class OverlayModel(QtCore.QObject):
         """
         Adds a pattern as overlay to the list of overlays, does not use its original scaling parameters
         """
-        overlay_spectrum = Pattern(np.copy(pattern.x),
+        overlay_pattern = Pattern(np.copy(pattern.x),
                                    np.copy(pattern.y),
                                    copy(pattern.name))
-        self.overlays.append(overlay_spectrum)
+        self.overlays.append(overlay_pattern)
         self.overlay_added.emit()
 
     def add_overlay_file(self, filename):

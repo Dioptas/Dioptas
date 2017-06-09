@@ -4,6 +4,8 @@ import unittest
 import gc
 import os
 import numpy as np
+from math import sqrt, atan2, cos, sin
+from qtpy import QtCore
 
 from ...model.MaskModel import MaskModel
 
@@ -126,3 +128,51 @@ class MaskModelTest(unittest.TestCase):
         self.mask_model.save_mask(os.path.join(data_path, "test_save.mask"))
 
         self.assertTrue(os.path.exists(os.path.join(data_path, "test_save.mask")))
+
+    def test_find_center_of_circle_from_three_points(self):
+        x0 = 2.0
+        y0 = 3.5
+        r = 1.2
+        phi1 = 0.1
+        phi2 = 1.3
+        phi3 = 6.0
+        p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
+        p2 = QtCore.QPointF(x0 + r * cos(phi2), y0 + r * sin(phi2))
+        p3 = QtCore.QPointF(x0 + r * cos(phi3), y0 + r * sin(phi3))
+        # p1 = (x0 + r * cos(phi1), y0 + r * sin(phi1))
+        # p2 = (x0 + r * cos(phi2), y0 + r * sin(phi2))
+        # p3 = (x0 + r * cos(phi3), y0 + r * sin(phi3))
+        self.mask_model.find_center_of_circle_from_three_points(p1, p2, p3)
+        self.assertAlmostEqual(x0, self.mask_model.center_for_arc.x(), 6)
+        self.assertAlmostEqual(y0, self.mask_model.center_for_arc.y(), 6)
+
+    def test_find_radius_of_circle_from_center_and_point(self):
+        x0 = 2.0
+        y0 = 3.5
+        p0 = QtCore.QPointF(x0, y0)
+        r = 1.2
+        phi1 = 0.1
+        p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
+        rcalc = self.mask_model.find_radius_of_circle_from_center_and_point(p0, p1)
+        self.assertEqual(r, rcalc)
+
+    def test_find_n_points_on_arc_from_three_points(self):
+        n = 50
+        x0 = 2.0
+        y0 = 3.5
+        p0 = QtCore.QPointF(x0, y0)
+        r = 1.2
+        width = 0
+
+        phi1 = 0.1
+        phi2 = 1.3
+        phi3 = -0.2
+        p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
+        p2 = QtCore.QPointF(x0 + r * cos(phi2), y0 + r * sin(phi2))
+        p3 = QtCore.QPointF(x0 + r * cos(phi3), y0 + r * sin(phi3))
+
+        n_angles = self.mask_model.find_n_angles_on_arc_from_three_points_around_p0(p0, p1, p2, p3, n)
+        n_points = self.mask_model.calc_arc_points_from_angles(p0, r, width, n_angles)
+        for p in n_points:
+            rcalc = self.mask_model.find_radius_of_circle_from_center_and_point(p0, p)
+            self.assertAlmostEqual(r, rcalc, 5)

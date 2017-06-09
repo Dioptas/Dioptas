@@ -2,7 +2,7 @@ Introduction
 ============
 
 Dioptas is a  GUI program for fast analysis of powder X-ray diffraction Images.
-It provides the capability of calibrating, integrating, creating masks, showing multiple spectrum overlays and display
+It provides the capability of calibrating, integrating, creating masks, showing multiple pattern overlays and display
 phases line positions.
 The basis of the integration and calibration algorithm is the pyFAI library pyFAI_.
 The usage of pyFAI_ allows integration times on the order of 20 milliseconds and calibration of every possible detector
@@ -20,7 +20,7 @@ want to exclude from the image integration and the Integration module is the hea
 image and integrated spectra. One can overlay different spectra and show line position of phases.
 
 
-Mouse Interaction in Image Views and Spectrum Views
+Mouse Interaction in Image Views and Pattern Views
 ---------------------------------------------------
 
 *Left Click:*

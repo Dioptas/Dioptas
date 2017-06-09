@@ -1,5 +1,5 @@
 subroutine smooth_bruckner(y_bkg, y, n, smooth_points, iterations)
-!     extracts a background of spectrum/pattern by using an
+!     extracts a background of pattern/pattern by using an
 !     intelligent moving average filter. Whereby for each point it is
 !     checked whether the y-value is larger than the average - if it is
 !     it will be replaced by the local average

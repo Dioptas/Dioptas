@@ -29,7 +29,7 @@ class IntegrationControllerTest(QtTest):
         self.model.calibration_model.integrate_1d = mock.Mock(return_value=(dummy_x, dummy_y))
 
         self.widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'spectrum': data_path,
+        self.integration_controller = IntegrationController({'pattern': data_path,
                                                              'image': data_path},
                                                             widget=self.widget,
                                                             dioptas_model=self.model)
@@ -51,8 +51,8 @@ class IntegrationControllerTest(QtTest):
         working_dir = os.path.join(data_path, 'out')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
-        self.image_controller.working_dir['spectrum'] = os.path.join(working_dir)
-        self.widget.spec_autocreate_cb.setChecked(True)
+        self.image_controller.working_dir['pattern'] = os.path.join(working_dir)
+        self.widget.pattern_autocreate_cb.setChecked(True)
 
         return filenames, input_filenames, working_dir
 
@@ -72,7 +72,7 @@ class IntegrationControllerTest(QtTest):
 
     def test_batch_integration_with_automatic_background_subtraction(self):
         filenames, input_filenames, working_dir = self._setup_batch_integration()
-        self.widget.bkg_spectrum_gb.setChecked(True)
+        self.widget.bkg_pattern_gb.setChecked(True)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=input_filenames)
         click_button(self.widget.load_img_btn)
@@ -97,3 +97,20 @@ class IntegrationControllerTest(QtTest):
     def test_switching_to_cake_mode_without_having_clicked_the_image_before(self):
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
+
+    def test_shift_cake_azimuth(self):
+        shift = 300
+        QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), 0)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi))
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.singleStep(), 1)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), 0)
+        old_cake_data = np.copy(self.model.cake_data)
+        self.widget.cake_shift_azimuth_sl.setValue(shift)
+
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), shift)
+
+        displayed_cake_data = self.widget.img_widget.img_data
+        self.assertFalse(np.array_equal(displayed_cake_data, old_cake_data))
+        self.assertFalse(np.array_equal(displayed_cake_data[0], old_cake_data[0]))
+        self.assertTrue(np.array_equal(displayed_cake_data[shift], old_cake_data[0]))
