@@ -134,7 +134,7 @@ class CalibrationController(object):
         """
         self.widget.img_widget.mouse_moved.connect(self.update_img_mouse_position_lbl)
         self.widget.cake_widget.mouse_moved.connect(self.update_cake_mouse_position_lbl)
-        self.widget.spectrum_widget.mouse_moved.connect(self.update_spectrum_mouse_position_lbl)
+        self.widget.pattern_widget.mouse_moved.connect(self.update_pattern_mouse_position_lbl)
         self.widget.img_widget.mouse_left_clicked.connect(self.search_peaks)
 
     def update_f2_btn_click(self):
@@ -233,9 +233,14 @@ class CalibrationController(object):
             wavelength = start_values['wavelength']
 
         self.model.calibration_model.calibrant.setWavelength_change2th(wavelength)
-        self.widget.spectrum_widget.plot_vertical_lines(
-            np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180,
-            name=self._calibrants_file_names_list[current_index])
+        try:
+            integration_unit = self.model.current_configuration.integration_unit
+        except:
+            integration_unit = '2th_deg'
+
+        self.widget.pattern_widget.plot_vertical_lines(self.convert_x_value(np.array(
+            self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
+            integration_unit, wavelength), name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -503,7 +508,7 @@ class CalibrationController(object):
                                                           0, show_cancel_btn=False)
             QtWidgets.QApplication.processEvents()
             self.model.current_configuration.integrate_image_1d()
-            progress_dialog.setLabelText('Integrating to spectrum.')
+            progress_dialog.setLabelText('Integrating to pattern.')
             QtWidgets.QApplication.processEvents()
             QtWidgets.QApplication.processEvents()
             self.model.current_configuration.integrate_image_2d()
@@ -511,10 +516,19 @@ class CalibrationController(object):
         self.widget.cake_widget.plot_image(self.model.cake_data, False)
         self.widget.cake_widget.auto_range()
 
-        self.widget.spectrum_widget.plot_data(*self.model.pattern.data)
-        self.widget.spectrum_widget.plot_vertical_lines(np.array(self.model.calibration_model.calibrant.get_2th()) /
-                                                        np.pi * 180)
-        self.widget.spectrum_widget.view_box.autoRange()
+        self.widget.pattern_widget.plot_data(*self.model.pattern.data)
+        self.widget.pattern_widget.plot_vertical_lines(self.convert_x_value(np.array(
+            self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
+            self.model.current_configuration.integration_unit, None))
+
+        if self.model.current_configuration.integration_unit == '2th_deg':
+            self.widget.pattern_widget.pattern_plot.setLabel('bottom', u'2θ', '°')
+        elif self.model.current_configuration.integration_unit == 'q_A^-1':
+            self.widget.pattern_widget.pattern_plot.setLabel('bottom', 'Q', 'A<sup>-1</sup>')
+        elif self.model.current_configuration.integration_unit == 'd_A':
+            self.widget.pattern_widget.pattern_plot.setLabel('bottom', 'd', 'A')
+
+        self.widget.pattern_widget.view_box.autoRange()
         if self.widget.tab_widget.currentIndex() == 0:
             self.widget.tab_widget.setCurrentIndex(1)
 
@@ -579,10 +593,35 @@ class CalibrationController(object):
             str = "x: %.1f y: %.1f" % (x, y)
         self.widget.pos_lbl.setText(str)
 
-    def update_spectrum_mouse_position_lbl(self, x, y):
+    def update_pattern_mouse_position_lbl(self, x, y):
         """
-        Displays the values of x, y (spectrum mouse-position) in the GUI.
+        Displays the values of x, y (pattern mouse-position) in the GUI.
         """
         # x, y = pos
         str = "x: %.1f y: %.1f" % (x, y)
         self.widget.pos_lbl.setText(str)
+
+    def convert_x_value(self, value, previous_unit, new_unit, wavelength):
+        if wavelength is None:
+            wavelength = self.model.calibration_model.wavelength
+        if previous_unit == '2th_deg':
+            tth = value
+        elif previous_unit == 'q_A^-1':
+            tth = np.arcsin(
+                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
+        elif previous_unit == 'd_A':
+            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
+        else:
+            tth = 0
+
+        if new_unit == '2th_deg':
+            res = tth
+        elif new_unit == 'q_A^-1':
+            res = 4 * np.pi * \
+                  np.sin(tth / 360 * np.pi) / \
+                  wavelength / 1e10
+        elif new_unit == 'd_A':
+            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+        else:
+            res = 0
+        return res

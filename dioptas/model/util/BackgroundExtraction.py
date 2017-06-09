@@ -21,8 +21,8 @@ def extract_background(x, y, smooth_width=0.1, iterations=50, cheb_order=50):
     """
     Performs a background subtraction using bruckner smoothing and a chebyshev polynomial.
     Standard parameters are found to be optimal for synchrotron XRD.
-    :param x: x-data of spectrum
-    :param y: y-data of spectrum
+    :param x: x-data of pattern
+    :param y: y-data of pattern
     :param smooth_width: width of the window in x-units used for bruckner smoothing
     :param iterations: number of iterations for the bruckner smoothing
     :param cheb_order: order of the fitted chebyshev polynomial
