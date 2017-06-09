@@ -312,7 +312,7 @@ class DioptasModel(QtCore.QObject):
             for key in self.working_directories:
                 wd.attrs[key] = self.working_directories[key]
         except TypeError:
-            self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
+            self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
                                         'phase': ''}
             for key in self.working_directories:
                 wd.attrs[key] = self.working_directories[key]
@@ -541,8 +541,8 @@ class DioptasModel(QtCore.QObject):
         def load_correction_from_configuration(name):
             if isinstance(f.get('image_model').get('corrections').get(name), h5py.Dataset):
                 if name == 'cbn':
-                    tth_array = 180.0 / np.pi * self.current_configuration.calibration_model.spectrum_geometry.ttha
-                    azi_array = 180.0 / np.pi * self.current_configuration.calibration_model.spectrum_geometry.chia
+                    tth_array = 180.0 / np.pi * self.current_configuration.calibration_model.pattern_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.current_configuration.calibration_model.pattern_geometry.chia
                     cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
                     params = {}
                     for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
@@ -551,8 +551,8 @@ class DioptasModel(QtCore.QObject):
                     cbn_correction.update()
                     self.current_configuration.img_model.add_img_correction(cbn_correction, name, name)
                 elif name == 'oiadac':
-                    tth_array = 180.0 / np.pi * self.current_configuration.calibration_model.spectrum_geometry.ttha
-                    azi_array = 180.0 / np.pi * self.current_configuration.calibration_model.spectrum_geometry.chia
+                    tth_array = 180.0 / np.pi * self.current_configuration.calibration_model.pattern_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.current_configuration.calibration_model.pattern_geometry.chia
                     oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
                     params = {}
                     for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
