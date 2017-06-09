@@ -756,7 +756,7 @@ class ImageController(object):
         self.model.img_model.autoprocess = self.widget.autoprocess_cb.isChecked()
 
     def save_img(self, filename=None):
-        if filename is None:
+        if not filename:
             img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
             filename = save_file_dialog(self.widget, "Save Image.",
                                         os.path.join(self.working_dir['image'],
