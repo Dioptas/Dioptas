@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 
-import os, sys
+import os, sys, shutil
 import unittest
 import gc
 
@@ -55,8 +55,8 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         del self.controller
         gc.collect()
 
-    def load_image(self):
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[test_image_file_name])
+    def load_image(self, file_name):
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[file_name])
         click_button(self.controller.integration_controller.widget.load_img_btn)  # load file
 
         self.model.current_configuration.calibration_model.set_pyFAI(pyfai_params)
@@ -64,13 +64,15 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.model.current_configuration.integration_unit = integration_unit
         self.raw_img_data = self.model.current_configuration.img_model.raw_img_data
 
-    def save_and_load_configuration(self, prepare_function):
+    def save_and_load_configuration(self, prepare_function, intermediate_function=None):
         sys.excepthook = excepthook
-        self.load_image()
+        self.load_image(test_image_file_name)
         if prepare_function is not None:
             prepare_function()
         self.save_configuration()
         self.tearDown()
+        if intermediate_function:
+            intermediate_function()
         self.setUp()
         self.load_configuration()
 
@@ -157,6 +159,27 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
         self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
 
+    def test_save_and_then_load_with_existing_files(self):
+        self.save_and_load_configuration(self.existing_files_settings)
+        self.assertTrue(os.path.isfile(test_image_file_name_2))
+        os.remove(test_image_file_name_2)
+
+    def existing_files_settings(self):
+        shutil.copy(test_image_file_name, test_image_file_name_2)
+        self.load_image(test_image_file_name_2)
+
+    def test_save_and_then_load_with_nonexisting_files(self):
+        self.save_and_load_configuration(self.nonexisting_files_settings, self.nonexisting_files_intermediate_settings)
+        self.assertTrue(os.path.isfile(test_image_file_name_2))
+        os.remove(test_image_file_name_2)
+
+    def nonexisting_files_settings(self):
+        shutil.copy(test_image_file_name, test_image_file_name_2)
+        self.load_image(test_image_file_name_2)
+
+    def nonexisting_files_intermediate_settings(self):
+        os.remove(test_image_file_name_2)
+
     def save_configuration(self):
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=config_file_path)
         click_button(self.config_widget.save_configuration_btn)
@@ -199,6 +222,7 @@ img_autoprocess = True
 detector_thickness = 30
 absorption_length = 175
 test_image_file_name = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
+test_image_file_name_2 = os.path.join(data_path, 'a_CeO2_Pilatus1M.tif')
 poly_order = 55
 pyfai_params = {'detector': 'Detector',
                 'dist': 0.196711580484,
