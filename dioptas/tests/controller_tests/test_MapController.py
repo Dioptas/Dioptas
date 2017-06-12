@@ -27,7 +27,7 @@ class IntegrationControllerTest(QtTest):
         self.model = DioptasModel()
 
         self.widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'spectrum': data_path,
+        self.integration_controller = IntegrationController({'pattern': data_path,
                                                              'image': data_path,
                                                              'phase': data_path},
                                                             widget=self.widget,
@@ -53,8 +53,8 @@ class IntegrationControllerTest(QtTest):
         working_dir = os.path.join(map_path, 'patterns2')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
-        self.integration_controller.image_controller.working_dir['spectrum'] = os.path.join(working_dir)
-        self.widget.spec_autocreate_cb.setChecked(True)
+        self.integration_controller.image_controller.working_dir['pattern'] = os.path.join(working_dir)
+        self.widget.pattern_autocreate_cb.setChecked(True)
         return map_file_paths, map_file_names, working_dir
 
     def helper_delete_integrated_map_files_and_working_directory(self, file_names, working_dir):
@@ -86,7 +86,7 @@ class IntegrationControllerTest(QtTest):
 
     def helper_add_range_at_pos(self, pos):
         current_count = self.widget.map_2D_widget.roi_list.count()
-        self.integration_controller.spectrum_controller.pattern_left_click(pos, 50.0)
+        self.integration_controller.pattern_controller.pattern_left_click(pos, 50.0)
         click_button(self.widget.map_2D_widget.roi_add_btn)
         self.assertEqual(self.widget.map_2D_widget.roi_list.count(), current_count + 1)
 

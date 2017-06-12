@@ -253,7 +253,7 @@ class MapController(object):
 
     def snapshot_btn_clicked(self):
         snapshot_filename = save_file_dialog(self.widget, "Save Map Snapshot.",
-                                             os.path.join(self.working_dir['spectrum'], 'map.png'),
+                                             os.path.join(self.working_dir['pattern'], 'map.png'),
                                              'PNG (*.png);;JPG (*.jpg);;TIF (*.tif)')
         exporter = pq.exporters.ImageExporter(self.map_widget.map_view_box)
         exporter.export(snapshot_filename)
@@ -290,7 +290,7 @@ class MapController(object):
                     self.map_widget.map_roi[key]['Obj'].setRegion((roi_start, roi_end))
                     break
 
-    # replaces the LMB click event for loading the spectrum according to map pos, complete unzoom on right-click
+    # replaces the LMB click event for loading the pattern according to map pos, complete unzoom on right-click
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and ev.modifiers() & QtCore.Qt.ControlModifier):
