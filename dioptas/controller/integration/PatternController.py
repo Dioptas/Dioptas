@@ -248,7 +248,7 @@ class PatternController(object):
 
     def set_unit_tth(self):
         previous_unit = self.integration_unit
-        if previous_unit == '2th_deg' or not self.check_if_wavelength_set():
+        if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
 
@@ -261,11 +261,11 @@ class PatternController(object):
             self.map_controller.convert_all_units(previous_unit, self.integration_unit,
                                                   self.model.calibration_model.wavelength)  # MAP2D
 
-        self.finish_update_bg_linear_region()
+        # self.finish_update_bg_linear_region()
 
     def set_unit_q(self):
         previous_unit = self.integration_unit
-        if previous_unit == 'q_A^-1' or not self.check_if_wavelength_set():
+        if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
 
@@ -281,7 +281,7 @@ class PatternController(object):
 
     def set_unit_d(self):
         previous_unit = self.integration_unit
-        if previous_unit == 'd_A' or not self.check_if_wavelength_set():
+        if previous_unit == 'd_A':
             return
         self.integration_unit = 'd_A'
 
@@ -439,9 +439,9 @@ class PatternController(object):
 
     def update_autocreate_gui(self):
         self.widget.spec_autocreate_cb.setChecked(self.model.current_configuration.autosave_integrated_pattern)
-        self.widget.spectrum_header_xy_cb.setChecked(
+        self.widget.pattern_header_xy_cb.setChecked(
             '.xy' in self.model.current_configuration.integrated_patterns_file_formats)
-        self.widget.spectrum_header_chi_cb.setChecked(
+        self.widget.pattern_header_chi_cb.setChecked(
             '.chi' in self.model.current_configuration.integrated_patterns_file_formats)
-        self.widget.spectrum_header_dat_cb.setChecked(
+        self.widget.pattern_header_dat_cb.setChecked(
             '.dat' in self.model.current_configuration.integrated_patterns_file_formats)

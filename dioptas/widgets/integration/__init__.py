@@ -239,8 +239,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.qa_bkg_pattern_inspect_btn = pattern_widget.background_inspect_btn
         self.set_wavelnegth_btn = pattern_widget.set_wavelength_btn
         self.wavelength_lbl = pattern_widget.wavelength_lbl
-        self.qa_bkg_spectrum_btn = pattern_widget.background_btn
-        self.qa_bkg_spectrum_inspect_btn = pattern_widget.background_inspect_btn
+        self.qa_bkg_pattern_btn = pattern_widget.background_btn
+        self.qa_bkg_pattern_inspect_btn = pattern_widget.background_inspect_btn
         self.antialias_btn = pattern_widget.antialias_btn
         self.pattern_auto_range_btn = pattern_widget.auto_range_btn
         self.pattern_widget = pattern_widget.pattern_view

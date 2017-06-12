@@ -157,7 +157,7 @@ class ImageController(object):
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
-        self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.set_cake_axes_range)
+        # self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.set_cake_axes_range)
 
         self.connect_click_function(self.widget.integration_image_widget.show_bg_subtracted_img_btn,
                                     self.show_bg_subtracted_img_btn_clicked)
@@ -252,7 +252,7 @@ class ImageController(object):
         self._set_up_multiple_file_integration()
 
         if self.widget.img_batch_mode_map_rb.isChecked():
-            self.widget.spectrum_header_xy_cb.setChecked(True)
+            self.widget.pattern_header_xy_cb.setChecked(True)
             self.model.map_model.reset_map_data()  # MAP2D
             self.model.map_model.all_positions_defined_in_files = True
 
@@ -344,7 +344,7 @@ class ImageController(object):
         self.widget.file_info_widget.raise_widget()
 
     def map_2d(self):  # MAP2D
-        self.widget.map_2D_widget.raise_widget(self.model.img_model, self.widget.pattern_widget.spectrum_plot,
+        self.widget.map_2D_widget.raise_widget(self.model.img_model, self.widget.pattern_widget.pattern_plot,
                                                self.widget)
 
     def get_integration_unit(self):
@@ -518,7 +518,7 @@ class ImageController(object):
 
         self.plot_mask()
         self.plot_cake()
-        self.set_cake_axes_range()
+        # self.set_cake_axes_range()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
         self.widget.cake_shift_azimuth_sl.setMinimum(0)
@@ -801,7 +801,7 @@ class ImageController(object):
     def set_wavelength(self):
         wavelength, ok = QtWidgets.QInputDialog.getText(self.widget, 'Set Wavelength', 'Wavelength in Angstroms:')
         if ok:
-            self.model.calibration_model.spectrum_geometry.wavelength = float(wavelength)*1e-10
+            self.model.calibration_model.pattern_geometry.wavelength = float(wavelength)*1e-10
             self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
             self.model.img_model.img_changed.emit()
 
