@@ -245,6 +245,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_autoscale_btn = image_widget.autoscale_btn
         self.img_dock_btn = image_widget.undock_btn
         self.img_widget = image_widget.img_view
+        self.img_show_background_subtracted_btn = image_widget.show_background_subtracted_img_btn
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
         self.tabWidget = self.integration_control_widget
