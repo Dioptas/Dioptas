@@ -93,6 +93,7 @@ class BackgroundController(object):
             self.widget.bkg_image_filename_lbl.setText("Loading File")
             try:
                 self.model.img_model.load_background(filename)
+                self.widget.img_show_background_subtracted_btn.setVisible(True)
             except BackgroundDimensionWrongException:
                 QtWidgets.QMessageBox.critical(self.widget, 'ERROR',
                                                'Background image does not have the same dimensions as original Image. ' + \
@@ -102,6 +103,7 @@ class BackgroundController(object):
     def remove_background_image(self):
         self.widget.bkg_image_filename_lbl.setText("None")
         self.widget.bkg_name_lbl.setText('')
+        self.widget.img_show_background_subtracted_btn.setVisible(False)
         self.model.img_model.reset_background()
 
     def update_bkg_image_scale_step(self):
