@@ -183,6 +183,7 @@ class IntegrationMockFunctionalTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(data_path, 'image_001.tif'),
                                                             os.path.join(data_path, 'image_002.tif')])
+        QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=data_path)
         self.integration_widget.img_batch_mode_image_save_rb.setChecked(True)
         click_button(self.integration_widget.load_img_btn)
 
