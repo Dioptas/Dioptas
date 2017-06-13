@@ -137,7 +137,7 @@ class MainController(object):
 
             if self.model.use_mask:
                 self.model.current_configuration.integrate_image_1d()
-                if self.model.current_configuration.integrate_cake:
+                if self.model.current_configuration.auto_integrate_cake:
                     self.model.current_configuration.integrate_image_2d()
             else:
                 self.model.pattern_changed.emit()
