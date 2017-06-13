@@ -233,7 +233,6 @@ class ImageController(object):
 
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
                                                           len(filenames))
-        self._set_up_batch_processing()
 
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
@@ -254,7 +253,6 @@ class ImageController(object):
                 break
 
         self._tear_down_batch_processing()
-        progress_dialog.close()
 
     def _get_pattern_working_directory(self):
         if self.widget.pattern_autocreate_cb.isChecked():
@@ -287,6 +285,8 @@ class ImageController(object):
                                                           len(filenames))
         QtWidgets.QApplication.processEvents()
 
+        self.model.current_configuration.auto_integrate_pattern = False
+
         for ind, filename in enumerate(filenames):
             base_filename = os.path.basename(filename)
 
@@ -299,6 +299,8 @@ class ImageController(object):
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
                 break
+
+        self.model.current_configuration.auto_integrate_pattern = True
 
         progress_dialog.close()
         self._tear_down_batch_processing()
@@ -479,8 +481,8 @@ class ImageController(object):
             self.activate_image_mode()
 
     def activate_cake_mode(self):
-        if not self.model.current_configuration.integrate_cake:
-            self.model.current_configuration.integrate_cake = True
+        if not self.model.current_configuration.auto_integrate_cake:
+            self.model.current_configuration.auto_integrate_cake = True
 
         self.model.current_configuration.integrate_image_2d()
 
@@ -511,8 +513,8 @@ class ImageController(object):
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
 
     def activate_image_mode(self):
-        if self.model.current_configuration.integrate_cake:
-            self.model.current_configuration.integrate_cake = False
+        if self.model.current_configuration.auto_integrate_cake:
+            self.model.current_configuration.auto_integrate_cake = False
 
         self.widget.cake_shift_azimuth_sl.setVisible(False)
 
@@ -950,13 +952,13 @@ class ImageController(object):
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
 
-        if self.model.current_configuration.integrate_cake and self.img_mode == 'Image':
+        if self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
             self.activate_cake_mode()
-        elif not self.model.current_configuration.integrate_cake and self.img_mode == 'Cake':
+        elif not self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Cake':
             self.activate_image_mode()
-        elif self.model.current_configuration.integrate_cake and self.img_mode == 'Cake':
+        elif self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Cake':
             self._update_cake_line_pos()
             self._update_cake_mouse_click_pos()
-        elif not self.model.current_configuration.integrate_cake and self.img_mode == 'Image':
+        elif not self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
