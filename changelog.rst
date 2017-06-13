@@ -1,11 +1,12 @@
-0.3.2 (under development 06/08/2017)
+0.3.2 (under development 06/13/2017)
 ------------------------------------
     - added the possibility to work with multiple detector configurations at the same time
     - there is now a Dioptas Icon instead of the generic python icon
     - unmasking geometric shapes are now green instead of red, to clarify which mode is selected
     - it is now possible to use arcs for masking
-    - Dioptas is now completely python 3.5/3.6 compatible
+    - Dioptas is now completely Python 3.5/3.6 compatible
     - Dioptas can now save pattern files as "FXYE" files (GSAS-II format)
+    - background subtracted or other modified (absorption correction etc.) Images can now be saved in batch mode
 
 Bugfixes:
     - fixed issues with changing units when having automatic background subtraction enabled
