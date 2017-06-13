@@ -46,6 +46,7 @@ class ConfigurationWidget(QtWidgets.QWidget):
 
     def create_layout(self):
         self.main_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.setContentsMargins(7, 0, 0, 0)
         self.main_layout.addWidget(self.configuration_lbl)
         self.main_layout.addWidget(self.add_configuration_btn)
         self.main_layout.addWidget(self.remove_configuration_btn)
@@ -72,13 +73,12 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.configurations_btn_layout = QtWidgets.QHBoxLayout(self.configurations_btn_widget)
 
     def style_widgets(self):
-        self.main_layout.setSpacing(7)
+        self.main_layout.setSpacing(6)
         self.next_file_btn.setMaximumWidth(25)
         self.file_iterator_pos_txt.setMaximumWidth(25)
         self.next_folder_btn.setMaximumWidth(25)
         self.previous_folder_btn.setMaximumWidth(25)
         self.previous_file_btn.setMaximumWidth(25)
-        self.main_layout.setContentsMargins(5, 5, 5, 3)
         self.factor_txt.setMaximumWidth(35)
 
     def update_configurations(self, configurations, cur_ind):
