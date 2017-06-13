@@ -410,8 +410,8 @@ class DioptasModel(QtCore.QObject):
 
     def _activate_cake(self):
         for configuration in self.configurations:
-            if not configuration.integrate_cake:
-                configuration.integrate_cake = True
+            if not configuration.auto_integrate_cake:
+                configuration.auto_integrate_cake = True
                 configuration.integrate_image_2d()
 
     def _get_cake_tth_range(self):

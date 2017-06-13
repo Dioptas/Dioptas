@@ -34,7 +34,7 @@ class ImageBackgroundTests(QtTest):
         click_button(self.controller.widget.integration_widget.load_img_btn)
         data_before_bg = np.copy(self.controller.widget.integration_widget.img_widget.data_img_item.image)
 
-        click_button(self.controller.widget.integration_widget.integration_image_widget.show_bg_subtracted_img_btn)
+        click_button(self.controller.widget.integration_widget.integration_image_widget.show_background_subtracted_img_btn)
         click_button(self.controller.widget.integration_widget.bkg_image_load_btn)
 
         data_after_bg = np.copy(self.controller.widget.integration_widget.img_widget.data_img_item.image)
@@ -50,7 +50,7 @@ class ImageBackgroundTests(QtTest):
 
         click_button(self.controller.widget.integration_widget.bkg_image_load_btn)
 
-        click_button(self.controller.widget.integration_widget.integration_image_widget.show_bg_subtracted_img_btn)
+        click_button(self.controller.widget.integration_widget.integration_image_widget.show_background_subtracted_img_btn)
 
         data_after_bg = np.copy(self.controller.widget.integration_widget.img_widget.data_img_item.image)
         self.assertFalse(np.array_equal(data_after_bg, data_before_bg))
