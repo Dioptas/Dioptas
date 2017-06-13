@@ -99,16 +99,33 @@ class MainController(object):
         """
         self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
+        self.widget.show_configuration_menu_btn.toggled.connect(self.widget.configuration_widget.setVisible)
+
+        self.widget.calibration_mode_btn.toggled.connect(self.widget.calibration_widget.setVisible)
+        self.widget.mask_mode_btn.toggled.connect(self.widget.mask_widget.setVisible)
+        self.widget.integration_mode_btn.toggled.connect(self.widget.integration_widget.setVisible)
+
+        self.widget.mode_btn_group.buttonToggled.connect(self.tab_changed)
+
         self.model.img_changed.connect(self.update_title)
         self.model.pattern_changed.connect(self.update_title)
 
-    def tab_changed(self, ind):
+    def tab_changed(self):
         """
         Function which is called when a tab has been selected (calibration, mask, or integration). Performs
         needed initialization tasks.
         :param ind: index for the tab selected (2 - integration, 1 = mask, 0 - calibration)
         :return:
         """
+        if self.widget.calibration_mode_btn.isChecked():
+            ind = 0
+        elif self.widget.mask_mode_btn.isChecked():
+            ind = 1
+        elif self.widget.integration_mode_btn.isChecked():
+            ind = 2
+        else:
+            return
+
         old_index = self.current_tab_index
         self.current_tab_index = ind
 
