@@ -7,6 +7,7 @@
     - Dioptas is now completely Python 3.5/3.6 compatible
     - Dioptas can now save pattern files as "FXYE" files (GSAS-II format)
     - background subtracted or other modified (absorption correction etc.) Images can now be saved in batch mode
+    - lists of phases including there pressure and temperature values can now be saved and loaded
 
 Bugfixes:
     - fixed issues with changing units when having automatic background subtraction enabled
