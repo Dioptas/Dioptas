@@ -35,9 +35,10 @@ class ImgConfiguration(QtCore.QObject):
         self._integration_azimuth_points = 2048
         self._integration_unit = '2th_deg'
 
-        self._integrate_cake = False
+        self._auto_integrate_pattern = True
+        self._auto_integrate_cake = False
 
-        self.autosave_integrated_pattern = False
+        self.auto_save_integrated_pattern = False
         self.integrated_patterns_file_formats = ['.xy']
 
         self.connect_signals()
@@ -62,7 +63,7 @@ class ImgConfiguration(QtCore.QObject):
 
             self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
 
-            if self.autosave_integrated_pattern:
+            if self.auto_save_integrated_pattern:
                 self._auto_save_patterns()
 
     def integrate_image_2d(self):
@@ -185,16 +186,28 @@ class ImgConfiguration(QtCore.QObject):
                               new_unit)
 
     @property
-    def integrate_cake(self):
-        return self._integrate_cake
+    def auto_integrate_cake(self):
+        return self._auto_integrate_cake
 
-    @integrate_cake.setter
-    def integrate_cake(self, new_value):
-        self._integrate_cake = new_value
+    @auto_integrate_cake.setter
+    def auto_integrate_cake(self, new_value):
+        self._auto_integrate_cake = new_value
         if new_value:
             self.img_model.img_changed.connect(self.integrate_image_2d)
         else:
             self.img_model.img_changed.disconnect(self.integrate_image_2d)
+
+    @property
+    def auto_integrate_pattern(self):
+        return self._auto_integrate_pattern
+
+    @auto_integrate_pattern.setter
+    def auto_integrate_pattern(self, new_value):
+        self._auto_integrate_pattern = new_value
+        if new_value:
+            self.img_model.img_changed.connect(self.integrate_image_1d)
+        else:
+            self.img_model.img_changed.disconnect(self.integrate_image_1d)
 
     @property
     def cake_img(self):
@@ -397,8 +410,8 @@ class DioptasModel(QtCore.QObject):
 
     def _activate_cake(self):
         for configuration in self.configurations:
-            if not configuration.integrate_cake:
-                configuration.integrate_cake = True
+            if not configuration.auto_integrate_cake:
+                configuration.auto_integrate_cake = True
                 configuration.integrate_image_2d()
 
     def _get_cake_tth_range(self):

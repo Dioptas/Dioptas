@@ -203,7 +203,7 @@ class PatternController(object):
 
     def autocreate_cb_changed(self):
         self.autocreate_pattern = self.widget.pattern_autocreate_cb.isChecked()
-        self.model.current_configuration.autosave_integrated_pattern = self.widget.pattern_autocreate_cb.isChecked()
+        self.model.current_configuration.auto_save_integrated_pattern = self.widget.pattern_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.model.pattern.filename)

@@ -119,6 +119,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
         self.img_batch_mode_integrate_rb = self.integration_control_widget.img_control_widget.batch_mode_integrate_rb
         self.img_batch_mode_add_rb = self.integration_control_widget.img_control_widget.batch_mode_add_rb
+        self.img_batch_mode_image_save_rb = self.integration_control_widget.img_control_widget.batch_mode_image_save_rb
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
         self.pattern_load_btn = pattern_file_widget.load_btn
@@ -244,6 +245,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_autoscale_btn = image_widget.autoscale_btn
         self.img_dock_btn = image_widget.undock_btn
         self.img_widget = image_widget.img_view
+        self.img_show_background_subtracted_btn = image_widget.show_background_subtracted_img_btn
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
         self.tabWidget = self.integration_control_widget
@@ -313,9 +315,9 @@ class IntegrationWidget(QtWidgets.QWidget):
             # restore the previously used size when image was undocked
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
 
-    def get_progress_dialog(self, msg, title, num_points):
-        progress_dialog = QtWidgets.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
-                                                num_points, self)
+    def get_progress_dialog(self, message, abort_text, num_points):
+        progress_dialog = QtWidgets.QProgressDialog(message, abort_text, 0,
+                                                    num_points, self)
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         progress_dialog.move(
