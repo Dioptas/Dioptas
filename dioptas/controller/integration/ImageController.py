@@ -82,7 +82,7 @@ class ImageController(object):
         if auto_scale is None:
             auto_scale = self.widget.img_autoscale_btn.isChecked()
 
-        if self.widget.integration_image_widget.show_bg_subtracted_img_btn.isChecked():
+        if self.widget.integration_image_widget.show_background_subtracted_img_btn.isChecked():
             self.widget.img_widget.plot_image(self.model.img_model.img_data, False)
         else:
             self.widget.img_widget.plot_image(self.model.img_model.raw_img_data, False)
@@ -156,8 +156,8 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
 
-        self.connect_click_function(self.widget.integration_image_widget.show_bg_subtracted_img_btn,
-                                    self.show_bg_subtracted_img_btn_clicked)
+        self.connect_click_function(self.widget.integration_image_widget.show_background_subtracted_img_btn,
+                                    self.show_background_subtracted_img_btn_clicked)
 
         self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
@@ -279,7 +279,7 @@ class ImageController(object):
 
         working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
             self.widget, "Please choose the output directory for the Images.",
-            self.working_dir['images']))
+            self.working_dir['image']))
 
         for ind, filename in enumerate(filenames):
             base_filename = os.path.basename(filename)
@@ -532,7 +532,7 @@ class ImageController(object):
         self.img_docked = not self.img_docked
         self.widget.dock_img(self.img_docked)
 
-    def show_bg_subtracted_img_btn_clicked(self):
+    def show_background_subtracted_img_btn_clicked(self):
         if self.widget.img_mode_btn.text() == 'Cake':
             self.plot_img()
         else:
