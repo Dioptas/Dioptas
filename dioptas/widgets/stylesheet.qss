@@ -352,3 +352,22 @@ QTableWidget {
 }
 
 
+QFrame#main_frame {
+    color: #F1F1F1;
+    border: 1px solid #5B5B5B;
+    border-radius: 5px;
+}
+
+#calibration_mode_btn, #mask_mode_btn, #integration_mode_btn {
+    font: normal 12px;
+    border-radius: 1px;
+}
+
+#calibration_mode_btn {
+   border-top-right-radius:8px;
+   border-bottom-right-radius: 8px;
+}
+#integration_mode_btn {
+   border-top-left-radius:8px;
+   border-bottom-left-radius: 8px;
+}
