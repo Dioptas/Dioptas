@@ -16,6 +16,7 @@ Bugfixes:
     - fixed strange masking artifacts at the edges when using the polygon masking tool
     - fixed undock/dock process, which was not working propoerly (only image was shown without pattern after docking the
       img widget
+    - fixed image view scaling when loading differently sized images or switching between cake and image mode
 
 
 0.3.1 (stable 4/21/2016)
