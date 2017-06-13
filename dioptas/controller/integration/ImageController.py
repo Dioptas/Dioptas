@@ -233,7 +233,7 @@ class ImageController(object):
 
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
                                                           len(filenames))
-        self._set_up_multiple_file_integration()
+        self._set_up_batch_processing()
 
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
@@ -253,7 +253,7 @@ class ImageController(object):
             if progress_dialog.wasCanceled():
                 break
 
-        self._tear_down_multiple_file_integration()
+        self._tear_down_batch_processing()
         progress_dialog.close()
 
     def _get_pattern_working_directory(self):
@@ -266,20 +266,26 @@ class ImageController(object):
                 self.working_dir['pattern']))
         return working_directory
 
-    def _set_up_multiple_file_integration(self):
+    def _set_up_batch_processing(self):
         self.model.blockSignals(True)
 
-    def _tear_down_multiple_file_integration(self):
+    def _tear_down_batch_processing(self):
         self.model.blockSignals(False)
         self.model.img_changed.emit()
+        self.model.pattern_changed.emit()
 
     def _save_multiple_image_files(self, filenames):
-        progress_dialog = self.widget.get_progress_dialog("Saving multiple image files.", "Abort",
-                                                          len(filenames))
-
         working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
             self.widget, "Please choose the output directory for the Images.",
             self.working_dir['image']))
+
+        if working_directory is '':
+            return
+
+        self._set_up_batch_processing()
+        progress_dialog = self.widget.get_progress_dialog("Saving multiple image files.", "Abort",
+                                                          len(filenames))
+        QtWidgets.QApplication.processEvents()
 
         for ind, filename in enumerate(filenames):
             base_filename = os.path.basename(filename)
@@ -290,7 +296,12 @@ class ImageController(object):
             self.model.img_model.load(str(filename))
             self.save_img(os.path.join(working_directory, 'batch_' + base_filename))
 
+            QtWidgets.QApplication.processEvents()
+            if progress_dialog.wasCanceled():
+                break
+
         progress_dialog.close()
+        self._tear_down_batch_processing()
 
     def _save_pattern(self, base_filename, working_directory, x, y):
         file_endings = self._get_pattern_file_endings()
