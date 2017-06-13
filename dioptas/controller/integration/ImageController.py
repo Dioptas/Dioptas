@@ -70,7 +70,7 @@ class ImageController(object):
         self.update_img(True)
         self.plot_img()
         self.plot_mask()
-        self.widget.img_widget.auto_range()
+        self.widget.img_widget.auto_level()
 
     def plot_img(self, auto_scale=None):
         """
@@ -88,7 +88,7 @@ class ImageController(object):
             self.widget.img_widget.plot_image(self.model.img_model.raw_img_data, False)
 
         if auto_scale:
-            self.widget.img_widget.auto_range()
+            self.widget.img_widget.auto_level()
 
     def plot_cake(self, auto_scale=None):
         """
@@ -103,7 +103,7 @@ class ImageController(object):
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         self.widget.img_widget.plot_image(np.roll(self.model.cake_data, shift_amount, axis=0))
         if auto_scale:
-            self.widget.img_widget.auto_range()
+            self.widget.img_widget.auto_level()
 
     def plot_mask(self):
         """
@@ -490,6 +490,7 @@ class ImageController(object):
         self._update_cake_mouse_click_pos()
         self.widget.img_widget.activate_vertical_line()
         self.widget.img_widget.deactivate_circle_scatter()
+        self.widget.img_widget.deactivate_mask()
 
         self.widget.img_widget.img_view_box.setAspectLocked(False)
 
@@ -501,10 +502,8 @@ class ImageController(object):
         self.model.img_changed.disconnect(self.plot_img)
         self.model.img_changed.disconnect(self.plot_mask)
 
-        self.model.cake_changed.connect(self.plot_mask)
         self.model.cake_changed.connect(self.plot_cake)
 
-        self.plot_mask()
         self.plot_cake()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
@@ -522,6 +521,7 @@ class ImageController(object):
         self._update_image_mouse_click_pos()
         self.widget.img_widget.deactivate_vertical_line()
         self.widget.img_widget.activate_circle_scatter()
+        self.widget.img_widget.activate_mask()
         if self.roi_active:
             self.widget.img_widget.activate_roi()
         self.widget.img_widget.img_view_box.setAspectLocked(True)
@@ -531,7 +531,6 @@ class ImageController(object):
         self.model.img_changed.connect(self.plot_img)
         self.model.img_changed.connect(self.plot_mask)
 
-        self.model.cake_changed.disconnect(self.plot_mask)
         self.model.cake_changed.disconnect(self.plot_cake)
 
         self.plot_img()
@@ -539,7 +538,7 @@ class ImageController(object):
 
     def img_autoscale_btn_clicked(self):
         if self.widget.img_autoscale_btn.isChecked():
-            self.widget.img_widget.auto_range()
+            self.widget.img_widget.auto_level()
 
     def img_dock_btn_clicked(self):
         self.img_docked = not self.img_docked
