@@ -33,6 +33,7 @@ from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
 
+
 class ImageController(object):
     """
     The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
@@ -218,10 +219,7 @@ class ImageController(object):
                 elif self.widget.img_batch_mode_integrate_rb.isChecked():
                     self._load_multiple_files(filenames)
                 elif self.widget.img_batch_mode_image_save_rb.isChecked():
-                    for filename in filenames:
-                        self.model.img_model.load(str(filename))
-                        new_filename = os.path.join(os.path.dirname(filename), 'batch_' + os.path.basename(filename))
-                        self.save_img(new_filename)
+                    self._save_multiple_image_files(filenames)
             self._check_absorption_correction_shape()
 
     def _load_multiple_files(self, filenames):
@@ -264,7 +262,7 @@ class ImageController(object):
         else:
             # if there is no working directory selected A file dialog opens up to choose a directory...
             working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
-                self.widget, "Please choose the output directory for the integrated .",
+                self.widget, "Please choose the output directory for the integrated Patterns.",
                 self.working_dir['pattern']))
         return working_directory
 
@@ -274,6 +272,25 @@ class ImageController(object):
     def _tear_down_multiple_file_integration(self):
         self.model.blockSignals(False)
         self.model.img_changed.emit()
+
+    def _save_multiple_image_files(self, filenames):
+        progress_dialog = self.widget.get_progress_dialog("Saving multiple image files.", "Abort",
+                                                          len(filenames))
+
+        working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
+            self.widget, "Please choose the output directory for the Images.",
+            self.working_dir['images']))
+
+        for ind, filename in enumerate(filenames):
+            base_filename = os.path.basename(filename)
+
+            progress_dialog.setValue(ind)
+            progress_dialog.setLabelText("Saving: " + base_filename)
+
+            self.model.img_model.load(str(filename))
+            self.save_img(os.path.join(working_directory, 'batch_' + base_filename))
+
+        progress_dialog.close()
 
     def _save_pattern(self, base_filename, working_directory, x, y):
         file_endings = self._get_pattern_file_endings()
@@ -519,7 +536,7 @@ class ImageController(object):
         if self.widget.img_mode_btn.text() == 'Cake':
             self.plot_img()
         else:
-            self.widget.integration_image_widget.show_bg_subtracted_img_btn.setChecked(False)
+            self.widget.integration_image_widget.show_background_subtracted_img_btn.setChecked(False)
 
     def _update_cake_line_pos(self):
         cur_tth = self.get_current_pattern_tth()
