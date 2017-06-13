@@ -14,6 +14,8 @@ Bugfixes:
     - strong zooming into pattern view will not cause an error due to rescaling of the phase lines anymore
     - fixed issue with compromised Dioptas settings files, Dioptas will now start even if the settings can't be loaded
     - fixed strange masking artifacts at the edges when using the polygon masking tool
+    - fixed undock/dock process, which was not working propoerly (only image was shown without pattern after docking the
+      img widget
 
 
 0.3.1 (stable 4/21/2016)
