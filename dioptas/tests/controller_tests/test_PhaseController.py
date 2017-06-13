@@ -19,12 +19,6 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class PhaseControllerTest(QtTest):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtWidgets.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtWidgets.QApplication([])
-
     def setUp(self):
         self.model = DioptasModel()
         self.model.calibration_model.is_calibrated = True
@@ -230,7 +224,7 @@ class PhaseControllerTest(QtTest):
         self.load_phases()
         phase_list_file_name = 'phase_list.txt'
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, phase_list_file_name))
-        click_button(self.widget.phase_save_btn)
+        click_button(self.widget.phase_save_list_btn)
         # make sure that phase list file was saved
         self.assertTrue(os.path.isfile(os.path.join(data_path, phase_list_file_name)))
 
@@ -244,7 +238,7 @@ class PhaseControllerTest(QtTest):
         # clear and load the saved list to make sure all phases have been loaded
         click_button(self.widget.phase_clear_btn)
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, phase_list_file_name))
-        click_button(self.widget.phase_load_btn)
+        click_button(self.widget.phase_load_list_btn)
 
         self.assertEqual(self.widget.phase_tw.rowCount(), old_phase_list_length)
 

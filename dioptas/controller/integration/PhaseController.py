@@ -63,8 +63,8 @@ class PhaseController(object):
         self.connect_click_function(self.widget.phase_del_btn, self.remove_btn_click_callback)
         self.connect_click_function(self.widget.phase_clear_btn, self.clear_phases)
         self.connect_click_function(self.widget.phase_edit_btn, self.edit_btn_click_callback)
-        self.connect_click_function(self.widget.phase_save_btn, self.save_btn_clicked_callback)
-        self.connect_click_function(self.widget.phase_load_btn, self.load_btn_clicked_callback)
+        self.connect_click_function(self.widget.phase_save_list_btn, self.save_btn_clicked_callback)
+        self.connect_click_function(self.widget.phase_load_list_btn, self.load_btn_clicked_callback)
 
         self.widget.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
         self.widget.phase_temperature_step_txt.editingFinished.connect(self.update_phase_temperature_step)
