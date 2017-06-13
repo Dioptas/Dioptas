@@ -179,6 +179,19 @@ class IntegrationMockFunctionalTest(QtTest):
         os.remove(os.path.join(data_path, 'image_001.xy'))
         os.remove(os.path.join(data_path, 'image_002.xy'))
 
+    def test_loading_multiple_images_and_batch_saving_them(self):
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'image_001.tif'),
+                                                            os.path.join(data_path, 'image_002.tif')])
+        QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=data_path)
+        self.integration_widget.img_batch_mode_image_save_rb.setChecked(True)
+        click_button(self.integration_widget.load_img_btn)
+
+        self.assertTrue(os.path.exists(os.path.join(data_path, 'batch_image_001.tif')))
+        self.assertTrue(os.path.exists(os.path.join(data_path, 'batch_image_002.tif')))
+        os.remove(os.path.join(data_path, 'batch_image_001.tif'))
+        os.remove(os.path.join(data_path, 'batch_image_002.tif'))
+
 
 class IntegrationFunctionalTest(QtTest):
     def setUp(self):
@@ -276,13 +289,13 @@ class IntegrationFunctionalTest(QtTest):
     def test_configuration_selected_changes_img_mode(self):
         click_button(self.integration_widget.img_mode_btn)
         self.assertEqual(self.integration_image_controller.img_mode, "Cake")
-        self.assertTrue(self.model.current_configuration.integrate_cake)
+        self.assertTrue(self.model.current_configuration.auto_integrate_cake)
 
         self.model.add_configuration()
         self.model.select_configuration(0)
         self.assertEqual(self.integration_image_controller.img_mode, "Cake")
         self.model.select_configuration(1)
-        self.assertFalse(self.model.current_configuration.integrate_cake)
+        self.assertFalse(self.model.current_configuration.auto_integrate_cake)
         self.assertEqual(self.integration_image_controller.img_mode, "Image")
 
     def test_configuration_selected_changes_green_line_position_in_image_mode(self):

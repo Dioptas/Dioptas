@@ -82,6 +82,7 @@ class ImageControlWidget(QtWidgets.QWidget):
         self.batch_mode_lbl = LabelAlignRight("Batch Mode:")
         self.batch_mode_integrate_rb = QtWidgets.QRadioButton("integrate")
         self.batch_mode_add_rb = QtWidgets.QRadioButton("add")
+        self.batch_mode_image_save_rb = QtWidgets.QRadioButton("image save")
 
     def _create_layout(self):
         self._layout = QtWidgets.QVBoxLayout()
@@ -99,6 +100,7 @@ class ImageControlWidget(QtWidgets.QWidget):
         self._batch_layout.addWidget(self.batch_mode_lbl)
         self._batch_layout.addWidget(self.batch_mode_integrate_rb)
         self._batch_layout.addWidget(self.batch_mode_add_rb)
+        self._batch_layout.addWidget(self.batch_mode_image_save_rb)
         self.batch_mode_widget.setLayout(self._batch_layout)
 
         self._file_info_layout.addWidget(self.batch_mode_widget)
