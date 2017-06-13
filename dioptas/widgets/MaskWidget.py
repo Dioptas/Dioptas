@@ -40,7 +40,7 @@ class MaskWidget(QtWidgets.QWidget):
 
         self._layout.addWidget(self._display_widget)
         self._layout.addWidget(self._control_widget)
-        self._layout.setContentsMargins(10, 6, 6, 6)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(6)
 
         self.style_widgets()

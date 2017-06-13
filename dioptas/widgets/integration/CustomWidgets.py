@@ -26,6 +26,7 @@ class MouseCurrentAndClickedWidget(QtWidgets.QWidget):
         super(MouseCurrentAndClickedWidget, self).__init__()
 
         self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
         self.cur_pos_widget = MousePositionWidget()
@@ -74,6 +75,7 @@ class MouseUnitCurrentAndClickedWidget(QtWidgets.QWidget):
     def __init__(self, clicked_color):
         super(MouseUnitCurrentAndClickedWidget, self).__init__()
         self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(0,0,0,0)
         self._layout.setSpacing(0)
 
         self.cur_unit_widget = MouseUnitWidget()
