@@ -369,7 +369,7 @@ class DioptasModel(QtCore.QObject):
         else:
             base_filename = self.current_configuration.calibration_model.filename
             ext = 'poni'
-        cm.attrs['calibration_filename'] = base_filename + '_temp.' + ext
+        cm.attrs['calibration_filename'] = base_filename + '.' + ext
         pyfai_param, fit2d_param = self.current_configuration.calibration_model.get_calibration_parameter()
         pfp = cm.create_group('pyfai_parameters')
         for key in pyfai_param:
@@ -494,7 +494,14 @@ class DioptasModel(QtCore.QObject):
 
         try:
             self.current_configuration.calibration_model.set_pyFAI(pyfai_parameters)
-            self.current_configuration.calibration_model.save(f.get('calibration_model').attrs['calibration_filename'])
+            filename = f.get('calibration_model').attrs['calibration_filename']
+            (file_path, base_name) = os.path.split(filename)
+            if os.path.isdir(file_path):
+                if not os.path.isfile(filename):
+                    self.current_configuration.calibration_model.save(filename)
+            else:
+                filename = os.path.join(self.working_directories['temp'], base_name)
+                self.current_configuration.calibration_model.save(filename)
         except (KeyError, ValueError):
             print("Problem with saved pyFAI calibration parameters")
             pass
