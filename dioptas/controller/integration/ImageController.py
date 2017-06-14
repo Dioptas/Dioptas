@@ -32,6 +32,7 @@ from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
 from ...model.util.HelperModule import get_partial_index, get_partial_value
 
+from functools import partial
 from .EpicsController import EpicsController
 
 
@@ -151,6 +152,9 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
         self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.set_cake_axes_range)
+
+        self.widget.spec_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
+        self.widget.spec_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
 
         self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
@@ -581,9 +585,20 @@ class ImageController(object):
             h_shift = np.min(self.model.cake_tth)
             min_tth = h_scale*left + h_shift
             max_tth = h_scale*(left + width) + h_shift
-
             self.widget.integration_image_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
-            self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(min_tth, max_tth)
+            if self.model.current_configuration.integration_unit == '2th_deg':
+                self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(min_tth, max_tth)
+            elif self.model.current_configuration.integration_unit == 'q_A^-1':
+                self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(
+                    self.convert_x_value(min_tth, '2th_deg', 'q_A^-1'),
+                    self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
+
+    def set_cake_axis_unit(self, unit='2th_deg'):
+        if unit == '2th_deg':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setLabel(u'2θ', u'°')
+        elif unit == 'q_A^-1':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
+        self.set_cake_axes_range()
 
     def show_img_mouse_position(self, x, y):
         if self.img_mode == "Image":
