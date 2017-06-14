@@ -164,7 +164,7 @@ class CalibrationController(object):
 
         if filename is not '':
             self.working_dir['image'] = os.path.dirname(filename)
-        self.model.img_model.load(filename)
+            self.model.img_model.load(filename)
 
     def load_next_img(self):
         self.model.img_model.load_next_file()
