@@ -341,8 +341,7 @@ class DioptasModel(QtCore.QObject):
                 for param, value in correction_object.get_params().items():
                     imcd.attrs[param] = value
 
-        (base_filename, ext) = self.current_configuration.img_model.filename.rsplit('.', 1)
-        im.attrs['filename'] = base_filename + '_temp.' + ext
+        im.attrs['filename'] = self.current_configuration.img_model.filename
         current_raw_image = self.current_configuration.img_model.raw_img_data
         raw_image_data = im.create_dataset("raw_image_data", current_raw_image.shape, dtype='f')
         raw_image_data[...] = current_raw_image
@@ -526,8 +525,12 @@ class DioptasModel(QtCore.QObject):
         self.current_configuration.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
         filename = f.get('image_model').attrs['filename']
         (file_path, base_name) = os.path.split(filename)
-        filename = os.path.join(self.working_directories['temp'], base_name)
-        self.current_configuration.img_model.save(filename)
+        if os.path.isdir(file_path):
+            if not os.path.isfile(filename):
+                self.current_configuration.img_model.save(filename)
+        else:
+            filename = os.path.join(self.working_directories['temp'], base_name)
+            self.current_configuration.img_model.save(filename)
 
         self.current_configuration.img_model.autoprocess = f.get('image_model').attrs['auto_process']
         self.current_configuration.img_model.autoprocess_changed.emit()
