@@ -47,6 +47,7 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.model = self.controller.model
         self.config_widget = self.controller.widget.configuration_widget
         self.config_controller = self.controller.configuration_controller
+        self.check_calibration = True
 
     def tearDown(self):
         del self.model
@@ -71,9 +72,9 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
             prepare_function()
         self.save_configuration()
         self.tearDown()
+        self.setUp()
         if intermediate_function:
             intermediate_function()
-        self.setUp()
         self.load_configuration()
 
     def test_save_and_load_configuration_basic(self):
@@ -144,7 +145,7 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.controller.widget.integration_widget.oiadac_abs_length_txt.setText('450')
         self.controller.integration_controller.image_controller.oiadac_groupbox_changed()
 
-    def save_and_load_configuration_in_cake_mode(self):
+    def test_save_and_load_configuration_in_cake_mode(self):
         self.save_and_load_configuration(self.cake_settings)
         self.assertTrue(self.model.current_configuration.integrate_cake)
 
@@ -160,25 +161,40 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
 
     def test_save_and_then_load_with_existing_files(self):
-        self.save_and_load_configuration(self.existing_files_settings)
+        self.save_and_load_configuration(self.existing_files_settings, self.existing_files_intermediate_settings)
         self.assertTrue(os.path.isfile(test_image_file_name_2))
         os.remove(test_image_file_name_2)
+        self.assertTrue(os.path.isfile(test_calibration_file_2))
+        os.remove(test_calibration_file_2)
 
     def existing_files_settings(self):
         shutil.copy(test_image_file_name, test_image_file_name_2)
+        shutil.copy(test_calibration_file, test_calibration_file_2)
         self.load_image(test_image_file_name_2)
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=test_calibration_file_2)
+        self.controller.integration_controller.image_controller.load_calibration()
+
+    def existing_files_intermediate_settings(self):
+        self.check_calibration = False
 
     def test_save_and_then_load_with_nonexisting_files(self):
         self.save_and_load_configuration(self.nonexisting_files_settings, self.nonexisting_files_intermediate_settings)
         self.assertTrue(os.path.isfile(test_image_file_name_2))
         os.remove(test_image_file_name_2)
+        self.assertTrue(os.path.isfile(test_calibration_file_2))
+        os.remove(test_calibration_file_2)
 
     def nonexisting_files_settings(self):
         shutil.copy(test_image_file_name, test_image_file_name_2)
+        shutil.copy(test_calibration_file, test_calibration_file_2)
         self.load_image(test_image_file_name_2)
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=test_calibration_file_2)
+        self.controller.integration_controller.image_controller.load_calibration()
 
     def nonexisting_files_intermediate_settings(self):
         os.remove(test_image_file_name_2)
+        os.remove(test_calibration_file_2)
+        self.check_calibration = False
 
     def save_configuration(self):
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=config_file_path)
@@ -194,8 +210,9 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
         self.assertDictEqual(saved_working_directories, working_directories)
         self.assertEqual(self.model.current_configuration.integration_unit, integration_unit)
         self.assertTrue(np.array_equal(self.model.img_model.raw_img_data, self.raw_img_data))
-        saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
-        self.assertDictEqual(saved_pyfai_params, pyfai_params)
+        if self.check_calibration:
+            saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
+            self.assertDictEqual(saved_pyfai_params, pyfai_params)
 
     def load_phase(self, filename):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
@@ -223,6 +240,8 @@ detector_thickness = 30
 absorption_length = 175
 test_image_file_name = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
 test_image_file_name_2 = os.path.join(data_path, 'a_CeO2_Pilatus1M.tif')
+test_calibration_file = os.path.join(data_path, 'CeO2_Pilatus1M.poni')
+test_calibration_file_2 = os.path.join(data_path, 'a_CeO2_Pilatus1M.poni')
 poly_order = 55
 pyfai_params = {'detector': 'Detector',
                 'dist': 0.196711580484,
