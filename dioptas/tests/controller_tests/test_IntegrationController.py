@@ -114,3 +114,26 @@ class IntegrationControllerTest(QtTest):
         self.assertFalse(np.array_equal(displayed_cake_data, old_cake_data))
         self.assertFalse(np.array_equal(displayed_cake_data[0], old_cake_data[0]))
         self.assertTrue(np.array_equal(displayed_cake_data[shift], old_cake_data[0]))
+
+    def test_cake_changes_axes(self):
+        # self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Cake')
+        # self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_image,
+        #                  self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+        self.widget.integration_image_widget.mode_btn.click()  # change to cake mode
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
+        self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_cake,
+                         self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+
+    def test_cake_zoom_changes_axes_scale(self):
+        self.widget.integration_image_widget.mode_btn.click()
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
+        # print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
+        rect = QtCore.QRectF(512, 512, 512, 512)
+        self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)
+        self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)  # for some reason must run twice
+
+        # print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRect())
+        self.assertEqual(self.widget.integration_image_widget.img_view.img_view_box.viewRect(), rect)
