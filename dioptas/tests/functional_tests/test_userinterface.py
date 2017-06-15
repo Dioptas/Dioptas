@@ -7,7 +7,7 @@ import numpy as np
 
 from qtpy import QtWidgets, QtCore
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 from ...controller import MainController
 
 unittest_path = os.path.dirname(__file__)
@@ -50,13 +50,13 @@ class UserInterFaceTest(QtTest):
     def test_synchronization_of_view_range(self):
         # calibration and mask view
         self.calibration_widget.img_widget.img_view_box.setRange(QtCore.QRectF(-10, -10, 20, 20))
-        self.controller.widget.tabWidget.setCurrentIndex(1)
+        click_button(self.controller.widget.mask_mode_btn)
 
         self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_widget.img_view_box.targetRange()) - \
                                       np.array(self.mask_widget.img_widget.img_view_box.targetRange())), 0)
 
         self.mask_widget.img_widget.img_view_box.setRange(QtCore.QRectF(100, 100, 300, 300))
-        self.controller.widget.tabWidget.setCurrentIndex(0)
+        click_button(self.controller.widget.calibration_mode_btn)
 
         self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_widget.img_view_box.targetRange()) - \
                                       np.array(self.mask_widget.img_widget.img_view_box.targetRange())), 0)

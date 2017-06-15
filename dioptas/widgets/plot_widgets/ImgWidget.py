@@ -21,10 +21,8 @@ from __future__ import absolute_import
 import pyqtgraph as pg
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
-from scipy.spatial import ConvexHull
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
-from math import sqrt, atan2, cos, sin
 
 from .HistogramLUTItem import HistogramLUTItem
 
@@ -45,6 +43,8 @@ class ImgWidget(QtCore.QObject):
 
         self.img_data = None
         self.mask_data = None
+
+        self._max_range = True
 
     def create_graphics(self):
         # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
@@ -72,11 +72,12 @@ class ImgWidget(QtCore.QObject):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
         self.img_view_box.addItem(self.img_scatter_plot_item)
 
-    def plot_image(self, img_data, autoRange=False):
+    def plot_image(self, img_data, auto_level=False):
         self.img_data = img_data
-        self.data_img_item.setImage(img_data.T, autoRange)
-        if autoRange:
-            self.auto_range()
+        self.data_img_item.setImage(img_data.T, auto_level)
+        if auto_level:
+            self.auto_level()
+        self.auto_range_rescale()
 
     def save_img(self, filename):
         exporter = ImageExporter(self.img_view_box)
@@ -90,10 +91,22 @@ class ImgWidget(QtCore.QObject):
                         y_range[0] <= img_bounds.bottom() and \
                         y_range[1] >= img_bounds.top():
             self.img_view_box.autoRange()
+            self._max_range=True
             return
         self.img_view_box.setRange(xRange=x_range, yRange=y_range)
+        self._max_range = False
 
-    def auto_range(self):
+    def auto_range_rescale(self):
+        if self._max_range:
+            self.auto_range()
+            return
+
+        view_x_range, view_y_range = self.img_view_box.viewRange()
+        if view_x_range[1]>self.img_data.shape[0] or \
+            view_y_range[1]>self.img_data.shape[1]:
+            self.auto_range()
+
+    def auto_level(self):
         hist_x, hist_y = self.img_histogram_LUT.hist_x, self.img_histogram_LUT.hist_y
 
         hist_y_cumsum = np.cumsum(hist_y)
@@ -145,7 +158,7 @@ class ImgWidget(QtCore.QObject):
             if self.img_data is not None:
                 if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
                                 (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
-                    self.img_view_box.autoRange()
+                    self.auto_range()
                 else:
                     self.img_view_box.scaleBy(2)
 
@@ -156,7 +169,7 @@ class ImgWidget(QtCore.QObject):
 
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
-            self.img_view_box.autoRange()
+            self.auto_range()
         if ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
@@ -196,11 +209,13 @@ class ImgWidget(QtCore.QObject):
                 self.img_view_box.showAxRect(ax)
                 self.img_view_box.axHistoryPointer += 1
                 self.img_view_box.axHistory = self.img_view_box.axHistory[:self.img_view_box.axHistoryPointer] + [ax]
+                self._max_range = False
             else:
                 ## update shape of scale box
                 self.img_view_box.updateScaleBox(ev.buttonDownPos(), ev.pos())
 
     def myWheelEvent(self, ev):
+        self._max_range = False
         if ev.delta() > 0:
             pg.ViewBox.wheelEvent(self.img_view_box, ev)
         else:
@@ -208,11 +223,15 @@ class ImgWidget(QtCore.QObject):
             if self.img_data is not None:
                 if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
                                 (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
-                    self.img_view_box.autoRange()
+                    self.auto_range()
                 else:
                     pg.ViewBox.wheelEvent(self.img_view_box, ev)
             else:
                 pg.ViewBox.wheelEvent(self.img_view_box, ev)
+
+    def auto_range(self):
+        self.img_view_box.autoRange()
+        self._max_range = True
 
 
 class CalibrationCakeWidget(ImgWidget):
@@ -248,6 +267,12 @@ class MaskImgWidget(ImgWidget):
         self.img_view_box.addItem(self.mask_img_item)
         self.set_color()
         self.mask_preview_fill_color = QtGui.QColor(255, 0, 0, 150)
+
+    def activate_mask(self):
+        self.img_view_box.addItem(self.mask_img_item)
+
+    def deactivate_mask(self):
+        self.img_view_box.removeItem(self.mask_img_item)
 
     def plot_mask(self, mask_data):
         self.mask_data = np.int16(mask_data)

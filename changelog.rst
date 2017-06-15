@@ -1,16 +1,22 @@
-0.3.2 (under development 06/08/2017)
+0.3.2 (under development 06/13/2017)
 ------------------------------------
     - added the possibility to work with multiple detector configurations at the same time
     - there is now a Dioptas Icon instead of the generic python icon
     - unmasking geometric shapes are now green instead of red, to clarify which mode is selected
     - it is now possible to use arcs for masking
-    - Dioptas is now completely python 3.5/3.6 compatible
+    - Dioptas is now completely Python 3.5/3.6 compatible
     - Dioptas can now save pattern files as "FXYE" files (GSAS-II format)
+    - background subtracted or other modified (absorption correction etc.) Images can now be saved in batch mode
+    - lists of phases including there pressure and temperature values can now be saved and loaded
 
 Bugfixes:
     - fixed issues with changing units when having automatic background subtraction enabled
     - strong zooming into pattern view will not cause an error due to rescaling of the phase lines anymore
     - fixed issue with compromised Dioptas settings files, Dioptas will now start even if the settings can't be loaded
+    - fixed strange masking artifacts at the edges when using the polygon masking tool
+    - fixed undock/dock process, which was not working propoerly (only image was shown without pattern after docking the
+      img widget
+    - fixed image view scaling when loading differently sized images or switching between cake and image mode
 
 
 0.3.1 (stable 4/21/2016)

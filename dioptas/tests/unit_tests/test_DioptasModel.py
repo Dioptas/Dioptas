@@ -79,14 +79,14 @@ class DioptasModelTest(QtTest):
 
     def test_integrate_cakes(self):
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.model.current_configuration.integrate_cake = True
+        self.model.current_configuration.auto_integrate_cake = True
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.assertFalse(np.array_equal(self.model.current_configuration.cake_img,
                                         np.zeros((2048, 2048))))
 
     def test_integrate_cake_with_mask(self):
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.model.current_configuration.integrate_cake = True
+        self.model.current_configuration.auto_integrate_cake = True
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         cake_img1 = self.model.current_configuration.cake_img
 
@@ -117,14 +117,14 @@ class DioptasModelTest(QtTest):
 
     def test_combine_cakes(self):
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.model.current_configuration.integrate_cake = True
+        self.model.current_configuration.auto_integrate_cake = True
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
         cake1 = self.model.cake_data
         self.model.add_configuration()
 
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M_2.poni'))
-        self.model.current_configuration.integrate_cake = True
+        self.model.current_configuration.auto_integrate_cake = True
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
         self.model.combine_cakes = True
