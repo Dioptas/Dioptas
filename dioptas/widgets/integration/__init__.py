@@ -56,7 +56,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.setSpacing(6)
-        self._layout.setContentsMargins(10, 6, 6, 6)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.vertical_splitter = QtWidgets.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -119,6 +119,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
         self.img_batch_mode_integrate_rb = self.integration_control_widget.img_control_widget.batch_mode_integrate_rb
         self.img_batch_mode_add_rb = self.integration_control_widget.img_control_widget.batch_mode_add_rb
+        self.img_batch_mode_image_save_rb = self.integration_control_widget.img_control_widget.batch_mode_image_save_rb
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
         self.pattern_load_btn = pattern_file_widget.load_btn
@@ -141,6 +142,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_edit_btn = phase_control_widget.edit_btn
         self.phase_del_btn = phase_control_widget.delete_btn
         self.phase_clear_btn = phase_control_widget.clear_btn
+        self.phase_save_list_btn = phase_control_widget.save_list_btn
+        self.phase_load_list_btn = phase_control_widget.load_list_btn
         self.phase_tw = phase_control_widget.phase_tw
         self.phase_pressure_sb = phase_control_widget.pressure_sb
         self.phase_pressure_step_txt = phase_control_widget.pressure_step_txt
@@ -244,6 +247,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_autoscale_btn = image_widget.autoscale_btn
         self.img_dock_btn = image_widget.undock_btn
         self.img_widget = image_widget.img_view
+        self.img_show_background_subtracted_btn = image_widget.show_background_subtracted_img_btn
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
         self.tabWidget = self.integration_control_widget
@@ -302,20 +306,17 @@ class IntegrationWidget(QtWidgets.QWidget):
             self.frame_img_positions_widget.hide()
 
             # remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
-            self.vertical_splitter.setParent(self)
-
             self.img_frame.setParent(self.horizontal_splitter)
-            self.horizontal_splitter.addWidget(self.img_frame)
 
-            self.vertical_splitter.setParent(self.horizontal_splitter)
+            self.horizontal_splitter.addWidget(self.img_frame)
             self.horizontal_splitter.addWidget(self.vertical_splitter)
 
             # restore the previously used size when image was undocked
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
 
-    def get_progress_dialog(self, msg, title, num_points):
-        progress_dialog = QtWidgets.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
-                                                num_points, self)
+    def get_progress_dialog(self, message, abort_text, num_points):
+        progress_dialog = QtWidgets.QProgressDialog(message, abort_text, 0,
+                                                    num_points, self)
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         progress_dialog.move(
@@ -486,7 +487,10 @@ class IntegrationWidget(QtWidgets.QWidget):
 
     def set_phase_temperature(self, ind, T):
         temperature_item = self.phase_tw.item(ind, 4)
-        temperature_item.setText("{0} K".format(T))
+        try:
+            temperature_item.setText("{0:.2f} K".format(T))
+        except ValueError:
+            temperature_item.setText("{0} K".format(T))
         self.update_phase_parameters_in_legend(ind)
 
     def get_phase_temperature(self, ind):
@@ -499,7 +503,10 @@ class IntegrationWidget(QtWidgets.QWidget):
 
     def set_phase_pressure(self, ind, P):
         pressure_item = self.phase_tw.item(ind, 3)
-        pressure_item.setText("{0} GPa".format(P))
+        try:
+            pressure_item.setText("{0:.2f} GPa".format(P))
+        except ValueError:
+            pressure_item.setText("{0} GPa".format(P))
         self.update_phase_parameters_in_legend(ind)
 
     def get_phase_pressure(self, ind):

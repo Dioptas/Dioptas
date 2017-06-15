@@ -20,7 +20,7 @@ from qtpy import QtWidgets
 
 from ..CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
     CheckableFlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, HorizontalLine, HorizontalSpacerItem, \
-    ListTableWidget
+    ListTableWidget, VerticalLine
 
 from .CustomWidgets import BrowseFileWidget
 
@@ -82,6 +82,7 @@ class ImageControlWidget(QtWidgets.QWidget):
         self.batch_mode_lbl = LabelAlignRight("Batch Mode:")
         self.batch_mode_integrate_rb = QtWidgets.QRadioButton("integrate")
         self.batch_mode_add_rb = QtWidgets.QRadioButton("add")
+        self.batch_mode_image_save_rb = QtWidgets.QRadioButton("image save")
 
     def _create_layout(self):
         self._layout = QtWidgets.QVBoxLayout()
@@ -99,6 +100,7 @@ class ImageControlWidget(QtWidgets.QWidget):
         self._batch_layout.addWidget(self.batch_mode_lbl)
         self._batch_layout.addWidget(self.batch_mode_integrate_rb)
         self._batch_layout.addWidget(self.batch_mode_add_rb)
+        self._batch_layout.addWidget(self.batch_mode_image_save_rb)
         self.batch_mode_widget.setLayout(self._batch_layout)
 
         self._file_info_layout.addWidget(self.batch_mode_widget)
@@ -164,12 +166,18 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self.edit_btn = FlatButton('Edit')
         self.delete_btn = FlatButton('Delete')
         self.clear_btn = FlatButton('Clear')
+        self.save_list_btn = FlatButton('Save List')
+        self.load_list_btn = FlatButton('Load List')
 
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.edit_btn)
         self._button_layout.addWidget(self.delete_btn)
         self._button_layout.addWidget(self.clear_btn)
+        self._button_layout.addWidget(VerticalLine())
         self._button_layout.addSpacerItem(HorizontalSpacerItem())
+        self._button_layout.addWidget(VerticalLine())
+        self._button_layout.addWidget(self.save_list_btn)
+        self._button_layout.addWidget(self.load_list_btn)
         self.button_widget.setLayout(self._button_layout)
         self._layout.addWidget(self.button_widget)
 

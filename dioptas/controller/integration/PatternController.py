@@ -203,7 +203,7 @@ class PatternController(object):
 
     def autocreate_cb_changed(self):
         self.autocreate_pattern = self.widget.pattern_autocreate_cb.isChecked()
-        self.model.current_configuration.autosave_integrated_pattern = self.widget.pattern_autocreate_cb.isChecked()
+        self.model.current_configuration.auto_save_integrated_pattern = self.widget.pattern_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.model.pattern.filename)
@@ -286,7 +286,7 @@ class PatternController(object):
             self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
 
     def pattern_auto_range_btn_click_callback(self):
-        self.widget.pattern_widget.auto_range = self.widget.pattern_auto_range_btn.isChecked()
+        self.widget.pattern_widget.auto_level = self.widget.pattern_auto_range_btn.isChecked()
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.widget.pattern_widget.pos_line.getPos()[0]

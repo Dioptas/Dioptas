@@ -256,7 +256,7 @@ class CalibrationController(object):
         :return:
         """
         self.widget.img_widget.plot_image(self.model.img_data, True)
-        self.widget.img_widget.auto_range()
+        self.widget.img_widget.auto_level()
         self.widget.set_img_filename(self.model.img_model.filename)
 
     def search_peaks(self, x, y):
@@ -514,7 +514,7 @@ class CalibrationController(object):
             self.model.current_configuration.integrate_image_2d()
             progress_dialog.close()
         self.widget.cake_widget.plot_image(self.model.cake_data, False)
-        self.widget.cake_widget.auto_range()
+        self.widget.cake_widget.auto_level()
 
         self.widget.pattern_widget.plot_data(*self.model.pattern.data)
         self.widget.pattern_widget.plot_vertical_lines(self.convert_x_value(np.array(
