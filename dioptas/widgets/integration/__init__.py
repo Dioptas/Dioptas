@@ -64,9 +64,13 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
+        self.vertical_splitter_left = QtWidgets.QSplitter(self)
+        self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
+        self.vertical_splitter_left.addWidget(self.integration_image_widget)
+
         self.horizontal_splitter = QtWidgets.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
-        self.horizontal_splitter.addWidget(self.integration_image_widget)
+        self.horizontal_splitter.addWidget(self.vertical_splitter_left)
         self.horizontal_splitter.addWidget(self.vertical_splitter)
         self._layout.addWidget(self.horizontal_splitter, 10)
         self._layout.addWidget(self.integration_status_widget, 0)
@@ -102,6 +106,8 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
+
+        self.alternative_gui_view = False
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
@@ -267,6 +273,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_widget_click_azi_lbl = self.integration_image_widget.mouse_unit_widget.clicked_unit_widget.azi_lbl
 
         self.footer_img_mouse_position_widget = self.integration_status_widget.mouse_pos_widget
+        self.change_gui_view_btn = self.integration_status_widget.change_gui_view_btn
 
     def switch_to_cake(self):
         self.img_widget.img_view_box.setAspectLocked(False)

@@ -114,3 +114,27 @@ class IntegrationControllerTest(QtTest):
         self.assertFalse(np.array_equal(displayed_cake_data, old_cake_data))
         self.assertFalse(np.array_equal(displayed_cake_data[0], old_cake_data[0]))
         self.assertTrue(np.array_equal(displayed_cake_data[shift], old_cake_data[0]))
+
+    def test_switch_to_alternate_view_mode_and_back(self):
+        self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                        self.widget.vertical_splitter))
+
+        self.widget.change_gui_view_btn.click()  # switch to alternative view
+        self.assertFalse(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                         self.widget.vertical_splitter))
+        self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                        self.widget.vertical_splitter_left))
+
+        self.widget.change_gui_view_btn.click()  # switch back
+        self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                        self.widget.vertical_splitter))
+
+        self.assertFalse(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                         self.widget.vertical_splitter_left))
+
+    def helper_is_item_in_splitter(self, item, splitter):
+        for ind in range(0, splitter.count()):
+            if splitter.widget(ind) == item:
+                return True
+        return False
+
