@@ -181,6 +181,8 @@ class ImageController(object):
         self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
+        self.connect_click_function(self.widget.change_gui_view_btn, self.change_gui_view_btn_clicked)
+
         # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
@@ -962,3 +964,20 @@ class ImageController(object):
         elif not self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
+
+    def change_gui_view_btn_clicked(self):
+        # ind = self.find_ind_of_item_in_splitter(self.widget.integration_pattern_widget, self.widget.vertical_splitter)
+        # delete_me = self.widget.vertical_splitter.widget(ind)
+        # delete_me.hide()
+        # delete_me.deleteLater()
+        if self.widget.alternative_gui_view:
+            self.widget.vertical_splitter.addWidget(self.widget.integration_pattern_widget)
+        else:
+            self.widget.vertical_splitter_left.addWidget(self.widget.integration_pattern_widget)
+        self.widget.alternative_gui_view = not self.widget.alternative_gui_view
+
+    def find_ind_of_item_in_splitter(self, item, splitter):
+        for ind in range(0, splitter.count()):
+            if splitter.widget(ind) == item:
+                return ind
+        return False
