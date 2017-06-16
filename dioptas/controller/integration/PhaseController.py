@@ -185,6 +185,7 @@ class PhaseController(object):
                                                      positions,
                                                      intensities,
                                                      baseline)
+        self.widget.img_widget.add_cake_phase(positions, intensities, baseline)
         return color
 
     def edit_btn_click_callback(self):
