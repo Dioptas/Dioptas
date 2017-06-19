@@ -1,6 +1,7 @@
-0.3.2 (under development 06/13/2017)
+0.3.2 (under development 06/19/2017)
 ------------------------------------
-    - added the possibility to work with multiple detector configurations at the same time
+    - added the possibility to work with multiple detector configurations at the same time (enabled by the C button on
+      the upper left)
     - there is now a Dioptas Icon instead of the generic python icon
     - unmasking geometric shapes are now green instead of red, to clarify which mode is selected
     - it is now possible to use arcs for masking
@@ -8,6 +9,9 @@
     - Dioptas can now save pattern files as "FXYE" files (GSAS-II format)
     - background subtracted or other modified (absorption correction etc.) Images can now be saved in batch mode
     - lists of phases including there pressure and temperature values can now be saved and loaded
+    - the cake mode in the integration window now shows azimuth and tth/q axes
+    - the cake image can now be shifted in azimuth, to have a better possibility to view features which where before
+      only at the edges
 
 Bugfixes:
     - fixed issues with changing units when having automatic background subtraction enabled
