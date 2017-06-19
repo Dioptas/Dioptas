@@ -102,8 +102,8 @@ class IntegrationControllerTest(QtTest):
     def test_shift_cake_azimuth(self):
         shift = 300
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
-        self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), 0)
-        self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi))
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), -len(self.model.cake_azi)/2)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi)/2)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.singleStep(), 1)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), 0)
         old_cake_data = np.copy(self.model.cake_data)
