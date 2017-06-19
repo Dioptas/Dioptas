@@ -2,6 +2,7 @@
 
 import os
 import gc
+import unittest
 from ..utility import QtTest, click_button
 
 import mock
@@ -124,6 +125,7 @@ class IntegrationControllerTest(QtTest):
         self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_cake,
                          self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
 
+    @unittest.skip("Axes are currently not used for 'Image' mode")
     def test_cake_zoom_changes_axes_scale(self):
         self.widget.integration_image_widget.mode_btn.click()
         self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
