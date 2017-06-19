@@ -37,6 +37,8 @@ lib2to3_path = os.path.dirname(lib2to3.__file__)
 
 extra_datas = [
     ("dioptas/calibrants", "dioptas/calibrants"),
+    (os.path.join(pyFAI_path, "resources"), "pyFAI/resources"),
+    (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     ("dioptas/widgets/stylesheet.qss", "dioptas/widgets"),
     ("dioptas/widgets/icns/icon.svg", "dioptas/widgets/icns"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
