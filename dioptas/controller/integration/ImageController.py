@@ -518,8 +518,8 @@ class ImageController(object):
         self.update_cake_axes_range()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
-        self.widget.cake_shift_azimuth_sl.setMinimum(0)
-        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi))
+        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi)/2)
+        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi)/2)
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
 
     def activate_image_mode(self):
@@ -636,7 +636,7 @@ class ImageController(object):
     def update_cake_azimuth_axis(self):
         data_img_item = self.widget.integration_image_widget.img_view.data_img_item
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
-        cake_azi = np.roll(self.model.cake_azi, shift_amount, axis=0)
+        cake_azi = self.model.cake_azi-shift_amount*np.mean(np.diff(self.model.cake_azi))
 
         height = data_img_item.viewRect().height()
         bottom = data_img_item.viewRect().top()
@@ -702,7 +702,8 @@ class ImageController(object):
                 if self.img_mode == 'Cake':
                     tth = get_partial_value(self.model.cake_tth, y - 0.5)
                     shift_amount = self.widget.cake_shift_azimuth_sl.value()
-                    azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
+                    cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
+                    azi = get_partial_value(cake_azi, x - 0.5)
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
@@ -711,7 +712,6 @@ class ImageController(object):
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
                     azi = self.model.calibration_model.get_azi_img(x, y) / np.pi * 180
 
-                azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
                 tth_str = u"2θ:%9.3f  " % tth
                 self.widget.mouse_tth_lbl.setText(tth_str)
