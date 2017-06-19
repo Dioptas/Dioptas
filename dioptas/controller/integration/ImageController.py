@@ -648,8 +648,10 @@ class ImageController(object):
         self.widget.integration_image_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
 
     def update_cake_x_axis(self):
-        data_img_item = self.widget.integration_image_widget.img_view.data_img_item
+        if self.model.cake_tth is None:
+            return
 
+        data_img_item = self.widget.integration_image_widget.img_view.data_img_item
         cake_tth = self.model.cake_tth
 
         width = data_img_item.viewRect().width()

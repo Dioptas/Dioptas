@@ -67,10 +67,13 @@ class CalibrationModel(object):
         self.supersampling_factor = 1
         self._calibrants_working_dir = calibrants_folder
 
-        self.cake_img = np.zeros((2048, 2048))
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
         self.num_points = len(self.int)
+
+        self.cake_img = np.zeros((2048, 2048))
+        self.cake_tth = None
+        self.cake_azi = None
 
         self.peak_search_algorithm = None
 
