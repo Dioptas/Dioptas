@@ -245,12 +245,12 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.jcpds_widget.eos_dKdT_txt, 0.003)
         self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 0.1e-5)
 
-        self.assertAlmostEqual(self.jcpds.k0, 200)
-        self.assertAlmostEqual(self.jcpds.k0p0, 5)
-        self.assertAlmostEqual(self.jcpds.alpha_t0, .23e-5)
-        self.assertAlmostEqual(self.jcpds.d_alpha_dt, .1e-6)
-        self.assertAlmostEqual(self.jcpds.dk0dt, 0.003)
-        self.assertAlmostEqual(self.jcpds.dk0pdt, .1e-5)
+        self.assertAlmostEqual(self.jcpds.params['k0'], 200)
+        self.assertAlmostEqual(self.jcpds.params['k0p0'], 5)
+        self.assertAlmostEqual(self.jcpds.params['alpha_t0'], .23e-5)
+        self.assertAlmostEqual(self.jcpds.params['d_alpha_dt'], .1e-6)
+        self.assertAlmostEqual(self.jcpds.params['dk0dt'], 0.003)
+        self.assertAlmostEqual(self.jcpds.params['dk0pdt'], .1e-5)
 
     def test_reflection_editing_and_saving_of_files(self):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
@@ -397,10 +397,10 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 10.4)
 
-        self.assertAlmostEqual(self.phase_controller.model.phase_model.phases[0].a0, 10.4)
+        self.assertAlmostEqual(self.phase_controller.model.phase_model.phases[0].params['a0'], 10.4)
         QTest.mouseClick(self.jcpds_widget.cancel_btn, QtCore.Qt.LeftButton)
 
-        self.assertNotAlmostEqual(self.phase_controller.model.phase_model.phases[0].a0, 10.4)
+        self.assertNotAlmostEqual(self.phase_controller.model.phase_model.phases[0].params['a0'], 10.4)
 
         # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click another
         # phase --  so he just selects it without closing and reopening the editor
@@ -462,7 +462,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # he decides to change temperature value and play with all equation of state parameters
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 6.234e-5)
-        self.assertEqual(self.phase_controller.model.phase_model.phases[2].alpha_t0, 6.234e-5)
+        self.assertEqual(self.phase_controller.model.phase_model.phases[2].params['alpha_t0'], 6.234e-5)
 
         self.main_controller.integration_controller.widget.phase_temperature_sb.setValue(1300)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)

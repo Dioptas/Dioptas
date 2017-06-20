@@ -48,6 +48,9 @@ class ImgModel(QtCore.QObject):
     The Signal will be called every time the img_data has changed.
     """
     img_changed = QtCore.Signal()
+    autoprocess_changed = QtCore.Signal()
+    cbn_correction_changed = QtCore.Signal()
+    oiadac_correction_changed = QtCore.Signal()
 
     def __init__(self):
         super(ImgModel, self).__init__()
@@ -214,6 +217,16 @@ class ImgModel(QtCore.QObject):
 
     def has_background(self):
         return self._background_data is not None
+
+    @property
+    def background_data(self):
+        return self._background_data
+
+    @background_data.setter
+    def background_data(self, new_data):
+        self._background_data = new_data
+        self._calculate_img_data()
+        self.img_changed.emit()
 
     @property
     def background_scaling(self):
@@ -499,7 +512,7 @@ class ImgModel(QtCore.QObject):
         else:
             return img_data
 
-    def add_img_correction(self, correction, name=None):
+    def add_img_correction(self, correction, name=None, external=None):
         """
         Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
         each other, depending on the order of addition.
@@ -511,6 +524,10 @@ class ImgModel(QtCore.QObject):
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
         self.img_changed.emit()
+        if external == 'cbn':
+            self.cbn_correction_changed.emit()
+        if external  == 'oiadac':
+            self.oiadac_correction_changed.emit()
 
     def get_img_correction(self, name):
         """
@@ -528,6 +545,10 @@ class ImgModel(QtCore.QObject):
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()
+
+    @property
+    def img_corrections(self):
+        return self._img_corrections
 
     def has_corrections(self):
         """
