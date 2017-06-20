@@ -275,7 +275,7 @@ class DioptasModel(QtCore.QObject):
         self.configurations.append(ImgConfiguration(self.working_directories))
 
         if self.current_configuration.calibration_model.is_calibrated:
-            dioptas_config_folder = os.path.join(os.path.expanduser("~"), '.Dioptas')
+            dioptas_config_folder = os.path.join(os.path.expanduser('~'), '.Dioptas')
             if not os.path.isdir(dioptas_config_folder):
                 os.mkdir(dioptas_config_folder)
             self.current_configuration.calibration_model.save(
@@ -311,11 +311,11 @@ class DioptasModel(QtCore.QObject):
             cc.attrs['integration_num_points'] = self.current_configuration.integration_num_points
         else:
             cc.attrs['integration_num_points'] = 0
-        cc.attrs['integrate_cake'] = self.current_configuration.auto_integrate_cake
+        cc.attrs['auto_integrate_cake'] = self.current_configuration.auto_integrate_cake
         cc.attrs['use_mask'] = self.use_mask
         cc.attrs['transparent_mask'] = self.transparent_mask
-        cc.attrs['autosave_integrated_pattern'] = self.current_configuration.auto_save_integrated_pattern
-        formats = [n.encode("ascii", "ignore") for n in self.current_configuration.integrated_patterns_file_formats]
+        cc.attrs['auto_save_integrated_pattern'] = self.current_configuration.auto_save_integrated_pattern
+        formats = [n.encode('ascii', 'ignore') for n in self.current_configuration.integrated_patterns_file_formats]
         cc.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
 
         # save working directories
@@ -356,7 +356,7 @@ class DioptasModel(QtCore.QObject):
 
         im.attrs['filename'] = self.current_configuration.img_model.filename
         current_raw_image = self.current_configuration.img_model.raw_img_data
-        raw_image_data = im.create_dataset("raw_image_data", current_raw_image.shape, dtype='f')
+        raw_image_data = im.create_dataset('raw_image_data', current_raw_image.shape, dtype='f')
         raw_image_data[...] = current_raw_image
 
         # save roi data
@@ -368,9 +368,9 @@ class DioptasModel(QtCore.QObject):
 
         # save mask model
 
-        mm = f.create_group('mask_model')
+        mm = f.create_group('mask')
         current_mask = self.current_configuration.mask_model.get_mask()
-        mask_data = mm.create_dataset('mask_data', current_mask.shape, dtype=bool)
+        mask_data = mm.create_dataset('data', current_mask.shape, dtype=bool)
         mask_data[...] = current_mask
 
         # save calibration model
@@ -402,8 +402,8 @@ class DioptasModel(QtCore.QObject):
             background_pattern_y = None
         if background_pattern_x is not None and background_pattern_y is not None:
             bpm.attrs['has_background_pattern'] = True
-            bgx = bpm.create_dataset("background_pattern_x", background_pattern_x.shape, dtype='f')
-            bgy = bpm.create_dataset("background_pattern_y", background_pattern_y.shape, dtype='f')
+            bgx = bpm.create_dataset('x', background_pattern_x.shape, dtype='f')
+            bgy = bpm.create_dataset('y', background_pattern_y.shape, dtype='f')
             bgx[...] = background_pattern_x
             bgy[...] = background_pattern_y
         else:
@@ -417,8 +417,8 @@ class DioptasModel(QtCore.QObject):
             pattern_x = None
             pattern_y = None
         if pattern_x is not None and pattern_y is not None:
-            px = pm.create_dataset('pattern_x', pattern_x.shape, dtype='f')
-            py = pm.create_dataset('pattern_y', pattern_y.shape, dtype='f')
+            px = pm.create_dataset('x', pattern_x.shape, dtype='f')
+            py = pm.create_dataset('y', pattern_y.shape, dtype='f')
             px[...] = pattern_x
             py[...] = pattern_y
         pm.attrs['pattern_filename'] = self.current_configuration.pattern_model.pattern_filename
@@ -514,7 +514,7 @@ class DioptasModel(QtCore.QObject):
                 filename = os.path.join(self.working_directories['temp'], base_name)
                 self.current_configuration.calibration_model.save(filename)
         except (KeyError, ValueError):
-            print("Problem with saved pyFAI calibration parameters")
+            print('Problem with saved pyFAI calibration parameters')
             pass
 
         # load general configuration
@@ -522,7 +522,7 @@ class DioptasModel(QtCore.QObject):
         self.current_configuration.integration_unit = f.get('current_config').attrs['integration_unit']
         if f.get('current_config').attrs['integration_num_points']:
             self.current_configuration.integration_num_points = f.get('current_config').attrs['integration_num_points']
-        if f.get('current_config').attrs['integrate_cake']:
+        if f.get('current_config').attrs['auto_integrate_cake']:
             self.img_mode_changed.emit()
         self.use_mask = f.get('current_config').attrs['use_mask']
         self.use_mask_changed.emit()
@@ -531,11 +531,11 @@ class DioptasModel(QtCore.QObject):
         self.current_configuration.mask_model.save_mask(os.path.join(self.working_directories['temp'], 'temp_mask.mask'))
 
         self.current_configuration.auto_save_integrated_pattern = \
-            f.get('current_config').attrs['autosave_integrated_pattern']
+            f.get('current_config').attrs['auto_save_integrated_pattern']
         self.current_configuration.integrated_patterns_file_formats = []
         file_formats = []
         for file_format in f.get('current_config').get('integrated_patterns_file_formats'):
-            file_formats.append(file_format[0].decode("utf-8"))
+            file_formats.append(file_format[0].decode('utf-8'))
         self.current_configuration.integrated_patterns_file_formats = file_formats
 
         # load img_model
@@ -592,20 +592,20 @@ class DioptasModel(QtCore.QObject):
 
         # load mask model
 
-        self.current_configuration.mask_model.set_mask(np.copy(f.get('mask_model').get('mask_data')[...]))
+        self.current_configuration.mask_model.set_mask(np.copy(f.get('mask').get('data')[...]))
 
         # load pattern model
 
-        if f.get('pattern').get('pattern_x') and f.get('pattern').get('pattern_y'):
-            self.current_configuration.pattern_model.set_pattern(f.get('pattern').get('pattern_x')[...],
-                                                                 f.get('pattern').get('pattern_y')[...],
+        if f.get('pattern').get('x') and f.get('pattern').get('y'):
+            self.current_configuration.pattern_model.set_pattern(f.get('pattern').get('x')[...],
+                                                                 f.get('pattern').get('y')[...],
                                                                  f.get('pattern').attrs['pattern_filename'],
                                                                  f.get('pattern').attrs['unit'])
             self.current_configuration.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
 
         if f.get('background_pattern').attrs['has_background_pattern']:
-            bg_pattern = self.overlay_model.add_overlay(f.get('background_pattern').get('background_pattern_x')[...],
-                                                        f.get('background_pattern').get('background_pattern_y')[...],
+            bg_pattern = self.overlay_model.add_overlay(f.get('background_pattern').get('x')[...],
+                                                        f.get('background_pattern').get('y')[...],
                                                         'background_pattern')
             self.current_configuration.pattern_model.background_pattern = bg_pattern
 
