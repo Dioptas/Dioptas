@@ -147,7 +147,7 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
 
     def test_save_and_load_configuration_in_cake_mode(self):
         self.save_and_load_configuration(self.cake_settings)
-        self.assertTrue(self.model.current_configuration.integrate_cake)
+        self.assertTrue(self.model.current_configuration.auto_integrate_cake)
 
     def cake_settings(self):
         self.controller.integration_controller.widget.img_mode_btn.click()
