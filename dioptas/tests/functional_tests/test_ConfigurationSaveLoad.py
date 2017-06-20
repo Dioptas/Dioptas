@@ -1,21 +1,16 @@
 # -*- coding: utf8 -*-
 
 import os, sys, shutil
-import unittest
 import gc
 
 import numpy as np
 
 from mock import MagicMock
-import h5py
 
-from qtpy import QtWidgets, QtCore
-from qtpy.QtTest import QTest
+from qtpy import QtWidgets
 
 from ...controller.MainController import MainController
-from ...controller.ConfigurationController import ConfigurationController
-from ...model.DioptasModel import DioptasModel
-from ...widgets.ConfigurationWidget import ConfigurationWidget
+from ..utility import QtTest, click_button, unittest_data_path
 from ..ehook import excepthook
 
 
@@ -24,24 +19,7 @@ data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
-def click_button(widget):
-    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
-
-
-def enter_value_into_text_field(text_field, value):
-    text_field.setText('')
-    QTest.keyClicks(text_field, str(value))
-    QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
-    QtWidgets.QApplication.processEvents()
-
-
-class ConfigurationSaveLoadTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtWidgets.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtWidgets.QApplication([])
-
+class ConfigurationSaveLoadTest(QtTest):
     def setUp(self):
         self.controller = MainController()
         self.model = self.controller.model
@@ -82,13 +60,13 @@ class ConfigurationSaveLoadTest(unittest.TestCase):
 
     def test_save_and_load_configuration_auto_process(self):
         self.save_and_load_configuration(self.auto_process_settings)
-        self.assertEqual(self.model.current_configuration.autosave_integrated_pattern, autosave_integrated_patterns)
+        self.assertEqual(self.model.current_configuration.auto_save_integrated_pattern, auto_save_integrated_patterns)
         self.assertEqual(self.model.current_configuration.integrated_patterns_file_formats,
                          integrated_patterns_file_formats)
         self.assertEqual(self.model.current_configuration.img_model.autoprocess, img_autoprocess)
 
     def auto_process_settings(self):
-        self.model.current_configuration.autosave_integrated_pattern = autosave_integrated_patterns
+        self.model.current_configuration.auto_save_integrated_pattern = auto_save_integrated_patterns
         self.model.current_configuration.integrated_patterns_file_formats = integrated_patterns_file_formats
         self.model.current_configuration.img_model.autoprocess = img_autoprocess
 
@@ -233,7 +211,7 @@ integration_unit = 'q_A^-1'
 use_mask = True
 transparent_mask = True
 roi = (100, 120, 300, 400)
-autosave_integrated_patterns = True
+auto_save_integrated_patterns = True
 integrated_patterns_file_formats = ['.xy', '.chi']
 img_autoprocess = True
 detector_thickness = 30

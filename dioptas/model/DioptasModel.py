@@ -314,7 +314,7 @@ class DioptasModel(QtCore.QObject):
         cc.attrs['integrate_cake'] = self.current_configuration.auto_integrate_cake
         cc.attrs['use_mask'] = self.use_mask
         cc.attrs['transparent_mask'] = self.transparent_mask
-        cc.attrs['autosave_integrated_pattern'] = self.current_configuration.autosave_integrated_pattern
+        cc.attrs['autosave_integrated_pattern'] = self.current_configuration.auto_save_integrated_pattern
         formats = [n.encode("ascii", "ignore") for n in self.current_configuration.integrated_patterns_file_formats]
         cc.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
 
@@ -442,12 +442,11 @@ class DioptasModel(QtCore.QObject):
 
         ovs = f.create_group('overlay_model')
         for overlay in self.overlay_model.overlays:
+            print(overlay.name)
             ov = ovs.create_group('overlay_' + overlay.name)
             ov.attrs['overlay_name'] = overlay.name
-            overlay_x_data = overlay.original_x
-            overlay_y_data = overlay.original_y
-            ov.create_dataset('overlay_x_data', overlay_x_data.shape, 'f', overlay_x_data)
-            ov.create_dataset('overlay_y_data', overlay_y_data.shape, 'f', overlay_y_data)
+            ov.create_dataset('overlay_x_data', overlay.original_x.shape, 'f', overlay.original_x)
+            ov.create_dataset('overlay_y_data', overlay.original_y.shape, 'f', overlay.original_y)
             ov.attrs['scaling'] = overlay.scaling
             ov.attrs['offset'] = overlay.offset
 
@@ -532,7 +531,7 @@ class DioptasModel(QtCore.QObject):
         self.transparent_mask_changed.emit()
         self.current_configuration.mask_model.save_mask(os.path.join(self.working_directories['temp'], 'temp_mask.mask'))
 
-        self.current_configuration.autosave_integrated_pattern = \
+        self.current_configuration.auto_save_integrated_pattern = \
             f.get('current_config').attrs['autosave_integrated_pattern']
         self.current_configuration.integrated_patterns_file_formats = []
         file_formats = []
