@@ -311,7 +311,7 @@ class DioptasModel(QtCore.QObject):
             cc.attrs['integration_num_points'] = self.current_configuration.integration_num_points
         else:
             cc.attrs['integration_num_points'] = 0
-        cc.attrs['integrate_cake'] = self.current_configuration.integrate_cake
+        cc.attrs['integrate_cake'] = self.current_configuration.auto_integrate_cake
         cc.attrs['use_mask'] = self.use_mask
         cc.attrs['transparent_mask'] = self.transparent_mask
         cc.attrs['autosave_integrated_pattern'] = self.current_configuration.autosave_integrated_pattern
