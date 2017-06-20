@@ -327,7 +327,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # he finds this phase much more promising and wants to give it a new name
         self.enter_value_into_text_field(self.jcpds_widget.comments_txt,
                                          'HAHA this is a phase you will never see in your pattern')
-        self.assertEqual(self.jcpds.comments[0], 'HAHA this is a phase you will never see in your pattern')
+        self.assertEqual(self.jcpds.params['comments'][0], 'HAHA this is a phase you will never see in your pattern')
 
         # then he sees the save_as button and is happy to save his non-sense for later users
         filename = os.path.join(jcpds_path, 'au_mal_anders.jcpds')
