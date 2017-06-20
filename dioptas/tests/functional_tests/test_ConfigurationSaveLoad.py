@@ -10,7 +10,7 @@ from mock import MagicMock
 from qtpy import QtWidgets
 
 from ...controller.MainController import MainController
-from ..utility import QtTest, click_button, unittest_data_path
+from ..utility import QtTest, click_button
 from ..ehook import excepthook
 
 
@@ -44,7 +44,6 @@ class ConfigurationSaveLoadTest(QtTest):
         self.raw_img_data = self.model.current_configuration.img_model.raw_img_data
 
     def save_and_load_configuration(self, prepare_function, intermediate_function=None):
-        sys.excepthook = excepthook
         self.load_image(test_image_file_name)
         if prepare_function is not None:
             prepare_function()
@@ -82,7 +81,7 @@ class ConfigurationSaveLoadTest(QtTest):
         self.mask_data = np.eye(self.raw_img_data.shape[0], self.raw_img_data.shape[1], dtype=bool)
         self.model.mask_model.set_mask(self.mask_data)
 
-    def save_and_load_configuration_with_phase(self):
+    def test_save_and_load_configuration_with_phase(self):
         self.save_and_load_configuration(self.phase_settings)
         self.assertEqual(self.model.phase_model.phases[0].params['pressure'], pressure)
 
@@ -90,7 +89,11 @@ class ConfigurationSaveLoadTest(QtTest):
         self.load_phase('ar.jcpds')
         self.model.phase_model.phases[0].params['pressure'] = pressure
 
+    def test_save_and_load_with_overlays(self):
+        self.save_and_load_configuration(self.overlay_settings)
+
     def overlay_settings(self):
+        self.controller.integration_controller.widget.qa_set_as_overlay_btn.click()
         self.controller.integration_controller.widget.qa_set_as_overlay_btn.click()
         self.controller.integration_controller.widget.overlay_set_as_bkg_btn.click()
         self.current_pattern_x, self.current_pattern_y = \
