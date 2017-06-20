@@ -23,8 +23,7 @@ from functools import partial
 
 import numpy as np
 from PIL import Image
-from qtpy import QtWidgets
-import pyqtgraph as pg
+from qtpy import QtWidgets, QtCore
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
