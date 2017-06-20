@@ -24,6 +24,7 @@ from functools import partial
 import numpy as np
 from PIL import Image
 from qtpy import QtWidgets
+import pyqtgraph as pg
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
@@ -154,8 +155,13 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
+        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
+        self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
+
+        self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
+        self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
 
         self.connect_click_function(self.widget.integration_image_widget.show_background_subtracted_img_btn,
                                     self.show_background_subtracted_img_btn_clicked)
@@ -234,6 +240,7 @@ class ImageController(object):
 
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
                                                           len(filenames))
+        self._set_up_batch_processing()
 
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
@@ -505,11 +512,14 @@ class ImageController(object):
 
         self.model.cake_changed.connect(self.plot_cake)
 
+        self.widget.integration_image_widget.img_view.replace_image_and_cake_axes('cake')
+
         self.plot_cake()
+        self.update_cake_axes_range()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
-        self.widget.cake_shift_azimuth_sl.setMinimum(0)
-        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi))
+        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi)/2)
+        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi)/2)
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
 
     def activate_image_mode(self):
@@ -533,6 +543,8 @@ class ImageController(object):
         self.model.img_changed.connect(self.plot_mask)
 
         self.model.cake_changed.disconnect(self.plot_cake)
+
+        self.widget.integration_image_widget.img_view.replace_image_and_cake_axes('image')
 
         self.plot_img()
         self.plot_mask()
@@ -615,6 +627,55 @@ class ImageController(object):
             cur_tth = None
         return cur_tth
 
+    def update_cake_axes_range(self):
+        if self.model.current_configuration.auto_integrate_cake:
+            self.update_cake_azimuth_axis()
+            self.update_cake_x_axis()
+
+
+    def update_cake_azimuth_axis(self):
+        data_img_item = self.widget.integration_image_widget.img_view.data_img_item
+        shift_amount = self.widget.cake_shift_azimuth_sl.value()
+        cake_azi = self.model.cake_azi-shift_amount*np.mean(np.diff(self.model.cake_azi))
+
+        height = data_img_item.viewRect().height()
+        bottom = data_img_item.viewRect().top()
+        v_scale = (cake_azi[-1] - cake_azi[0]) / data_img_item.boundingRect().height()
+        v_shift = np.min(cake_azi[0])
+        min_azi = v_scale * bottom + v_shift
+        max_azi = v_scale * (bottom + height) + v_shift
+
+        self.widget.integration_image_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
+
+    def update_cake_x_axis(self):
+        if self.model.cake_tth is None:
+            return
+
+        data_img_item = self.widget.integration_image_widget.img_view.data_img_item
+        cake_tth = self.model.cake_tth
+
+        width = data_img_item.viewRect().width()
+        left = data_img_item.viewRect().left()
+        h_scale = (np.max(cake_tth) - np.min(cake_tth)) / data_img_item.boundingRect().width()
+        h_shift = np.min(cake_tth)
+        min_tth = h_scale * left + h_shift
+        max_tth = h_scale * (left + width) + h_shift
+
+        if self.model.current_configuration.integration_unit == '2th_deg':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(min_tth, max_tth)
+        elif self.model.current_configuration.integration_unit == 'q_A^-1':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(
+                self.convert_x_value(min_tth, '2th_deg', 'q_A^-1'),
+                self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
+
+
+    def set_cake_axis_unit(self, unit='2th_deg'):
+        if unit == '2th_deg':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setLabel(u'2θ', u'°')
+        elif unit == 'q_A^-1':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
+        self.update_cake_x_axis()
+
     def show_img_mouse_position(self, x, y):
         if self.img_mode == "Image":
             img_shape = self.model.img_data.shape
@@ -643,7 +704,8 @@ class ImageController(object):
                 if self.img_mode == 'Cake':
                     tth = get_partial_value(self.model.cake_tth, y - 0.5)
                     shift_amount = self.widget.cake_shift_azimuth_sl.value()
-                    azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
+                    cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
+                    azi = get_partial_value(cake_azi, x - 0.5)
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
@@ -652,7 +714,6 @@ class ImageController(object):
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
                     azi = self.model.calibration_model.get_azi_img(x, y) / np.pi * 180
 
-                azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
                 tth_str = u"2θ:%9.3f  " % tth
                 self.widget.mouse_tth_lbl.setText(tth_str)

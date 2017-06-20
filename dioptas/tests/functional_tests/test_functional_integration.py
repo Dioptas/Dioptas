@@ -125,7 +125,7 @@ class IntegrationMockFunctionalTest(QtTest):
         self.integration_widget.show()
 
         # Tests if the pattern save procedures is are working for all file-endings
-        def save__test_for_size_and_delete(self):
+        def save_test_for_size_and_delete(self):
 
             def save_pattern(filename):
                 QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
@@ -155,11 +155,11 @@ class IntegrationMockFunctionalTest(QtTest):
             os.remove(os.path.join(data_path, 'Test_spec.png'))
             os.remove(os.path.join(data_path, 'Test_spec.svg'))
 
-        save__test_for_size_and_delete(self)
+        save_test_for_size_and_delete(self)
         QTest.mouseClick(self.integration_pattern_controller.widget.pattern_q_btn, QtCore.Qt.LeftButton)
-        save__test_for_size_and_delete(self)
+        save_test_for_size_and_delete(self)
         QTest.mouseClick(self.integration_pattern_controller.widget.pattern_d_btn, QtCore.Qt.LeftButton)
-        save__test_for_size_and_delete(self)
+        save_test_for_size_and_delete(self)
 
     def test_undocking_and_docking_img_frame(self):
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
