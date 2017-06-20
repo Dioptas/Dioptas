@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 
+from qtpy import QtCore
 
 import numpy as np
 
@@ -60,6 +61,10 @@ class ImgCorrectionManager(object):
         except KeyError:
             return None
 
+    @property
+    def corrections(self):
+        return self._corrections
+
 
 class ImgCorrectionInterface(object):
     def get_data(self):
@@ -70,9 +75,9 @@ class ImgCorrectionInterface(object):
 
 
 class CbnCorrection(ImgCorrectionInterface):
-    def __init__(self, tth_array, azi_array,
-                 diamond_thickness, seat_thickness,
-                 small_cbn_seat_radius, large_cbn_seat_radius,
+    def __init__(self, tth_array=[], azi_array=[],
+                 diamond_thickness=2.0, seat_thickness=5.0,
+                 small_cbn_seat_radius=0.5, large_cbn_seat_radius=2.0,
                  tilt=0, tilt_rotation=0,
                  diamond_abs_length=13.7, cbn_abs_length=14.05,
                  center_offset=0, center_offset_angle=0):
@@ -96,6 +101,30 @@ class CbnCorrection(ImgCorrectionInterface):
 
     def shape(self):
         return self._data.shape
+
+    def get_params(self):
+        return {'diamond_thickness': self._diamond_thickness,
+                'seat_thickness': self._seat_thickness,
+                'small_cbn_seat_radius': self._small_cbn_seat_radius,
+                'large_cbn_seat_radius': self._large_cbn_seat_radius,
+                'tilt': self._tilt,
+                'tilt_rotation': self._tilt_rotation,
+                'diamond_abs_length': self._diamond_abs_length,
+                'seat_abs_length': self._seat_abs_length,
+                'center_offset': self._center_offset,
+                'center_offset_angle': self._center_offset_angle}
+
+    def set_params(self, params):
+        self._diamond_thickness = params['diamond_thickness']
+        self._seat_thickness = params['seat_thickness']
+        self._small_cbn_seat_radius = params['small_cbn_seat_radius']
+        self._large_cbn_seat_radius = params['large_cbn_seat_radius']
+        self._tilt = params['tilt']
+        self._tilt_rotation = params['tilt_rotation']
+        self._diamond_abs_length = params['diamond_abs_length']
+        self._seat_abs_length = params['seat_abs_length']
+        self._center_offset = params['center_offset']
+        self._center_offset_angle = params['center_offset_angle']
 
     def update(self):
 
@@ -207,7 +236,7 @@ class CbnCorrection(ImgCorrectionInterface):
 
 
 class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
-    def __init__(self, tth_array, azi_array, detector_thickness, absorption_length, tilt, rotation):
+    def __init__(self, tth_array, azi_array, detector_thickness=40, absorption_length=150, tilt=0, rotation=0):
         self.tth_array = tth_array
         self.azi_array = azi_array
         self.detector_thickness = detector_thickness
@@ -217,6 +246,19 @@ class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
 
         self._data = None
         self.update()
+
+    def get_params(self):
+        return {'detector_thickness': self.detector_thickness,
+                'absorption_length': self.absorption_length,
+                'tilt': self.tilt,
+                'rotation': self.rotation
+                }
+
+    def set_params(self, params):
+        self.detector_thickness = params['detector_thickness']
+        self.absorption_length = params['absorption_length']
+        self.tilt = params['tilt']
+        self.rotation = params['rotation']
 
     def get_data(self):
         return self._data
