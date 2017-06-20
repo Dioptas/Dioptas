@@ -438,23 +438,22 @@ class DioptasModel(QtCore.QObject):
         else:
             pm.attrs['auto_background_subtraction'] = False
 
-        # save overlay model
+        # save overlays
 
-        ovs = f.create_group('overlay_model')
-        for overlay in self.overlay_model.overlays:
-            print(overlay.name)
-            ov = ovs.create_group('overlay_' + overlay.name)
-            ov.attrs['overlay_name'] = overlay.name
-            ov.create_dataset('overlay_x_data', overlay.original_x.shape, 'f', overlay.original_x)
-            ov.create_dataset('overlay_y_data', overlay.original_y.shape, 'f', overlay.original_y)
+        ovs = f.create_group('overlays')
+
+        for ind, overlay in enumerate(self.overlay_model.overlays):
+            ov = ovs.create_group(str(ind))
+            ov.attrs['name'] = overlay.name
+            ov.create_dataset('x', overlay.original_x.shape, 'f', overlay.original_x)
+            ov.create_dataset('y', overlay.original_y.shape, 'f', overlay.original_y)
             ov.attrs['scaling'] = overlay.scaling
             ov.attrs['offset'] = overlay.offset
 
-        # save phase model
-
-        phm = f.create_group('phase_model')
-        for phase in self.phase_model.phases:
-            ph = phm.create_group('phase_' + phase.name)
+        # save phases
+        phm = f.create_group('phases')
+        for ind, phase in enumerate(self.phase_model.phases):
+            ph = phm.create_group(str(ind))
             ph.attrs['name'] = phase.name
             ph.attrs['filename'] = phase.filename
             phpars = ph.create_group('params')
@@ -623,22 +622,21 @@ class DioptasModel(QtCore.QObject):
         # load overlay model
 
         def load_overlay_from_configuration(name):
-            if isinstance(f.get('overlay_model').get(name), h5py.Group):
-                self.overlay_model.add_overlay(f.get('overlay_model').get(name).get('overlay_x_data')[...],
-                                               f.get('overlay_model').get(name).get('overlay_y_data')[...],
-                                               f.get('overlay_model').get(name).attrs['overlay_name'])
+            if isinstance(f.get('overlays').get(name), h5py.Group):
+                self.overlay_model.add_overlay(f.get('overlays').get(name).get('x')[...],
+                                               f.get('overlays').get(name).get('y')[...],
+                                               f.get('overlays').get(name).attrs['name'])
                 ind = len(self.overlay_model.overlays) - 1
-                self.overlay_model.set_overlay_offset(ind, f.get('overlay_model').get(name).attrs['offset'])
-                self.overlay_model.set_overlay_scaling(ind, f.get('overlay_model').get(name).attrs['scaling'])
+                self.overlay_model.set_overlay_offset(ind, f.get('overlays').get(name).attrs['offset'])
+                self.overlay_model.set_overlay_scaling(ind, f.get('overlays').get(name).attrs['scaling'])
 
-        f.get('overlay_model').visit(load_overlay_from_configuration)
+        f.get('overlays').visit(load_overlay_from_configuration)
 
         # load phase model
 
         def load_phase_from_configuration(name):
-            if isinstance(f.get('phase_model').get(name), h5py.Group):
-                no_file = False
-                p_filename = f.get('phase_model').get(name).attrs.get('filename', None)
+            if isinstance(f.get('phases').get(name), h5py.Group):
+                p_filename = f.get('phases').get(name).attrs.get('filename', None)
                 if p_filename is not None:
                     if os.path.isfile(p_filename):
                         if p_filename.endswith('.jcpds'):
@@ -646,19 +644,18 @@ class DioptasModel(QtCore.QObject):
                         elif p_filename.endswith('.cif'):
                             self.phase_model.add_cif(p_filename)
                         ind = len(self.phase_model.phases) - 1
-                        for p_key, p_value in f.get('phase_model').get(name).get('params').attrs.items():
+                        for p_key, p_value in f.get('phases').get(name).get('params').attrs.items():
                             self.phase_model.phases[ind].params[p_key] = p_value
-                        for c_key, c_value in f.get('phase_model').get(name).get('comments').attrs.items():
+                        for c_key, c_value in f.get('phases').get(name).get('comments').attrs.items():
                             self.phase_model.phases[ind].params['comments'].append(c_value)
                     else:
-                        no_file = True
                         new_jcpds = jcpds()
-                        for p_key, p_value in f.get('phase_model').get(name).get('params').attrs.items():
+                        for p_key, p_value in f.get('phases').get(name).get('params').attrs.items():
                             new_jcpds.params[p_key] = p_value
-                        for c_key, c_value in f.get('phase_model').get(name).get('comments').attrs.items():
+                        for c_key, c_value in f.get('phases').get(name).get('comments').attrs.items():
                             new_jcpds.params['comments'].append(c_value)
-                        for r_key, r_value in f.get('phase_model').get(name).get('reflections').items():
-                            ref = f.get('phase_model').get(name).get('reflections').get(r_key)
+                        for r_key, r_value in f.get('phases').get(name).get('reflections').items():
+                            ref = f.get('phases').get(name).get('reflections').get(r_key)
                             new_jcpds.add_reflection(ref.attrs['h'], ref.attrs['k'], ref.attrs['l'],
                                                      ref.attrs['intensity'], ref.attrs['d'])
                         (p_path, p_base_name) = os.path.split(p_filename)
@@ -670,8 +667,7 @@ class DioptasModel(QtCore.QObject):
                     self.phase_model.phases[ind].compute_d()
                     self.phase_model.send_added_signal()
 
-        f.get('phase_model').visit(load_phase_from_configuration)
-
+        f.get('phases').visit(load_phase_from_configuration)
         f.close()
 
     def select_configuration(self, ind):
