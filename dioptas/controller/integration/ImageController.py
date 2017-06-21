@@ -63,6 +63,9 @@ class ImageController(object):
         self.clicked_tth = None
         self.clicked_azi = None
 
+        self.vertical_splitter_alternative_state = None
+        self.vertical_splitter_normal_state = None
+
         self.initialize()
         self.create_signals()
         self.create_mouse_behavior()
@@ -970,10 +973,24 @@ class ImageController(object):
         # delete_me = self.widget.vertical_splitter.widget(ind)
         # delete_me.hide()
         # delete_me.deleteLater()
-        if self.widget.alternative_gui_view:
+        if self.widget.alternative_gui_view:  # change to normal view
+            self.vertical_splitter_alternative_state = self.widget.vertical_splitter.saveState()
             self.widget.vertical_splitter.addWidget(self.widget.integration_pattern_widget)
-        else:
+            self.widget.integration_control_widget.insertTab(2,
+                 self.widget.integration_control_widget.overlay_control_widget, 'Overlay')
+            self.widget.integration_control_widget.insertTab(3,
+                 self.widget.integration_control_widget.phase_control_widget, 'Phase')
+            if self.vertical_splitter_normal_state:
+                self.widget.vertical_splitter.restoreState(self.vertical_splitter_normal_state)
+        else:  # change to alternative view
+            self.vertical_splitter_normal_state = self.widget.vertical_splitter.saveState()
             self.widget.vertical_splitter_left.addWidget(self.widget.integration_pattern_widget)
+            self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.overlay_control_widget)
+            self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.phase_control_widget)
+            self.widget.integration_control_widget.overlay_control_widget.setVisible(True)
+            self.widget.integration_control_widget.phase_control_widget.setVisible(True)
+            if self.vertical_splitter_alternative_state:
+                self.widget.vertical_splitter.restoreState(self.vertical_splitter_alternative_state)
         self.widget.alternative_gui_view = not self.widget.alternative_gui_view
 
     def find_ind_of_item_in_splitter(self, item, splitter):
