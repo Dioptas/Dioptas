@@ -289,6 +289,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
             # save current splitter state
             self.horizontal_splitter_state = self.horizontal_splitter.saveState()
+            self.vertical_splitter_left_state = self.vertical_splitter_left.saveState()
 
             # splitter_handle = self.horizontal_splitter.handle(1)
             # splitter_handle.setEnabled(False)
@@ -313,13 +314,14 @@ class IntegrationWidget(QtWidgets.QWidget):
             self.frame_img_positions_widget.hide()
 
             # remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
-            self.img_frame.setParent(self.horizontal_splitter)
+            self.img_frame.setParent(self.vertical_splitter_left)
 
-            self.horizontal_splitter.addWidget(self.img_frame)
-            self.horizontal_splitter.addWidget(self.vertical_splitter)
+            self.vertical_splitter_left.insertWidget(0, self.img_frame)
+            # self.horizontal_splitter.addWidget(self.vertical_splitter)
 
             # restore the previously used size when image was undocked
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
+            self.vertical_splitter_left.restoreState(self.vertical_splitter_left_state)
 
     def get_progress_dialog(self, message, abort_text, num_points):
         progress_dialog = QtWidgets.QProgressDialog(message, abort_text, 0,
