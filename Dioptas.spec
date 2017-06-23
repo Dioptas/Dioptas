@@ -41,6 +41,8 @@ extra_datas = [
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     ("dioptas/widgets/stylesheet.qss", "dioptas/widgets"),
     ("dioptas/widgets/icns/icon.svg", "dioptas/widgets/icns"),
+    ("dioptas/widgets/icns/open.ico", dioptas/widget/icns"),
+    ("dioptas/widgets/icns/save.ico", dioptas/widget/icns"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
     ("dioptas/model/util/data/*.json", "dioptas/model/util/data"),
