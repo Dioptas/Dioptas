@@ -25,6 +25,7 @@ import xml.etree.cElementTree as ET
 
 from ..widgets.MainWidget import MainWidget
 from ..model.DioptasModel import DioptasModel
+from ..widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 from . import CalibrationController
 from .integration import IntegrationController
@@ -109,6 +110,9 @@ class MainController(object):
 
         self.model.img_changed.connect(self.update_title)
         self.model.pattern_changed.connect(self.update_title)
+
+        self.widget.save_btn.clicked.connect(self.save_btn_clicked)
+        self.widget.load_btn.clicked.connect(self.load_btn_clicked)
 
     def tab_changed(self):
         """
@@ -276,3 +280,24 @@ class MainController(object):
             self.save_settings()
         QtWidgets.QApplication.closeAllWindows()
         ev.accept()
+
+
+    def save_btn_clicked(self):
+        try:
+            default_file_name = self.model.working_directories['image'] + 'config.hdf5'
+        except TypeError:
+            default_file_name = '.'
+        filename = save_file_dialog(self.widget, "Save Current Configuration", default_file_name,
+                                    filter='Config (*.hdf5)')
+
+        if filename is not None and filename !='':
+            self.model.save(filename)
+
+    def load_btn_clicked(self):
+        try:
+            default_file_name = self.model.working_directories['image'] + 'config.hdf5'
+        except TypeError:
+            default_file_name = '.'
+        filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name, filter='Config (*.hdf5)')
+        if filename is not None and filename !='':
+            self.model.load(filename)
