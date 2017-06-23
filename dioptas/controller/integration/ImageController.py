@@ -23,8 +23,7 @@ from functools import partial
 
 import numpy as np
 from PIL import Image
-from qtpy import QtWidgets
-import pyqtgraph as pg
+from qtpy import QtWidgets, QtCore
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
@@ -113,8 +112,10 @@ class ImageController(object):
         """
         if self.model.use_mask and self.img_mode == 'Image':
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
+            self.widget.img_mask_btn.setChecked(True)
         else:
             self.widget.img_widget.plot_mask(np.zeros(self.model.mask_model.get_img().shape))
+            self.widget.img_mask_btn.setChecked(False)
 
     def update_mask_transparency(self):
         """
@@ -187,7 +188,7 @@ class ImageController(object):
         self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
-        # self.create_auto_process_signal()
+        # signals
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
     def connect_click_function(self, emitter, function):
@@ -405,6 +406,15 @@ class ImageController(object):
         self.plot_mask()
         # print(self.model.mask_model.get_mask().shape)
         self.model.img_model.img_changed.emit()
+
+    def update_mask_mode(self):
+        self.widget.integration_image_widget.mask_btn.setChecked(self.model.use_mask)
+        self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
+        if self.model.transparent_mask:
+            self.widget.mask_transparent_cb.click()
+
+    def update_img_mode(self):
+        self.widget.img_mode_btn.click()
 
     def load_next_img(self):
         step = int(str(self.widget.image_browse_step_txt.text()))
@@ -932,7 +942,7 @@ class ImageController(object):
 
     def cbn_plot_correction_btn_clicked(self):
         if str(self.widget.cbn_plot_correction_btn.text()) == 'Plot':
-            self.widget.img_widget.plot_image(self.model.img_model._img_corrections.get_correction("cbn").get_data(),
+            self.widget.img_widget.plot_image(self.model.img_model.img_corrections.get_correction("cbn").get_data(),
                                               True)
             self.widget.cbn_plot_correction_btn.setText('Back')
             self.widget.oiadac_plot_btn.setText('Plot')
@@ -942,6 +952,20 @@ class ImageController(object):
                 self.plot_cake(True)
             elif self.img_mode == 'Image':
                 self.plot_img(True)
+
+    def update_cbn_widgets(self):
+        params = self.model.img_model.img_corrections.get_correction("cbn").get_params()
+        self.widget.cbn_diamond_thickness_txt.setText(str(params['diamond_thickness']))
+        self.widget.cbn_seat_thickness_txt.setText(str(params['seat_thickness']))
+        self.widget.cbn_inner_seat_radius_txt.setText(str(params['small_cbn_seat_radius']))
+        self.widget.cbn_outer_seat_radius_txt.setText(str(params['large_cbn_seat_radius']))
+        self.widget.cbn_cell_tilt_txt.setText(str(params['tilt']))
+        self.widget.cbn_tilt_rotation_txt.setText(str(params['tilt_rotation']))
+        self.widget.cbn_anvil_al_txt.setText(str(params['diamond_abs_length']))
+        self.widget.cbn_seat_al_txt.setText(str(params['seat_abs_length']))
+        self.widget.cbn_center_offset_txt.setText(str(params['center_offset']))
+        self.widget.cbn_center_offset_angle_txt.setText(str(params['center_offset_angle']))
+        self.widget.cbn_groupbox.setChecked(True)
 
     def oiadac_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
@@ -998,6 +1022,20 @@ class ImageController(object):
             elif self.img_mode == 'Image':
                 self.plot_img(True)
 
+    def update_oiadac_widgets(self):
+        params = self.model.img_model.img_corrections.get_correction("oiadac").get_params()
+        self.widget.oiadac_thickness_txt.setText(str(params['detector_thickness']))
+        self.widget.oiadac_abs_length_txt.setText(str(params['absorption_length']))
+        self.widget.oiadac_groupbox.setChecked(True)
+
+    def update_roi_btn(self):
+        roi = self.model.current_configuration.roi
+        pos = QtCore.QPoint(roi[2], roi[0])
+        size = QtCore.QPoint(roi[3] - roi[2], roi[1]-roi[0])
+        if not self.widget.img_roi_btn.isChecked():
+            self.widget.img_roi_btn.click()
+            self.widget.img_widget.roi.setRoiLimits(pos, size)
+
     def _check_absorption_correction_shape(self):
         if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
             self.widget.cbn_groupbox.setChecked(False)
@@ -1009,6 +1047,7 @@ class ImageController(object):
 
     def update_gui(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
+        self.widget.img_roi_btn.setChecked(self.model.mask_model.roi is not None)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
