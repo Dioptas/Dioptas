@@ -243,18 +243,10 @@ class ImgConfiguration(QtCore.QObject):
 
         return new_configuration
 
-    def save(self, filename):
-        if filename is '' or filename is None:
-            return
-
-        f = h5py.File(filename, 'w')
-        self.save_in(f)
-        f.flush()
-        f.close()
-
-    def save_in(self, hdf5_group):
+    def save_in_hdf5(self, hdf5_group):
         """
         Saves the configuration group in the given hdf5_group.
+        :type hdf5_group: h5py.Group
         """
 
         f = hdf5_group
@@ -387,19 +379,10 @@ class ImgConfiguration(QtCore.QObject):
         else:
             pattern_group.attrs['auto_background_subtraction'] = False
 
-    def load(self, filename):
-        if filename is '' or filename is None:
-            return
-        f = h5py.File(filename, 'r')
-        self.load_from(f)
-        f.close()
-
-    def load_from(self, hdf5_group):
+    def load_from_hdf5(self, hdf5_group):
         """
-        loads a configuration from the specified hdf5_group
-        :param hdf5_group:
+        loads a configuration from the specified hdf5_group.
         :type hdf5_group: h5py.Group
-        :return:
         """
 
         f = hdf5_group
@@ -578,7 +561,7 @@ class DioptasModel(QtCore.QObject):
         configurations_group.attrs['selected_configuration'] = self.configuration_ind
         for ind, configuration in enumerate(self.configurations):
             configuration_group = configurations_group.create_group(str(ind))
-            configuration.save_in(configuration_group)
+            configuration.save_in_hdf5(configuration_group)
 
         # save overlays
         overlay_group = f.create_group('overlays')
@@ -631,7 +614,7 @@ class DioptasModel(QtCore.QObject):
         self.configurations = []
         for ind, configuration_group in f.get('configurations').items():
             configuration = ImgConfiguration()
-            configuration.load_from(configuration_group)
+            configuration.load_from_hdf5(configuration_group)
             self.configurations.append(configuration)
         self.configuration_ind = f.get('configurations').attrs['selected_configuration']
 
