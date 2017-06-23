@@ -89,7 +89,7 @@ class ConfigurationController(object):
             default_file_name = '.'
         filename = save_file_dialog(self.widget, "Save Current Configuration", default_file_name,
                                     filter='Config (*.hdf5)')
-        self.model.save_configuration(filename)
+        self.model.save(filename)
 
     def load_configuration_btn_clicked(self):
         try:
@@ -97,4 +97,4 @@ class ConfigurationController(object):
         except TypeError:
             default_file_name = '.'
         filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name, filter='Config (*.hdf5)')
-        self.model.load_configuration(filename)
+        self.model.load(filename)

@@ -248,7 +248,16 @@ class ImgConfiguration(QtCore.QObject):
             return
 
         f = h5py.File(filename, 'w')
+        self.save_in(f)
+        f.flush()
+        f.close()
 
+    def save_in(self, hdf5_group):
+        """
+        Saves the configuration group in the given hdf5_group.
+        """
+
+        f = hdf5_group
         # save general information
         general_information = f.create_group('general_information')
         general_information.attrs['integration_unit'] = self.integration_unit
@@ -378,13 +387,24 @@ class ImgConfiguration(QtCore.QObject):
         else:
             pattern_group.attrs['auto_background_subtraction'] = False
 
-        f.flush()
-        f.close()
 
     def load(self, filename):
         if filename is '' or filename is None:
             return
         f = h5py.File(filename, 'r')
+        self.load_from(f)
+        f.close()
+
+
+    def load_from(self, hdf5_group):
+        """
+        loads a configuration from the specified hdf5_group
+        :param hdf5_group:
+        :type hdf5_group: h5py.Group
+        :return:
+        """
+
+        f=hdf5_group
 
         # disable all automatic functions
         self.auto_integrate_pattern = False
@@ -503,8 +523,6 @@ class ImgConfiguration(QtCore.QObject):
         if f.get('image_model').get('corrections').attrs['has_corrections']:
             f.get('image_model').get('corrections').visit(load_correction_from_configuration)
 
-        f.close()
-
 
 class DioptasModel(QtCore.QObject):
     configuration_added = QtCore.Signal()
@@ -557,11 +575,16 @@ class DioptasModel(QtCore.QObject):
         self.connect_models()
         self.configuration_removed.emit(self.configuration_ind)
 
-    def save_configuration(self, filename):
+    def save(self, filename):
         # save configuration
-        self.current_configuration.save(filename)
+        f = h5py.File(filename, 'w')
 
-        f = h5py.File(filename, 'a')
+        configurations_group = f.create_group('configurations')
+        configurations_group.attrs['selected_configuration'] = self.configuration_ind
+        for ind, configuration in enumerate(self.configurations):
+            configuration_group = configurations_group.create_group(str(ind))
+            configuration.save_in(configuration_group)
+
         # save overlays
         overlay_group = f.create_group('overlays')
 
@@ -574,51 +597,58 @@ class DioptasModel(QtCore.QObject):
             ov.attrs['offset'] = overlay.offset
 
         # save phases
-        phm = f.create_group('phases')
+        phases_group = f.create_group('phases')
         for ind, phase in enumerate(self.phase_model.phases):
-            ph = phm.create_group(str(ind))
-            ph.attrs['name'] = phase.name
-            ph.attrs['filename'] = phase.filename
-            phpars = ph.create_group('params')
+            phase_group = phases_group.create_group(str(ind))
+            phase_group.attrs['name'] = phase.name
+            phase_group.attrs['filename'] = phase.filename
+            phase_parameter_group = phase_group.create_group('params')
             for key in phase.params:
                 if key == 'comments':
-                    phc = ph.create_group('comments')
+                    phases_comments_group = phase_group.create_group('comments')
                     ind = 0
                     for comment in phase.params['comments']:
-                        phc.attrs['comment_' + str(ind)] = comment
+                        phases_comments_group.attrs[str(ind)] = comment
                         ind += 1
                 else:
-                    phpars.attrs[key] = phase.params[key]
-            phrefs = ph.create_group('reflections')
+                    phase_parameter_group.attrs[key] = phase.params[key]
+            phase_reflections_group = phase_group.create_group('reflections')
             ind = 0
             for reflection in phase.reflections:
-                phref = phrefs.create_group('reflection_' + str(ind))
-                phref.attrs['d0'] = reflection.d0
-                phref.attrs['d'] = reflection.d
-                phref.attrs['intensity'] = reflection.intensity
-                phref.attrs['h'] = reflection.h
-                phref.attrs['k'] = reflection.k
-                phref.attrs['l'] = reflection.l
+                phase_reflection_group = phase_reflections_group.create_group(str(ind))
+                phase_reflection_group.attrs['d0'] = reflection.d0
+                phase_reflection_group.attrs['d'] = reflection.d
+                phase_reflection_group.attrs['intensity'] = reflection.intensity
+                phase_reflection_group.attrs['h'] = reflection.h
+                phase_reflection_group.attrs['k'] = reflection.k
+                phase_reflection_group.attrs['l'] = reflection.l
                 ind += 1
 
         f.flush()
         f.close()
 
-    def load_configuration(self, filename):
-        self.current_configuration.load(filename)
+    def load(self, filename):
+        self.disconnect_models()
+
         f = h5py.File(filename, 'r')
 
-        # load overlay model
-        def load_overlay_from_configuration(name):
-            if isinstance(f.get('overlays').get(name), h5py.Group):
-                self.overlay_model.add_overlay(f.get('overlays').get(name).get('x')[...],
-                                               f.get('overlays').get(name).get('y')[...],
-                                               f.get('overlays').get(name).attrs['name'])
-                ind = len(self.overlay_model.overlays) - 1
-                self.overlay_model.set_overlay_offset(ind, f.get('overlays').get(name).attrs['offset'])
-                self.overlay_model.set_overlay_scaling(ind, f.get('overlays').get(name).attrs['scaling'])
+        # load_configurations
+        self.configurations = []
+        for ind, configuration_group in f.get('configurations').items():
+            configuration = ImgConfiguration()
+            configuration.load_from(configuration_group)
+            self.configurations.append(configuration)
+        self.configuration_ind = f.get('configurations').attrs['selected_configuration']
 
-        f.get('overlays').visit(load_overlay_from_configuration)
+
+        # load overlay model
+        for ind, overlay_group in f.get('overlays').items():
+            self.overlay_model.add_overlay(overlay_group.get('x')[...],
+                                           overlay_group.get('y')[...],
+                                           overlay_group.attrs['name'])
+            ind = len(self.overlay_model.overlays) - 1
+            self.overlay_model.set_overlay_offset(ind, overlay_group.attrs['offset'])
+            self.overlay_model.set_overlay_scaling(ind, overlay_group.attrs['scaling'])
 
         # load phase model
         def load_phase_from_configuration(name):
@@ -645,8 +675,6 @@ class DioptasModel(QtCore.QObject):
                             ref = f.get('phases').get(name).get('reflections').get(r_key)
                             new_jcpds.add_reflection(ref.attrs['h'], ref.attrs['k'], ref.attrs['l'],
                                                      ref.attrs['intensity'], ref.attrs['d'])
-                        (p_path, p_base_name) = os.path.split(p_filename)
-                        # new_jcpds.save_file(os.path.join(self.working_directories['temp'], p_base_name))
                         ind = len(self.phase_model.phases) - 1
                         self.phase_model.phases.append(new_jcpds)
                         self.phase_model.reflections.append([])
@@ -657,7 +685,8 @@ class DioptasModel(QtCore.QObject):
         f.get('phases').visit(load_phase_from_configuration)
         f.close()
 
-        self.select_configuration(0)
+        self.connect_models()
+        self.select_configuration(self.configuration_ind)
 
     def select_configuration(self, ind):
         if 0 <= ind < len(self.configurations):
