@@ -387,14 +387,12 @@ class ImgConfiguration(QtCore.QObject):
         else:
             pattern_group.attrs['auto_background_subtraction'] = False
 
-
     def load(self, filename):
         if filename is '' or filename is None:
             return
         f = h5py.File(filename, 'r')
         self.load_from(f)
         f.close()
-
 
     def load_from(self, hdf5_group):
         """
@@ -404,7 +402,7 @@ class ImgConfiguration(QtCore.QObject):
         :return:
         """
 
-        f=hdf5_group
+        f = hdf5_group
 
         # disable all automatic functions
         self.auto_integrate_pattern = False
@@ -497,14 +495,14 @@ class ImgConfiguration(QtCore.QObject):
 
         self.integrate_image_1d()
 
-        def load_correction_from_configuration(name):
-            if isinstance(f.get('image_model').get('corrections').get(name), h5py.Dataset):
+        if f.get('image_model').get('corrections').attrs['has_corrections']:
+            for name, correction_group in f.get('image_model').get('corrections').items():
                 if name == 'cbn':
                     tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
                     azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
                     cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
                     params = {}
-                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
+                    for param, val in correction_group.attrs.items():
                         params[param] = val
                     cbn_correction.set_params(params)
                     cbn_correction.update()
@@ -514,14 +512,11 @@ class ImgConfiguration(QtCore.QObject):
                     azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
                     oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
                     params = {}
-                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
+                    for param, val in correction_group.attrs.items():
                         params[param] = val
                     oiadac.set_params(params)
                     oiadac.update()
                     self.img_model.add_img_correction(oiadac, name, name)
-
-        if f.get('image_model').get('corrections').attrs['has_corrections']:
-            f.get('image_model').get('corrections').visit(load_correction_from_configuration)
 
 
 class DioptasModel(QtCore.QObject):
@@ -640,7 +635,6 @@ class DioptasModel(QtCore.QObject):
             self.configurations.append(configuration)
         self.configuration_ind = f.get('configurations').attrs['selected_configuration']
 
-
         # load overlay model
         for ind, overlay_group in f.get('overlays').items():
             self.overlay_model.add_overlay(overlay_group.get('x')[...],
@@ -651,38 +645,21 @@ class DioptasModel(QtCore.QObject):
             self.overlay_model.set_overlay_scaling(ind, overlay_group.attrs['scaling'])
 
         # load phase model
-        def load_phase_from_configuration(name):
-            if isinstance(f.get('phases').get(name), h5py.Group):
-                p_filename = f.get('phases').get(name).attrs.get('filename', None)
-                if p_filename is not None:
-                    if os.path.isfile(p_filename):
-                        if p_filename.endswith('.jcpds'):
-                            self.phase_model.add_jcpds(p_filename)
-                        elif p_filename.endswith('.cif'):
-                            self.phase_model.add_cif(p_filename)
-                        ind = len(self.phase_model.phases) - 1
-                        for p_key, p_value in f.get('phases').get(name).get('params').attrs.items():
-                            self.phase_model.phases[ind].params[p_key] = p_value
-                        for c_key, c_value in f.get('phases').get(name).get('comments').attrs.items():
-                            self.phase_model.phases[ind].params['comments'].append(c_value)
-                    else:
-                        new_jcpds = jcpds()
-                        for p_key, p_value in f.get('phases').get(name).get('params').attrs.items():
-                            new_jcpds.params[p_key] = p_value
-                        for c_key, c_value in f.get('phases').get(name).get('comments').attrs.items():
-                            new_jcpds.params['comments'].append(c_value)
-                        for r_key, r_value in f.get('phases').get(name).get('reflections').items():
-                            ref = f.get('phases').get(name).get('reflections').get(r_key)
-                            new_jcpds.add_reflection(ref.attrs['h'], ref.attrs['k'], ref.attrs['l'],
-                                                     ref.attrs['intensity'], ref.attrs['d'])
-                        ind = len(self.phase_model.phases) - 1
-                        self.phase_model.phases.append(new_jcpds)
-                        self.phase_model.reflections.append([])
+        for ind, phase_group in f.get('phases').items():
+            p_filename = phase_group.attrs.get('filename', None)
+            if p_filename is not None:
+                new_jcpds = jcpds()
+                for p_key, p_value in phase_group.get('params').attrs.items():
+                    new_jcpds.params[p_key] = p_value
+                for c_key, comment in phase_group.get('comments').attrs.items():
+                    new_jcpds.params['comments'].append(comment)
+                for r_key, reflection in phase_group.get('reflections').items():
+                    new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
+                                             reflection.attrs['intensity'], reflection.attrs['d'])
+                self.phase_model.phases.append(new_jcpds)
+                self.phase_model.reflections.append([])
+                self.phase_model.send_added_signal()
 
-                    self.phase_model.phases[ind].compute_d()
-                    self.phase_model.send_added_signal()
-
-        f.get('phases').visit(load_phase_from_configuration)
         f.close()
 
         self.connect_models()
