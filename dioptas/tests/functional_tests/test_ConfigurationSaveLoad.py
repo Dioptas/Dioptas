@@ -11,7 +11,6 @@ from qtpy import QtWidgets
 
 from ...controller.MainController import MainController
 from ..utility import QtTest, click_button
-from ..ehook import excepthook
 
 
 unittest_path = os.path.dirname(__file__)
@@ -141,40 +140,7 @@ class ConfigurationSaveLoadTest(QtTest):
         self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
         self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
 
-    def test_save_and_then_load_with_existing_files(self):
-        self.save_and_load_configuration(self.existing_files_settings, self.existing_files_intermediate_settings)
-        self.assertTrue(os.path.isfile(test_image_file_name_2))
-        os.remove(test_image_file_name_2)
-        self.assertTrue(os.path.isfile(test_calibration_file_2))
-        os.remove(test_calibration_file_2)
-
-    def existing_files_settings(self):
-        shutil.copy(test_image_file_name, test_image_file_name_2)
-        shutil.copy(test_calibration_file, test_calibration_file_2)
-        self.load_image(test_image_file_name_2)
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=test_calibration_file_2)
-        self.controller.integration_controller.image_controller.load_calibration()
-
     def existing_files_intermediate_settings(self):
-        self.check_calibration = False
-
-    def test_save_and_then_load_with_nonexisting_files(self):
-        self.save_and_load_configuration(self.nonexisting_files_settings, self.nonexisting_files_intermediate_settings)
-        self.assertTrue(os.path.isfile(test_image_file_name_2))
-        os.remove(test_image_file_name_2)
-        self.assertTrue(os.path.isfile(test_calibration_file_2))
-        os.remove(test_calibration_file_2)
-
-    def nonexisting_files_settings(self):
-        shutil.copy(test_image_file_name, test_image_file_name_2)
-        shutil.copy(test_calibration_file, test_calibration_file_2)
-        self.load_image(test_image_file_name_2)
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=test_calibration_file_2)
-        self.controller.integration_controller.image_controller.load_calibration()
-
-    def nonexisting_files_intermediate_settings(self):
-        os.remove(test_image_file_name_2)
-        os.remove(test_calibration_file_2)
         self.check_calibration = False
 
     def save_configuration(self):
@@ -187,7 +153,6 @@ class ConfigurationSaveLoadTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=config_file_path)
         click_button(self.config_widget.load_configuration_button)
         saved_working_directories = self.model.working_directories
-        saved_working_directories.pop('temp', None)
         self.assertDictEqual(saved_working_directories, working_directories)
         self.assertEqual(self.model.current_configuration.integration_unit, integration_unit)
         self.assertTrue(np.array_equal(self.model.img_model.raw_img_data, self.raw_img_data))

@@ -19,10 +19,8 @@ from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, O
 
 class ImgConfiguration(QtCore.QObject):
     cake_changed = QtCore.Signal()
-    autosave_integrated_pattern_changed = QtCore.Signal()
-    integrated_patterns_file_formats_changed = QtCore.Signal()
 
-    def __init__(self, working_directories):
+    def __init__(self, working_directories=None):
         super(ImgConfiguration, self).__init__()
 
         self.img_model = ImgModel()
@@ -101,7 +99,6 @@ class ImgConfiguration(QtCore.QObject):
         else:
             self.pattern_model.save_pattern(filename, subtract_background=subtract_background)
 
-
     def _create_xy_header(self):
         header = self.calibration_model.create_file_header()
         header = header.replace('\r\n', '\n')
@@ -125,8 +122,8 @@ class ImgConfiguration(QtCore.QObject):
     def _auto_save_patterns(self):
         for file_ending in self.integrated_patterns_file_formats:
             filename = os.path.join(
-                    self.working_directories['pattern'],
-                    os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
+                self.working_directories['pattern'],
+                os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
             filename = filename.replace('\\', '/')
             self.save_pattern(filename)
 
@@ -240,6 +237,258 @@ class ImgConfiguration(QtCore.QObject):
 
         return new_configuration
 
+    def save(self, filename):
+        if filename is '' or filename is None:
+            return
+
+        f = h5py.File(filename, 'w')
+
+        # save general information
+        general_information = f.create_group('general_information')
+        general_information.attrs['integration_unit'] = self.integration_unit
+        if self.integration_num_points:
+            general_information.attrs['integration_num_points'] = self.integration_num_points
+        else:
+            general_information.attrs['integration_num_points'] = 0
+        general_information.attrs['auto_integrate_cake'] = self.auto_integrate_cake
+        general_information.attrs['use_mask'] = self.use_mask
+        general_information.attrs['transparent_mask'] = self.transparent_mask
+        general_information.attrs['auto_save_integrated_pattern'] = self.auto_save_integrated_pattern
+        formats = [n.encode('ascii', 'ignore') for n in self.integrated_patterns_file_formats]
+        general_information.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
+
+        # save working directories
+        working_directories_gp = f.create_group('working_directories')
+        try:
+            for key in self.working_directories:
+                working_directories_gp.attrs[key] = self.working_directories[key]
+        except TypeError:
+            self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
+                                        'phase': ''}
+            for key in self.working_directories:
+                working_directories_gp.attrs[key] = self.working_directories[key]
+
+        # save image model
+        image_group = f.create_group('image_model')
+        image_group.attrs['auto_process'] = self.img_model.autoprocess
+        image_group.attrs['factor'] = self.img_model.factor
+        image_group.attrs['has_background'] = self.img_model.has_background()
+        image_group.attrs['background_offset'] = self.img_model.background_offset
+        image_group.attrs['background_scaling'] = self.img_model.background_scaling
+        background_data = self.img_model.background_data
+        if self.img_model.has_background():
+            image_group.create_dataset('background_data', background_data.shape, 'f', background_data)
+
+        corrections_group = image_group.create_group('corrections')
+        corrections_group.attrs['has_corrections'] = self.img_model.has_corrections()
+        for correction, correction_object in self.img_model.img_corrections.corrections.items():
+            correction_data = correction_object.get_data()
+            imcd = corrections_group.create_dataset(correction, correction_data.shape, 'f', correction_data)
+            if correction == 'cbn':
+                for param, value in correction_object.get_params().items():
+                    imcd.attrs[param] = value
+            elif correction == 'oiadac':
+                for param, value in correction_object.get_params().items():
+                    imcd.attrs[param] = value
+
+        image_group.attrs['filename'] = self.img_model.filename
+        current_raw_image = self.img_model.raw_img_data
+        raw_image_data = image_group.create_dataset('raw_image_data', current_raw_image.shape, dtype='f')
+        raw_image_data[...] = current_raw_image
+
+        # save roi data
+        if self.roi is not None:
+            image_group.attrs['has_roi'] = True
+            image_group.create_dataset('roi', (4,), 'i8', tuple(self.roi))
+        else:
+            image_group.attrs['has_roi'] = False
+
+        # save mask model
+        mask_group = f.create_group('mask')
+        current_mask = self.mask_model.get_mask()
+        mask_data = mask_group.create_dataset('data', current_mask.shape, dtype=bool)
+        mask_data[...] = current_mask
+
+        # save calibration model
+        calibration_group = f.create_group('calibration_model')
+        calibration_filename = self.calibration_model.filename
+        if calibration_filename.endswith('.poni'):
+            base_filename, ext = self.calibration_model.filename.rsplit('.', 1)
+        else:
+            base_filename = self.calibration_model.filename
+            ext = 'poni'
+        calibration_group.attrs['calibration_filename'] = base_filename + '.' + ext
+        pyfai_param, fit2d_param = self.calibration_model.get_calibration_parameter()
+        pfp = calibration_group.create_group('pyfai_parameters')
+        for key in pyfai_param:
+            try:
+                pfp.attrs[key] = pyfai_param[key]
+            except TypeError:
+                pfp.attrs[key] = ''
+
+        # save background pattern and pattern model
+        background_pattern_group = f.create_group('background_pattern')
+        try:
+            background_pattern_x = self.pattern_model.background_pattern.original_x
+            background_pattern_y = self.pattern_model.background_pattern.original_y
+        except (TypeError, AttributeError):
+            background_pattern_x = None
+            background_pattern_y = None
+        if background_pattern_x is not None and background_pattern_y is not None:
+            background_pattern_group.attrs['has_background_pattern'] = True
+            bgx = background_pattern_group.create_dataset('x', background_pattern_x.shape, dtype='f')
+            bgy = background_pattern_group.create_dataset('y', background_pattern_y.shape, dtype='f')
+            bgx[...] = background_pattern_x
+            bgy[...] = background_pattern_y
+        else:
+            background_pattern_group.attrs['has_background_pattern'] = False
+
+        pattern_group = f.create_group('pattern')
+        try:
+            pattern_x = self.pattern_model.pattern.original_x
+            pattern_y = self.pattern_model.pattern.original_y
+        except (TypeError, AttributeError):
+            pattern_x = None
+            pattern_y = None
+        if pattern_x is not None and pattern_y is not None:
+            px = pattern_group.create_dataset('x', pattern_x.shape, dtype='f')
+            py = pattern_group.create_dataset('y', pattern_y.shape, dtype='f')
+            px[...] = pattern_x
+            py[...] = pattern_y
+        pattern_group.attrs['pattern_filename'] = self.pattern_model.pattern_filename
+        pattern_group.attrs['unit'] = self.pattern_model.unit
+        pattern_group.attrs['file_iteration_mode'] = self.pattern_model.file_iteration_mode
+        if self.pattern_model.pattern.auto_background_subtraction:
+            pattern_group.attrs['auto_background_subtraction'] = True
+            auto_background_group = pattern_group.create_group('auto_background_settings')
+            auto_background_group.attrs['smoothing'] = \
+                self.pattern_model.pattern.auto_background_subtraction_parameters[0]
+            auto_background_group.attrs['iterations'] = \
+                self.pattern_model.pattern.auto_background_subtraction_parameters[1]
+            auto_background_group.attrs['poly_order'] = \
+                self.pattern_model.pattern.auto_background_subtraction_parameters[2]
+            auto_background_group.attrs['x_start'] = self.pattern_model.pattern.auto_background_subtraction_roi[0]
+            auto_background_group.attrs['x_end'] = self.pattern_model.pattern.auto_background_subtraction_roi[1]
+        else:
+            pattern_group.attrs['auto_background_subtraction'] = False
+
+        f.flush()
+        f.close()
+
+    def load(self, filename):
+        if filename is '' or filename is None:
+            return
+        f = h5py.File(filename, 'r')
+
+        working_directories = {}
+        for key, value in f.get('working_directories').attrs.items():
+            if os.path.isdir(value):
+                working_directories[key] = value
+            else:
+                working_directories[key] = ''
+        self.working_directories = working_directories
+
+        # load pyFAI parameters
+        pyfai_parameters = {}
+        for key, value in f.get('calibration_model').get('pyfai_parameters').attrs.items():
+            pyfai_parameters[key] = value
+
+        try:
+            self.calibration_model.set_pyFAI(pyfai_parameters)
+            filename = f.get('calibration_model').attrs['calibration_filename']
+            (file_path, base_name) = os.path.split(filename)
+            self.calibration_model.filename = filename
+            self.calibration_model.calibration_name = base_name
+
+        except (KeyError, ValueError):
+            print('Problem with saved pyFAI calibration parameters')
+            pass
+
+        # load general configuration
+        self.integration_unit = f.get('general_information').attrs['integration_unit']
+        if f.get('general_information').attrs['integration_num_points']:
+            self.integration_num_points = f.get('general_information').attrs['integration_num_points']
+        if f.get('general_information').attrs['auto_integrate_cake']:
+            self.auto_integrate_cake = True
+        self.use_mask = f.get('general_information').attrs['use_mask']
+        self.transparent_mask = f.get('general_information').attrs['transparent_mask']
+
+        self.auto_save_integrated_pattern = f.get('general_information').attrs['auto_save_integrated_pattern']
+        self.integrated_patterns_file_formats = []
+        for file_format in f.get('general_information').get('integrated_patterns_file_formats'):
+            self.integrated_patterns_file_formats.append(file_format[0].decode('utf-8'))
+
+        # load img_model
+        self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
+        filename = f.get('image_model').attrs['filename']
+        self.img_model.filename = filename
+
+        self.img_model.autoprocess = f.get('image_model').attrs['auto_process']
+        self.img_model.autoprocess_changed.emit()
+        self.img_model.factor = f.get('image_model').attrs['factor']
+
+        if f.get('image_model').attrs['has_background']:
+            self.img_model.background_data = f.get('image_model').get('background_data')
+            self.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
+            self.img_model.background_offset = f.get('image_model').attrs['background_offset']
+
+        def load_correction_from_configuration(name):
+            if isinstance(f.get('image_model').get('corrections').get(name), h5py.Dataset):
+                if name == 'cbn':
+                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
+                    cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
+                    params = {}
+                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
+                        params[param] = val
+                    cbn_correction.set_params(params)
+                    cbn_correction.update()
+                    self.current_configuration.img_model.add_img_correction(cbn_correction, name, name)
+                elif name == 'oiadac':
+                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
+                    oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
+                    params = {}
+                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
+                        params[param] = val
+                    oiadac.set_params(params)
+                    oiadac.update()
+                    self.img_model.add_img_correction(oiadac, name, name)
+
+        if f.get('image_model').get('corrections').attrs['has_corrections']:
+            f.get('image_model').get('corrections').visit(load_correction_from_configuration)
+
+        # load roi data
+        if f.get('image_model').attrs['has_roi']:
+            self.roi = tuple(f.get('image_model').get('roi')[...])
+
+        # load mask model
+        self.mask_model.set_mask(np.copy(f.get('mask').get('data')[...]))
+
+        # load pattern model
+        if f.get('pattern').get('x') and f.get('pattern').get('y'):
+            self.pattern_model.set_pattern(f.get('pattern').get('x')[...],
+                                           f.get('pattern').get('y')[...],
+                                           f.get('pattern').attrs['pattern_filename'],
+                                           f.get('pattern').attrs['unit'])
+            self.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
+
+        if f.get('background_pattern').attrs['has_background_pattern']:
+            self.pattern_model.background_pattern = Pattern(f.get('background_pattern').get('x')[...],
+                                                            f.get('background_pattern').get('y')[...],
+                                                            'background_pattern')
+
+        if f.get('pattern').attrs['auto_background_subtraction']:
+            bg_params = []
+            bg_roi = []
+            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['smoothing'])
+            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['iterations'])
+            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['poly_order'])
+            bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_start'])
+            bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_end'])
+
+        f.close()
+
 
 class DioptasModel(QtCore.QObject):
     configuration_added = QtCore.Signal()
@@ -249,18 +498,13 @@ class DioptasModel(QtCore.QObject):
     img_changed = QtCore.Signal()
     pattern_changed = QtCore.Signal()
     cake_changed = QtCore.Signal()
-    use_mask_changed = QtCore.Signal()
-    transparent_mask_changed = QtCore.Signal()
-    img_mode_changed = QtCore.Signal()
-    roi_added = QtCore.Signal()
-    auto_background_set = QtCore.Signal(list, list)
 
     def __init__(self, working_directories=None):
         super(DioptasModel, self).__init__()
-        self.working_directories = working_directories
         self.configurations = []
         self.configuration_ind = 0
-        self.configurations.append(ImgConfiguration(self.working_directories))
+        self.configurations.append(ImgConfiguration())
+        self.working_directories = working_directories
 
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
@@ -298,152 +542,15 @@ class DioptasModel(QtCore.QObject):
         self.configuration_removed.emit(self.configuration_ind)
 
     def save_configuration(self, filename):
-        if filename is '' or filename is None:
-            return
+        # save configuration
+        self.current_configuration.save(filename)
 
-        f = h5py.File(filename, 'w')
-
-        # save general configuration
-
-        cc = f.create_group('current_config')
-        cc.attrs['integration_unit'] = self.current_configuration.integration_unit
-        if self.current_configuration.integration_num_points:
-            cc.attrs['integration_num_points'] = self.current_configuration.integration_num_points
-        else:
-            cc.attrs['integration_num_points'] = 0
-        cc.attrs['auto_integrate_cake'] = self.current_configuration.auto_integrate_cake
-        cc.attrs['use_mask'] = self.use_mask
-        cc.attrs['transparent_mask'] = self.transparent_mask
-        cc.attrs['auto_save_integrated_pattern'] = self.current_configuration.auto_save_integrated_pattern
-        formats = [n.encode('ascii', 'ignore') for n in self.current_configuration.integrated_patterns_file_formats]
-        cc.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
-
-        # save working directories
-
-        wd = f.create_group('working_directories')
-        try:
-            for key in self.working_directories:
-                wd.attrs[key] = self.working_directories[key]
-        except TypeError:
-            self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
-                                        'phase': ''}
-            for key in self.working_directories:
-                wd.attrs[key] = self.working_directories[key]
-
-        # save image model
-
-        im = f.create_group('image_model')
-        im.attrs['auto_process'] = self.current_configuration.img_model.autoprocess
-        im.attrs['factor'] = self.current_configuration.img_model.factor
-        im.attrs['has_background'] = self.current_configuration.img_model.has_background()
-        im.attrs['background_offset'] = self.current_configuration.img_model.background_offset
-        im.attrs['background_scaling'] = self.current_configuration.img_model.background_scaling
-        background_data = self.current_configuration.img_model.background_data
-        if self.current_configuration.img_model.has_background():
-            im.create_dataset('background_data', background_data.shape, 'f', background_data)
-
-        imc = im.create_group('corrections')
-        imc.attrs['has_corrections'] = self.current_configuration.img_model.has_corrections()
-        for correction, correction_object in self.current_configuration.img_model.img_corrections.corrections.items():
-            correction_data = correction_object.get_data()
-            imcd = imc.create_dataset(correction, correction_data.shape, 'f', correction_data)
-            if correction == 'cbn':
-                for param, value in correction_object.get_params().items():
-                    imcd.attrs[param] = value
-            elif correction == 'oiadac':
-                for param, value in correction_object.get_params().items():
-                    imcd.attrs[param] = value
-
-        im.attrs['filename'] = self.current_configuration.img_model.filename
-        current_raw_image = self.current_configuration.img_model.raw_img_data
-        raw_image_data = im.create_dataset('raw_image_data', current_raw_image.shape, dtype='f')
-        raw_image_data[...] = current_raw_image
-
-        # save roi data
-        if self.current_configuration.roi is not None:
-            im.attrs['has_roi'] = True
-            im.create_dataset('roi', (4,), 'i8', tuple(self.current_configuration.roi))
-        else:
-            im.attrs['has_roi'] = False
-
-        # save mask model
-
-        mm = f.create_group('mask')
-        current_mask = self.current_configuration.mask_model.get_mask()
-        mask_data = mm.create_dataset('data', current_mask.shape, dtype=bool)
-        mask_data[...] = current_mask
-
-        # save calibration model
-
-        cm = f.create_group('calibration_model')
-        calibration_filename = self.current_configuration.calibration_model.filename
-        if calibration_filename.endswith('.poni'):
-            base_filename, ext = self.current_configuration.calibration_model.filename.rsplit('.', 1)
-        else:
-            base_filename = self.current_configuration.calibration_model.filename
-            ext = 'poni'
-        cm.attrs['calibration_filename'] = base_filename + '.' + ext
-        pyfai_param, fit2d_param = self.current_configuration.calibration_model.get_calibration_parameter()
-        pfp = cm.create_group('pyfai_parameters')
-        for key in pyfai_param:
-            try:
-                pfp.attrs[key] = pyfai_param[key]
-            except TypeError:
-                pfp.attrs[key] = ''
-
-        # save background pattern and pattern model
-
-        bpm = f.create_group('background_pattern')
-        try:
-            background_pattern_x = self.current_configuration.pattern_model.background_pattern.original_x
-            background_pattern_y = self.current_configuration.pattern_model.background_pattern.original_y
-        except (TypeError, AttributeError):
-            background_pattern_x = None
-            background_pattern_y = None
-        if background_pattern_x is not None and background_pattern_y is not None:
-            bpm.attrs['has_background_pattern'] = True
-            bgx = bpm.create_dataset('x', background_pattern_x.shape, dtype='f')
-            bgy = bpm.create_dataset('y', background_pattern_y.shape, dtype='f')
-            bgx[...] = background_pattern_x
-            bgy[...] = background_pattern_y
-        else:
-            bpm.attrs['has_background_pattern'] = False
-
-        pm = f.create_group('pattern')
-        try:
-            pattern_x = self.current_configuration.pattern_model.pattern.original_x
-            pattern_y = self.current_configuration.pattern_model.pattern.original_y
-        except (TypeError, AttributeError):
-            pattern_x = None
-            pattern_y = None
-        if pattern_x is not None and pattern_y is not None:
-            px = pm.create_dataset('x', pattern_x.shape, dtype='f')
-            py = pm.create_dataset('y', pattern_y.shape, dtype='f')
-            px[...] = pattern_x
-            py[...] = pattern_y
-        pm.attrs['pattern_filename'] = self.current_configuration.pattern_model.pattern_filename
-        pm.attrs['unit'] = self.current_configuration.pattern_model.unit
-        pm.attrs['file_iteration_mode'] = self.current_configuration.pattern_model.file_iteration_mode
-        if self.current_configuration.pattern_model.pattern.auto_background_subtraction:
-            pm.attrs['auto_background_subtraction'] = True
-            pmab = pm.create_group('auto_background_settings')
-            pmab.attrs['smoothing'] = \
-                self.current_configuration.pattern_model.pattern.auto_background_subtraction_parameters[0]
-            pmab.attrs['iterations'] = \
-                self.current_configuration.pattern_model.pattern.auto_background_subtraction_parameters[1]
-            pmab.attrs['poly_order'] = \
-                self.current_configuration.pattern_model.pattern.auto_background_subtraction_parameters[2]
-            pmab.attrs['x_start'] = self.current_configuration.pattern_model.pattern.auto_background_subtraction_roi[0]
-            pmab.attrs['x_end'] = self.current_configuration.pattern_model.pattern.auto_background_subtraction_roi[1]
-        else:
-            pm.attrs['auto_background_subtraction'] = False
-
+        f = h5py.File(filename, 'a')
         # save overlays
-
-        ovs = f.create_group('overlays')
+        overlay_group = f.create_group('overlays')
 
         for ind, overlay in enumerate(self.overlay_model.overlays):
-            ov = ovs.create_group(str(ind))
+            ov = overlay_group.create_group(str(ind))
             ov.attrs['name'] = overlay.name
             ov.create_dataset('x', overlay.original_x.shape, 'f', overlay.original_x)
             ov.create_dataset('y', overlay.original_y.shape, 'f', overlay.original_y)
@@ -482,145 +589,10 @@ class DioptasModel(QtCore.QObject):
         f.close()
 
     def load_configuration(self, filename):
-        if filename is '' or filename is None:
-            return
+        self.current_configuration.load(filename)
         f = h5py.File(filename, 'r')
-        # load working directories
-        temp_path = os.path.join(os.getcwd(), 'temp')
-        if not os.path.isdir(temp_path):
-            os.mkdir(temp_path)
-        working_directories = {'temp': temp_path}
-        for key, value in f.get('working_directories').attrs.items():
-            if os.path.isdir(value):
-                working_directories[key] = value
-            else:
-                working_directories[key] = temp_path
-        self.working_directories = working_directories
-
-        # load pyFAI parameters
-
-        pyfai_parameters = {}
-        for key, value in f.get('calibration_model').get('pyfai_parameters').attrs.items():
-            pyfai_parameters[key] = value
-
-        try:
-            self.current_configuration.calibration_model.set_pyFAI(pyfai_parameters)
-            filename = f.get('calibration_model').attrs['calibration_filename']
-            (file_path, base_name) = os.path.split(filename)
-            if os.path.isdir(file_path):
-                if not os.path.isfile(filename):
-                    self.current_configuration.calibration_model.save(filename)
-            else:
-                filename = os.path.join(self.working_directories['temp'], base_name)
-                self.current_configuration.calibration_model.save(filename)
-        except (KeyError, ValueError):
-            print('Problem with saved pyFAI calibration parameters')
-            pass
-
-        # load general configuration
-
-        self.current_configuration.integration_unit = f.get('current_config').attrs['integration_unit']
-        if f.get('current_config').attrs['integration_num_points']:
-            self.current_configuration.integration_num_points = f.get('current_config').attrs['integration_num_points']
-        if f.get('current_config').attrs['auto_integrate_cake']:
-            self.img_mode_changed.emit()
-        self.use_mask = f.get('current_config').attrs['use_mask']
-        self.use_mask_changed.emit()
-        self.transparent_mask = f.get('current_config').attrs['transparent_mask']
-        self.transparent_mask_changed.emit()
-        self.current_configuration.mask_model.save_mask(os.path.join(self.working_directories['temp'], 'temp_mask.mask'))
-
-        self.current_configuration.auto_save_integrated_pattern = \
-            f.get('current_config').attrs['auto_save_integrated_pattern']
-        self.current_configuration.integrated_patterns_file_formats = []
-        file_formats = []
-        for file_format in f.get('current_config').get('integrated_patterns_file_formats'):
-            file_formats.append(file_format[0].decode('utf-8'))
-        self.current_configuration.integrated_patterns_file_formats = file_formats
-
-        # load img_model
-
-        self.current_configuration.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
-        filename = f.get('image_model').attrs['filename']
-        (file_path, base_name) = os.path.split(filename)
-        if os.path.isdir(file_path):
-            if not os.path.isfile(filename):
-                self.current_configuration.img_model.save(filename)
-        else:
-            filename = os.path.join(self.working_directories['temp'], base_name)
-            self.current_configuration.img_model.save(filename)
-
-        self.current_configuration.img_model.autoprocess = f.get('image_model').attrs['auto_process']
-        self.current_configuration.img_model.autoprocess_changed.emit()
-        self.current_configuration.img_model.load(filename)
-        self.current_configuration.img_model.factor = f.get('image_model').attrs['factor']
-        if f.get('image_model').attrs['has_background']:
-            self.current_configuration.img_model.background_data = f.get('image_model').get('background_data')
-            self.current_configuration.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
-            self.current_configuration.img_model.background_offset = f.get('image_model').attrs['background_offset']
-
-        def load_correction_from_configuration(name):
-            if isinstance(f.get('image_model').get('corrections').get(name), h5py.Dataset):
-                if name == 'cbn':
-                    tth_array = 180.0 / np.pi * self.current_configuration.calibration_model.pattern_geometry.ttha
-                    azi_array = 180.0 / np.pi * self.current_configuration.calibration_model.pattern_geometry.chia
-                    cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
-                    params = {}
-                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
-                        params[param] = val
-                    cbn_correction.set_params(params)
-                    cbn_correction.update()
-                    self.current_configuration.img_model.add_img_correction(cbn_correction, name, name)
-                elif name == 'oiadac':
-                    tth_array = 180.0 / np.pi * self.current_configuration.calibration_model.pattern_geometry.ttha
-                    azi_array = 180.0 / np.pi * self.current_configuration.calibration_model.pattern_geometry.chia
-                    oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
-                    params = {}
-                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
-                        params[param] = val
-                    oiadac.set_params(params)
-                    oiadac.update()
-                    self.current_configuration.img_model.add_img_correction(oiadac, name, name)
-
-        if f.get('image_model').get('corrections').attrs['has_corrections']:
-            f.get('image_model').get('corrections').visit(load_correction_from_configuration)
-
-        # load roi data
-        if f.get('image_model').attrs['has_roi']:
-            self.current_configuration.roi = tuple(f.get('image_model').get('roi')[...])
-            self.roi_added.emit()
-
-        # load mask model
-
-        self.current_configuration.mask_model.set_mask(np.copy(f.get('mask').get('data')[...]))
-
-        # load pattern model
-
-        if f.get('pattern').get('x') and f.get('pattern').get('y'):
-            self.current_configuration.pattern_model.set_pattern(f.get('pattern').get('x')[...],
-                                                                 f.get('pattern').get('y')[...],
-                                                                 f.get('pattern').attrs['pattern_filename'],
-                                                                 f.get('pattern').attrs['unit'])
-            self.current_configuration.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
-
-        if f.get('background_pattern').attrs['has_background_pattern']:
-            bg_pattern = self.overlay_model.add_overlay(f.get('background_pattern').get('x')[...],
-                                                        f.get('background_pattern').get('y')[...],
-                                                        'background_pattern')
-            self.current_configuration.pattern_model.background_pattern = bg_pattern
-
-        if f.get('pattern').attrs['auto_background_subtraction']:
-            bg_params = []
-            bg_roi = []
-            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['smoothing'])
-            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['iterations'])
-            bg_params.append(f.get('pattern').get('auto_background_settings').attrs['poly_order'])
-            bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_start'])
-            bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_end'])
-            self.auto_background_set.emit(bg_params, bg_roi)
 
         # load overlay model
-
         def load_overlay_from_configuration(name):
             if isinstance(f.get('overlays').get(name), h5py.Group):
                 self.overlay_model.add_overlay(f.get('overlays').get(name).get('x')[...],
@@ -633,7 +605,6 @@ class DioptasModel(QtCore.QObject):
         f.get('overlays').visit(load_overlay_from_configuration)
 
         # load phase model
-
         def load_phase_from_configuration(name):
             if isinstance(f.get('phases').get(name), h5py.Group):
                 p_filename = f.get('phases').get(name).attrs.get('filename', None)
@@ -659,7 +630,7 @@ class DioptasModel(QtCore.QObject):
                             new_jcpds.add_reflection(ref.attrs['h'], ref.attrs['k'], ref.attrs['l'],
                                                      ref.attrs['intensity'], ref.attrs['d'])
                         (p_path, p_base_name) = os.path.split(p_filename)
-                        new_jcpds.save_file(os.path.join(self.working_directories['temp'], p_base_name))
+                        # new_jcpds.save_file(os.path.join(self.working_directories['temp'], p_base_name))
                         ind = len(self.phase_model.phases) - 1
                         self.phase_model.phases.append(new_jcpds)
                         self.phase_model.reflections.append([])
@@ -695,6 +666,14 @@ class DioptasModel(QtCore.QObject):
         self.img_model.img_changed.connect(self.img_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
         self.current_configuration.cake_changed.connect(self.cake_changed)
+
+    @property
+    def working_directories(self):
+        return self.current_configuration.working_directories
+
+    @working_directories.setter
+    def working_directories(self, new):
+        self.current_configuration.working_directories = new
 
     @property
     def current_configuration(self):
