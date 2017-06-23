@@ -64,17 +64,16 @@ class JcpdsUnitTest(unittest.TestCase):
         self.assertEqual(self.jcpds.reflections[6].intensity, 10)
 
     def test_modified_flag(self):
-        self.assertFalse(self.jcpds.modified)
-
-        self.jcpds.a0 = 3
-        self.assertTrue(self.jcpds.modified)
-        self.assertEqual(self.jcpds.a0, 3)
+        self.assertFalse(self.jcpds.params['modified'])
+        self.jcpds.params['a0'] = 3
+        self.assertTrue(self.jcpds.params['modified'])
+        self.assertEqual(self.jcpds.params['a0'], 3)
         self.jcpds.modified = False
 
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
-        self.assertFalse(self.jcpds.modified)
-        self.jcpds.k0 = 200
-        self.assertTrue(self.jcpds.modified)
+        self.assertFalse(self.jcpds.params['modified'])
+        self.jcpds.params['k0'] = 200
+        self.assertTrue(self.jcpds.params['modified'])
         self.assertEqual(os.path.join(jcpds_path, 'au_Anderson.jcpds*'), self.jcpds.filename)
         self.assertEqual('au_Anderson*', self.jcpds.name)
 
@@ -90,7 +89,7 @@ class JcpdsUnitTest(unittest.TestCase):
         d1_mon = self.get_reflection_d_spacing(self.jcpds.reflections, 2, 2, 1)
         d2_mon = self.get_reflection_d_spacing(self.jcpds.reflections, -2, 2, 1)
 
-        self.jcpds.symmetry = 'TRICLINIC'
+        self.jcpds.params['symmetry'] = 'TRICLINIC'
         self.jcpds.compute_d0()
 
         d1_tri = self.get_reflection_d_spacing(self.jcpds.reflections, 2, 2, 1)
@@ -104,8 +103,7 @@ class JcpdsUnitTest(unittest.TestCase):
         self.jcpds.pressure = -1.
 
         self.jcpds.compute_d(-1, 298)
-        self.assertGreater(self.jcpds.v, self.jcpds.v0)
-
+        self.assertGreater(self.jcpds.params['v'], self.jcpds.params['v0'])
 
 
 if __name__ == '__main__':

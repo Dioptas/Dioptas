@@ -6,6 +6,7 @@ from qtpy import QtWidgets, QtCore
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.ConfigurationWidget import ConfigurationWidget
 from ..model.DioptasModel import DioptasModel
+from ..widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 
 class ConfigurationController(object):
@@ -29,6 +30,8 @@ class ConfigurationController(object):
     def create_signals(self):
         self.widget.add_configuration_btn.clicked.connect(self.model.add_configuration)
         self.widget.remove_configuration_btn.clicked.connect(self.model.remove_configuration)
+        self.widget.save_configuration_btn.clicked.connect(self.save_configuration_btn_clicked)
+        self.widget.load_configuration_button.clicked.connect(self.load_configuration_btn_clicked)
 
         self.widget.configuration_selected.connect(self.model.select_configuration)
 
@@ -79,3 +82,19 @@ class ConfigurationController(object):
     def load_previous_folder(self):
         self.model.previous_folder(mec_mode=bool(self.widget.mec_cb.isChecked()))
 
+    def save_configuration_btn_clicked(self):
+        try:
+            default_file_name = self.model.working_directories['image'] + 'config.hdf5'
+        except TypeError:
+            default_file_name = '.'
+        filename = save_file_dialog(self.widget, "Save Current Configuration", default_file_name,
+                                    filter='Config (*.hdf5)')
+        self.model.save(filename)
+
+    def load_configuration_btn_clicked(self):
+        try:
+            default_file_name = self.model.working_directories['image'] + 'config.hdf5'
+        except TypeError:
+            default_file_name = '.'
+        filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name, filter='Config (*.hdf5)')
+        self.model.load(filename)
