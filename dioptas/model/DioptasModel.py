@@ -196,6 +196,9 @@ class ImgConfiguration(QtCore.QObject):
 
     @auto_integrate_cake.setter
     def auto_integrate_cake(self, new_value):
+        if self._auto_integrate_cake == new_value:
+            return
+
         self._auto_integrate_cake = new_value
         if new_value:
             self.img_model.img_changed.connect(self.integrate_image_2d)
@@ -208,6 +211,9 @@ class ImgConfiguration(QtCore.QObject):
 
     @auto_integrate_pattern.setter
     def auto_integrate_pattern(self, new_value):
+        if self._auto_integrate_pattern == new_value:
+            return
+
         self._auto_integrate_pattern = new_value
         if new_value:
             self.img_model.img_changed.connect(self.integrate_image_1d)
@@ -380,6 +386,12 @@ class ImgConfiguration(QtCore.QObject):
             return
         f = h5py.File(filename, 'r')
 
+        # disable all automatic functions
+        self.auto_integrate_pattern = False
+        self.auto_integrate_cake = False
+        self.auto_save_integrated_pattern = False
+
+        # get working directories
         working_directories = {}
         for key, value in f.get('working_directories').attrs.items():
             if os.path.isdir(value):
@@ -404,20 +416,6 @@ class ImgConfiguration(QtCore.QObject):
             print('Problem with saved pyFAI calibration parameters')
             pass
 
-        # load general configuration
-        self.integration_unit = f.get('general_information').attrs['integration_unit']
-        if f.get('general_information').attrs['integration_num_points']:
-            self.integration_num_points = f.get('general_information').attrs['integration_num_points']
-        if f.get('general_information').attrs['auto_integrate_cake']:
-            self.auto_integrate_cake = True
-        self.use_mask = f.get('general_information').attrs['use_mask']
-        self.transparent_mask = f.get('general_information').attrs['transparent_mask']
-
-        self.auto_save_integrated_pattern = f.get('general_information').attrs['auto_save_integrated_pattern']
-        self.integrated_patterns_file_formats = []
-        for file_format in f.get('general_information').get('integrated_patterns_file_formats'):
-            self.integrated_patterns_file_formats.append(file_format[0].decode('utf-8'))
-
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
         filename = f.get('image_model').attrs['filename']
@@ -431,32 +429,6 @@ class ImgConfiguration(QtCore.QObject):
             self.img_model.background_data = f.get('image_model').get('background_data')
             self.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
             self.img_model.background_offset = f.get('image_model').attrs['background_offset']
-
-        def load_correction_from_configuration(name):
-            if isinstance(f.get('image_model').get('corrections').get(name), h5py.Dataset):
-                if name == 'cbn':
-                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
-                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
-                    cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
-                    params = {}
-                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
-                        params[param] = val
-                    cbn_correction.set_params(params)
-                    cbn_correction.update()
-                    self.current_configuration.img_model.add_img_correction(cbn_correction, name, name)
-                elif name == 'oiadac':
-                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
-                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
-                    oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
-                    params = {}
-                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
-                        params[param] = val
-                    oiadac.set_params(params)
-                    oiadac.update()
-                    self.img_model.add_img_correction(oiadac, name, name)
-
-        if f.get('image_model').get('corrections').attrs['has_corrections']:
-            f.get('image_model').get('corrections').visit(load_correction_from_configuration)
 
         # load roi data
         if f.get('image_model').attrs['has_roi']:
@@ -486,7 +458,50 @@ class ImgConfiguration(QtCore.QObject):
             bg_params.append(f.get('pattern').get('auto_background_settings').attrs['poly_order'])
             bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_start'])
             bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_end'])
-            self.pattern_model.set_auto_background_subtraction(bg_params, bg_roi)
+            self.pattern_model.pattern.set_auto_background_subtraction(bg_params, bg_roi,
+                                                                       recalc_pattern=False)
+
+        # load general configuration
+        self.integration_unit = f.get('general_information').attrs['integration_unit']
+        if f.get('general_information').attrs['integration_num_points']:
+            self.integration_num_points = f.get('general_information').attrs['integration_num_points']
+
+        self.auto_integrate_cake = f.get('general_information').attrs['auto_integrate_cake']
+        self.use_mask = f.get('general_information').attrs['use_mask']
+        self.transparent_mask = f.get('general_information').attrs['transparent_mask']
+
+        self.auto_save_integrated_pattern = f.get('general_information').attrs['auto_save_integrated_pattern']
+        self.integrated_patterns_file_formats = []
+        for file_format in f.get('general_information').get('integrated_patterns_file_formats'):
+            self.integrated_patterns_file_formats.append(file_format[0].decode('utf-8'))
+
+        self.integrate_image_1d()
+
+        def load_correction_from_configuration(name):
+            if isinstance(f.get('image_model').get('corrections').get(name), h5py.Dataset):
+                if name == 'cbn':
+                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
+                    cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
+                    params = {}
+                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
+                        params[param] = val
+                    cbn_correction.set_params(params)
+                    cbn_correction.update()
+                    self.current_configuration.img_model.add_img_correction(cbn_correction, name, name)
+                elif name == 'oiadac':
+                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
+                    oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
+                    params = {}
+                    for param, val in f.get('image_model').get('corrections').get(name).attrs.items():
+                        params[param] = val
+                    oiadac.set_params(params)
+                    oiadac.update()
+                    self.img_model.add_img_correction(oiadac, name, name)
+
+        if f.get('image_model').get('corrections').attrs['has_corrections']:
+            f.get('image_model').get('corrections').visit(load_correction_from_configuration)
 
         f.close()
 
@@ -642,7 +657,7 @@ class DioptasModel(QtCore.QObject):
         f.get('phases').visit(load_phase_from_configuration)
         f.close()
 
-        self.configuration_selected.emit(0)
+        self.select_configuration(0)
 
     def select_configuration(self, ind):
         if 0 <= ind < len(self.configurations):
@@ -650,13 +665,13 @@ class DioptasModel(QtCore.QObject):
             self.configuration_ind = ind
             self.connect_models()
             self.configuration_selected.emit(ind)
-            self.img_model.img_changed.disconnect(self.current_configuration.integrate_image_1d)
+            self.current_configuration.auto_integrate_pattern = False
             if self.combine_cakes:
-                self.img_model.img_changed.disconnect(self.current_configuration.integrate_image_2d)
+                self.current_configuration.auto_integrate_cake = False
             self.img_changed.emit()
-            self.img_model.img_changed.connect(self.current_configuration.integrate_image_1d)
+            self.current_configuration.auto_integrate_pattern = True
             if self.combine_cakes:
-                self.img_model.img_changed.connect(self.current_configuration.integrate_image_2d)
+                self.current_configuration.auto_integrate_cake = True
             self.pattern_changed.emit()
             self.cake_changed.emit()
 
