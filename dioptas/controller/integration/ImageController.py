@@ -187,14 +187,6 @@ class ImageController(object):
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
         # signals
-        self.model.use_mask_changed.connect(self.update_mask_mode)
-        self.model.transparent_mask_changed.connect(self.update_mask_mode)
-        self.model.img_mode_changed.connect(self.update_img_mode)
-        self.model.img_model.autoprocess_changed.connect(self.update_gui)
-        self.model.img_model.cbn_correction_changed.connect(self.update_cbn_widgets)
-        self.model.img_model.oiadac_correction_changed.connect(self.update_oiadac_widgets)
-        self.model.roi_added.connect(self.update_roi_btn)
-        # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
     def connect_click_function(self, emitter, function):

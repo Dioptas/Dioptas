@@ -62,7 +62,6 @@ class BackgroundController(object):
         self.widget.bkg_image_offset_sb.valueChanged.connect(self.background_img_offset_changed)
 
         self.model.img_changed.connect(self.update_background_image_filename)
-        self.model.auto_background_set.connect(self.auto_background_set)
 
     def create_pattern_background_signals(self):
         self.widget.bkg_pattern_gb.toggled.connect(self.bkg_pattern_gb_toggled_callback)
