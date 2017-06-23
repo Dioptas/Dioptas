@@ -486,6 +486,7 @@ class ImgConfiguration(QtCore.QObject):
             bg_params.append(f.get('pattern').get('auto_background_settings').attrs['poly_order'])
             bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_start'])
             bg_roi.append(f.get('pattern').get('auto_background_settings').attrs['x_end'])
+            self.pattern_model.set_auto_background_subtraction(bg_params, bg_roi)
 
         f.close()
 

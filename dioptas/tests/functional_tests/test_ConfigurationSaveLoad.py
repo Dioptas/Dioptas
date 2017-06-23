@@ -22,6 +22,7 @@ class ConfigurationSaveLoadTest(QtTest):
     def setUp(self):
         self.controller = MainController()
         self.model = self.controller.model
+        self.widget = self.controller.widget
         self.config_widget = self.controller.widget.configuration_widget
         self.config_controller = self.controller.configuration_controller
         self.check_calibration = True
@@ -134,7 +135,7 @@ class ConfigurationSaveLoadTest(QtTest):
 
     def test_save_and_load_with_fit_bg(self):
         self.save_and_load_configuration(self.fit_bg_settings)
-        self.assertEqual(self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.value(), poly_order)
+        self.assertEqual(self.widget.integration_widget.bkg_pattern_poly_order_sb.value(), poly_order)
 
     def fit_bg_settings(self):
         self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
