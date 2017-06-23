@@ -642,6 +642,8 @@ class DioptasModel(QtCore.QObject):
         f.get('phases').visit(load_phase_from_configuration)
         f.close()
 
+        self.configuration_selected.emit(0)
+
     def select_configuration(self, ind):
         if 0 <= ind < len(self.configurations):
             self.disconnect_models()
