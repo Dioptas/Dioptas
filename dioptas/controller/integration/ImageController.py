@@ -112,8 +112,10 @@ class ImageController(object):
         """
         if self.model.use_mask and self.img_mode == 'Image':
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
+            self.widget.img_mask_btn.setChecked(True)
         else:
             self.widget.img_widget.plot_mask(np.zeros(self.model.mask_model.get_img().shape))
+            self.widget.img_mask_btn.setChecked(False)
 
     def update_mask_transparency(self):
         """
@@ -1045,6 +1047,7 @@ class ImageController(object):
 
     def update_gui(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
+        self.widget.img_roi_btn.setChecked(self.model.mask_model.roi is not None)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)

@@ -151,7 +151,6 @@ class BackgroundController(object):
             self.model.pattern_model.unset_auto_background_subtraction()
 
     def bkg_pattern_parameters_changed(self):
-        print('juhu')
         bkg_pattern_parameters = self.widget.get_bkg_pattern_parameters()
         bkg_pattern_roi = self.widget.get_bkg_pattern_roi()
         if self.model.pattern_model.pattern.auto_background_subtraction:
