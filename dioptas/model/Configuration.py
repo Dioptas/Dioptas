@@ -277,6 +277,7 @@ class Configuration(QtCore.QObject):
         image_group.attrs['auto_process'] = self.img_model.autoprocess
         image_group.attrs['factor'] = self.img_model.factor
         image_group.attrs['has_background'] = self.img_model.has_background()
+        image_group.attrs['background_filename'] = self.img_model.background_filename
         image_group.attrs['background_offset'] = self.img_model.background_offset
         image_group.attrs['background_scaling'] = self.img_model.background_scaling
         if self.img_model.has_background():
@@ -439,6 +440,7 @@ class Configuration(QtCore.QObject):
 
         if f.get('image_model').attrs['has_background']:
             self.img_model.background_data = np.copy(f.get('image_model').get('background_data')[...])
+            self.img_model.background_filename = f.get('image_model').attrs['background_filename']
             self.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
             self.img_model.background_offset = f.get('image_model').attrs['background_offset']
 

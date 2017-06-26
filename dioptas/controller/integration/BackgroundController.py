@@ -203,9 +203,11 @@ class BackgroundController(object):
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
     def update_bkg_image_gui(self):
-        self.widget.bkg_image_filename_lbl.setText(self.model.img_model.background_filename)
+        self.update_background_image_filename()
         self.widget.bkg_image_offset_sb.setValue(self.model.img_model.background_offset)
         self.widget.bkg_image_scale_sb.setValue(self.model.img_model.background_scaling)
+        print(self.model.img_model.has_background())
+        self.widget.img_show_background_subtracted_btn.setVisible(self.model.img_model.has_background())
 
     def auto_background_set(self, bg_params, bg_roi):
         self.widget.bkg_pattern_gb.setChecked(True)

@@ -282,6 +282,10 @@ class ProjectSaveLoadTest(QtTest):
     ####################################################################################################################
     def test_with_background_image(self):
         self.save_and_load_configuration(self.add_background_image)
+        self.assertTrue(self.model.img_model.has_background())
+        self.assertEqual(test_image_file_name, self.model.img_model.background_filename)
+        self.assertEqual(os.path.split(test_image_file_name)[1],
+                         self.widget.integration_widget.bkg_image_filename_lbl.text())
 
     def add_background_image(self):
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=test_image_file_name)
