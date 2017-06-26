@@ -107,7 +107,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
 
-        self.alternative_gui_view = False
+        self.undocked_alternative_gui_view = True
+        self.docked_alternative_gui_view = False
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
