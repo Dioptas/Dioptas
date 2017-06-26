@@ -206,7 +206,6 @@ class BackgroundController(object):
         self.update_background_image_filename()
         self.widget.bkg_image_offset_sb.setValue(self.model.img_model.background_offset)
         self.widget.bkg_image_scale_sb.setValue(self.model.img_model.background_scaling)
-        print(self.model.img_model.has_background())
         self.widget.img_show_background_subtracted_btn.setVisible(self.model.img_model.has_background())
 
     def auto_background_set(self, bg_params, bg_roi):
