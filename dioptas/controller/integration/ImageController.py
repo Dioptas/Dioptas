@@ -404,7 +404,6 @@ class ImageController(object):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
         self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
         self.plot_mask()
-        # print(self.model.mask_model.get_mask().shape)
         self.model.img_model.img_changed.emit()
 
     def update_mask_mode(self):
@@ -1051,6 +1050,8 @@ class ImageController(object):
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
+
+        self.update_mask_mode()
 
         if self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
             self.activate_cake_mode()

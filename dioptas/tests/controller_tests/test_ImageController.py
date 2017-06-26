@@ -107,6 +107,30 @@ class ImageControllerTest(QtTest):
         self.model.select_configuration(1)
         self.assertEqual(str(self.widget.calibration_lbl.text()), "calib2")
 
+    def test_configuration_selected_updates_mask_plot(self):
+        self.model.mask_model.add_mask(os.path.join(unittest_data_path, 'test.mask'))
+        click_button(self.widget.img_mask_btn)
+        first_mask = self.model.mask_model.get_img()
+        self.model.add_configuration()
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
+
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
+        second_mask = self.model.mask_model.get_img()
+        click_button(self.widget.img_mask_btn)
+
+        self.model.select_configuration(0)
+        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image-first_mask), 0)
+        self.model.select_configuration(1)
+        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image-second_mask), 0)
+
+    def test_configuration_selected_updates_mask_transparency(self):
+        self.model.mask_model.add_mask(os.path.join(unittest_data_path, 'test.mask'))
+        click_button(self.widget.img_mask_btn)
+        self.model.add_configuration()
+
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
+        self.assertFalse(self.widget.mask_transparent_cb.isVisible())
+
     def test_adding_images(self):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif')])

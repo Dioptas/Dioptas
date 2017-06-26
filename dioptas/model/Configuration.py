@@ -14,8 +14,6 @@ from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel
 
 
-
-
 class Configuration(QtCore.QObject):
     cake_changed = QtCore.Signal()
 
