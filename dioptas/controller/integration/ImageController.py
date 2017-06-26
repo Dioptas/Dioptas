@@ -409,8 +409,7 @@ class ImageController(object):
     def update_mask_mode(self):
         self.widget.integration_image_widget.mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
-        if self.model.transparent_mask:
-            self.widget.mask_transparent_cb.click()
+        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
 
     def update_img_mode(self):
         self.widget.img_mode_btn.click()

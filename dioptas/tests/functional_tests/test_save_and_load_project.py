@@ -133,7 +133,7 @@ class ProjectSaveLoadTest(QtTest):
         self.save_and_load_configuration(self.mask_settings)
         self.assertEqual(self.model.use_mask, use_mask)
         self.assertEqual(self.model.transparent_mask, transparent_mask)
-        self.assertTrue(np.array_equal(self.model.mask_model.get_mask(), self.mask_data))
+        self.assertTrue(np.array_equal(self.model.mask_model.get_img(), self.mask_data))
 
     def mask_settings(self):
         self.model.current_configuration.use_mask = True
