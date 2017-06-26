@@ -94,15 +94,12 @@ class DioptasModel(QtCore.QObject):
             for key in phase.params:
                 if key == 'comments':
                     phases_comments_group = phase_group.create_group('comments')
-                    ind = 0
-                    for comment in phase.params['comments']:
+                    for ind, comment in enumerate(phase.params['comments']):
                         phases_comments_group.attrs[str(ind)] = comment
-                        ind += 1
                 else:
                     phase_parameter_group.attrs[key] = phase.params[key]
             phase_reflections_group = phase_group.create_group('reflections')
-            ind = 0
-            for reflection in phase.reflections:
+            for ind, reflection in enumerate(phase.reflections):
                 phase_reflection_group = phase_reflections_group.create_group(str(ind))
                 phase_reflection_group.attrs['d0'] = reflection.d0
                 phase_reflection_group.attrs['d'] = reflection.d
@@ -110,7 +107,6 @@ class DioptasModel(QtCore.QObject):
                 phase_reflection_group.attrs['h'] = reflection.h
                 phase_reflection_group.attrs['k'] = reflection.k
                 phase_reflection_group.attrs['l'] = reflection.l
-                ind += 1
 
         f.flush()
         f.close()
