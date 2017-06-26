@@ -87,7 +87,7 @@ class ConfigurationWidget(QtWidgets.QWidget):
             self.configurations_btn_layout.removeWidget(btn)
             btn.deleteLater() # somehow needs tobe deleted, otherwise remains in the button group
 
-        self.configuration_btns.clear()
+        self.configuration_btns = []
 
         for ind, configuration in enumerate(configurations):
             new_button = CheckableFlatButton(str(ind + 1))
