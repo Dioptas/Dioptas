@@ -438,7 +438,7 @@ class Configuration(QtCore.QObject):
         self.img_model.factor = f.get('image_model').attrs['factor']
 
         if f.get('image_model').attrs['has_background']:
-            self.img_model.background_data = f.get('image_model').get('background_data')
+            self.img_model.background_data = np.copy(f.get('image_model').get('background_data')[...])
             self.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
             self.img_model.background_offset = f.get('image_model').attrs['background_offset']
 
