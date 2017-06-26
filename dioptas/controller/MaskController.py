@@ -57,6 +57,7 @@ class MaskController(object):
         self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
 
         self.model.img_changed.connect(self.update_mask_dimension)
+        self.model.configuration_selected.connect(self.update_gui)
 
         self.widget.circle_btn.clicked.connect(self.activate_circle_btn)
         self.widget.rectangle_btn.clicked.connect(self.activate_rectangle_btn)
@@ -436,11 +437,13 @@ class MaskController(object):
         self.update_shape_preview_fill_color()
 
     def fill_rb_click(self):
+        self.model.transparent_mask = False
         self.widget.img_widget.set_color([255, 0, 0, 255])
         self.plot_mask()
 
     #
     def transparent_rb_click(self):
+        self.model.transparent_mask = True
         self.widget.img_widget.set_color([255, 0, 0, 100])
         self.plot_mask()
 
@@ -454,6 +457,19 @@ class MaskController(object):
         except (IndexError, AttributeError):
             str = "x: %.1f y: %.1f" % (x, y)
         self.widget.pos_lbl.setText(str)
+
+    def update_gui(self):
+        #transparency
+        if self.model.transparent_mask:
+            self.widget.transparent_rb.setChecked(True)
+            self.transparent_rb_click()
+        else:
+            self.widget.fill_rb.setChecked(True)
+            self.fill_rb_click()
+
+        self.plot_mask()
+        self.plot_image()
+
 
 
 if __name__ == "__main__":
