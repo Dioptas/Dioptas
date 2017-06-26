@@ -9,7 +9,10 @@ from mock import MagicMock, patch
 
 from qtpy import QtWidgets
 
+import fabio
+
 from ...model.CalibrationModel import CalibrationModel
+from ...model.util.HelperModule import rotate_matrix_m90, rotate_matrix_p90
 from ...controller.MainController import MainController
 from ..utility import QtTest, click_button
 
@@ -86,7 +89,7 @@ class ProjectSaveLoadTest(QtTest):
 
         if mock_1d_integration:
             with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
-                                                                              np.ones((1001, )))):
+                                                                              np.ones((1001,)))):
                 self.load_image(test_image_file_name)
                 if prepare_function is not None:
                     prepare_function()
@@ -125,8 +128,6 @@ class ProjectSaveLoadTest(QtTest):
         click_button(self.widget.load_btn)
         saved_working_directories = self.model.working_directories
         self.assertDictEqual(saved_working_directories, working_directories)
-        # self.assertEqual(self.model.current_configuration.integration_unit, integration_unit)
-        self.assertTrue(np.array_equal(self.model.img_model.raw_img_data, self.raw_img_data))
         if self.check_calibration:
             saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
             self.assertDictEqual(saved_pyfai_params, pyfai_params)
@@ -159,6 +160,40 @@ class ProjectSaveLoadTest(QtTest):
         self.model.current_configuration.transparent_mask = True
         self.mask_data = np.eye(self.raw_img_data.shape[0], self.raw_img_data.shape[1], dtype=bool)
         self.model.mask_model.set_mask(self.mask_data)
+
+    ####################################################################################################################
+    def test_with_image_transformations(self):
+        img_filename = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
+        with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
+                                                                          np.ones((1001,)))):
+            self.load_image(img_filename)
+        self.save_and_load_configuration(self.image_transformations)
+
+        img_data = fabio.open(img_filename).data[::-1]
+        img_data = rotate_matrix_m90(img_data)
+        img_data = rotate_matrix_m90(img_data)
+        img_data = np.fliplr(img_data)
+        img_data = rotate_matrix_p90(img_data)
+        img_data = np.flipud(img_data)
+        img_data = rotate_matrix_m90(img_data)
+        img_data = rotate_matrix_m90(img_data)
+        img_data = np.fliplr(img_data)
+        img_data = np.flipud(img_data)
+        img_data = rotate_matrix_p90(img_data)
+
+        self.assertEqual(np.sum(img_data-self.model.img_data), 0)
+
+    def image_transformations(self):
+        click_button(self.widget.calibration_widget.rotate_m90_btn)
+        click_button(self.widget.calibration_widget.rotate_m90_btn)
+        click_button(self.widget.calibration_widget.invert_horizontal_btn)
+        click_button(self.widget.calibration_widget.rotate_p90_btn)
+        click_button(self.widget.calibration_widget.invert_vertical_btn)
+        click_button(self.widget.calibration_widget.rotate_m90_btn)
+        click_button(self.widget.calibration_widget.rotate_m90_btn)
+        click_button(self.widget.calibration_widget.invert_horizontal_btn)
+        click_button(self.widget.calibration_widget.invert_vertical_btn)
+        click_button(self.widget.calibration_widget.rotate_p90_btn)
 
     ####################################################################################################################
     def test_with_phases(self):

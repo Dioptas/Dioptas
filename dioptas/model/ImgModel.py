@@ -477,6 +477,14 @@ class ImgModel(QtCore.QObject):
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
 
+    def _revert_img_transformations(self):
+        """
+        Reverts all saved image transformations on the image. (Does not delete the transformations list, any new loaded
+        image will be transformed again)
+        """
+        for transformation in reversed(self.img_transformations):
+            self._img_data = transformation(self._img_data)
+
     def _perform_background_transformations(self):
         """
         Performs all saved image transformation on background image.
@@ -484,6 +492,37 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             for transformation in self.img_transformations:
                 self._background_data = transformation(self._background_data)
+
+    def _revert_background_transformations(self):
+        """
+        Performs all saved image transformation on background image.
+        """
+        if self._background_data is not None:
+            for transformation in reversed(self.img_transformations):
+                self._background_data = transformation(self._background_data)
+
+    def get_transformations_string_list(self):
+        transformation_list = []
+        for transformation in self.img_transformations:
+            transformation_list.append(transformation.__name__)
+        return transformation_list
+
+    def load_transformations_string_list(self, transformations):
+        self._revert_img_transformations()
+        self._revert_background_transformations()
+        self.img_transformations = []
+        for transformation in transformations:
+            if transformation == "flipud":
+                self.img_transformations.append(np.flipud)
+            elif transformation == "fliplr":
+                self.img_transformations.append(np.fliplr)
+            elif transformation == "rotate_matrix_m90":
+                self.img_transformations.append(rotate_matrix_m90)
+            elif transformation == "rotate_matrix_p90":
+                self.img_transformations.append(rotate_matrix_p90)
+        self._perform_img_transformations()
+        self._perform_background_transformations()
+
 
     def set_supersampling(self, factor=None):
         """

@@ -279,10 +279,14 @@ class Configuration(QtCore.QObject):
         image_group.attrs['has_background'] = self.img_model.has_background()
         image_group.attrs['background_offset'] = self.img_model.background_offset
         image_group.attrs['background_scaling'] = self.img_model.background_scaling
-        background_data = self.img_model.background_data
         if self.img_model.has_background():
+            background_data = self.img_model.background_data
+            # remove image transformations
+            for transformation in reversed(self.img_model.img_transformations):
+                background_data = transformation(background_data)
             image_group.create_dataset('background_data', background_data.shape, 'f', background_data)
 
+        # image corrections
         corrections_group = image_group.create_group('corrections')
         corrections_group.attrs['has_corrections'] = self.img_model.has_corrections()
         for correction, correction_object in self.img_model.img_corrections.corrections.items():
@@ -295,10 +299,20 @@ class Configuration(QtCore.QObject):
                 for param, value in correction_object.get_params().items():
                     imcd.attrs[param] = value
 
+        # the actual image
         image_group.attrs['filename'] = self.img_model.filename
-        current_raw_image = self.img_model.raw_img_data
+        current_raw_image = np.copy(self.img_model.raw_img_data)
+        # remove image transformations
+        for transformation in reversed(self.img_model.img_transformations):
+            current_raw_image = transformation(current_raw_image)
+
         raw_image_data = image_group.create_dataset('raw_image_data', current_raw_image.shape, dtype='f')
         raw_image_data[...] = current_raw_image
+
+        # image transformations
+        transformations_group = image_group.create_group('image_transformations')
+        for ind, transformation in enumerate(self.img_model.get_transformations_string_list()):
+            transformations_group.attrs[str(ind)] = transformation
 
         # save roi data
         if self.roi is not None:
@@ -427,6 +441,13 @@ class Configuration(QtCore.QObject):
             self.img_model.background_data = f.get('image_model').get('background_data')
             self.img_model.background_scaling = f.get('image_model').attrs['background_scaling']
             self.img_model.background_offset = f.get('image_model').attrs['background_offset']
+
+        # load image transformations
+        transformation_group = f.get('image_model').get('image_transformations')
+        transformation_list = []
+        for key, transformation in transformation_group.attrs.items():
+            transformation_list.append(transformation)
+        self.img_model.load_transformations_string_list(transformation_list)
 
         # load roi data
         if f.get('image_model').attrs['has_roi']:
