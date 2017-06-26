@@ -186,6 +186,11 @@ class ImgModel(QtCore.QObject):
             img_data = transformation(img_data)
 
         logger.info("Adding {0}.".format(filename))
+
+        if self._img_data.dtype == np.uint16: # if dtype is only uint16 we will convert to 32 bit, so that more
+                                              # additions are possible
+            self._img_data = self._img_data.astype(np.uint32)
+
         self._img_data += img_data
 
         self._calculate_img_data()
