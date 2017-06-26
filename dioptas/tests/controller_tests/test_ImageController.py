@@ -135,7 +135,7 @@ class ImageControllerTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif')])
         click_button(self.widget.load_img_btn)
-        data1 = np.copy(self.widget.img_widget.img_data)
+        data1 = np.copy(self.widget.img_widget.img_data).astype(np.uint32)
         click_checkbox(self.widget.img_batch_mode_add_rb)
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif'),
