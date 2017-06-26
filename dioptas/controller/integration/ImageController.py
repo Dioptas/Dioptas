@@ -188,6 +188,7 @@ class ImageController(object):
 
         # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
+        # self.widget.image_dock_state_changed.connect(self.dock_state_changed)
 
     def connect_click_function(self, emitter, function):
         """
@@ -549,6 +550,12 @@ class ImageController(object):
     def img_dock_btn_clicked(self):
         self.img_docked = not self.img_docked
         self.widget.dock_img(self.img_docked)
+        if self.img_docked:
+            if not self.widget.docked_alternative_gui_view == self.widget.undocked_alternative_gui_view:
+                self.change_gui_view(not self.widget.docked_alternative_gui_view)
+        else:
+            if not self.widget.undocked_alternative_gui_view == self.widget.docked_alternative_gui_view:
+                self.change_gui_view(not self.widget.undocked_alternative_gui_view)
 
     def show_background_subtracted_img_btn_clicked(self):
         if self.widget.img_mode_btn.text() == 'Cake':
@@ -973,7 +980,18 @@ class ImageController(object):
         # delete_me = self.widget.vertical_splitter.widget(ind)
         # delete_me.hide()
         # delete_me.deleteLater()
-        if self.widget.alternative_gui_view:  # change to normal view
+        if self.img_docked:
+            current_view_mode = self.widget.docked_alternative_gui_view
+        else:
+            current_view_mode = self.widget.undocked_alternative_gui_view
+        self.change_gui_view(current_view_mode)
+        if self.img_docked:
+            self.widget.docked_alternative_gui_view = not self.widget.docked_alternative_gui_view
+        else:
+            self.widget.undocked_alternative_gui_view = not self.widget.undocked_alternative_gui_view
+
+    def change_gui_view(self, to_normal):
+        if to_normal:  # change to normal view
             self.vertical_splitter_alternative_state = self.widget.vertical_splitter.saveState()
             self.widget.vertical_splitter.addWidget(self.widget.integration_pattern_widget)
             self.widget.integration_control_widget.insertTab(2,
@@ -991,7 +1009,6 @@ class ImageController(object):
             self.widget.integration_control_widget.phase_control_widget.setVisible(True)
             if self.vertical_splitter_alternative_state:
                 self.widget.vertical_splitter.restoreState(self.vertical_splitter_alternative_state)
-        self.widget.alternative_gui_view = not self.widget.alternative_gui_view
 
     def find_ind_of_item_in_splitter(self, item, splitter):
         for ind in range(0, splitter.count()):
