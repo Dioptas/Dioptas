@@ -545,7 +545,7 @@ def number_between(num, num_low, num_high):
     Tests if a number is in between num_low and num_high, whereby num_low and num_high are included  [num_low, num_high]
     :return: Boolean result for the result
     """
-    if num >= num_low and num <= num_high:
+    if num_low <= num <= num_high:
         return True
     return False
 

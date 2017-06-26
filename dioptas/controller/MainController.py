@@ -118,7 +118,6 @@ class MainController(object):
         """
         Function which is called when a tab has been selected (calibration, mask, or integration). Performs
         needed initialization tasks.
-        :param ind: index for the tab selected (2 - integration, 1 = mask, 0 - calibration)
         :return:
         """
         if self.widget.calibration_mode_btn.isChecked():

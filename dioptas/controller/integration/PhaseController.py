@@ -104,7 +104,6 @@ class PhaseController(object):
     def add_btn_click_callback(self, *args, **kwargs):
         """
         Loads a new phase from jcpds file.
-        :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
         :return:
         """
         if not self.model.calibration_model.is_calibrated:
@@ -408,7 +407,6 @@ class PhaseController(object):
         """
         Updates all intensities of all phases in the pattern view. Also checks if phase lines are still visible.
         (within range of pattern and/or overlays
-        :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
         axis_range = self.widget.pattern_widget.view_box.viewRange()
 
