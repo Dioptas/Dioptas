@@ -93,6 +93,7 @@ class ConfigurationControllerTest(unittest.TestCase):
 
         self.assertEqual(self.model.configuration_ind, 2)
         self.assertTrue(self.config_widget.configuration_btns[2].isChecked())
+        self.assertEqual(len(self.config_widget.configuration_btn_group.buttons()), 3)
 
     def test_remove_first_configuration(self):
         click_button(self.config_widget.add_configuration_btn)

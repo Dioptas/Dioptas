@@ -18,14 +18,14 @@ class ConfigurationWidgetTest(QtTest):
         self.model = DioptasModel()
 
     def test_one_configuration(self):
-        self.config_widget.update_configurations(self.model.configurations, 0)
+        self.config_widget.update_configuration_btns(self.model.configurations, 0)
         self.assertEqual(len(self.config_widget.configuration_btns), 1)
 
     def test_multiple_configurations(self):
         self.model.add_configuration()
         self.model.add_configuration()
         self.model.add_configuration()
-        self.config_widget.update_configurations(self.model.configurations, 1)
+        self.config_widget.update_configuration_btns(self.model.configurations, 1)
 
         self.assertEqual(len(self.config_widget.configuration_btns), 4)
         self.assertFalse(self.config_widget.configuration_btns[0].isChecked())
@@ -38,7 +38,7 @@ class ConfigurationWidgetTest(QtTest):
         self.model.add_configuration()
         self.model.add_configuration()
         self.model.add_configuration()
-        self.config_widget.update_configurations(self.model.configurations, 0)
+        self.config_widget.update_configuration_btns(self.model.configurations, 0)
 
         click_button(self.config_widget.configuration_btns[3])
         self.config_widget.configuration_selected.emit.assert_called_once_with(3, True)
