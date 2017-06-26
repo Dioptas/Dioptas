@@ -156,6 +156,7 @@ class DioptasModel(QtCore.QObject):
         f.close()
 
         self.connect_models()
+        self.configuration_added.emit()
         self.select_configuration(self.configuration_ind)
 
     def select_configuration(self, ind):
