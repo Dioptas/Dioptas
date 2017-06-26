@@ -1,14 +1,15 @@
 # -*- coding: utf8 -*-
 
-import os, sys, shutil
+import os
 import gc
 
 import numpy as np
 
-from mock import MagicMock
+from mock import MagicMock, patch
 
 from qtpy import QtWidgets
 
+from ...model.CalibrationModel import CalibrationModel
 from ...controller.MainController import MainController
 from ..utility import QtTest, click_button
 
@@ -81,16 +82,34 @@ class ProjectSaveLoadTest(QtTest):
         self.model.current_configuration.integration_unit = integration_unit
         self.raw_img_data = self.model.current_configuration.img_model.raw_img_data
 
-    def save_and_load_configuration(self, prepare_function, intermediate_function=None):
-        self.load_image(test_image_file_name)
-        if prepare_function is not None:
-            prepare_function()
-        self.save_configuration()
-        self.tearDown()
-        self.setUp()
-        if intermediate_function:
-            intermediate_function()
-        self.load_configuration()
+    def save_and_load_configuration(self, prepare_function, intermediate_function=None, mock_1d_integration=True):
+
+        if mock_1d_integration:
+            with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
+                                                                              np.ones((1001, )))):
+                self.load_image(test_image_file_name)
+                if prepare_function is not None:
+                    prepare_function()
+                self.save_configuration()
+                self.tearDown()
+                self.setUp()
+
+                if intermediate_function:
+                    intermediate_function()
+
+                self.load_configuration()
+        else:
+            self.load_image(test_image_file_name)
+            if prepare_function is not None:
+                prepare_function()
+            self.save_configuration()
+            self.tearDown()
+            self.setUp()
+
+            if intermediate_function:
+                intermediate_function()
+
+            self.load_configuration()
 
     def existing_files_intermediate_settings(self):
         self.check_calibration = False
@@ -177,7 +196,7 @@ class ProjectSaveLoadTest(QtTest):
 
     ####################################################################################################################
     def test_with_cbn_correction(self):
-        self.save_and_load_configuration(self.cbn_correction_settings)
+        self.save_and_load_configuration(self.cbn_correction_settings, mock_1d_integration=False)
         self.assertEqual(self.model.current_configuration.img_model.img_corrections.
                          corrections["cbn"]._diamond_thickness, 1.9)
 
@@ -188,7 +207,7 @@ class ProjectSaveLoadTest(QtTest):
 
     ####################################################################################################################
     def test_with_oiadac_correction(self):
-        self.save_and_load_configuration(self.oiadac_correction_settings)
+        self.save_and_load_configuration(self.oiadac_correction_settings, mock_1d_integration=False)
         self.assertEqual(self.model.current_configuration.img_model.img_corrections.
                          corrections["oiadac"].detector_thickness, 30)
         self.assertEqual(self.model.current_configuration.img_model.img_corrections.
