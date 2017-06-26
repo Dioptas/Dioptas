@@ -181,7 +181,7 @@ class ProjectSaveLoadTest(QtTest):
         img_data = np.flipud(img_data)
         img_data = rotate_matrix_p90(img_data)
 
-        self.assertEqual(np.sum(img_data-self.model.img_data), 0)
+        self.assertEqual(np.sum(img_data - self.model.img_data), 0)
 
     def image_transformations(self):
         click_button(self.widget.calibration_widget.rotate_m90_btn)
@@ -278,3 +278,11 @@ class ProjectSaveLoadTest(QtTest):
     def fit_bg_settings(self):
         self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
         self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
+
+    ####################################################################################################################
+    def test_with_background_image(self):
+        self.save_and_load_configuration(self.add_background_image)
+
+    def add_background_image(self):
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=test_image_file_name)
+        click_button(self.controller.integration_controller.widget.bkg_image_load_btn)
