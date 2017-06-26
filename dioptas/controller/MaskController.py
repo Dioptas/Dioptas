@@ -96,14 +96,15 @@ class MaskController(object):
             if btn is not except_btn:
                 if btn.isChecked():
                     btn.toggle()
-        # if not except_btn.isChecked() and except_btn is not None:
-        #     except_btn.toggle()
 
         shapes = [self.rect, self.circle, self.polygon]
         for shape in shapes:
             if shape is not None:
                 self.widget.img_widget.img_view_box.removeItem(shape)
                 self.widget.img_widget.mouse_moved.disconnect(shape.set_size)
+        self.rect = None
+        self.circle = None
+        self.polygon = None
 
         try:
             self.widget.img_widget.mouse_moved.disconnect(self.point.set_position)
