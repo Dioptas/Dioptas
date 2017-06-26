@@ -173,6 +173,8 @@ class FileNameIterator(QtCore.QObject):
         """
         Tries to get the previous filename.
 
+        :param step:
+        :param pos:
         :param mode:
             can have two values either number or mode. Number will decrement the last digits of the file name \
             and time will get the next file by creation time.

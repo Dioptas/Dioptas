@@ -69,7 +69,6 @@ class OverlayModel(QtCore.QObject):
         """
         :param ind: overlay ind
         :return: returns overlay if existent or None if it does not exist
-        :type return: Pattern
         """
         try:
             return self.overlays[ind]

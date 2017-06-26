@@ -251,6 +251,7 @@ class ImgModel(QtCore.QObject):
     def load_next_file(self, step=1, pos=None):
         """
         Loads the next file based on the current iteration mode and the step you specify.
+        :param pos:
         :param step: Defining how much you want to increment the file number. (default=1)
         """
         next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step, pos=pos)
@@ -260,6 +261,7 @@ class ImgModel(QtCore.QObject):
     def load_previous_file(self, step=1, pos=None):
         """
         Loads the previous file based on the current iteration mode and the step specified
+        :param pos:
         :param step: Defining how much you want to decrement the file number. (default=1)
         """
         previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode,
@@ -516,6 +518,7 @@ class ImgModel(QtCore.QObject):
         """
         Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
         each other, depending on the order of addition.
+        :param external:
         :param correction: An Object inheriting the ImgCorrectionInterface.
         :type correction: ImgCorrectionInterface
         :param name: correction can be given a name, to selectively delete or obtain later.
@@ -532,7 +535,6 @@ class ImgModel(QtCore.QObject):
     def get_img_correction(self, name):
         """
         :param name: correction name which was specified during the addition of the image correction.
-        :type basestring:
         :return: the specified correction
         """
         return self._img_corrections.get_correction(name)
