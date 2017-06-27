@@ -535,8 +535,6 @@ class CalibrationModel(object):
         y *= self.supersampling_factor
         return self.pattern_geometry.chi(x, y)[0]
 
-        return azi
-
     def get_two_theta_array(self):
         return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,
                ::self.supersampling_factor]
