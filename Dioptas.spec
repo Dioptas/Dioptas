@@ -59,10 +59,6 @@ if _platform == "darwin":
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5.10.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5_hl.10.dylib'), '.'),
     ))
-elif _platform == "linux":
-    extra_datas.extend((
-        (os.path.join(os.path.expanduser('~'), 'anaconda3/lib/libgomp.so.1'), '.'),
-    ))
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
