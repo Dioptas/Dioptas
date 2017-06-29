@@ -85,8 +85,6 @@ class OverlayController(object):
     def add_overlay_btn_click_callback(self):
         """
 
-        :param filename: filepath of an overlay file, if set to None (default value) it will open a QFileDialog to
-            select a pattern file
         """
         filenames = open_files_dialog(self.widget, "Load Overlay(s).",
                                       self.working_dir['overlay'])

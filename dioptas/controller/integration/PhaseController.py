@@ -95,13 +95,15 @@ class PhaseController(object):
 
         self.jcpds_editor_controller.phase_modified.connect(self.update_cur_phase_name)
 
+        # Signals from phase model
+        self.model.phase_model.phase_added.connect(self.phase_added)
+
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
 
     def add_btn_click_callback(self, *args, **kwargs):
         """
         Loads a new phase from jcpds file.
-        :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
         :return:
         """
         if not self.model.calibration_model.is_calibrated:
@@ -166,6 +168,19 @@ class PhaseController(object):
             self.widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
                     format(e.filename))
+
+    def phase_added(self):
+        self.model.phase_model.get_lines_d(-1)
+        color = self.add_phase_plot()
+        self.widget.add_phase(get_base_name(self.model.phase_model.phases[-1].filename), '#%02x%02x%02x' %
+                              (int(color[0]), int(color[1]), int(color[2])))
+
+        self.widget.set_phase_pressure(len(self.model.phase_model.phases) - 1,
+                                       self.model.phase_model.phases[-1].params['pressure'])
+        self.update_phase_temperature(len(self.model.phase_model.phases) - 1,
+                                      self.model.phase_model.phases[-1].params['temperature'])
+        if self.jcpds_editor_controller.active:
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
 
     def add_phase_plot(self):
         """
@@ -323,8 +338,8 @@ class PhaseController(object):
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
         cur_ind = row
-        pressure = self.model.phase_model.phases[cur_ind].pressure
-        temperature = self.model.phase_model.phases[cur_ind].temperature
+        pressure = self.model.phase_model.phases[cur_ind].params['pressure']
+        temperature = self.model.phase_model.phases[cur_ind].params['temperature']
 
         self.widget.phase_pressure_sb.blockSignals(True)
         self.widget.phase_pressure_sb.setValue(pressure)
@@ -392,7 +407,6 @@ class PhaseController(object):
         """
         Updates all intensities of all phases in the pattern view. Also checks if phase lines are still visible.
         (within range of pattern and/or overlays
-        :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
         axis_range = self.widget.pattern_widget.view_box.viewRange()
 

@@ -41,6 +41,8 @@ extra_datas = [
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     ("dioptas/widgets/stylesheet.qss", "dioptas/widgets"),
     ("dioptas/widgets/icns/icon.svg", "dioptas/widgets/icns"),
+    ("dioptas/widgets/icns/open.ico", "dioptas/widgets/icns"),
+    ("dioptas/widgets/icns/save.ico", "dioptas/widgets/icns"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
     ("dioptas/model/util/data/*.json", "dioptas/model/util/data"),
@@ -57,16 +59,12 @@ if _platform == "darwin":
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5.10.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5_hl.10.dylib'), '.'),
     ))
-elif _platform == "linux":
-    extra_datas.extend((
-        (os.path.join(os.path.expanduser('~'), 'anaconda3/lib/libgomp.so.1'), '.'),
-    ))
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
              binaries=binaries,
              datas=extra_datas,
-             hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry'],
+             hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry','h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],

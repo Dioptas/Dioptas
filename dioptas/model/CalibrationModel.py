@@ -397,7 +397,7 @@ class CalibrationModel(object):
         center_y = fit2d_parameter['centerY']
         width, height = self.img_model.img_data.shape
 
-        if center_x < width and center_x > 0:
+        if width > center_x > 0:
             side1 = np.max([abs(width - center_x), center_x])
         else:
             side1 = width
@@ -534,8 +534,6 @@ class CalibrationModel(object):
         x *= self.supersampling_factor
         y *= self.supersampling_factor
         return self.pattern_geometry.chi(x, y)[0]
-
-        return azi
 
     def get_two_theta_array(self):
         return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,

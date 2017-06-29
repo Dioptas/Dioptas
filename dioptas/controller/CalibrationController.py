@@ -156,8 +156,6 @@ class CalibrationController(object):
     def load_img(self):
         """
         Loads an image file.
-        :param filename:
-            filename of image file. If not set it will pop up a QFileDialog where the file can be chosen.
         """
         filename = open_file_dialog(self.widget, caption="Load Calibration Image",
                                     directory=self.working_dir['image'])
@@ -467,8 +465,6 @@ class CalibrationController(object):
     def load_calibration(self):
         """
         Loads a '*.poni' file and updates the calibration data class
-        :param filename:
-            filename of the calibration file
         """
         filename = open_file_dialog(self.widget, caption="Load calibration...",
                                     directory=self.working_dir['calibration'],
@@ -549,9 +545,6 @@ class CalibrationController(object):
     def save_calibration(self):
         """
         Saves the current calibration in a file.
-        :param filename:
-            Filename of the saved calibration. If 'None' a QFileDialog will open and the file will be saved with the
-            *.poni ending.
         :return:
         """
 

@@ -48,7 +48,7 @@ class ConfigurationController(object):
         self.widget.combine_cakes_btn.clicked.connect(self.combine_cakes_btn_clicked)
 
     def update_configuration_widget(self):
-        self.widget.update_configurations(
+        self.widget.update_configuration_btns(
             configurations=self.model.configurations,
             cur_ind=self.model.configuration_ind
         )
@@ -78,4 +78,3 @@ class ConfigurationController(object):
 
     def load_previous_folder(self):
         self.model.previous_folder(mec_mode=bool(self.widget.mec_cb.isChecked()))
-
