@@ -39,20 +39,19 @@ class PhaseController(object):
     the pattern plot and it needs the calibration data to have access to the currently used wavelength.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary with working directories
         :param widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
+
         self.widget = widget
         self.cif_conversion_dialog = CifConversionParametersDialog(self.widget)
         self.model = dioptas_model
-        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.model)
+        self.jcpds_editor_controller = JcpdsEditorController(self.widget, self.model)
         self.phase_lw_items = []
         self.create_signals()
         self.update_phase_temperature_step()
@@ -112,10 +111,10 @@ class PhaseController(object):
         filenames = [kwargs.get('filenames', None)]
 
         if filenames[0] is None:
-            filenames = open_files_dialog(self.widget, "Load Phase(s).", self.working_dir['phase'])
+            filenames = open_files_dialog(self.widget, "Load Phase(s).", self.model.working_directories['phase'])
 
         if len(filenames):
-            self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
+            self.model.working_directories['phase'] = os.path.dirname(str(filenames[0]))
             progress_dialog = QtWidgets.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
                                                         self.widget)
             progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -225,7 +224,7 @@ class PhaseController(object):
                     self.jcpds_editor_controller.widget.close()
 
     def load_btn_clicked_callback(self):
-        filename = open_file_dialog(self.widget, caption="Load Phase List", directory=self.working_dir['phase'],
+        filename = open_file_dialog(self.widget, caption="Load Phase List", directory=self.model.working_directories['phase'],
                                     filter="*.txt")
         if filename == '':
             return
@@ -254,7 +253,7 @@ class PhaseController(object):
         if len(self.model.phase_model.phase_files) < 1:
             return
         filename = save_file_dialog(self.widget, "Save Phase List.",
-                                    os.path.join(self.working_dir['phase'], 'phase_list.txt'), 'Text (*.txt)')
+                                    os.path.join(self.model.working_directories['phase'], 'phase_list.txt'), 'Text (*.txt)')
 
         if filename == '':
             return

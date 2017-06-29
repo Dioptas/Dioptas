@@ -41,16 +41,15 @@ class ImageController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary of working directories
         :param widget: Reference to IntegrationView
         :param dioptas_model: Reference to DioptasModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
+
         self.widget = widget
         self.model = dioptas_model
 
@@ -208,12 +207,12 @@ class ImageController(object):
         filename = kwargs.get('filename', None)
         if filename is None:
             filenames = open_files_dialog(self.widget, "Load image data file(s)",
-                                          self.working_dir['image'])
+                                          self.model.working_directories['image'])
         else:
             filenames = [filename]
 
         if filenames is not None and len(filenames) is not 0:
-            self.working_dir['image'] = os.path.dirname(str(filenames[0]))
+            self.model.working_directories['image'] = os.path.dirname(str(filenames[0]))
             if len(filenames) == 1:
                 self.model.img_model.load(str(filenames[0]))
             else:
@@ -265,12 +264,12 @@ class ImageController(object):
 
     def _get_pattern_working_directory(self):
         if self.widget.pattern_autocreate_cb.isChecked():
-            working_directory = self.working_dir['pattern']
+            working_directory = self.model.working_directories['pattern']
         else:
             # if there is no working directory selected A file dialog opens up to choose a directory...
             working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
                 self.widget, "Please choose the output directory for the integrated Patterns.",
-                self.working_dir['pattern']))
+                self.model.working_directories['pattern']))
         return working_directory
 
     def _set_up_batch_processing(self):
@@ -284,7 +283,7 @@ class ImageController(object):
     def _save_multiple_image_files(self, filenames):
         working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
             self.widget, "Please choose the output directory for the Images.",
-            self.working_dir['image']))
+            self.model.working_directories['image']))
 
         if working_directory is '':
             return
@@ -436,24 +435,24 @@ class ImageController(object):
 
     def directory_txt_changed(self):
         new_directory = str(self.widget.img_directory_txt.text())
-        if os.path.exists(new_directory) and new_directory != self.working_dir['image']:
+        if os.path.exists(new_directory) and new_directory != self.model.working_directories['image']:
             if self.model.img_model.autoprocess:
-                self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
-            self.working_dir['image'] = os.path.abspath(new_directory)
+                self._files_now = dict([(f, None) for f in os.listdir(self.model.working_directories['image'])])
+            self.model.working_directories['image'] = os.path.abspath(new_directory)
             old_filename = str(self.widget.img_filename_txt.text())
             self.widget.img_filename_txt.setText(old_filename + '*')
         else:
-            self.widget.img_directory_txt.setText(self.working_dir['image'])
+            self.widget.img_directory_txt.setText(self.model.working_directories['image'])
 
     def img_directory_btn_click(self):
         directory = str(QtWidgets.QFileDialog.getExistingDirectory(
             self.widget,
             "Please choose the image working directory.",
-            self.working_dir['image']))
+            self.model.working_directories['image']))
         if directory is not '':
             if self.model.img_model.autoprocess:
-                self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
-            self.working_dir['image'] = directory
+                self._files_now = dict([(f, None) for f in os.listdir(self.model.working_directories['image'])])
+            self.model.working_directories['image'] = directory
             self.widget.img_directory_txt.setText(directory)
 
     def update_img(self, reset_img_levels=None):
@@ -841,11 +840,10 @@ class ImageController(object):
     def load_calibration(self):
         filename = open_file_dialog(
             self.widget, "Load calibration...",
-            self.working_dir[
-                'calibration'],
+            self.model.working_directories['calibration'],
             '*.poni')
         if filename is not '':
-            self.working_dir['calibration'] = os.path.dirname(filename)
+            self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
@@ -858,7 +856,7 @@ class ImageController(object):
         if not filename:
             img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
             filename = save_file_dialog(self.widget, "Save Image.",
-                                        os.path.join(self.working_dir['image'],
+                                        os.path.join(self.model.working_directories['image'],
                                                      img_filename + '.png'),
                                         ('Image (*.png);;Data (*.tiff)'))
 

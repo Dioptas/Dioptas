@@ -35,16 +35,14 @@ class BackgroundController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary with working directories (uses the 'image' key) for the background image
         :param widget: IntegrationWidget
         :param dioptas_model: DioptasModel reference
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -89,7 +87,7 @@ class BackgroundController(object):
     def load_background_image(self):
         filename = open_file_dialog(
             self.widget, "Load an image background file",
-            self.working_dir['image'])
+            self.model.working_directories['image'])
 
         if filename is not None and filename is not '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
