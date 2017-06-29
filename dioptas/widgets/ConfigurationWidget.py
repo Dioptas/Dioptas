@@ -81,10 +81,11 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.previous_file_btn.setMaximumWidth(25)
         self.factor_txt.setMaximumWidth(35)
 
-    def update_configurations(self, configurations, cur_ind):
+    def update_configuration_btns(self, configurations, cur_ind):
         for btn in self.configuration_btns:
-            self.configurations_btn_layout.removeWidget(btn)
             self.configuration_btn_group.removeButton(btn)
+            self.configurations_btn_layout.removeWidget(btn)
+            btn.deleteLater() # somehow needs tobe deleted, otherwise remains in the button group
 
         self.configuration_btns = []
 

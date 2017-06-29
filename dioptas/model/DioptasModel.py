@@ -1,236 +1,15 @@
 # -*- coding: utf8 -*-
 import os
-
 from scipy.interpolate import interp1d, interp2d
 import numpy as np
 from qtpy import QtCore
-from copy import deepcopy
 
+import h5py
+
+from .util import jcpds
 from .util import Pattern
-from .util.calc import convert_units
+from .Configuration import Configuration
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
-
-
-class ImgConfiguration(QtCore.QObject):
-    cake_changed = QtCore.Signal()
-
-    def __init__(self, working_directories):
-        super(ImgConfiguration, self).__init__()
-
-        self.img_model = ImgModel()
-        self.mask_model = MaskModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.pattern_model = PatternModel()
-
-        if working_directories is not None:
-            self.working_directories = working_directories
-        else:
-            self.working_directories = {}
-
-        self.use_mask = False
-
-        self.transparent_mask = False
-
-        self._integration_num_points = None
-        self._integration_azimuth_points = 2048
-        self._integration_unit = '2th_deg'
-
-        self._auto_integrate_pattern = True
-        self._auto_integrate_cake = False
-
-        self.auto_save_integrated_pattern = False
-        self.integrated_patterns_file_formats = ['.xy']
-
-        self.connect_signals()
-
-    def connect_signals(self):
-        self.img_model.img_changed.connect(self.update_mask_dimension)
-        self.img_model.img_changed.connect(self.integrate_image_1d)
-
-    def integrate_image_1d(self):
-        if self.calibration_model.is_calibrated:
-            if self.use_mask:
-                if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
-                    self.mask_model.set_supersampling(self.img_model.supersampling_factor)
-                mask = self.mask_model.get_mask()
-            elif self.mask_model.roi is not None:
-                mask = self.mask_model.roi_mask
-            else:
-                mask = None
-
-            x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
-                                                       num_points=self.integration_num_points)
-
-            self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
-
-            if self.auto_save_integrated_pattern:
-                self._auto_save_patterns()
-
-    def integrate_image_2d(self):
-        if self.use_mask:
-            if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
-                self.mask_model.set_supersampling(self.img_model.supersampling_factor)
-            mask = self.mask_model.get_mask()
-        elif self.mask_model.roi is not None:
-            mask = self.mask_model.roi_mask
-        else:
-            mask = None
-
-        self.calibration_model.integrate_2d(mask=mask,
-                                            dimensions=(2048, 2048))
-        self.cake_changed.emit()
-
-    def save_pattern(self, filename=None, subtract_background=False):
-        if filename is None:
-            filename = self.img_model.filename
-
-        if filename.endswith('.xy'):
-            self.pattern_model.save_pattern(filename, header=self._create_xy_header(),
-                                            subtract_background=subtract_background)
-        elif filename.endswith('.fxye'):
-            self.pattern_model.save_pattern(filename, header=self._create_fxye_header(filename),
-                                            subtract_background=subtract_background)
-        else:
-            self.pattern_model.save_pattern(filename, subtract_background=subtract_background)
-
-
-    def _create_xy_header(self):
-        header = self.calibration_model.create_file_header()
-        header = header.replace('\r\n', '\n')
-        header = header + '\n#\n# ' + self._integration_unit + '\t I'
-        return header
-
-    def _create_fxye_header(self, filename):
-        header = 'Generated file ' + filename + ' using DIOPTAS\n'
-        header = header + self.calibration_model.create_file_header()
-        unit = self._integration_unit
-        lam = self.calibration_model.wavelength
-        if unit == 'q_A^-1':
-            con = 'CONQ'
-        else:
-            con = 'CONS'
-
-        header = header + '\nBANK\t1\tNUM_POINTS\tNUM_POINTS ' + con + '\tMIN_X_VAL\tSTEP_X_VAL ' + \
-                 '{0:.5g}'.format(lam * 1e10) + ' 0.0 FXYE'
-        return header
-
-    def _auto_save_patterns(self):
-        for file_ending in self.integrated_patterns_file_formats:
-            filename = os.path.join(
-                    self.working_directories['pattern'],
-                    os.path.basename(str(self.img_model.filename)).split('.')[:-1][0] + file_ending)
-            filename = filename.replace('\\', '/')
-            self.save_pattern(filename)
-
-        if self.pattern_model.pattern.has_background():
-            for file_ending in self.integrated_patterns_file_formats:
-                directory = os.path.join(self.working_directories['pattern'], 'bkg_subtracted')
-                if not os.path.exists(directory):
-                    os.mkdir(directory)
-                filename = os.path.join(directory, self.pattern_model.pattern.name + file_ending)
-                filename = filename.replace('\\', '/')
-                self.save_pattern(filename, subtract_background=True)
-
-    def update_mask_dimension(self):
-        self.mask_model.set_dimension(self.img_model._img_data.shape)
-
-    @property
-    def integration_num_points(self):
-        return self._integration_num_points
-
-    @integration_num_points.setter
-    def integration_num_points(self, new_value):
-        self._integration_num_points = new_value
-        self.integrate_image_1d()
-
-    @property
-    def integration_unit(self):
-        return self._integration_unit
-
-    @integration_unit.setter
-    def integration_unit(self, new_unit):
-        old_unit = self.integration_unit
-        self._integration_unit = new_unit
-
-        auto_bg_subtraction = self.pattern_model.pattern.auto_background_subtraction
-        if auto_bg_subtraction:
-            self.pattern_model.pattern.auto_background_subtraction = False
-
-        self.integrate_image_1d()
-
-        self.update_auto_background_parameters_unit(old_unit, new_unit)
-
-        if auto_bg_subtraction:
-            self.pattern_model.pattern.auto_background_subtraction = True
-            self.pattern_model.pattern.recalculate_pattern()
-            self.pattern_model.pattern_changed.emit()
-
-    def update_auto_background_parameters_unit(self, old_unit, new_unit):
-        self.pattern_model.pattern.auto_background_subtraction_parameters = \
-            convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
-                          self.calibration_model.wavelength,
-                          old_unit,
-                          new_unit), \
-            self.pattern_model.pattern.auto_background_subtraction_parameters[1], \
-            self.pattern_model.pattern.auto_background_subtraction_parameters[2]
-
-        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
-            self.pattern_model.pattern.auto_background_subtraction_roi = \
-                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[0],
-                              self.calibration_model.wavelength,
-                              old_unit,
-                              new_unit), \
-                convert_units(self.pattern_model.pattern.auto_background_subtraction_roi[1],
-                              self.calibration_model.wavelength,
-                              old_unit,
-                              new_unit)
-
-    @property
-    def auto_integrate_cake(self):
-        return self._auto_integrate_cake
-
-    @auto_integrate_cake.setter
-    def auto_integrate_cake(self, new_value):
-        self._auto_integrate_cake = new_value
-        if new_value:
-            self.img_model.img_changed.connect(self.integrate_image_2d)
-        else:
-            self.img_model.img_changed.disconnect(self.integrate_image_2d)
-
-    @property
-    def auto_integrate_pattern(self):
-        return self._auto_integrate_pattern
-
-    @auto_integrate_pattern.setter
-    def auto_integrate_pattern(self, new_value):
-        self._auto_integrate_pattern = new_value
-        if new_value:
-            self.img_model.img_changed.connect(self.integrate_image_1d)
-        else:
-            self.img_model.img_changed.disconnect(self.integrate_image_1d)
-
-    @property
-    def cake_img(self):
-        return self.calibration_model.cake_img
-
-    @property
-    def roi(self):
-        return self.mask_model.roi
-
-    @roi.setter
-    def roi(self, new_val):
-        self.mask_model.roi = new_val
-        self.integrate_image_1d()
-
-    def copy(self):
-        new_configuration = ImgConfiguration(self.working_directories)
-        new_configuration.img_model._img_data = self.img_model._img_data
-        new_configuration.img_model.img_transformations = deepcopy(self.img_model.img_transformations)
-
-        new_configuration.calibration_model.set_pyFAI(self.calibration_model.get_calibration_parameter()[0])
-        new_configuration.integrate_image_1d()
-
-        return new_configuration
 
 
 class DioptasModel(QtCore.QObject):
@@ -244,10 +23,10 @@ class DioptasModel(QtCore.QObject):
 
     def __init__(self, working_directories=None):
         super(DioptasModel, self).__init__()
-        self.working_directories = working_directories
         self.configurations = []
         self.configuration_ind = 0
-        self.configurations.append(ImgConfiguration(self.working_directories))
+        self.configurations.append(Configuration())
+        self.working_directories = working_directories
 
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
@@ -259,10 +38,10 @@ class DioptasModel(QtCore.QObject):
         self.connect_models()
 
     def add_configuration(self):
-        self.configurations.append(ImgConfiguration(self.working_directories))
+        self.configurations.append(Configuration(self.working_directories))
 
         if self.current_configuration.calibration_model.is_calibrated:
-            dioptas_config_folder = os.path.join(os.path.expanduser("~"), '.Dioptas')
+            dioptas_config_folder = os.path.join(os.path.expanduser('~'), '.Dioptas')
             if not os.path.isdir(dioptas_config_folder):
                 os.mkdir(dioptas_config_folder)
             self.current_configuration.calibration_model.save(
@@ -284,19 +63,111 @@ class DioptasModel(QtCore.QObject):
         self.connect_models()
         self.configuration_removed.emit(self.configuration_ind)
 
+    def save(self, filename):
+        # save configuration
+        f = h5py.File(filename, 'w')
+
+        configurations_group = f.create_group('configurations')
+        configurations_group.attrs['selected_configuration'] = self.configuration_ind
+        for ind, configuration in enumerate(self.configurations):
+            configuration_group = configurations_group.create_group(str(ind))
+            configuration.save_in_hdf5(configuration_group)
+
+        # save overlays
+        overlay_group = f.create_group('overlays')
+
+        for ind, overlay in enumerate(self.overlay_model.overlays):
+            ov = overlay_group.create_group(str(ind))
+            ov.attrs['name'] = overlay.name
+            ov.create_dataset('x', overlay.original_x.shape, 'f', overlay.original_x)
+            ov.create_dataset('y', overlay.original_y.shape, 'f', overlay.original_y)
+            ov.attrs['scaling'] = overlay.scaling
+            ov.attrs['offset'] = overlay.offset
+
+        # save phases
+        phases_group = f.create_group('phases')
+        for ind, phase in enumerate(self.phase_model.phases):
+            phase_group = phases_group.create_group(str(ind))
+            phase_group.attrs['name'] = phase.name
+            phase_group.attrs['filename'] = phase.filename
+            phase_parameter_group = phase_group.create_group('params')
+            for key in phase.params:
+                if key == 'comments':
+                    phases_comments_group = phase_group.create_group('comments')
+                    for ind, comment in enumerate(phase.params['comments']):
+                        phases_comments_group.attrs[str(ind)] = comment
+                else:
+                    phase_parameter_group.attrs[key] = phase.params[key]
+            phase_reflections_group = phase_group.create_group('reflections')
+            for ind, reflection in enumerate(phase.reflections):
+                phase_reflection_group = phase_reflections_group.create_group(str(ind))
+                phase_reflection_group.attrs['d0'] = reflection.d0
+                phase_reflection_group.attrs['d'] = reflection.d
+                phase_reflection_group.attrs['intensity'] = reflection.intensity
+                phase_reflection_group.attrs['h'] = reflection.h
+                phase_reflection_group.attrs['k'] = reflection.k
+                phase_reflection_group.attrs['l'] = reflection.l
+
+        f.flush()
+        f.close()
+
+    def load(self, filename):
+        self.disconnect_models()
+
+        f = h5py.File(filename, 'r')
+
+        # load_configurations
+        self.configurations = []
+        for ind, configuration_group in f.get('configurations').items():
+            configuration = Configuration()
+            configuration.load_from_hdf5(configuration_group)
+            self.configurations.append(configuration)
+        self.configuration_ind = f.get('configurations').attrs['selected_configuration']
+
+        # load overlay model
+        for ind, overlay_group in f.get('overlays').items():
+            self.overlay_model.add_overlay(overlay_group.get('x')[...],
+                                           overlay_group.get('y')[...],
+                                           overlay_group.attrs['name'])
+            ind = len(self.overlay_model.overlays) - 1
+            self.overlay_model.set_overlay_offset(ind, overlay_group.attrs['offset'])
+            self.overlay_model.set_overlay_scaling(ind, overlay_group.attrs['scaling'])
+
+        # load phase model
+        for ind, phase_group in f.get('phases').items():
+            p_filename = phase_group.attrs.get('filename', None)
+            if p_filename is not None:
+                new_jcpds = jcpds()
+                for p_key, p_value in phase_group.get('params').attrs.items():
+                    new_jcpds.params[p_key] = p_value
+                for c_key, comment in phase_group.get('comments').attrs.items():
+                    new_jcpds.params['comments'].append(comment)
+                for r_key, reflection in phase_group.get('reflections').items():
+                    new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
+                                             reflection.attrs['intensity'], reflection.attrs['d'])
+                self.phase_model.phases.append(new_jcpds)
+                self.phase_model.reflections.append([])
+                self.phase_model.send_added_signal()
+
+        f.close()
+
+        self.connect_models()
+        self.configuration_added.emit()
+        self.select_configuration(self.configuration_ind)
+
     def select_configuration(self, ind):
         if 0 <= ind < len(self.configurations):
             self.disconnect_models()
             self.configuration_ind = ind
             self.connect_models()
             self.configuration_selected.emit(ind)
-            self.img_model.img_changed.disconnect(self.current_configuration.integrate_image_1d)
+            self.current_configuration.auto_integrate_pattern = False
             if self.combine_cakes:
-                self.img_model.img_changed.disconnect(self.current_configuration.integrate_image_2d)
+                self.current_configuration.auto_integrate_cake = False
             self.img_changed.emit()
-            self.img_model.img_changed.connect(self.current_configuration.integrate_image_1d)
+            self.current_configuration.auto_integrate_pattern = True
             if self.combine_cakes:
-                self.img_model.img_changed.connect(self.current_configuration.integrate_image_2d)
+                self.current_configuration.auto_integrate_cake = True
             self.pattern_changed.emit()
             self.cake_changed.emit()
 
@@ -311,9 +182,17 @@ class DioptasModel(QtCore.QObject):
         self.current_configuration.cake_changed.connect(self.cake_changed)
 
     @property
+    def working_directories(self):
+        return self.current_configuration.working_directories
+
+    @working_directories.setter
+    def working_directories(self, new):
+        self.current_configuration.working_directories = new
+
+    @property
     def current_configuration(self):
         """
-        :rtype: ImgConfiguration
+        :rtype: Configuration
         """
         return self.configurations[self.configuration_ind]
 

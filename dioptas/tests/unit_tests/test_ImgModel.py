@@ -289,13 +289,13 @@ class ImgModelTest(QtTest):
         self.assertEqual(self.img_model.img_data.shape, (1042, 1042))
 
     def test_summing_files(self):
-        data1 = np.copy(self.img_model._img_data)
+        data1 = np.copy(self.img_model._img_data).astype(np.uint32)
         self.img_model.add(os.path.join(data_path, 'image_001.tif'))
         self.assertTrue(np.array_equal(2*data1, self.img_model._img_data))
 
     def test_summing_rotated(self):
         self.img_model.rotate_img_m90()
-        data1 = np.copy(self.img_model._img_data)
+        data1 = np.copy(self.img_model._img_data).astype(np.uint32)
         self.img_model.add(os.path.join(data_path, 'image_001.tif'))
         self.assertTrue(np.array_equal(2 * data1, self.img_model._img_data))
 

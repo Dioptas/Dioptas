@@ -2,10 +2,10 @@
 
 import os
 import unittest
+import gc
 
 import numpy as np
 
-from mock import MagicMock
 
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
@@ -45,6 +45,12 @@ class ConfigurationControllerTest(unittest.TestCase):
             dioptas_model=self.model,
             controllers=[]
         )
+
+    def tearDown(self):
+        del self.model
+        del self.config_widget
+        del self.config_controller
+        gc.collect()
 
     def test_initial_configuration_display(self):
         self.assertEqual(len(self.config_widget.configuration_btns), 1)
@@ -87,6 +93,7 @@ class ConfigurationControllerTest(unittest.TestCase):
 
         self.assertEqual(self.model.configuration_ind, 2)
         self.assertTrue(self.config_widget.configuration_btns[2].isChecked())
+        self.assertEqual(len(self.config_widget.configuration_btn_group.buttons()), 3)
 
     def test_remove_first_configuration(self):
         click_button(self.config_widget.add_configuration_btn)
@@ -180,6 +187,3 @@ class ConfigurationControllerTest(unittest.TestCase):
 
         self.assertEqual(self.model.configurations[1].img_model.filename,
                          os.path.abspath(os.path.join(data_path, "FileIterator", "run1", "image_1.tif")))
-
-
-
