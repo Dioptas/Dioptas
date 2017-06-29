@@ -48,22 +48,16 @@ class MainController(object):
         # create data
 
         self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
-                                    'phase': ''}
-
-        self.model = DioptasModel(self.working_directories)
+        self.model = DioptasModel()
 
         if use_settings:
             self.load_default_settings()
 
-        self.calibration_controller = CalibrationController(self.working_directories,
-                                                            self.widget.calibration_widget,
+        self.calibration_controller = CalibrationController(self.widget.calibration_widget,
                                                             self.model)
-        self.mask_controller = MaskController(self.working_directories,
-                                              self.widget.mask_widget,
+        self.mask_controller = MaskController(self.widget.mask_widget,
                                               self.model)
-        self.integration_controller = IntegrationController(self.working_directories,
-                                                            self.widget.integration_widget,
+        self.integration_controller = IntegrationController(self.widget.integration_widget,
                                                             self.model)
 
         self.configuration_controller = ConfigurationController(
