@@ -54,7 +54,7 @@ class MainController(object):
         self.model = DioptasModel(self.working_directories)
 
         if use_settings:
-            self.load_settings()
+            self.load_default_settings()
 
         self.calibration_controller = CalibrationController(self.working_directories,
                                                             self.widget.calibration_widget,
@@ -206,77 +206,22 @@ class MainController(object):
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 
-    def load_settings(self):
-        """
-        Loads previously saved Dioptas settings.
-        """
-        if os.path.exists(self.settings_directory):
-            self.load_directories()
-            self.load_xml_settings()
-
-    def load_directories(self):
-        """
-        Loads previously used Dioptas directory paths.
-        """
-        working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
-        if os.path.exists(working_directories_path):
-            reader = csv.reader(open(working_directories_path, 'r'))
-            for x in reader:
-                if len(x) > 1:
-                    self.working_directories[x[0]] = x[1]
-
-    def load_xml_settings(self):
-        """
-        Loads previously used Dioptas settings. Currently this is only the calibration.
-        :return:
-        """
-        xml_settings_path = os.path.join(self.settings_directory, "settings.xml")
-        if os.path.exists(xml_settings_path):
-            tree = ET.parse(xml_settings_path)
-            root = tree.getroot()
-            filenames = root.find("filenames")
-            calibration_path = filenames.find("calibration").text
-            if os.path.exists(str(calibration_path)):
-                self.model.calibration_model.load(calibration_path)
-
-    def save_settings(self):
-        """
-        Saves current settings of Dioptas in the users directory.
-        """
+    def save_default_settings(self):
         if not os.path.exists(self.settings_directory):
             os.mkdir(self.settings_directory)
-        self.save_directories()
-        self.save_xml_settings()
+        self.model.save(os.path.join(self.settings_directory, 'config.dio'))
 
-    def save_directories(self):
-        """
-        Currently used working directories for images, , etc. are saved as csv file in the users directory for
-        reuse when Dioptas is started again
-        """
-
-        working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
-        writer = csv.writer(open(working_directories_path, 'w'))
-        for key, value in list(self.working_directories.items()):
-            writer.writerow([key, value])
-
-    def save_xml_settings(self):
-        """
-        Currently used settings of Dioptas are saved in to an xml file in the users directory for reuse when Dioptas is
-        started again. Right now this is only saving the calibration filename.
-        """
-        root = ET.Element("DioptasSettings")
-        filenames = ET.SubElement(root, "filenames")
-        calibration_filename = ET.SubElement(filenames, "calibration")
-        calibration_filename.text = self.model.calibration_model.filename
-        tree = ET.ElementTree(root)
-        tree.write(os.path.join(self.settings_directory, "settings.xml"))
+    def load_default_settings(self):
+        config_path = os.path.join(self.settings_directory, 'config.dio')
+        if os.path.isfile(config_path):
+            self.model.load(os.path.join(self.settings_directory, 'config.dio'))
 
     def close_event(self, ev):
         """
         Intervention of the Dioptas close event to save settings before closing the Program.
         """
         if self.use_settings:
-            self.save_settings()
+            self.save_default_settings()
         QtWidgets.QApplication.closeAllWindows()
         ev.accept()
 
