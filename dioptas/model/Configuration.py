@@ -17,7 +17,7 @@ from . import ImgModel, CalibrationModel, MaskModel, PatternModel
 class Configuration(QtCore.QObject):
     cake_changed = QtCore.Signal()
 
-    def __init__(self):
+    def __init__(self, working_directories=None):
         super(Configuration, self).__init__()
 
         self.img_model = ImgModel()
@@ -25,8 +25,11 @@ class Configuration(QtCore.QObject):
         self.calibration_model = CalibrationModel(self.img_model)
         self.pattern_model = PatternModel()
 
-        self.working_directories =  {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
-                                    'phase': ''}
+        if working_directories is None:
+            self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
+                                        'phase': ''}
+        else:
+            self.working_directories = working_directories
 
         self.use_mask = False
 
