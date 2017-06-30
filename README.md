@@ -55,7 +55,8 @@ Anaconda prompt on windows) please run the following commands on the commandline
 ```bash
 conda install --yes python=3.5 numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy fabio lmfit mock -c conda-forge
 conda install --yes pyqtgraph pyfai -c cprescher
-pip install pyepics```
+pip install pyepics
+```
 
 
 Running the Program
