@@ -18,12 +18,10 @@ class BackgroundControllerTest(QtTest):
         self.model = DioptasModel()
 
         self.controller = BackgroundController(
-            working_dir=self.working_dir,
             widget=self.widget,
             dioptas_model=self.model
         )
         self.pattern_controller = PatternController(
-            working_dir=self.working_dir,
             widget=self.widget,
             dioptas_model=self.model
         )

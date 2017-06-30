@@ -27,10 +27,7 @@ class TestCalibrationController(QtTest):
         self.model.calibration_model.integrate_2d = MagicMock()
 
         self.calibration_widget = CalibrationWidget()
-        self.working_dir = {'image': '',
-                            'calibration': ''}
-        self.calibration_controller = CalibrationController(working_dir=self.working_dir,
-                                                            widget=self.calibration_widget,
+        self.calibration_controller = CalibrationController(widget=self.calibration_widget,
                                                             dioptas_model=self.model)
 
     def tearDown(self):

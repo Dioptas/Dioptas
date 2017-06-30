@@ -16,11 +16,12 @@ from ...widgets.MaskWidget import MaskWidget
 
 class MaskControllerTest(QtTest):
     def setUp(self):
-        self.working_dir = {'mask': unittest_data_path}
 
         self.model = DioptasModel()
+        self.model.working_directories = {'mask': unittest_data_path}
+
         self.mask_widget = MaskWidget()
-        self.mask_controller = MaskController(self.working_dir, self.mask_widget, self.model)
+        self.mask_controller = MaskController(self.mask_widget, self.model)
 
     def tearDown(self):
         del self.model

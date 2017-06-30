@@ -61,7 +61,7 @@ pressure = 12.0
 
 class ProjectSaveLoadTest(QtTest):
     def setUp(self):
-        self.controller = MainController()
+        self.controller = MainController(use_settings=False)
         self.model = self.controller.model
         self.widget = self.controller.widget
         self.config_widget = self.controller.widget.configuration_widget
@@ -290,3 +290,12 @@ class ProjectSaveLoadTest(QtTest):
     def add_background_image(self):
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=test_image_file_name)
         click_button(self.controller.integration_controller.widget.bkg_image_load_btn)
+
+    ####################################################################################################################
+    def test_save_settings_on_closing(self):
+        with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
+                                                                          np.ones((1001,)))):
+            self.load_image(test_image_file_name)
+            self.controller.widget.close()
+            self.controller=MainController(use_settings=True)
+            self.assertEqual(self.model.img_model.filename, test_image_file_name)

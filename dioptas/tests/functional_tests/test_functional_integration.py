@@ -23,11 +23,11 @@ data_path = os.path.join(unittest_path, os.pardir, 'data')
 class IntegrationMockFunctionalTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
+        self.model.working_directories['pattern'] = data_path
+        self.model.working_directories['image'] = data_path
 
         self.integration_widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'pattern': data_path,
-                                                             'image': data_path},
-                                                            widget=self.integration_widget,
+        self.integration_controller = IntegrationController(widget=self.integration_widget,
                                                             dioptas_model=self.model)
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
@@ -198,8 +198,7 @@ class IntegrationFunctionalTest(QtTest):
         self.model = DioptasModel()
 
         self.integration_widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'pattern': data_path},
-                                                            widget=self.integration_widget,
+        self.integration_controller = IntegrationController(widget=self.integration_widget,
                                                             dioptas_model=self.model)
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))

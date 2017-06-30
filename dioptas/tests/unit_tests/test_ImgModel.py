@@ -79,19 +79,15 @@ class ImgModelTest(QtTest):
         self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
 
         self.img_model.set_supersampling(2)
-        self.img_model.img_data
         self.img_model.set_supersampling(3)
-        self.img_model.img_data
-
         self.img_model.load_next_file()
-        self.img_model.img_data
 
     def test_background_subtraction_with_transformation(self):
         self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
         original_img = np.copy(self.img_model._img_data)
         original_background = np.copy(self.img_model._background_data)
 
-        self.assertNotEqual(self.img_model._background_data, None)
+        self.assertIsNotNone(self.img_model._background_data)
         self.assertFalse(np.array_equal(self.img_model.img_data, self.img_model._img_data))
 
         original_img_background_subtracted = np.copy(self.img_model.img_data)
@@ -291,13 +287,14 @@ class ImgModelTest(QtTest):
     def test_summing_files(self):
         data1 = np.copy(self.img_model._img_data).astype(np.uint32)
         self.img_model.add(os.path.join(data_path, 'image_001.tif'))
-        self.assertTrue(np.array_equal(2*data1, self.img_model._img_data))
+        self.assertTrue(np.array_equal(2 * data1, self.img_model._img_data))
 
     def test_summing_rotated(self):
         self.img_model.rotate_img_m90()
         data1 = np.copy(self.img_model._img_data).astype(np.uint32)
         self.img_model.add(os.path.join(data_path, 'image_001.tif'))
         self.assertTrue(np.array_equal(2 * data1, self.img_model._img_data))
+
 
 if __name__ == '__main__':
     unittest.main()

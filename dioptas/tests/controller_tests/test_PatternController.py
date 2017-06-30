@@ -16,13 +16,10 @@ data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 class PatternControllerTest(QtTest):
     def setUp(self):
-        self.working_dir = {'image': '', 'pattern': ''}
-
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
 
         self.controller = PatternController(
-            working_dir=self.working_dir,
             widget=self.widget,
             dioptas_model=self.model)
 

@@ -22,7 +22,8 @@ class OverlayControllerTest(QtTest):
     def setUp(self):
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
-        self.overlay_controller = OverlayController({'overlay': data_path}, self.widget, self.model)
+        self.model.working_directories['overlay'] = data_path
+        self.overlay_controller = OverlayController(self.widget, self.model)
         self.overlay_tw = self.widget.overlay_tw
 
     def tearDown(self):
