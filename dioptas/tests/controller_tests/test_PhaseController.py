@@ -29,8 +29,8 @@ class PhaseControllerTest(QtTest):
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
 
-        self.pattern_controller = PatternController({}, self.widget, self.model)
-        self.controller = PhaseController({'phase': data_path}, self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
+        self.controller = PhaseController(self.widget, self.model)
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
 
     def tearDown(self):
