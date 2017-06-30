@@ -26,8 +26,8 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
 
-        self.pattern_controller = PatternController({}, self.widget, self.model)
-        self.background_controller = BackgroundController({}, self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
+        self.background_controller = BackgroundController(self.widget, self.model)
         self.overlay_tw = self.widget.overlay_tw
 
     def tearDown(self):
