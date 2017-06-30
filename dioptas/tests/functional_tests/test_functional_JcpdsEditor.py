@@ -99,7 +99,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         self.model.calibration_model.pattern_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(None, self.model, self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
 
         # Erwin immediately sees the filename in the explorer
@@ -260,7 +260,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         self.model.configurations[0].calibration_model.pattern_geometry.wavelength = 0.3344
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(None, self.model, jcpds_phase=self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
 
         # he sees that there are 13 reflections predefined in the table
@@ -338,7 +338,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 10)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, dioptas_model=self.model,
+        self.jcpds_controller = JcpdsEditorController(None, dioptas_model=self.model,
                                                       jcpds_phase=self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
         self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 4.0786)
@@ -363,7 +363,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds_controller.save_as_btn_clicked(filename)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(None, self.model, jcpds_phase=self.jcpds)
 
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
         # Erwin opens up the program, loads image and calibration and some phases
