@@ -26,7 +26,6 @@ class ImageControllerTest(QtTest):
         self.model = DioptasModel()
 
         self.controller = ImageController(
-            working_dir=self.working_dir,
             widget=self.widget,
             dioptas_model=self.model)
 
@@ -44,7 +43,7 @@ class ImageControllerTest(QtTest):
             return_value=[os.path.join(unittest_data_path, 'image_001.tif')])
         click_button(self.widget.load_img_btn)
         self.assertEqual(str(self.widget.img_filename_txt.text()), 'image_001.tif')
-        self.assertEqual(self.controller.working_dir['image'], unittest_data_path)
+        self.assertEqual(self.model.working_directories['image'], unittest_data_path)
 
         # enable autoprocessing:
         QTest.mouseClick(self.widget.autoprocess_cb, QtCore.Qt.LeftButton,
