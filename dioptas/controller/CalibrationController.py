@@ -34,10 +34,8 @@ class CalibrationController(object):
     CalibrationController handles all the interaction between the CalibrationView and the CalibrationData class
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """Manages the connection between the calibration GUI and data
-
-        :param working_dir: dictionary with working directories
 
         :param widget: Gives the Calibration Widget
         :type widget: CalibrationWidget
@@ -46,7 +44,6 @@ class CalibrationController(object):
         :type dioptas_model: DioptasModel
 
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -158,11 +155,11 @@ class CalibrationController(object):
         Loads an image file.
         """
         filename = open_file_dialog(self.widget, caption="Load Calibration Image",
-                                    directory=self.working_dir['image'])
+                                    directory=self.model.working_directories['image'])
 
         if filename is not '':
-            self.working_dir['image'] = os.path.dirname(filename)
-        self.model.img_model.load(filename)
+            self.model.working_directories['image'] = os.path.dirname(filename)
+            self.model.img_model.load(filename)
 
     def load_next_img(self):
         self.model.img_model.load_next_file()
@@ -467,10 +464,10 @@ class CalibrationController(object):
         Loads a '*.poni' file and updates the calibration data class
         """
         filename = open_file_dialog(self.widget, caption="Load calibration...",
-                                    directory=self.working_dir['calibration'],
+                                    directory=self.model.working_directories['calibration'],
                                     filter='*.poni')
         if filename is not '':
-            self.working_dir['calibration'] = os.path.dirname(filename)
+            self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
             self.update_all()
 
@@ -549,9 +546,9 @@ class CalibrationController(object):
         """
 
         filename = save_file_dialog(self.widget, "Save calibration...",
-                                    self.working_dir['calibration'], '*.poni')
+                                    self.model.working_directories['calibration'], '*.poni')
         if filename is not '':
-            self.working_dir['calibration'] = os.path.dirname(filename)
+            self.model.working_directories['calibration'] = os.path.dirname(filename)
             if not filename.rsplit('.', 1)[-1] == 'poni':
                 filename = filename + '.poni'
             self.model.calibration_model.save(filename)

@@ -22,6 +22,8 @@ data_path = os.path.join(unittest_path, '../data')
 class IntegrationControllerTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
+        self.model.working_directories['image'] = data_path
+        self.model.working_directories['pattern'] = data_path
 
         # setting up the calibration model but mocking the integration for speed
         self.model.calibration_model.num_points = 1000
@@ -30,9 +32,7 @@ class IntegrationControllerTest(QtTest):
         self.model.calibration_model.integrate_1d = mock.Mock(return_value=(dummy_x, dummy_y))
 
         self.widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'pattern': data_path,
-                                                             'image': data_path},
-                                                            widget=self.widget,
+        self.integration_controller = IntegrationController(widget=self.widget,
                                                             dioptas_model=self.model)
         self.image_controller = self.integration_controller.image_controller
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
@@ -52,7 +52,7 @@ class IntegrationControllerTest(QtTest):
         working_dir = os.path.join(data_path, 'out')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
-        self.image_controller.working_dir['pattern'] = os.path.join(working_dir)
+        self.model.working_directories['pattern'] = os.path.join(working_dir)
         self.widget.pattern_autocreate_cb.setChecked(True)
 
         return filenames, input_filenames, working_dir
@@ -102,8 +102,8 @@ class IntegrationControllerTest(QtTest):
     def test_shift_cake_azimuth(self):
         shift = 300
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
-        self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), -len(self.model.cake_azi)/2)
-        self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi)/2)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), -len(self.model.cake_azi) / 2)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi) / 2)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.singleStep(), 1)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), 0)
         old_cake_data = np.copy(self.model.cake_data)

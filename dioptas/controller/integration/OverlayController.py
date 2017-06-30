@@ -33,16 +33,14 @@ class OverlayController(object):
     the corresponding overlay data in the Pattern Model.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary of working directories
         :param widget: Reference to IntegrationWidget object
         :param pattern_model: Reference to PatternModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -87,12 +85,12 @@ class OverlayController(object):
 
         """
         filenames = open_files_dialog(self.widget, "Load Overlay(s).",
-                                      self.working_dir['overlay'])
+                                      self.model.working_directories['overlay'])
         if len(filenames):
             for filename in filenames:
                 filename = str(filename)
                 self.model.overlay_model.add_overlay_file(filename)
-            self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
+            self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
 
     def overlay_added(self):
         """

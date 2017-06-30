@@ -41,8 +41,8 @@ extra_datas = [
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     ("dioptas/widgets/stylesheet.qss", "dioptas/widgets"),
     ("dioptas/widgets/icns/icon.svg", "dioptas/widgets/icns"),
-    ("dioptas/widgets/icns/open.ico", "dioptas/widget/icns"),
-    ("dioptas/widgets/icns/save.ico", "dioptas/widget/icns"),
+    ("dioptas/widgets/icns/open.ico", "dioptas/widgets/icns"),
+    ("dioptas/widgets/icns/save.ico", "dioptas/widgets/icns"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
     ("dioptas/model/util/data/*.json", "dioptas/model/util/data"),
@@ -58,10 +58,6 @@ if _platform == "darwin":
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtSvg.4.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5.10.dylib'), '.'),
         (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5_hl.10.dylib'), '.'),
-    ))
-elif _platform == "linux":
-    extra_datas.extend((
-        (os.path.join(os.path.expanduser('~'), 'anaconda3/lib/libgomp.so.1'), '.'),
     ))
 
 a = Analysis(['Dioptas.py'],

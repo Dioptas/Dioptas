@@ -21,12 +21,11 @@ class DioptasModel(QtCore.QObject):
     pattern_changed = QtCore.Signal()
     cake_changed = QtCore.Signal()
 
-    def __init__(self, working_directories=None):
+    def __init__(self):
         super(DioptasModel, self).__init__()
         self.configurations = []
         self.configuration_ind = 0
         self.configurations.append(Configuration())
-        self.working_directories = working_directories
 
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
