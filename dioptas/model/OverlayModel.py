@@ -123,3 +123,7 @@ class OverlayModel(QtCore.QObject):
         for ind, overlay in enumerate(self.overlays):
             overlay.offset = 0
             self.overlay_changed.emit(ind)
+
+    def reset(self):
+        for _ in range(len(self.overlays)):
+            self.remove_overlay(0)

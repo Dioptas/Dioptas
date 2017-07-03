@@ -41,7 +41,7 @@ class UserInterFaceTest(QtTest):
 
     def tearDown(self):
         del self.integration_pattern_controller
-        self.model.clear()
+        self.model.delete_configurations()
         del self.integration_widget
         del self.integration_controller
         del self.model

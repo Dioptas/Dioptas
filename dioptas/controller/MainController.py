@@ -111,6 +111,7 @@ class MainController(object):
 
         self.widget.save_btn.clicked.connect(self.save_btn_clicked)
         self.widget.load_btn.clicked.connect(self.load_btn_clicked)
+        self.widget.reset_btn.clicked.connect(self.reset_btn_clicked)
 
     def tab_changed(self):
         """
@@ -255,3 +256,6 @@ class MainController(object):
                                     filter='Dioptas Project (*.dio)')
         if filename is not None and filename != '':
             self.model.load(filename)
+
+    def reset_btn_clicked(self):
+        self.model.reset()

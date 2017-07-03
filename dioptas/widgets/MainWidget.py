@@ -43,7 +43,7 @@ class MainWidget(QtWidgets.QWidget):
 
         self._menu_layout = QtWidgets.QVBoxLayout()
         self._menu_layout.setContentsMargins(5, 0, 3, 0)
-        self._menu_layout.setSpacing(7)
+        self._menu_layout.setSpacing(5)
 
         self._mode_layout = QtWidgets.QVBoxLayout()
         self._mode_layout.setContentsMargins(10, 0, 0, 0)
@@ -52,6 +52,7 @@ class MainWidget(QtWidgets.QWidget):
         self.show_configuration_menu_btn = CheckableFlatButton('C')
         self.save_btn = FlatButton()
         self.load_btn = FlatButton()
+        self.reset_btn = FlatButton()
 
         self.mode_btn_group = QtWidgets.QButtonGroup()
         self.calibration_mode_btn = RotatedCheckableFlatButton('Calibration', self)
@@ -68,9 +69,12 @@ class MainWidget(QtWidgets.QWidget):
 
         self._menu_layout.addWidget(self.show_configuration_menu_btn)
         self._menu_layout.addSpacerItem(
-            QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed))
+            QtWidgets.QSpacerItem(15, 15, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed))
         self._menu_layout.addWidget(self.load_btn)
         self._menu_layout.addWidget(self.save_btn)
+        self._menu_layout.addSpacerItem(
+            QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed))
+        self._menu_layout.addWidget(self.reset_btn)
 
         self._mode_layout.addWidget(self.calibration_mode_btn)
         self._mode_layout.addWidget(self.mask_mode_btn)
@@ -80,8 +84,8 @@ class MainWidget(QtWidgets.QWidget):
         self._left_layout.addSpacerItem(VerticalSpacerItem())
         self._left_layout.addLayout(self._mode_layout)
         self._left_layout.addSpacerItem(VerticalSpacerItem())
-        self._left_layout.setStretch(1, 5)
-        self._left_layout.setStretch(3, 9)
+        self._left_layout.setStretch(1, 9)
+        self._left_layout.setStretch(3, 18)
 
         self._outer_layout.addLayout(self._left_layout)
 
@@ -182,3 +186,10 @@ class MainWidget(QtWidgets.QWidget):
         self.load_btn.setMaximumHeight(button_height)
         self.load_btn.setMinimumWidth(button_width)
         self.load_btn.setMaximumWidth(button_width)
+
+        self.reset_btn.setIcon(QtGui.QIcon(os.path.join(widget_path, 'icns', 'reset.ico')))
+        self.reset_btn.setIconSize(icon_size)
+        self.reset_btn.setMinimumHeight(button_height)
+        self.reset_btn.setMaximumHeight(button_height)
+        self.reset_btn.setMinimumWidth(button_width)
+        self.reset_btn.setMaximumWidth(button_width)

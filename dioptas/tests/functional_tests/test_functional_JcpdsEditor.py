@@ -52,7 +52,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds = jcpds()
 
     def tearDown(self):
-        self.model.clear()
+        self.model.delete_configurations()
         del self.model
         del self.jcpds
         gc.collect()
