@@ -14,7 +14,7 @@ import fabio
 from ...model.CalibrationModel import CalibrationModel
 from ...model.util.HelperModule import rotate_matrix_m90, rotate_matrix_p90
 from ...controller.MainController import MainController
-from ..utility import QtTest, click_button
+from ..utility import QtTest, click_button, delete_if_exists
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -69,6 +69,8 @@ class ProjectSaveLoadTest(QtTest):
         self.check_calibration = True
 
     def tearDown(self):
+        delete_if_exists(os.path.join(data_path, 'config.dio'))
+        delete_if_exists(os.path.join(data_path, 'test_save_load.hdf5'))
         del self.model
         del self.config_widget
         del self.config_controller
@@ -297,5 +299,5 @@ class ProjectSaveLoadTest(QtTest):
                                                                           np.ones((1001,)))):
             self.load_image(test_image_file_name)
             self.controller.widget.close()
-            self.controller=MainController(use_settings=True)
+            self.controller=MainController(use_settings=True, settings_directory=data_path)
             self.assertEqual(self.model.img_model.filename, test_image_file_name)
