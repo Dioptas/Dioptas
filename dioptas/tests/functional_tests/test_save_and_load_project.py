@@ -70,6 +70,7 @@ class ProjectSaveLoadTest(QtTest):
 
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'config.dio'))
+        delete_if_exists(os.path.join(data_path, 'test_save_load.hdf5'))
         del self.model
         del self.config_widget
         del self.config_controller
