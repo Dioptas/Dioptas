@@ -125,8 +125,8 @@ class MainWidget(QtWidgets.QWidget):
 
         self.set_system_dependent_stylesheet()
         self.set_stylesheet()
-
         self.style_widgets()
+        self.add_tooltips()
 
         self.setWindowIcon(QtGui.QIcon(os.path.join(widget_path, 'icns/icon.svg')))
 
