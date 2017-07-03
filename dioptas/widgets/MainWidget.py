@@ -112,12 +112,6 @@ class MainWidget(QtWidgets.QWidget):
         self.mask_widget = MaskWidget(self)
         self.integration_widget = IntegrationWidget(self)
 
-        # self.tabWidget.addTab(self.calibration_widget, 'Calibration')
-        # self.tabWidget.addTab(self.mask_widget, 'Mask')
-        # self.tabWidget.addTab(self.integration_widget, 'Integration')
-
-        # self._inner_layout.addWidget(self.tabWidget)
-
         self._layout_main_frame.addWidget(self.calibration_widget)
         self._layout_main_frame.addWidget(self.mask_widget)
         self._layout_main_frame.addWidget(self.integration_widget)
@@ -126,9 +120,7 @@ class MainWidget(QtWidgets.QWidget):
         self.integration_widget.setVisible(False)
 
         self._inner_layout.addWidget(self.main_frame)
-
         self._outer_layout.addLayout(self._inner_layout)
-
         self.setLayout(self._outer_layout)
 
         self.set_system_dependent_stylesheet()
@@ -193,3 +185,8 @@ class MainWidget(QtWidgets.QWidget):
         self.reset_btn.setMaximumHeight(button_height)
         self.reset_btn.setMinimumWidth(button_width)
         self.reset_btn.setMaximumWidth(button_width)
+
+    def add_tooltips(self):
+        self.load_btn.setToolTip('Open Project')
+        self.save_btn.setToolTip('Save Project')
+        self.reset_btn.setToolTip('Reset Project')
