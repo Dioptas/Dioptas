@@ -82,8 +82,8 @@ class MyDict(dict):
 
 class jcpds(object):
     def __init__(self):
-        self._filename = ' '
-        self._name = ' '
+        self._filename = ''
+        self._name = ''
         self.params = MyDict()
         self.params['version'] = 0
         self.params['comments'] = []
