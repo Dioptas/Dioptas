@@ -69,8 +69,9 @@ class ProjectSaveLoadTest(QtTest):
         self.check_calibration = True
 
     def tearDown(self):
-        delete_if_exists(os.path.join(data_path, 'config.dio'))
-        delete_if_exists(os.path.join(data_path, 'test_save_load.hdf5'))
+        delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.chi'))
+        delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
+
         del self.model
         del self.config_widget
         del self.config_controller
@@ -115,6 +116,8 @@ class ProjectSaveLoadTest(QtTest):
                 intermediate_function()
 
             self.load_configuration()
+
+        delete_if_exists(os.path.join(data_path, 'test_save_load.hdf5'))
 
     def existing_files_intermediate_settings(self):
         self.check_calibration = False
