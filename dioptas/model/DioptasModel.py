@@ -159,7 +159,6 @@ class DioptasModel(QtCore.QObject):
             self.phase_model.reflections.append([])
             self.phase_model.send_added_signal()
 
-
         # load overlay model
         for ind, overlay_group in f.get('overlays').items():
             self.overlay_model.add_overlay(overlay_group.get('x')[...],
