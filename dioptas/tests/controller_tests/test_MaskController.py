@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ..utility import QtTest, click_button, unittest_data_path, click_checkbox
+from ..utility import QtTest, click_button, unittest_data_path, click_checkbox, delete_if_exists
 import os
 import gc
 import numpy as np
@@ -24,6 +24,7 @@ class MaskControllerTest(QtTest):
         self.mask_controller = MaskController(self.mask_widget, self.model)
 
     def tearDown(self):
+        delete_if_exists(os.path.join(unittest_data_path, 'dummy.mask'))
         del self.model
         self.mask_widget.close()
         del self.mask_widget
@@ -43,7 +44,6 @@ class MaskControllerTest(QtTest):
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
         click_button(self.mask_widget.save_mask_btn)
         self.assertTrue(os.path.exists(filename))
-        os.remove(filename)
 
     def test_loading_and_saving_with_super_sampling(self):
         self.model.mask_model.set_supersampling(2)
