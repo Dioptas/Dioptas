@@ -413,6 +413,7 @@ class DioptasModel(QtCore.QObject):
         self.cake_changed.emit()
 
     def reset(self):
+        working_directories = self.working_directories
         self.disconnect_models()
         self.delete_configurations()
         self.configurations = [Configuration()]
@@ -420,6 +421,7 @@ class DioptasModel(QtCore.QObject):
         self.overlay_model.reset()
         self.phase_model.reset()
         self.connect_models()
+        self.working_directories = working_directories
         self.configuration_removed.emit(0)
         self.configuration_selected.emit(0)
         self.img_model.img_changed.emit()

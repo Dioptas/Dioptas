@@ -451,10 +451,14 @@ class Configuration(QtCore.QObject):
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
         filename = f.get('image_model').attrs['filename']
         self.img_model.filename = filename
-        self.img_model.file_name_iterator.update_filename(filename)
+
+        try:
+            self.img_model.file_name_iterator.update_filename(filename)
+            self.img_model._directory_watcher.path = os.path.dirname(filename)
+        except FileNotFoundError:
+            pass
 
         self.img_model.autoprocess = f.get('image_model').attrs['auto_process']
-        self.img_model._directory_watcher.path = os.path.dirname(filename)
         self.img_model.autoprocess_changed.emit()
         self.img_model.factor = f.get('image_model').attrs['factor']
 
