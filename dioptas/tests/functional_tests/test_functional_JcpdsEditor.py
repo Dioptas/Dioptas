@@ -368,7 +368,7 @@ class JcpdsEditorFunctionalTest(QtTest):
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
         # Erwin opens up the program, loads image and calibration and some phases
 
-        self.main_controller = MainController()
+        self.main_controller = MainController(use_settings=False)
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
 
         self.main_controller.model.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
@@ -483,7 +483,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # Erwin loads Dioptas with a previous calibration and image file then he adds several phases and looks into the
         # jcpds editor for the first phase. He sees that everything seems to be correct
 
-        self.main_controller = MainController()
+        self.main_controller = MainController(use_settings=False)
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
 
         self.main_controller.model.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))

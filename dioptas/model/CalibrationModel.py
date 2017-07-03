@@ -381,11 +381,10 @@ class CalibrationModel(object):
             fit2d_parameter['polarization_factor'] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
-        try:
-            pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+
+        pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+        if fit2d_parameter:
             fit2d_parameter['wavelength'] = self.pattern_geometry.wavelength
-        except RuntimeWarning:
-            pyFAI_parameter['wavelength'] = 0
 
         return pyFAI_parameter, fit2d_parameter
 
