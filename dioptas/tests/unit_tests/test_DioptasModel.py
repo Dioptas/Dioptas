@@ -198,3 +198,13 @@ class DioptasModelTest(QtTest):
 
     def test_save_empty_configuration(self):
         self.model.save(os.path.join(data_path, 'empty.dio'))
+
+    def test_clear_model(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+
+        self.model.add_configuration()
+        self.model.add_configuration()
+
+        self.model.reset()
+

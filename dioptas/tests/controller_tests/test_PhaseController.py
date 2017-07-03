@@ -37,7 +37,7 @@ class PhaseControllerTest(QtTest):
         del self.pattern_controller
         del self.controller
         del self.widget
-        self.model.clear()
+        self.model.delete_configurations()
         del self.model
         gc.collect()
 

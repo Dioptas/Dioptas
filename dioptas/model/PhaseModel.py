@@ -34,6 +34,7 @@ class PhaseLoadError(Exception):
 
 class PhaseModel(QtCore.QObject):
     phase_added = QtCore.Signal()
+    phase_removed = QtCore.Signal(int)
 
     def __init__(self):
         super(PhaseModel, self).__init__()
@@ -68,6 +69,7 @@ class PhaseModel(QtCore.QObject):
         del self.phases[ind]
         del self.reflections[ind]
         del self.phase_files[ind]
+        self.phase_removed.emit(ind)
 
     def set_pressure(self, ind, pressure):
         self.phases[ind].compute_d(pressure=pressure)
@@ -148,3 +150,7 @@ class PhaseModel(QtCore.QObject):
 
         intensities, baseline = self.get_phase_line_intensities(ind, positions, pattern, x_range, y_range)
         return positions, intensities, baseline
+
+    def reset(self):
+        for ind in range(len(self.phases)):
+            self.del_phase(0)

@@ -96,6 +96,7 @@ class PhaseController(object):
 
         # Signals from phase model
         self.model.phase_model.phase_added.connect(self.phase_added)
+        self.model.phase_model.phase_removed.connect(self.phase_removed)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
@@ -212,19 +213,23 @@ class PhaseController(object):
         """
         cur_ind = self.widget.get_selected_phase_row()
         if cur_ind >= 0:
-            self.widget.del_phase(cur_ind)
             self.model.phase_model.del_phase(cur_ind)
-            self.widget.pattern_widget.del_phase(cur_ind)
-            self.update_temperature_control_visibility()
-            if self.jcpds_editor_controller.active:
-                cur_ind = self.widget.get_selected_phase_row()
-                if cur_ind >= 0:
-                    self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
-                else:
-                    self.jcpds_editor_controller.widget.close()
+
+    def phase_removed(self,ind):
+        print(ind)
+        self.widget.del_phase(ind)
+        self.widget.pattern_widget.del_phase(ind)
+        self.update_temperature_control_visibility()
+        if self.jcpds_editor_controller.active:
+            ind = self.widget.get_selected_phase_row()
+            if ind >= 0:
+                self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[ind])
+            else:
+                self.jcpds_editor_controller.widget.close()
 
     def load_btn_clicked_callback(self):
-        filename = open_file_dialog(self.widget, caption="Load Phase List", directory=self.model.working_directories['phase'],
+        filename = open_file_dialog(self.widget, caption="Load Phase List",
+                                    directory=self.model.working_directories['phase'],
                                     filter="*.txt")
         if filename == '':
             return
@@ -253,7 +258,8 @@ class PhaseController(object):
         if len(self.model.phase_model.phase_files) < 1:
             return
         filename = save_file_dialog(self.widget, "Save Phase List.",
-                                    os.path.join(self.model.working_directories['phase'], 'phase_list.txt'), 'Text (*.txt)')
+                                    os.path.join(self.model.working_directories['phase'], 'phase_list.txt'),
+                                    'Text (*.txt)')
 
         if filename == '':
             return

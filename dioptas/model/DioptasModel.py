@@ -396,7 +396,20 @@ class DioptasModel(QtCore.QObject):
                 configuration.cake_changed.disconnect(self.calculate_combined_cake)
         self.cake_changed.emit()
 
-    def clear(self):
+    def reset(self):
+        self.disconnect_models()
+        self.delete_configurations()
+        self.configurations = [Configuration()]
+        self.configuration_ind = 0
+        self.overlay_model.reset()
+        self.phase_model.reset()
+        self.connect_models()
+        self.configuration_removed.emit(0)
+        self.configuration_selected.emit(0)
+        self.img_model.img_changed.emit()
+        self.pattern_model.pattern_changed.emit()
+
+    def delete_configurations(self):
         for configuration in self.configurations:
             del configuration.calibration_model.cake_geometry
             del configuration.calibration_model.pattern_geometry

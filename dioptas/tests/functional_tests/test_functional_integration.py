@@ -42,7 +42,7 @@ class IntegrationMockFunctionalTest(QtTest):
     def tearDown(self):
         del self.integration_pattern_controller
         del self.integration_controller
-        self.model.clear()
+        self.model.delete_configurations()
         del self.model
         gc.collect()
 
