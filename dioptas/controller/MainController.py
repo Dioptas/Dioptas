@@ -17,7 +17,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import json
 from sys import platform as _platform
+
 from qtpy import QtWidgets, QtCore
 
 from ..widgets.MainWidget import MainWidget
@@ -217,6 +219,8 @@ class MainController(object):
                                                                            QtWidgets.QMessageBox.Yes,
                                                                            QtWidgets.QMessageBox.No):
                 self.model.load(os.path.join(self.settings_directory, 'config.dio'))
+            else:
+                self.load_directories()
 
     def setup_backup_timer(self):
         self.backup_timer = QtCore.QTimer(self.widget)
@@ -224,12 +228,30 @@ class MainController(object):
         self.backup_timer.setInterval(600000)  # every 10 minutes
         self.backup_timer.start()
 
+    def save_directories(self):
+        """
+        Currently used working directories for images, spectra, etc. are saved as csv file in the users directory for
+        reuse when Dioptas is started again without loading a configuration
+        """
+        working_directories_path = os.path.join(self.settings_directory, 'working_directories.json')
+        json.dump(self.model.working_directories, open(working_directories_path, 'w'))
+
+    def load_directories(self):
+        """
+        Loads previously used Dioptas directory paths.
+        """
+        working_directories_path = os.path.join(self.settings_directory, 'working_directories.json')
+        if os.path.exists(working_directories_path):
+            self.model.working_directories = json.load(open(working_directories_path, 'r'))
+
+
     def close_event(self, ev):
         """
         Intervention of the Dioptas close event to save settings before closing the Program.
         """
         if self.use_settings:
             self.save_default_settings()
+            self.save_directories()
         QtWidgets.QApplication.closeAllWindows()
         ev.accept()
 
