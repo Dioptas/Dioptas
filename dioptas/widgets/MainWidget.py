@@ -39,7 +39,7 @@ class MainWidget(QtWidgets.QWidget):
 
         self._left_layout = QtWidgets.QVBoxLayout()
         self._left_layout.setContentsMargins(0, 0, 0, 0)
-        self._left_layout.setSpacing(0)
+        self._left_layout.setSpacing(7)
 
         self._menu_layout = QtWidgets.QVBoxLayout()
         self._menu_layout.setContentsMargins(5, 0, 3, 0)
