@@ -108,6 +108,7 @@ class ImgModel(QtCore.QObject):
             self._img_data = np.array(im)[::-1]
             self.file_info = self._get_file_info(im)
             self.motors_info = self._get_motors_info(im)
+            im.close()
         except IOError:
             if os.path.splitext(filename)[1].lower() == '.spe':
                 spe = SpeFile(filename)
