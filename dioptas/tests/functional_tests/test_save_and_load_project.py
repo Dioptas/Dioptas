@@ -133,7 +133,7 @@ class ProjectSaveLoadTest(QtTest):
 
             self.load_configuration()
 
-        delete_if_exists(os.path.join(data_path, 'test_save_load.hdf5'))
+        delete_if_exists(config_file_path)
 
     def existing_files_intermediate_settings(self):
         self.check_calibration = False
@@ -320,3 +320,13 @@ class ProjectSaveLoadTest(QtTest):
             self.controller.widget.close()
             self.controller=MainController(use_settings=True, settings_directory=data_path)
             self.assertEqual(self.model.img_model.filename, test_image_file_name)
+
+    ####################################################################################################################
+    def test_file_browsing(self):
+        self.save_and_load_configuration(self.prepare_file_browsing)
+        click_button(self.widget.integration_widget.next_img_btn)
+        self.assertEqual(str(self.widget.integration_widget.img_filename_txt.text()),
+                         'image_002.tif')
+
+    def prepare_file_browsing(self):
+        self.load_image(os.path.join(data_path, 'image_001.tif'))
