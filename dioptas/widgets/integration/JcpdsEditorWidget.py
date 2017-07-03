@@ -28,6 +28,8 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(JcpdsEditorWidget, self).__init__(parent)
 
+        self.setWindowTitle('Dioptas - JCPDS Editor')
+
         self._layout = QtWidgets.QVBoxLayout()
 
         self._file_layout = QtWidgets.QGridLayout()
