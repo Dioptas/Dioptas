@@ -140,6 +140,26 @@ class DioptasModel(QtCore.QObject):
             self.configurations.append(configuration)
         self.configuration_ind = f.get('configurations').attrs['selected_configuration']
 
+        self.connect_models()
+        self.configuration_added.emit()
+        self.select_configuration(self.configuration_ind)
+
+        # load phase model
+        for ind, phase_group in f.get('phases').items():
+            new_jcpds = jcpds()
+            new_jcpds.filename = phase_group.attrs.get('filename')
+            for p_key, p_value in phase_group.get('params').attrs.items():
+                new_jcpds.params[p_key] = p_value
+            for c_key, comment in phase_group.get('comments').attrs.items():
+                new_jcpds.params['comments'].append(comment)
+            for r_key, reflection in phase_group.get('reflections').items():
+                new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
+                                         reflection.attrs['intensity'], reflection.attrs['d'])
+            self.phase_model.phases.append(new_jcpds)
+            self.phase_model.reflections.append([])
+            self.phase_model.send_added_signal()
+
+
         # load overlay model
         for ind, overlay_group in f.get('overlays').items():
             self.overlay_model.add_overlay(overlay_group.get('x')[...],
@@ -149,27 +169,7 @@ class DioptasModel(QtCore.QObject):
             self.overlay_model.set_overlay_offset(ind, overlay_group.attrs['offset'])
             self.overlay_model.set_overlay_scaling(ind, overlay_group.attrs['scaling'])
 
-        # load phase model
-        for ind, phase_group in f.get('phases').items():
-            p_filename = phase_group.attrs.get('filename', None)
-            if p_filename is not None:
-                new_jcpds = jcpds()
-                for p_key, p_value in phase_group.get('params').attrs.items():
-                    new_jcpds.params[p_key] = p_value
-                for c_key, comment in phase_group.get('comments').attrs.items():
-                    new_jcpds.params['comments'].append(comment)
-                for r_key, reflection in phase_group.get('reflections').items():
-                    new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
-                                             reflection.attrs['intensity'], reflection.attrs['d'])
-                self.phase_model.phases.append(new_jcpds)
-                self.phase_model.reflections.append([])
-                self.phase_model.send_added_signal()
-
         f.close()
-
-        self.connect_models()
-        self.configuration_added.emit()
-        self.select_configuration(self.configuration_ind)
 
     def select_configuration(self, ind):
         if 0 <= ind < len(self.configurations):
