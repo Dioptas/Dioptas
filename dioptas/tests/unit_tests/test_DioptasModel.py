@@ -4,7 +4,7 @@ import os
 import numpy as np
 from mock import MagicMock
 
-from ..utility import QtTest
+from ..utility import QtTest, delete_if_exists
 from ...model.DioptasModel import DioptasModel
 from ...model.util import Pattern
 
@@ -15,6 +15,9 @@ data_path = os.path.join(unittest_path, '../data')
 class DioptasModelTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
+
+    def tearDown(self):
+        delete_if_exists(os.path.join(data_path, 'empty.dio'))
 
     def test_add_configuration(self):
         self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
@@ -168,10 +171,10 @@ class DioptasModelTest(QtTest):
         # check that background subtraction works
         x, y = self.model.pattern_model.pattern.data
         x_max_2th = np.max(x)
-        roi = (0, np.max(x)+1)
+        roi = (0, np.max(x) + 1)
         self.model.pattern_model.set_auto_background_subtraction((0.1, 50, 50), roi)
         new_y = self.model.pattern_model.pattern.y
-        self.assertNotEqual(np.sum(y-new_y), 0)
+        self.assertNotEqual(np.sum(y - new_y), 0)
 
         x_bkg, y_bkg = self.model.pattern_model.pattern.auto_background_pattern.data
 
@@ -192,3 +195,6 @@ class DioptasModelTest(QtTest):
         # check that the background pattern has changed:
         x_bkg_2, y_bkg_2 = self.model.pattern_model.pattern.auto_background_pattern.data
         self.assertNotEqual(np.max(x_bkg), np.max(x_bkg_2))
+
+    def test_save_empty_configuration(self):
+        self.model.save(os.path.join(data_path, 'empty.dio'))

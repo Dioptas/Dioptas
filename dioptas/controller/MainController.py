@@ -40,18 +40,18 @@ class MainController(object):
     Creates a the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
     """
 
-    def __init__(self, use_settings=True):
-        self.use_settings = use_settings
+    def __init__(self, use_settings=True, settings_directory='default'):
 
+        self.use_settings = use_settings
         self.widget = MainWidget()
 
         # create data
+        if settings_directory == 'default':
+            self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        else:
+            self.settings_directory = settings_directory
 
-        self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
         self.model = DioptasModel()
-
-        if use_settings:
-            self.load_default_settings()
 
         self.calibration_controller = CalibrationController(self.widget.calibration_widget,
                                                             self.model)
@@ -73,6 +73,10 @@ class MainController(object):
 
         self.create_signals()
         self.update_title()
+
+        if use_settings:
+            self.load_default_settings()
+            self.setup_backup_timer()
 
         self.current_tab_index = 0
 
@@ -208,7 +212,19 @@ class MainController(object):
     def load_default_settings(self):
         config_path = os.path.join(self.settings_directory, 'config.dio')
         if os.path.isfile(config_path):
-            self.model.load(os.path.join(self.settings_directory, 'config.dio'))
+            self.show_window()
+            if QtWidgets.QMessageBox.Yes == QtWidgets.QMessageBox.question(self.widget,
+                                                                           'Recovering previous state.',
+                                                                           'Should Dioptas recover your previous Work?',
+                                                                           QtWidgets.QMessageBox.Yes,
+                                                                           QtWidgets.QMessageBox.No):
+                self.model.load(os.path.join(self.settings_directory, 'config.dio'))
+
+    def setup_backup_timer(self):
+        self.backup_timer = QtCore.QTimer(self.widget)
+        self.backup_timer.timeout.connect(self.save_default_settings)
+        self.backup_timer.setInterval(600000)  # every 10 minutes
+        self.backup_timer.start()
 
     def close_event(self, ev):
         """
@@ -219,7 +235,6 @@ class MainController(object):
         QtWidgets.QApplication.closeAllWindows()
         ev.accept()
 
-
     def save_btn_clicked(self):
         try:
             default_file_name = self.model.working_directories['image'] + 'config.hdf5'
@@ -228,7 +243,7 @@ class MainController(object):
         filename = save_file_dialog(self.widget, "Save Current Configuration", default_file_name,
                                     filter='Config (*.hdf5)')
 
-        if filename is not None and filename !='':
+        if filename is not None and filename != '':
             self.model.save(filename)
 
     def load_btn_clicked(self):
@@ -237,5 +252,5 @@ class MainController(object):
         except TypeError:
             default_file_name = '.'
         filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name, filter='Config (*.hdf5)')
-        if filename is not None and filename !='':
+        if filename is not None and filename != '':
             self.model.load(filename)
