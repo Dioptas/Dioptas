@@ -258,4 +258,10 @@ class MainController(object):
             self.model.load(filename)
 
     def reset_btn_clicked(self):
-        self.model.reset()
+        if QtWidgets.QMessageBox.Yes == \
+                QtWidgets.QMessageBox.question(self.widget,
+                                               'Resetting Dioptas.',
+                                               'Do you really want to reset Dioptas? All unsaved work will be lost!',
+                                               QtWidgets.QMessageBox.Yes,
+                                               QtWidgets.QMessageBox.No):
+            self.model.reset()
