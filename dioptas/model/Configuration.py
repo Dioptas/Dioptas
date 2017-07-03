@@ -26,8 +26,8 @@ class Configuration(QtCore.QObject):
         self.pattern_model = PatternModel()
 
         if working_directories is None:
-            self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
-                                        'phase': ''}
+            self.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"), 'pattern': '',
+                                        'overlay': '', 'phase': ''}
         else:
             self.working_directories = working_directories
 

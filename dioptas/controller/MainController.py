@@ -17,11 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import csv
 from sys import platform as _platform
 from qtpy import QtWidgets, QtCore
-
-import xml.etree.cElementTree as ET
 
 from ..widgets.MainWidget import MainWidget
 from ..model.DioptasModel import DioptasModel
