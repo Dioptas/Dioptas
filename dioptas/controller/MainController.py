@@ -237,20 +237,21 @@ class MainController(object):
 
     def save_btn_clicked(self):
         try:
-            default_file_name = self.model.working_directories['image'] + 'config.hdf5'
+            default_file_name = os.path.join(self.model.working_directories['image'], 'config.dio')
         except TypeError:
             default_file_name = '.'
         filename = save_file_dialog(self.widget, "Save Current Configuration", default_file_name,
-                                    filter='Config (*.hdf5)')
+                                    filter='Dioptas Project (*.dio)')
 
         if filename is not None and filename != '':
             self.model.save(filename)
 
     def load_btn_clicked(self):
         try:
-            default_file_name = self.model.working_directories['image'] + 'config.hdf5'
+            default_file_name = os.path.join(self.model.working_directories['image'], 'config.dio')
         except TypeError:
             default_file_name = '.'
-        filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name, filter='Config (*.hdf5)')
+        filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name,
+                                    filter='Dioptas Project (*.dio)')
         if filename is not None and filename != '':
             self.model.load(filename)
