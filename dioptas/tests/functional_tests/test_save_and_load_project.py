@@ -87,12 +87,18 @@ class ProjectSaveLoadTest(QtTest):
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.chi'))
         delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
-
-        del self.model
+        self.model.calibration_model.cake_geometry.reset()
+        self.model.calibration_model.pattern_geometry.reset()
+        self.model.disconnect_models()
+        self.model.disconnect()
+        self.model.deleteLater()
+        self.config_widget.deleteLater()
         del self.config_widget
         del self.config_controller
-        del self.controller
+        self.widget.deleteLater()
         del self.widget
+        del self.controller
+        del self.model
         gc.collect()
 
     def load_image(self, file_name):
@@ -154,9 +160,6 @@ class ProjectSaveLoadTest(QtTest):
             self.assertDictEqual(saved_pyfai_params, pyfai_params)
 
     ####################################################################################################################
-    def test_save_and_load_configuration_basic(self):
-        self.save_and_load_configuration(None)
-
     def test_with_auto_processing(self):
         self.save_and_load_configuration(self.auto_process_settings)
         self.assertEqual(self.model.current_configuration.auto_save_integrated_pattern, auto_save_integrated_patterns)
@@ -324,9 +327,11 @@ class ProjectSaveLoadTest(QtTest):
     ####################################################################################################################
     def test_file_browsing(self):
         self.save_and_load_configuration(self.prepare_file_browsing)
-        click_button(self.widget.integration_widget.next_img_btn)
-        self.assertEqual(str(self.widget.integration_widget.img_filename_txt.text()),
-                         'image_002.tif')
+        with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
+                                                                          np.ones((1001,)))):
+            click_button(self.widget.integration_widget.next_img_btn)
+            self.assertEqual(str(self.widget.integration_widget.img_filename_txt.text()),
+                             'image_002.tif')
 
     def prepare_file_browsing(self):
         self.load_image(os.path.join(data_path, 'image_001.tif'))
