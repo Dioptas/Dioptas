@@ -22,6 +22,7 @@ import time
 import logging
 
 import numpy as np
+from qtpy import QtCore
 
 from pyFAI.massif import Massif
 from pyFAI.blob_detection import BlobDetection
@@ -37,8 +38,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class CalibrationModel(object):
+class CalibrationModel(QtCore.QObject):
     def __init__(self, img_model=None):
+        super(CalibrationModel, self).__init__()
         """
         :param img_model:
         :type img_model: ImgModel
