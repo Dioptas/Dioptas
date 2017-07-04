@@ -31,6 +31,10 @@ from .. import __version__
 
 
 class DioptasModel(QtCore.QObject):
+    """
+    Handles all the data used in Dioptas. Image, Calibration and Mask are handled by so called configurations.
+    Patterns and overlays are global and always the same, no matter which configuration is selected.
+    """
     configuration_added = QtCore.Signal()
     configuration_selected = QtCore.Signal(int)  # new index
     configuration_removed = QtCore.Signal(int)  # removed index
@@ -55,6 +59,10 @@ class DioptasModel(QtCore.QObject):
         self.connect_models()
 
     def add_configuration(self):
+        """
+        Adds a new configuration to the list of configurations. The new configuration will have the same working
+        directories as the currently selected.
+        """
         self.configurations.append(Configuration(self.working_directories))
 
         if self.current_configuration.calibration_model.is_calibrated:
@@ -72,6 +80,9 @@ class DioptasModel(QtCore.QObject):
         self.configuration_added.emit()
 
     def remove_configuration(self):
+        """
+        Removes the currently selected configuration.
+        """
         ind = self.configuration_ind
         self.disconnect_models()
         del self.configurations[ind]
@@ -81,6 +92,10 @@ class DioptasModel(QtCore.QObject):
         self.configuration_removed.emit(self.configuration_ind)
 
     def save(self, filename):
+        """
+        Saves the current state of the model in a h5py file. file-ending can be chosen as wanted. Usually Dioptas
+        projects are saved as *.dio files.
+        """
         f = h5py.File(filename, 'w')
 
         f.attrs['__version__'] = __version__
@@ -131,6 +146,9 @@ class DioptasModel(QtCore.QObject):
         f.close()
 
     def load(self, filename):
+        """
+        Loads a previously saved model (see save function) from an h5py file.
+        """
         self.disconnect_models()
 
         f = h5py.File(filename, 'r')
@@ -174,6 +192,10 @@ class DioptasModel(QtCore.QObject):
         f.close()
 
     def select_configuration(self, ind):
+        """
+        Selects a configuration specified by the ind(ex) as current model. This will reemit all needed signals, so that
+        the GUI can update accordingly
+        """
         if 0 <= ind < len(self.configurations):
             self.disconnect_models()
             self.configuration_ind = ind
@@ -190,11 +212,17 @@ class DioptasModel(QtCore.QObject):
             self.cake_changed.emit()
 
     def disconnect_models(self):
+        """
+        Disconnects signals of the currently selected configuration.
+        """
         self.img_model.img_changed.disconnect(self.img_changed)
         self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
         self.current_configuration.cake_changed.disconnect(self.cake_changed)
 
     def connect_models(self):
+        """
+        Connects signals of the currently selected configuration
+        """
         self.img_model.img_changed.connect(self.img_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
         self.current_configuration.cake_changed.connect(self.cake_changed)
@@ -292,6 +320,9 @@ class DioptasModel(QtCore.QObject):
             return self._cake_data
 
     def calculate_combined_cake(self):
+        """
+        Combines cakes from all configurations into one large cake.
+        """
         self._activate_cake()
         tth = self._get_combined_cake_tth()
         azi = self._get_combined_cake_azi()
@@ -306,12 +337,19 @@ class DioptasModel(QtCore.QObject):
         self._cake_data = combined_intensity
 
     def _activate_cake(self):
+        """
+        Activates cake integration in all configurations.
+        """
         for configuration in self.configurations:
             if not configuration.auto_integrate_cake:
                 configuration.auto_integrate_cake = True
                 configuration.integrate_image_2d()
 
     def _get_cake_tth_range(self):
+        """
+        Gives the range of two theta values of all cakes in the different configurations.
+        :return: (minimum two theta, maximum two theta)
+        """
         self._activate_cake()
         min_tth = []
         max_tth = []
@@ -321,6 +359,10 @@ class DioptasModel(QtCore.QObject):
         return np.min(min_tth), np.max(max_tth)
 
     def _get_cake_azi_range(self):
+        """
+        Gives the range of azimuth values of all cakes in the different configurations.
+        :return: (minimum azimuth, maximum azimuth)
+        """
         self._activate_cake()
         min_azi = []
         max_azi = []
@@ -330,10 +372,18 @@ class DioptasModel(QtCore.QObject):
         return np.min(min_azi), np.max(max_azi)
 
     def _get_combined_cake_tth(self):
+        """
+        Gives an 1d array of two theta values which covers the two theta range of the cakes in all configurations.
+        :return: two theta array
+        """
         min_tth, max_tth = self._get_cake_tth_range()
         return np.linspace(min_tth, max_tth, 2048)
 
     def _get_combined_cake_azi(self):
+        """
+        Gives an 1d array of azimuth values which covers the azimuth range of the cakes in all configurations.
+        :return: two theta array
+        """
         min_azi, max_azi = self._get_cake_azi_range()
         return np.linspace(min_azi, max_azi, 2048)
 
@@ -416,6 +466,10 @@ class DioptasModel(QtCore.QObject):
         self.cake_changed.emit()
 
     def reset(self):
+        """
+        Resets the state of the model. It only remembers the current working directories of the currently selected
+        configuration. Everything else including all configurations is deleted.
+        """
         working_directories = self.working_directories
         self.disconnect_models()
         self.delete_configurations()
@@ -431,6 +485,9 @@ class DioptasModel(QtCore.QObject):
         self.pattern_model.pattern_changed.emit()
 
     def delete_configurations(self):
+        """
+        Deletes all configurations currently present in the model.
+        """
         for configuration in self.configurations:
             configuration.calibration_model.pattern_geometry.reset()
             if configuration.calibration_model.cake_geometry is not None:
@@ -442,35 +499,65 @@ class DioptasModel(QtCore.QObject):
         del self.configurations
 
     def _setup_multiple_file_loading(self):
+        """
+        Performs tasks before multiple configuration load the next image. This is in particular to prevent multiple
+        integrations, if only one is needed.
+        """
         if self.combine_cakes:
             for configuration in self.configurations:
                 configuration.cake_changed.disconnect(self.calculate_combined_cake)
 
     def _teardown_multiple_file_loading(self):
+        """
+        Performs everything after all configurations have loaded a new image.
+        :return:
+        """
         if self.combine_cakes:
             for configuration in self.configurations:
                 configuration.cake_changed.connect(self.calculate_combined_cake)
             self.calculate_combined_cake()
 
     def next_image(self, pos=None):
+        """
+        Loads the next image for each configuration if it exists.
+        :param pos: the position of the number in terms of numbers present in the filename string (not string position).
+        """
         self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_next_file(pos=pos)
         self._teardown_multiple_file_loading()
 
     def previous_image(self, pos=None):
+        """
+        Loads the previous image for each configuration if it exists.
+        :param pos: the position of the number in terms of numbers present in the filename string (not string position).
+        """
         self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_previous_file(pos=pos)
         self._teardown_multiple_file_loading()
 
     def next_folder(self, mec_mode=False):
+        """
+        Loads an image in the next folder with the same filename. This assumes that the folders are sorted with run
+        numbers, e.g. run101, run102, etc.
+        :param mec_mode: flag for a special mode for the MEC beamline at LCLS-SLAC where it takes into account that also the
+                         filenames have the run number included.
+        :type mec_mode: bool
+        """
         self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_next_folder(mec_mode=mec_mode)
         self._teardown_multiple_file_loading()
 
     def previous_folder(self, mec_mode=False):
+        """
+        Loads an image in the previous folder with the same filename. This assumes that the folders are sorted with run
+        numbers, e.g. run101, run102, etc.
+        :param mec_mode: flag for a special mode for the MEC beamline at LCLS-SLAC where it takes into account that also the
+                         filenames have the run number included.
+        :type mec_mode: bool
+        """
         self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_previous_folder(mec_mode=mec_mode)
