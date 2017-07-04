@@ -455,7 +455,7 @@ class Configuration(QtCore.QObject):
         try:
             self.img_model.file_name_iterator.update_filename(filename)
             self.img_model._directory_watcher.path = os.path.dirname(filename)
-        except FileNotFoundError:
+        except EnvironmentError:
             pass
 
         self.img_model.autoprocess = f.get('image_model').attrs['auto_process']
