@@ -429,8 +429,9 @@ class DioptasModel(QtCore.QObject):
 
     def delete_configurations(self):
         for configuration in self.configurations:
-            configuration.calibration_model.cake_geometry.reset()
             configuration.calibration_model.pattern_geometry.reset()
+            if configuration.calibration_model.cake_geometry is not None:
+                configuration.calibration_model.cake_geometry.reset()
             del configuration.calibration_model.cake_geometry
             del configuration.calibration_model.pattern_geometry
             del configuration.img_model
