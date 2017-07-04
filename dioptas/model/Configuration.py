@@ -32,6 +32,11 @@ from . import ImgModel, CalibrationModel, MaskModel, PatternModel
 
 
 class Configuration(QtCore.QObject):
+    """
+    The configuration class contains a working combination of an ImgModel, PatternModel, MaskModel and CalibrationModel.
+    It does handles the core data manipulation of Dioptas.
+    The management of multiple Configurations is done by the DioptasModel.
+    """
     cake_changed = QtCore.Signal()
 
     def __init__(self, working_directories=None):
@@ -62,13 +67,20 @@ class Configuration(QtCore.QObject):
         self.auto_save_integrated_pattern = False
         self.integrated_patterns_file_formats = ['.xy']
 
-        self.connect_signals()
+        self._connect_signals()
 
-    def connect_signals(self):
+    def _connect_signals(self):
+        """
+        Connects the img_changed signal to responding functions.
+        """
         self.img_model.img_changed.connect(self.update_mask_dimension)
         self.img_model.img_changed.connect(self.integrate_image_1d)
 
     def integrate_image_1d(self):
+        """
+        Integrates the image in the ImageModel to a Pattern. Will also automatically save the integrated pattern, if
+        auto_save_integrated is True.
+        """
         if self.calibration_model.is_calibrated:
             if self.use_mask:
                 if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
@@ -88,6 +100,9 @@ class Configuration(QtCore.QObject):
                 self._auto_save_patterns()
 
     def integrate_image_2d(self):
+        """
+        Integrates the image in the ImageModel to a Cake.
+        """
         if self.use_mask:
             if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
                 self.mask_model.set_supersampling(self.img_model.supersampling_factor)
@@ -102,6 +117,11 @@ class Configuration(QtCore.QObject):
         self.cake_changed.emit()
 
     def save_pattern(self, filename=None, subtract_background=False):
+        """
+        Saves the current integrated pattern. The format depends on the file ending. Possible file formats:
+            [*.xy, *.chi, *.dat, *.fxye]
+        :param subtract_background: flat whether the pattern should be saved with or without subtracted background
+        """
         if filename is None:
             filename = self.img_model.filename
 
@@ -115,12 +135,20 @@ class Configuration(QtCore.QObject):
             self.pattern_model.save_pattern(filename, subtract_background=subtract_background)
 
     def _create_xy_header(self):
+        """
+        Creates the header for the xy file format (contains information about calibration parameters).
+        :return: header string
+        """
         header = self.calibration_model.create_file_header()
         header = header.replace('\r\n', '\n')
         header = header + '\n#\n# ' + self._integration_unit + '\t I'
         return header
 
     def _create_fxye_header(self, filename):
+        """
+        Creates the header for the fxye file format (used by GSAS and GSAS-II) containing the calibration information
+        :return: header string
+        """
         header = 'Generated file ' + filename + ' using DIOPTAS\n'
         header = header + self.calibration_model.create_file_header()
         unit = self._integration_unit
@@ -135,6 +163,11 @@ class Configuration(QtCore.QObject):
         return header
 
     def _auto_save_patterns(self):
+        """
+        Saves the current pattern in the pattern working directory (specified in self.working_directories['pattern'].
+        When background subtraction is enabled in the pattern model the pattern will be saved with background
+        subtraction and without in another sub-folder. ('bkg_subtracted')
+        """
         for file_ending in self.integrated_patterns_file_formats:
             filename = os.path.join(
                 self.working_directories['pattern'],
@@ -152,6 +185,9 @@ class Configuration(QtCore.QObject):
                 self.save_pattern(filename, subtract_background=True)
 
     def update_mask_dimension(self):
+        """
+        Updates the shape of the mask in the MaskModel to the shape of the image in the ImageModel.
+        """
         self.mask_model.set_dimension(self.img_model._img_data.shape)
 
     @property
@@ -186,6 +222,12 @@ class Configuration(QtCore.QObject):
             self.pattern_model.pattern_changed.emit()
 
     def update_auto_background_parameters_unit(self, old_unit, new_unit):
+        """
+        This handles the changes for the auto background subtraction parameters in the PatternModel when the integration
+        unit is changed.
+        :param old_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
+        :param new_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
+        """
         self.pattern_model.pattern.auto_background_subtraction_parameters = \
             convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
                           self.calibration_model.wavelength,
@@ -249,6 +291,11 @@ class Configuration(QtCore.QObject):
         self.integrate_image_1d()
 
     def copy(self):
+        """
+        Creates a copy of the current working directory
+        :return: copied configuration
+        :rtype: Configuration
+        """
         new_configuration = Configuration(self.working_directories)
         new_configuration.img_model._img_data = self.img_model._img_data
         new_configuration.img_model.img_transformations = deepcopy(self.img_model.img_transformations)
@@ -411,7 +458,7 @@ class Configuration(QtCore.QObject):
 
     def load_from_hdf5(self, hdf5_group):
         """
-        loads a configuration from the specified hdf5_group.
+        Loads a configuration from the specified hdf5_group.
         :type hdf5_group: h5py.Group
         """
 
