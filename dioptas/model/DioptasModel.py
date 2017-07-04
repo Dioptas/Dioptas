@@ -27,6 +27,7 @@ from .util import jcpds
 from .util import Pattern
 from .Configuration import Configuration
 from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
+from .. import __version__
 
 
 class DioptasModel(QtCore.QObject):
@@ -80,9 +81,11 @@ class DioptasModel(QtCore.QObject):
         self.configuration_removed.emit(self.configuration_ind)
 
     def save(self, filename):
-        # save configuration
         f = h5py.File(filename, 'w')
 
+        f.attrs['__version__'] = __version__
+
+        # save configuration
         configurations_group = f.create_group('configurations')
         configurations_group.attrs['selected_configuration'] = self.configuration_ind
         for ind, configuration in enumerate(self.configurations):
