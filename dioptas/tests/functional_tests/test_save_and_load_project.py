@@ -92,11 +92,28 @@ class ProjectSaveLoadTest(QtTest):
         self.model.disconnect_models()
         self.model.disconnect()
         self.model.deleteLater()
+
         self.config_widget.deleteLater()
-        del self.config_widget
-        del self.config_controller
+        self.widget.integration_widget.deleteLater()
+        self.widget.integration_widget.integration_control_widget.deleteLater()
+        self.widget.integration_widget.integration_image_widget.deleteLater()
+        self.widget.integration_widget.integration_pattern_widget.deleteLater()
+        self.widget.integration_widget.integration_status_widget.deleteLater()
+        self.widget.mask_widget.deleteLater()
+        self.widget.calibration_widget.deleteLater()
         self.widget.deleteLater()
+
+        del self.config_widget
+        del self.widget.integration_widget.integration_control_widget
+        del self.widget.integration_widget.integration_image_widget
+        del self.widget.integration_widget.integration_pattern_widget
+        del self.widget.integration_widget.integration_status_widget
+        del self.widget.integration_widget
+        del self.widget.mask_widget
+        del self.widget.calibration_widget
         del self.widget
+
+        del self.config_controller
         del self.controller
         del self.model
         gc.collect()
@@ -119,8 +136,9 @@ class ProjectSaveLoadTest(QtTest):
                 if prepare_function is not None:
                     prepare_function()
                 self.save_configuration()
-                self.tearDown()
-                self.setUp()
+                self.model.reset()
+                self.model.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"),
+                                                  'pattern': '', 'overlay': '', 'phase': ''}
 
                 if intermediate_function:
                     intermediate_function()
@@ -131,7 +149,9 @@ class ProjectSaveLoadTest(QtTest):
             if prepare_function is not None:
                 prepare_function()
             self.save_configuration()
-            self.tearDown()
+            self.model.reset()
+            self.model.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"),
+                                              'pattern': '', 'overlay': '', 'phase': ''}
             self.setUp()
 
             if intermediate_function:
@@ -321,7 +341,7 @@ class ProjectSaveLoadTest(QtTest):
                                                                           np.ones((1001,)))):
             self.load_image(test_image_file_name)
             self.controller.widget.close()
-            self.controller=MainController(use_settings=True, settings_directory=data_path)
+            self.controller = MainController(use_settings=True, settings_directory=data_path)
             self.assertEqual(self.model.img_model.filename, test_image_file_name)
 
     ####################################################################################################################
