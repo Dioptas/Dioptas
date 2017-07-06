@@ -1,17 +1,19 @@
 Calibration Procedure
 =====================
-Make sure you are in the calibration module, which should be selected on the left side of the window.
+Make sure you are in the calibration mode, which should be selected on the left side of the window.
 
 Preparation
 ~~~~~~~~~~~
 
-Load the
-calibration image by clicking the "load image" button on the upper right side of the window.
-Now you can insert the starting values for the calibration in the menu on the right. The calibration procedure
-will define distance and center position of the x-ray. Therefore, wavelength and pixel width/height  have to be defined
-based on the experimental setup and detector used.
-Please choose the correct calibrant from the Calibrant drop-down list.
-Additionally the image can be rotated, or flipped in order to accommodate for different detector orientations.
+Load the calibration image by clicking the "load image" button on the upper right side of the window.
+Now you can insert the starting values for the calibration in the menu on the right.
+The calibration procedure will estimate distance and center position of the x-ray, as well as detector rotation.
+For this procedure the wavelength and pixel width/height have to be defined based on the experimental setup and detector
+used.
+Please choose the correct calibrant from the Calibrant drop-down list. In case the your calibrant is not available
+please add you own calibrant in the dioptas/calibrants folder as a text file containing a list of d-spacings, Dioptas
+will automatically have this calibrant available as in the combobox after a restart.
+Different detector orientations can be accomodated by rotation or flipping of the image.
 These image transformations will be applied to all subsequent loaded images in the calibration module and in the
 integration module.
 
@@ -23,6 +25,8 @@ integration module.
 Peak Picking
 ~~~~~~~~~~~~
 
+In order for Dioptas to find the correct geometry it needs an initial guess for the position of some of the rings.
+This is done by selecting several peaks on each diffraction ring.
 The parameters for peak selection are given in the peak selection section on the right site of the calibration module,
 when "Calibration Parameters" is selected.
 
@@ -32,8 +36,9 @@ when "Calibration Parameters" is selected.
     Peak Selection Options
 
 By default automatic peak search is selected, which tries to automatically find peaks on a clicked ring. To search on
-the first ring please click on it with the left mouse button. If the peak search was successful it should look like
-this:
+the first ring please click on it with the left mouse button. In case it is very difficult to "hit" the ring with the
+mouse you can just zoom in by using the drag-zoom or mouse-wheel zoom.
+If the peak search was successful it should look like this:
 
 .. figure:: images/peak_selection2.png
     :align:  center

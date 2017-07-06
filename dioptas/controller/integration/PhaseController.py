@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -39,20 +39,19 @@ class PhaseController(object):
     the pattern plot and it needs the calibration data to have access to the currently used wavelength.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary with working directories
         :param widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
+
         self.widget = widget
         self.cif_conversion_dialog = CifConversionParametersDialog(self.widget)
         self.model = dioptas_model
-        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.model)
+        self.jcpds_editor_controller = JcpdsEditorController(self.widget, self.model)
         self.phase_lw_items = []
         self.create_signals()
         self.update_phase_temperature_step()
@@ -95,13 +94,16 @@ class PhaseController(object):
 
         self.jcpds_editor_controller.phase_modified.connect(self.update_cur_phase_name)
 
+        # Signals from phase model
+        self.model.phase_model.phase_added.connect(self.phase_added)
+        self.model.phase_model.phase_removed.connect(self.phase_removed)
+
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
 
     def add_btn_click_callback(self, *args, **kwargs):
         """
         Loads a new phase from jcpds file.
-        :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
         :return:
         """
         if not self.model.calibration_model.is_calibrated:
@@ -110,10 +112,10 @@ class PhaseController(object):
         filenames = [kwargs.get('filenames', None)]
 
         if filenames[0] is None:
-            filenames = open_files_dialog(self.widget, "Load Phase(s).", self.working_dir['phase'])
+            filenames = open_files_dialog(self.widget, "Load Phase(s).", self.model.working_directories['phase'])
 
         if len(filenames):
-            self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
+            self.model.working_directories['phase'] = os.path.dirname(str(filenames[0]))
             progress_dialog = QtWidgets.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
                                                         self.widget)
             progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -167,6 +169,19 @@ class PhaseController(object):
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
                     format(e.filename))
 
+    def phase_added(self):
+        self.model.phase_model.get_lines_d(-1)
+        color = self.add_phase_plot()
+        self.widget.add_phase(get_base_name(self.model.phase_model.phases[-1].filename), '#%02x%02x%02x' %
+                              (int(color[0]), int(color[1]), int(color[2])))
+
+        self.widget.set_phase_pressure(len(self.model.phase_model.phases) - 1,
+                                       self.model.phase_model.phases[-1].params['pressure'])
+        self.update_phase_temperature(len(self.model.phase_model.phases) - 1,
+                                      self.model.phase_model.phases[-1].params['temperature'])
+        if self.jcpds_editor_controller.active:
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
+
     def add_phase_plot(self):
         """
         Adds a phase to the Pattern view.
@@ -198,19 +213,23 @@ class PhaseController(object):
         """
         cur_ind = self.widget.get_selected_phase_row()
         if cur_ind >= 0:
-            self.widget.del_phase(cur_ind)
             self.model.phase_model.del_phase(cur_ind)
-            self.widget.pattern_widget.del_phase(cur_ind)
-            self.update_temperature_control_visibility()
-            if self.jcpds_editor_controller.active:
-                cur_ind = self.widget.get_selected_phase_row()
-                if cur_ind >= 0:
-                    self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
-                else:
-                    self.jcpds_editor_controller.widget.close()
+
+    def phase_removed(self,ind):
+        print(ind)
+        self.widget.del_phase(ind)
+        self.widget.pattern_widget.del_phase(ind)
+        self.update_temperature_control_visibility()
+        if self.jcpds_editor_controller.active:
+            ind = self.widget.get_selected_phase_row()
+            if ind >= 0:
+                self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[ind])
+            else:
+                self.jcpds_editor_controller.widget.close()
 
     def load_btn_clicked_callback(self):
-        filename = open_file_dialog(self.widget, caption="Load Phase List", directory=self.working_dir['phase'],
+        filename = open_file_dialog(self.widget, caption="Load Phase List",
+                                    directory=self.model.working_directories['phase'],
                                     filter="*.txt")
         if filename == '':
             return
@@ -239,7 +258,8 @@ class PhaseController(object):
         if len(self.model.phase_model.phase_files) < 1:
             return
         filename = save_file_dialog(self.widget, "Save Phase List.",
-                                    os.path.join(self.working_dir['phase'], 'phase_list.txt'), 'Text (*.txt)')
+                                    os.path.join(self.model.working_directories['phase'], 'phase_list.txt'),
+                                    'Text (*.txt)')
 
         if filename == '':
             return
@@ -323,8 +343,8 @@ class PhaseController(object):
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
         cur_ind = row
-        pressure = self.model.phase_model.phases[cur_ind].pressure
-        temperature = self.model.phase_model.phases[cur_ind].temperature
+        pressure = self.model.phase_model.phases[cur_ind].params['pressure']
+        temperature = self.model.phase_model.phases[cur_ind].params['temperature']
 
         self.widget.phase_pressure_sb.blockSignals(True)
         self.widget.phase_pressure_sb.setValue(pressure)
@@ -392,7 +412,6 @@ class PhaseController(object):
         """
         Updates all intensities of all phases in the pattern view. Also checks if phase lines are still visible.
         (within range of pattern and/or overlays
-        :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
         axis_range = self.widget.pattern_widget.view_box.viewRange()
 

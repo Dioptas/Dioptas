@@ -1,4 +1,21 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from ..utility import QtTest, click_button
 import os
 import gc
@@ -29,15 +46,15 @@ class PhaseControllerTest(QtTest):
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
 
-        self.pattern_controller = PatternController({}, self.widget, self.model)
-        self.controller = PhaseController({'phase': data_path}, self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
+        self.controller = PhaseController(self.widget, self.model)
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
 
     def tearDown(self):
         del self.pattern_controller
         del self.controller
         del self.widget
-        self.model.clear()
+        self.model.delete_configurations()
         del self.model
         gc.collect()
 
@@ -126,7 +143,7 @@ class PhaseControllerTest(QtTest):
         pressure = 200
         self.widget.phase_pressure_sb.setValue(200)
         for ind, phase in enumerate(self.model.phase_model.phases):
-            self.assertEqual(phase.pressure, pressure)
+            self.assertEqual(phase.params['pressure'], pressure)
             self.assertEqual(self.widget.get_phase_pressure(ind), pressure)
 
     def test_temperature_change(self):
@@ -135,10 +152,10 @@ class PhaseControllerTest(QtTest):
         self.widget.phase_temperature_sb.setValue(temperature)
         for ind, phase in enumerate(self.model.phase_model.phases):
             if phase.has_thermal_expansion():
-                self.assertEqual(phase.temperature, temperature)
+                self.assertEqual(phase.params['temperature'], temperature)
                 self.assertEqual(self.widget.get_phase_temperature(ind), temperature)
             else:
-                self.assertEqual(phase.temperature, 298)
+                self.assertEqual(phase.params['temperature'], 298)
                 self.assertEqual(self.widget.get_phase_temperature(ind), None)
 
     def test_apply_to_all_for_new_added_phase_in_table_widget(self):
@@ -148,13 +165,13 @@ class PhaseControllerTest(QtTest):
         self.widget.phase_pressure_sb.setValue(pressure)
         self.load_phases()
         for ind, phase in enumerate(self.model.phase_model.phases):
-            self.assertEqual(phase.pressure, pressure)
+            self.assertEqual(phase.params['pressure'], pressure)
             self.assertEqual(self.widget.get_phase_pressure(ind), pressure)
             if phase.has_thermal_expansion():
-                self.assertEqual(phase.temperature, temperature)
+                self.assertEqual(phase.params['temperature'], temperature)
                 self.assertEqual(self.widget.get_phase_temperature(ind), temperature)
             else:
-                self.assertEqual(phase.temperature, 298)
+                self.assertEqual(phase.params['temperature'], 298)
                 self.assertEqual(self.widget.get_phase_temperature(ind), None)
 
     def test_apply_to_all_for_new_added_phase_d_positions(self):

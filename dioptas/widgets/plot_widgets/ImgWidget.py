@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -50,23 +50,59 @@ class ImgWidget(QtCore.QObject):
         # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         if self.orientation == 'horizontal':
 
-            self.img_view_box = self.pg_layout.addViewBox(1, 0)
+            self.img_view_box = self.pg_layout.addViewBox(1, 1)
+
             # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 0)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+            # self.left_axis_image = pg.AxisItem('left', linkView=self.img_view_box)
+            # self.pg_layout.addItem(self.left_axis_image, 1, 0)
+            self.left_axis_cake = pg.AxisItem('left')
+            # self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
+            # self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
+            self.bottom_axis_cake = pg.AxisItem('bottom')
+            self.left_axis_cake.hide()
+            self.bottom_axis_cake.hide()
+            self.bottom_axis_cake.setLabel(u'2θ', u'°')
+            self.left_axis_cake.setLabel(u'Azimuth', u'°')
 
         elif self.orientation == 'vertical':
-            self.img_view_box = self.pg_layout.addViewBox(0, 0)
+            self.img_view_box = self.pg_layout.addViewBox(0, 1)
             # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
             # self.img_histogram_LUT.axis.hide()
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 2)
+            # self.left_axis_image = pg.AxisItem('left', linkView=self.img_view_box)
+            # self.pg_layout.addItem(self.left_axis_image, 0, 0)
+            # self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
+            # self.pg_layout.addItem(self.bottom_axis_image, 1, 1)
 
-        self.img_view_box.setAspectLocked()
+            self.img_view_box.setAspectLocked(True)
+
+    def replace_image_and_cake_axes(self, mode='image'):
+        if mode == 'image':
+            self.pg_layout.removeItem(self.bottom_axis_cake)
+            self.pg_layout.removeItem(self.left_axis_cake)
+            # self.pg_layout.addItem(self.left_axis_image, 1, 0)
+            # self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
+            self.bottom_axis_cake.hide()
+            self.left_axis_cake.hide()
+            # self.bottom_axis_image.show()
+            # self.left_axis_image.show()
+
+        elif mode == 'cake':
+            # self.pg_layout.removeItem(self.left_axis_image)
+            # self.pg_layout.removeItem(self.bottom_axis_image)
+            self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
+            self.pg_layout.addItem(self.left_axis_cake, 1, 0)
+            self.bottom_axis_cake.show()
+            self.left_axis_cake.show()
+            # self.bottom_axis_image.hide()
+            # self.left_axis_image.hide()
 
     def create_scatter_plot(self):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
@@ -523,6 +559,10 @@ class MyROI(pg.ROI):
         y1 = np.round(rect.left())
         y2 = np.round(rect.left() + rect.width())
         return x1, x2, y1, y2
+
+    def setRoiLimits(self, pos, size):
+        self.setPos(pos)
+        self.setSize(size)
 
 
 class RoiShade(object):

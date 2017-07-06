@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -34,10 +34,8 @@ class CalibrationController(object):
     CalibrationController handles all the interaction between the CalibrationView and the CalibrationData class
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """Manages the connection between the calibration GUI and data
-
-        :param working_dir: dictionary with working directories
 
         :param widget: Gives the Calibration Widget
         :type widget: CalibrationWidget
@@ -46,7 +44,6 @@ class CalibrationController(object):
         :type dioptas_model: DioptasModel
 
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -156,15 +153,13 @@ class CalibrationController(object):
     def load_img(self):
         """
         Loads an image file.
-        :param filename:
-            filename of image file. If not set it will pop up a QFileDialog where the file can be chosen.
         """
         filename = open_file_dialog(self.widget, caption="Load Calibration Image",
-                                    directory=self.working_dir['image'])
+                                    directory=self.model.working_directories['image'])
 
         if filename is not '':
-            self.working_dir['image'] = os.path.dirname(filename)
-        self.model.img_model.load(filename)
+            self.model.working_directories['image'] = os.path.dirname(filename)
+            self.model.img_model.load(filename)
 
     def load_next_img(self):
         self.model.img_model.load_next_file()
@@ -467,14 +462,12 @@ class CalibrationController(object):
     def load_calibration(self):
         """
         Loads a '*.poni' file and updates the calibration data class
-        :param filename:
-            filename of the calibration file
         """
         filename = open_file_dialog(self.widget, caption="Load calibration...",
-                                    directory=self.working_dir['calibration'],
+                                    directory=self.model.working_directories['calibration'],
                                     filter='*.poni')
         if filename is not '':
-            self.working_dir['calibration'] = os.path.dirname(filename)
+            self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
             self.update_all()
 
@@ -549,16 +542,13 @@ class CalibrationController(object):
     def save_calibration(self):
         """
         Saves the current calibration in a file.
-        :param filename:
-            Filename of the saved calibration. If 'None' a QFileDialog will open and the file will be saved with the
-            *.poni ending.
         :return:
         """
 
         filename = save_file_dialog(self.widget, "Save calibration...",
-                                    self.working_dir['calibration'], '*.poni')
+                                    self.model.working_directories['calibration'], '*.poni')
         if filename is not '':
-            self.working_dir['calibration'] = os.path.dirname(filename)
+            self.model.working_directories['calibration'] = os.path.dirname(filename)
             if not filename.rsplit('.', 1)[-1] == 'poni':
                 filename = filename + '.poni'
             self.model.calibration_model.save(filename)

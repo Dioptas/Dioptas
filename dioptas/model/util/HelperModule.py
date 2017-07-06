@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -173,6 +173,8 @@ class FileNameIterator(QtCore.QObject):
         """
         Tries to get the previous filename.
 
+        :param step:
+        :param pos:
         :param mode:
             can have two values either number or mode. Number will decrement the last digits of the file name \
             and time will get the next file by creation time.
