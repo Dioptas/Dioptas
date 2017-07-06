@@ -1,4 +1,20 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import gc
@@ -26,7 +42,6 @@ class ImageControllerTest(QtTest):
         self.model = DioptasModel()
 
         self.controller = ImageController(
-            working_dir=self.working_dir,
             widget=self.widget,
             dioptas_model=self.model)
 
@@ -44,7 +59,7 @@ class ImageControllerTest(QtTest):
             return_value=[os.path.join(unittest_data_path, 'image_001.tif')])
         click_button(self.widget.load_img_btn)
         self.assertEqual(str(self.widget.img_filename_txt.text()), 'image_001.tif')
-        self.assertEqual(self.controller.working_dir['image'], unittest_data_path)
+        self.assertEqual(self.model.working_directories['image'], unittest_data_path)
 
         # enable autoprocessing:
         QTest.mouseClick(self.widget.autoprocess_cb, QtCore.Qt.LeftButton,
@@ -107,11 +122,35 @@ class ImageControllerTest(QtTest):
         self.model.select_configuration(1)
         self.assertEqual(str(self.widget.calibration_lbl.text()), "calib2")
 
+    def test_configuration_selected_updates_mask_plot(self):
+        self.model.mask_model.add_mask(os.path.join(unittest_data_path, 'test.mask'))
+        click_button(self.widget.img_mask_btn)
+        first_mask = self.model.mask_model.get_img()
+        self.model.add_configuration()
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
+
+        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
+        second_mask = self.model.mask_model.get_img()
+        click_button(self.widget.img_mask_btn)
+
+        self.model.select_configuration(0)
+        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image-first_mask), 0)
+        self.model.select_configuration(1)
+        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image-second_mask), 0)
+
+    def test_configuration_selected_updates_mask_transparency(self):
+        self.model.mask_model.add_mask(os.path.join(unittest_data_path, 'test.mask'))
+        click_button(self.widget.img_mask_btn)
+        self.model.add_configuration()
+
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
+        self.assertFalse(self.widget.mask_transparent_cb.isVisible())
+
     def test_adding_images(self):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif')])
         click_button(self.widget.load_img_btn)
-        data1 = np.copy(self.widget.img_widget.img_data)
+        data1 = np.copy(self.widget.img_widget.img_data).astype(np.uint32)
         click_checkbox(self.widget.img_batch_mode_add_rb)
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif'),

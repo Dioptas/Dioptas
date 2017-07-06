@@ -1,5 +1,6 @@
+# -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -70,7 +71,7 @@ class CifConverter(object):
         jcpds_phase = self.convert_cif_phase_to_jcpds(cif_phase)
         jcpds_phase.filename = filename
         jcpds_phase.name = os.path.splitext(os.path.basename(filename))[0]
-        jcpds_phase.modified = False
+        jcpds_phase.params['modified'] = False
 
         return jcpds_phase
 
@@ -104,15 +105,15 @@ class CifConverter(object):
         """
         jcpds_phase = jcpds()
 
-        jcpds_phase.a0 = cif_phase.a
-        jcpds_phase.b0 = cif_phase.b
-        jcpds_phase.c0 = cif_phase.c
-        jcpds_phase.alpha0 = cif_phase.alpha
-        jcpds_phase.beta0 = cif_phase.beta
-        jcpds_phase.gamma0 = cif_phase.gamma
-        jcpds_phase.v0 = cif_phase.volume
-        jcpds_phase.symmetry = cif_phase.symmetry
-        jcpds_phase.comments = [cif_phase.comments]
+        jcpds_phase.params['a0'] = cif_phase.a
+        jcpds_phase.params['b0'] = cif_phase.b
+        jcpds_phase.params['c0'] = cif_phase.c
+        jcpds_phase.params['alpha0'] = cif_phase.alpha
+        jcpds_phase.params['beta0'] = cif_phase.beta
+        jcpds_phase.params['gamma0'] = cif_phase.gamma
+        jcpds_phase.params['v0'] = cif_phase.volume
+        jcpds_phase.params['symmetry'] = cif_phase.symmetry
+        jcpds_phase.params['comments'] = [cif_phase.comments]
 
         return jcpds_phase
 
@@ -545,7 +546,7 @@ def number_between(num, num_low, num_high):
     Tests if a number is in between num_low and num_high, whereby num_low and num_high are included  [num_low, num_high]
     :return: Boolean result for the result
     """
-    if num >= num_low and num <= num_high:
+    if num_low <= num <= num_high:
         return True
     return False
 
