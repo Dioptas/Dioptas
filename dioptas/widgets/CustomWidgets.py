@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray diffraction data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -65,11 +65,57 @@ class FlatButton(QtWidgets.QPushButton):
         self.setFlat(True)
 
 
-class CheckableFlatButton(QtWidgets.QPushButton):
+class CheckableFlatButton(FlatButton):
     def __init__(self, *args):
         super(CheckableFlatButton, self).__init__(*args)
-        self.setFlat(True)
         self.setCheckable(True)
+
+
+class RotatedCheckableFlatButton(CheckableFlatButton):
+    def __init__(self, *args):
+        super(RotatedCheckableFlatButton, self).__init__(*args)
+
+    def paintEvent(self, event):
+        painter = QtWidgets.QStylePainter(self)
+        painter.rotate(270)
+        painter.translate(-1*self.height(), 0)
+        painter.drawControl(QtWidgets.QStyle.CE_PushButton, self.getSyleOptions())
+
+    def minimumSizeHint(self):
+        size = super(RotatedCheckableFlatButton, self).minimumSizeHint()
+        size.transpose()
+        return size
+
+    def sizeHint(self):
+        size = super(RotatedCheckableFlatButton, self).sizeHint()
+        size.transpose()
+        return size
+
+    def getSyleOptions(self):
+        options = QtWidgets.QStyleOptionButton()
+        options.initFrom(self)
+        size = options.rect.size()
+        size.transpose()
+        options.rect.setSize(size)
+        if self.isFlat():
+            options.features |= QtWidgets.QStyleOptionButton.Flat
+        if self.menu():
+            options.features |= QtWidgets.QStyleOptionButton.HasMenu
+        if self.autoDefault() or self.isDefault():
+            options.features |= QtWidgets.QStyleOptionButton.AutoDefaultButton
+        if self.isDefault():
+            options.features |= QtWidgets.QStyleOptionButton.DefaultButton
+        if self.isDown() or (self.menu() and self.menu().isVisible()):
+            options.state |= QtWidgets.QStyle.State_Sunken
+        if self.isChecked():
+            options.state |= QtWidgets.QStyle.State_On
+        if not self.isFlat() and not self.isDown():
+            options.state |= QtWidgets.QStyle.State_Raised
+
+        options.text = self.text()
+        options.icon = self.icon()
+        options.iconSize = self.iconSize()
+        return options
 
 
 class HorizontalLine(QtWidgets.QFrame):
@@ -77,6 +123,7 @@ class HorizontalLine(QtWidgets.QFrame):
         super(HorizontalLine, self).__init__()
         self.setFrameShape(QtWidgets.QFrame.HLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
 
 class VerticalLine(QtWidgets.QFrame):
     def __init__(self):
@@ -108,7 +155,8 @@ class NoRectDelegate(QtWidgets.QItemDelegate):
 
 
 def HorizontalSpacerItem(minimum_width=0):
-    return QtWidgets.QSpacerItem(minimum_width, 0, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
+    return QtWidgets.QSpacerItem(minimum_width, 0, QtWidgets.QSizePolicy.MinimumExpanding,
+                                 QtWidgets.QSizePolicy.Minimum)
 
 
 def VerticalSpacerItem():

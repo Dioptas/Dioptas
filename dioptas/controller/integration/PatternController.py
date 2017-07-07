@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -37,9 +37,8 @@ class PatternController(object):
     (2 Theta, Q, A)
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary of working directories
         :param widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
 
@@ -47,7 +46,6 @@ class PatternController(object):
         :type dioptas_model: DioptasModel
         """
 
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -115,10 +113,6 @@ class PatternController(object):
         self.widget.pattern_header_dat_cb.clicked.connect(self.update_pattern_file_endings)
         self.widget.pattern_header_fxye_cb.clicked.connect(self.update_pattern_file_endings)
 
-        # signals
-        self.model.current_configuration.autosave_integrated_pattern_changed.connect(self.update_autocreate_gui)
-        self.model.current_configuration.integrated_patterns_file_formats_changed.connect(self.update_autocreate_gui)
-
     def update_pattern_file_endings(self):
         res = []
         if self.widget.pattern_header_xy_cb.isChecked():
@@ -171,7 +165,7 @@ class PatternController(object):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
         filename = save_file_dialog(
             self.widget, "Save Pattern Data.",
-            os.path.join(self.working_dir['pattern'],
+            os.path.join(self.model.working_directories['pattern'],
                          img_filename + '.xy'),
             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;png (*.png);;svg (*.svg)'))
 
@@ -187,10 +181,10 @@ class PatternController(object):
         filename = kwargs.get('filename', None)
         if filename is None:
             filename = open_file_dialog(self.widget, caption="Load Pattern",
-                                        directory=self.working_dir['pattern'])
+                                        directory=self.model.working_directories['pattern'])
 
         if filename is not '':
-            self.working_dir['pattern'] = os.path.dirname(filename)
+            self.model.working_directories['pattern'] = os.path.dirname(filename)
             self.widget.pattern_filename_txt.setText(os.path.basename(filename))
             self.widget.pattern_directory_txt.setText(os.path.dirname(filename))
             self.model.pattern_model.load_pattern(filename)
@@ -211,7 +205,7 @@ class PatternController(object):
 
     def autocreate_cb_changed(self):
         self.autocreate_pattern = self.widget.pattern_autocreate_cb.isChecked()
-        self.model.current_configuration.autosave_integrated_pattern = self.widget.pattern_autocreate_cb.isChecked()
+        self.model.current_configuration.auto_save_integrated_pattern = self.widget.pattern_autocreate_cb.isChecked()
 
     def filename_txt_changed(self):
         current_filename = os.path.basename(self.model.pattern.filename)
@@ -229,16 +223,16 @@ class PatternController(object):
         directory = QtWidgets.QFileDialog.getExistingDirectory(
             self.widget,
             "Please choose the default directory for autosaved .",
-            self.working_dir['pattern'])
+            self.model.working_directories['pattern'])
         if directory is not '':
-            self.working_dir['pattern'] = str(directory)
+            self.model.working_directories['pattern'] = str(directory)
             self.widget.pattern_directory_txt.setText(directory)
 
     def pattern_directory_txt_changed(self):
         if os.path.exists(self.widget.pattern_directory_txt.text()):
-            self.working_dir['pattern'] = str(self.widget.pattern_directory_txt.text())
+            self.model.working_directories['pattern'] = str(self.widget.pattern_directory_txt.text())
         else:
-            self.widget.pattern_directory_txt.setText(self.working_dir['pattern'])
+            self.widget.pattern_directory_txt.setText(self.model.working_directories['pattern'])
 
     def set_iteration_mode_number(self):
         self.model.pattern_model.set_file_iteration_mode('number')
@@ -302,7 +296,7 @@ class PatternController(object):
             self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
 
     def pattern_auto_range_btn_click_callback(self):
-        self.widget.pattern_widget.auto_range = self.widget.pattern_auto_range_btn.isChecked()
+        self.widget.pattern_widget.auto_level = self.widget.pattern_auto_range_btn.isChecked()
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.widget.pattern_widget.pos_line.getPos()[0]
@@ -436,12 +430,3 @@ class PatternController(object):
         elif self.model.current_configuration.integration_unit == 'q_A^-1':
             self.widget.pattern_q_btn.setChecked(True)
             self.set_unit_q()
-
-    def update_autocreate_gui(self):
-        self.widget.spec_autocreate_cb.setChecked(self.model.current_configuration.autosave_integrated_pattern)
-        self.widget.pattern_header_xy_cb.setChecked(
-            '.xy' in self.model.current_configuration.integrated_patterns_file_formats)
-        self.widget.pattern_header_chi_cb.setChecked(
-            '.chi' in self.model.current_configuration.integrated_patterns_file_formats)
-        self.widget.pattern_header_dat_cb.setChecked(
-            '.dat' in self.model.current_configuration.integrated_patterns_file_formats)

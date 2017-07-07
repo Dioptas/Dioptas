@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -72,7 +72,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.mode_btn = FlatButton('Cake')
         self.cake_shift_azimuth_sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.mask_btn = CheckableFlatButton('Mask')
-        self.show_bg_subtracted_img_btn = CheckableFlatButton('BG')
+        self.show_background_subtracted_img_btn = CheckableFlatButton('bg')
         self.transparent_cb = QtWidgets.QCheckBox('trans')
         self.autoscale_btn = CheckableFlatButton('AutoScale')
         self.undock_btn = FlatButton('Undock')
@@ -82,7 +82,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self._control_layout.addWidget(self.cake_shift_azimuth_sl)
         self._control_layout.addWidget(self.mask_btn)
         self._control_layout.addWidget(self.transparent_cb)
-        self._control_layout.addWidget(self.show_bg_subtracted_img_btn)
+        self._control_layout.addWidget(self.show_background_subtracted_img_btn)
         self._control_layout.addSpacerItem(HorizontalSpacerItem())
         self._control_layout.addWidget(self.autoscale_btn)
         self._control_layout.addWidget(self.undock_btn)
@@ -99,6 +99,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
 
         self.style_widgets()
         self.cake_shift_azimuth_sl.setVisible(False)
+        self.show_background_subtracted_img_btn.setVisible(False)
 
 
     def style_widgets(self):

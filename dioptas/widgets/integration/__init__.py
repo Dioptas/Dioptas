@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -57,7 +57,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.setSpacing(6)
-        self._layout.setContentsMargins(10, 6, 6, 6)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.vertical_splitter = QtWidgets.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -146,8 +146,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_edit_btn = phase_control_widget.edit_btn
         self.phase_del_btn = phase_control_widget.delete_btn
         self.phase_clear_btn = phase_control_widget.clear_btn
-        self.phase_save_btn = phase_control_widget.save_btn
-        self.phase_load_btn = phase_control_widget.load_btn
+        self.phase_save_list_btn = phase_control_widget.save_list_btn
+        self.phase_load_list_btn = phase_control_widget.load_list_btn
         self.phase_tw = phase_control_widget.phase_tw
         self.phase_pressure_sb = phase_control_widget.pressure_sb
         self.phase_pressure_step_txt = phase_control_widget.pressure_step_txt
@@ -255,6 +255,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_autoscale_btn = image_widget.autoscale_btn
         self.img_dock_btn = image_widget.undock_btn
         self.img_widget = image_widget.img_view
+        self.img_show_background_subtracted_btn = image_widget.show_background_subtracted_img_btn
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
         self.tabWidget = self.integration_control_widget
@@ -313,20 +314,17 @@ class IntegrationWidget(QtWidgets.QWidget):
             self.frame_img_positions_widget.hide()
 
             # remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
-            self.vertical_splitter.setParent(self)
-
             self.img_frame.setParent(self.horizontal_splitter)
-            self.horizontal_splitter.addWidget(self.img_frame)
 
-            self.vertical_splitter.setParent(self.horizontal_splitter)
+            self.horizontal_splitter.addWidget(self.img_frame)
             self.horizontal_splitter.addWidget(self.vertical_splitter)
 
             # restore the previously used size when image was undocked
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
 
-    def get_progress_dialog(self, msg, title, num_points):
-        progress_dialog = QtWidgets.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
-                                                num_points, self)
+    def get_progress_dialog(self, message, abort_text, num_points):
+        progress_dialog = QtWidgets.QProgressDialog(message, abort_text, 0,
+                                                    num_points, self)
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         progress_dialog.move(

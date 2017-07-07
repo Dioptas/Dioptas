@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.calibration_control_widget = CalibrationControlWidget(self)
 
         self._layout = QtWidgets.QHBoxLayout()
-        self._layout.setContentsMargins(10, 6, 6, 6)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.addWidget(self.calibration_display_widget)
         self._layout.addWidget(self.calibration_control_widget)
         self.setLayout(self._layout)
@@ -292,6 +292,7 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         super(CalibrationControlWidget, self).__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
+        self._layout.setContentsMargins(0,0,0,0)
 
         self._file_layout = QtWidgets.QHBoxLayout()
         self.load_img_btn = FlatButton("Load File", self)

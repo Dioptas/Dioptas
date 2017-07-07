@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@ import time
 import logging
 
 import numpy as np
+from qtpy import QtCore
 
 from pyFAI.massif import Massif
 from pyFAI.blob_detection import BlobDetection
@@ -37,8 +38,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class CalibrationModel(object):
+class CalibrationModel(QtCore.QObject):
     def __init__(self, img_model=None):
+        super(CalibrationModel, self).__init__()
         """
         :param img_model:
         :type img_model: ImgModel
@@ -67,10 +69,13 @@ class CalibrationModel(object):
         self.supersampling_factor = 1
         self._calibrants_working_dir = calibrants_folder
 
-        self.cake_img = np.zeros((2048, 2048))
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
         self.num_points = len(self.int)
+
+        self.cake_img = np.zeros((2048, 2048))
+        self.cake_tth = None
+        self.cake_azi = None
 
         self.peak_search_algorithm = None
 
@@ -378,11 +383,10 @@ class CalibrationModel(object):
             fit2d_parameter['polarization_factor'] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
-        try:
-            pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+
+        pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+        if fit2d_parameter:
             fit2d_parameter['wavelength'] = self.pattern_geometry.wavelength
-        except RuntimeWarning:
-            pyFAI_parameter['wavelength'] = 0
 
         return pyFAI_parameter, fit2d_parameter
 
@@ -394,7 +398,7 @@ class CalibrationModel(object):
         center_y = fit2d_parameter['centerY']
         width, height = self.img_model.img_data.shape
 
-        if center_x < width and center_x > 0:
+        if width > center_x > 0:
             side1 = np.max([abs(width - center_x), center_x])
         else:
             side1 = width
@@ -531,8 +535,6 @@ class CalibrationModel(object):
         x *= self.supersampling_factor
         y *= self.supersampling_factor
         return self.pattern_geometry.chi(x, y)[0]
-
-        return azi
 
     def get_two_theta_array(self):
         return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,

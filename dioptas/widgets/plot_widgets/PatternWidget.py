@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -26,10 +26,6 @@ from pyqtgraph.exporters.SVGExporter import SVGExporter
 
 from .ExLegendItem import LegendItem
 from ...model.util.HelperModule import calculate_color
-
-
-# TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show,
-# should probably a class, making it more readable
 
 
 class PatternWidget(QtCore.QObject):
@@ -402,7 +398,8 @@ class PatternWidget(QtCore.QObject):
 
 
 class PhaseLinesPlot(object):
-    def __init__(self, plot_item, positions=None, name='Dummy', pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine)):
+    def __init__(self, plot_item, positions=None, name='Dummy',
+                 pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine)):
         self.plot_item = plot_item
         self.peak_positions = []
         self.line_items = []

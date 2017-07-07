@@ -1,13 +1,30 @@
-import unittest
+# -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from mock import MagicMock
 import os
 import gc
 
 import numpy as np
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtCore
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 from ...controller import MainController
 
 unittest_path = os.path.dirname(__file__)
@@ -41,7 +58,7 @@ class UserInterFaceTest(QtTest):
 
     def tearDown(self):
         del self.integration_pattern_controller
-        self.model.clear()
+        self.model.delete_configurations()
         del self.integration_widget
         del self.integration_controller
         del self.model
@@ -50,13 +67,13 @@ class UserInterFaceTest(QtTest):
     def test_synchronization_of_view_range(self):
         # calibration and mask view
         self.calibration_widget.img_widget.img_view_box.setRange(QtCore.QRectF(-10, -10, 20, 20))
-        self.controller.widget.tabWidget.setCurrentIndex(1)
+        click_button(self.controller.widget.mask_mode_btn)
 
         self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_widget.img_view_box.targetRange()) - \
                                       np.array(self.mask_widget.img_widget.img_view_box.targetRange())), 0)
 
         self.mask_widget.img_widget.img_view_box.setRange(QtCore.QRectF(100, 100, 300, 300))
-        self.controller.widget.tabWidget.setCurrentIndex(0)
+        click_button(self.controller.widget.calibration_mode_btn)
 
         self.assertAlmostEqual(np.sum(np.array(self.calibration_widget.img_widget.img_view_box.targetRange()) - \
                                       np.array(self.mask_widget.img_widget.img_view_box.targetRange())), 0)

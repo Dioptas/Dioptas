@@ -1,5 +1,6 @@
+# -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -545,7 +546,7 @@ def number_between(num, num_low, num_high):
     Tests if a number is in between num_low and num_high, whereby num_low and num_high are included  [num_low, num_high]
     :return: Boolean result for the result
     """
-    if num >= num_low and num <= num_high:
+    if num_low <= num <= num_high:
         return True
     return False
 

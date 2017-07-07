@@ -1,4 +1,20 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from functools import partial
 
@@ -27,9 +43,6 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.add_configuration_btn = FlatButton("+")
         self.remove_configuration_btn = FlatButton("-")
 
-        self.save_configuration_btn = FlatButton("Save Configuration")
-        self.load_configuration_button = FlatButton("Load Configuration")
-
         self.factor_lbl = LabelAlignRight("Factor: ")
         self.factor_txt = NumberTextField("1")
 
@@ -49,11 +62,10 @@ class ConfigurationWidget(QtWidgets.QWidget):
 
     def create_layout(self):
         self.main_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.setContentsMargins(7, 0, 0, 0)
         self.main_layout.addWidget(self.configuration_lbl)
         self.main_layout.addWidget(self.add_configuration_btn)
         self.main_layout.addWidget(self.remove_configuration_btn)
-        self.main_layout.addWidget(self.save_configuration_btn)
-        self.main_layout.addWidget(self.load_configuration_button)
         self.main_layout.addWidget(self.configurations_btn_widget)
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.file_lbl)
@@ -77,19 +89,19 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.configurations_btn_layout = QtWidgets.QHBoxLayout(self.configurations_btn_widget)
 
     def style_widgets(self):
-        self.main_layout.setSpacing(7)
+        self.main_layout.setSpacing(6)
         self.next_file_btn.setMaximumWidth(25)
         self.file_iterator_pos_txt.setMaximumWidth(25)
         self.next_folder_btn.setMaximumWidth(25)
         self.previous_folder_btn.setMaximumWidth(25)
         self.previous_file_btn.setMaximumWidth(25)
-        self.main_layout.setContentsMargins(5, 5, 5, 3)
         self.factor_txt.setMaximumWidth(35)
 
-    def update_configurations(self, configurations, cur_ind):
+    def update_configuration_btns(self, configurations, cur_ind):
         for btn in self.configuration_btns:
-            self.configurations_btn_layout.removeWidget(btn)
             self.configuration_btn_group.removeButton(btn)
+            self.configurations_btn_layout.removeWidget(btn)
+            btn.deleteLater() # somehow needs tobe deleted, otherwise remains in the button group
 
         self.configuration_btns = []
 

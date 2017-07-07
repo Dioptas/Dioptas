@@ -1,6 +1,6 @@
 /*
 Dioptas - GUI program for fast processing of 2D X-ray data
-Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
+Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 GSECARS, University of Chicago
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -357,3 +357,22 @@ QTableWidget {
 }
 
 
+QFrame#main_frame {
+    color: #F1F1F1;
+    border: 1px solid #5B5B5B;
+    border-radius: 5px;
+}
+
+#calibration_mode_btn, #mask_mode_btn, #integration_mode_btn {
+    font: normal 12px;
+    border-radius: 1px;
+}
+
+#calibration_mode_btn {
+   border-top-right-radius:8px;
+   border-bottom-right-radius: 8px;
+}
+#integration_mode_btn {
+   border-top-left-radius:8px;
+   border-bottom-left-radius: 8px;
+}
