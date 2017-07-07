@@ -277,7 +277,7 @@ class ImageController(object):
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
                 break
-
+        progress_dialog.close()
         self._tear_down_batch_processing()
 
     def _get_pattern_working_directory(self):

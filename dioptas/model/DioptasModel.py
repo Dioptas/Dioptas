@@ -26,7 +26,7 @@ import h5py
 from .util import jcpds
 from .util import Pattern
 from .Configuration import Configuration
-from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
+from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel, MapModel
 from .. import __version__
 
 
