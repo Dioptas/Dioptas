@@ -1,4 +1,21 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import gc
 import os
 import unittest
@@ -23,11 +40,11 @@ data_path = os.path.join(unittest_path, os.pardir, 'data')
 class IntegrationMockFunctionalTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
+        self.model.working_directories['pattern'] = data_path
+        self.model.working_directories['image'] = data_path
 
         self.integration_widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'pattern': data_path,
-                                                             'image': data_path},
-                                                            widget=self.integration_widget,
+        self.integration_controller = IntegrationController(widget=self.integration_widget,
                                                             dioptas_model=self.model)
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
@@ -42,7 +59,7 @@ class IntegrationMockFunctionalTest(QtTest):
     def tearDown(self):
         del self.integration_pattern_controller
         del self.integration_controller
-        self.model.clear()
+        self.model.delete_configurations()
         del self.model
         gc.collect()
 
@@ -125,7 +142,7 @@ class IntegrationMockFunctionalTest(QtTest):
         self.integration_widget.show()
 
         # Tests if the pattern save procedures is are working for all file-endings
-        def save__test_for_size_and_delete(self):
+        def save_test_for_size_and_delete(self):
 
             def save_pattern(filename):
                 QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
@@ -155,11 +172,11 @@ class IntegrationMockFunctionalTest(QtTest):
             os.remove(os.path.join(data_path, 'Test_spec.png'))
             os.remove(os.path.join(data_path, 'Test_spec.svg'))
 
-        save__test_for_size_and_delete(self)
+        save_test_for_size_and_delete(self)
         QTest.mouseClick(self.integration_pattern_controller.widget.pattern_q_btn, QtCore.Qt.LeftButton)
-        save__test_for_size_and_delete(self)
+        save_test_for_size_and_delete(self)
         QTest.mouseClick(self.integration_pattern_controller.widget.pattern_d_btn, QtCore.Qt.LeftButton)
-        save__test_for_size_and_delete(self)
+        save_test_for_size_and_delete(self)
 
     def test_undocking_and_docking_img_frame(self):
         QTest.mouseClick(self.integration_widget.img_dock_btn, QtCore.Qt.LeftButton)
@@ -183,6 +200,7 @@ class IntegrationMockFunctionalTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(data_path, 'image_001.tif'),
                                                             os.path.join(data_path, 'image_002.tif')])
+        QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=data_path)
         self.integration_widget.img_batch_mode_image_save_rb.setChecked(True)
         click_button(self.integration_widget.load_img_btn)
 
@@ -197,8 +215,7 @@ class IntegrationFunctionalTest(QtTest):
         self.model = DioptasModel()
 
         self.integration_widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'pattern': data_path},
-                                                            widget=self.integration_widget,
+        self.integration_controller = IntegrationController(widget=self.integration_widget,
                                                             dioptas_model=self.model)
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
@@ -288,13 +305,13 @@ class IntegrationFunctionalTest(QtTest):
     def test_configuration_selected_changes_img_mode(self):
         click_button(self.integration_widget.img_mode_btn)
         self.assertEqual(self.integration_image_controller.img_mode, "Cake")
-        self.assertTrue(self.model.current_configuration.integrate_cake)
+        self.assertTrue(self.model.current_configuration.auto_integrate_cake)
 
         self.model.add_configuration()
         self.model.select_configuration(0)
         self.assertEqual(self.integration_image_controller.img_mode, "Cake")
         self.model.select_configuration(1)
-        self.assertFalse(self.model.current_configuration.integrate_cake)
+        self.assertFalse(self.model.current_configuration.auto_integrate_cake)
         self.assertEqual(self.integration_image_controller.img_mode, "Image")
 
     def test_configuration_selected_changes_green_line_position_in_image_mode(self):

@@ -1,4 +1,21 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from ..utility import QtTest, click_button
 import os
 import gc
@@ -19,12 +36,6 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class PhaseControllerTest(QtTest):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtWidgets.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtWidgets.QApplication([])
-
     def setUp(self):
         self.model = DioptasModel()
         self.model.calibration_model.is_calibrated = True
@@ -35,15 +46,15 @@ class PhaseControllerTest(QtTest):
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
 
-        self.pattern_controller = PatternController({}, self.widget, self.model)
-        self.controller = PhaseController({'phase': data_path}, self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
+        self.controller = PhaseController(self.widget, self.model)
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
 
     def tearDown(self):
         del self.pattern_controller
         del self.controller
         del self.widget
-        self.model.clear()
+        self.model.delete_configurations()
         del self.model
         gc.collect()
 
@@ -230,7 +241,7 @@ class PhaseControllerTest(QtTest):
         self.load_phases()
         phase_list_file_name = 'phase_list.txt'
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, phase_list_file_name))
-        click_button(self.widget.phase_save_btn)
+        click_button(self.widget.phase_save_list_btn)
         # make sure that phase list file was saved
         self.assertTrue(os.path.isfile(os.path.join(data_path, phase_list_file_name)))
 
@@ -244,7 +255,7 @@ class PhaseControllerTest(QtTest):
         # clear and load the saved list to make sure all phases have been loaded
         click_button(self.widget.phase_clear_btn)
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, phase_list_file_name))
-        click_button(self.widget.phase_load_btn)
+        click_button(self.widget.phase_load_list_btn)
 
         self.assertEqual(self.widget.phase_tw.rowCount(), old_phase_list_length)
 

@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -33,16 +33,14 @@ class OverlayController(object):
     the corresponding overlay data in the Pattern Model.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary of working directories
         :param widget: Reference to IntegrationWidget object
         :param pattern_model: Reference to PatternModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -85,16 +83,14 @@ class OverlayController(object):
     def add_overlay_btn_click_callback(self):
         """
 
-        :param filename: filepath of an overlay file, if set to None (default value) it will open a QFileDialog to
-            select a pattern file
         """
         filenames = open_files_dialog(self.widget, "Load Overlay(s).",
-                                      self.working_dir['overlay'])
+                                      self.model.working_directories['overlay'])
         if len(filenames):
             for filename in filenames:
                 filename = str(filename)
                 self.model.overlay_model.add_overlay_file(filename)
-            self.working_dir['overlay'] = os.path.dirname(str(filenames[0]))
+            self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
 
     def overlay_added(self):
         """

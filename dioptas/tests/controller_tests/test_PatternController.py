@@ -1,4 +1,20 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os, sys
 
@@ -26,7 +42,6 @@ class PatternControllerTest(QtTest):
         self.model = DioptasModel()
 
         self.controller = PatternController(
-            working_dir=self.working_dir,
             widget=self.widget,
             dioptas_model=self.model)
 
@@ -68,18 +83,3 @@ class PatternControllerTest(QtTest):
         click_button(self.widget.qa_save_pattern_btn)
 
         self.assertTrue(os.path.exists(os.path.join(data_path, "test.xy")))
-
-    def test_save_and_load_fxye_pattern(self):
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, "test.fxye"))
-        self.model.calibration_model.create_file_header = MagicMock(return_value="None")
-        self.model.current_configuration.integration_unit = '2th_deg'
-        self.model.calibration_model.pattern_geometry.wavelength = 0.31E-10
-        old_data = self.model.pattern_model.pattern.data
-
-        click_button(self.widget.qa_save_pattern_btn)
-        self.assertTrue(os.path.exists(os.path.join(data_path, "test.fxye")))
-
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, "test.fxye"))
-        click_button(self.widget.pattern_load_btn)
-        new_data = self.model.pattern_model.pattern.data
-        self.assertTrue(np.allclose(old_data, new_data, 1e-5))

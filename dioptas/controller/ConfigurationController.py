@@ -1,12 +1,24 @@
 # -*- coding: utf8 -*-
-import os
-
-from qtpy import QtWidgets, QtCore
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.ConfigurationWidget import ConfigurationWidget
 from ..model.DioptasModel import DioptasModel
-from ..widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 
 class ConfigurationController(object):
@@ -30,8 +42,6 @@ class ConfigurationController(object):
     def create_signals(self):
         self.widget.add_configuration_btn.clicked.connect(self.model.add_configuration)
         self.widget.remove_configuration_btn.clicked.connect(self.model.remove_configuration)
-        self.widget.save_configuration_btn.clicked.connect(self.save_configuration_btn_clicked)
-        self.widget.load_configuration_button.clicked.connect(self.load_configuration_btn_clicked)
 
         self.widget.configuration_selected.connect(self.model.select_configuration)
 
@@ -51,7 +61,7 @@ class ConfigurationController(object):
         self.widget.combine_cakes_btn.clicked.connect(self.combine_cakes_btn_clicked)
 
     def update_configuration_widget(self):
-        self.widget.update_configurations(
+        self.widget.update_configuration_btns(
             configurations=self.model.configurations,
             cur_ind=self.model.configuration_ind
         )
@@ -81,20 +91,3 @@ class ConfigurationController(object):
 
     def load_previous_folder(self):
         self.model.previous_folder(mec_mode=bool(self.widget.mec_cb.isChecked()))
-
-    def save_configuration_btn_clicked(self):
-        try:
-            default_file_name = self.model.working_directories['image'] + 'config.hdf5'
-        except TypeError:
-            default_file_name = '.'
-        filename = save_file_dialog(self.widget, "Save Current Configuration", default_file_name,
-                                    filter='Config (*.hdf5)')
-        self.model.save_configuration(filename)
-
-    def load_configuration_btn_clicked(self):
-        try:
-            default_file_name = self.model.working_directories['image'] + 'config.hdf5'
-        except TypeError:
-            default_file_name = '.'
-        filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name, filter='Config (*.hdf5)')
-        self.model.load_configuration(filename)

@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -43,9 +43,8 @@ class JcpdsEditorController(QtCore.QObject):
 
     phase_modified = QtCore.Signal()
 
-    def __init__(self, working_dir, parent_widget, dioptas_model=None, jcpds_phase=None):
+    def __init__(self, parent_widget, dioptas_model=None, jcpds_phase=None):
         """
-        :param working_dir: dictionary of working directories
         :param dioptas_model: Reference to DioptasModel object
         :param jcpds_phase: Reference to JcpdsPhase object
 
@@ -54,7 +53,6 @@ class JcpdsEditorController(QtCore.QObject):
         """
         super(JcpdsEditorController, self).__init__()
         self.widget = JcpdsEditorWidget(parent_widget)
-        self.working_dir = working_dir
         self.model = dioptas_model
         self.active = False
         self.create_connections()
@@ -369,7 +367,7 @@ class JcpdsEditorController(QtCore.QObject):
     def save_as_btn_clicked(self, filename=False):
         if filename is False:
             filename = save_file_dialog(self.widget, "Save JCPDS phase.",
-                                        self.working_dir['phase'],
+                                        self.model.working_directories['phase'],
                                         ('JCPDS Phase (*.jcpds)'))
 
             if filename != '':
