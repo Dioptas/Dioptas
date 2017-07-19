@@ -226,7 +226,7 @@ class FileNameIterator(QtCore.QObject):
         except AttributeError:
             pass
         if self.directory != new_directory:
-            if self.directory is not None:
+            if self.directory is not None and self.directory !='':
                 self.directory_watcher.removePath(self.directory)
             self.directory_watcher.addPath(new_directory)
             self.directory = new_directory
