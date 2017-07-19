@@ -19,6 +19,7 @@ integration module.
 
 .. figure:: images/start_values.png
    :align: center
+   :width: 300 px
 
    Start values for calibration
 
@@ -31,9 +32,10 @@ The parameters for peak selection are given in the peak selection section on the
 when "Calibration Parameters" is selected.
 
 .. figure:: images/peak_selection.png
-    :align: center
+   :align: center
+   :width: 300 px
 
-    Peak Selection Options
+   Peak Selection Options
 
 By default automatic peak search is selected, which tries to automatically find peaks on a clicked ring. To search on
 the first ring please click on it with the left mouse button. In case it is very difficult to "hit" the ring with the
