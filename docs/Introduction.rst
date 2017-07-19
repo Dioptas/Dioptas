@@ -1,36 +1,40 @@
 Introduction
 ============
 
-Dioptas is a  GUI program for fast analysis of powder X-ray diffraction Images.
+Dioptas is a  GUI program for fast integration and exploration of 2D X-ray diffraction Images.
 It provides the capability of calibrating, integrating, creating masks, showing multiple pattern overlays and display
 phases line positions.
 The basis of the integration and calibration algorithm is the pyFAI library pyFAI_.
-The usage of pyFAI_ allows integration times on the order of 20 milliseconds and calibration of every possible detector
+The usage of pyFAI_ allows integration times on the order of 80 milliseconds and calibration of every possible detector
 geometry.
 
 
-.. _pyFAI: https:\\github.com\kif\pyFAI
+.. _pyFAI: https:\\github.com\silx-kit\pyFAI
 
 
-Dioptas has three different modules which can all be accessed by the tab indicators on the left side of the user interface:
-**Calibration, Mask, Integration**.
+Dioptas has three different modules which can all be accessed by the tab indicators on the left side of the user
+interface: **Calibration, Mask, Integration**.
 
-The Calibration module enables you to calibrate the detector geometry. Within the mask module you can select regions you
-want to exclude from the image integration and the Integration module is the heart for data exploration. It shows both, the
-image and integrated spectra. One can overlay different spectra and show line position of phases.
+The Calibration module enables you to calibrate the detector geometry.
+Within the Mask module you can select regions you want to exclude from the image integration and the Integration module
+is the heart for data exploration.
+It shows both, the image and integrated spectra.
+One can overlay different spectra and show line position of phases.
 
 
 Mouse Interaction in Image Views and Pattern Views
----------------------------------------------------
+--------------------------------------------------
 
 *Left Click:*
-    Action depends on the module you are in. In the calibration view it will search for peaks. In the Mask view it is
-    the primary tool for creating the geometric objects used to build up the mask and in the integration view it draws a
-    line at the current two theta value.
+    Action depends on the module you are in.
+    In the calibration view it will search for peaks.
+    In the Mask view it is the primary tool for creating the geometric objects used to build up the mask and in the
+    integration view it draws a line at the current two theta value.
 
 *Left Drag:*
-    Zooms into the selected area. It will try to scale images accordingly, but will not perfectly zoom in to the
-    selected area, because pixels are kept as square objects on the screen.
+    Zooms into the selected area.
+    It will try to scale images accordingly, but will not perfectly zoom in to the selected area, because pixels are
+    kept as square objects on the screen.
 
 *Right Click (Command+Right Click on Mac):*
     Zoom out.
@@ -53,3 +57,8 @@ also possible to add a complete new color by double clicking (left) next to the 
 The histogram next to the color bar shows the intensity distribution of the loaded image on a log scale. The sliders two
 lines define the scaling of the image in the image view. Please feel free to adjust their position by dragging them.
 
+
+Dioptas Projects and Configurations
+-----------------------------------
+
+to be filled
