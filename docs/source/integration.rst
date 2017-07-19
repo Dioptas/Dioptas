@@ -95,7 +95,7 @@ Overlays
 
 .. figure:: images/overlay_control.png
     :align: center
-    :width: 700
+    :width: 500
 
     Overlay controls in Dioptas.
 
@@ -135,7 +135,7 @@ Phases
 
 .. figure:: images/phase_control.png
     :align: center
-    :width: 700
+    :width: 500
 
     Phase controls for Dioptas
 
@@ -170,8 +170,8 @@ JCPDS Editor
 ~~~~~~~~~~~~
 
 .. figure:: images/jcpds_editor.png
-    :align: left
-    :height: 250
+    :align: center
+    :height: 500
 
     Graphical JCPDS editor
 
@@ -185,6 +185,25 @@ The changes can be saved as a new file by clicking the *Save As* button. If you 
 original files please press the *Reload File* button. If you like the changes you made you can close the JCPDS editor
 either by clicking the *X* button or the *OK* button on the lower right. The *Cancel* button will close the JCPDS editor
 and revert the changes made since the last opening of the JCPDS editor.
+
+Corrections
+-----------
+
+In the *Cor* tab it is possible to enbale intensity corrections for cBN seats and the scintillator thickness of the
+detector.
+
+
+*cBN Seat Correction*:
+    Enabling this option calculates the theoretical transmitted intensity through a diamond and cBN seat based on the
+    parameters entered into the text boxes. Where:
+        - Diamond d is the diamond thickness in mm.
+        - Seat d is the seat thickness in mm
+        - Inner Seat r is the radius of the small opening of the cBN seat (close to the diamond) in mm
+        - Outer Seat r is the radius of the outer opening of the cBN seat in mm
+        - Cell Tilt is the tilting of the cell in respect to the primary beam in degrees.
+        - Tilt Rotation is the direction of the Cell tilt in degrees.
+    To see the calculated transmitted intensity distribution press the *Plot Cor* button. This will show the calculated
+    absorption correction in the image view.
 
 Background subtraction
 ----------------------
@@ -210,33 +229,11 @@ Special (X-Tab)
 
 .. figure:: images/integration_options.png
     :align: center
-    :width: 700
+    :width: 500
 
     Special Options.
 
 The currently available features:
-
-*Mask - Transparent*:
-    If a mask is used for integration it will be shown as transparent red over the image, compared to the usual solid red.
-    This makes it possible to still be able to see what exactly is masked
-
-*Levels - Autoscale, Absolute, Percentage*:
-    These 3 choices are different modes for intensity scaling when loading new files or browsing files. *Autoscale* will
-    always perform autoscaling for each newly loaded image. When using *Absolute* the maximum and minimum levels remain
-    the same and are independent of the img intensities and when using *Percentage* the levels are always scaled as
-    percentage of the maximum intensity of the newly loaded image.
-
-*cBN Seat Correction*:
-    Enabling this option calculates the theoretical transmitted intensity through a diamond and cBN seat based on the
-    parameters entered into the text boxes. Where:
-        - Diamond d is the diamond thickness in mm.
-        - Seat d is the seat thickness in mm
-        - Inner Seat r is the radius of the small opening of the cBN seat (close to the diamond) in mm
-        - Outer Seat r is the radius of the outer opening of the cBN seat in mm
-        - Cell Tilt is the tilting of the cell in respect to the primary beam in degrees.
-        - Tilt Rotation is the direction of the Cell tilt in degrees.
-    To see the calculated transmitted intensity distribution press the *Plot Cor* button. This will show the calculated
-    absorption correction in the image view.
 
 *Integration*:
     Here you can manually specify the number of integration bins and/or choose to supersample the image. Supersampling
