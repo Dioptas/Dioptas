@@ -97,6 +97,15 @@ html_theme = 'sphinxdoc'
 html_static_path = ['_static']
 
 
+# options for the figure numbers
+numfig = True
+numfig_format = {'figure': 'Fig. %s:',
+                 'table': 'Table %s',
+                 'code-block': 'Listing %s',
+                 'section': 'section'
+                 }
+
+
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
