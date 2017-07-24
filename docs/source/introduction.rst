@@ -57,10 +57,13 @@ Image Color Scale and Contrast
 ------------------------------
 
 Every image view has a color bar and a histogram either on the side of the image (Mask module and Calibration Module) or
-on the top (integration view). The colors of the color bars can be easily adjusted. You can switch to a completely
-different color-scale by right clicking the color bar. This creates a pop-up where one of the predefined color scales
-can be selected. The position of the individual colors can be adjusted by dragging the triangle of this color. Further
-the colors can be changed completely by double clicking (left) it, which will pop up a color chooser. It is in addition
-also possible to add a complete new color by double clicking (left) next to the color bar.
-The histogram next to the color bar shows the intensity distribution of the loaded image on a log scale. The sliders two
-lines define the scaling of the image in the image view. Please feel free to adjust their position by dragging them.
+on the top (integration view).
+The colors of the color bars can be easily adjusted.
+You can switch to a completely different color-scale by right clicking the color bar.
+This creates a pop-up where one of the predefined color scales can be selected.
+The position of the individual colors can be adjusted by dragging the triangle of this color.
+Further the colors can be changed completely by double clicking (left) it, which will pop up a color chooser.
+It is in addition also possible to add a complete new color by double clicking (left) next to the color bar.
+The histogram next to the color bar shows the intensity distribution of the loaded image on a log scale.
+The sliders two lines define the scaling of the image in the image view.
+Please feel free to adjust their position by dragging them.
