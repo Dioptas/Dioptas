@@ -100,30 +100,30 @@ selected.
 
 There are several options available:
 
-*automatic refinement:*
+- *automatic refinement:*
     Defines if refinement is executed automatically after calibration.
 
-*use mask/transparent:*
+- *use mask/transparent:*
     The refinement can be constraint to a certain image area by using a mask previously defined in the mask module. The
     image of the mask can be made transparent to be able to "look behind"
 
-*Peaksearch algorithm:*
+- *Peaksearch algorithm:*
     The algorithm used for searching peaks on the ring. The standard algorithm is "Massif" although "Blob" detection may give better
     results in some cases.
 
-*Delta 2th:*
+- *Delta 2th:*
     This is the +- search range used for automatic peak search for each ring. The center value depends on the values,
     estimated by the calibration procedure, so ultimately by the initial choice of predefined peaks (Peak selection)
 
-*Intensity Min factor:*
+- *Intensity Min factor:*
     This factor determines how many times the peak intensity has to be higher than the mean value of the search area
     (within the delta 2th value) for each individual ring. The lower this value is the more peaks will be selected,
     however, also the likelihood of selecting wrong background peaks increase.
 
-*Intensity Max:*
+- *Intensity Max:*
     A threshold value which excludes all peaks above this value.
 
-*Number of rings:*
+- *Number of rings:*
     The number of rings on which peaks are searched.
 
 
