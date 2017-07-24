@@ -82,9 +82,9 @@ class CalibrationModel(QtCore.QObject):
     def find_peaks_automatic(self, x, y, peak_ind):
         """
         Searches peaks by using the Massif algorithm
-        :param int x:
+        :param float x:
             x-coordinate in pixel - should be from original image (not supersampled x-coordinate)
-        :param int y:
+        :param float y:
             y-coordinate in pixel - should be from original image (not supersampled y-coordinate)
         :param peak_ind:
             peak/ring index to which the found points will be added
@@ -92,7 +92,7 @@ class CalibrationModel(QtCore.QObject):
             array of points found
         """
         massif = Massif(self.img_model._img_data)
-        cur_peak_points = massif.find_peaks([int(np.round(x)), int(np.round(y))], stdout=DummyStdOut())
+        cur_peak_points = massif.find_peaks((int(np.round(x)), int(np.round(y))), stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
