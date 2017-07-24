@@ -1,3 +1,6 @@
+.. sectnum::
+   :start: 3
+
 Mask Creation
 =============
 
@@ -20,19 +23,21 @@ Selection Tools
 To select a specific geometry just click on it and an orange border will show which one is active right now. All
 geometric shapes are created by using left clicks:
 
-*Circle*:
+- *Circle*:
     The first click defines the center of the circle and the second the radius of the circle.
 
-*Rectangle*:
+- *Rectangle*:
     The first click defines one corner and the second the corner on the opposite side.
 
-*Point*:
+- *Point*:
     A click will mask an area as large as the circle floating around the mouse pointer. The size of the circle can be
     changed by changing the value next the the **Point** button or using just pressing the **q** and **w** keys.
 
-*Polygon*:
+- *Polygon*:
     Subsequent clicks will define edges of the polygon. A double click will close the polygon (and add the position of
     the double click as last point to the polygon)
+- *Arc*:
+    The first 3 clicks define a circle section and the 4th click defines the thickness of the arc.
 
 
 Threshold Masking and Cosmic Removal

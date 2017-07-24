@@ -1,3 +1,6 @@
+.. sectnum::
+   :start: 2
+
 Calibration Procedure
 =====================
 Make sure you are in the calibration mode, which should be selected on the left side of the window.

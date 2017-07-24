@@ -99,11 +99,8 @@ html_static_path = ['_static']
 
 # options for the figure numbers
 numfig = True
-numfig_format = {'figure': 'Fig. %s:',
-                 'table': 'Table %s',
-                 'code-block': 'Listing %s',
-                 'section': 'section'
-                 }
+numfig_secnum_depth = (2)
+numfig_format = {'figure': 'Fig. %s', 'table': 'Table %s', 'code-block': 'Code Block %s'}
 
 
 # -- Options for HTMLHelp output ------------------------------------------
