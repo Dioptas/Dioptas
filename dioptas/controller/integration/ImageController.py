@@ -473,10 +473,10 @@ class ImageController(object):
         return master_widget_parent
 
     def click_roi_btn(self):
-        if self.model.mask_model.roi is None:
-            self.model.mask_model.roi = self.widget.img_widget.roi.getRoiLimits()
+        if self.model.current_configuration.roi is None:
+            self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
         else:
-            self.model.mask_model.roi = None
+            self.model.current_configuration.roi = None
         self.update_roi_in_gui()
 
     def update_roi_in_gui(self):
