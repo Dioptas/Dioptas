@@ -33,24 +33,24 @@ One can overlay different spectra and show line position of phases.
 Mouse Interaction in Image Views and Pattern Views
 --------------------------------------------------
 
-*Left Click:*
+- *Left Click:*
     Action depends on the module you are in.
     In the calibration view it will search for peaks.
     In the Mask view it is the primary tool for creating the geometric objects used to build up the mask and in the
     integration view it draws a line at the current two theta value.
 
-*Left Drag:*
+- *Left Drag:*
     Zooms into the selected area.
     It will try to scale images accordingly, but will not perfectly zoom in to the selected area, because pixels are
     kept as square objects on the screen.
 
-*Right Click (Command+Right Click on Mac):*
+- *Right Click (Command+Right Click on Mac):*
     Zoom out.
 
-*Right Double Click (Command + Right Double Click on Mac):*
+- *Right Double Click (Command + Right Double Click on Mac):*
     Completely zoom out.
 
-*Mouse Wheel:*
+- *Mouse Wheel:*
     Zoom in and zoom out based on the current cursor position.
 
 Image Color Scale and Contrast
