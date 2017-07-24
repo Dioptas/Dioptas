@@ -212,7 +212,7 @@ class ImgModel(QtCore.QObject):
         """
         Resets the background data to None
         """
-        self.background_filename = None
+        self.background_filename = ''
         self._background_data = None
         self._background_data_fabio = None
         self._calculate_img_data()
