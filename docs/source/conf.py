@@ -83,7 +83,16 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinxdoc'
+html_theme = 'agogo'
+html_theme_options = {
+    "headerfont": '"Lucida Sans Unicode", "Lucida Grande", sans-serif',
+    "headerbg": "#999",
+    "footerbg": "#DDDFDF",
+    "headercolor1": "#000",
+    "headercolor2": "#000",
+    "headerlinkcolor": "#000"
+
+}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
