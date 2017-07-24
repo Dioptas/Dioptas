@@ -51,32 +51,32 @@ considerable amount of time, please be patient.
 Control Buttons
 ---------------
 
-*Grow*:
+- *Grow*:
     Grows the current mask by one pixel in all directions.
 
-*Shrink*:
+- *Shrink*:
     Shrinks the current mask by one pixel in all directions.
 
-*Invert*:
+- *Invert*:
     This will invert the mask so that unmasked areas become masked and vice versa.
 
-*Clear*:
+- *Clear*:
     This will remove the complete mask.
 
-*Undo/Redo*:
+- *Undo/Redo*:
     Enabling to undo the last action or redo them. You can undo up to 50 actions.
 
 
 File Handling
 -------------
 
-*Save Mask*:
+- *Save Mask*:
     Saves the current mask as a tiff file with intensities being 1 for masked areas and 0 for unmasked areas.
 
-*Load Mask*:
+- *Load Mask*:
     Loads a previously saved mask. Clears the current mask before.
 
-*Add Mask*:
+- *Add Mask*:
     Loads a previously saved mask and adds it to the current mask.
 
 
