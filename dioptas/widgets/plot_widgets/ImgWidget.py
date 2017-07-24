@@ -424,6 +424,10 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.roi_shade.activate_rects()
         self.roi.blockSignals(False)
 
+    def update_roi_shade_limits(self, img_shape):
+        self.roi_shade.img_shape = img_shape
+        self.roi_shade.update_rects()
+
     def deactivate_roi(self):
         self.img_view_box.removeItem(self.roi)
         self.roi_shade.deactivate_rects()
