@@ -7,12 +7,13 @@ Integration Module
 
 
 The integration module is the heart of Dioptas.
-Here you can automatically integrate multiple of pattern, browse between images and integrated pattern, compare multiple
-pattern to each other, perform background subtraction and compare pattern peak positions to the ones of known phases.
+Here you can automatically integrate multiple images to pattern, browse between images and integrated pattern,
+compare multiple pattern to each other, perform background subtraction and compare pattern peak positions and
+intensities to the ones of known phases.
 
 .. figure:: images/integration_view.png
     :align: center
-    :width: 700
+    :width: 750
 
     The integration module of Dioptas.
 
@@ -25,9 +26,13 @@ In the "**Overlay**" tab integrated pattern can be loaded for comparing them to 
 pattern.
 The "**Phase**" tab enables opening/editing jcpds files and changing the equation of state parameters of the loaded
 phases.
-The controls in the "**Bkg**" tab can be used to define an image as background prior to integration and the "**X**"
-(special) tab contains several additional optional features like cBN absorption correction, manual selection of the
-number of integrating bins.
+The "**Cor**" tab gives options for performing intensity corrections.
+Here the absorption of a c-BN seat and diamond in a diamond anvil cell, or the detector scintillator can be corrected
+prior to integration.
+The controls in the "**Bkg**" tab can be used to define an image as background prior to integration and doing automatic
+background subtraction of the integrated pattern.
+The "**X**" (special) tab contains several additional optional features like cBN absorption correction, manual selection
+of the number of integrating bins.
 
 
 File Handling
@@ -41,7 +46,7 @@ If there is a header present it should be commented by '#' signs.
 
 Images loaded will be automatically integrated if a calibration is available (either by performing it in the calibration
 window or by loading a previously saved calibration file (* \*.poni*) file).
-There are too modes for file browsing (clicking the "**<**" and "**>**" buttons:
+There are too modes for file browsing (clicking the "**<**" and "**>**" buttons):
 
 *By Name*:
     the next and previous filenames will be searched based on the last digits in the filename.
@@ -52,15 +57,16 @@ There are too modes for file browsing (clicking the "**<**" and "**>**" buttons:
     This filemode does not need any numbers in the filenames it will just sort the files based on creation time and go
     forward and backwards in this list.
 
-Any newly added file to the current img working directory can be opened by checking the **autoprocess** checkbox in the
-Image module.
+In case you want to browse through files in larger steps the "*step*" value can be adjusted.
+Any newly added file to the current img working directory can be opened automatically by checking the **autoprocess**
+checkbox in the Image module.
 
-By default the integrated pattern are not saved.
-If you want the pattern to be saved please choose an output folder in
-the **Pattern** tab by clicking the "**...**" button and then check the **autoprocess** checkbox.
-All new integrated pattern will then be automatically saved in this folder with name being the same as the image but
+By default the integrated pattern is not saved.
+To automatically save the integrated patterns choose an output folder in the **Pattern** tab by clicking the "**...**"
+button and then check the **autocreate** checkbox.
+All new integrated patterns will then be automatically saved in this folder with name being the same as the image but
 different file extension.
-The integrated pattern can be automatically saved in 3 different formats by checking their respective boxes in the
+The integrated pattern can be automatically saved in 4 different formats by checking their respective boxes in the
 lower right of the **Pattern** tab:
 
 - *.xy*:
@@ -79,8 +85,8 @@ lower right of the **Pattern** tab:
     A three column format used by GSAS and GSAS-II.
     The third column is the error of the intensity which is usually defined as square root of the integrated intensity.
 
-In addition to file browsing and the "**load**" button, files can also be loaded by inserting their name folder in the
-respective text fields.
+In addition to file browsing and the "**load**" button, files can also be loaded by inserting their name and folder in
+the respective text fields.
 The upper one is the filename and the lower one is the containing folder.
 If the file does not exist it the text field will revert to its previous state.
 
@@ -117,10 +123,11 @@ On the right side you can adjust the scale and offset of the overlays by either 
 spin-box controls.
 The **step** text fields control the steps of the spin-box.
 
+
 Set as Background
 ~~~~~~~~~~~~~~~~~
 
-An overlay can be used as a background for the pattern.
+An overlay can be used as a background for the integrated pattern.
 In order to to so, you have to activate the "**Set as Background**" button.
 This button sets the currently selected overlay as background for the pattern file.
 It can be seen that an overlay is set as background by the **Set as Background** button being activated for a
@@ -130,7 +137,7 @@ The scaling and offset of the overlay/background can still be adjusted by using 
 The background overlay remains active until it is deactivated, therefore the background will be automatically subtracted
 from each newly integrated image or newly loaded pattern.
 If autosave for pattern is set, Dioptas will create a *bkg_subtracted* folder in the autosave folder and automatically
-save all subtracted pattern.
+save all subtracted patterns.
 
 Waterfall
 ~~~~~~~~~
@@ -200,19 +207,20 @@ JCPDS Editor
 
     Graphical JCPDS editor.
 
-In the jcpds editor the content of the jcpds file can be modified.
+In the *JCPDS Editor* the parameters of the jcps phase can be modified.
 Every change will be immediately reflected in the position of the lines in the pattern.
 You can edit the comment, the symmetry, lattice parameter and equation of state parameters.
 Reflections can be edited in the reflections table.
 h, k, l and intensities can be modified by double clicking in the
 table all other parameters are calculated correspondingly.
-A 0 after a parameters always means that this is the value at ambient condition and when there is no 0 the value
+A "0" after a parameter name always means that this is the value at ambient condition and when there is no "0" the value
 corresponds to the current temperature and pressure conditions modified in the *Phase* tab.
 The changes can be saved as a new file by clicking the *Save As* button.
 If you want to revert all changes and reload the original files please press the *Reload File* button.
 If you like the changes you made you can close the JCPDS editor either by clicking the *X* button or the *OK* button on
 the lower right.
 The *Cancel* button will close the JCPDS editor and revert the changes made since the last opening of the JCPDS editor.
+
 
 Corrections
 -----------
@@ -223,8 +231,8 @@ Corrections
 
     Correction controls in the integration window.
 
-In the *Cor* tab it is possible to enable intensity corrections for cBN seats and the scintillator thickness of the
-detector.
+In the *Cor* tab it is possible to enable intensity corrections for cBN seats, diamonds and the scintillator thickness
+of the detector.
 
 
 cBN Seat Correction
