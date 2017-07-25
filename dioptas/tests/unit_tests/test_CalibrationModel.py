@@ -55,7 +55,7 @@ class CalibrationModelTest(QtTest):
 
     def test_find_peaks_automatic(self):
         self.load_pilatus_1M_and_find_peaks()
-        self.assertEqual(len(self.calibration_model.points), 5)
+        self.assertEqual(len(self.calibration_model.points), 6)
         for points in self.calibration_model.points:
             self.assertGreater(len(points), 0)
 
