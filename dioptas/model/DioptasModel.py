@@ -83,6 +83,8 @@ class DioptasModel(QtCore.QObject):
         """
         Removes the currently selected configuration.
         """
+        if len(self.configurations) == 1:
+            return
         ind = self.configuration_ind
         self.disconnect_models()
         del self.configurations[ind]
