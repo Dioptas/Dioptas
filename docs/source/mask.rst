@@ -13,7 +13,7 @@ It can be either chosen to mask a certain region or unmask it (select either on 
 
 .. figure:: images/mask_view.png
     :align: center
-    :width: 700
+    :width: 750
 
     The Mask module of Dioptas.
 
@@ -38,6 +38,7 @@ All geometric shapes are created by using left clicks:
 - *Polygon*:
     Subsequent clicks will define edges of the polygon.
     A double click will close the polygon (and add the position of the double click as last point to the polygon)
+
 - *Arc*:
     The first 3 clicks define a circle section and the 4th click defines the thickness of the arc.
 
