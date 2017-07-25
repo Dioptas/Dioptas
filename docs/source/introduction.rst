@@ -3,7 +3,7 @@
 Introduction
 ============
 
-Dioptas is a  GUI program for fast integration and exploration of 2D X-ray diffraction Images.
+Dioptas is a GUI program for fast integration and exploration of 2D X-ray diffraction Images.
 It provides the capability of calibrating, integrating, creating masks, showing multiple pattern overlays and display
 phases line positions.
 The basis of the integration and calibration algorithm is the pyFAI_ library.
@@ -19,19 +19,23 @@ interface: **Calibration, Mask, Integration**.
 
 The Calibration module enables you to calibrate the detector geometry.
 Within the Mask module you can select regions you want to exclude from the image integration and the Integration module
-is the heart for data exploration.
-It shows both, the image and integrated spectra.
-One can overlay different spectra and show line position of phases.
+is the heart of Dioptas, where you will spend most time for data exploration.
+It shows both, the image and integrated pattern, and one can overlay different pattern and show line position of phases.
 
 .. figure:: images/integration_view_modules.png
     :align: center
-    :width: 800 px
+    :width: 750 px
 
     Location of module selectors.
 
 
-Mouse Interaction in Image Views and Pattern Views
+Mouse Interaction in the Image and Pattern Widgets
 --------------------------------------------------
+
+The basis for data exploration in are the image and pattern widgets available in all 3 modules.
+The interaction with these widgets is tried to be as intuitive as possible, without extra need of different selection
+modes.
+All widgets support to following mouse commands:
 
 - *Left Click:*
     Action depends on the module you are in.
@@ -56,8 +60,8 @@ Mouse Interaction in Image Views and Pattern Views
 Image Color Scale and Contrast
 ------------------------------
 
-Every image view has a color bar and a histogram either on the side of the image (Mask module and Calibration Module) or
-on the top (integration view).
+Every image widget has a color bar and a histogram either on the side of the image (Mask module and Calibration Module)
+or on the top (integration module).
 The colors of the color bars can be easily adjusted.
 You can switch to a completely different color-scale by right clicking the color bar.
 This creates a pop-up where one of the predefined color scales can be selected.
