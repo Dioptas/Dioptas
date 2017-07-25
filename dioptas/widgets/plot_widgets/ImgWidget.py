@@ -127,7 +127,7 @@ class ImgWidget(QtCore.QObject):
                         y_range[0] <= img_bounds.bottom() and \
                         y_range[1] >= img_bounds.top():
             self.img_view_box.autoRange()
-            self._max_range=True
+            self._max_range = True
             return
         self.img_view_box.setRange(xRange=x_range, yRange=y_range)
         self._max_range = False
@@ -138,8 +138,8 @@ class ImgWidget(QtCore.QObject):
             return
 
         view_x_range, view_y_range = self.img_view_box.viewRange()
-        if view_x_range[1]>self.img_data.shape[0] or \
-            view_y_range[1]>self.img_data.shape[1]:
+        if view_x_range[1] > self.img_data.shape[0] or \
+                        view_y_range[1] > self.img_data.shape[1]:
             self.auto_range()
 
     def auto_level(self):
@@ -274,7 +274,6 @@ class CalibrationCakeWidget(ImgWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(CalibrationCakeWidget, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
-        self._vertical_line_activated = False
         self.create_vertical_line()
         self.mouse_left_clicked.connect(self.set_vertical_line_pos)
 
@@ -283,14 +282,13 @@ class CalibrationCakeWidget(ImgWidget):
         self.activate_vertical_line()
 
     def activate_vertical_line(self):
-        if not self._vertical_line_activated:
+        if not self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.addItem(self.vertical_line)
-            self._vertical_line_activated = True
+            self.vertical_line.setVisible(True) #oddly this is needed for the line to be displayed correctly
 
     def deactivate_vertical_line(self):
-        if self._vertical_line_activated:
+        if self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.removeItem(self.vertical_line)
-            self._vertical_line_activated = False
 
     def set_vertical_line_pos(self, x, y):
         self.vertical_line.setValue(x)
@@ -305,10 +303,12 @@ class MaskImgWidget(ImgWidget):
         self.mask_preview_fill_color = QtGui.QColor(255, 0, 0, 150)
 
     def activate_mask(self):
-        self.img_view_box.addItem(self.mask_img_item)
+        if not self.mask_img_item in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.mask_img_item)
 
     def deactivate_mask(self):
-        self.img_view_box.removeItem(self.mask_img_item)
+        if self.mask_img_item in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.mask_img_item)
 
     def plot_mask(self, mask_data):
         self.mask_data = np.int16(mask_data)
@@ -354,11 +354,11 @@ class MaskImgWidget(ImgWidget):
 class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
-        self.deactivate_vertical_line()
         self.create_circle_plot_items()
         self.create_mouse_click_item()
         self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
+        self.deactivate_vertical_line()
 
     def create_circle_plot_items(self):
         # creates several PlotDataItems as line items, to be filled with the current clicked position
@@ -403,11 +403,13 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
 
     def activate_circle_scatter(self):
         for plot_item in self.circle_plot_items:
-            self.img_view_box.addItem(plot_item)
+            if not plot_item in self.img_view_box.addedItems:
+                self.img_view_box.addItem(plot_item)
 
     def deactivate_circle_scatter(self):
         for plot_item in self.circle_plot_items:
-            self.img_view_box.removeItem(plot_item)
+            if plot_item in self.img_view_box.addedItems:
+                self.img_view_box.removeItem(plot_item)
 
     def create_roi_item(self):
         self.roi = MyROI([20, 20], [500, 500], pen=pg.mkPen(color=(0, 255, 0), size=2))
@@ -420,21 +422,24 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.roi_shade = RoiShade(self.img_view_box, self.roi)
 
     def activate_roi(self):
-        self.img_view_box.addItem(self.roi)
-        self.roi_shade.activate_rects()
-        self.roi.blockSignals(False)
+        if not self.roi in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.roi)
+            self.roi_shade.activate_rects()
+            self.roi.blockSignals(False)
 
     def update_roi_shade_limits(self, img_shape):
         self.roi_shade.img_shape = img_shape
         self.roi_shade.update_rects()
 
     def deactivate_roi(self):
-        self.img_view_box.removeItem(self.roi)
-        self.roi_shade.deactivate_rects()
-        self.roi.blockSignals(True)
+        if self.roi in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.roi)
+            self.roi_shade.deactivate_rects()
+            self.roi.blockSignals(True)
 
 
 mask_pen = QtGui.QPen(QtGui.QColor(255, 255, 255), 0.5)
+
 
 class MyPolygon(QtWidgets.QGraphicsPolygonItem):
     def __init__(self, x, y, fill_color):
