@@ -16,23 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import os
 import sys
 import time
-import logging
 
 import numpy as np
-from qtpy import QtCore
-
-from pyFAI.massif import Massif
-from pyFAI.blob_detection import BlobDetection
-from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
+from pyFAI.geometryRefinement import GeometryRefinement
+from pyFAI.massif import Massif
+from qtpy import QtCore
 from skimage.measure import find_contours
+
+from .. import calibrants_path
 from .util.HelperModule import get_base_name
-from . import ImgModel
-from ..calibrants import calibrants_folder
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -67,7 +66,7 @@ class CalibrationModel(QtCore.QObject):
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
-        self._calibrants_working_dir = calibrants_folder
+        self._calibrants_working_dir = calibrants_path
 
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)

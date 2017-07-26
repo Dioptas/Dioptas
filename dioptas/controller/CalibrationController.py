@@ -22,6 +22,7 @@ from qtpy import QtWidgets, QtCore
 import numpy as np
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
+from .. import calibrants_path
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.CalibrationWidget import CalibrationWidget
@@ -190,7 +191,7 @@ class CalibrationController(object):
         """
         self._calibrants_file_list = []
         self._calibrants_file_names_list = []
-        for file in os.listdir(self.model.calibration_model._calibrants_working_dir):
+        for file in os.listdir(calibrants_path):
             if file.endswith('.D'):
                 self._calibrants_file_list.append(file)
                 self._calibrants_file_names_list.append(file.split('.')[:-1][0])
