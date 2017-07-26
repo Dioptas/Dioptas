@@ -70,8 +70,8 @@ pyfai_params = {'detector': 'Detector',
                 'pixel1': 7.9e-05,
                 'pixel2': 7.9e-05,
                 'wavelength': 3.1e-11,
-                'polarization_factor': 0.99,
-                'splineFile': None}
+                'polarization_factor': 0.99
+                }
 pressure = 12.0
 
 
