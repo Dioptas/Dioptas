@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -31,15 +31,13 @@ from ..model.DioptasModel import DioptasModel
 
 
 class MaskController(object):
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: Dictionary of working directories
         :param widget: Reference to a MaskView object
         :type widget: MaskWidget
         :param dioptas_model: Reference to an DioptasModel object
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -57,6 +55,7 @@ class MaskController(object):
         self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
 
         self.model.img_changed.connect(self.update_mask_dimension)
+        self.model.configuration_selected.connect(self.update_gui)
 
         self.widget.circle_btn.clicked.connect(self.activate_circle_btn)
         self.widget.rectangle_btn.clicked.connect(self.activate_rectangle_btn)
@@ -95,14 +94,15 @@ class MaskController(object):
             if btn is not except_btn:
                 if btn.isChecked():
                     btn.toggle()
-        # if not except_btn.isChecked() and except_btn is not None:
-        #     except_btn.toggle()
 
         shapes = [self.rect, self.circle, self.polygon]
         for shape in shapes:
             if shape is not None:
                 self.widget.img_widget.img_view_box.removeItem(shape)
                 self.widget.img_widget.mouse_moved.disconnect(shape.set_size)
+        self.rect = None
+        self.circle = None
+        self.polygon = None
 
         try:
             self.widget.img_widget.mouse_moved.disconnect(self.point.set_position)
@@ -369,20 +369,20 @@ class MaskController(object):
     def save_mask_btn_click(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
         filename = save_file_dialog(self.widget, "Save mask data",
-                                    os.path.join(self.working_dir['mask'],
+                                    os.path.join(self.model.working_directories['mask'],
                                                  img_filename + '.mask'),
                                     filter='Mask (*.mask)')
 
         if filename is not '':
-            self.working_dir['mask'] = os.path.dirname(filename)
+            self.model.working_directories['mask'] = os.path.dirname(filename)
             self.model.mask_model.save_mask(filename)
 
     def load_mask_btn_click(self):
         filename = open_file_dialog(self.widget, caption="Load mask data",
-                                    directory=self.working_dir['mask'], filter='*.mask')
+                                    directory=self.model.working_directories['mask'], filter='*.mask')
 
         if filename is not '':
-            self.working_dir['mask'] = os.path.dirname(filename)
+            self.model.working_directories['mask'] = os.path.dirname(filename)
             if self.model.mask_model.load_mask(filename):
                 self.plot_mask()
             else:
@@ -392,10 +392,10 @@ class MaskController(object):
 
     def add_mask_btn_click(self):
         filename = open_file_dialog(self.widget, caption="Add mask data",
-                                    directory=self.working_dir['mask'], filter='*.mask')
+                                    directory=self.model.working_directories['mask'], filter='*.mask')
 
         if filename is not '':
-            self.working_dir['mask'] = os.path.dirname(filename)
+            self.model.working_directories['mask'] = os.path.dirname(filename)
             if self.model.mask_model.add_mask(filename):
                 self.plot_mask()
             else:
@@ -436,11 +436,13 @@ class MaskController(object):
         self.update_shape_preview_fill_color()
 
     def fill_rb_click(self):
+        self.model.transparent_mask = False
         self.widget.img_widget.set_color([255, 0, 0, 255])
         self.plot_mask()
 
     #
     def transparent_rb_click(self):
+        self.model.transparent_mask = True
         self.widget.img_widget.set_color([255, 0, 0, 100])
         self.plot_mask()
 
@@ -454,6 +456,19 @@ class MaskController(object):
         except (IndexError, AttributeError):
             str = "x: %.1f y: %.1f" % (x, y)
         self.widget.pos_lbl.setText(str)
+
+    def update_gui(self):
+        #transparency
+        if self.model.transparent_mask:
+            self.widget.transparent_rb.setChecked(True)
+            self.transparent_rb_click()
+        else:
+            self.widget.fill_rb.setChecked(True)
+            self.fill_rb_click()
+
+        self.plot_mask()
+        self.plot_image()
+
 
 
 if __name__ == "__main__":

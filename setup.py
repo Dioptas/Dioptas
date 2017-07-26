@@ -25,11 +25,12 @@ setup(
                  'Topic :: Scientific/Engineering',
                  ],
     packages=find_packages(),
-    package_data={'dioptas': ['calibrants/*',
-                              'widgets/stylesheet.qss',
-                              'widgets/icns/icon*',
-                              'model/util/data/*.json',
-                              'model/util/smooth_bruckner.f95']},
+    package_data={'dioptas': ['resources/style/*',
+                              'resources/calibrants/*',
+                              'resources/data/*',
+                              'resources/icons/*',
+                              ]
+                  },
     scripts=['scripts/dioptas'],
     ext_modules=[smooth_bruckner]
 )

@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,29 +16,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import os
 import sys
 import time
-import logging
 
 import numpy as np
-
-from pyFAI.massif import Massif
-from pyFAI.blob_detection import BlobDetection
-from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
+from pyFAI.geometryRefinement import GeometryRefinement
+from pyFAI.massif import Massif
+from qtpy import QtCore
 from skimage.measure import find_contours
+
+from .. import calibrants_path
 from .util.HelperModule import get_base_name
-from . import ImgModel
-from ..calibrants import calibrants_folder
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class CalibrationModel(object):
+class CalibrationModel(QtCore.QObject):
     def __init__(self, img_model=None):
+        super(CalibrationModel, self).__init__()
         """
         :param img_model:
         :type img_model: ImgModel
@@ -47,7 +48,9 @@ class CalibrationModel(object):
         self.points = []
         self.points_index = []
         self.pattern_geometry = AzimuthalIntegrator()
+        self.pattern_geometry_img_shape = None
         self.cake_geometry = None
+        self.cake_geometry_img_shape = None
         self.calibrant = Calibrant()
         self.pattern_geometry.wavelength = 0.3344e-10
         self.start_values = {'dist': 200e-3,
@@ -65,21 +68,24 @@ class CalibrationModel(object):
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
-        self._calibrants_working_dir = calibrants_folder
+        self._calibrants_working_dir = calibrants_path
 
-        self.cake_img = np.zeros((2048, 2048))
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
         self.num_points = len(self.int)
+
+        self.cake_img = np.zeros((2048, 2048))
+        self.cake_tth = None
+        self.cake_azi = None
 
         self.peak_search_algorithm = None
 
     def find_peaks_automatic(self, x, y, peak_ind):
         """
         Searches peaks by using the Massif algorithm
-        :param int x:
+        :param float x:
             x-coordinate in pixel - should be from original image (not supersampled x-coordinate)
-        :param int y:
+        :param float y:
             y-coordinate in pixel - should be from original image (not supersampled y-coordinate)
         :param peak_ind:
             peak/ring index to which the found points will be added
@@ -87,7 +93,7 @@ class CalibrationModel(object):
             array of points found
         """
         massif = Massif(self.img_model._img_data)
-        cur_peak_points = massif.find_peaks([int(np.round(x)), int(np.round(y))], stdout=DummyStdOut())
+        cur_peak_points = massif.find_peaks((int(np.round(x)), int(np.round(y))), stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
@@ -284,10 +290,10 @@ class CalibrationModel(object):
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
-        if self.pattern_geometry._polarization is not None:
-            if self.img_model.img_data.shape != self.pattern_geometry._polarization.shape:
-                # resetting the integrator if the polarization correction matrix has not the correct shape
-                self.pattern_geometry.reset()
+        if self.pattern_geometry_img_shape != self.img_model.img_data.shape:
+            # if cake geometry was used on differently shaped image before the azimuthal integrator needs to be reset
+            self.pattern_geometry.reset()
+            self.pattern_geometry_img_shape = self.img_model.img_data.shape
 
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
@@ -341,10 +347,10 @@ class CalibrationModel(object):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
-        if self.cake_geometry._polarization is not None:
-            if self.img_model.img_data.shape != self.cake_geometry._polarization.shape:
-                # resetting the integrator if the polarization correction matrix has not the same shape as the image
-                self.cake_geometry.reset()
+        if self.cake_geometry_img_shape != self.img_model.img_data.shape:
+            # if cake geometry was used on differently shaped image before the azimuthal integrator needs to be reset
+            self.cake_geometry.reset()
+            self.cake_geometry_img_shape = self.img_model.img_data.shape
 
         t1 = time.time()
 
@@ -378,11 +384,10 @@ class CalibrationModel(object):
             fit2d_parameter['polarization_factor'] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
-        try:
-            pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+
+        pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+        if fit2d_parameter:
             fit2d_parameter['wavelength'] = self.pattern_geometry.wavelength
-        except RuntimeWarning:
-            pyFAI_parameter['wavelength'] = 0
 
         return pyFAI_parameter, fit2d_parameter
 
@@ -394,7 +399,7 @@ class CalibrationModel(object):
         center_y = fit2d_parameter['centerY']
         width, height = self.img_model.img_data.shape
 
-        if center_x < width and center_x > 0:
+        if width > center_x > 0:
             side1 = np.max([abs(width - center_x), center_x])
         else:
             side1 = width
@@ -531,8 +536,6 @@ class CalibrationModel(object):
         x *= self.supersampling_factor
         y *= self.supersampling_factor
         return self.pattern_geometry.chi(x, y)[0]
-
-        return azi
 
     def get_two_theta_array(self):
         return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,

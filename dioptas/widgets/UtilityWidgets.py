@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtCore, QtWidgets, QtGui, QT_VERSION
+from qtpy import QtCore, QtWidgets, QtGui
 import os
 from .CustomWidgets import FlatButton
-
-widget_path = os.path.dirname(__file__)
+from .. import style_path
 
 
 class CifConversionParametersDialog(QtWidgets.QDialog):
@@ -86,7 +85,7 @@ class CifConversionParametersDialog(QtWidgets.QDialog):
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
-        file = open(os.path.join(widget_path, "stylesheet.qss"))
+        file = open(os.path.join(style_path, "stylesheet.qss"))
         stylesheet = file.read()
         self.setStyleSheet(stylesheet)
         file.close()
