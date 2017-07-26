@@ -26,7 +26,7 @@ from .MaskWidget import MaskWidget
 from .integration import IntegrationWidget
 from .CustomWidgets import RotatedCheckableFlatButton, VerticalSpacerItem, CheckableFlatButton, FlatButton
 
-widget_path = os.path.dirname(__file__)
+from .. import style_path, icons_path
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -128,10 +128,10 @@ class MainWidget(QtWidgets.QWidget):
         self.style_widgets()
         self.add_tooltips()
 
-        self.setWindowIcon(QtGui.QIcon(os.path.join(widget_path, 'icns/icon.svg')))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, 'icon.svg')))
 
     def set_stylesheet(self):
-        file = open(os.path.join(widget_path, "stylesheet.qss"))
+        file = open(os.path.join(style_path, "stylesheet.qss"))
         stylesheet = file.read()
         self.setStyleSheet(stylesheet)
         file.close()
@@ -165,21 +165,21 @@ class MainWidget(QtWidgets.QWidget):
         self.show_configuration_menu_btn.setMaximumWidth(button_width)
 
         icon_size = QtCore.QSize(20, 20)
-        self.save_btn.setIcon(QtGui.QIcon(os.path.join(widget_path, 'icns', 'save.ico')))
+        self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
         self.save_btn.setIconSize(icon_size)
         self.save_btn.setMinimumHeight(button_height)
         self.save_btn.setMaximumHeight(button_height)
         self.save_btn.setMinimumWidth(button_width)
         self.save_btn.setMaximumWidth(button_width)
 
-        self.load_btn.setIcon(QtGui.QIcon(os.path.join(widget_path, 'icns', 'open.ico')))
+        self.load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
         self.load_btn.setIconSize(icon_size)
         self.load_btn.setMinimumHeight(button_height)
         self.load_btn.setMaximumHeight(button_height)
         self.load_btn.setMinimumWidth(button_width)
         self.load_btn.setMaximumWidth(button_width)
 
-        self.reset_btn.setIcon(QtGui.QIcon(os.path.join(widget_path, 'icns', 'reset.ico')))
+        self.reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
         self.reset_btn.setIconSize(icon_size)
         self.reset_btn.setMinimumHeight(button_height)
         self.reset_btn.setMaximumHeight(button_height)
