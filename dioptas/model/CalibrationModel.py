@@ -48,7 +48,9 @@ class CalibrationModel(QtCore.QObject):
         self.points = []
         self.points_index = []
         self.pattern_geometry = AzimuthalIntegrator()
+        self.pattern_geometry_img_shape = None
         self.cake_geometry = None
+        self.cake_geometry_img_shape = None
         self.calibrant = Calibrant()
         self.pattern_geometry.wavelength = 0.3344e-10
         self.start_values = {'dist': 200e-3,
@@ -288,10 +290,10 @@ class CalibrationModel(QtCore.QObject):
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
-        if self.pattern_geometry._polarization is not None:
-            if self.img_model.img_data.shape != self.pattern_geometry._polarization.shape:
-                # resetting the integrator if the polarization correction matrix has not the correct shape
-                self.pattern_geometry.reset()
+        if self.pattern_geometry_img_shape != self.img_model.img_data.shape:
+            # if cake geometry was used on differently shaped image before the azimuthal integrator needs to be reset
+            self.pattern_geometry.reset()
+            self.pattern_geometry_img_shape = self.img_model.img_data.shape
 
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
@@ -345,10 +347,10 @@ class CalibrationModel(QtCore.QObject):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
-        if self.cake_geometry._polarization is not None:
-            if self.img_model.img_data.shape != self.cake_geometry._polarization.shape:
-                # resetting the integrator if the polarization correction matrix has not the same shape as the image
-                self.cake_geometry.reset()
+        if self.cake_geometry_img_shape != self.img_model.img_data.shape:
+            # if cake geometry was used on differently shaped image before the azimuthal integrator needs to be reset
+            self.cake_geometry.reset()
+            self.cake_geometry_img_shape = self.img_model.img_data.shape
 
         t1 = time.time()
 

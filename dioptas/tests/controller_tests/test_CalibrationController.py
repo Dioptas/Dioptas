@@ -29,6 +29,7 @@ from ..utility import QtTest, unittest_data_path
 from ...model.DioptasModel import DioptasModel
 from ...controller.CalibrationController import CalibrationController
 from ...widgets.CalibrationWidget import CalibrationWidget
+from ... import calibrants_path
 
 # mocking the functions which will block the unittest for some reason...
 QtWidgets.QApplication.processEvents = MagicMock()
