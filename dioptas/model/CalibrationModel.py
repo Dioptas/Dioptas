@@ -16,23 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import os
 import sys
 import time
-import logging
 
 import numpy as np
-from qtpy import QtCore
-
-from pyFAI.massif import Massif
-from pyFAI.blob_detection import BlobDetection
-from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
+from pyFAI.geometryRefinement import GeometryRefinement
+from pyFAI.massif import Massif
+from qtpy import QtCore
 from skimage.measure import find_contours
+
+from .. import calibrants_path
 from .util.HelperModule import get_base_name
-from . import ImgModel
-from ..calibrants import calibrants_folder
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -49,7 +48,9 @@ class CalibrationModel(QtCore.QObject):
         self.points = []
         self.points_index = []
         self.pattern_geometry = AzimuthalIntegrator()
+        self.pattern_geometry_img_shape = None
         self.cake_geometry = None
+        self.cake_geometry_img_shape = None
         self.calibrant = Calibrant()
         self.pattern_geometry.wavelength = 0.3344e-10
         self.start_values = {'dist': 200e-3,
@@ -67,7 +68,7 @@ class CalibrationModel(QtCore.QObject):
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
-        self._calibrants_working_dir = calibrants_folder
+        self._calibrants_working_dir = calibrants_path
 
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
@@ -82,9 +83,9 @@ class CalibrationModel(QtCore.QObject):
     def find_peaks_automatic(self, x, y, peak_ind):
         """
         Searches peaks by using the Massif algorithm
-        :param int x:
+        :param float x:
             x-coordinate in pixel - should be from original image (not supersampled x-coordinate)
-        :param int y:
+        :param float y:
             y-coordinate in pixel - should be from original image (not supersampled y-coordinate)
         :param peak_ind:
             peak/ring index to which the found points will be added
@@ -92,7 +93,7 @@ class CalibrationModel(QtCore.QObject):
             array of points found
         """
         massif = Massif(self.img_model._img_data)
-        cur_peak_points = massif.find_peaks([int(np.round(x)), int(np.round(y))], stdout=DummyStdOut())
+        cur_peak_points = massif.find_peaks((int(np.round(x)), int(np.round(y))), stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
@@ -289,10 +290,10 @@ class CalibrationModel(QtCore.QObject):
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
-        if self.pattern_geometry._polarization is not None:
-            if self.img_model.img_data.shape != self.pattern_geometry._polarization.shape:
-                # resetting the integrator if the polarization correction matrix has not the correct shape
-                self.pattern_geometry.reset()
+        if self.pattern_geometry_img_shape != self.img_model.img_data.shape:
+            # if cake geometry was used on differently shaped image before the azimuthal integrator needs to be reset
+            self.pattern_geometry.reset()
+            self.pattern_geometry_img_shape = self.img_model.img_data.shape
 
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
@@ -346,10 +347,10 @@ class CalibrationModel(QtCore.QObject):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
-        if self.cake_geometry._polarization is not None:
-            if self.img_model.img_data.shape != self.cake_geometry._polarization.shape:
-                # resetting the integrator if the polarization correction matrix has not the same shape as the image
-                self.cake_geometry.reset()
+        if self.cake_geometry_img_shape != self.img_model.img_data.shape:
+            # if cake geometry was used on differently shaped image before the azimuthal integrator needs to be reset
+            self.cake_geometry.reset()
+            self.cake_geometry_img_shape = self.img_model.img_data.shape
 
         t1 = time.time()
 

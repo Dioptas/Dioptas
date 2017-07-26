@@ -132,7 +132,7 @@ class ImageController(object):
             self.widget.img_widget.set_color([255, 0, 0, 255])
 
     def create_signals(self):
-        self.model.configuration_selected.connect(self.update_gui)
+        self.model.configuration_selected.connect(self.update_gui_from_configuration)
         self.model.img_changed.connect(self.update_img)
 
         self.model.img_changed.connect(self.plot_img)
@@ -156,7 +156,7 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.widget.mask_transparent_cb, self.update_mask_transparency)
 
-        self.connect_click_function(self.widget.img_roi_btn, self.change_roi_mode)
+        self.connect_click_function(self.widget.img_roi_btn, self.click_roi_btn)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
@@ -198,7 +198,6 @@ class ImageController(object):
 
         # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
-        # self.widget.image_dock_state_changed.connect(self.dock_state_changed)
 
     def connect_click_function(self, emitter, function):
         """
@@ -283,6 +282,7 @@ class ImageController(object):
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
                 break
+
         progress_dialog.close()
         self._tear_down_batch_processing()
 
@@ -500,19 +500,35 @@ class ImageController(object):
             master_widget_parent = master_widget_parent.parent()
         return master_widget_parent
 
-    def change_roi_mode(self):
-        self.roi_active = not self.roi_active
-        if self.img_mode == 'Image':
-            if self.roi_active:
-                self.widget.img_widget.activate_roi()
-            else:
-                self.widget.img_widget.deactivate_roi()
-        if self.roi_active:
-            self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.update_roi_in_model)
+    def click_roi_btn(self):
+        if self.model.current_configuration.roi is None:
             self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
         else:
-            self.widget.img_widget.roi.sigRegionChangeFinished.disconnect(self.update_roi_in_model)
             self.model.current_configuration.roi = None
+        self.update_roi_in_gui()
+
+    def update_roi_in_gui(self):
+        roi = self.model.mask_model.roi
+        if roi is None:
+            self.widget.img_widget.deactivate_roi()
+            self.widget.img_roi_btn.setChecked(False)
+            if self.roi_active:
+                self.widget.img_widget.roi.sigRegionChangeFinished.disconnect(self.update_roi_in_model)
+                self.roi_active = False
+            return
+
+        if not self.model.current_configuration.auto_integrate_cake:
+            self.widget.img_roi_btn.setChecked(True)
+            self.widget.img_widget.activate_roi()
+            self.widget.img_widget.update_roi_shade_limits(self.model.img_data.shape)
+
+            pos = QtCore.QPoint(roi[2], roi[0])
+            size = QtCore.QPoint(roi[3] - roi[2], roi[1] - roi[0])
+            self.widget.img_widget.roi.setRoiLimits(pos, size)
+
+            if not self.roi_active:
+                self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.update_roi_in_model)
+                self.roi_active = True
 
     def update_roi_in_model(self):
         self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
@@ -1066,14 +1082,6 @@ class ImageController(object):
         self.widget.oiadac_abs_length_txt.setText(str(params['absorption_length']))
         self.widget.oiadac_groupbox.setChecked(True)
 
-    def update_roi_btn(self):
-        roi = self.model.current_configuration.roi
-        pos = QtCore.QPoint(roi[2], roi[0])
-        size = QtCore.QPoint(roi[3] - roi[2], roi[1]-roi[0])
-        if not self.widget.img_roi_btn.isChecked():
-            self.widget.img_roi_btn.click()
-            self.widget.img_widget.roi.setRoiLimits(pos, size)
-
     def _check_absorption_correction_shape(self):
         if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
             self.widget.cbn_groupbox.setChecked(False)
@@ -1083,14 +1091,14 @@ class ImageController(object):
                                            'Due to a change in image dimensions the absorption ' +
                                            'corrections have been removed')
 
-    def update_gui(self):
+    def update_gui_from_configuration(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
-        self.widget.img_roi_btn.setChecked(self.model.mask_model.roi is not None)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
 
         self.update_mask_mode()
+        self.update_roi_in_gui()
 
         if self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
             self.activate_cake_mode()

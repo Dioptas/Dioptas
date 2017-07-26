@@ -37,9 +37,16 @@ except ImportError:
 import traceback
 from qtpy import QtWidgets
 
-from .widgets.UtilityWidgets import ErrorMessageBox
-
 dioptas_version = __version__[:5]
+
+resources_path = os.path.join(os.path.dirname(__file__), 'resources')
+calibrants_path = os.path.join(resources_path, 'calibrants')
+icons_path = os.path.join(resources_path, 'icons')
+data_path = os.path.join(resources_path, 'data')
+style_path = os.path.join(resources_path, 'style')
+
+
+from .widgets.UtilityWidgets import ErrorMessageBox
 
 
 def excepthook(exc_type, exc_value, traceback_obj):

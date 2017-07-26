@@ -146,6 +146,15 @@ class ImageControllerTest(QtTest):
         self.assertFalse(self.widget.img_mask_btn.isChecked())
         self.assertFalse(self.widget.mask_transparent_cb.isVisible())
 
+    def test_configuration_selected_updates_roi_mode(self):
+        click_button(self.widget.img_roi_btn)
+        self.assertTrue(self.widget.img_roi_btn.isChecked())
+        self.assertTrue(self.widget.img_widget.roi in self.widget.img_widget.img_view_box.addedItems)
+
+        self.model.add_configuration()
+        self.assertFalse(self.widget.img_roi_btn.isChecked())
+        self.assertFalse(self.widget.img_widget.roi in self.widget.img_widget.img_view_box.addedItems)
+
     def test_adding_images(self):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif')])

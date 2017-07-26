@@ -22,6 +22,7 @@ from qtpy import QtWidgets, QtCore
 import numpy as np
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
+from .. import calibrants_path
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.CalibrationWidget import CalibrationWidget
@@ -190,7 +191,7 @@ class CalibrationController(object):
         """
         self._calibrants_file_list = []
         self._calibrants_file_names_list = []
-        for file in os.listdir(self.model.calibration_model._calibrants_working_dir):
+        for file in os.listdir(calibrants_path):
             if file.endswith('.D'):
                 self._calibrants_file_list.append(file)
                 self._calibrants_file_names_list.append(file.split('.')[:-1][0])
@@ -233,9 +234,16 @@ class CalibrationController(object):
         except:
             integration_unit = '2th_deg'
 
-        self.widget.pattern_widget.plot_vertical_lines(self.convert_x_value(np.array(
-            self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
-            integration_unit, wavelength), name=self._calibrants_file_names_list[current_index])
+        calibrant_line_positions = self.convert_x_value(
+            np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg', integration_unit,
+            wavelength)
+        # filter them to only show the ones visible with the current pattern
+        pattern_min = np.min(self.model.pattern.x)
+        pattern_max = np.max(self.model.pattern.x)
+        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions>pattern_min]
+        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions<pattern_max]
+        self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
+                                                       name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -375,10 +383,10 @@ class CalibrationController(object):
         progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, end_value,
                                                     self.widget)
 
-        progress_dialog.move(self.widget.tab_widget.x() + self.widget.tab_widget.size().width() / 2.0 - \
-                             progress_dialog.size().width() / 2.0,
-                             self.widget.tab_widget.y() + self.widget.tab_widget.size().height() / 2.0 -
-                             progress_dialog.size().height() / 2.0)
+        progress_dialog.move(int(self.widget.tab_widget.x() + self.widget.tab_widget.size().width() / 2.0 - \
+                             progress_dialog.size().width() / 2.0),
+                             int(self.widget.tab_widget.y() + self.widget.tab_widget.size().height() / 2.0 -
+                             progress_dialog.size().height() / 2.0))
 
         progress_dialog.setWindowTitle('   ')
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -512,7 +520,8 @@ class CalibrationController(object):
         self.widget.pattern_widget.plot_data(*self.model.pattern.data)
         self.widget.pattern_widget.plot_vertical_lines(self.convert_x_value(np.array(
             self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
-            self.model.current_configuration.integration_unit, None))
+                                                                            self.model.current_configuration.integration_unit,
+                                                                            None))
 
         if self.model.current_configuration.integration_unit == '2th_deg':
             self.widget.pattern_widget.pattern_plot.setLabel('bottom', u'2θ', '°')

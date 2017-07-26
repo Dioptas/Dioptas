@@ -21,6 +21,8 @@ Bugfixes:
     - fixed undock/dock process, which was not working propoerly (only image was shown without pattern after docking the
       img widget
     - fixed image view scaling when loading differently sized images or switching between cake and image mode
+    - fixed the CeO2 calibration file (there was a (9,0,0) reflection, which does not exist, instead at close position
+      there should be a (8, 4, 0) reflection)
 
 
 0.3.1 (stable 4/21/2016)
