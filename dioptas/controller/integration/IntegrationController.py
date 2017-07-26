@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -25,12 +25,8 @@ from .PatternController import PatternController
 from .PhaseController import PhaseController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from widgets.integration import IntegrationWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.CalibrationModel import CalibrationModel
-from model.PatternModel import PatternModel
-from model.PhaseModel import PhaseModel
+from ...widgets.integration import IntegrationWidget
+from ...model.DioptasModel import DioptasModel
 
 pg.setConfigOption('useOpenGL', False)
 pg.setConfigOption('leftButtonPan', False)
@@ -44,31 +40,16 @@ class IntegrationController(object):
     This controller hosts all the Subcontroller of the integration tab.
     """
 
-    def __init__(self, working_dir, widget, img_model, mask_model=None, calibration_model=None, spectrum_model=None,
-                 phase_model=None):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary of working directories
         :param widget: Reference to an IntegrationWidget
-        :param img_model: reference to ImgModel object
-        :param mask_model: reference to MaskModel object
-        :param calibration_model: reference to CalibrationModel object
-        :param spectrum_model: reference to SpectrumModel object
-        :param phase_model: reference to PhaseModel object
+        :param dioptas_model: Reference to a DioptasModel object
 
         :type widget: IntegrationWidget
-        :type img_model: ImgModel
-        :type mask_model: MaskModel
-        :type calibration_model: CalibrationModel
-        :type spectrum_model: PatternModel
-        :type phase_model: PhaseModel
+        :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
         self.widget = widget
-        self.img_model = img_model
-        self.mask_model = mask_model
-        self.calibration_model = calibration_model
-        self.spectrum_model = spectrum_model
-        self.phase_model = phase_model
+        self.model = dioptas_model
 
         self.create_sub_controller()
 
@@ -76,17 +57,8 @@ class IntegrationController(object):
         """
         Creates the sub controller with the appropriate data.
         """
-        self.spectrum_controller = PatternController(self.working_dir, self.widget, self.img_model,
-                                                     self.mask_model,
-                                                     self.calibration_model, self.spectrum_model)
-        self.image_controller = ImageController(self.working_dir, self.widget, self.img_model,
-                                                self.mask_model, self.spectrum_model,
-                                                self.calibration_model)
-
-        self.overlay_controller = OverlayController(self.working_dir, self.widget, self.spectrum_model)
-
-        self.phase_controller = PhaseController(self.working_dir, self.widget, self.calibration_model,
-                                                self.spectrum_model, self.phase_model)
-
-        self.background_controller = BackgroundController(self.working_dir, self.widget,
-                                                          self.img_model, self.spectrum_model)
+        self.pattern_controller = PatternController(self.widget, self.model)
+        self.image_controller = ImageController(self.widget, self.model)
+        self.overlay_controller = OverlayController(self.widget, self.model)
+        self.phase_controller = PhaseController(self.widget, self.model)
+        self.background_controller = BackgroundController(self.widget, self.model)

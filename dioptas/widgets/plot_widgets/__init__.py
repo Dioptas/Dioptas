@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2016  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,4 +17,4 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from .ImgWidget import MaskImgWidget, ImgWidget, CalibrationCakeWidget
-from .SpectrumWidget import SpectrumWidget
+from .PatternWidget import PatternWidget

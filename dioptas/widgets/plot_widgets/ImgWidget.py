@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -21,17 +21,16 @@ from __future__ import absolute_import
 import pyqtgraph as pg
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
-from scipy.spatial import ConvexHull
 from skimage.measure import find_contours
-from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
 
 
 class ImgWidget(QtCore.QObject):
-    mouse_moved = QtCore.pyqtSignal(float, float)
-    mouse_left_clicked = QtCore.pyqtSignal(float, float)
-    mouse_left_double_clicked = QtCore.pyqtSignal(float, float)
+    mouse_moved = QtCore.Signal(float, float)
+    mouse_left_clicked = QtCore.Signal(float, float)
+    mouse_left_double_clicked = QtCore.Signal(float, float)
 
     def __init__(self, pg_layout, orientation='vertical'):
         super(ImgWidget, self).__init__()
@@ -45,37 +44,76 @@ class ImgWidget(QtCore.QObject):
         self.img_data = None
         self.mask_data = None
 
+        self._max_range = True
+
     def create_graphics(self):
         # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
         if self.orientation == 'horizontal':
 
-            self.img_view_box = self.pg_layout.addViewBox(1, 0)
+            self.img_view_box = self.pg_layout.addViewBox(1, 1)
+
             # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 0)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+            # self.left_axis_image = pg.AxisItem('left', linkView=self.img_view_box)
+            # self.pg_layout.addItem(self.left_axis_image, 1, 0)
+            self.left_axis_cake = pg.AxisItem('left')
+            # self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
+            # self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
+            self.bottom_axis_cake = pg.AxisItem('bottom')
+            self.left_axis_cake.hide()
+            self.bottom_axis_cake.hide()
+            self.bottom_axis_cake.setLabel(u'2θ', u'°')
+            self.left_axis_cake.setLabel(u'Azimuth', u'°')
 
         elif self.orientation == 'vertical':
-            self.img_view_box = self.pg_layout.addViewBox(0, 0)
+            self.img_view_box = self.pg_layout.addViewBox(0, 1)
             # create the item handling the Data img
             self.data_img_item = pg.ImageItem()
             self.img_view_box.addItem(self.data_img_item)
             self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
             # self.img_histogram_LUT.axis.hide()
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+            self.pg_layout.addItem(self.img_histogram_LUT, 0, 2)
+            # self.left_axis_image = pg.AxisItem('left', linkView=self.img_view_box)
+            # self.pg_layout.addItem(self.left_axis_image, 0, 0)
+            # self.bottom_axis_image = pg.AxisItem('bottom', linkView=self.img_view_box)
+            # self.pg_layout.addItem(self.bottom_axis_image, 1, 1)
 
-        self.img_view_box.setAspectLocked()
+            self.img_view_box.setAspectLocked(True)
+
+    def replace_image_and_cake_axes(self, mode='image'):
+        if mode == 'image':
+            self.pg_layout.removeItem(self.bottom_axis_cake)
+            self.pg_layout.removeItem(self.left_axis_cake)
+            # self.pg_layout.addItem(self.left_axis_image, 1, 0)
+            # self.pg_layout.addItem(self.bottom_axis_image, 2, 1)
+            self.bottom_axis_cake.hide()
+            self.left_axis_cake.hide()
+            # self.bottom_axis_image.show()
+            # self.left_axis_image.show()
+
+        elif mode == 'cake':
+            # self.pg_layout.removeItem(self.left_axis_image)
+            # self.pg_layout.removeItem(self.bottom_axis_image)
+            self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
+            self.pg_layout.addItem(self.left_axis_cake, 1, 0)
+            self.bottom_axis_cake.show()
+            self.left_axis_cake.show()
+            # self.bottom_axis_image.hide()
+            # self.left_axis_image.hide()
 
     def create_scatter_plot(self):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
         self.img_view_box.addItem(self.img_scatter_plot_item)
 
-    def plot_image(self, img_data, autoRange=False):
+    def plot_image(self, img_data, auto_level=False):
         self.img_data = img_data
-        self.data_img_item.setImage(img_data.T, autoRange)
-        if autoRange:
-            self.auto_range()
+        self.data_img_item.setImage(img_data.T, auto_level)
+        if auto_level:
+            self.auto_level()
+        self.auto_range_rescale()
 
     def save_img(self, filename):
         exporter = ImageExporter(self.img_view_box)
@@ -89,10 +127,22 @@ class ImgWidget(QtCore.QObject):
                         y_range[0] <= img_bounds.bottom() and \
                         y_range[1] >= img_bounds.top():
             self.img_view_box.autoRange()
+            self._max_range = True
             return
         self.img_view_box.setRange(xRange=x_range, yRange=y_range)
+        self._max_range = False
 
-    def auto_range(self):
+    def auto_range_rescale(self):
+        if self._max_range:
+            self.auto_range()
+            return
+
+        view_x_range, view_y_range = self.img_view_box.viewRange()
+        if view_x_range[1] > self.img_data.shape[0] or \
+                        view_y_range[1] > self.img_data.shape[1]:
+            self.auto_range()
+
+    def auto_level(self):
         hist_x, hist_y = self.img_histogram_LUT.hist_x, self.img_histogram_LUT.hist_y
 
         hist_y_cumsum = np.cumsum(hist_y)
@@ -144,7 +194,7 @@ class ImgWidget(QtCore.QObject):
             if self.img_data is not None:
                 if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
                                 (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
-                    self.img_view_box.autoRange()
+                    self.auto_range()
                 else:
                     self.img_view_box.scaleBy(2)
 
@@ -155,7 +205,7 @@ class ImgWidget(QtCore.QObject):
 
     def myMouseDoubleClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
-            self.img_view_box.autoRange()
+            self.auto_range()
         if ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
             pos = self.img_scatter_plot_item.mapFromScene(2 * ev.pos() - pos)
@@ -195,11 +245,13 @@ class ImgWidget(QtCore.QObject):
                 self.img_view_box.showAxRect(ax)
                 self.img_view_box.axHistoryPointer += 1
                 self.img_view_box.axHistory = self.img_view_box.axHistory[:self.img_view_box.axHistoryPointer] + [ax]
+                self._max_range = False
             else:
                 ## update shape of scale box
                 self.img_view_box.updateScaleBox(ev.buttonDownPos(), ev.pos())
 
     def myWheelEvent(self, ev):
+        self._max_range = False
         if ev.delta() > 0:
             pg.ViewBox.wheelEvent(self.img_view_box, ev)
         else:
@@ -207,18 +259,21 @@ class ImgWidget(QtCore.QObject):
             if self.img_data is not None:
                 if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
                                 (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
-                    self.img_view_box.autoRange()
+                    self.auto_range()
                 else:
                     pg.ViewBox.wheelEvent(self.img_view_box, ev)
             else:
                 pg.ViewBox.wheelEvent(self.img_view_box, ev)
+
+    def auto_range(self):
+        self.img_view_box.autoRange()
+        self._max_range = True
 
 
 class CalibrationCakeWidget(ImgWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(CalibrationCakeWidget, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
-        self._vertical_line_activated = False
         self.create_vertical_line()
         self.mouse_left_clicked.connect(self.set_vertical_line_pos)
 
@@ -227,14 +282,13 @@ class CalibrationCakeWidget(ImgWidget):
         self.activate_vertical_line()
 
     def activate_vertical_line(self):
-        if not self._vertical_line_activated:
+        if not self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.addItem(self.vertical_line)
-            self._vertical_line_activated = True
+            self.vertical_line.setVisible(True) #oddly this is needed for the line to be displayed correctly
 
     def deactivate_vertical_line(self):
-        if self._vertical_line_activated:
+        if self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.removeItem(self.vertical_line)
-            self._vertical_line_activated = False
 
     def set_vertical_line_pos(self, x, y):
         self.vertical_line.setValue(x)
@@ -246,6 +300,15 @@ class MaskImgWidget(ImgWidget):
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
         self.set_color()
+        self.mask_preview_fill_color = QtGui.QColor(255, 0, 0, 150)
+
+    def activate_mask(self):
+        if not self.mask_img_item in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.mask_img_item)
+
+    def deactivate_mask(self):
+        if self.mask_img_item in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.mask_img_item)
 
     def plot_mask(self, mask_data):
         self.mask_data = np.int16(mask_data)
@@ -263,34 +326,39 @@ class MaskImgWidget(ImgWidget):
         self.mask_img_item.setLookupTable(self.create_color_map(color))
 
     def draw_circle(self, x=0, y=0):
-        circle = MyCircle(x, y, 0)
+        circle = MyCircle(x, y, 0, self.mask_preview_fill_color)
         self.img_view_box.addItem(circle)
         return circle
 
     def draw_rectangle(self, x, y):
-        rect = MyRectangle(x, y, 0, 0)
+        rect = MyRectangle(x, y, 0, 0, self.mask_preview_fill_color)
         self.img_view_box.addItem(rect)
         return rect
 
     def draw_point(self, radius=0):
-        point = MyPoint(radius)
+        point = MyPoint(radius, self.mask_preview_fill_color)
         self.img_view_box.addItem(point)
         return point
 
     def draw_polygon(self, x, y):
-        polygon = MyPolygon(x, y)
+        polygon = MyPolygon(x, y, self.mask_preview_fill_color)
         self.img_view_box.addItem(polygon)
         return polygon
+
+    def draw_arc(self, x, y):
+        arc = MyArc(x, y, self.mask_preview_fill_color)
+        self.img_view_box.addItem(arc)
+        return arc
 
 
 class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
-        self.deactivate_vertical_line()
         self.create_circle_plot_items()
         self.create_mouse_click_item()
         self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
+        self.deactivate_vertical_line()
 
     def create_circle_plot_items(self):
         # creates several PlotDataItems as line items, to be filled with the current clicked position
@@ -335,11 +403,13 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
 
     def activate_circle_scatter(self):
         for plot_item in self.circle_plot_items:
-            self.img_view_box.addItem(plot_item)
+            if not plot_item in self.img_view_box.addedItems:
+                self.img_view_box.addItem(plot_item)
 
     def deactivate_circle_scatter(self):
         for plot_item in self.circle_plot_items:
-            self.img_view_box.removeItem(plot_item)
+            if plot_item in self.img_view_box.addedItems:
+                self.img_view_box.removeItem(plot_item)
 
     def create_roi_item(self):
         self.roi = MyROI([20, 20], [500, 500], pen=pg.mkPen(color=(0, 255, 0), size=2))
@@ -352,27 +422,37 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.roi_shade = RoiShade(self.img_view_box, self.roi)
 
     def activate_roi(self):
-        self.img_view_box.addItem(self.roi)
-        self.roi_shade.activate_rects()
-        self.roi.blockSignals(False)
+        if not self.roi in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.roi)
+            self.roi_shade.activate_rects()
+            self.roi.blockSignals(False)
+
+    def update_roi_shade_limits(self, img_shape):
+        self.roi_shade.img_shape = img_shape
+        self.roi_shade.update_rects()
 
     def deactivate_roi(self):
-        self.img_view_box.removeItem(self.roi)
-        self.roi_shade.deactivate_rects()
-        self.roi.blockSignals(True)
+        if self.roi in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.roi)
+            self.roi_shade.deactivate_rects()
+            self.roi.blockSignals(True)
 
 
-class MyPolygon(QtGui.QGraphicsPolygonItem):
-    def __init__(self, x, y):
-        QtGui.QGraphicsPolygonItem.__init__(self)
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+mask_pen = QtGui.QPen(QtGui.QColor(255, 255, 255), 0.5)
+
+
+class MyPolygon(QtWidgets.QGraphicsPolygonItem):
+    def __init__(self, x, y, fill_color):
+        QtWidgets.QGraphicsPolygonItem.__init__(self)
+        self.setPen(mask_pen)
+        self.setBrush(QtGui.QBrush(fill_color))
 
         self.vertices = []
-        self.vertices.append(QtCore.QPoint(x, y))
+        self.vertices.append(QtCore.QPointF(x, y))
 
     def set_size(self, x, y):
         temp_points = list(self.vertices)
+
         temp_points.append(QtCore.QPointF(x, y))
         self.setPolygon(QtGui.QPolygonF(temp_points))
 
@@ -381,12 +461,36 @@ class MyPolygon(QtGui.QGraphicsPolygonItem):
         self.setPolygon(QtGui.QPolygonF(self.vertices))
 
 
-class MyCircle(QtGui.QGraphicsEllipseItem):
-    def __init__(self, x, y, radius):
-        QtGui.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
+class MyArc(QtWidgets.QGraphicsPolygonItem):
+    def __init__(self, x, y, fill_color):
+        QtWidgets.QGraphicsPolygonItem.__init__(self)
+        self.setPen(mask_pen)
+        self.setBrush(QtGui.QBrush(fill_color))
+        self.arc_center = QtCore.QPointF(0, 0)
+        self.arc_radius = 1
+        self.phi_range = []
+        self.vertices = []
+        self.vertices.append(QtCore.QPointF(x, y))
+
+    def set_size(self, x, y):
+        temp_points = list(self.vertices)
+        temp_points.append(QtCore.QPointF(x, y))
+        self.setPolygon(QtGui.QPolygonF(temp_points))
+
+    def preview_arc(self, arc_points):
+        self.setPolygon(QtGui.QPolygonF(arc_points))
+
+    def add_point(self, x, y):
+        self.vertices.append(QtCore.QPointF(x, y))
+
+
+class MyCircle(QtWidgets.QGraphicsEllipseItem):
+    def __init__(self, x, y, radius, fill_color):
+        QtWidgets.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
         self.radius = radius
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+        self.setPen(mask_pen)
+        self.setBrush(QtGui.QBrush(fill_color))
+
         self.center_x = x
         self.center_y = y
 
@@ -398,11 +502,11 @@ class MyCircle(QtGui.QGraphicsEllipseItem):
         self.setRect(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
 
-class MyPoint(QtGui.QGraphicsEllipseItem):
-    def __init__(self, radius):
-        QtGui.QGraphicsEllipseItem.__init__(self, 0, 0, radius * 2, radius * 2)
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+class MyPoint(QtWidgets.QGraphicsEllipseItem):
+    def __init__(self, radius, fill_color):
+        QtWidgets.QGraphicsEllipseItem.__init__(self, 0, 0, radius * 2, radius * 2)
+        self.setPen(mask_pen)
+        self.setBrush(QtGui.QBrush(fill_color))
         self.radius = radius
         self.x = 0
         self.y = 0
@@ -423,11 +527,11 @@ class MyPoint(QtGui.QGraphicsEllipseItem):
         return self.radius
 
 
-class MyRectangle(QtGui.QGraphicsRectItem):
-    def __init__(self, x, y, width, height):
-        QtGui.QGraphicsRectItem.__init__(self, x, y + height, width, height)
-        self.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255)))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 150)))
+class MyRectangle(QtWidgets.QGraphicsRectItem):
+    def __init__(self, x, y, width, height, fill_color):
+        QtWidgets.QGraphicsRectItem.__init__(self, x, y + height, width, height)
+        self.setPen(mask_pen)
+        self.setBrush(QtGui.QBrush(fill_color))
 
         self.initial_x = x
         self.initial_y = y
@@ -457,33 +561,17 @@ class MyROI(pg.ROI):
             self.currentPen = self.pen
         self.update()
 
-    def getIndexLimits(self, img_shape):
+    def getRoiLimits(self):
         rect = self.parentBounds()
         x1 = np.round(rect.top())
-        if x1 < 0:
-            x1 = 0
         x2 = np.round(rect.top() + rect.height())
-        if x2 > img_shape[0]:
-            x2 = img_shape[0]
         y1 = np.round(rect.left())
-        if y1 < 0:
-            y1 = 0
         y2 = np.round(rect.left() + rect.width())
-        if y2 > img_shape[1]:
-            y2 = img_shape[1]
         return x1, x2, y1, y2
 
-    def getRoiMask(self, img_shape):
-        if not np.array_equal(np.array(img_shape), np.array(self.img_shape)):
-            self.base_mask = np.ones(img_shape)
-        if self.getState() == self.last_state:
-            return self.roi_mask
-        else:
-            x1, x2, y1, y2 = self.getIndexLimits(img_shape)
-            self.roi_mask = np.copy(self.base_mask)
-            self.roi_mask[x1:x2, y1:y2] = 0
-            self.last_state = self.getState()
-            return self.roi_mask
+    def setRoiLimits(self, pos, size):
+        self.setPos(pos)
+        self.setSize(size)
 
 
 class RoiShade(object):
@@ -496,17 +584,17 @@ class RoiShade(object):
 
     def create_rect(self):
         color = QtGui.QColor(0, 0, 0, 100)
-        self.left_rect = QtGui.QGraphicsRectItem()
+        self.left_rect = QtWidgets.QGraphicsRectItem()
         self.left_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.left_rect.setBrush(QtGui.QBrush(color))
-        self.right_rect = QtGui.QGraphicsRectItem()
+        self.right_rect = QtWidgets.QGraphicsRectItem()
         self.right_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.right_rect.setBrush(QtGui.QBrush(color))
 
-        self.top_rect = QtGui.QGraphicsRectItem()
+        self.top_rect = QtWidgets.QGraphicsRectItem()
         self.top_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.top_rect.setBrush(QtGui.QBrush(color))
-        self.bottom_rect = QtGui.QGraphicsRectItem()
+        self.bottom_rect = QtWidgets.QGraphicsRectItem()
         self.bottom_rect.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 0)))
         self.bottom_rect.setBrush(QtGui.QBrush(color))
 

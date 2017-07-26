@@ -11,14 +11,14 @@ Clemens Prescher (clemens.prescher@gmail.com)
 
 Requirements
 ------------
-    * python 2.7
-    * PyQt4
+    * python 2.7/3.5
+    * qtpy with PyQt5/PyQt4/PySide
     * numpy
     * scipy
     * future
-    * pyFAI (https://github.com/kif/pyFAI)
-    * fabio (https://github.com/kif/fabio)
-    * pyqtgraph (http://www.pyqtgraph.org/) - version 0.9.9
+    * pyFAI (https://github.com/silx-kit/pyFAI)
+    * fabio (https://github.com/silx-kit/fabio)
+    * pyqtgraph (https://github.com/pyqtgraph/pyqtgraph
     * scikit-image
     * PyCifRw
 
@@ -33,42 +33,37 @@ python. When used with 32 bit Dioptas occasionally crashes because of limited me
 Installation
 ------------
 
-###Executables
+### Executables
 
 Executable versions for Windows, Mac OsX and Linux (all 64bit) can be downloaded from:
 
-[https://uni-koeln.sciebo.de/index.php/s/cmHGpz4q9dpDRRL](https://uni-koeln.sciebo.de/index.php/s/cmHGpz4q9dpDRRL)
+[https://uni-koeln.sciebo.de/index.php/s/rS4RkVjU6guQeRP](https://uni-koeln.sciebo.de/index.php/s/rS4RkVjU6guQeRP)
 or
 [http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/](http://millenia.cars.aps.anl.gov/gsecars/data/Dioptas/)
 
-###Code
+The executable versions are self-contained folders, which do not need any python installation.
+
+### Code
 
 In order to make changes to the source code yourself or always get the latest development versions you need to install
 the required python packages on your machine.
 
-The easiest way to install the all the dependencies for Dioptas is to use the Anaconda 64bit Python 2.7 distribution.
+The easiest way to install the all the dependencies for Dioptas is to use the Anaconda 64bit Python 3 distribution.
 Please download it from https://www.continuum.io/downloads. After having the added the scripts to you path (or use the
 Anaconda prompt on windows) please run the following commands on the commandline:
 
 ```bash
-conda update --all
-conda install numpy pillow scipy pandas matplotlib dateutil nose h5py pyqt scikit-image cython future
-pip install lmfit pyqtgraph fabio mock pycifrw
+conda install --yes python=3.5 numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy fabio lmfit mock -c conda-forge
+conda install --yes pyqtgraph pyfai -c cprescher
+pip install pyepics
 ```
 
-The only more advanced dependency is to install pyFAI, since the current release version has some problems with the
-newest scipy version, please go to a temporary folder pyand run:
-
-```bash
-git clone https://github.com/kif/pyFAI
-cd pyFAI
-python setup.py install
-cd ..
-```
-
-The pyFAI folder can be deleted after this.
 
 Running the Program
 ------------------
 
-You can start the program by running the Dioptas.py script in the dioptas folder.
+You can start the program by running the Dioptas.py script in the dioptas folder by:
+
+```bash
+python Dioptas.py
+```

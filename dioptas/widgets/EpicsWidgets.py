@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
-# Copyright (C) 2016  Clemens Prescher (clemens.prescher@gmail.com)
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,12 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtWidgets
 
 from .CustomWidgets import FlatButton, LabelAlignRight
 
 
-class MoveStageWidget(QtGui.QWidget):
+class MoveStageWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(MoveStageWidget, self).__init__(parent)
         self.setWindowTitle("Move")
@@ -35,28 +35,28 @@ class MoveStageWidget(QtGui.QWidget):
         self.motors_setup_btn = FlatButton('Setup', self)
 
         # create labels
-        self.img_hor_lbl = QtGui.QLabel(self)
-        self.img_ver_lbl = QtGui.QLabel(self)
-        self.img_focus_lbl = QtGui.QLabel(self)
-        self.img_omega_lbl = QtGui.QLabel(self)
+        self.img_hor_lbl = QtWidgets.QLabel(self)
+        self.img_ver_lbl = QtWidgets.QLabel(self)
+        self.img_focus_lbl = QtWidgets.QLabel(self)
+        self.img_omega_lbl = QtWidgets.QLabel(self)
         self.img_omega_lbl.setStyleSheet('color: yellow')
         self.img_hor_lbl.setStyleSheet('color: yellow')
         self.img_ver_lbl.setStyleSheet('color: yellow')
         self.img_focus_lbl.setStyleSheet('color: yellow')
 
-        self.hor_lbl = QtGui.QLabel(self)
-        self.ver_lbl = QtGui.QLabel(self)
-        self.focus_lbl = QtGui.QLabel(self)
-        self.omega_lbl = QtGui.QLabel(self)
+        self.hor_lbl = QtWidgets.QLabel(self)
+        self.ver_lbl = QtWidgets.QLabel(self)
+        self.focus_lbl = QtWidgets.QLabel(self)
+        self.omega_lbl = QtWidgets.QLabel(self)
 
         # Create checkboxes
-        self.move_hor_cb = QtGui.QCheckBox(self)
-        self.move_ver_cb = QtGui.QCheckBox(self)
-        self.move_focus_cb = QtGui.QCheckBox(self)
-        self.move_omega_cb = QtGui.QCheckBox(self)
+        self.move_hor_cb = QtWidgets.QCheckBox(self)
+        self.move_ver_cb = QtWidgets.QCheckBox(self)
+        self.move_focus_cb = QtWidgets.QCheckBox(self)
+        self.move_omega_cb = QtWidgets.QCheckBox(self)
 
         # Create grid layout
-        grid_layout = QtGui.QGridLayout()
+        grid_layout = QtWidgets.QGridLayout()
         grid_layout.setVerticalSpacing(10)
         grid_layout.setHorizontalSpacing(20)
         grid_layout.addWidget(LabelAlignRight("Current Position:"), 0, 0, 1, 2)
@@ -83,12 +83,12 @@ class MoveStageWidget(QtGui.QWidget):
         grid_layout.addWidget(self.img_omega_lbl, 4, 2)
         grid_layout.addWidget(self.move_omega_cb, 4, 3)
 
-        btn_layout = QtGui.QHBoxLayout()
+        btn_layout = QtWidgets.QHBoxLayout()
         btn_layout.addWidget(self.connect_epics_btn)
         btn_layout.addWidget(self.move_btn)
         btn_layout.addWidget(self.motors_setup_btn)
 
-        self._main_layout = QtGui.QVBoxLayout()
+        self._main_layout = QtWidgets.QVBoxLayout()
         self._main_layout.addLayout(grid_layout)
         self._main_layout.addLayout(btn_layout)
 
@@ -104,7 +104,7 @@ class MoveStageWidget(QtGui.QWidget):
         self.raise_()
 
 
-class MotorsSetup(QtGui.QWidget):
+class MotorsSetup(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(MotorsSetup, self).__init__(parent)
 
@@ -115,15 +115,15 @@ class MotorsSetup(QtGui.QWidget):
         self.focus_lbl = LabelAlignRight('Focus:', self)
         self.omega_lbl = LabelAlignRight('Omega:', self)
 
-        self.hor_motor_txt = QtGui.QLineEdit(self)
-        self.ver_motor_txt = QtGui.QLineEdit(self)
-        self.focus_motor_txt = QtGui.QLineEdit(self)
-        self.omega_motor_txt = QtGui.QLineEdit(self)
+        self.hor_motor_txt = QtWidgets.QLineEdit(self)
+        self.ver_motor_txt = QtWidgets.QLineEdit(self)
+        self.focus_motor_txt = QtWidgets.QLineEdit(self)
+        self.omega_motor_txt = QtWidgets.QLineEdit(self)
 
-        self.set_motor_names_btn = QtGui.QPushButton('Set', self)
-        self.reread_config_btn = QtGui.QPushButton('Default config', self)
+        self.set_motor_names_btn = QtWidgets.QPushButton('Set', self)
+        self.reread_config_btn = QtWidgets.QPushButton('Default config', self)
 
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.setVerticalSpacing(10)
         grid.setHorizontalSpacing(10)
 

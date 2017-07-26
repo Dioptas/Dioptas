@@ -68,39 +68,52 @@ class jcpds_reflection:
         return "{:2d},{:2d},{:2d}\t{:.2f}\t{:.3f}".format(self.h, self.k, self.l, self.intensity, self.d0)
 
 
+class MyDict(dict):
+    def __init__(self):
+        super(MyDict, self).__init__()
+        self.setdefault('modified', False)
+
+    def __setitem__(self, key, value):
+        if key in ['comments', 'a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0',
+                   'symmetry', 'k0', 'k0p0', 'dk0dt', 'dk0pdt',
+                   'alpha_t0', 'd_alpha_dt', 'reflections']:
+            self.__setitem__('modified', True)
+        super(MyDict, self).__setitem__(key, value)
+
 class jcpds(object):
     def __init__(self):
-        self._filename = ' '
-        self._name = ' '
-        self.version = 0
-        self.comments = []
-        self.symmetry = ''
-        self.k0 = 0.
-        self.k0p0 = 0.  # k0p at 298K
-        self.k0p = 0.  # k0p at high T
-        self.dk0dt = 0.
-        self.dk0pdt = 0.
-        self.alpha_t0 = 0.  # alphat at 298K
-        self.alpha_t = 0.  # alphat at high temp.
-        self.d_alpha_dt = 0.
-        self.a0 = 0.
-        self.b0 = 0.
-        self.c0 = 0.
-        self.alpha0 = 0.
-        self.beta0 = 0.
-        self.gamma0 = 0.
-        self.v0 = 0.
-        self.a = 0.
-        self.b = 0.
-        self.c = 0.
-        self.alpha = 0.
-        self.beta = 0.
-        self.gamma = 0.
-        self.v = 0.
-        self.pressure = 0.
-        self.temperature = 298.
+        self._filename = ''
+        self._name = ''
+        self.params = MyDict()
+        self.params['version'] = 0
+        self.params['comments'] = []
+        self.params['symmetry'] = ''
+        self.params['k0'] = 0.
+        self.params['k0p0'] = 0.  # k0p at 298K
+        self.params['k0p'] = 0.  # k0p at high T
+        self.params['dk0dt'] = 0.
+        self.params['dk0pdt'] = 0.
+        self.params['alpha_t0'] = 0.  # alphat at 298K
+        self.params['alpha_t'] = 0.  # alphat at high temp.
+        self.params['d_alpha_dt'] = 0.
+        self.params['a0'] = 0.
+        self.params['b0'] = 0.
+        self.params['c0'] = 0.
+        self.params['alpha0'] = 0.
+        self.params['beta0'] = 0.
+        self.params['gamma0'] = 0.
+        self.params['v0'] = 0.
+        self.params['a'] = 0.
+        self.params['b'] = 0.
+        self.params['c'] = 0.
+        self.params['alpha'] = 0.
+        self.params['beta'] = 0.
+        self.params['gamma'] = 0.
+        self.params['v'] = 0.
+        self.params['pressure'] = 0.
+        self.params['temperature'] = 298.
         self.reflections = []
-        self.modified = False
+        self.params['modified'] = False
 
     def load_file(self, filename):
         """
@@ -181,7 +194,7 @@ class jcpds(object):
         pos = name.find('.')
         if (pos >= 0): name = name[0:pos]
         self._name = name
-        self.comments = []
+        self.params['comments'] = []
         self.reflections = []
 
         # Determine what version JCPDS file this is
@@ -191,46 +204,46 @@ class jcpds(object):
         pos = line.index(' ')
         tag = line[0:pos].upper()
         value = line[pos:].strip()
-        if (tag == 'VERSION:'):
+        if tag == 'VERSION:':
             self.version = value
             # This is the current, keyword based version of JCPDS file
             while (1):
                 line = fp.readline()
-                if (line == ''): break
+                if line == '': break
                 pos = line.index(' ')
                 tag = line[0:pos].upper()
                 value = line[pos:].strip()
-                if (tag == 'COMMENT:'):
-                    self.comments.append(value)
-                elif (tag == 'K0:'):
-                    self.k0 = float(value)
-                elif (tag == 'K0P:'):
-                    self.k0p0 = float(value)
-                elif (tag == 'DK0DT:'):
-                    self.dk0dt = float(value)
-                elif (tag == 'DK0PDT:'):
-                    self.dk0pdt = float(value)
-                elif (tag == 'SYMMETRY:'):
-                    self.symmetry = value.upper()
-                elif (tag == 'A:'):
-                    self.a0 = float(value)
-                elif (tag == 'B:'):
-                    self.b0 = float(value)
-                elif (tag == 'C:'):
-                    self.c0 = float(value)
-                elif (tag == 'ALPHA:'):
-                    self.alpha0 = float(value)
-                elif (tag == 'BETA:'):
-                    self.beta0 = float(value)
-                elif (tag == 'GAMMA:'):
-                    self.gamma0 = float(value)
-                elif (tag == 'VOLUME:'):
-                    self.v0 = float(value)
-                elif (tag == 'ALPHAT:'):
-                    self.alpha_t0 = float(value)
-                elif (tag == 'DALPHADT:'):
-                    self.d_alpha_dt = float(value)
-                elif (tag == 'DIHKL:'):
+                if tag == 'COMMENT:':
+                    self.params['comments'].append(value)
+                elif tag == 'K0:':
+                    self.params['k0'] = float(value)
+                elif tag == 'K0P:':
+                    self.params['k0p0'] = float(value)
+                elif tag == 'DK0DT:':
+                    self.params['dk0dt'] = float(value)
+                elif tag == 'DK0PDT:':
+                    self.params['dk0pdt'] = float(value)
+                elif tag == 'SYMMETRY:':
+                    self.params['symmetry'] = value.upper()
+                elif tag == 'A:':
+                    self.params['a0'] = float(value)
+                elif tag == 'B:':
+                    self.params['b0'] = float(value)
+                elif tag == 'C:':
+                    self.params['c0'] = float(value)
+                elif tag == 'ALPHA:':
+                    self.params['alpha0'] = float(value)
+                elif tag == 'BETA:':
+                    self.params['beta0'] = float(value)
+                elif tag == 'GAMMA:':
+                    self.params['gamma0'] = float(value)
+                elif tag == 'VOLUME:':
+                    self.params['v0'] = float(value)
+                elif tag == 'ALPHAT:':
+                    self.params['alpha_t0'] = float(value)
+                elif tag == 'DALPHADT:':
+                    self.params['d_alpha_dt'] = float(value)
+                elif tag == 'DIHKL:':
                     dtemp = value.split()
                     dtemp = list(map(float, dtemp))
                     reflection = jcpds_reflection()
@@ -244,7 +257,7 @@ class jcpds(object):
             # This is an old format JCPDS file
             self.version = 1.
             header = ''
-            self.comments.append(line)  # Read above
+            self.params['comments'].append(line)  # Read above
             line = fp.readline()
             # Replace any commas with blanks, split at blanks
             temp = string.split(line.replace(',', ' '))
@@ -252,20 +265,20 @@ class jcpds(object):
             # The symmetry codes are as follows:
             #   1 -- cubic
             #   2 -- hexagonal
-            if (temp[0] == 1):
-                self.symmetry = 'CUBIC'
-            elif (temp[0] == 2):
-                self.symmetry = 'HEXAGONAL'
-            self.a0 = temp[1]
-            self.k0 = temp[2]
-            self.k0p0 = temp[3]
+            if temp[0] == 1:
+                self.params['symmetry'] = 'CUBIC'
+            elif temp[0] == 2:
+                self.params['symmetry'] = 'HEXAGONAL'
+            self.params['a0'] = temp[1]
+            self.params['k0'] = temp[2]
+            self.params['k0p0'] = temp[3]
             c0a0 = temp[4]
-            self.c0 = self.a0 * c0a0
+            self.params['c0'] = self.params['a0'] * c0a0
             line = fp.readline()  # Ignore, just column labels
 
-            while (1):
+            while 1:
                 line = fp.readline()
-                if (line == ''): break
+                if line == '': break
                 dtemp = line.split()
                 dtemp = list(map(float, dtemp))
                 reflection = jcpds_reflection()
@@ -278,20 +291,20 @@ class jcpds(object):
 
         fp.close()
         self.compute_v0()
-        self.a = self.a0
-        self.b = self.b0
-        self.c = self.c0
-        self.alpha = self.alpha0
-        self.beta = self.beta0
-        self.gamma = self.gamma0
-        self.v = self.v0
+        self.params['a'] = self.params['a0']
+        self.params['b'] = self.params['b0']
+        self.params['c'] = self.params['c0']
+        self.params['alpha'] = self.params['alpha0']
+        self.params['beta'] = self.params['beta0']
+        self.params['gamma'] = self.params['gamma0']
+        self.params['v'] = self.params['v0']
         # Compute D spacings, make sure they are consistent with the input values
 
         self.compute_d()
         for reflection in self.reflections:
             reflection.d0 = reflection.d
 
-        self.modified = False
+        self.params['modified'] = False
 
         ## we just removed this check because it should be better to care more about the actual a,b,c values than
         # individual d spacings
@@ -323,22 +336,22 @@ class jcpds(object):
         """
         fp = open(filename, 'w')
         fp.write('VERSION:   4\n')
-        for comment in self.comments:
+        for comment in self.params['comments']:
             fp.write('COMMENT: ' + comment + '\n')
-        fp.write('K0:       ' + str(self.k0) + '\n')
-        fp.write('K0P:      ' + str(self.k0p0) + '\n')
-        fp.write('DK0DT:    ' + str(self.dk0dt) + '\n')
-        fp.write('DK0PDT:   ' + str(self.dk0pdt) + '\n')
-        fp.write('SYMMETRY: ' + self.symmetry + '\n')
-        fp.write('A:        ' + str(self.a0) + '\n')
-        fp.write('B:        ' + str(self.b0) + '\n')
-        fp.write('C:        ' + str(self.c0) + '\n')
-        fp.write('ALPHA:    ' + str(self.alpha0) + '\n')
-        fp.write('BETA:     ' + str(self.beta0) + '\n')
-        fp.write('GAMMA:    ' + str(self.gamma0) + '\n')
-        fp.write('VOLUME:   ' + str(self.v0) + '\n')
-        fp.write('ALPHAT:   ' + str(self.alpha_t0) + '\n')
-        fp.write('DALPHADT: ' + str(self.d_alpha_dt) + '\n')
+        fp.write('K0:       ' + str(self.params['k0']) + '\n')
+        fp.write('K0P:      ' + str(self.params['k0p0']) + '\n')
+        fp.write('DK0DT:    ' + str(self.params['dk0dt']) + '\n')
+        fp.write('DK0PDT:   ' + str(self.params['dk0pdt']) + '\n')
+        fp.write('SYMMETRY: ' + self.params['symmetry'] + '\n')
+        fp.write('A:        ' + str(self.params['a0']) + '\n')
+        fp.write('B:        ' + str(self.params['b0']) + '\n')
+        fp.write('C:        ' + str(self.params['c0']) + '\n')
+        fp.write('ALPHA:    ' + str(self.params['alpha0']) + '\n')
+        fp.write('BETA:     ' + str(self.params['beta0']) + '\n')
+        fp.write('GAMMA:    ' + str(self.params['gamma0']) + '\n')
+        fp.write('VOLUME:   ' + str(self.params['v0']) + '\n')
+        fp.write('ALPHAT:   ' + str(self.params['alpha_t0']) + '\n')
+        fp.write('DALPHADT: ' + str(self.params['d_alpha_dt']) + '\n')
         reflections = self.get_reflections()
         for r in reflections:
             fp.write('DIHKL:    {0:g}\t{1:g}\t{2:g}\t{3:g}\t{4:g}\n'.format(r.d0, r.intensity, r.h, r.k, r.l))
@@ -347,29 +360,29 @@ class jcpds(object):
         self._filename = filename
         name = os.path.basename(filename)
         pos = name.find('.')
-        if (pos >= 0): name = name[0:pos]
+        if pos >= 0: name = name[0:pos]
         self._name = name
 
-        self.modified = False
+        self.params['modified'] = False
 
     def reload_file(self):
-        pressure = self.pressure
-        temperature = self.temperature
+        pressure = self.params['pressure']
+        temperature = self.params['temperature']
         self.load_file(self._filename)
-        self.pressure = pressure
-        self.temperature = temperature
+        self.params['pressure'] = pressure
+        self.params['temperature'] = temperature
         self.compute_d()
 
-    def __setattr__(self, key, value):
-        if key in ['comments', 'a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0',
-                   'symmetry', 'k0', 'k0p0', 'dk0dt', 'dk0pdt',
-                   'alpha_t0', 'd_alpha_dt', 'reflections']:
-            self.modified = True
-        super(jcpds, self).__setattr__(key, value)
+    # def __setattr__(self, key, value):
+    #     if key in ['comments', 'a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0',
+    #                'symmetry', 'k0', 'k0p0', 'dk0dt', 'dk0pdt',
+    #                'alpha_t0', 'd_alpha_dt', 'reflections']:
+    #         self.modified = True
+    #     super(jcpds, self).__setattr__(key, value)
 
     @property
     def filename(self):
-        if self.modified:
+        if self.params['modified']:
             return self._filename + '*'
         else:
             return self._filename
@@ -380,7 +393,7 @@ class jcpds(object):
 
     @property
     def name(self):
-        if self.modified:
+        if self.params['modified']:
             return self._name + '*'
         else:
             return self._name
@@ -404,52 +417,52 @@ class jcpds(object):
            j.read_file('alumina.jcpds')
            j.compute_v0()
         """
-        if (self.symmetry == 'CUBIC'):
-            self.b0 = self.a0
-            self.c0 = self.a0
-            self.alpha0 = 90.
-            self.beta0 = 90.
-            self.gamma0 = 90.
+        if self.params['symmetry'] == 'CUBIC':
+            self.params['b0'] = self.params['a0']
+            self.params['c0'] = self.params['a0']
+            self.params['alpha0'] = 90.
+            self.params['beta0'] = 90.
+            self.params['gamma0'] = 90.
 
-        elif (self.symmetry == 'TETRAGONAL'):
-            self.b0 = self.a0
-            self.alpha0 = 90.
-            self.beta0 = 90.
-            self.gamma0 = 90.
+        elif self.params['symmetry'] == 'TETRAGONAL':
+            self.params['b0'] = self.params['a0']
+            self.params['alpha0'] = 90.
+            self.params['beta0'] = 90.
+            self.params['gamma0'] = 90.
 
-        elif (self.symmetry == 'ORTHORHOMBIC'):
-            self.alpha0 = 90.
-            self.beta0 = 90.
-            self.gamma0 = 90.
+        elif self.params['symmetry'] == 'ORTHORHOMBIC':
+            self.params['alpha0'] = 90.
+            self.params['beta0'] = 90.
+            self.params['gamma0'] = 90.
 
-        elif (self.symmetry == 'HEXAGONAL'):
-            self.b0 = self.a0
-            self.alpha0 = 90.
-            self.beta0 = 90.
-            self.gamma0 = 120.
+        elif self.params['symmetry'] == 'HEXAGONAL':
+            self.params['b0'] = self.params['a0']
+            self.params['alpha0'] = 90.
+            self.params['beta0'] = 90.
+            self.params['gamma0'] = 120.
 
-        elif (self.symmetry == 'RHOMBOHEDRAL'):
-            self.b0 = self.a0
-            self.c0 = self.a0
-            self.beta0 = self.alpha0
-            self.gamma0 = self.alpha0
+        elif self.params['symmetry'] == 'RHOMBOHEDRAL':
+            self.params['b0'] = self.params['a0']
+            self.params['c0'] = self.params['a0']
+            self.params['beta0'] = self.params['alpha0']
+            self.params['gamma0'] = self.params['alpha0']
 
-        elif (self.symmetry == 'MONOCLINIC'):
-            self.alpha0 = 90.
-            self.gamma0 = 90.
+        elif self.params['symmetry'] == 'MONOCLINIC':
+            self.params['alpha0'] = 90.
+            self.params['gamma0'] = 90.
 
-        elif (self.symmetry == 'TRICLINIC'):
+        elif self.params['symmetry'] == 'TRICLINIC':
             pass
 
         dtor = np.pi / 180.
-        self.v0 = (self.a0 * self.b0 * self.c0 *
+        self.params['v0'] = (self.params['a0'] * self.params['b0'] * self.params['c0'] *
                    np.sqrt(1. -
-                           np.cos(self.alpha0 * dtor) ** 2 -
-                           np.cos(self.beta0 * dtor) ** 2 -
-                           np.cos(self.gamma0 * dtor) ** 2 +
-                           2. * (np.cos(self.alpha0 * dtor) *
-                                 np.cos(self.beta0 * dtor) *
-                                 np.cos(self.gamma0 * dtor))))
+                           np.cos(self.params['alpha0'] * dtor) ** 2 -
+                           np.cos(self.params['beta0'] * dtor) ** 2 -
+                           np.cos(self.params['gamma0'] * dtor) ** 2 +
+                           2. * (np.cos(self.params['alpha0'] * dtor) *
+                                 np.cos(self.params['beta0'] * dtor) *
+                                 np.cos(self.params['gamma0'] * dtor))))
 
     def compute_volume(self, pressure=None, temperature=None):
         """
@@ -483,35 +496,35 @@ class jcpds(object):
            j.compute_volume(100, 2500)
 
         """
-        if pressure == None:
-            pressure = self.pressure
+        if pressure is None:
+            pressure = self.params['pressure']
         else:
-            self.pressure = pressure
+            self.params['pressure'] = pressure
 
-        if temperature == None:
-            temperature = self.temperature
+        if temperature is None:
+            temperature = self.params['temperature']
         else:
-            self.temperature = temperature
+            self.params['temperature'] = temperature
 
         # Assume 0 K really means room T
-        if (temperature == 0): temperature = 298.
+        if temperature == 0: temperature = 298.
         # Compute values of K0, K0P and alphat at this temperature
-        self.alpha_t = self.alpha_t0 + self.d_alpha_dt * (temperature - 298.)
-        self.k0p = self.k0p0 + self.dk0pdt * (temperature - 298.)
+        self.params['alpha_t'] = self.params['alpha_t0'] + self.params['d_alpha_dt'] * (temperature - 298.)
+        self.params['k0p'] = self.params['k0p0'] + self.params['dk0pdt'] * (temperature - 298.)
 
-        if (pressure == 0.):
-            self.v = self.v0 * (1 + self.alpha_t * (temperature - 298.))
-        if (pressure < 0):
-            self.v = self.v0 * (1 - pressure / self.k0)
+        if pressure == 0.:
+            self.params['v'] = self.params['v0'] * (1 + self.params['alpha_t'] * (temperature - 298.))
+        if pressure < 0:
+            self.params['v'] = self.params['v0'] * (1 - pressure / self.params['k0'])
         else:
-            if (self.k0 <= 0.):
+            if self.params['k0'] <= 0.:
                 logger.info('K0 is zero, computing zero pressure volume')
-                self.v = self.v0
+                self.params['v'] = self.params['v0']
             else:
                 self.mod_pressure = pressure - \
-                                    self.alpha_t * self.k0 * (temperature - 298.)
+                                    self.params['alpha_t'] * self.params['k0'] * (temperature - 298.)
                 res = minimize(self.bm3_inverse, 1.)
-                self.v = self.v0 / np.float(res.x)
+                self.params['v'] = self.params['v0'] / np.float(res.x)
 
     def bm3_inverse(self, v0_v):
         """
@@ -542,21 +555,21 @@ class jcpds(object):
            diff = jcpds_bm3_inverse(1.3)
         """
 
-        return (1.5 * self.k0 * (v0_v ** (7. / 3.) - v0_v ** (5. / 3.)) *
-                (1 + 0.75 * (self.k0p - 4.) * (v0_v ** (2. / 3.) - 1.0)) -
+        return (1.5 * self.params['k0'] * (v0_v ** (7. / 3.) - v0_v ** (5. / 3.)) *
+                (1 + 0.75 * (self.params['k0p'] - 4.) * (v0_v ** (2. / 3.) - 1.0)) -
                 self.mod_pressure) ** 2
 
     def compute_d0(self):
         """
         computes d0 values for the based on the the current lattice parameters
         """
-        a = self.a0
-        b = self.b0
-        c = self.c0
+        a = self.params['a0']
+        b = self.params['b0']
+        c = self.params['c0']
         degree_to_radians = np.pi / 180.
-        alpha = self.alpha0 * degree_to_radians
-        beta = self.beta0 * degree_to_radians
-        gamma = self.gamma0 * degree_to_radians
+        alpha = self.params['alpha0'] * degree_to_radians
+        beta = self.params['beta0'] * degree_to_radians
+        gamma = self.params['gamma0'] * degree_to_radians
 
         h = np.zeros(len(self.reflections))
         k = np.zeros(len(self.reflections))
@@ -567,24 +580,24 @@ class jcpds(object):
             k[ind] = reflection.k
             l[ind] = reflection.l
 
-        if (self.symmetry == 'CUBIC'):
+        if self.params['symmetry'] == 'CUBIC':
             d2inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
-        elif (self.symmetry == 'TETRAGONAL'):
+        elif self.params['symmetry'] == 'TETRAGONAL':
             d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
-        elif (self.symmetry == 'ORTHORHOMBIC'):
+        elif self.params['symmetry'] == 'ORTHORHOMBIC':
             d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
-        elif (self.symmetry == 'HEXAGONAL'):
+        elif self.params['symmetry'] == 'HEXAGONAL':
             d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
-        elif (self.symmetry == 'RHOMBOHEDRAL'):
+        elif self.params['symmetry'] == 'RHOMBOHEDRAL':
             d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
                                               (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
                      (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
-        elif (self.symmetry == 'MONOCLINIC'):
+        elif self.params['symmetry'] == 'MONOCLINIC':
             d2inv = (h ** 2 / np.sin(beta) ** 2 / a ** 2 +
                      k ** 2 / b ** 2 +
                      l ** 2 / np.sin(beta) ** 2 / c ** 2 +
                      2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
-        elif (self.symmetry == 'TRICLINIC'):
+        elif self.params['symmetry'] == 'TRICLINIC':
             V = (a * b * c *
                  np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
                          np.cos(gamma) ** 2 +
@@ -601,10 +614,11 @@ class jcpds(object):
             d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
                      2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
         else:
-            logger.error(('Unknown crystal symmetry = ' + self.symmetry))
+            logger.error(('Unknown crystal symmetry = ' + self.params['symmetry']))
+            d2inv = 1
         d_spacings = np.sqrt(1. / d2inv)
 
-        for ind in xrange(len(self.reflections)):
+        for ind in range(len(self.reflections)):
             self.reflections[ind].d0 = d_spacings[ind]
 
     def compute_d(self, pressure=None, temperature=None):
@@ -647,18 +661,18 @@ class jcpds(object):
 
         # Assume each cell dimension changes by the same fractional amount = cube
         # root of volume change ratio
-        ratio = np.float((self.v / self.v0) ** (1.0 / 3.0))
-        self.a = self.a0 * ratio
-        self.b = self.b0 * ratio
-        self.c = self.c0 * ratio
+        ratio = np.float((self.params['v'] / self.params['v0']) ** (1.0 / 3.0))
+        self.params['a'] = self.params['a0'] * ratio
+        self.params['b'] = self.params['b0'] * ratio
+        self.params['c'] = self.params['c0'] * ratio
 
-        a = self.a
-        b = self.b
-        c = self.c
+        a = self.params['a']
+        b = self.params['b']
+        c = self.params['c']
         dtor = np.pi / 180.
-        alpha = self.alpha0 * dtor
-        beta = self.beta0 * dtor
-        gamma = self.gamma0 * dtor
+        alpha = self.params['alpha0'] * dtor
+        beta = self.params['beta0'] * dtor
+        gamma = self.params['gamma0'] * dtor
 
         h = np.zeros(len(self.reflections))
         k = np.zeros(len(self.reflections))
@@ -669,24 +683,24 @@ class jcpds(object):
             k[ind] = reflection.k
             l[ind] = reflection.l
 
-        if (self.symmetry == 'CUBIC'):
+        if self.params['symmetry'] == 'CUBIC':
             d2inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
-        elif (self.symmetry == 'TETRAGONAL'):
+        elif self.params['symmetry'] == 'TETRAGONAL':
             d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
-        elif (self.symmetry == 'ORTHORHOMBIC'):
+        elif self.params['symmetry'] == 'ORTHORHOMBIC':
             d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
-        elif (self.symmetry == 'HEXAGONAL'):
+        elif self.params['symmetry'] == 'HEXAGONAL':
             d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
-        elif (self.symmetry == 'RHOMBOHEDRAL'):
+        elif self.params['symmetry'] == 'RHOMBOHEDRAL':
             d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
                                               (1 - np.tan(0.5 * alpha) ** 2) * (h * k + k * l + l * h))) /
                      (a ** 2 * (1 + np.cos(alpha) - 2 * np.cos(alpha) ** 2)))
-        elif (self.symmetry == 'MONOCLINIC'):
+        elif self.params['symmetry'] == 'MONOCLINIC':
             d2inv = (h ** 2 / (np.sin(beta) ** 2 * a ** 2) +
                      k ** 2 / b ** 2 +
                      l ** 2 / (np.sin(beta) ** 2 * c ** 2) -
                      2 * h * l * np.cos(beta) / (a * c * np.sin(beta) ** 2))
-        elif (self.symmetry == 'TRICLINIC'):
+        elif self.params['symmetry'] == 'TRICLINIC':
             V = (a * b * c *
                  np.sqrt(1. - np.cos(alpha) ** 2 - np.cos(beta) ** 2 -
                          np.cos(gamma) ** 2 +
@@ -703,19 +717,20 @@ class jcpds(object):
             d2inv = (s11 * h ** 2 + s22 * k ** 2 + s33 * l ** 2 +
                      2. * s12 * h * k + 2. * s23 * k * l + 2. * s31 * l * h) / V ** 2
         else:
-            logger.error(('Unknown crystal symmetry = ' + self.symmetry))
+            logger.error(('Unknown crystal symmetry = ' + self.params['symmetry']))
+            d2inv = 1
         d_spacings = np.sqrt(1. / d2inv)
-        for ind in xrange(len(self.reflections)):
+        for ind in range(len(self.reflections)):
             self.reflections[ind].d = d_spacings[ind]
 
     def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0.):
         new_reflection = jcpds_reflection(h, k, l, intensity, d)
         self.reflections.append(new_reflection)
-        self.modified = True
+        self.params['modified'] = True
 
     def remove_reflection(self, ind):
         del self.reflections[ind]
-        self.modified = True
+        self.params['modified'] = True
 
     def get_reflections(self):
         """
@@ -724,54 +739,54 @@ class jcpds(object):
         """
         return self.reflections
 
-    def reorder_reflections_by_index(self, ind_list, reversed=False):
-        if reversed:
+    def reorder_reflections_by_index(self, ind_list, reversed_toggle=False):
+        if reversed_toggle:
             ind_list = ind_list[::-1]
         new_reflections = []
         for ind in ind_list:
             new_reflections.append(self.reflections[ind])
 
-        modified_flag = self.modified
+        modified_flag = self.params['modified']
         self.reflections = new_reflections
-        self.modified = modified_flag
+        self.params['modified'] = modified_flag
 
-    def sort_reflections_by_h(self, reversed=False):
+    def sort_reflections_by_h(self, reversed_toggle=False):
         h_list = []
         for reflection in self.reflections:
             h_list.append(reflection.h)
         sorted_ind = np.argsort(h_list)
-        self.reorder_reflections_by_index(sorted_ind, reversed)
+        self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def sort_reflections_by_k(self, reversed=False):
+    def sort_reflections_by_k(self, reversed_toggle=False):
         k_list = []
         for reflection in self.reflections:
             k_list.append(reflection.k)
         sorted_ind = np.argsort(k_list)
-        self.reorder_reflections_by_index(sorted_ind, reversed)
+        self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def sort_reflections_by_l(self, reversed=False):
+    def sort_reflections_by_l(self, reversed_toggle=False):
         l_list = []
         for reflection in self.reflections:
             l_list.append(reflection.l)
         sorted_ind = np.argsort(l_list)
-        self.reorder_reflections_by_index(sorted_ind, reversed)
+        self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def sort_reflections_by_intensity(self, reversed=False):
+    def sort_reflections_by_intensity(self, reversed_toggle=False):
         intensity_list = []
         for reflection in self.reflections:
             intensity_list.append(reflection.intensity)
         sorted_ind = np.argsort(intensity_list)
-        self.reorder_reflections_by_index(sorted_ind, reversed)
+        self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def sort_reflections_by_d(self, reversed=False):
+    def sort_reflections_by_d(self, reversed_toggle=False):
         d_list = []
         for reflection in self.reflections:
             d_list.append(reflection.d0)
         sorted_ind = np.argsort(d_list)
-        self.reorder_reflections_by_index(sorted_ind, reversed)
+        self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
     def has_thermal_expansion(self):
-        return (self.alpha_t0 != 0) or (self.d_alpha_dt != 0)
+        return (self.params['alpha_t0'] != 0) or (self.params['d_alpha_dt'] != 0)
 
 
 def lookup_jcpds_line(in_string,
@@ -834,19 +849,20 @@ def lookup_jcpds_line(in_string,
     """
 
     temp = in_string.split()
-    if (len(temp) < 2): return None
+    if len(temp) < 2:
+        return None
     file = temp[0]
     nums = temp[1].split()
     n = len(nums)
-    if (n == 1):
-        if (len(nums[0]) == 3):
+    if n == 1:
+        if len(nums[0]) == 3:
             try:
                 hkl = (int(nums[0][0]), int(nums[0][1]), int(nums[0][2]))
             except:
                 return None
         else:
             return None
-    elif (n == 3):
+    elif n == 3:
         hkl = list(map(int, nums))
     else:
         return None
@@ -857,9 +873,8 @@ def lookup_jcpds_line(in_string,
         j.load_file(full_file)
         refl = j.get_reflections()
         for r in refl:
-            if (r.h == hkl[0] and
-                        r.k == hkl[1] and
-                        r.l == hkl[2]): return r.d0
+            if r.h == hkl[0] and r.k == hkl[1] and r.l == hkl[2]:
+                return r.d0
         return None
     except:
         return None
