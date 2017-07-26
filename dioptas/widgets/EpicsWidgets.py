@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #

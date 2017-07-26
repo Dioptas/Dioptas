@@ -1,7 +1,24 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import gc
+import unittest
 from ..utility import QtTest, click_button
 
 import mock
@@ -21,6 +38,8 @@ data_path = os.path.join(unittest_path, '../data')
 class IntegrationControllerTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
+        self.model.working_directories['image'] = data_path
+        self.model.working_directories['pattern'] = data_path
 
         # setting up the calibration model but mocking the integration for speed
         self.model.calibration_model.num_points = 1000
@@ -29,9 +48,7 @@ class IntegrationControllerTest(QtTest):
         self.model.calibration_model.integrate_1d = mock.Mock(return_value=(dummy_x, dummy_y))
 
         self.widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'pattern': data_path,
-                                                             'image': data_path},
-                                                            widget=self.widget,
+        self.integration_controller = IntegrationController(widget=self.widget,
                                                             dioptas_model=self.model)
         self.image_controller = self.integration_controller.image_controller
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
@@ -51,7 +68,7 @@ class IntegrationControllerTest(QtTest):
         working_dir = os.path.join(data_path, 'out')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
-        self.image_controller.working_dir['pattern'] = os.path.join(working_dir)
+        self.model.working_directories['pattern'] = os.path.join(working_dir)
         self.widget.pattern_autocreate_cb.setChecked(True)
 
         return filenames, input_filenames, working_dir
@@ -101,8 +118,8 @@ class IntegrationControllerTest(QtTest):
     def test_shift_cake_azimuth(self):
         shift = 300
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
-        self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), 0)
-        self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi))
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), -len(self.model.cake_azi) / 2)
+        self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi) / 2)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.singleStep(), 1)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), 0)
         old_cake_data = np.copy(self.model.cake_data)
@@ -114,3 +131,27 @@ class IntegrationControllerTest(QtTest):
         self.assertFalse(np.array_equal(displayed_cake_data, old_cake_data))
         self.assertFalse(np.array_equal(displayed_cake_data[0], old_cake_data[0]))
         self.assertTrue(np.array_equal(displayed_cake_data[shift], old_cake_data[0]))
+
+    def test_cake_changes_axes(self):
+        # self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Cake')
+        # self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_image,
+        #                  self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+        self.widget.integration_image_widget.mode_btn.click()  # change to cake mode
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
+        self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_cake,
+                         self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+
+    @unittest.skip("Axes are currently not used for 'Image' mode")
+    def test_cake_zoom_changes_axes_scale(self):
+        self.widget.integration_image_widget.mode_btn.click()
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
+        # print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
+        rect = QtCore.QRectF(512, 512, 512, 512)
+        self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)
+        self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)  # for some reason must run twice
+
+        # print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRect())
+        self.assertEqual(self.widget.integration_image_widget.img_view.img_view_box.viewRect(), rect)

@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@ from functools import partial
 
 import numpy as np
 from PIL import Image
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
@@ -41,16 +41,15 @@ class ImageController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary of working directories
         :param widget: Reference to IntegrationView
         :param dioptas_model: Reference to DioptasModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
+
         self.widget = widget
         self.model = dioptas_model
 
@@ -112,8 +111,10 @@ class ImageController(object):
         """
         if self.model.use_mask and self.img_mode == 'Image':
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
+            self.widget.img_mask_btn.setChecked(True)
         else:
             self.widget.img_widget.plot_mask(np.zeros(self.model.mask_model.get_img().shape))
+            self.widget.img_mask_btn.setChecked(False)
 
     def update_mask_transparency(self):
         """
@@ -127,7 +128,7 @@ class ImageController(object):
             self.widget.img_widget.set_color([255, 0, 0, 255])
 
     def create_signals(self):
-        self.model.configuration_selected.connect(self.update_gui)
+        self.model.configuration_selected.connect(self.update_gui_from_configuration)
         self.model.img_changed.connect(self.update_img)
 
         self.model.img_changed.connect(self.plot_img)
@@ -149,13 +150,18 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.widget.mask_transparent_cb, self.update_mask_transparency)
 
-        self.connect_click_function(self.widget.img_roi_btn, self.change_roi_mode)
+        self.connect_click_function(self.widget.img_roi_btn, self.click_roi_btn)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
+        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
         self.connect_click_function(self.widget.img_autoscale_btn, self.img_autoscale_btn_clicked)
         self.connect_click_function(self.widget.img_dock_btn, self.img_dock_btn_clicked)
+        self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
+
+        self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
+        self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
 
         self.connect_click_function(self.widget.integration_image_widget.show_background_subtracted_img_btn,
                                     self.show_background_subtracted_img_btn_clicked)
@@ -181,7 +187,7 @@ class ImageController(object):
         self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
-        # self.create_auto_process_signal()
+        # signals
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
     def connect_click_function(self, emitter, function):
@@ -201,12 +207,12 @@ class ImageController(object):
         filename = kwargs.get('filename', None)
         if filename is None:
             filenames = open_files_dialog(self.widget, "Load image data file(s)",
-                                          self.working_dir['image'])
+                                          self.model.working_directories['image'])
         else:
             filenames = [filename]
 
         if filenames is not None and len(filenames) is not 0:
-            self.working_dir['image'] = os.path.dirname(str(filenames[0]))
+            self.model.working_directories['image'] = os.path.dirname(str(filenames[0]))
             if len(filenames) == 1:
                 self.model.img_model.load(str(filenames[0]))
             else:
@@ -234,6 +240,7 @@ class ImageController(object):
 
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
                                                           len(filenames))
+        self._set_up_batch_processing()
 
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
@@ -253,16 +260,17 @@ class ImageController(object):
             if progress_dialog.wasCanceled():
                 break
 
+        progress_dialog.close()
         self._tear_down_batch_processing()
 
     def _get_pattern_working_directory(self):
         if self.widget.pattern_autocreate_cb.isChecked():
-            working_directory = self.working_dir['pattern']
+            working_directory = self.model.working_directories['pattern']
         else:
             # if there is no working directory selected A file dialog opens up to choose a directory...
             working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
                 self.widget, "Please choose the output directory for the integrated Patterns.",
-                self.working_dir['pattern']))
+                self.model.working_directories['pattern']))
         return working_directory
 
     def _set_up_batch_processing(self):
@@ -276,7 +284,7 @@ class ImageController(object):
     def _save_multiple_image_files(self, filenames):
         working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
             self.widget, "Please choose the output directory for the Images.",
-            self.working_dir['image']))
+            self.model.working_directories['image']))
 
         if working_directory is '':
             return
@@ -396,8 +404,15 @@ class ImageController(object):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
         self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
         self.plot_mask()
-        # print(self.model.mask_model.get_mask().shape)
         self.model.img_model.img_changed.emit()
+
+    def update_mask_mode(self):
+        self.widget.integration_image_widget.mask_btn.setChecked(self.model.use_mask)
+        self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
+        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
+
+    def update_img_mode(self):
+        self.widget.img_mode_btn.click()
 
     def load_next_img(self):
         step = int(str(self.widget.image_browse_step_txt.text()))
@@ -421,24 +436,24 @@ class ImageController(object):
 
     def directory_txt_changed(self):
         new_directory = str(self.widget.img_directory_txt.text())
-        if os.path.exists(new_directory) and new_directory != self.working_dir['image']:
+        if os.path.exists(new_directory) and new_directory != self.model.working_directories['image']:
             if self.model.img_model.autoprocess:
-                self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
-            self.working_dir['image'] = os.path.abspath(new_directory)
+                self._files_now = dict([(f, None) for f in os.listdir(self.model.working_directories['image'])])
+            self.model.working_directories['image'] = os.path.abspath(new_directory)
             old_filename = str(self.widget.img_filename_txt.text())
             self.widget.img_filename_txt.setText(old_filename + '*')
         else:
-            self.widget.img_directory_txt.setText(self.working_dir['image'])
+            self.widget.img_directory_txt.setText(self.model.working_directories['image'])
 
     def img_directory_btn_click(self):
         directory = str(QtWidgets.QFileDialog.getExistingDirectory(
             self.widget,
             "Please choose the image working directory.",
-            self.working_dir['image']))
+            self.model.working_directories['image']))
         if directory is not '':
             if self.model.img_model.autoprocess:
-                self._files_now = dict([(f, None) for f in os.listdir(self.working_dir['image'])])
-            self.working_dir['image'] = directory
+                self._files_now = dict([(f, None) for f in os.listdir(self.model.working_directories['image'])])
+            self.model.working_directories['image'] = directory
             self.widget.img_directory_txt.setText(directory)
 
     def update_img(self, reset_img_levels=None):
@@ -458,19 +473,35 @@ class ImageController(object):
             master_widget_parent = master_widget_parent.parent()
         return master_widget_parent
 
-    def change_roi_mode(self):
-        self.roi_active = not self.roi_active
-        if self.img_mode == 'Image':
-            if self.roi_active:
-                self.widget.img_widget.activate_roi()
-            else:
-                self.widget.img_widget.deactivate_roi()
-        if self.roi_active:
-            self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.update_roi_in_model)
+    def click_roi_btn(self):
+        if self.model.current_configuration.roi is None:
             self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
         else:
-            self.widget.img_widget.roi.sigRegionChangeFinished.disconnect(self.update_roi_in_model)
             self.model.current_configuration.roi = None
+        self.update_roi_in_gui()
+
+    def update_roi_in_gui(self):
+        roi = self.model.mask_model.roi
+        if roi is None:
+            self.widget.img_widget.deactivate_roi()
+            self.widget.img_roi_btn.setChecked(False)
+            if self.roi_active:
+                self.widget.img_widget.roi.sigRegionChangeFinished.disconnect(self.update_roi_in_model)
+                self.roi_active = False
+            return
+
+        if not self.model.current_configuration.auto_integrate_cake:
+            self.widget.img_roi_btn.setChecked(True)
+            self.widget.img_widget.activate_roi()
+            self.widget.img_widget.update_roi_shade_limits(self.model.img_data.shape)
+
+            pos = QtCore.QPoint(roi[2], roi[0])
+            size = QtCore.QPoint(roi[3] - roi[2], roi[1] - roi[0])
+            self.widget.img_widget.roi.setRoiLimits(pos, size)
+
+            if not self.roi_active:
+                self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.update_roi_in_model)
+                self.roi_active = True
 
     def update_roi_in_model(self):
         self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
@@ -505,11 +536,14 @@ class ImageController(object):
 
         self.model.cake_changed.connect(self.plot_cake)
 
+        self.widget.integration_image_widget.img_view.replace_image_and_cake_axes('cake')
+
         self.plot_cake()
+        self.update_cake_axes_range()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
-        self.widget.cake_shift_azimuth_sl.setMinimum(0)
-        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi))
+        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi)/2)
+        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi)/2)
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
 
     def activate_image_mode(self):
@@ -533,6 +567,8 @@ class ImageController(object):
         self.model.img_changed.connect(self.plot_mask)
 
         self.model.cake_changed.disconnect(self.plot_cake)
+
+        self.widget.integration_image_widget.img_view.replace_image_and_cake_axes('image')
 
         self.plot_img()
         self.plot_mask()
@@ -615,6 +651,55 @@ class ImageController(object):
             cur_tth = None
         return cur_tth
 
+    def update_cake_axes_range(self):
+        if self.model.current_configuration.auto_integrate_cake:
+            self.update_cake_azimuth_axis()
+            self.update_cake_x_axis()
+
+
+    def update_cake_azimuth_axis(self):
+        data_img_item = self.widget.integration_image_widget.img_view.data_img_item
+        shift_amount = self.widget.cake_shift_azimuth_sl.value()
+        cake_azi = self.model.cake_azi-shift_amount*np.mean(np.diff(self.model.cake_azi))
+
+        height = data_img_item.viewRect().height()
+        bottom = data_img_item.viewRect().top()
+        v_scale = (cake_azi[-1] - cake_azi[0]) / data_img_item.boundingRect().height()
+        v_shift = np.min(cake_azi[0])
+        min_azi = v_scale * bottom + v_shift
+        max_azi = v_scale * (bottom + height) + v_shift
+
+        self.widget.integration_image_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
+
+    def update_cake_x_axis(self):
+        if self.model.cake_tth is None:
+            return
+
+        data_img_item = self.widget.integration_image_widget.img_view.data_img_item
+        cake_tth = self.model.cake_tth
+
+        width = data_img_item.viewRect().width()
+        left = data_img_item.viewRect().left()
+        h_scale = (np.max(cake_tth) - np.min(cake_tth)) / data_img_item.boundingRect().width()
+        h_shift = np.min(cake_tth)
+        min_tth = h_scale * left + h_shift
+        max_tth = h_scale * (left + width) + h_shift
+
+        if self.model.current_configuration.integration_unit == '2th_deg':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(min_tth, max_tth)
+        elif self.model.current_configuration.integration_unit == 'q_A^-1':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(
+                self.convert_x_value(min_tth, '2th_deg', 'q_A^-1'),
+                self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
+
+
+    def set_cake_axis_unit(self, unit='2th_deg'):
+        if unit == '2th_deg':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setLabel(u'2θ', u'°')
+        elif unit == 'q_A^-1':
+            self.widget.integration_image_widget.img_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
+        self.update_cake_x_axis()
+
     def show_img_mouse_position(self, x, y):
         if self.img_mode == "Image":
             img_shape = self.model.img_data.shape
@@ -643,7 +728,8 @@ class ImageController(object):
                 if self.img_mode == 'Cake':
                     tth = get_partial_value(self.model.cake_tth, y - 0.5)
                     shift_amount = self.widget.cake_shift_azimuth_sl.value()
-                    azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
+                    cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
+                    azi = get_partial_value(cake_azi, x - 0.5)
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
 
                 else:
@@ -652,7 +738,6 @@ class ImageController(object):
                     q_value = self.convert_x_value(tth, '2th_deg', 'q_A^-1')
                     azi = self.model.calibration_model.get_azi_img(x, y) / np.pi * 180
 
-                azi = azi + 360 if azi < 0 else azi
                 d = self.convert_x_value(tth, '2th_deg', 'd_A')
                 tth_str = u"2θ:%9.3f  " % tth
                 self.widget.mouse_tth_lbl.setText(tth_str)
@@ -772,11 +857,10 @@ class ImageController(object):
     def load_calibration(self):
         filename = open_file_dialog(
             self.widget, "Load calibration...",
-            self.working_dir[
-                'calibration'],
+            self.model.working_directories['calibration'],
             '*.poni')
         if filename is not '':
-            self.working_dir['calibration'] = os.path.dirname(filename)
+            self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
@@ -789,7 +873,7 @@ class ImageController(object):
         if not filename:
             img_filename = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
             filename = save_file_dialog(self.widget, "Save Image.",
-                                        os.path.join(self.working_dir['image'],
+                                        os.path.join(self.model.working_directories['image'],
                                                      img_filename + '.png'),
                                         ('Image (*.png);;Data (*.tiff)'))
 
@@ -871,7 +955,7 @@ class ImageController(object):
 
     def cbn_plot_correction_btn_clicked(self):
         if str(self.widget.cbn_plot_correction_btn.text()) == 'Plot':
-            self.widget.img_widget.plot_image(self.model.img_model._img_corrections.get_correction("cbn").get_data(),
+            self.widget.img_widget.plot_image(self.model.img_model.img_corrections.get_correction("cbn").get_data(),
                                               True)
             self.widget.cbn_plot_correction_btn.setText('Back')
             self.widget.oiadac_plot_btn.setText('Plot')
@@ -881,6 +965,20 @@ class ImageController(object):
                 self.plot_cake(True)
             elif self.img_mode == 'Image':
                 self.plot_img(True)
+
+    def update_cbn_widgets(self):
+        params = self.model.img_model.img_corrections.get_correction("cbn").get_params()
+        self.widget.cbn_diamond_thickness_txt.setText(str(params['diamond_thickness']))
+        self.widget.cbn_seat_thickness_txt.setText(str(params['seat_thickness']))
+        self.widget.cbn_inner_seat_radius_txt.setText(str(params['small_cbn_seat_radius']))
+        self.widget.cbn_outer_seat_radius_txt.setText(str(params['large_cbn_seat_radius']))
+        self.widget.cbn_cell_tilt_txt.setText(str(params['tilt']))
+        self.widget.cbn_tilt_rotation_txt.setText(str(params['tilt_rotation']))
+        self.widget.cbn_anvil_al_txt.setText(str(params['diamond_abs_length']))
+        self.widget.cbn_seat_al_txt.setText(str(params['seat_abs_length']))
+        self.widget.cbn_center_offset_txt.setText(str(params['center_offset']))
+        self.widget.cbn_center_offset_angle_txt.setText(str(params['center_offset_angle']))
+        self.widget.cbn_groupbox.setChecked(True)
 
     def oiadac_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
@@ -937,6 +1035,12 @@ class ImageController(object):
             elif self.img_mode == 'Image':
                 self.plot_img(True)
 
+    def update_oiadac_widgets(self):
+        params = self.model.img_model.img_corrections.get_correction("oiadac").get_params()
+        self.widget.oiadac_thickness_txt.setText(str(params['detector_thickness']))
+        self.widget.oiadac_abs_length_txt.setText(str(params['absorption_length']))
+        self.widget.oiadac_groupbox.setChecked(True)
+
     def _check_absorption_correction_shape(self):
         if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
             self.widget.cbn_groupbox.setChecked(False)
@@ -946,11 +1050,14 @@ class ImageController(object):
                                            'Due to a change in image dimensions the absorption ' +
                                            'corrections have been removed')
 
-    def update_gui(self):
+    def update_gui_from_configuration(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
+
+        self.update_mask_mode()
+        self.update_roi_in_gui()
 
         if self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
             self.activate_cake_mode()
@@ -962,3 +1069,5 @@ class ImageController(object):
         elif not self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
+
+

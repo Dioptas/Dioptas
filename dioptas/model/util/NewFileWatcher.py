@@ -1,7 +1,26 @@
+# -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import time
 
 from qtpy import QtCore
+
 
 class NewFileInDirectoryWatcher(QtCore.QObject):
     """
@@ -48,7 +67,8 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
 
     @path.setter
     def path(self, new_path):
-        self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
+        if len(self._file_system_watcher.directories()):
+            self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
         self._file_system_watcher.addPath(new_path)
         self._files_in_path = os.listdir(new_path)
 
@@ -104,7 +124,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         time.sleep(0.10)
         size2 = os.stat(path).st_size
 
-        return size1==size2
+        return size1 == size2
 
     def _file_changed(self, path):
         """

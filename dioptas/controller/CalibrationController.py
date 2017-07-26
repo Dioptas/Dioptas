@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@ from qtpy import QtWidgets, QtCore
 import numpy as np
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
+from .. import calibrants_path
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.CalibrationWidget import CalibrationWidget
@@ -34,10 +35,8 @@ class CalibrationController(object):
     CalibrationController handles all the interaction between the CalibrationView and the CalibrationData class
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """Manages the connection between the calibration GUI and data
-
-        :param working_dir: dictionary with working directories
 
         :param widget: Gives the Calibration Widget
         :type widget: CalibrationWidget
@@ -46,7 +45,6 @@ class CalibrationController(object):
         :type dioptas_model: DioptasModel
 
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -156,15 +154,13 @@ class CalibrationController(object):
     def load_img(self):
         """
         Loads an image file.
-        :param filename:
-            filename of image file. If not set it will pop up a QFileDialog where the file can be chosen.
         """
         filename = open_file_dialog(self.widget, caption="Load Calibration Image",
-                                    directory=self.working_dir['image'])
+                                    directory=self.model.working_directories['image'])
 
         if filename is not '':
-            self.working_dir['image'] = os.path.dirname(filename)
-        self.model.img_model.load(filename)
+            self.model.working_directories['image'] = os.path.dirname(filename)
+            self.model.img_model.load(filename)
 
     def load_next_img(self):
         self.model.img_model.load_next_file()
@@ -195,7 +191,7 @@ class CalibrationController(object):
         """
         self._calibrants_file_list = []
         self._calibrants_file_names_list = []
-        for file in os.listdir(self.model.calibration_model._calibrants_working_dir):
+        for file in os.listdir(calibrants_path):
             if file.endswith('.D'):
                 self._calibrants_file_list.append(file)
                 self._calibrants_file_names_list.append(file.split('.')[:-1][0])
@@ -238,9 +234,16 @@ class CalibrationController(object):
         except:
             integration_unit = '2th_deg'
 
-        self.widget.pattern_widget.plot_vertical_lines(self.convert_x_value(np.array(
-            self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
-            integration_unit, wavelength), name=self._calibrants_file_names_list[current_index])
+        calibrant_line_positions = self.convert_x_value(
+            np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg', integration_unit,
+            wavelength)
+        # filter them to only show the ones visible with the current pattern
+        pattern_min = np.min(self.model.pattern.x)
+        pattern_max = np.max(self.model.pattern.x)
+        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions>pattern_min]
+        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions<pattern_max]
+        self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
+                                                       name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -380,10 +383,10 @@ class CalibrationController(object):
         progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, end_value,
                                                     self.widget)
 
-        progress_dialog.move(self.widget.tab_widget.x() + self.widget.tab_widget.size().width() / 2.0 - \
-                             progress_dialog.size().width() / 2.0,
-                             self.widget.tab_widget.y() + self.widget.tab_widget.size().height() / 2.0 -
-                             progress_dialog.size().height() / 2.0)
+        progress_dialog.move(int(self.widget.tab_widget.x() + self.widget.tab_widget.size().width() / 2.0 - \
+                             progress_dialog.size().width() / 2.0),
+                             int(self.widget.tab_widget.y() + self.widget.tab_widget.size().height() / 2.0 -
+                             progress_dialog.size().height() / 2.0))
 
         progress_dialog.setWindowTitle('   ')
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -467,14 +470,12 @@ class CalibrationController(object):
     def load_calibration(self):
         """
         Loads a '*.poni' file and updates the calibration data class
-        :param filename:
-            filename of the calibration file
         """
         filename = open_file_dialog(self.widget, caption="Load calibration...",
-                                    directory=self.working_dir['calibration'],
+                                    directory=self.model.working_directories['calibration'],
                                     filter='*.poni')
         if filename is not '':
-            self.working_dir['calibration'] = os.path.dirname(filename)
+            self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
             self.update_all()
 
@@ -519,7 +520,8 @@ class CalibrationController(object):
         self.widget.pattern_widget.plot_data(*self.model.pattern.data)
         self.widget.pattern_widget.plot_vertical_lines(self.convert_x_value(np.array(
             self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg',
-            self.model.current_configuration.integration_unit, None))
+                                                                            self.model.current_configuration.integration_unit,
+                                                                            None))
 
         if self.model.current_configuration.integration_unit == '2th_deg':
             self.widget.pattern_widget.pattern_plot.setLabel('bottom', u'2θ', '°')
@@ -549,16 +551,13 @@ class CalibrationController(object):
     def save_calibration(self):
         """
         Saves the current calibration in a file.
-        :param filename:
-            Filename of the saved calibration. If 'None' a QFileDialog will open and the file will be saved with the
-            *.poni ending.
         :return:
         """
 
         filename = save_file_dialog(self.widget, "Save calibration...",
-                                    self.working_dir['calibration'], '*.poni')
+                                    self.model.working_directories['calibration'], '*.poni')
         if filename is not '':
-            self.working_dir['calibration'] = os.path.dirname(filename)
+            self.model.working_directories['calibration'] = os.path.dirname(filename)
             if not filename.rsplit('.', 1)[-1] == 'poni':
                 filename = filename + '.poni'
             self.model.calibration_model.save(filename)

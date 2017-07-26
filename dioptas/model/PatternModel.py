@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -43,6 +43,7 @@ class PatternModel(QtCore.QObject):
         self.pattern = Pattern()
         self.pattern_filename = ''
 
+        self.unit = ''
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 
