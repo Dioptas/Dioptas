@@ -36,30 +36,16 @@ pyFAI_path = os.path.dirname(pyFAI.__file__)
 matplotlib_path = os.path.dirname(matplotlib.__file__)
 lib2to3_path = os.path.dirname(lib2to3.__file__)
 
+
 extra_datas = [
-    ("dioptas/calibrants", "dioptas/calibrants"),
+    ("dioptas/resources", "dioptas/resources"),
     (os.path.join(pyFAI_path, "resources"), "pyFAI/resources"),
-    (os.path.join(pyFAI_path, "util"), "pyFAI/utils"),
-    ("dioptas/widgets/stylesheet.qss", "dioptas/widgets"),
-    ("dioptas/widgets/icns/icon.svg", "dioptas/widgets/icns"),
-    ("dioptas/widgets/icns/open.ico", "dioptas/widgets/icns"),
-    ("dioptas/widgets/icns/save.ico", "dioptas/widgets/icns"),
+    (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
-    ("dioptas/model/util/data/*.json", "dioptas/model/util/data"),
 ]
 
 binaries = []
-
-if _platform == "darwin":
-    extra_datas.extend((
-        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtCore.4.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtWidgets.4.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libpng16.16.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libQtSvg.4.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5.10.dylib'), '.'),
-        (os.path.join(os.path.expanduser('~'), '//anaconda/lib/libhdf5_hl.10.dylib'), '.'),
-    ))
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
@@ -68,7 +54,7 @@ a = Analysis(['Dioptas.py'],
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry','h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy'],
              hookspath=[],
              runtime_hooks=[],
-             excludes=['epics', 'PyQt4'],
+             excludes=[],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
@@ -123,7 +109,7 @@ elif _platform == "win32" or _platform == "cygwin":
     name = "Dioptas.exe"
 elif _platform == "darwin":
     platform = "Mac"
-    name = "Dioptas"
+    name = "run_dioptas"
 
 # checking whether the platform is 64 or 32 bit
 if sys.maxsize > 2 ** 32:
@@ -136,6 +122,7 @@ from dioptas import __version__
 
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
+
 exe = EXE(pyz,
           a.scripts,
           exclude_binaries=True,
@@ -157,4 +144,4 @@ coll = COLLECT(exe,
 if _platform == "darwin":
     app = BUNDLE(coll,
                  name='Dioptas_{}.app'.format(__version__),
-                 icon='widgets/icns/icon.icns')
+                 icon='dioptas/resources/icons/icon.icns')

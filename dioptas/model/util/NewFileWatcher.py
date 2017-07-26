@@ -67,7 +67,8 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
 
     @path.setter
     def path(self, new_path):
-        self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
+        if len(self._file_system_watcher.directories()):
+            self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
         self._file_system_watcher.addPath(new_path)
         self._files_in_path = os.listdir(new_path)
 

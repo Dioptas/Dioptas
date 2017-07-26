@@ -60,6 +60,7 @@ class PhaseModel(QtCore.QObject):
             cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
             jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
             self.phases.append(jcpds_object)
+            self.phase_files.append(filename)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             print(e)
