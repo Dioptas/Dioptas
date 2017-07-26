@@ -157,6 +157,18 @@ class CalibrationModelTest(QtTest):
             self.assertAlmostEqual(ind1, result_ind1, places=3)
             self.assertAlmostEqual(ind2, result_ind2, places=3)
 
+    def test_use_different_image_sizes_for_1d_integration(self):
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.calibration_model.integrate_1d()
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.calibration_model.integrate_1d()
+
+    def test_use_different_image_sizes_for_2d_integration(self):
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.calibration_model.integrate_2d()
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.calibration_model.integrate_2d()
+
 
 if __name__ == '__main__':
     unittest.main()
