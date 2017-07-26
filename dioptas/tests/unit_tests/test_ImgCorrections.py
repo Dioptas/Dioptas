@@ -1,11 +1,27 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
 import gc
 
 import numpy as np
 
-from model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
+from ...model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
     ObliqueAngleDetectorAbsorptionCorrection
 
 
@@ -89,7 +105,7 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
 
 
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-from model.util.ImgCorrection import CbnCorrection
+from ...model.util.ImgCorrection import CbnCorrection
 
 
 class CbnCorrectionTest(unittest.TestCase):
@@ -140,9 +156,9 @@ class CbnCorrectionTest(unittest.TestCase):
         self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)
 
 
-from model.CalibrationModel import CalibrationModel
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
+from ...model.CalibrationModel import CalibrationModel
+from ...model.ImgModel import ImgModel
+from ...model.MaskModel import MaskModel
 from lmfit import Parameters, minimize, report_fit
 from scipy.ndimage import gaussian_filter1d
 import os
@@ -165,8 +181,8 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
         detector_tilt = fit2d_parameter['tilt']
         detector_tilt_rotation = fit2d_parameter['tiltPlanRotation']
 
-        self.tth_array = self.calibration_data.spectrum_geometry.twoThetaArray((2048, 2048))
-        self.azi_array = self.calibration_data.spectrum_geometry.chiArray((2048, 2048))
+        self.tth_array = self.calibration_data.pattern_geometry.twoThetaArray((2048, 2048))
+        self.azi_array = self.calibration_data.pattern_geometry.chiArray((2048, 2048))
 
         self.oiadac_correction = ObliqueAngleDetectorAbsorptionCorrection(
                 self.tth_array, self.azi_array,
@@ -179,7 +195,7 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
 
     def tearDown(self):
         del self.calibration_data.cake_geometry
-        del self.calibration_data.spectrum_geometry
+        del self.calibration_data.pattern_geometry
 
     def test_the_world(self):
         params = Parameters()

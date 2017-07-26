@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -21,8 +21,10 @@ from collections import deque
 import numpy as np
 import skimage.draw
 from PIL import Image
+from qtpy import QtGui, QtCore
+from math import sqrt, atan2, cos, sin
 
-from model.util.cosmics import cosmicsimage
+from .util.cosmics import cosmicsimage
 
 
 class MaskModel(object):
@@ -32,6 +34,8 @@ class MaskModel(object):
         self.reset_dimension()
         self.filename = ''
         self.mode = True
+        self.roi = None
+
         self._mask_data = np.zeros(self.mask_dimension, dtype=bool)
         self._undo_deque = deque(maxlen=50)
         self._redo_deque = deque(maxlen=50)
@@ -49,22 +53,52 @@ class MaskModel(object):
 
     def set_supersampling(self, factor=None):
         if factor is None:
-            factor = self.supersampling_factor
+            self.supersampling_factor = 1
         else:
             self.supersampling_factor = factor
 
-        if factor != 1:
+        if self.supersampling_factor != 1:
             self._mask_data_supersampled = np.zeros((self._mask_data.shape[0] * factor,
                                                      self._mask_data.shape[1] * factor))
             for row in range(factor):
                 for col in range(factor):
                     self._mask_data_supersampled[row::factor, col::factor] = self._mask_data
 
+    @property
+    def roi_mask(self):
+        if self.roi is not None:
+            roi_mask = np.ones(self.mask_dimension)
+            x1, x2, y1, y2 = self.roi
+            if x1 < 0:
+                x1 = 0
+            if y1 < 0:
+                y1 = 0
+            roi_mask[int(x1):int(x2), int(y1):int(y2)] = 0
+
+            if self.supersampling_factor == None or self.supersampling_factor == 1:
+                return roi_mask
+            else:
+                factor = self.supersampling_factor
+                roi_mask_supersampled = np.zeros((self._mask_data.shape[0] * factor,
+                                                  self._mask_data.shape[1] * factor))
+                for row in range(factor):
+                    for col in range(factor):
+                        roi_mask_supersampled[row::factor, col::factor] = roi_mask
+                return roi_mask_supersampled
+        else:
+            return None
+
     def get_mask(self):
         if self.supersampling_factor == 1:
-            return self._mask_data
+            if self.roi is None:
+                return self._mask_data
+            elif self.roi is not None:
+                return np.logical_or(self._mask_data, self.roi_mask)
         else:
-            return self._mask_data_supersampled
+            if self.roi is None:
+                return self._mask_data_supersampled
+            else:
+                return np.logical_or(self._mask_data_supersampled, self.roi_mask)
 
     def get_img(self):
         return self._mask_data
@@ -108,12 +142,12 @@ class MaskModel(object):
 
     def mask_QGraphicsPolygonItem(self, QGraphicsPolygonItem):
         """
-        Masks a polygon given by a QGraphicsPolygonItem from the QtGui Library.
+        Masks a polygon given by a QGraphicsPolygonItem from the QtWidgets Library.
         Uses the sklimage.draw.polygon function.
         """
 
         # get polygon points
-        poly_list = list(QGraphicsPolygonItem.shape().toFillPolygon())
+        poly_list = list(QGraphicsPolygonItem.vertices)
         x = np.zeros(len(poly_list))
         y = np.zeros(len(poly_list))
 
@@ -124,7 +158,7 @@ class MaskModel(object):
 
     def mask_QGraphicsEllipseItem(self, QGraphicsEllipseItem):
         """
-        Masks an Ellipse given by a QGraphicsEllipseItem from the QtGui
+        Masks an Ellipse given by a QGraphicsEllipseItem from the QtWidgets
         Library. Uses the skimage.draw.ellipse function.
         """
         bounding_rect = QGraphicsEllipseItem.rect()
@@ -132,7 +166,7 @@ class MaskModel(object):
         cy = bounding_rect.center().y()
         x_radius = bounding_rect.width() * 0.5
         y_radius = bounding_rect.height() * 0.5
-        self.mask_ellipse(cx, cy, x_radius, y_radius)
+        self.mask_ellipse(int(cx), int(cy), int(x_radius), int(y_radius))
 
     def mask_rect(self, x, y, width, height):
         """
@@ -158,6 +192,7 @@ class MaskModel(object):
         if y_ind1 < 0:
             y_ind1 = 0
 
+        x_ind1, x_ind2, y_ind1, y_ind2 = int(x_ind1), int(x_ind2), int(y_ind1), int(y_ind2)
         self._mask_data[x_ind1:x_ind2, y_ind1:y_ind2] = self.mode
 
     def mask_polygon(self, x, y):
@@ -178,7 +213,7 @@ class MaskModel(object):
         """
         self.update_deque()
         rr, cc = skimage.draw.ellipse(
-                cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
+            cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
         self._mask_data[rr, cc] = self.mode
 
     def grow(self):
@@ -225,7 +260,14 @@ class MaskModel(object):
     def save_mask(self, filename):
         im_array = np.int8(self.get_img())
         im = Image.fromarray(im_array)
-        im.save(filename, "tiff", compression="tiff_deflate")
+        try:
+            im.save(filename, "tiff", compression="tiff_deflate")
+        except OSError:
+            try:
+                im.save(filename, "tiff", compression="tiff_adobe_deflate")
+            except IOError:
+                im.save(filename, "tiff")
+
         self.filename = filename
 
     def load_mask(self, filename):
@@ -257,3 +299,57 @@ class MaskModel(object):
         self.update_deque()
         self._mask_data = np.logical_or(self._mask_data,
                                         np.array(mask_data, dtype='bool'))
+
+    def find_center_of_circle_from_three_points(self, a, b, c):
+        xa, ya = a.x(), a.y()
+        xb, yb = b.x(), b.y()
+        xc, yc = c.x(), c.y()
+        # if (xa == xb and ya == yb) or (xa == xc and ya == yc) or (xb == xc and yb == yc):
+        #     return None
+        mid_ab_x = (xa + xb)/2.0
+        mid_ab_y = (ya + yb)/2.0
+        mid_bc_x = (xb + xc)/2.0
+        mid_bc_y = (yb + yc)/2.0
+        slope_ab = (yb - ya)/(xb - xa)
+        slope_bc = (yc - yb)/(xc - xb)
+        slope_p_ab = -1.0/slope_ab
+        slope_p_bc = -1.0/slope_bc
+        b_p_ab = mid_ab_y - slope_p_ab * mid_ab_x
+        b_p_bc = mid_bc_y - slope_p_bc * mid_bc_x
+        x0 = (b_p_bc - b_p_ab)/(slope_p_ab - slope_p_bc)
+        y0 = slope_p_ab * x0 + b_p_ab
+        self.center_for_arc = QtCore.QPointF(x0, y0)
+        return self.center_for_arc
+
+    @staticmethod
+    def find_radius_of_circle_from_center_and_point(p0, a):
+        r = sqrt((a.x() - p0.x()) ** 2 + (a.y() - p0.y()) ** 2)
+        return r
+
+    def find_n_angles_on_arc_from_three_points_around_p0(self, p0, pa, pb, pc, n):
+        phi_a = self.calc_angle_from_center_and_point(p0, pa)
+        phi_b = self.calc_angle_from_center_and_point(p0, pb)
+        phi_c = self.calc_angle_from_center_and_point(p0, pc)
+        if phi_c < phi_a < phi_b or phi_b < phi_c < phi_a:
+            phi_range = np.linspace(phi_a, phi_c + 2 * np.pi, n)
+        elif phi_a < phi_b < phi_c or phi_c < phi_b < phi_a:
+            phi_range = np.linspace(phi_a, phi_c, n)
+        elif phi_a < phi_c < phi_b or phi_b < phi_a < phi_c:
+            phi_range = np.linspace(phi_a + 2 * np.pi, phi_c, n)
+        else:
+            return None
+        return phi_range
+
+    @staticmethod
+    def calc_angle_from_center_and_point(p0, pa):
+        phi = atan2(pa.y() - p0.y(), pa.x() - p0.x())
+        return phi
+
+    @staticmethod
+    def calc_arc_points_from_angles(p0, r, width, phi_range):
+        p = []
+        for phi in phi_range:
+            xn = p0.x() + (r - width) * cos(phi)
+            yn = p0.y() + (r - width) * sin(phi)
+            p.append(QtCore.QPointF(xn, yn))
+        return p
