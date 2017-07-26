@@ -177,6 +177,8 @@ class ProjectSaveLoadTest(QtTest):
         self.assertDictEqual(saved_working_directories, working_directories)
         if self.check_calibration:
             saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
+            if 'splineFile' in saved_pyfai_params:
+                del saved_pyfai_params['splineFile']
             self.assertDictEqual(saved_pyfai_params, pyfai_params)
 
     ####################################################################################################################
