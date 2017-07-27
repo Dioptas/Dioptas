@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,34 +16,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
-from widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
+from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
     VerticalSpacerItem, FlatButton, CleanLooksComboBox
 
-from model.util.HelperModule import convert_d_to_two_theta
+from ...model.util.HelperModule import convert_d_to_two_theta
 
 
-class JcpdsEditorWidget(QtGui.QWidget):
+class JcpdsEditorWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(JcpdsEditorWidget, self).__init__(parent)
 
-        self._layout = QtGui.QVBoxLayout()
+        self.setWindowTitle('Dioptas - JCPDS Editor')
 
-        self._file_layout = QtGui.QGridLayout()
+        self._layout = QtWidgets.QVBoxLayout()
+
+        self._file_layout = QtWidgets.QGridLayout()
         self._file_layout.addWidget(LabelAlignRight('Filename:'), 0, 0)
         self._file_layout.addWidget(LabelAlignRight('Comment:'), 1, 0)
 
-        self.filename_txt = QtGui.QLineEdit('')
-        self.comments_txt = QtGui.QLineEdit('')
+        self.filename_txt = QtWidgets.QLineEdit('')
+        self.comments_txt = QtWidgets.QLineEdit('')
         self._file_layout.addWidget(self.filename_txt, 0, 1)
         self._file_layout.addWidget(self.comments_txt, 1, 1)
         self._layout.addLayout((self._file_layout))
 
-        self.lattice_parameters_gb = QtGui.QGroupBox('Lattice Parameters')
-        self._lattice_parameters_layout = QtGui.QVBoxLayout()
+        self.lattice_parameters_gb = QtWidgets.QGroupBox('Lattice Parameters')
+        self._lattice_parameters_layout = QtWidgets.QVBoxLayout()
 
-        self._symmetry_layout = QtGui.QHBoxLayout()
+        self._symmetry_layout = QtWidgets.QHBoxLayout()
         self._symmetry_layout.addWidget(LabelAlignRight('Symmetry'))
         self.symmetry_cb = CleanLooksComboBox()
         self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'rhombohedral',
@@ -53,7 +55,7 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self._symmetry_layout.addSpacerItem(HorizontalSpacerItem())
         self._lattice_parameters_layout.addLayout(self._symmetry_layout)
 
-        self._parameters_layout = QtGui.QGridLayout()
+        self._parameters_layout = QtWidgets.QGridLayout()
 
         self.lattice_a_sb = DoubleSpinBoxAlignRight()
         self.lattice_a_sb.setSingleStep(0.01)
@@ -72,18 +74,18 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.lattice_c_sb.setSingleStep(0.01)
         self.lattice_length_step_txt = NumberTextField('0.01')
 
-        self.add_field(self._parameters_layout, self.lattice_a_sb, 'a0:',u"Å", 0, 0)
-        self.add_field(self._parameters_layout, self.lattice_b_sb, 'b0:',u"Å", 0, 3)
-        self.add_field(self._parameters_layout, self.lattice_c_sb, 'c0:',u"Å", 0, 6)
-        self.add_field(self._parameters_layout, self.lattice_length_step_txt, 'st:',u"Å", 0, 9)
+        self.add_field(self._parameters_layout, self.lattice_a_sb, 'a0:', u"Å", 0, 0)
+        self.add_field(self._parameters_layout, self.lattice_b_sb, 'b0:', u"Å", 0, 3)
+        self.add_field(self._parameters_layout, self.lattice_c_sb, 'c0:', u"Å", 0, 6)
+        self.add_field(self._parameters_layout, self.lattice_length_step_txt, 'st:', u"Å", 0, 9)
 
         self.lattice_eos_a_txt = NumberTextField()
         self.lattice_eos_b_txt = NumberTextField()
         self.lattice_eos_c_txt = NumberTextField()
 
-        self.add_field(self._parameters_layout, self.lattice_eos_a_txt, 'a:',u"Å", 1, 0)
-        self.add_field(self._parameters_layout, self.lattice_eos_b_txt, 'b:',u"Å", 1, 3)
-        self.add_field(self._parameters_layout, self.lattice_eos_c_txt, 'c:',u"Å", 1, 6)
+        self.add_field(self._parameters_layout, self.lattice_eos_a_txt, 'a:', u"Å", 1, 0)
+        self.add_field(self._parameters_layout, self.lattice_eos_b_txt, 'b:', u"Å", 1, 3)
+        self.add_field(self._parameters_layout, self.lattice_eos_c_txt, 'c:', u"Å", 1, 6)
 
         self.lattice_alpha_sb = DoubleSpinBoxAlignRight()
         self.lattice_alpha_sb.setMaximum(180)
@@ -93,10 +95,10 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.lattice_gamma_sb.setMaximum(180)
         self.lattice_angle_step_txt = NumberTextField('1')
 
-        self.add_field(self._parameters_layout, self.lattice_alpha_sb, u'α:',u"°", 2, 0)
-        self.add_field(self._parameters_layout, self.lattice_beta_sb, u'β:',u"°", 2, 3)
-        self.add_field(self._parameters_layout, self.lattice_gamma_sb, u'γ:',u"°", 2, 6)
-        self.add_field(self._parameters_layout, self.lattice_angle_step_txt, u'st:',u"°", 2, 9)
+        self.add_field(self._parameters_layout, self.lattice_alpha_sb, u'α:', u"°", 2, 0)
+        self.add_field(self._parameters_layout, self.lattice_beta_sb, u'β:', u"°", 2, 3)
+        self.add_field(self._parameters_layout, self.lattice_gamma_sb, u'γ:', u"°", 2, 6)
+        self.add_field(self._parameters_layout, self.lattice_angle_step_txt, u'st:', u"°", 2, 9)
 
         self.lattice_volume_txt = NumberTextField()
         self.lattice_eos_volume_txt = NumberTextField()
@@ -117,12 +119,11 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.add_field(self._parameters_layout, self.lattice_cb_sb, 'c/b:', None, 4, 6)
         self.add_field(self._parameters_layout, self.lattice_ratio_step_txt, 'st:', None, 4, 9)
 
-
         self._lattice_parameters_layout.addLayout(self._parameters_layout)
         self.lattice_parameters_gb.setLayout(self._lattice_parameters_layout)
 
-        self.eos_gb = QtGui.QGroupBox('Equation of State')
-        self._eos_layout = QtGui.QGridLayout()
+        self.eos_gb = QtWidgets.QGroupBox('Equation of State')
+        self._eos_layout = QtWidgets.QGridLayout()
 
         self.eos_K_txt = NumberTextField()
         self.eos_Kp_txt = NumberTextField()
@@ -139,9 +140,9 @@ class JcpdsEditorWidget(QtGui.QWidget):
         self.add_field(self._eos_layout, self.eos_dKpdT_txt, "dK'/dT", '1/K', 5, 0)
         self.eos_gb.setLayout(self._eos_layout)
 
-        self.reflections_gb = QtGui.QGroupBox('Reflections')
-        self._reflection_layout = QtGui.QGridLayout()
-        self.reflection_table = QtGui.QTableWidget()
+        self.reflections_gb = QtWidgets.QGroupBox('Reflections')
+        self._reflection_layout = QtWidgets.QGridLayout()
+        self.reflection_table = QtWidgets.QTableWidget()
         self.reflection_table.setColumnCount(8)
         self.reflections_add_btn = FlatButton('Add')
         self.reflections_delete_btn = FlatButton('Delete')
@@ -154,13 +155,12 @@ class JcpdsEditorWidget(QtGui.QWidget):
 
         self.reflections_gb.setLayout(self._reflection_layout)
 
-        self._body_layout = QtGui.QGridLayout()
+        self._body_layout = QtWidgets.QGridLayout()
         self._body_layout.addWidget(self.eos_gb, 0, 0)
         self._body_layout.addItem(VerticalSpacerItem(), 1, 0)
         self._body_layout.addWidget(self.reflections_gb, 0, 1, 2, 1)
 
-
-        self._button_layout = QtGui.QHBoxLayout()
+        self._button_layout = QtWidgets.QHBoxLayout()
         self.save_as_btn = FlatButton('Save As')
         self.reload_file_btn = FlatButton('Reload File')
         self.ok_btn = FlatButton('Ok')
@@ -189,9 +189,9 @@ class JcpdsEditorWidget(QtGui.QWidget):
         )
         self.reflection_table.setItemDelegate(TextDoubleDelegate(self))
         self.reflection_table.setShowGrid(False)
-        self.reflection_table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.reflection_table.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self.reflection_table.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.reflection_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.reflection_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.reflection_table.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         self.eos_gb.setMaximumWidth(200)
         self.eos_gb.setStyleSheet("""
@@ -204,7 +204,7 @@ class JcpdsEditorWidget(QtGui.QWidget):
         reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20, 24))
 
         self.reflection_table.verticalHeader().setDefaultSectionSize(20)
-        # self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
+        # self.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
 
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
@@ -217,65 +217,65 @@ class JcpdsEditorWidget(QtGui.QWidget):
 
     def add_field(self, layout, widget, label_str, unit, x, y):
         layout.addWidget(LabelAlignRight(label_str), x, y)
-        layout.addWidget(widget, x, y+1)
+        layout.addWidget(widget, x, y + 1)
         if unit:
-            layout.addWidget(QtGui.QLabel(unit), x, y+2)
+            layout.addWidget(QtWidgets.QLabel(unit), x, y + 2)
 
     def show_jcpds(self, jcpds_phase, wavelength=None):
         self.blockAllSignals(True)
 
         self.filename_txt.setText(jcpds_phase.filename)
-        self.comments_txt.setText("/n".join(jcpds_phase.comments))
+        self.comments_txt.setText("/n".join(jcpds_phase.params['comments']))
 
-        self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.symmetry.lower()))
-        self.update_spinbox_enable(jcpds_phase.symmetry)
+        self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.params['symmetry'].lower()))
+        self.update_spinbox_enable(jcpds_phase.params['symmetry'])
 
         if not self.lattice_a_sb.hasFocus():
-            self.lattice_a_sb.setValue(jcpds_phase.a0)
+            self.lattice_a_sb.setValue(jcpds_phase.params['a0'])
         if not self.lattice_b_sb.hasFocus():
-            self.lattice_b_sb.setValue(jcpds_phase.b0)
+            self.lattice_b_sb.setValue(jcpds_phase.params['b0'])
         if not self.lattice_c_sb.hasFocus():
-            self.lattice_c_sb.setValue(jcpds_phase.c0)
+            self.lattice_c_sb.setValue(jcpds_phase.params['c0'])
 
-        self.lattice_eos_a_txt.setText('{0:.4f}'.format(jcpds_phase.a))
-        self.lattice_eos_b_txt.setText('{0:.4f}'.format(jcpds_phase.b))
-        self.lattice_eos_c_txt.setText('{0:.4f}'.format(jcpds_phase.c))
+        self.lattice_eos_a_txt.setText('{0:.4f}'.format(jcpds_phase.params['a']))
+        self.lattice_eos_b_txt.setText('{0:.4f}'.format(jcpds_phase.params['b']))
+        self.lattice_eos_c_txt.setText('{0:.4f}'.format(jcpds_phase.params['c']))
 
-        self.lattice_eos_volume_txt.setText('{0:.4f}'.format(jcpds_phase.v))
+        self.lattice_eos_volume_txt.setText('{0:.4f}'.format(jcpds_phase.params['v']))
 
         try:
             if not self.lattice_ab_sb.hasFocus():
-                self.lattice_ab_sb.setValue(jcpds_phase.a0 / float(jcpds_phase.b0))
+                self.lattice_ab_sb.setValue(jcpds_phase.params['a0'] / float(jcpds_phase.params['b0']))
         except ZeroDivisionError:
             self.lattice_ab_sb.setSpecialValueText('Inf')
 
         try:
             if not self.lattice_ca_sb.hasFocus():
-                self.lattice_ca_sb.setValue(jcpds_phase.c0 / float(jcpds_phase.a0))
+                self.lattice_ca_sb.setValue(jcpds_phase.params['c0'] / float(jcpds_phase.params['a0']))
         except ZeroDivisionError:
             self.lattice_ca_sb.setSpecialValueText('Inf')
 
         try:
             if not self.lattice_cb_sb.hasFocus():
-                self.lattice_cb_sb.setValue(jcpds_phase.c0 / float(jcpds_phase.b0))
+                self.lattice_cb_sb.setValue(jcpds_phase.params['c0'] / float(jcpds_phase.params['b0']))
         except ZeroDivisionError:
             self.lattice_cb_sb.setSpecialValueText('Inf')
 
-        self.lattice_volume_txt.setText(str('{0:g}'.format(jcpds_phase.v0)))
+        self.lattice_volume_txt.setText(str('{0:g}'.format(jcpds_phase.params['v0'])))
 
         if not self.lattice_alpha_sb.hasFocus():
-            self.lattice_alpha_sb.setValue(jcpds_phase.alpha0)
+            self.lattice_alpha_sb.setValue(jcpds_phase.params['alpha0'])
         if not self.lattice_beta_sb.hasFocus():
-            self.lattice_beta_sb.setValue(jcpds_phase.beta0)
+            self.lattice_beta_sb.setValue(jcpds_phase.params['beta0'])
         if not self.lattice_gamma_sb.hasFocus():
-            self.lattice_gamma_sb.setValue(jcpds_phase.gamma0)
+            self.lattice_gamma_sb.setValue(jcpds_phase.params['gamma0'])
 
-        self.eos_K_txt.setText(str(jcpds_phase.k0))
-        self.eos_Kp_txt.setText(str(jcpds_phase.k0p))
-        self.eos_alphaT_txt.setText(str(jcpds_phase.alpha_t0))
-        self.eos_dalphadT_txt.setText(str(jcpds_phase.d_alpha_dt))
-        self.eos_dKdT_txt.setText(str(jcpds_phase.dk0dt))
-        self.eos_dKpdT_txt.setText(str(jcpds_phase.dk0pdt))
+        self.eos_K_txt.setText(str(jcpds_phase.params['k0']))
+        self.eos_Kp_txt.setText(str(jcpds_phase.params['k0p']))
+        self.eos_alphaT_txt.setText(str(jcpds_phase.params['alpha_t0']))
+        self.eos_dalphadT_txt.setText(str(jcpds_phase.params['d_alpha_dt']))
+        self.eos_dKdT_txt.setText(str(jcpds_phase.params['dk0dt']))
+        self.eos_dKpdT_txt.setText(str(jcpds_phase.params['dk0pdt']))
 
         # update reflections:
         self.reflection_table.clearContents()
@@ -441,7 +441,7 @@ class JcpdsEditorWidget(QtGui.QWidget):
                                           CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(two_theta))))
 
         self.reflection_table.resizeColumnsToContents()
-        self.reflection_table.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
+        self.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
         self.reflection_table.blockSignals(False)
 
     def remove_reflection_from_table(self, ind):
@@ -472,21 +472,21 @@ class JcpdsEditorWidget(QtGui.QWidget):
         #     self.jcpds_phase.dk0pdt = float(str(self.eos_dKpdT_txt.text()))
 
 
-class NoRectDelegate(QtGui.QItemDelegate):
+class NoRectDelegate(QtWidgets.QItemDelegate):
     def __init__(self, parent):
         super(NoRectDelegate, self).__init__(parent)
 
     def drawFocus(self, painter, option, rect):
-        option.state &= ~QtGui.QStyle.State_HasFocus
-        QtGui.QItemDelegate.drawFocus(self, painter, option, rect)
+        option.state &= ~QtWidgets.QStyle.State_HasFocus
+        QtWidgets.QItemDelegate.drawFocus(self, painter, option, rect)
 
 
-class TextDoubleDelegate(QtGui.QStyledItemDelegate):
+class TextDoubleDelegate(QtWidgets.QStyledItemDelegate):
     def __init__(self, parent):
         super(TextDoubleDelegate, self).__init__(parent)
 
     def createEditor(self, parent, _, model):
-        self.editor = QtGui.QLineEdit(parent)
+        self.editor = QtWidgets.QLineEdit(parent)
         self.editor.setFrame(False)
         self.editor.setValidator(QtGui.QDoubleValidator())
         self.editor.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
@@ -505,7 +505,7 @@ class TextDoubleDelegate(QtGui.QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
 
-class CenteredQTableWidgetItem(QtGui.QTableWidgetItem):
+class CenteredQTableWidgetItem(QtWidgets.QTableWidgetItem):
     def __init__(self, value):
         super(CenteredQTableWidgetItem, self).__init__(value)
         self.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
@@ -536,9 +536,10 @@ class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
-    from model.util.jcpds import jcpds
+    app = QtWidgets.QApplication([])
+    from ...model.util.jcpds import jcpds
     import os
+
     test_phase = jcpds()
     path = os.path.join(os.path.dirname(__file__), '../../')
     path = os.path.join(path, 'tests', 'data', 'jcpds', 'ag.jcpds')
@@ -549,4 +550,3 @@ if __name__ == '__main__':
     widget.show()
     widget.raise_()
     app.exec_()
-

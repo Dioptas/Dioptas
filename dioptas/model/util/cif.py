@@ -1,5 +1,6 @@
+# -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,16 +29,15 @@ from math import degrees
 
 from CifFile import ReadCif
 from .jcpds import jcpds
+from ... import data_path
 
 import numpy as np
 import json
 
-with open(os.path.join(os.path.dirname(__file__),
-                       "data/atomic_scattering_params.json")) as f:
+with open(os.path.join(data_path, "atomic_scattering_params.json")) as f:
     ATOMIC_SCATTERING_PARAMS = json.load(f)
 
-with open(os.path.join(os.path.dirname(__file__),
-                       "data/periodic_table.json")) as f:
+with open(os.path.join(data_path, "periodic_table.json")) as f:
     PERIODIC_TABLE = json.load(f)
 
 
@@ -70,7 +70,7 @@ class CifConverter(object):
         jcpds_phase = self.convert_cif_phase_to_jcpds(cif_phase)
         jcpds_phase.filename = filename
         jcpds_phase.name = os.path.splitext(os.path.basename(filename))[0]
-        jcpds_phase.modified = False
+        jcpds_phase.params['modified'] = False
 
         return jcpds_phase
 
@@ -104,15 +104,15 @@ class CifConverter(object):
         """
         jcpds_phase = jcpds()
 
-        jcpds_phase.a0 = cif_phase.a
-        jcpds_phase.b0 = cif_phase.b
-        jcpds_phase.c0 = cif_phase.c
-        jcpds_phase.alpha0 = cif_phase.alpha
-        jcpds_phase.beta0 = cif_phase.beta
-        jcpds_phase.gamma0 = cif_phase.gamma
-        jcpds_phase.v0 = cif_phase.volume
-        jcpds_phase.symmetry = cif_phase.symmetry
-        jcpds_phase.comments = [cif_phase.comments]
+        jcpds_phase.params['a0'] = cif_phase.a
+        jcpds_phase.params['b0'] = cif_phase.b
+        jcpds_phase.params['c0'] = cif_phase.c
+        jcpds_phase.params['alpha0'] = cif_phase.alpha
+        jcpds_phase.params['beta0'] = cif_phase.beta
+        jcpds_phase.params['gamma0'] = cif_phase.gamma
+        jcpds_phase.params['v0'] = cif_phase.volume
+        jcpds_phase.params['symmetry'] = cif_phase.symmetry
+        jcpds_phase.params['comments'] = [cif_phase.comments]
 
         return jcpds_phase
 
@@ -201,8 +201,9 @@ class CifConverter(object):
                 lorentz_factor = (1 + np.cos(2 * theta) ** 2) / (np.sin(theta) ** 2 * np.cos(theta))
 
                 if len(ind[0]) > 0:
-                    peaks[two_thetas[ind[0]]][0] += i_hkl * lorentz_factor
-                    peaks[two_thetas[ind[0]]][1].append(tuple(hkl))
+                    peak_ind = two_thetas[ind[0][0]]
+                    peaks[peak_ind][0] += i_hkl * lorentz_factor
+                    peaks[peak_ind][1].append(tuple(hkl))
                 else:
                     peaks[two_theta] = [i_hkl * lorentz_factor, [tuple(hkl)], d_hkl]
                     two_thetas.append(two_theta)
@@ -216,10 +217,10 @@ class CifConverter(object):
             if scaled_intensity > self.min_intensity:
                 calculated_reflections.append(
                     Reflection(
-                        *fam.keys()[0],
+                        *list(fam.keys())[0],
                         d_spacing=v[2],
                         intensity=scaled_intensity,
-                        multiplicity=fam[fam.keys()[0]]
+                        multiplicity=fam[list(fam.keys())[0]]
                     )
                 )
 
@@ -544,7 +545,7 @@ def number_between(num, num_low, num_high):
     Tests if a number is in between num_low and num_high, whereby num_low and num_high are included  [num_low, num_high]
     :return: Boolean result for the result
     """
-    if num >= num_low and num <= num_high:
+    if num_low <= num <= num_high:
         return True
     return False
 

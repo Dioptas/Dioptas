@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,14 +18,13 @@
 
 import os
 
-from PyQt4 import QtGui
+from qtpy import QtWidgets, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
-from widgets.plot_widgets.ImgWidget import IntegrationImgWidget
-from widgets.plot_widgets import SpectrumWidget
+from ..plot_widgets.ImgWidget import IntegrationImgWidget
+from ..plot_widgets import PatternWidget
 
-from widgets.CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, \
-    VerticalSpacerItem
+from ..CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 
@@ -34,14 +33,14 @@ from . import CLICKED_COLOR
 widget_path = os.path.dirname(__file__)
 
 
-class IntegrationImgDisplayWidget(QtGui.QWidget):
+class IntegrationImgDisplayWidget(QtWidgets.QWidget):
     def __init__(self):
         super(IntegrationImgDisplayWidget, self).__init__()
 
-        self.frame = QtGui.QFrame()
+        self.frame = QtWidgets.QFrame()
         self.frame.setObjectName('img_frame')
 
-        self._frame_layout = QtGui.QVBoxLayout()
+        self._frame_layout = QtWidgets.QVBoxLayout()
         self._frame_layout.setContentsMargins(0, 0, 0, 0)
         self._frame_layout.setSpacing(0)
 
@@ -49,9 +48,9 @@ class IntegrationImgDisplayWidget(QtGui.QWidget):
         self.img_view = IntegrationImgWidget(self.img_pg_layout, orientation='horizontal')
         self._frame_layout.addWidget(self.img_pg_layout)
 
-        self.position_and_unit_widget = QtGui.QWidget()
+        self.position_and_unit_widget = QtWidgets.QWidget()
         self.position_and_unit_widget.setObjectName('img_position_and_unit_widget')
-        self._position_and_unit_layout = QtGui.QHBoxLayout()
+        self._position_and_unit_layout = QtWidgets.QHBoxLayout()
         self._position_and_unit_layout.setContentsMargins(0, 0, 0, 0)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)
@@ -65,21 +64,25 @@ class IntegrationImgDisplayWidget(QtGui.QWidget):
 
         self._frame_layout.addWidget(self.position_and_unit_widget)
 
-        self._control_layout = QtGui.QHBoxLayout()
+        self._control_layout = QtWidgets.QHBoxLayout()
         self._control_layout.setContentsMargins(6, 6, 6, 6)
         self._control_layout.setSpacing(6)
 
         self.roi_btn = CheckableFlatButton('ROI')
         self.mode_btn = FlatButton('Cake')
+        self.cake_shift_azimuth_sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.mask_btn = CheckableFlatButton('Mask')
-        self.transparent_cb = QtGui.QCheckBox('trans')
+        self.show_background_subtracted_img_btn = CheckableFlatButton('bg')
+        self.transparent_cb = QtWidgets.QCheckBox('trans')
         self.autoscale_btn = CheckableFlatButton('AutoScale')
         self.undock_btn = FlatButton('Undock')
 
         self._control_layout.addWidget(self.roi_btn)
         self._control_layout.addWidget(self.mode_btn)
+        self._control_layout.addWidget(self.cake_shift_azimuth_sl)
         self._control_layout.addWidget(self.mask_btn)
         self._control_layout.addWidget(self.transparent_cb)
+        self._control_layout.addWidget(self.show_background_subtracted_img_btn)
         self._control_layout.addSpacerItem(HorizontalSpacerItem())
         self._control_layout.addWidget(self.autoscale_btn)
         self._control_layout.addWidget(self.undock_btn)
@@ -87,7 +90,7 @@ class IntegrationImgDisplayWidget(QtGui.QWidget):
         self._frame_layout.addLayout(self._control_layout)
         self.frame.setLayout(self._frame_layout)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
         self._layout.addWidget(self.frame)
@@ -95,6 +98,9 @@ class IntegrationImgDisplayWidget(QtGui.QWidget):
         self.setLayout(self._layout)
 
         self.style_widgets()
+        self.cake_shift_azimuth_sl.setVisible(False)
+        self.show_background_subtracted_img_btn.setVisible(False)
+
 
     def style_widgets(self):
         self.setStyleSheet("""
@@ -106,17 +112,17 @@ class IntegrationImgDisplayWidget(QtGui.QWidget):
         self.position_and_unit_widget.hide()
 
 
-class IntegrationPatternWidget(QtGui.QWidget):
+class IntegrationPatternWidget(QtWidgets.QWidget):
     def __init__(self):
         super(IntegrationPatternWidget, self).__init__()
 
-        self.frame = QtGui.QFrame()
+        self.frame = QtWidgets.QFrame()
         self.frame.setObjectName('pattern_frame')
 
-        self._frame_layout = QtGui.QVBoxLayout()
+        self._frame_layout = QtWidgets.QVBoxLayout()
         self._frame_layout.setContentsMargins(0, 0, 6, 0)
 
-        self._top_control_layout = QtGui.QHBoxLayout()
+        self._top_control_layout = QtWidgets.QHBoxLayout()
         self._top_control_layout.setContentsMargins(8, 8, 0, 0)
 
         self.save_image_btn = FlatButton('Save Image')
@@ -136,15 +142,19 @@ class IntegrationPatternWidget(QtGui.QWidget):
 
         self._frame_layout.addLayout(self._top_control_layout)
 
-        self.right_control_widget = QtGui.QWidget()
+        self.right_control_widget = QtWidgets.QWidget()
         self.right_control_widget.setObjectName('pattern_right_control_widget')
-        self._right_control_layout = QtGui.QVBoxLayout()
+        self._right_control_layout = QtWidgets.QVBoxLayout()
         self._right_control_layout.setContentsMargins(0, 0, 0, 6)
         self._right_control_layout.setSpacing(4)
 
         self.tth_btn = CheckableFlatButton(u"2θ")
         self.q_btn = CheckableFlatButton('Q')
         self.d_btn = CheckableFlatButton('d')
+        self.unit_btn_group = QtWidgets.QButtonGroup()
+        self.unit_btn_group.addButton(self.tth_btn)
+        self.unit_btn_group.addButton(self.q_btn)
+        self.unit_btn_group.addButton(self.d_btn)
         self.background_btn = CheckableFlatButton('bg')
         self.background_inspect_btn = CheckableFlatButton('I')
         self.antialias_btn = CheckableFlatButton('AA')
@@ -163,20 +173,20 @@ class IntegrationPatternWidget(QtGui.QWidget):
 
         self.right_control_widget.setLayout(self._right_control_layout)
 
-        self._central_layout = QtGui.QHBoxLayout()
+        self._central_layout = QtWidgets.QHBoxLayout()
         self._central_layout.setSpacing(0)
 
-        self.spectrum_pg_layout = GraphicsLayoutWidget()
-        self.spectrum_view = SpectrumWidget(self.spectrum_pg_layout)
-        self.spectrum_pg_layout.ci.layout.setContentsMargins(5, 0, 0, 5)
+        self.pattern_pg_layout = GraphicsLayoutWidget()
+        self.pattern_view = PatternWidget(self.pattern_pg_layout)
+        self.pattern_pg_layout.ci.layout.setContentsMargins(5, 0, 0, 5)
 
-        self._central_layout.addWidget(self.spectrum_pg_layout)
+        self._central_layout.addWidget(self.pattern_pg_layout)
         self._central_layout.addWidget(self.right_control_widget)
         self._frame_layout.addLayout(self._central_layout)
 
         self.frame.setLayout(self._frame_layout)
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.addWidget(self.frame)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
@@ -210,11 +220,11 @@ class IntegrationPatternWidget(QtGui.QWidget):
         self.auto_range_btn.setMaximumWidth(right_controls_button_width)
 
 
-class IntegrationStatusWidget(QtGui.QWidget):
+class IntegrationStatusWidget(QtWidgets.QWidget):
     def __init__(self):
         super(IntegrationStatusWidget, self).__init__()
 
-        self._layout = QtGui.QHBoxLayout()
+        self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)

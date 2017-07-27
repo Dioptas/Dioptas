@@ -1,59 +1,51 @@
+# -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import unittest
 import os
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from model.PatternModel import Pattern, PatternModel
-from model.util.PeakShapes import gaussian
+from ...model.PatternModel import Pattern, PatternModel
+from ...model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
 class PatternModelTest(unittest.TestCase):
-    # TODO: needs to be rewritten to be more in small units etc.
     def setUp(self):
         self.x = np.linspace(0.1, 15, 100)
         self.y = np.sin(self.x)
         self.pattern = Pattern(self.x, self.y)
         self.pattern_model = PatternModel()
 
-    def test_set_spectrum(self):
+    def test_set_pattern(self):
         self.pattern_model.set_pattern(self.x, self.y, 'hoho')
-        assert_array_almost_equal(self.pattern_model.get_spectrum().x, self.x)
-        assert_array_almost_equal(self.pattern_model.get_spectrum().y, self.y)
-        self.assertEqual(self.pattern_model.get_spectrum().name, 'hoho')
+        assert_array_almost_equal(self.pattern_model.get_pattern().x, self.x)
+        assert_array_almost_equal(self.pattern_model.get_pattern().y, self.y)
+        self.assertEqual(self.pattern_model.get_pattern().name, 'hoho')
 
-    def test_load_spectrum(self):
-        self.pattern_model.load_pattern(os.path.join(data_path, 'spectrum_001.xy'))
-        self.assertEqual(self.pattern_model.get_spectrum().name, 'spectrum_001')
-        self.assertNotEqual(len(self.x), len(self.pattern_model.get_spectrum().x))
-        self.assertNotEqual(len(self.y), len(self.pattern_model.get_spectrum().y))
-
-    def test_add_overlay(self):
-        x_overlay = np.linspace(0, 10)
-        y_overlay = np.linspace(0, 100)
-        self.pattern_model.add_overlay(x_overlay, y_overlay, "dummy")
-
-        self.assertEqual(len(self.pattern_model.overlays), 1)
-        new_overlay = self.pattern_model.get_overlay(0)
-        self.assertEqual(new_overlay.name, "dummy")
-        assert_array_almost_equal(new_overlay.x, x_overlay)
-        assert_array_almost_equal(new_overlay.y, y_overlay)
-
-    def test_add_overlay_from_file(self):
-        filename = os.path.join(data_path, 'spectrum_001.xy')
-        self.pattern_model.add_overlay_file(filename)
-
-        self.assertEqual(len(self.pattern_model.overlays), 1)
-        self.assertEqual(self.pattern_model.get_overlay(0).name, ''.join(os.path.basename(filename).split('.')[0:-1]))
-
-    def test_add_spectrum_as_overlay(self):
-        self.pattern_model.add_spectrum_as_overlay()
-        self.assertEqual(len(self.pattern_model.overlays), 1)
-
-        assert_array_almost_equal(self.pattern_model.get_overlay(0).x, self.pattern_model.pattern.x)
-        assert_array_almost_equal(self.pattern_model.get_overlay(0).y, self.pattern_model.pattern.y)
+    def test_load_pattern(self):
+        self.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.assertEqual(self.pattern_model.get_pattern().name, 'pattern_001')
+        self.assertNotEqual(len(self.x), len(self.pattern_model.get_pattern().x))
+        self.assertNotEqual(len(self.y), len(self.pattern_model.get_pattern().y))
 
     def test_auto_background_subtraction(self):
         x = np.linspace(0, 24, 2500)

@@ -1,24 +1,22 @@
-"""Implements the SPE_File class for loading princeton instrument binary SPE files into Python
-works for version 2 and version 3 files.
+# -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Usage:
-mydata = SPE_File('data.spe')
 
-most important properties:
-
-num_frames - number of frames collected
-exposure_time
-
-img - 2d data if num_frames==1
-      list of 2d data if num_frames>1  
-
-x_calibration - wavelength information of x-axis
-
-
-
-the data will be automatically loaded and all important parameters and the data 
-can be requested from the object.
-"""
 
 import datetime
 from xml.dom.minidom import parseString
@@ -29,6 +27,25 @@ from dateutil import parser
 
 
 class SpeFile(object):
+    """Implements the SPE_File class for loading princeton instrument binary SPE files into Python
+    works for version 2 and version 3 files.
+
+    Usage:
+    mydata = SPE_File('data.spe')
+
+    most important properties:
+
+    num_frames - number of frames collected
+    exposure_time
+
+    img - 2d data if num_frames==1
+          list of 2d data if num_frames>1
+
+    x_calibration - wavelength information of x-axis
+
+    the data will be automatically loaded and all important parameters and the data
+    can be requested from the object.
+    """
     def __init__(self, filename, debug=False):
         """Opens the PI SPE file and loads its content
 
@@ -99,7 +116,12 @@ class SpeFile(object):
         rawtime = self._read_at(172, 6, np.int8)
         strdate = ''.join([chr(i) for i in rawdate])
         strdate += ''.join([chr(i) for i in rawtime])
-        self.date_time = datetime.datetime.strptime(strdate, "%d%b%Y%H%M%S")
+        try:
+            self.date_time = datetime.datetime.strptime(strdate, "%d%b%Y%H%M%S")
+        except ValueError:
+            # catching a strange error on Linux, where strptime does not work within Dioptas, but within the Terminal it
+            # runs without problems...
+            self.date_time = datetime.datetime(1, 1, 1)
 
     def _read_calibration_from_header(self):
         """Reads the calibration from the header into the x_calibration field"""
@@ -276,7 +298,7 @@ class SpeFile(object):
         if self.num_frames > 1:
             img_temp = []
             img_temp.append(self.img)
-            for n in xrange(self.num_frames - 1):
+            for n in range(self.num_frames - 1):
                 img_temp.append(self._read_frame())
             self.img = img_temp
 

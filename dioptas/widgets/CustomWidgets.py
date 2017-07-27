@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray diffraction data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,75 +16,128 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtWidgets, QtGui
 
 
-class NumberTextField(QtGui.QLineEdit):
+class NumberTextField(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(NumberTextField, self).__init__(*args, **kwargs)
         self.setValidator(QtGui.QDoubleValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
-class IntegerTextField(QtGui.QLineEdit):
+class IntegerTextField(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(IntegerTextField, self).__init__(*args, **kwargs)
         self.setValidator(QtGui.QIntValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
-class LabelAlignRight(QtGui.QLabel):
+class LabelAlignRight(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
         super(LabelAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
-class CleanLooksComboBox(QtGui.QComboBox):
-    cleanlooks = QtGui.QStyleFactory.create('cleanlooks')
+class CleanLooksComboBox(QtWidgets.QComboBox):
+    cleanlooks = QtWidgets.QStyleFactory.create('motif')
 
     def __init__(self, *args, **kwargs):
         super(CleanLooksComboBox, self).__init__(*args, **kwargs)
         self.setStyle(CleanLooksComboBox.cleanlooks)
 
 
-class SpinBoxAlignRight(QtGui.QSpinBox):
+class SpinBoxAlignRight(QtWidgets.QSpinBox):
     def __init__(self, *args, **kwargs):
         super(SpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
 
 
-class DoubleSpinBoxAlignRight(QtGui.QDoubleSpinBox):
+class DoubleSpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
         super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
 
 
-class FlatButton(QtGui.QPushButton):
+class FlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):
         super(FlatButton, self).__init__(*args)
         self.setFlat(True)
 
 
-class CheckableFlatButton(QtGui.QPushButton):
+class CheckableFlatButton(FlatButton):
     def __init__(self, *args):
         super(CheckableFlatButton, self).__init__(*args)
-        self.setFlat(True)
         self.setCheckable(True)
 
 
-class HorizontalLine(QtGui.QFrame):
+class RotatedCheckableFlatButton(CheckableFlatButton):
+    def __init__(self, *args):
+        super(RotatedCheckableFlatButton, self).__init__(*args)
+
+    def paintEvent(self, event):
+        painter = QtWidgets.QStylePainter(self)
+        painter.rotate(270)
+        painter.translate(-1*self.height(), 0)
+        painter.drawControl(QtWidgets.QStyle.CE_PushButton, self.getSyleOptions())
+
+    def minimumSizeHint(self):
+        size = super(RotatedCheckableFlatButton, self).minimumSizeHint()
+        size.transpose()
+        return size
+
+    def sizeHint(self):
+        size = super(RotatedCheckableFlatButton, self).sizeHint()
+        size.transpose()
+        return size
+
+    def getSyleOptions(self):
+        options = QtWidgets.QStyleOptionButton()
+        options.initFrom(self)
+        size = options.rect.size()
+        size.transpose()
+        options.rect.setSize(size)
+        if self.isFlat():
+            options.features |= QtWidgets.QStyleOptionButton.Flat
+        if self.menu():
+            options.features |= QtWidgets.QStyleOptionButton.HasMenu
+        if self.autoDefault() or self.isDefault():
+            options.features |= QtWidgets.QStyleOptionButton.AutoDefaultButton
+        if self.isDefault():
+            options.features |= QtWidgets.QStyleOptionButton.DefaultButton
+        if self.isDown() or (self.menu() and self.menu().isVisible()):
+            options.state |= QtWidgets.QStyle.State_Sunken
+        if self.isChecked():
+            options.state |= QtWidgets.QStyle.State_On
+        if not self.isFlat() and not self.isDown():
+            options.state |= QtWidgets.QStyle.State_Raised
+
+        options.text = self.text()
+        options.icon = self.icon()
+        options.iconSize = self.iconSize()
+        return options
+
+
+class HorizontalLine(QtWidgets.QFrame):
     def __init__(self):
         super(HorizontalLine, self).__init__()
-        self.setFrameShape(QtGui.QFrame.HLine)
-        self.setFrameShadow(QtGui.QFrame.Sunken)
+        self.setFrameShape(QtWidgets.QFrame.HLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
 
 
-class ListTableWidget(QtGui.QTableWidget):
+class VerticalLine(QtWidgets.QFrame):
+    def __init__(self):
+        super(VerticalLine, self).__init__()
+        self.setFrameShape(QtWidgets.QFrame.VLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
+
+class ListTableWidget(QtWidgets.QTableWidget):
     def __init__(self, columns=3):
         super(ListTableWidget, self).__init__()
 
-        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.setColumnCount(columns)
         self.horizontalHeader().setVisible(False)
         self.verticalHeader().setVisible(False)
@@ -92,18 +145,19 @@ class ListTableWidget(QtGui.QTableWidget):
         self.setShowGrid(False)
 
 
-class NoRectDelegate(QtGui.QItemDelegate):
+class NoRectDelegate(QtWidgets.QItemDelegate):
     def __init__(self):
         super(NoRectDelegate, self).__init__()
 
     def drawFocus(self, painter, option, rect):
-        option.state &= ~QtGui.QStyle.State_HasFocus
-        QtGui.QItemDelegate.drawFocus(self, painter, option, rect)
+        option.state &= ~QtWidgets.QStyle.State_HasFocus
+        QtWidgets.QItemDelegate.drawFocus(self, painter, option, rect)
 
 
 def HorizontalSpacerItem(minimum_width=0):
-    return QtGui.QSpacerItem(minimum_width, 0, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Minimum)
+    return QtWidgets.QSpacerItem(minimum_width, 0, QtWidgets.QSizePolicy.MinimumExpanding,
+                                 QtWidgets.QSizePolicy.Minimum)
 
 
 def VerticalSpacerItem():
-    return QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+    return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
