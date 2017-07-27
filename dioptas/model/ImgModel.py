@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,16 +22,14 @@ from past.builtins import basestring
 
 import numpy as np
 from PIL import Image
-from PyQt4 import QtCore
+from qtpy import QtCore
 
 import fabio
 
 from .util.spe import SpeFile
-
-from model.util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, \
-    FileNameIterator
-
-from model.util.ImgCorrection import ImgCorrectionManager
+from .util.NewFileWatcher import NewFileInDirectoryWatcher
+from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
+from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface
 
 logger = logging.getLogger(__name__)
 
@@ -46,20 +44,15 @@ class ImgModel(QtCore.QObject):
         - setting an absorption correction (img_data is divided by this)
         - using supersampling (splitting each pixel into n**2 pixel with equal intensity)
 
-    It inherits the Observable interface for implementing the observer pattern. To subscribe a function to changes in
-    ImgData use:
-        img_data = ImgData()
-        img_data.subscribe(function)
-
-    The function will be called every time the img_data has changed.
+    In order to subscribe to changes of the data in the ImgModel, please use the img_changed QtSignal.
+    The Signal will be called every time the img_data has changed.
     """
-    img_changed = QtCore.pyqtSignal()
+    img_changed = QtCore.Signal()
+    autoprocess_changed = QtCore.Signal()
+    cbn_correction_changed = QtCore.Signal()
+    oiadac_correction_changed = QtCore.Signal()
 
     def __init__(self):
-        """
-        Defines all object variables and creates a dummy image.
-        :return:
-        """
         super(ImgModel, self).__init__()
         self.filename = ''
         self.img_transformations = []
@@ -83,29 +76,39 @@ class ImgModel(QtCore.QObject):
         self._background_scaling = 1
         self._background_offset = 0
 
+        self._factor = 1
+
         self.file_info = ''
         self.motors_info = {}
         self._img_corrections = ImgCorrectionManager()
 
-        self._create_dummy_img()
-
-    def _create_dummy_img(self):
         self._img_data = np.zeros((2048, 2048))
+
+        ### setting up autoprocess
+        self._autoprocess = False
+        self._directory_watcher = NewFileInDirectoryWatcher(
+            file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
+                        '.cbf', '.kccd', '.msk', '.spr', '.tif',
+                        '.mccd', '.mar3450', '.pnm', 'spe']
+        )
+        self._directory_watcher.file_added.connect(self.load)
 
     def load(self, filename):
         """
         Loads an image file in any format known by fabIO. Automatically performs all previous img transformations,
-        performs supersampling and recalculates background subtracted and absorption corrected image data. Observers
-        will be notified after the process.
+        performs supersampling and recalculates background subtracted and absorption corrected image data. The
+        img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
+        filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
         try:
             im = Image.open(filename)
+            self._img_data = np.array(im)[::-1]
             self.file_info = self._get_file_info(im)
             self.motors_info = self._get_motors_info(im)
-            self._img_data = np.array(im)[::-1]
+            im.close()
         except IOError:
             if os.path.splitext(filename)[1].lower() == '.spe':
                 spe = SpeFile(filename)
@@ -114,6 +117,7 @@ class ImgModel(QtCore.QObject):
                 self._img_data_fabio = fabio.open(filename)
                 self._img_data = self._img_data_fabio.data[::-1]
         self.file_name_iterator.update_filename(filename)
+        self._directory_watcher.path = os.path.dirname(str(filename))
 
         self._perform_img_transformations()
         self._calculate_img_data()
@@ -121,6 +125,10 @@ class ImgModel(QtCore.QObject):
         self.img_changed.emit()
 
     def save(self, filename):
+        """
+        Saves the current file as another image file, the raw data is used for saving.
+        :param filename: name of the saved file, extensions defines the format, please see fabio library for reference
+        """
         try:
             self._img_data_fabio.save(filename)
         except AttributeError:
@@ -132,7 +140,7 @@ class ImgModel(QtCore.QObject):
         """
         Loads an image file as background in any format known by fabIO. Automatically performs all previous img
         transformations, supersampling and recalculates background subtracted and absorption corrected image data.
-        Observers will be notified after the process.
+        The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
         self.background_filename = filename
@@ -143,8 +151,50 @@ class ImgModel(QtCore.QObject):
             self._background_data_fabio = fabio.open(filename)
             self._background_data = self._img_data_fabio.data[::-1]
         self._perform_background_transformations()
-        self._calculate_img_data()
 
+        if self._background_data.shape != self._img_data.shape:
+            self._background_data = None
+            self._calculate_img_data()
+            self.img_changed.emit()
+            raise BackgroundDimensionWrongException()
+
+        self._calculate_img_data()
+        self.img_changed.emit()
+
+    def add(self, filename):
+        """
+        Adds an image file in any format known by fabIO. Automatically performs all previous img transformations,
+        performs supersampling and recalculates background subtracted and absorption corrected image data.
+        The img_changed signal will be emitted after the process.
+        :param filename: path of the image file to be loaded
+        """
+        filename = str(filename)  # since it could also be QString
+        try:
+            im = Image.open(filename)
+            img_data = np.array(im)[::-1]
+        except IOError:
+            if os.path.splitext(filename)[1].lower() == '.spe':
+                spe = SpeFile(filename)
+                img_data = spe.img
+            else:
+                img_data_fabio = fabio.open(filename)
+                img_data = img_data_fabio.data[::-1]
+
+        if not self._img_data.shape == img_data.shape:
+            return
+
+        for transformation in self.img_transformations:
+            img_data = transformation(img_data)
+
+        logger.info("Adding {0}.".format(filename))
+
+        if self._img_data.dtype == np.uint16: # if dtype is only uint16 we will convert to 32 bit, so that more
+                                              # additions are possible
+            self._img_data = self._img_data.astype(np.uint32)
+
+        self._img_data += img_data
+
+        self._calculate_img_data()
         self.img_changed.emit()
 
     def _image_and_background_shape_equal(self):
@@ -162,7 +212,7 @@ class ImgModel(QtCore.QObject):
         """
         Resets the background data to None
         """
-        self.background_filename = None
+        self.background_filename = ''
         self._background_data = None
         self._background_data_fabio = None
         self._calculate_img_data()
@@ -174,27 +224,86 @@ class ImgModel(QtCore.QObject):
     def has_background(self):
         return self._background_data is not None
 
-    def set_background_scaling(self, value):
-        self._background_scaling = value
+    @property
+    def background_data(self):
+        return self._background_data
+
+    @background_data.setter
+    def background_data(self, new_data):
+        self._background_data = new_data
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def set_background_offset(self, value):
-        self._background_offset = value
+    @property
+    def background_scaling(self):
+        return self._background_scaling
+
+    @background_scaling.setter
+    def background_scaling(self, new_value):
+        self._background_scaling = new_value
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def load_next_file(self, step=1):
-        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step)
+    @property
+    def background_offset(self):
+        return self._background_offset
+
+    @background_offset.setter
+    def background_offset(self, new_value):
+        self._background_offset = new_value
+        self._calculate_img_data()
+        self.img_changed.emit()
+
+    def load_next_file(self, step=1, pos=None):
+        """
+        Loads the next file based on the current iteration mode and the step you specify.
+        :param pos:
+        :param step: Defining how much you want to increment the file number. (default=1)
+        """
+        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step, pos=pos)
         if next_file_name is not None:
             self.load(next_file_name)
 
-    def load_previous_file(self, step=1):
-        previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode, step=step)
+    def load_previous_file(self, step=1, pos=None):
+        """
+        Loads the previous file based on the current iteration mode and the step specified
+        :param pos:
+        :param step: Defining how much you want to decrement the file number. (default=1)
+        """
+        previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode,
+                                                                           step=step, pos=pos)
         if previous_file_name is not None:
             self.load(previous_file_name)
 
+    def load_next_folder(self, mec_mode=False):
+        """
+        Loads a file with the current filename in the next folder, whereby the folder has to be iteratable by numbers.
+        :param mec_mode:    Boolean which enables specific mode for MEC beamline at SLAC, where the folders and the
+                            files change their during increment. (default = False)
+
+        """
+        next_file_name = self.file_name_iterator.get_next_folder(mec_mode=mec_mode)
+        if next_file_name is not None:
+            self.load(next_file_name)
+
+    def load_previous_folder(self, mec_mode=False):
+        """
+        Loads a file with the current filename in the previous folder, whereby the folder has to be iteratable by
+        numbers.
+        :param mec_mode:    Boolean which enables specific mode for MEC beamline at SLAC, where the folders and the
+                            files change their during increment. (default = False)
+        """
+
+        next_previous_name = self.file_name_iterator.get_previous_folder(mec_mode=mec_mode)
+        if next_previous_name is not None:
+            self.load(next_previous_name)
+
     def set_file_iteration_mode(self, mode):
+        """
+        Sets the file iteration mode for the load_next_file and load_previous_file functions. Possible modes:
+            * 'number' will increment or decrement based on numbers in the filename.
+            * 'time' will increment or decrement based on creation time for the files.
+        """
         if mode == 'number':
             self.file_iteration_mode = 'number'
             self.file_name_iterator.create_timed_file_list = False
@@ -202,12 +311,6 @@ class ImgModel(QtCore.QObject):
             self.file_iteration_mode = 'time'
             self.file_name_iterator.create_timed_file_list = True
             self.file_name_iterator.update_filename(self.filename)
-
-    def get_img_data(self):
-        return self.img_data
-
-    def get_raw_img_data(self):
-        return self._img_data
 
     def _calculate_img_data(self):
         """
@@ -263,36 +366,41 @@ class ImgModel(QtCore.QObject):
         """
         if self.supersampling_factor == 1:
             if self._background_data is None and not self._img_corrections.has_items():
-                return self._img_data
+                return self._img_data * self.factor
 
             elif self._background_data is not None and not self._img_corrections.has_items():
-                return self._img_data_background_subtracted
+                return self._img_data_background_subtracted * self.factor
 
             elif self._background_data is None and self._img_corrections.has_items():
-                return self._img_data_absorption_corrected
+                return self._img_data_absorption_corrected * self.factor
 
             elif self._background_data is not None and self._img_corrections.has_items():
-                return self._img_data_background_subtracted_absorption_corrected
+                return self._img_data_background_subtracted_absorption_corrected * self.factor
 
         else:
             if self._background_data is None and not self._img_corrections.has_items():
-                return self._img_data_supersampled
+                return self._img_data_supersampled * self.factor
 
             elif self._background_data is not None and not self._img_corrections.has_items():
-                return self._img_data_supersampled_background_subtracted
+                return self._img_data_supersampled_background_subtracted * self.factor
 
             elif self._background_data is None and self._img_corrections.has_items():
-                return self._img_data_supersampled_absorption_corrected
+                return self._img_data_supersampled_absorption_corrected * self.factor
 
             elif self._background_data is not None and self._img_corrections.has_items():
-                return self._img_data_supersampled_background_subtracted_absorption_corrected
+                return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
+        return self._img_data * self.factor
+
+
+    @property
+    def raw_img_data(self):
         return self._img_data
 
     def rotate_img_p90(self):
         """
         Rotates the image by 90 degree and updates the background accordingly (does not effect absorption correction).
         The transformation is saved and applied to every new image and background image loaded.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         self._img_data = rotate_matrix_p90(self._img_data)
 
@@ -308,7 +416,7 @@ class ImgModel(QtCore.QObject):
         """
         Rotates the image by -90 degree and updates the background accordingly (does not effect absorption correction).
         The transformation is saved and applied to every new image and background image loaded.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         self._img_data = rotate_matrix_m90(self._img_data)
         if self._background_data is not None:
@@ -322,7 +430,7 @@ class ImgModel(QtCore.QObject):
         """
         Flips image about a horizontal axis and updates the background accordingly (does not effect absorption
         correction). The transformation is saved and applied to every new image and background image loaded.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         self._img_data = np.fliplr(self._img_data)
         if self._background_data is not None:
@@ -336,7 +444,7 @@ class ImgModel(QtCore.QObject):
         """
         Flips image about a vertical axis and updates the background accordingly (does not effect absorption
         correction). The transformation is saved and applied to every new image and background image loaded.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         self._img_data = np.flipud(self._img_data)
         if self._background_data is not None:
@@ -349,7 +457,7 @@ class ImgModel(QtCore.QObject):
     def reset_img_transformations(self):
         """
         Reverts all image transformations and resets the transformation stack.
-        Notifies observers.
+        The img_changed signal will be emitted after the process.
         """
         for transformation in reversed(self.img_transformations):
             if transformation == rotate_matrix_p90:
@@ -375,6 +483,14 @@ class ImgModel(QtCore.QObject):
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
 
+    def _revert_img_transformations(self):
+        """
+        Reverts all saved image transformations on the image. (Does not delete the transformations list, any new loaded
+        image will be transformed again)
+        """
+        for transformation in reversed(self.img_transformations):
+            self._img_data = transformation(self._img_data)
+
     def _perform_background_transformations(self):
         """
         Performs all saved image transformation on background image.
@@ -383,22 +499,54 @@ class ImgModel(QtCore.QObject):
             for transformation in self.img_transformations:
                 self._background_data = transformation(self._background_data)
 
+    def _revert_background_transformations(self):
+        """
+        Performs all saved image transformation on background image.
+        """
+        if self._background_data is not None:
+            for transformation in reversed(self.img_transformations):
+                self._background_data = transformation(self._background_data)
+
+    def get_transformations_string_list(self):
+        transformation_list = []
+        for transformation in self.img_transformations:
+            transformation_list.append(transformation.__name__)
+        return transformation_list
+
+    def load_transformations_string_list(self, transformations):
+        self._revert_img_transformations()
+        self._revert_background_transformations()
+        self.img_transformations = []
+        for transformation in transformations:
+            if transformation == "flipud":
+                self.img_transformations.append(np.flipud)
+            elif transformation == "fliplr":
+                self.img_transformations.append(np.fliplr)
+            elif transformation == "rotate_matrix_m90":
+                self.img_transformations.append(rotate_matrix_m90)
+            elif transformation == "rotate_matrix_p90":
+                self.img_transformations.append(rotate_matrix_p90)
+        self._perform_img_transformations()
+        self._perform_background_transformations()
+
+
     def set_supersampling(self, factor=None):
         """
         Stores the supersampling factor and calculates supersampled original and background image arrays.
         Updates all data calculations according to current ImgData object state.
-        Does not notify Observers!
+        The img_changed signal will be emitted after the process.
         :param factor: int - supersampling factor
         """
         self.supersampling_factor = factor
         self._calculate_img_data()
+        self.img_changed.emit()
 
     def supersample_data(self, img_data, factor):
         """
         Creates a supersampled array from img_data.
         :param img_data: image array
         :param factor: int - supersampling factor
-        :return:
+        :return: supersampled image
         """
         if factor > 1:
             img_data_supersampled = np.zeros((img_data.shape[0] * factor,
@@ -411,18 +559,43 @@ class ImgModel(QtCore.QObject):
         else:
             return img_data
 
-    def add_img_correction(self, correction, name=None):
+    def add_img_correction(self, correction, name=None, external=None):
+        """
+        Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
+        each other, depending on the order of addition.
+        :param external:
+        :param correction: An Object inheriting the ImgCorrectionInterface.
+        :type correction: ImgCorrectionInterface
+        :param name: correction can be given a name, to selectively delete or obtain later.
+        :type name: basestring
+        """
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
         self.img_changed.emit()
+        if external == 'cbn':
+            self.cbn_correction_changed.emit()
+        if external  == 'oiadac':
+            self.oiadac_correction_changed.emit()
 
     def get_img_correction(self, name):
+        """
+        :param name: correction name which was specified during the addition of the image correction.
+        :return: the specified correction
+        """
         return self._img_corrections.get_correction(name)
 
     def delete_img_correction(self, name=None):
+        """
+        :param name: deletes a correction from the correction calculation with a specific name. if no name is specified
+         the last added correction is deleted.
+        """
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()
+
+    @property
+    def img_corrections(self):
+        return self._img_corrections
 
     def has_corrections(self):
         """
@@ -459,9 +632,39 @@ class ImgModel(QtCore.QObject):
 
         useful_tags = ['Horizontal:', 'Vertical:', 'Focus:', 'Omega:']
 
-        for value in tags.itervalues():
+        try:
+            tag_values = tags.itervalues()
+        except AttributeError:
+            tag_values = tags.values()
+
+        for value in tag_values:
             for key in useful_tags:
                 if key in str(value):
                     k, v = str(value[0]).split(':')
                     result[str(k)] = float(v)
         return result
+
+    @property
+    def autoprocess(self):
+        return self._autoprocess
+
+    @autoprocess.setter
+    def autoprocess(self, new_val):
+        self._autoprocess = new_val
+        if new_val:
+            self._directory_watcher.activate()
+        else:
+            self._directory_watcher.deactivate()
+
+    @property
+    def factor(self):
+        return self._factor
+
+    @factor.setter
+    def factor(self, new_value):
+        self._factor = new_value
+        self.img_changed.emit()
+
+
+class BackgroundDimensionWrongException(Exception):
+    pass

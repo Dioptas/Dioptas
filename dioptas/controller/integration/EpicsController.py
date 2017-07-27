@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray diffraction data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtCore, QtGui
+from qtpy import QtCore, QtWidgets
 import numpy as np
 try:
     import epics
@@ -25,23 +25,23 @@ except ImportError:
 
 from .econfig import epics_config
 
-from widgets.integration import IntegrationWidget
-from model.ImgModel import ImgModel
+from ...widgets.integration import IntegrationWidget
+from ...model.DioptasModel import DioptasModel
 
 
 class EpicsController(object):
 
-    def __init__(self, widget, img_model):
+    def __init__(self, widget, dioptas_model):
         """
         :param widget: Reference to IntegrationWidget
-        :param img_model: Reference to ImgModel object
+        :param dioptas_model: Reference to DioptasModel object
 
         :type widget: IntegrationWidget
-        :type img_model: ImgModel
+        :type dioptas_model: DioptasModel
         """
 
         self.widget = widget
-        self.img_model = img_model
+        self.model = dioptas_model
 
         self.move_widget = widget.move_widget
 
@@ -59,7 +59,7 @@ class EpicsController(object):
     def connect_signals(self):
         self.epics_update_timer.timeout.connect(self.update_current_motor_position)
 
-        self.img_model.img_changed.connect(self.update_image_position)
+        self.model.img_changed.connect(self.update_image_position)
 
         self.widget.move_widget_btn.clicked.connect(self.widget.move_widget.raise_widget)
         self.widget.move_widget.connect_epics_btn.clicked.connect(self.update_current_motor_position)
@@ -88,10 +88,10 @@ class EpicsController(object):
 
     def update_image_position(self):
         try:
-            self.move_widget.img_hor_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Horizontal']))
-            self.move_widget.img_ver_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Vertical']))
-            self.move_widget.img_focus_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Focus']))
-            self.move_widget.img_omega_lbl.setText('{:.3f}'.format(self.img_model.motors_info['Omega']))
+            self.move_widget.img_hor_lbl.setText('{:.3f}'.format(self.model.img_model.motors_info['Horizontal']))
+            self.move_widget.img_ver_lbl.setText('{:.3f}'.format(self.model.img_model.motors_info['Vertical']))
+            self.move_widget.img_focus_lbl.setText('{:.3f}'.format(self.model.img_model.motors_info['Focus']))
+            self.move_widget.img_omega_lbl.setText('{:.3f}'.format(self.model.img_model.motors_info['Omega']))
         except KeyError:
             self.move_widget.img_hor_lbl.setText("")
             self.move_widget.img_ver_lbl.setText("")
@@ -146,24 +146,24 @@ class EpicsController(object):
 
     @staticmethod
     def show_error_message_box(msg):
-        msg_box = QtGui.QMessageBox()
+        msg_box = QtWidgets.QMessageBox()
         msg_box.setWindowFlags(QtCore.Qt.Tool)
         msg_box.setText(msg)
-        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.setWindowTitle('Error')
-        msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
-        msg_box.setDefaultButton(QtGui.QMessageBox.Ok)
+        msg_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msg_box.setDefaultButton(QtWidgets.QMessageBox.Ok)
         msg_box.exec_()
 
     @staticmethod
     def show_continue_abort_message_box(msg):
-        msg_box = QtGui.QMessageBox()
+        msg_box = QtWidgets.QMessageBox()
         msg_box.setWindowFlags(QtCore.Qt.Tool)
         msg_box.setText("<p align='center' style='font-size:20px' >{}</p>".format(msg))
-        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.setWindowTitle('Continue?')
-        msg_box.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.Abort)
-        msg_box.setDefaultButton(QtGui.QMessageBox.Abort)
+        msg_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Abort)
+        msg_box.setDefaultButton(QtWidgets.QMessageBox.Abort)
         msg_box.exec_()
         return msg_box.result()
 
@@ -187,7 +187,7 @@ class EpicsController(object):
         if largest_distance > 0.2:
             reply = self.show_continue_abort_message_box(
                 'Current and image positions are far away from each other. Are you sure, you want to move?')
-            if reply == QtGui.QMessageBox.Abort:
+            if reply == QtWidgets.QMessageBox.Abort:
                 return False
 
         return True

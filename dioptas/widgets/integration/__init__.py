@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@ CLICKED_COLOR = '#00DD00'
 
 from functools import partial
 
-from PyQt4 import QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
 from ..EpicsWidgets import MoveStageWidget
@@ -31,7 +31,7 @@ from .ControlWidgets import IntegrationControlWidget
 from .IntegrationWidgets import IntegrationImgDisplayWidget, IntegrationPatternWidget, IntegrationStatusWidget
 
 
-class IntegrationWidget(QtGui.QWidget):
+class IntegrationWidget(QtWidgets.QWidget):
     """
     Defines the main structure of the integration widget, which is separated into four parts.
     Integration Image Widget - displaying the image, mask and/or cake
@@ -40,11 +40,11 @@ class IntegrationWidget(QtGui.QWidget):
     Integration Status Widget - showing the current mouse position and current background filename
     """
 
-    overlay_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
-    overlay_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
-    overlay_name_changed = QtCore.pyqtSignal(int, str)
-    phase_color_btn_clicked = QtCore.pyqtSignal(int, QtGui.QWidget)
-    phase_show_cb_state_changed = QtCore.pyqtSignal(int, bool)
+    overlay_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    overlay_show_cb_state_changed = QtCore.Signal(int, bool)
+    overlay_name_changed = QtCore.Signal(int, str)
+    phase_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    phase_show_cb_state_changed = QtCore.Signal(int, bool)
 
     def __init__(self, *args, **kwargs):
         super(IntegrationWidget, self).__init__(*args, **kwargs)
@@ -54,17 +54,17 @@ class IntegrationWidget(QtGui.QWidget):
         self.integration_pattern_widget = IntegrationPatternWidget()
         self.integration_status_widget = IntegrationStatusWidget()
 
-        self._layout = QtGui.QVBoxLayout()
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setSpacing(6)
-        self._layout.setContentsMargins(10, 6, 6, 6)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
-        self.vertical_splitter = QtGui.QSplitter(self)
+        self.vertical_splitter = QtWidgets.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter.addWidget(self.integration_control_widget)
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
-        self.horizontal_splitter = QtGui.QSplitter()
+        self.horizontal_splitter = QtWidgets.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
         self.horizontal_splitter.addWidget(self.integration_image_widget)
         self.horizontal_splitter.addWidget(self.vertical_splitter)
@@ -81,19 +81,19 @@ class IntegrationWidget(QtGui.QWidget):
 
         self.phase_show_cbs = []
         self.phase_color_btns = []
-        self.show_parameter_in_spectrum = True
-        header_view = QtGui.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
+        self.show_parameter_in_pattern = True
+        header_view = QtWidgets.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
         self.phase_tw.setHorizontalHeader(header_view)
-        header_view.setResizeMode(2, QtGui.QHeaderView.Stretch)
-        header_view.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
-        header_view.setResizeMode(4, QtGui.QHeaderView.ResizeToContents)
+        header_view.setResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        header_view.setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        header_view.setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
         header_view.hide()
         self.phase_tw.setItemDelegate(NoRectDelegate())
 
         self.bkg_image_scale_sb.setKeyboardTracking(False)
         self.bkg_image_offset_sb.setKeyboardTracking(False)
 
-        self.qa_bkg_spectrum_inspect_btn.setVisible(False)
+        self.qa_bkg_pattern_inspect_btn.setVisible(False)
 
         self.mask_transparent_cb.setVisible(False)
 
@@ -117,34 +117,40 @@ class IntegrationWidget(QtGui.QWidget):
         self.img_directory_btn = img_file_widget.directory_btn
         self.file_info_btn = self.integration_control_widget.img_control_widget.file_info_btn
         self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
+        self.img_batch_mode_integrate_rb = self.integration_control_widget.img_control_widget.batch_mode_integrate_rb
+        self.img_batch_mode_add_rb = self.integration_control_widget.img_control_widget.batch_mode_add_rb
+        self.img_batch_mode_image_save_rb = self.integration_control_widget.img_control_widget.batch_mode_image_save_rb
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
-        self.spec_load_btn = pattern_file_widget.load_btn
-        self.spec_autocreate_cb = pattern_file_widget.file_cb
-        self.spec_previous_btn = pattern_file_widget.previous_btn
-        self.spec_next_btn = pattern_file_widget.next_btn
-        self.spec_browse_step_txt = pattern_file_widget.step_txt
-        self.spec_browse_by_name_rb = pattern_file_widget.browse_by_name_rb
-        self.spec_browse_by_time_rb = pattern_file_widget.browse_by_time_rb
-        self.spec_filename_txt = pattern_file_widget.file_txt
-        self.spec_directory_txt = pattern_file_widget.directory_txt
-        self.spec_directory_btn = pattern_file_widget.directory_btn
-        self.spectrum_header_xy_cb = self.integration_control_widget.pattern_control_widget.xy_cb
-        self.spectrum_header_chi_cb = self.integration_control_widget.pattern_control_widget.chi_cb
-        self.spectrum_header_dat_cb = self.integration_control_widget.pattern_control_widget.dat_cb
+        self.pattern_load_btn = pattern_file_widget.load_btn
+        self.pattern_autocreate_cb = pattern_file_widget.file_cb
+        self.pattern_previous_btn = pattern_file_widget.previous_btn
+        self.pattern_next_btn = pattern_file_widget.next_btn
+        self.pattern_browse_step_txt = pattern_file_widget.step_txt
+        self.pattern_browse_by_name_rb = pattern_file_widget.browse_by_name_rb
+        self.pattern_browse_by_time_rb = pattern_file_widget.browse_by_time_rb
+        self.pattern_filename_txt = pattern_file_widget.file_txt
+        self.pattern_directory_txt = pattern_file_widget.directory_txt
+        self.pattern_directory_btn = pattern_file_widget.directory_btn
+        self.pattern_header_xy_cb = self.integration_control_widget.pattern_control_widget.xy_cb
+        self.pattern_header_chi_cb = self.integration_control_widget.pattern_control_widget.chi_cb
+        self.pattern_header_dat_cb = self.integration_control_widget.pattern_control_widget.dat_cb
+        self.pattern_header_fxye_cb = self.integration_control_widget.pattern_control_widget.fxye_cb
 
         phase_control_widget = self.integration_control_widget.phase_control_widget
         self.phase_add_btn = phase_control_widget.add_btn
         self.phase_edit_btn = phase_control_widget.edit_btn
         self.phase_del_btn = phase_control_widget.delete_btn
         self.phase_clear_btn = phase_control_widget.clear_btn
+        self.phase_save_list_btn = phase_control_widget.save_list_btn
+        self.phase_load_list_btn = phase_control_widget.load_list_btn
         self.phase_tw = phase_control_widget.phase_tw
         self.phase_pressure_sb = phase_control_widget.pressure_sb
         self.phase_pressure_step_txt = phase_control_widget.pressure_step_txt
         self.phase_temperature_sb = phase_control_widget.temperature_sb
         self.phase_temperature_step_txt = phase_control_widget.temperature_step_txt
         self.phase_apply_to_all_cb = phase_control_widget.apply_to_all_cb
-        self.phase_show_parameter_in_spectrum_cb = phase_control_widget.show_in_spectrum_cb
+        self.phase_show_parameter_in_pattern_cb = phase_control_widget.show_in_pattern_cb
 
         overlay_control_widget = self.integration_control_widget.overlay_control_widget
         self.overlay_add_btn = overlay_control_widget.add_btn
@@ -186,13 +192,13 @@ class IntegrationWidget(QtGui.QWidget):
         self.bkg_image_scale_step_txt = background_control_widget.scale_step_txt
         self.bkg_image_offset_sb = background_control_widget.offset_sb
         self.bkg_image_offset_step_txt = background_control_widget.offset_step_txt
-        self.bkg_spectrum_gb = background_control_widget.pattern_background_gb
-        self.bkg_spectrum_smooth_width_sb = background_control_widget.smooth_with_sb
-        self.bkg_spectrum_iterations_sb = background_control_widget.iterations_sb
-        self.bkg_spectrum_poly_order_sb = background_control_widget.poly_order_sb
-        self.bkg_spectrum_x_min_txt = background_control_widget.x_range_min_txt
-        self.bkg_spectrum_x_max_txt = background_control_widget.x_range_max_txt
-        self.bkg_spectrum_inspect_btn = background_control_widget.inspect_btn
+        self.bkg_pattern_gb = background_control_widget.pattern_background_gb
+        self.bkg_pattern_smooth_width_sb = background_control_widget.smooth_with_sb
+        self.bkg_pattern_iterations_sb = background_control_widget.iterations_sb
+        self.bkg_pattern_poly_order_sb = background_control_widget.poly_order_sb
+        self.bkg_pattern_x_min_txt = background_control_widget.x_range_min_txt
+        self.bkg_pattern_x_max_txt = background_control_widget.x_range_max_txt
+        self.bkg_pattern_inspect_btn = background_control_widget.inspect_btn
 
         options_control_widget = self.integration_control_widget.integration_options_widget
         self.bin_count_txt = options_control_widget.bin_count_txt
@@ -217,29 +223,31 @@ class IntegrationWidget(QtGui.QWidget):
 
         pattern_widget = self.integration_pattern_widget
         self.qa_save_img_btn = pattern_widget.save_image_btn
-        self.qa_save_spectrum_btn = pattern_widget.save_pattern_btn
+        self.qa_save_pattern_btn = pattern_widget.save_pattern_btn
         self.qa_set_as_overlay_btn = pattern_widget.as_overlay_btn
         self.qa_set_as_background_btn = pattern_widget.as_bkg_btn
         self.load_calibration_btn = pattern_widget.load_calibration_btn
         self.calibration_lbl = pattern_widget.calibration_lbl
-        self.spec_tth_btn = pattern_widget.tth_btn
-        self.spec_q_btn = pattern_widget.q_btn
-        self.spec_d_btn = pattern_widget.d_btn
-        self.qa_bkg_spectrum_btn = pattern_widget.background_btn
-        self.qa_bkg_spectrum_inspect_btn = pattern_widget.background_inspect_btn
+        self.pattern_tth_btn = pattern_widget.tth_btn
+        self.pattern_q_btn = pattern_widget.q_btn
+        self.pattern_d_btn = pattern_widget.d_btn
+        self.qa_bkg_pattern_btn = pattern_widget.background_btn
+        self.qa_bkg_pattern_inspect_btn = pattern_widget.background_inspect_btn
         self.antialias_btn = pattern_widget.antialias_btn
-        self.spec_auto_range_btn = pattern_widget.auto_range_btn
-        self.pattern_widget = pattern_widget.spectrum_view
+        self.pattern_auto_range_btn = pattern_widget.auto_range_btn
+        self.pattern_widget = pattern_widget.pattern_view
 
         image_widget = self.integration_image_widget
         self.img_frame = image_widget
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn
         self.img_mask_btn = image_widget.mask_btn
+        self.cake_shift_azimuth_sl = image_widget.cake_shift_azimuth_sl
         self.mask_transparent_cb = image_widget.transparent_cb
         self.img_autoscale_btn = image_widget.autoscale_btn
         self.img_dock_btn = image_widget.undock_btn
         self.img_widget = image_widget.img_view
+        self.img_show_background_subtracted_btn = image_widget.show_background_subtracted_img_btn
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
         self.tabWidget = self.integration_control_widget
@@ -298,20 +306,17 @@ class IntegrationWidget(QtGui.QWidget):
             self.frame_img_positions_widget.hide()
 
             # remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
-            self.vertical_splitter.setParent(self)
-
             self.img_frame.setParent(self.horizontal_splitter)
-            self.horizontal_splitter.addWidget(self.img_frame)
 
-            self.vertical_splitter.setParent(self.horizontal_splitter)
+            self.horizontal_splitter.addWidget(self.img_frame)
             self.horizontal_splitter.addWidget(self.vertical_splitter)
 
             # restore the previously used size when image was undocked
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
 
-    def get_progress_dialog(self, msg, title, num_points):
-        progress_dialog = QtGui.QProgressDialog("Integrating multiple files.", "Abort Integration", 0,
-                                                num_points, self)
+    def get_progress_dialog(self, message, abort_text, num_points):
+        progress_dialog = QtWidgets.QProgressDialog(message, abort_text, 0,
+                                                    num_points, self)
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         progress_dialog.move(
@@ -323,13 +328,13 @@ class IntegrationWidget(QtGui.QWidget):
         return progress_dialog
 
     def show_error_msg(self, msg):
-        msg_box = QtGui.QMessageBox(self)
+        msg_box = QtWidgets.QMessageBox(self)
         msg_box.setWindowFlags(QtCore.Qt.Tool)
         msg_box.setText(msg)
-        msg_box.setIcon(QtGui.QMessageBox.Critical)
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.setWindowTitle('Error')
-        msg_box.setStandardButtons(QtGui.QMessageBox.Ok)
-        msg_box.setDefaultButton(QtGui.QMessageBox.Ok)
+        msg_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msg_box.setDefaultButton(QtWidgets.QMessageBox.Ok)
         msg_box.exec_()
 
     # ###############################################################################################
@@ -341,7 +346,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.overlay_tw.setRowCount(current_rows + 1)
         self.overlay_tw.blockSignals(True)
 
-        show_cb = QtGui.QCheckBox()
+        show_cb = QtWidgets.QCheckBox()
         show_cb.setChecked(True)
         show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, show_cb))
         show_cb.setStyleSheet("background-color: transparent")
@@ -354,9 +359,9 @@ class IntegrationWidget(QtGui.QWidget):
         self.overlay_tw.setCellWidget(current_rows, 1, color_button)
         self.overlay_color_btns.append(color_button)
 
-        name_item = QtGui.QTableWidgetItem(name)
+        name_item = QtWidgets.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.overlay_tw.setItem(current_rows, 2, QtGui.QTableWidgetItem(name))
+        self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
 
         self.overlay_tw.setColumnWidth(0, 20)
         self.overlay_tw.setColumnWidth(1, 25)
@@ -415,7 +420,7 @@ class IntegrationWidget(QtGui.QWidget):
         self.phase_tw.setRowCount(current_rows + 1)
         self.phase_tw.blockSignals(True)
 
-        show_cb = QtGui.QCheckBox()
+        show_cb = QtWidgets.QCheckBox()
         show_cb.setChecked(True)
         show_cb.stateChanged.connect(partial(self.phase_show_cb_changed, show_cb))
         show_cb.setStyleSheet("background-color: transparent")
@@ -428,17 +433,17 @@ class IntegrationWidget(QtGui.QWidget):
         self.phase_tw.setCellWidget(current_rows, 1, color_button)
         self.phase_color_btns.append(color_button)
 
-        name_item = QtGui.QTableWidgetItem(name)
+        name_item = QtWidgets.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         name_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 2, name_item)
 
-        pressure_item = QtGui.QTableWidgetItem('0 GPa')
+        pressure_item = QtWidgets.QTableWidgetItem('0 GPa')
         pressure_item.setFlags(pressure_item.flags() & ~QtCore.Qt.ItemIsEditable)
         pressure_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 3, pressure_item)
 
-        temperature_item = QtGui.QTableWidgetItem('298 K')
+        temperature_item = QtWidgets.QTableWidgetItem('298 K')
         temperature_item.setFlags(temperature_item.flags() & ~QtCore.Qt.ItemIsEditable)
         temperature_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 4, temperature_item)
@@ -482,7 +487,10 @@ class IntegrationWidget(QtGui.QWidget):
 
     def set_phase_temperature(self, ind, T):
         temperature_item = self.phase_tw.item(ind, 4)
-        temperature_item.setText("{0} K".format(T))
+        try:
+            temperature_item.setText("{0:.2f} K".format(T))
+        except ValueError:
+            temperature_item.setText("{0} K".format(T))
         self.update_phase_parameters_in_legend(ind)
 
     def get_phase_temperature(self, ind):
@@ -495,7 +503,10 @@ class IntegrationWidget(QtGui.QWidget):
 
     def set_phase_pressure(self, ind, P):
         pressure_item = self.phase_tw.item(ind, 3)
-        pressure_item.setText("{0} GPa".format(P))
+        try:
+            pressure_item.setText("{0:.2f} GPa".format(P))
+        except ValueError:
+            pressure_item.setText("{0} GPa".format(P))
         self.update_phase_parameters_in_legend(ind)
 
     def get_phase_pressure(self, ind):
@@ -510,11 +521,11 @@ class IntegrationWidget(QtGui.QWidget):
         name_str = str(self.phase_tw.item(ind, 2).text())
         parameter_str = ''
 
-        if self.show_parameter_in_spectrum:
+        if self.show_parameter_in_pattern:
             if pressure != 0:
-                parameter_str += '{0} GPa '.format(pressure)
+                parameter_str += '{:0.2f} GPa '.format(pressure)
             if temperature != 0 and temperature != 298 and temperature is not None:
-                parameter_str += '{0} K '.format(temperature)
+                parameter_str += '{:0.2f} K '.format(temperature)
 
         self.pattern_widget.rename_phase(ind, parameter_str + name_str)
 
@@ -532,13 +543,36 @@ class IntegrationWidget(QtGui.QWidget):
         checkbox = self.phase_show_cbs[ind]
         return checkbox.isChecked()
 
-    def get_bkg_spectrum_parameters(self):
-        smooth_width = float(self.bkg_spectrum_smooth_width_sb.value())
-        iterations = int(self.bkg_spectrum_iterations_sb.value())
-        polynomial_order = int(self.bkg_spectrum_poly_order_sb.value())
+    def get_bkg_pattern_parameters(self):
+        smooth_width = float(self.bkg_pattern_smooth_width_sb.value())
+        iterations = int(self.bkg_pattern_iterations_sb.value())
+        polynomial_order = int(self.bkg_pattern_poly_order_sb.value())
         return smooth_width, iterations, polynomial_order
 
-    def get_bkg_spectrum_roi(self):
-        x_min = float(str(self.bkg_spectrum_x_min_txt.text()))
-        x_max = float(str(self.bkg_spectrum_x_max_txt.text()))
+    def set_bkg_pattern_parameters(self, bkg_pattern_parameters):
+        self.bkg_pattern_smooth_width_sb.blockSignals(True)
+        self.bkg_pattern_iterations_sb.blockSignals(True)
+        self.bkg_pattern_poly_order_sb.blockSignals(True)
+
+        self.bkg_pattern_smooth_width_sb.setValue(bkg_pattern_parameters[0])
+        self.bkg_pattern_iterations_sb.setValue(bkg_pattern_parameters[1])
+        self.bkg_pattern_poly_order_sb.setValue(bkg_pattern_parameters[2])
+
+        self.bkg_pattern_smooth_width_sb.blockSignals(False)
+        self.bkg_pattern_iterations_sb.blockSignals(False)
+        self.bkg_pattern_poly_order_sb.blockSignals(False)
+
+    def get_bkg_pattern_roi(self):
+        x_min = float(str(self.bkg_pattern_x_min_txt.text()))
+        x_max = float(str(self.bkg_pattern_x_max_txt.text()))
         return x_min, x_max
+
+    def set_bkg_pattern_roi(self, roi):
+        self.bkg_pattern_x_max_txt.blockSignals(True)
+        self.bkg_pattern_x_min_txt.blockSignals(True)
+
+        self.bkg_pattern_x_min_txt.setText('{:.3f}'.format(roi[0]))
+        self.bkg_pattern_x_max_txt.setText('{:.3f}'.format(roi[1]))
+
+        self.bkg_pattern_x_max_txt.blockSignals(False)
+        self.bkg_pattern_x_min_txt.blockSignals(False)

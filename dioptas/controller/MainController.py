@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,49 +17,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import csv
+import json
 from sys import platform as _platform
 
-import xml.etree.cElementTree as ET
+from qtpy import QtWidgets, QtCore
 
-from PyQt4 import QtGui, QtCore
+from ..widgets.MainWidget import MainWidget
+from ..model.DioptasModel import DioptasModel
+from ..widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
-from widgets.MainWidget import MainWidget
-from model.ImgModel import ImgModel
-from model.MaskModel import MaskModel
-from model.PatternModel import PatternModel
-from model.CalibrationModel import CalibrationModel
-from model.PhaseModel import PhaseModel
 from . import CalibrationController
 from .integration import IntegrationController
 from .MaskController import MaskController
+from .ConfigurationController import ConfigurationController
 
-from . import versioneer
-
-versioneer.VCS = 'git'
-versioneer.versionfile_source = ''
-versioneer.versionfile_build = ''
-versioneer.tag_prefix = ''
-versioneer.parentdir_prefix = ''
-
-
-def get_version():
-    version = versioneer.get_version()
-    if version not in __name__:
-        write_version_file(version)
-        return version
-    else:
-        import _version
-        return _version.__version__
-
-
-def write_version_file(version_str):
-    path = os.path.dirname(__file__)
-    with open(os.path.join(path, '_version.py'), 'w') as f:
-        f.write('__version__="{}"'.format(version_str))
-
-
-__version__ = get_version()
+from dioptas import __version__
 
 
 class MainController(object):
@@ -67,42 +39,43 @@ class MainController(object):
     Creates a the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
     """
 
-    def __init__(self, use_settings=True):
+    def __init__(self, use_settings=True, settings_directory='default'):
+
         self.use_settings = use_settings
-
         self.widget = MainWidget()
+
         # create data
-        self.img_model = ImgModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.mask_model = MaskModel()
-        self.spectrum_model = PatternModel()
-        self.phase_model = PhaseModel()
+        if settings_directory == 'default':
+            self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
+        else:
+            self.settings_directory = settings_directory
 
-        self.settings_directory = os.path.join(os.path.expanduser("~"), '.Dioptas')
-        self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'spectrum': '', 'overlay': '',
-                                    'phase': ''}
+        self.model = DioptasModel()
 
-        if use_settings:
-            self.load_settings()
+        self.calibration_controller = CalibrationController(self.widget.calibration_widget,
+                                                            self.model)
+        self.mask_controller = MaskController(self.widget.mask_widget,
+                                              self.model)
+        self.integration_controller = IntegrationController(self.widget.integration_widget,
+                                                            self.model)
 
-        self.calibration_controller = CalibrationController(self.working_directories,
-                                                            self.widget.calibration_widget,
-                                                            self.img_model,
-                                                            self.mask_model,
-                                                            self.calibration_model)
-        self.mask_controller = MaskController(self.working_directories,
-                                              self.widget.mask_widget,
-                                              self.img_model,
-                                              self.mask_model)
-        self.integration_controller = IntegrationController(self.working_directories,
-                                                            self.widget.integration_widget,
-                                                            self.img_model,
-                                                            self.mask_model,
-                                                            self.calibration_model,
-                                                            self.spectrum_model,
-                                                            self.phase_model)
+        self.configuration_controller = ConfigurationController(
+            configuration_widget=self.widget.configuration_widget,
+            dioptas_model=self.model,
+            controllers=[
+                self.calibration_controller,
+                self.mask_controller,
+                self.integration_controller,
+                self
+            ]
+        )
+
         self.create_signals()
         self.update_title()
+
+        if use_settings:
+            self.load_default_settings()
+            self.setup_backup_timer()
 
         self.current_tab_index = 0
 
@@ -124,16 +97,36 @@ class MainController(object):
         """
         self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
-        self.img_model.img_changed.connect(self.update_title)
-        self.spectrum_model.pattern_changed.connect(self.update_title)
+        self.widget.show_configuration_menu_btn.toggled.connect(self.widget.configuration_widget.setVisible)
 
-    def tab_changed(self, ind):
+        self.widget.calibration_mode_btn.toggled.connect(self.widget.calibration_widget.setVisible)
+        self.widget.mask_mode_btn.toggled.connect(self.widget.mask_widget.setVisible)
+        self.widget.integration_mode_btn.toggled.connect(self.widget.integration_widget.setVisible)
+
+        self.widget.mode_btn_group.buttonToggled.connect(self.tab_changed)
+
+        self.model.img_changed.connect(self.update_title)
+        self.model.pattern_changed.connect(self.update_title)
+
+        self.widget.save_btn.clicked.connect(self.save_btn_clicked)
+        self.widget.load_btn.clicked.connect(self.load_btn_clicked)
+        self.widget.reset_btn.clicked.connect(self.reset_btn_clicked)
+
+    def tab_changed(self):
         """
         Function which is called when a tab has been selected (calibration, mask, or integration). Performs
         needed initialization tasks.
-        :param ind: index for the tab selected (2 - integration, 1 = mask, 0 - calibration)
         :return:
         """
+        if self.widget.calibration_mode_btn.isChecked():
+            ind = 0
+        elif self.widget.mask_mode_btn.isChecked():
+            ind = 1
+        elif self.widget.integration_mode_btn.isChecked():
+            ind = 2
+        else:
+            return
+
         old_index = self.current_tab_index
         self.current_tab_index = ind
 
@@ -152,12 +145,20 @@ class MainController(object):
 
         # update the GUI
         if ind == 2:  # integration tab
-            self.mask_model.set_supersampling()
+            self.model.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
-            self.integration_controller.widget.calibration_lbl.setText(self.calibration_model.calibration_name)
+            self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
-            self.integration_controller.spectrum_controller.image_changed()
-            self.integration_controller.image_controller.update_img()
+
+            if self.integration_controller.image_controller.img_mode == "Image":
+                self.integration_controller.image_controller.plot_img()
+
+            if self.model.use_mask:
+                self.model.current_configuration.integrate_image_1d()
+                if self.model.current_configuration.auto_integrate_cake:
+                    self.model.current_configuration.integrate_image_2d()
+            else:
+                self.model.pattern_changed.emit()
             self.widget.integration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
             self.widget.integration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
         elif ind == 1:  # mask tab
@@ -177,101 +178,109 @@ class MainController(object):
     def update_title(self):
         """
         Updates the title bar of the main window. The title bar will always show the current version of Dioptas, the
-        image or spectrum filenames loaded and the current calibration name.
+        image or pattern filenames loaded and the current calibration name.
         """
-        img_filename = os.path.basename(self.img_model.filename)
-        spec_filename = os.path.basename(self.spectrum_model.pattern_filename)
-        calibration_name = self.calibration_model.calibration_name
+        img_filename = os.path.basename(self.model.img_model.filename)
+        pattern_filename = os.path.basename(self.model.pattern.filename)
+        calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
-        if img_filename is '' and spec_filename is '':
-            self.widget.setWindowTitle(str + u' - © 2015 C. Prescher')
-            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2015 C. Prescher')
+        if img_filename is '' and pattern_filename is '':
+            self.widget.setWindowTitle(str + u' - © 2017 C. Prescher')
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2017 C. Prescher')
             return
 
-        if img_filename is not '' or spec_filename is not '':
+        if img_filename is not '' or pattern_filename is not '':
             str += ' - ['
         if img_filename is not '':
             str += img_filename
-        elif img_filename is '' and spec_filename is not '':
-            str += spec_filename
-        if not img_filename == spec_filename:
-            str += ', ' + spec_filename
+        elif img_filename is '' and pattern_filename is not '':
+            str += pattern_filename
+        if not img_filename == pattern_filename:
+            str += ', ' + pattern_filename
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += u' - © 2015 C. Prescher'
+        str += u' - © 2017 C. Prescher'
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 
-    def load_settings(self):
+    def save_default_settings(self):
+        if not os.path.exists(self.settings_directory):
+            os.mkdir(self.settings_directory)
+        self.model.save(os.path.join(self.settings_directory, 'config.dio'))
+
+    def load_default_settings(self):
+        config_path = os.path.join(self.settings_directory, 'config.dio')
+        if os.path.isfile(config_path):
+            self.show_window()
+            if QtWidgets.QMessageBox.Yes == QtWidgets.QMessageBox.question(self.widget,
+                                                                           'Recovering previous state.',
+                                                                           'Should Dioptas recover your previous Work?',
+                                                                           QtWidgets.QMessageBox.Yes,
+                                                                           QtWidgets.QMessageBox.No):
+                self.model.load(os.path.join(self.settings_directory, 'config.dio'))
+            else:
+                self.load_directories()
+
+    def setup_backup_timer(self):
+        self.backup_timer = QtCore.QTimer(self.widget)
+        self.backup_timer.timeout.connect(self.save_default_settings)
+        self.backup_timer.setInterval(600000)  # every 10 minutes
+        self.backup_timer.start()
+
+    def save_directories(self):
         """
-        Loads previously saved Dioptas settings.
+        Currently used working directories for images, spectra, etc. are saved as csv file in the users directory for
+        reuse when Dioptas is started again without loading a configuration
         """
-        if os.path.exists(self.settings_directory):
-            self.load_directories()
-            self.load_xml_settings()
+        working_directories_path = os.path.join(self.settings_directory, 'working_directories.json')
+        json.dump(self.model.working_directories, open(working_directories_path, 'w'))
 
     def load_directories(self):
         """
         Loads previously used Dioptas directory paths.
         """
-        working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
+        working_directories_path = os.path.join(self.settings_directory, 'working_directories.json')
         if os.path.exists(working_directories_path):
-            reader = csv.reader(open(working_directories_path, 'r'))
-            self.working_directories = dict(x for x in reader)
+            self.model.working_directories = json.load(open(working_directories_path, 'r'))
 
-    def load_xml_settings(self):
-        """
-        Loads previously used Dioptas settings. Currently this is only the calibration.
-        :return:
-        """
-        xml_settings_path = os.path.join(self.settings_directory, "settings.xml")
-        if os.path.exists(xml_settings_path):
-            tree = ET.parse(xml_settings_path)
-            root = tree.getroot()
-            filenames = root.find("filenames")
-            calibration_path = filenames.find("calibration").text
-            if os.path.exists(str(calibration_path)):
-                self.calibration_model.load(calibration_path)
 
-    def save_settings(self):
-        """
-        Saves current settings of Dioptas in the users directory.
-        """
-        if not os.path.exists(self.settings_directory):
-            os.mkdir(self.settings_directory)
-        self.save_directories()
-        self.save_xml_settings()
-
-    def save_directories(self):
-        """
-        Currently used working directories for images, spectra, etc. are saved as csv file in the users directory for
-        reuse when Dioptas is started again
-        """
-
-        working_directories_path = os.path.join(self.settings_directory, 'working_directories.csv')
-        writer = csv.writer(open(working_directories_path, 'w'))
-        for key, value in list(self.working_directories.items()):
-            writer.writerow([key, value])
-            writer.writerow([key, value])
-
-    def save_xml_settings(self):
-        """
-        Currently used settings of Dioptas are saved in to an xml file in the users directory for reuse when Dioptas is
-        started again. Right now this is only saving the calibration filename.
-        """
-        root = ET.Element("DioptasSettings")
-        filenames = ET.SubElement(root, "filenames")
-        calibration_filename = ET.SubElement(filenames, "calibration")
-        calibration_filename.text = self.calibration_model.filename
-        tree = ET.ElementTree(root)
-        tree.write(os.path.join(self.settings_directory, "settings.xml"))
-
-    def close_event(self, _):
+    def close_event(self, ev):
         """
         Intervention of the Dioptas close event to save settings before closing the Program.
         """
         if self.use_settings:
-            self.save_settings()
-        QtGui.QApplication.closeAllWindows()
-        QtGui.QApplication.quit()
+            self.save_default_settings()
+            self.save_directories()
+        QtWidgets.QApplication.closeAllWindows()
+        ev.accept()
+
+    def save_btn_clicked(self):
+        try:
+            default_file_name = os.path.join(self.model.working_directories['image'], 'config.dio')
+        except TypeError:
+            default_file_name = '.'
+        filename = save_file_dialog(self.widget, "Save Current Configuration", default_file_name,
+                                    filter='Dioptas Project (*.dio)')
+
+        if filename is not None and filename != '':
+            self.model.save(filename)
+
+    def load_btn_clicked(self):
+        try:
+            default_file_name = os.path.join(self.model.working_directories['image'], 'config.dio')
+        except TypeError:
+            default_file_name = '.'
+        filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name,
+                                    filter='Dioptas Project (*.dio)')
+        if filename is not None and filename != '':
+            self.model.load(filename)
+
+    def reset_btn_clicked(self):
+        if QtWidgets.QMessageBox.Yes == \
+                QtWidgets.QMessageBox.question(self.widget,
+                                               'Resetting Dioptas.',
+                                               'Do you really want to reset Dioptas?\nAll unsaved work will be lost!',
+                                               QtWidgets.QMessageBox.Yes,
+                                               QtWidgets.QMessageBox.No):
+            self.model.reset()
