@@ -24,7 +24,7 @@ It shows both, the image and integrated pattern, and one can overlay different p
 
 .. figure:: images/integration_view_modules.png
     :align: center
-    :width: 750 px
+    :width: 600 px
 
     Location of module selectors.
 

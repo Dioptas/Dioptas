@@ -13,7 +13,7 @@ It can be either chosen to mask a certain region or unmask it (select either on 
 
 .. figure:: images/mask_view.png
     :align: center
-    :width: 750
+    :width: 600
 
     The Mask module of Dioptas.
 
