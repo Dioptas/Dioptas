@@ -179,6 +179,7 @@ class DioptasModel(QtCore.QObject):
                 new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
                                          reflection.attrs['intensity'], reflection.attrs['d'])
             self.phase_model.phases.append(new_jcpds)
+            self.phase_model.phase_files.append(new_jcpds.filename)
             self.phase_model.reflections.append([])
             self.phase_model.send_added_signal()
 
