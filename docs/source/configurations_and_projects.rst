@@ -11,7 +11,7 @@ Configurations
 
 .. figure:: images/integration_view_configuration.png
     :align: center
-    :width: 750 px
+    :width: 600 px
 
     Location of configuration controls.
 
@@ -54,7 +54,7 @@ Dioptas Projects
 
 .. figure:: images/integration_view_project_controls.png
     :align: center
-    :width: 750 px
+    :width: 600 px
 
     Location of the project controls
 
