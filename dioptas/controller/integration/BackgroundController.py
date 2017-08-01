@@ -46,8 +46,8 @@ class BackgroundController(object):
         self.widget = widget
         self.model = dioptas_model
 
-        self.model.configuration_selected.connect(self.update_bkg_image_gui)
-        self.model.configuration_selected.connect(self.bkg_pattern_parameters_changed)
+        self.model.configuration_selected.connect(self.update_bkg_image_widgets)
+        self.model.configuration_selected.connect(self.update_auto_pattern_bkg_widgets)
 
         self.create_image_background_signals()
         self.create_pattern_background_signals()
@@ -200,11 +200,19 @@ class BackgroundController(object):
         self.widget.pattern_widget.set_linear_region(*self.widget.get_bkg_pattern_roi())
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
-    def update_bkg_image_gui(self):
+    def update_bkg_image_widgets(self):
         self.update_background_image_filename()
         self.widget.bkg_image_offset_sb.setValue(self.model.img_model.background_offset)
         self.widget.bkg_image_scale_sb.setValue(self.model.img_model.background_scaling)
         self.widget.img_show_background_subtracted_btn.setVisible(self.model.img_model.has_background())
+
+    def update_auto_pattern_bkg_widgets(self):
+        # set the state of the toggles:
+        self.widget.bkg_pattern_gb.setChecked(self.model.pattern.auto_background_subtraction)
+        self.widget.qa_bkg_pattern_btn.setChecked(self.model.pattern.auto_background_subtraction)
+        self.update_bkg_gui_parameters()
+        self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)
+        self.widget.bkg_pattern_inspect_btn.setChecked(False)
 
     def auto_background_set(self, bg_params, bg_roi):
         self.widget.bkg_pattern_gb.setChecked(True)
