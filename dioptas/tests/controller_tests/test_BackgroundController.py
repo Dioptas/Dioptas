@@ -28,8 +28,6 @@ from ...model.DioptasModel import DioptasModel
 
 class BackgroundControllerTest(QtTest):
     def setUp(self):
-        self.working_dir = {'image': ''}
-
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
 
@@ -62,6 +60,21 @@ class BackgroundControllerTest(QtTest):
         self.widget.bkg_image_scale_sb.setValue(2)
         self.model.select_configuration(0)
         self.assertEqual(self.widget.bkg_image_scale_sb.value(), 1)
+
+    def test_configuration_selected_changes_auto_background_widgets(self):
+        self.model.pattern_model.load_pattern(os.path.join(unittest_data_path, 'pattern_001.chi'))
+        click_button(self.widget.qa_bkg_pattern_btn)
+        self.assertTrue(self.widget.bkg_pattern_gb.isChecked())
+        self.model.add_configuration()
+        self.assertFalse(self.model.pattern_model.pattern.auto_background_subtraction)
+        self.assertFalse(self.widget.bkg_pattern_gb.isChecked())
+
+        self.model.select_configuration(0)
+        self.assertTrue(self.widget.bkg_pattern_gb.isChecked())
+        click_button(self.widget.qa_bkg_pattern_inspect_btn)
+        self.model.select_configuration(1)
+        self.assertFalse(self.widget.qa_bkg_pattern_inspect_btn.isChecked())
+
 
     def test_changing_unit(self):
         # load calibration and image
