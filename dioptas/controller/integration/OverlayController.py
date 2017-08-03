@@ -127,17 +127,31 @@ class OverlayController(object):
 
     def move_up_overlay_btn_click_callback(self):
         cur_ind = self.widget.get_selected_overlay_row()
-        if cur_ind < 0:
+        if cur_ind < 1:
             return
         new_row = cur_ind - 1
         self.widget.overlay_tw.blockSignals(True)
         self.widget.overlay_tw.insertRow(new_row)
-        for col in range(self.widget.overlay_tw.columnCount()):
-            self.widget.overlay_tw.setItem(new_row, col, self.widget.overlay_tw.takeItem(cur_ind+1, col))
-            self.widget.overlay_tw.setCurrentCell(new_row, col)
+        self.widget.overlay_tw.setCellWidget(new_row, 0, self.widget.overlay_tw.cellWidget(cur_ind + 1, 0))
+        self.widget.overlay_tw.setCellWidget(new_row, 1, self.widget.overlay_tw.cellWidget(cur_ind + 1, 1))
+        self.widget.overlay_tw.setItem(new_row, 2, self.widget.overlay_tw.takeItem(cur_ind + 1, 2))
+        self.widget.overlay_tw.setCurrentCell(new_row, 2)
+
         self.widget.overlay_tw.removeRow(cur_ind + 1)
+        self.widget.overlay_tw.setRowHeight(self.widget.overlay_tw.rowCount(), 25)
         self.widget.overlay_tw.blockSignals(False)
         self.model.overlay_model.overlays.insert(new_row, self.model.overlay_model.overlays.pop(cur_ind))
+        self.widget.overlay_color_btns.insert(new_row, self.widget.overlay_color_btns.pop(cur_ind))
+        self.widget.overlay_show_cbs.insert(new_row, self.widget.overlay_show_cbs.pop(cur_ind))
+        self.widget.pattern_widget.overlays.insert(new_row, self.widget.pattern_widget.overlays.pop(cur_ind))
+        self.widget.pattern_widget.overlay_names.insert(new_row, self.widget.pattern_widget.overlay_names.pop(cur_ind))
+        self.widget.pattern_widget.overlay_show.insert(new_row, self.widget.pattern_widget.overlay_show.pop(cur_ind))
+        self.widget.pattern_widget.legend.legendItems.insert(new_row,
+                                                             self.widget.pattern_widget.legend.legendItems.pop(cur_ind))
+        self.widget.pattern_widget.legend.plotItems.insert(new_row,
+                                                           self.widget.pattern_widget.legend.plotItems.pop(cur_ind))
+        self.widget.pattern_widget.legend.hiddenFlag.insert(new_row,
+                                                            self.widget.pattern_widget.legend.hiddenFlag.pop(cur_ind))
 
     def move_down_overlay_btn_click_callback(self):
         cur_ind = self.widget.get_selected_overlay_row()
@@ -146,12 +160,26 @@ class OverlayController(object):
         new_row = cur_ind + 2
         self.widget.overlay_tw.blockSignals(True)
         self.widget.overlay_tw.insertRow(new_row)
-        for col in range(self.widget.overlay_tw.columnCount()):
-            self.widget.overlay_tw.setItem(new_row, col, self.widget.overlay_tw.takeItem(cur_ind, col))
-            self.widget.overlay_tw.setCurrentCell(new_row, col)
+        self.widget.overlay_tw.setCellWidget(new_row, 0, self.widget.overlay_tw.cellWidget(cur_ind, 0))
+        self.widget.overlay_tw.setCellWidget(new_row, 1, self.widget.overlay_tw.cellWidget(cur_ind, 1))
+        self.widget.overlay_tw.setItem(new_row, 2, self.widget.overlay_tw.takeItem(cur_ind, 2))
+        self.widget.overlay_tw.setCurrentCell(new_row, 2)
+
         self.widget.overlay_tw.removeRow(cur_ind)
+        self.widget.overlay_tw.setRowHeight(self.widget.overlay_tw.rowCount(), 25)
         self.widget.overlay_tw.blockSignals(False)
         self.model.overlay_model.overlays.insert(cur_ind + 1, self.model.overlay_model.overlays.pop(cur_ind))
+        self.widget.overlay_color_btns.insert(new_row, self.widget.overlay_color_btns.pop(cur_ind))
+        self.widget.overlay_show_cbs.insert(new_row, self.widget.overlay_show_cbs.pop(cur_ind))
+        self.widget.pattern_widget.overlays.insert(new_row, self.widget.pattern_widget.overlays.pop(cur_ind))
+        self.widget.pattern_widget.overlay_names.insert(new_row, self.widget.pattern_widget.overlay_names.pop(cur_ind))
+        self.widget.pattern_widget.overlay_show.insert(new_row, self.widget.pattern_widget.overlay_show.pop(cur_ind))
+        self.widget.pattern_widget.legend.legendItems.insert(new_row,
+                                                             self.widget.pattern_widget.legend.legendItems.pop(cur_ind))
+        self.widget.pattern_widget.legend.plotItems.insert(new_row,
+                                                           self.widget.pattern_widget.legend.plotItems.pop(cur_ind))
+        self.widget.pattern_widget.legend.hiddenFlag.insert(new_row,
+                                                            self.widget.pattern_widget.legend.hiddenFlag.pop(cur_ind))
 
     def clear_overlays_btn_click_callback(self):
         """
