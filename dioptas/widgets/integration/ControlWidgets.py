@@ -266,6 +266,8 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.delete_btn)
         self._button_layout.addWidget(self.clear_btn)
+        self._button_layout.addWidget(self.move_up_btn)
+        self._button_layout.addWidget(self.move_down_btn)
         self._button_layout.addSpacerItem(HorizontalSpacerItem())
         self._layout.addWidget(self.button_widget)
 
