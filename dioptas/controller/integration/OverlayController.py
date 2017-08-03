@@ -130,15 +130,28 @@ class OverlayController(object):
         if cur_ind < 0:
             return
         new_row = cur_ind - 1
+        self.widget.overlay_tw.blockSignals(True)
         self.widget.overlay_tw.insertRow(new_row)
         for col in range(self.widget.overlay_tw.columnCount()):
-            self.widget.overlay_tw.setItem(new_row, col, self.widget.overlay_tw.cur_ind + 1, col)
+            self.widget.overlay_tw.setItem(new_row, col, self.widget.overlay_tw.takeItem(cur_ind+1, col))
             self.widget.overlay_tw.setCurrentCell(new_row, col)
         self.widget.overlay_tw.removeRow(cur_ind + 1)
-
+        self.widget.overlay_tw.blockSignals(False)
+        self.model.overlay_model.overlays.insert(new_row, self.model.overlay_model.overlays.pop(cur_ind))
 
     def move_down_overlay_btn_click_callback(self):
-        pass
+        cur_ind = self.widget.get_selected_overlay_row()
+        if cur_ind < 0 or cur_ind >= self.widget.overlay_tw.rowCount() - 1:
+            return
+        new_row = cur_ind + 2
+        self.widget.overlay_tw.blockSignals(True)
+        self.widget.overlay_tw.insertRow(new_row)
+        for col in range(self.widget.overlay_tw.columnCount()):
+            self.widget.overlay_tw.setItem(new_row, col, self.widget.overlay_tw.takeItem(cur_ind, col))
+            self.widget.overlay_tw.setCurrentCell(new_row, col)
+        self.widget.overlay_tw.removeRow(cur_ind)
+        self.widget.overlay_tw.blockSignals(False)
+        self.model.overlay_model.overlays.insert(cur_ind + 1, self.model.overlay_model.overlays.pop(cur_ind))
 
     def clear_overlays_btn_click_callback(self):
         """
