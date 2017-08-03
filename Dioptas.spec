@@ -40,7 +40,7 @@ lib2to3_path = os.path.dirname(lib2to3.__file__)
 extra_datas = [
     ("dioptas/resources", "dioptas/resources"),
     (os.path.join(pyFAI_path, "resources"), "pyFAI/resources"),
-    (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
+    (os.path.join(pyFAI_path, "util"), "pyFAI/utils"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
 ]
@@ -54,7 +54,7 @@ a = Analysis(['Dioptas.py'],
              hiddenimports=['scipy.special._ufuncs_cxx', 'skimage._shared.geometry','h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy'],
              hookspath=[],
              runtime_hooks=[],
-             excludes=[],
+             excludes=['PyQt4', 'pyepics'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
