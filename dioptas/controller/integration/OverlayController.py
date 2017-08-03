@@ -50,6 +50,8 @@ class OverlayController(object):
     def create_signals(self):
         self.connect_click_function(self.widget.overlay_add_btn, self.add_overlay_btn_click_callback)
         self.connect_click_function(self.widget.overlay_del_btn, self.remove_overlay_btn_click_callback)
+        self.connect_click_function(self.widget.overlay_move_up_btn, self.move_up_overlay_btn_click_callback)
+        self.connect_click_function(self.widget.overlay_move_down_btn, self.move_down_overlay_btn_click_callback)
         self.widget.overlay_clear_btn.clicked.connect(self.clear_overlays_btn_click_callback)
 
         self.widget.overlay_tw.currentCellChanged.connect(self.overlay_selection_changed)
@@ -122,6 +124,21 @@ class OverlayController(object):
         # if no more overlays are present the set_as_bkg_btn should be unchecked
         if self.widget.overlay_tw.rowCount() == 0:
             self.widget.overlay_set_as_bkg_btn.setChecked(False)
+
+    def move_up_overlay_btn_click_callback(self):
+        cur_ind = self.widget.get_selected_overlay_row()
+        if cur_ind < 0:
+            return
+        new_row = cur_ind - 1
+        self.widget.overlay_tw.insertRow(new_row)
+        for col in range(self.widget.overlay_tw.columnCount()):
+            self.widget.overlay_tw.setItem(new_row, col, self.widget.overlay_tw.cur_ind + 1, col)
+            self.widget.overlay_tw.setCurrentCell(new_row, col)
+        self.widget.overlay_tw.removeRow(cur_ind + 1)
+
+
+    def move_down_overlay_btn_click_callback(self):
+        pass
 
     def clear_overlays_btn_click_callback(self):
         """
@@ -277,3 +294,4 @@ class OverlayController(object):
         :param name: new name
         """
         self.widget.pattern_widget.rename_overlay(ind, name)
+        self.model.overlay_model.overlays[ind].name = name

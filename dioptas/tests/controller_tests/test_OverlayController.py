@@ -239,6 +239,21 @@ class OverlayControllerTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(data_path, filename)])
         click_button(self.widget.overlay_add_btn)
 
+    def test_move_single_overlay_one_step_up(self):
+        self.load_overlays()
+        self.widget.select_overlay(3)
+        new_name = 'special'
+        self.assertEqual(self.widget.overlay_tw.item(3, 2).text(), 'pattern_001')
+        self.overlay_controller.rename_overlay(3, new_name)
+        self.widget.overlay_tw.item(3, 2).setText(new_name)
+        self.assertEqual(self.model.overlay_model.overlays[3].name, new_name)
+        self.assertEqual(self.widget.overlay_tw.item(3, 2).text(), new_name)
+        self.assertEqual(self.model.overlay_model.overlays[2].name, 'pattern_001')
+        self.widget.overlay_move_up_btn.click()
+        self.assertEqual(self.model.overlay_model.overlays[2].name, new_name)
+        self.assertEqual(self.widget.overlay_tw.item(2, 2).text(), new_name)
+        self.assertEqual(self.model.overlay_model.overlays[3].name, 'pattern_001')
+        self.assertEqual(self.widget.overlay_tw.item(3, 2).text(), 'pattern_001')
 
 if __name__ == '__main__':
     unittest.main()
