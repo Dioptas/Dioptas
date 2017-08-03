@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from ..utility import QtTest, click_button
-import os, sys
+import os
 import gc
 from mock import MagicMock
 
@@ -28,8 +28,6 @@ from qtpy.QtTest import QTest
 from ...controller.integration import OverlayController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
-from ..ehook import excepthook
-
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -242,7 +240,6 @@ class OverlayControllerTest(QtTest):
         click_button(self.widget.overlay_add_btn)
 
     def test_move_single_overlay_one_step_up(self):
-        sys.excepthook = excepthook()
         self.load_overlays()
         self.widget.select_overlay(3)
         new_name = 'special'
@@ -252,9 +249,27 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(self.model.overlay_model.overlays[3].name, new_name)
         self.assertEqual(self.widget.overlay_tw.item(3, 2).text(), new_name)
         self.assertEqual(self.model.overlay_model.overlays[2].name, 'pattern_001')
+
         self.widget.overlay_move_up_btn.click()
         self.assertEqual(self.model.overlay_model.overlays[2].name, new_name)
         self.assertEqual(self.widget.overlay_tw.item(2, 2).text(), new_name)
+        self.assertEqual(self.model.overlay_model.overlays[3].name, 'pattern_001')
+        self.assertEqual(self.widget.overlay_tw.item(3, 2).text(), 'pattern_001')
+
+    def test_move_single_overlay_one_step_down(self):
+        self.load_overlays()
+        self.widget.select_overlay(3)
+        new_name = 'special'
+        self.assertEqual(self.widget.overlay_tw.item(3, 2).text(), 'pattern_001')
+        self.overlay_controller.rename_overlay(3, new_name)
+        self.widget.overlay_tw.item(3, 2).setText(new_name)
+        self.assertEqual(self.model.overlay_model.overlays[3].name, new_name)
+        self.assertEqual(self.widget.overlay_tw.item(3, 2).text(), new_name)
+        self.assertEqual(self.model.overlay_model.overlays[4].name, 'pattern_001')
+
+        self.widget.overlay_move_down_btn.click()
+        self.assertEqual(self.model.overlay_model.overlays[4].name, new_name)
+        self.assertEqual(self.widget.overlay_tw.item(4, 2).text(), new_name)
         self.assertEqual(self.model.overlay_model.overlays[3].name, 'pattern_001')
         self.assertEqual(self.widget.overlay_tw.item(3, 2).text(), 'pattern_001')
 
