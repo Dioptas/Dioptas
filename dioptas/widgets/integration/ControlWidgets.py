@@ -260,6 +260,8 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.add_btn = FlatButton('Add')
         self.delete_btn = FlatButton('Delete')
         self.clear_btn = FlatButton('Clear')
+        self.move_up_btn = FlatButton('Move Up')
+        self.move_down_btn = FlatButton('Move Down')
 
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.delete_btn)
