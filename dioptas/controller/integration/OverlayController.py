@@ -149,7 +149,6 @@ class OverlayController(object):
 
         # The following takes care of the legend. No idea why cur_ind+1 is needed.
         # Maybe the legendItems indexing starts form 1?
-
         color = self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].opts['color']
         label = self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].text
         self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].setAttr(
@@ -158,6 +157,16 @@ class OverlayController(object):
             self.widget.pattern_widget.legend.legendItems[new_row+1][1].text)
         self.widget.pattern_widget.legend.legendItems[new_row+1][1].setAttr('color', color)
         self.widget.pattern_widget.legend.legendItems[new_row+1][1].setText(label)
+
+        if self.widget.overlay_show_cbs[cur_ind].isChecked():
+            self.widget.pattern_widget.legend.showItem(cur_ind+1)
+        else:
+            self.widget.pattern_widget.legend.hideItem(cur_ind + 1)
+
+        if self.widget.overlay_show_cbs[new_row].isChecked():
+            self.widget.pattern_widget.legend.showItem(new_row + 1)
+        else:
+            self.widget.pattern_widget.legend.hideItem(new_row + 1)
 
     def move_down_overlay_btn_click_callback(self):
         cur_ind = self.widget.get_selected_overlay_row()
@@ -189,6 +198,16 @@ class OverlayController(object):
             self.widget.pattern_widget.legend.legendItems[cur_ind+2][1].text)
         self.widget.pattern_widget.legend.legendItems[cur_ind+2][1].setAttr('color', color)
         self.widget.pattern_widget.legend.legendItems[cur_ind+2][1].setText(label)
+
+        if self.widget.overlay_show_cbs[cur_ind].isChecked():
+            self.widget.pattern_widget.legend.showItem(cur_ind + 1)
+        else:
+            self.widget.pattern_widget.legend.hideItem(cur_ind + 1)
+
+        if self.widget.overlay_show_cbs[cur_ind + 1].isChecked():
+            self.widget.pattern_widget.legend.showItem(cur_ind + 2)
+        else:
+            self.widget.pattern_widget.legend.hideItem(cur_ind + 2)
 
     def clear_overlays_btn_click_callback(self):
         """
