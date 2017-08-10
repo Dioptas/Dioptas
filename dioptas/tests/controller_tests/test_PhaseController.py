@@ -128,7 +128,7 @@ class PhaseControllerTest(QtTest):
         self.load_phases()
         old_pressure = float(self.widget.phase_pressure_sb.text())
         self.widget.phase_pressure_sb.stepUp()
-        step = float(self.widget.phase_pressure_step_txt.text())
+        step = float(self.widget.phase_pressure_step_msb.text())
         self.assertAlmostEqual(float(self.widget.phase_pressure_sb.text()), old_pressure + step, places=5)
 
     def test_temperature_step_change(self):
@@ -157,6 +157,19 @@ class PhaseControllerTest(QtTest):
             else:
                 self.assertEqual(phase.params['temperature'], 298)
                 self.assertEqual(self.widget.get_phase_temperature(ind), None)
+
+    def test_pressure_auto_step_change(self):
+        self.load_phases()
+        self.widget.phase_pressure_step_msb.setValue(0.5)
+        self.widget.phase_pressure_step_msb.stepUp()
+
+        new_pressure_step = float(self.widget.phase_pressure_step_msb.text())
+        self.assertAlmostEqual(new_pressure_step, 1.0, places=5)
+
+        self.widget.phase_pressure_step_msb.stepDown()
+        self.widget.phase_pressure_step_msb.stepDown()
+        new_pressure_step = float(self.widget.phase_pressure_step_msb.text())
+        self.assertAlmostEqual(new_pressure_step, 0.2, places=5)
 
     def test_apply_to_all_for_new_added_phase_in_table_widget(self):
         temperature = 1500

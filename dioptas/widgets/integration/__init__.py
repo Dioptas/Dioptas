@@ -146,7 +146,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_load_list_btn = phase_control_widget.load_list_btn
         self.phase_tw = phase_control_widget.phase_tw
         self.phase_pressure_sb = phase_control_widget.pressure_sb
-        self.phase_pressure_step_txt = phase_control_widget.pressure_step_txt
+        self.phase_pressure_step_msb = phase_control_widget.pressure_step_msb
         self.phase_temperature_sb = phase_control_widget.temperature_sb
         self.phase_temperature_step_txt = phase_control_widget.temperature_step_txt
         self.phase_apply_to_all_cb = phase_control_widget.apply_to_all_cb
