@@ -20,7 +20,7 @@ from qtpy import QtWidgets
 
 from ..CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
     CheckableFlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, HorizontalLine, HorizontalSpacerItem, \
-    ListTableWidget, VerticalLine
+    ListTableWidget, VerticalLine, DoubleMultiplySpinBoxAlignRight
 
 from .CustomWidgets import BrowseFileWidget
 
@@ -186,7 +186,7 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self._parameter_layout = QtWidgets.QGridLayout()
         self.pressure_sb = DoubleSpinBoxAlignRight()
         self.temperature_sb = DoubleSpinBoxAlignRight()
-        self.pressure_step_txt = NumberTextField('0.5')
+        self.pressure_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.temperature_step_txt = NumberTextField('100')
         self.apply_to_all_cb = QtWidgets.QCheckBox('Apply to all phases')
         self.show_in_pattern_cb = QtWidgets.QCheckBox('Show in Pattern')
@@ -199,7 +199,7 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self._parameter_layout.addWidget(QtWidgets.QLabel('K'), 2, 2)
 
         self._parameter_layout.addWidget(self.pressure_sb, 1, 1)
-        self._parameter_layout.addWidget(self.pressure_step_txt, 1, 3)
+        self._parameter_layout.addWidget(self.pressure_step_msb, 1, 3)
         self._parameter_layout.addWidget(self.temperature_sb, 2, 1)
         self._parameter_layout.addWidget(self.temperature_step_txt, 2, 3)
 
@@ -224,12 +224,16 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self.phase_tw.setMinimumHeight(130)
 
         self.temperature_step_txt.setMaximumWidth(60)
-        self.pressure_step_txt.setMaximumWidth(60)
+        self.pressure_step_msb.setMaximumWidth(60)
         self.pressure_sb.setMinimumWidth(100)
 
         self.pressure_sb.setMaximum(9999999)
         self.pressure_sb.setMinimum(-9999999)
         self.pressure_sb.setValue(0)
+
+        self.pressure_step_msb.setMaximum(1024)
+        self.pressure_step_msb.setMinimum(1.0/128.0)
+        self.pressure_step_msb.setValue(0.5)
 
         self.temperature_sb.setMaximum(99999999)
         self.temperature_sb.setMinimum(0)

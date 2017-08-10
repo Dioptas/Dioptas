@@ -65,7 +65,7 @@ class PhaseController(object):
         self.connect_click_function(self.widget.phase_save_list_btn, self.save_btn_clicked_callback)
         self.connect_click_function(self.widget.phase_load_list_btn, self.load_btn_clicked_callback)
 
-        self.widget.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
+        self.widget.phase_pressure_step_msb.editingFinished.connect(self.update_phase_pressure_step)
         self.widget.phase_temperature_step_txt.editingFinished.connect(self.update_phase_temperature_step)
 
         self.widget.phase_pressure_sb.valueChanged.connect(self.phase_pressure_sb_changed)
@@ -284,7 +284,7 @@ class PhaseController(object):
             self.jcpds_editor_controller.close_view()
 
     def update_phase_pressure_step(self):
-        value = np.float(self.widget.phase_pressure_step_txt.text())
+        value = np.float(self.widget.phase_pressure_step_msb.text())
         self.widget.phase_pressure_sb.setSingleStep(value)
 
     def update_phase_temperature_step(self):
