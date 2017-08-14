@@ -78,8 +78,10 @@ class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
             else:
                 return pow10floor * 10.0
         else:
-            if value / pow10floor < 2.1:
+            if value / pow10floor < 1.1:
                 return pow10floor / 2.0
+            elif value / pow10floor < 2.1:
+                return pow10floor
             elif value / pow10floor < 5.1:
                 return pow10floor * 2.0
             else:
