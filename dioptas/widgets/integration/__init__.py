@@ -158,10 +158,10 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.overlay_clear_btn = overlay_control_widget.clear_btn
         self.overlay_tw = overlay_control_widget.overlay_tw
         self.overlay_scale_sb = overlay_control_widget.scale_sb
-        self.overlay_scale_step_txt = overlay_control_widget.scale_step_txt
+        self.overlay_scale_step_msb = overlay_control_widget.scale_step_msb
         self.overlay_offset_sb = overlay_control_widget.offset_sb
-        self.overlay_offset_step_txt = overlay_control_widget.offset_step_txt
-        self.waterfall_separation_txt = overlay_control_widget.waterfall_separation_txt
+        self.overlay_offset_step_msb = overlay_control_widget.offset_step_msb
+        self.waterfall_separation_msb = overlay_control_widget.waterfall_separation_msb
         self.waterfall_btn = overlay_control_widget.waterfall_btn
         self.reset_waterfall_btn = overlay_control_widget.waterfall_reset_btn
         self.overlay_set_as_bkg_btn = overlay_control_widget.set_as_background_btn
@@ -189,9 +189,9 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_image_filename_lbl = background_control_widget.filename_lbl
         self.bkg_image_delete_btn = background_control_widget.remove_image_btn
         self.bkg_image_scale_sb = background_control_widget.scale_sb
-        self.bkg_image_scale_step_txt = background_control_widget.scale_step_txt
+        self.bkg_image_scale_step_msb = background_control_widget.scale_step_msb
         self.bkg_image_offset_sb = background_control_widget.offset_sb
-        self.bkg_image_offset_step_txt = background_control_widget.offset_step_txt
+        self.bkg_image_offset_step_msb = background_control_widget.offset_step_msb
         self.bkg_pattern_gb = background_control_widget.pattern_background_gb
         self.bkg_pattern_smooth_width_sb = background_control_widget.smooth_with_sb
         self.bkg_pattern_iterations_sb = background_control_widget.iterations_sb
