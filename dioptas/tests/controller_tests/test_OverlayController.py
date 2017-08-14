@@ -141,6 +141,32 @@ class OverlayControllerTest(QtTest):
 
         self.assertAlmostEqual(np.sum(y - y_spec), 0)
 
+    def test_scaling_auto_step_change(self):
+        self.load_overlays()
+        self.widget.overlay_scale_step_msb.setValue(0.5)
+        self.widget.overlay_scale_step_msb.stepUp()
+
+        new_scale_step = float(self.widget.overlay_scale_step_msb.text())
+        self.assertAlmostEqual(new_scale_step, 1.0, places=5)
+
+        self.widget.overlay_scale_step_msb.stepDown()
+        self.widget.overlay_scale_step_msb.stepDown()
+        new_scale_step = float(self.widget.overlay_scale_step_msb.text())
+        self.assertAlmostEqual(new_scale_step, 0.2, places=5)
+
+    def test_offset_auto_step_change(self):
+        self.load_overlays()
+        self.widget.overlay_offset_step_msb.setValue(10.0)
+        self.widget.overlay_offset_step_msb.stepUp()
+
+        new_offset_step = float(self.widget.overlay_offset_step_msb.text())
+        self.assertAlmostEqual(new_offset_step, 20.0, places=5)
+
+        self.widget.overlay_offset_step_msb.stepDown()
+        self.widget.overlay_offset_step_msb.stepDown()
+        new_offset_step = float(self.widget.overlay_offset_step_msb.text())
+        self.assertAlmostEqual(new_offset_step, 5.0, places=5)
+
     def test_setting_overlay_as_bkg(self):
         self.load_overlays()
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
@@ -216,7 +242,7 @@ class OverlayControllerTest(QtTest):
 
     def test_overlay_waterfall(self):
         self.load_overlays()
-        self.widget.waterfall_separation_txt.setText("10")
+        self.widget.waterfall_separation_msb.setValue(10)
         QTest.mouseClick(self.widget.waterfall_btn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.model.overlay_model.overlays[5].offset, -10)
