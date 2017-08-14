@@ -187,7 +187,7 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self.pressure_sb = DoubleSpinBoxAlignRight()
         self.temperature_sb = DoubleSpinBoxAlignRight()
         self.pressure_step_msb = DoubleMultiplySpinBoxAlignRight()
-        self.temperature_step_txt = NumberTextField('100')
+        self.temperature_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.apply_to_all_cb = QtWidgets.QCheckBox('Apply to all phases')
         self.show_in_pattern_cb = QtWidgets.QCheckBox('Show in Pattern')
 
@@ -201,7 +201,7 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self._parameter_layout.addWidget(self.pressure_sb, 1, 1)
         self._parameter_layout.addWidget(self.pressure_step_msb, 1, 3)
         self._parameter_layout.addWidget(self.temperature_sb, 2, 1)
-        self._parameter_layout.addWidget(self.temperature_step_txt, 2, 3)
+        self._parameter_layout.addWidget(self.temperature_step_msb, 2, 3)
 
         self._parameter_layout.addWidget(self.apply_to_all_cb, 3, 0, 1, 5)
         self._parameter_layout.addWidget(self.show_in_pattern_cb, 4, 0, 1, 5)
@@ -223,7 +223,7 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.phase_tw.setMinimumHeight(130)
 
-        self.temperature_step_txt.setMaximumWidth(60)
+        self.temperature_step_msb.setMaximumWidth(60)
         self.pressure_step_msb.setMaximumWidth(60)
         self.pressure_sb.setMinimumWidth(100)
 
@@ -231,13 +231,17 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self.pressure_sb.setMinimum(-9999999)
         self.pressure_sb.setValue(0)
 
-        self.pressure_step_msb.setMaximum(1024)
+        self.pressure_step_msb.setMaximum(1000.0)
         self.pressure_step_msb.setMinimum(1.0/128.0)
         self.pressure_step_msb.setValue(0.5)
 
         self.temperature_sb.setMaximum(99999999)
         self.temperature_sb.setMinimum(0)
         self.temperature_sb.setValue(298)
+
+        self.temperature_step_msb.setMaximum(1000.0)
+        self.temperature_step_msb.setMinimum(1.0)
+        self.temperature_step_msb.setValue(100.0)
 
         self.setStyleSheet("""
             #phase_control_button_widget QPushButton {
