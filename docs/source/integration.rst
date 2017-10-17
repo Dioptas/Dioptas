@@ -13,7 +13,7 @@ intensities to the ones of known phases.
 
 .. figure:: images/integration_view.png
     :align: center
-    :width: 750
+    :width: 600
 
     The integration module of Dioptas.
 
