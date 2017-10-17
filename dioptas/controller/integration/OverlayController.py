@@ -277,3 +277,4 @@ class OverlayController(object):
         :param name: new name
         """
         self.widget.pattern_widget.rename_overlay(ind, name)
+        self.model.overlay_model.overlays[ind].name = name
