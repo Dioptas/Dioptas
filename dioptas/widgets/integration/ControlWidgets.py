@@ -20,7 +20,7 @@ from qtpy import QtWidgets
 
 from ..CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
     CheckableFlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, HorizontalLine, HorizontalSpacerItem, \
-    ListTableWidget, VerticalLine
+    ListTableWidget, VerticalLine, DoubleMultiplySpinBoxAlignRight
 
 from .CustomWidgets import BrowseFileWidget
 
@@ -186,8 +186,8 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self._parameter_layout = QtWidgets.QGridLayout()
         self.pressure_sb = DoubleSpinBoxAlignRight()
         self.temperature_sb = DoubleSpinBoxAlignRight()
-        self.pressure_step_txt = NumberTextField('0.5')
-        self.temperature_step_txt = NumberTextField('100')
+        self.pressure_step_msb = DoubleMultiplySpinBoxAlignRight()
+        self.temperature_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.apply_to_all_cb = QtWidgets.QCheckBox('Apply to all phases')
         self.show_in_pattern_cb = QtWidgets.QCheckBox('Show in Pattern')
 
@@ -199,9 +199,9 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self._parameter_layout.addWidget(QtWidgets.QLabel('K'), 2, 2)
 
         self._parameter_layout.addWidget(self.pressure_sb, 1, 1)
-        self._parameter_layout.addWidget(self.pressure_step_txt, 1, 3)
+        self._parameter_layout.addWidget(self.pressure_step_msb, 1, 3)
         self._parameter_layout.addWidget(self.temperature_sb, 2, 1)
-        self._parameter_layout.addWidget(self.temperature_step_txt, 2, 3)
+        self._parameter_layout.addWidget(self.temperature_step_msb, 2, 3)
 
         self._parameter_layout.addWidget(self.apply_to_all_cb, 3, 0, 1, 5)
         self._parameter_layout.addWidget(self.show_in_pattern_cb, 4, 0, 1, 5)
@@ -223,17 +223,25 @@ class PhaseControlWidget(QtWidgets.QWidget):
         self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.phase_tw.setMinimumHeight(130)
 
-        self.temperature_step_txt.setMaximumWidth(60)
-        self.pressure_step_txt.setMaximumWidth(60)
+        self.temperature_step_msb.setMaximumWidth(60)
+        self.pressure_step_msb.setMaximumWidth(60)
         self.pressure_sb.setMinimumWidth(100)
 
         self.pressure_sb.setMaximum(9999999)
         self.pressure_sb.setMinimum(-9999999)
         self.pressure_sb.setValue(0)
 
+        self.pressure_step_msb.setMaximum(1000.0)
+        self.pressure_step_msb.setMinimum(0.01)
+        self.pressure_step_msb.setValue(0.5)
+
         self.temperature_sb.setMaximum(99999999)
         self.temperature_sb.setMinimum(0)
         self.temperature_sb.setValue(298)
+
+        self.temperature_step_msb.setMaximum(1000.0)
+        self.temperature_step_msb.setMinimum(1.0)
+        self.temperature_step_msb.setValue(100.0)
 
         self.setStyleSheet("""
             #phase_control_button_widget QPushButton {
@@ -273,9 +281,9 @@ class OverlayControlWidget(QtWidgets.QWidget):
 
         self.scale_sb = DoubleSpinBoxAlignRight()
         self.offset_sb = DoubleSpinBoxAlignRight()
-        self.scale_step_txt = NumberTextField('0.01')
-        self.offset_step_txt = NumberTextField('100')
-        self.waterfall_separation_txt = NumberTextField('100')
+        self.scale_step_msb = DoubleMultiplySpinBoxAlignRight()
+        self.offset_step_msb = DoubleMultiplySpinBoxAlignRight()
+        self.waterfall_separation_msb = DoubleMultiplySpinBoxAlignRight()
         self.waterfall_btn = FlatButton('Waterfall')
         self.waterfall_reset_btn = FlatButton('Reset')
         self.set_as_background_btn = CheckableFlatButton('Set as Background')
@@ -285,15 +293,15 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self._parameter_layout.addWidget(LabelAlignRight('Offset:'), 2, 0)
 
         self._parameter_layout.addWidget(self.scale_sb, 1, 1)
-        self._parameter_layout.addWidget(self.scale_step_txt, 1, 2)
+        self._parameter_layout.addWidget(self.scale_step_msb, 1, 2)
         self._parameter_layout.addWidget(self.offset_sb, 2, 1)
-        self._parameter_layout.addWidget(self.offset_step_txt, 2, 2)
+        self._parameter_layout.addWidget(self.offset_step_msb, 2, 2)
 
         self._parameter_layout.addItem(VerticalSpacerItem(), 3, 0, 1, 3)
 
         self._waterfall_layout = QtWidgets.QHBoxLayout()
         self._waterfall_layout.addWidget(self.waterfall_btn)
-        self._waterfall_layout.addWidget(self.waterfall_separation_txt)
+        self._waterfall_layout.addWidget(self.waterfall_separation_msb)
         self._waterfall_layout.addWidget(self.waterfall_reset_btn)
         self._parameter_layout.addLayout(self._waterfall_layout, 4, 0, 1, 3)
         self._parameter_layout.addItem(VerticalSpacerItem(), 5, 0, 1, 3)
@@ -316,10 +324,10 @@ class OverlayControlWidget(QtWidgets.QWidget):
 
     def style_widgets(self):
         step_txt_width = 70
-        self.scale_step_txt.setMaximumWidth(step_txt_width)
-        self.scale_step_txt.setMinimumWidth(step_txt_width)
-        self.offset_step_txt.setMaximumWidth(step_txt_width)
-        self.waterfall_separation_txt.setMaximumWidth(step_txt_width)
+        self.scale_step_msb.setMaximumWidth(step_txt_width)
+        self.scale_step_msb.setMinimumWidth(step_txt_width)
+        self.offset_step_msb.setMaximumWidth(step_txt_width)
+        self.waterfall_separation_msb.setMaximumWidth(step_txt_width)
 
         self.scale_sb.setMinimum(-9999999)
         self.scale_sb.setMaximum(9999999)
@@ -329,6 +337,18 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.offset_sb.setMaximum(999999998)
         self.offset_sb.setMinimum(-99999999)
         self.offset_sb.setSingleStep(100)
+
+        self.scale_step_msb.setMaximum(10.0)
+        self.scale_step_msb.setMinimum(0.01)
+        self.scale_step_msb.setValue(0.01)
+
+        self.offset_step_msb.setMaximum(100000.0)
+        self.offset_step_msb.setMinimum(0.01)
+        self.offset_step_msb.setValue(100.0)
+
+        self.waterfall_separation_msb.setMaximum(100000.0)
+        self.waterfall_separation_msb.setMinimum(0.01)
+        self.waterfall_separation_msb.setValue(100.0)
 
         self.setStyleSheet("""
             #overlay_control_widget QPushButton {
@@ -467,19 +487,20 @@ class BackgroundControlWidget(QtWidgets.QWidget):
         self.remove_image_btn = FlatButton('Remove')
         self.scale_sb = DoubleSpinBoxAlignRight()
         self.offset_sb = DoubleSpinBoxAlignRight()
-        self.scale_step_txt = NumberTextField('0.01')
-        self.offset_step_txt = NumberTextField('100')
+
+        self.scale_step_msb = DoubleMultiplySpinBoxAlignRight()
+        self.offset_step_msb = DoubleMultiplySpinBoxAlignRight()
 
         self._image_background_gb_layout.addWidget(self.load_image_btn, 0, 0)
         self._image_background_gb_layout.addWidget(self.remove_image_btn, 1, 0)
         self._image_background_gb_layout.addWidget(self.filename_lbl, 0, 1, 1, 8)
         self._image_background_gb_layout.addWidget(LabelAlignRight('Scale:'), 1, 1)
         self._image_background_gb_layout.addWidget(self.scale_sb, 1, 2)
-        self._image_background_gb_layout.addWidget(self.scale_step_txt, 1, 3)
+        self._image_background_gb_layout.addWidget(self.scale_step_msb, 1, 3)
         self._image_background_gb_layout.addItem(HorizontalSpacerItem(), 1, 4)
         self._image_background_gb_layout.addWidget(LabelAlignRight('Offset:'), 1, 5)
         self._image_background_gb_layout.addWidget(self.offset_sb, 1, 6)
-        self._image_background_gb_layout.addWidget(self.offset_step_txt, 1, 7)
+        self._image_background_gb_layout.addWidget(self.offset_step_msb, 1, 7)
         self._image_background_gb_layout.addItem(HorizontalSpacerItem(), 1, 8)
 
         self.image_background_gb.setLayout(self._image_background_gb_layout)
@@ -533,9 +554,9 @@ class BackgroundControlWidget(QtWidgets.QWidget):
 
     def style_image_background_widgets(self):
         step_txt_width = 70
-        self.scale_step_txt.setMaximumWidth(step_txt_width)
-        self.scale_step_txt.setMinimumWidth(step_txt_width)
-        self.offset_step_txt.setMaximumWidth(step_txt_width)
+        self.scale_step_msb.setMaximumWidth(step_txt_width)
+        self.scale_step_msb.setMinimumWidth(step_txt_width)
+        self.offset_step_msb.setMaximumWidth(step_txt_width)
 
         sb_width = 110
         self.scale_sb.setMaximumWidth(sb_width)
@@ -550,6 +571,14 @@ class BackgroundControlWidget(QtWidgets.QWidget):
 
         self.pattern_background_gb.setCheckable(True)
         self.pattern_background_gb.setChecked(False)
+
+        self.scale_step_msb.setMaximum(10.0)
+        self.scale_step_msb.setMinimum(0.01)
+        self.scale_step_msb.setValue(0.01)
+
+        self.offset_step_msb.setMaximum(100000.0)
+        self.offset_step_msb.setMinimum(0.01)
+        self.offset_step_msb.setValue(100.0)
 
         self.offset_sb.setMaximum(999999998)
         self.offset_sb.setMinimum(-99999999)

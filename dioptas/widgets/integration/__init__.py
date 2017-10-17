@@ -146,9 +146,9 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_load_list_btn = phase_control_widget.load_list_btn
         self.phase_tw = phase_control_widget.phase_tw
         self.phase_pressure_sb = phase_control_widget.pressure_sb
-        self.phase_pressure_step_txt = phase_control_widget.pressure_step_txt
+        self.phase_pressure_step_msb = phase_control_widget.pressure_step_msb
         self.phase_temperature_sb = phase_control_widget.temperature_sb
-        self.phase_temperature_step_txt = phase_control_widget.temperature_step_txt
+        self.phase_temperature_step_msb = phase_control_widget.temperature_step_msb
         self.phase_apply_to_all_cb = phase_control_widget.apply_to_all_cb
         self.phase_show_parameter_in_pattern_cb = phase_control_widget.show_in_pattern_cb
 
@@ -158,10 +158,10 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.overlay_clear_btn = overlay_control_widget.clear_btn
         self.overlay_tw = overlay_control_widget.overlay_tw
         self.overlay_scale_sb = overlay_control_widget.scale_sb
-        self.overlay_scale_step_txt = overlay_control_widget.scale_step_txt
+        self.overlay_scale_step_msb = overlay_control_widget.scale_step_msb
         self.overlay_offset_sb = overlay_control_widget.offset_sb
-        self.overlay_offset_step_txt = overlay_control_widget.offset_step_txt
-        self.waterfall_separation_txt = overlay_control_widget.waterfall_separation_txt
+        self.overlay_offset_step_msb = overlay_control_widget.offset_step_msb
+        self.waterfall_separation_msb = overlay_control_widget.waterfall_separation_msb
         self.waterfall_btn = overlay_control_widget.waterfall_btn
         self.reset_waterfall_btn = overlay_control_widget.waterfall_reset_btn
         self.overlay_set_as_bkg_btn = overlay_control_widget.set_as_background_btn
@@ -189,9 +189,9 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_image_filename_lbl = background_control_widget.filename_lbl
         self.bkg_image_delete_btn = background_control_widget.remove_image_btn
         self.bkg_image_scale_sb = background_control_widget.scale_sb
-        self.bkg_image_scale_step_txt = background_control_widget.scale_step_txt
+        self.bkg_image_scale_step_msb = background_control_widget.scale_step_msb
         self.bkg_image_offset_sb = background_control_widget.offset_sb
-        self.bkg_image_offset_step_txt = background_control_widget.offset_step_txt
+        self.bkg_image_offset_step_msb = background_control_widget.offset_step_msb
         self.bkg_pattern_gb = background_control_widget.pattern_background_gb
         self.bkg_pattern_smooth_width_sb = background_control_widget.smooth_with_sb
         self.bkg_pattern_iterations_sb = background_control_widget.iterations_sb

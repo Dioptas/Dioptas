@@ -57,8 +57,8 @@ class OverlayController(object):
         self.widget.overlay_show_cb_state_changed.connect(self.overlay_show_cb_state_changed)
         self.widget.overlay_name_changed.connect(self.rename_overlay)
 
-        self.widget.overlay_scale_step_txt.editingFinished.connect(self.update_overlay_scale_step)
-        self.widget.overlay_offset_step_txt.editingFinished.connect(self.update_overlay_offset_step)
+        self.widget.overlay_scale_step_msb.editingFinished.connect(self.update_overlay_scale_step)
+        self.widget.overlay_offset_step_msb.editingFinished.connect(self.update_overlay_offset_step)
         self.widget.overlay_scale_sb.valueChanged.connect(self.overlay_scale_sb_changed)
         self.widget.overlay_offset_sb.valueChanged.connect(self.overlay_offset_sb_changed)
 
@@ -134,14 +134,14 @@ class OverlayController(object):
         """
         Sets the step size for scale spinbox from the step text box.
         """
-        value = np.float(self.widget.overlay_scale_step_txt.text())
+        value = self.widget.overlay_scale_step_msb.value()
         self.widget.overlay_scale_sb.setSingleStep(value)
 
     def update_overlay_offset_step(self):
         """
         Sets the step size for the offset spinbox from the offset_step text box.
         """
-        value = np.float(self.widget.overlay_offset_step_txt.text())
+        value = self.widget.overlay_offset_step_msb.value()
         self.widget.overlay_offset_sb.setSingleStep(value)
 
     def overlay_selection_changed(self, row, *args):
@@ -212,7 +212,7 @@ class OverlayController(object):
             self.widget.overlay_scale_sb.blockSignals(False)
 
     def overlay_waterfall_btn_click_callback(self):
-        separation = float(str(self.widget.waterfall_separation_txt.text()))
+        separation = float(str(self.widget.waterfall_separation_msb.text()))
         self.model.overlay_model.overlay_waterfall(separation)
 
     def overlay_set_as_bkg_btn_click_callback(self):
