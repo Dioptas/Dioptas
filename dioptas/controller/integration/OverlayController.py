@@ -134,14 +134,14 @@ class OverlayController(object):
         """
         Sets the step size for scale spinbox from the step text box.
         """
-        value = np.float(self.widget.overlay_scale_step_msb.text())
+        value = self.widget.overlay_scale_step_msb.value()
         self.widget.overlay_scale_sb.setSingleStep(value)
 
     def update_overlay_offset_step(self):
         """
         Sets the step size for the offset spinbox from the offset_step text box.
         """
-        value = np.float(self.widget.overlay_offset_step_msb.text())
+        value = self.widget.overlay_offset_step_msb.value()
         self.widget.overlay_offset_sb.setSingleStep(value)
 
     def overlay_selection_changed(self, row, *args):

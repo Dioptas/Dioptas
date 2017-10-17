@@ -147,8 +147,8 @@ class PhaseController(object):
                                                self.cif_conversion_dialog.min_d_spacing)
 
             if self.widget.phase_apply_to_all_cb.isChecked():
-                pressure = np.float(self.widget.phase_pressure_sb.value())
-                temperature = np.float(self.widget.phase_temperature_sb.value())
+                pressure = self.widget.phase_pressure_sb.value()
+                temperature = self.widget.phase_temperature_sb.value()
                 self.model.phase_model.phases[-1].compute_d(pressure=pressure,
                                                             temperature=temperature)
             else:
@@ -284,11 +284,11 @@ class PhaseController(object):
             self.jcpds_editor_controller.close_view()
 
     def update_phase_pressure_step(self):
-        value = np.float(self.widget.phase_pressure_step_msb.text())
+        value = self.widget.phase_pressure_step_msb.value()
         self.widget.phase_pressure_sb.setSingleStep(value)
 
     def update_phase_temperature_step(self):
-        value = np.float(self.widget.phase_temperature_step_msb.text())
+        value  = self.widget.phase_temperature_step_msb.value()
         self.widget.phase_temperature_sb.setSingleStep(value)
 
     def phase_pressure_sb_changed(self, val):
