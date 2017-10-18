@@ -113,7 +113,8 @@ class DioptasModel(QtCore.QObject):
         overlay_group = f.create_group('overlays')
 
         for ind, overlay in enumerate(self.overlay_model.overlays):
-            ov = overlay_group.create_group(str(ind).zfill(5))
+            ov = overlay_group.create_group(str(ind).zfill(5)) # need to fill the ind string, in order to keep it
+                                                               # ordered also for larger numbers of overlays
             ov.attrs['name'] = overlay.name
             ov.create_dataset('x', overlay.original_x.shape, 'f', overlay.original_x)
             ov.create_dataset('y', overlay.original_y.shape, 'f', overlay.original_y)
