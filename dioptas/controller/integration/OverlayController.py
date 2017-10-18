@@ -99,14 +99,14 @@ class OverlayController(object):
         callback when overlay is added to the PatternData
         """
         color = self.widget.pattern_widget.add_overlay(self.model.overlay_model.overlays[-1])
-        self.widget.add_overlay(self.model.overlay_model.overlays[-1].name,
-                                '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
+        self.widget.overlay_widget.add_overlay(self.model.overlay_model.overlays[-1].name,
+                                               '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
 
     def remove_overlay_btn_click_callback(self):
         """
         Removes the currently in the overlay table selected overlay from the table, pattern_data and pattern_view
         """
-        cur_ind = self.widget.get_selected_overlay_row()
+        cur_ind = self.widget.overlay_widget.get_selected_overlay_row()
         if cur_ind < 0:
             return
         if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[cur_ind]:
@@ -119,7 +119,7 @@ class OverlayController(object):
         :param ind: index of overlay removed
         """
         self.widget.remove_overlay(ind)
-        self.widget.pattern_widget.remove_overlay(ind)
+        self.widget.overlay_widget.remove_overlay(ind)
 
         # if no more overlays are present the set_as_bkg_btn should be unchecked
         if self.widget.overlay_tw.rowCount() == 0:
@@ -149,17 +149,17 @@ class OverlayController(object):
 
         # The following takes care of the legend. No idea why cur_ind+1 is needed.
         # Maybe the legendItems indexing starts form 1?
-        color = self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].opts['color']
-        label = self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].text
-        self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].setAttr(
-            'color', self.widget.pattern_widget.legend.legendItems[new_row+1][1].opts['color'])
-        self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].setText(
-            self.widget.pattern_widget.legend.legendItems[new_row+1][1].text)
-        self.widget.pattern_widget.legend.legendItems[new_row+1][1].setAttr('color', color)
-        self.widget.pattern_widget.legend.legendItems[new_row+1][1].setText(label)
+        color = self.widget.pattern_widget.legend.legendItems[cur_ind + 1][1].opts['color']
+        label = self.widget.pattern_widget.legend.legendItems[cur_ind + 1][1].text
+        self.widget.pattern_widget.legend.legendItems[cur_ind + 1][1].setAttr(
+            'color', self.widget.pattern_widget.legend.legendItems[new_row + 1][1].opts['color'])
+        self.widget.pattern_widget.legend.legendItems[cur_ind + 1][1].setText(
+            self.widget.pattern_widget.legend.legendItems[new_row + 1][1].text)
+        self.widget.pattern_widget.legend.legendItems[new_row + 1][1].setAttr('color', color)
+        self.widget.pattern_widget.legend.legendItems[new_row + 1][1].setText(label)
 
         if self.widget.overlay_show_cbs[cur_ind].isChecked():
-            self.widget.pattern_widget.legend.showItem(cur_ind+1)
+            self.widget.pattern_widget.legend.showItem(cur_ind + 1)
         else:
             self.widget.pattern_widget.legend.hideItem(cur_ind + 1)
 
@@ -187,17 +187,19 @@ class OverlayController(object):
         self.widget.overlay_color_btns.insert(cur_ind + 1, self.widget.overlay_color_btns.pop(cur_ind))
         self.widget.overlay_show_cbs.insert(cur_ind + 1, self.widget.overlay_show_cbs.pop(cur_ind))
         self.widget.pattern_widget.overlays.insert(cur_ind + 1, self.widget.pattern_widget.overlays.pop(cur_ind))
-        self.widget.pattern_widget.overlay_names.insert(cur_ind + 1, self.widget.pattern_widget.overlay_names.pop(cur_ind))
-        self.widget.pattern_widget.overlay_show.insert(cur_ind + 1, self.widget.pattern_widget.overlay_show.pop(cur_ind))
+        self.widget.pattern_widget.overlay_names.insert(cur_ind + 1,
+                                                        self.widget.pattern_widget.overlay_names.pop(cur_ind))
+        self.widget.pattern_widget.overlay_show.insert(cur_ind + 1,
+                                                       self.widget.pattern_widget.overlay_show.pop(cur_ind))
 
-        color = self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].opts['color']
-        label = self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].text
-        self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].setAttr(
-            'color', self.widget.pattern_widget.legend.legendItems[cur_ind+2][1].opts['color'])
-        self.widget.pattern_widget.legend.legendItems[cur_ind+1][1].setText(
-            self.widget.pattern_widget.legend.legendItems[cur_ind+2][1].text)
-        self.widget.pattern_widget.legend.legendItems[cur_ind+2][1].setAttr('color', color)
-        self.widget.pattern_widget.legend.legendItems[cur_ind+2][1].setText(label)
+        color = self.widget.pattern_widget.legend.legendItems[cur_ind + 1][1].opts['color']
+        label = self.widget.pattern_widget.legend.legendItems[cur_ind + 1][1].text
+        self.widget.pattern_widget.legend.legendItems[cur_ind + 1][1].setAttr(
+            'color', self.widget.pattern_widget.legend.legendItems[cur_ind + 2][1].opts['color'])
+        self.widget.pattern_widget.legend.legendItems[cur_ind + 1][1].setText(
+            self.widget.pattern_widget.legend.legendItems[cur_ind + 2][1].text)
+        self.widget.pattern_widget.legend.legendItems[cur_ind + 2][1].setAttr('color', color)
+        self.widget.pattern_widget.legend.legendItems[cur_ind + 2][1].setText(label)
 
         if self.widget.overlay_show_cbs[cur_ind].isChecked():
             self.widget.pattern_widget.legend.showItem(cur_ind + 1)
@@ -306,7 +308,7 @@ class OverlayController(object):
         Callback for the overlay_set_as_bkg_btn QPushButton. Will try to either set the currently selected overlay as
         background or unset if it already. Any other overlay which was set before as bkg will
         """
-        cur_ind = self.widget.get_selected_overlay_row()
+        cur_ind = self.widget.overlay_widget.get_selected_overlay_row()
         if cur_ind is -1:  # no overlay selected
             self.widget.overlay_set_as_bkg_btn.setChecked(False)
             return

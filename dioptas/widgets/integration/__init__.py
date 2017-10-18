@@ -74,11 +74,6 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self.create_shortcuts()
 
-        self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)
-        self.overlay_show_cbs = []
-        self.overlay_color_btns = []
-        self.overlay_tw.setItemDelegate(NoRectDelegate())
-
         self.phase_show_cbs = []
         self.phase_color_btns = []
         self.show_parameter_in_pattern = True
@@ -153,6 +148,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_show_parameter_in_pattern_cb = phase_control_widget.show_in_pattern_cb
 
         overlay_control_widget = self.integration_control_widget.overlay_control_widget
+        self.overlay_widget = overlay_control_widget
         self.overlay_add_btn = overlay_control_widget.add_btn
         self.overlay_del_btn = overlay_control_widget.delete_btn
         self.overlay_clear_btn = overlay_control_widget.clear_btn
@@ -338,80 +334,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         msg_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg_box.setDefaultButton(QtWidgets.QMessageBox.Ok)
         msg_box.exec_()
-
-    # ###############################################################################################
-    # Now comes all the overlay tw stuff
-    ################################################################################################
-
-    def add_overlay(self, name, color):
-        current_rows = self.overlay_tw.rowCount()
-        self.overlay_tw.setRowCount(current_rows + 1)
-        self.overlay_tw.blockSignals(True)
-
-        show_cb = QtWidgets.QCheckBox()
-        show_cb.setChecked(True)
-        show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, show_cb))
-        show_cb.setStyleSheet("background-color: transparent")
-        self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
-        self.overlay_show_cbs.append(show_cb)
-
-        color_button = FlatButton()
-        color_button.setStyleSheet("background-color: " + color)
-        color_button.clicked.connect(partial(self.overlay_color_btn_click, color_button))
-        self.overlay_tw.setCellWidget(current_rows, 1, color_button)
-        self.overlay_color_btns.append(color_button)
-
-        name_item = QtWidgets.QTableWidgetItem(name)
-        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
-
-        self.overlay_tw.setColumnWidth(0, 20)
-        self.overlay_tw.setColumnWidth(1, 25)
-        self.overlay_tw.setRowHeight(current_rows, 25)
-        self.select_overlay(current_rows)
-        self.overlay_tw.blockSignals(False)
-
-    def select_overlay(self, ind):
-        if self.overlay_tw.rowCount() > 0:
-            self.overlay_tw.selectRow(ind)
-
-    def get_selected_overlay_row(self):
-        selected = self.overlay_tw.selectionModel().selectedRows()
-        try:
-            row = selected[0].row()
-        except IndexError:
-            row = -1
-        return row
-
-    def remove_overlay(self, ind):
-        self.overlay_tw.blockSignals(True)
-        self.overlay_tw.removeRow(ind)
-        self.overlay_tw.blockSignals(False)
-        del self.overlay_show_cbs[ind]
-        del self.overlay_color_btns[ind]
-
-        if self.overlay_tw.rowCount() > ind:
-            self.select_overlay(ind)
-        else:
-            self.select_overlay(self.overlay_tw.rowCount() - 1)
-
-    def overlay_color_btn_click(self, button):
-        self.overlay_color_btn_clicked.emit(self.overlay_color_btns.index(button), button)
-
-    def overlay_show_cb_changed(self, checkbox):
-        self.overlay_show_cb_state_changed.emit(self.overlay_show_cbs.index(checkbox), checkbox.isChecked())
-
-    def overlay_show_cb_set_checked(self, ind, state):
-        checkbox = self.overlay_show_cbs[ind]
-        checkbox.setChecked(state)
-
-    def overlay_show_cb_is_checked(self, ind):
-        checkbox = self.overlay_show_cbs[ind]
-        return checkbox.isChecked()
-
-    def overlay_label_editingFinished(self, row, col):
-        label_item = self.overlay_tw.item(row, col)
-        self.overlay_name_changed.emit(row, str(label_item.text()))
 
     # ###############################################################################################
     # Now comes all the phase tw stuff

@@ -16,13 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets
+from functools import partial
+
+from qtpy import QtWidgets, QtCore
 
 from ..CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
     CheckableFlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, HorizontalLine, HorizontalSpacerItem, \
     ListTableWidget, VerticalLine
 
 from .CustomWidgets import BrowseFileWidget
+from .. CustomWidgets import NoRectDelegate
 
 
 class IntegrationControlWidget(QtWidgets.QTabWidget):
@@ -318,6 +321,11 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
         self.style_widgets()
 
+        self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)
+        self.overlay_show_cbs = []
+        self.overlay_color_btns = []
+        self.overlay_tw.setItemDelegate(NoRectDelegate())
+
     def style_widgets(self):
         step_txt_width = 70
         self.scale_step_txt.setMaximumWidth(step_txt_width)
@@ -343,6 +351,76 @@ class OverlayControlWidget(QtWidgets.QWidget):
                 max-width: 110;
             }
         """)
+
+    def add_overlay(self, name, color):
+        current_rows = self.overlay_tw.rowCount()
+        self.overlay_tw.setRowCount(current_rows + 1)
+        self.overlay_tw.blockSignals(True)
+
+        show_cb = QtWidgets.QCheckBox()
+        show_cb.setChecked(True)
+        show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, show_cb))
+        show_cb.setStyleSheet("background-color: transparent")
+        self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
+        self.overlay_show_cbs.append(show_cb)
+
+        color_button = FlatButton()
+        color_button.setStyleSheet("background-color: " + color)
+        color_button.clicked.connect(partial(self.overlay_color_btn_click, color_button))
+        self.overlay_tw.setCellWidget(current_rows, 1, color_button)
+        self.overlay_color_btns.append(color_button)
+
+        name_item = QtWidgets.QTableWidgetItem(name)
+        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
+
+        self.overlay_tw.setColumnWidth(0, 20)
+        self.overlay_tw.setColumnWidth(1, 25)
+        self.overlay_tw.setRowHeight(current_rows, 25)
+        self.select_overlay(current_rows)
+        self.overlay_tw.blockSignals(False)
+
+    def select_overlay(self, ind):
+        if self.overlay_tw.rowCount() > 0:
+            self.overlay_tw.selectRow(ind)
+
+    def get_selected_overlay_row(self):
+        selected = self.overlay_tw.selectionModel().selectedRows()
+        try:
+            row = selected[0].row()
+        except IndexError:
+            row = -1
+        return row
+
+    def remove_overlay(self, ind):
+        self.overlay_tw.blockSignals(True)
+        self.overlay_tw.removeRow(ind)
+        self.overlay_tw.blockSignals(False)
+        del self.overlay_show_cbs[ind]
+        del self.overlay_color_btns[ind]
+
+        if self.overlay_tw.rowCount() > ind:
+            self.select_overlay(ind)
+        else:
+            self.select_overlay(self.overlay_tw.rowCount() - 1)
+
+    def overlay_color_btn_click(self, button):
+        self.overlay_color_btn_clicked.emit(self.overlay_color_btns.index(button), button)
+
+    def overlay_show_cb_changed(self, checkbox):
+        self.overlay_show_cb_state_changed.emit(self.overlay_show_cbs.index(checkbox), checkbox.isChecked())
+
+    def overlay_show_cb_set_checked(self, ind, state):
+        checkbox = self.overlay_show_cbs[ind]
+        checkbox.setChecked(state)
+
+    def overlay_show_cb_is_checked(self, ind):
+        checkbox = self.overlay_show_cbs[ind]
+        return checkbox.isChecked()
+
+    def overlay_label_editingFinished(self, row, col):
+        label_item = self.overlay_tw.item(row, col)
+        self.overlay_name_changed.emit(row, str(label_item.text()))
 
 
 class CorrectionsControlWidget(QtWidgets.QWidget):
