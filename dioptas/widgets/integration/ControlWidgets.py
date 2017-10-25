@@ -249,6 +249,10 @@ class PhaseControlWidget(QtWidgets.QWidget):
 
 
 class OverlayControlWidget(QtWidgets.QWidget):
+    color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    show_cb_state_changed = QtCore.Signal(int, bool)
+    name_changed = QtCore.Signal(int, str)
+
     def __init__(self):
         super(OverlayControlWidget, self).__init__()
 
@@ -285,7 +289,7 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.waterfall_separation_txt = NumberTextField('100')
         self.waterfall_btn = FlatButton('Waterfall')
         self.waterfall_reset_btn = FlatButton('Reset')
-        self.set_as_background_btn = CheckableFlatButton('Set as Background')
+        self.set_as_bkg_btn = CheckableFlatButton('Set as Background')
 
         self._parameter_layout.addWidget(QtWidgets.QLabel('Step'), 0, 2)
         self._parameter_layout.addWidget(LabelAlignRight('Scale:'), 1, 0)
@@ -307,7 +311,7 @@ class OverlayControlWidget(QtWidgets.QWidget):
 
         self._background_layout = QtWidgets.QHBoxLayout()
         self._background_layout.addSpacerItem(HorizontalSpacerItem())
-        self._background_layout.addWidget(self.set_as_background_btn)
+        self._background_layout.addWidget(self.set_as_bkg_btn)
         self._parameter_layout.addLayout(self._background_layout, 6, 0, 1, 3)
         self.parameter_widget.setLayout(self._parameter_layout)
 
@@ -321,7 +325,7 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
         self.style_widgets()
 
-        self.overlay_tw.cellChanged.connect(self.overlay_label_editingFinished)
+        self.overlay_tw.cellChanged.connect(self.label_editingFinished)
         self.overlay_show_cbs = []
         self.overlay_color_btns = []
         self.overlay_tw.setItemDelegate(NoRectDelegate())
@@ -359,14 +363,14 @@ class OverlayControlWidget(QtWidgets.QWidget):
 
         show_cb = QtWidgets.QCheckBox()
         show_cb.setChecked(True)
-        show_cb.stateChanged.connect(partial(self.overlay_show_cb_changed, show_cb))
+        show_cb.stateChanged.connect(partial(self.show_cb_changed, show_cb))
         show_cb.setStyleSheet("background-color: transparent")
         self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
         self.overlay_show_cbs.append(show_cb)
 
         color_button = FlatButton()
         color_button.setStyleSheet("background-color: " + color)
-        color_button.clicked.connect(partial(self.overlay_color_btn_click, color_button))
+        color_button.clicked.connect(partial(self.color_btn_click, color_button))
         self.overlay_tw.setCellWidget(current_rows, 1, color_button)
         self.overlay_color_btns.append(color_button)
 
@@ -404,23 +408,23 @@ class OverlayControlWidget(QtWidgets.QWidget):
         else:
             self.select_overlay(self.overlay_tw.rowCount() - 1)
 
-    def overlay_color_btn_click(self, button):
-        self.overlay_color_btn_clicked.emit(self.overlay_color_btns.index(button), button)
+    def color_btn_click(self, button):
+        self.color_btn_clicked.emit(self.overlay_color_btns.index(button), button)
 
-    def overlay_show_cb_changed(self, checkbox):
-        self.overlay_show_cb_state_changed.emit(self.overlay_show_cbs.index(checkbox), checkbox.isChecked())
+    def show_cb_changed(self, checkbox):
+        self.show_cb_state_changed.emit(self.overlay_show_cbs.index(checkbox), checkbox.isChecked())
 
-    def overlay_show_cb_set_checked(self, ind, state):
+    def show_cb_set_checked(self, ind, state):
         checkbox = self.overlay_show_cbs[ind]
         checkbox.setChecked(state)
 
-    def overlay_show_cb_is_checked(self, ind):
+    def show_cb_is_checked(self, ind):
         checkbox = self.overlay_show_cbs[ind]
         return checkbox.isChecked()
 
-    def overlay_label_editingFinished(self, row, col):
+    def label_editingFinished(self, row, col):
         label_item = self.overlay_tw.item(row, col)
-        self.overlay_name_changed.emit(row, str(label_item.text()))
+        self.name_changed.emit(row, str(label_item.text()))
 
 
 class CorrectionsControlWidget(QtWidgets.QWidget):
