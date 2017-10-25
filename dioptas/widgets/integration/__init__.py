@@ -36,13 +36,10 @@ class IntegrationWidget(QtWidgets.QWidget):
     Defines the main structure of the integration widget, which is separated into four parts.
     Integration Image Widget - displaying the image, mask and/or cake
     Integration Control Widget - Handling all the interaction with overlays, phases etc.
-    Integration Patter Widget - showing the integrated pattern
+    Integration Pattern Widget - showing the integrated pattern
     Integration Status Widget - showing the current mouse position and current background filename
     """
 
-    overlay_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
-    overlay_show_cb_state_changed = QtCore.Signal(int, bool)
-    overlay_name_changed = QtCore.Signal(int, str)
     phase_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
     phase_show_cb_state_changed = QtCore.Signal(int, bool)
 
@@ -162,7 +159,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.waterfall_separation_txt = overlay_control_widget.waterfall_separation_txt
         self.waterfall_btn = overlay_control_widget.waterfall_btn
         self.reset_waterfall_btn = overlay_control_widget.waterfall_reset_btn
-        self.overlay_set_as_bkg_btn = overlay_control_widget.set_as_background_btn
+        self.overlay_set_as_bkg_btn = overlay_control_widget.set_as_bkg_btn
 
         corrections_control_widget = self.integration_control_widget.corrections_control_widget
         self.cbn_groupbox = corrections_control_widget.cbn_seat_gb
