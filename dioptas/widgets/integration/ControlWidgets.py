@@ -326,9 +326,9 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.style_widgets()
 
         self.overlay_tw.cellChanged.connect(self.label_editingFinished)
-        self.overlay_show_cbs = []
-        self.overlay_color_btns = []
         self.overlay_tw.setItemDelegate(NoRectDelegate())
+        self.show_cbs = []
+        self.color_btns = []
 
     def style_widgets(self):
         step_txt_width = 70
@@ -366,13 +366,13 @@ class OverlayControlWidget(QtWidgets.QWidget):
         show_cb.stateChanged.connect(partial(self.show_cb_changed, show_cb))
         show_cb.setStyleSheet("background-color: transparent")
         self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
-        self.overlay_show_cbs.append(show_cb)
+        self.show_cbs.append(show_cb)
 
         color_button = FlatButton()
         color_button.setStyleSheet("background-color: " + color)
         color_button.clicked.connect(partial(self.color_btn_click, color_button))
         self.overlay_tw.setCellWidget(current_rows, 1, color_button)
-        self.overlay_color_btns.append(color_button)
+        self.color_btns.append(color_button)
 
         name_item = QtWidgets.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
@@ -400,8 +400,8 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.overlay_tw.blockSignals(True)
         self.overlay_tw.removeRow(ind)
         self.overlay_tw.blockSignals(False)
-        del self.overlay_show_cbs[ind]
-        del self.overlay_color_btns[ind]
+        del self.show_cbs[ind]
+        del self.color_btns[ind]
 
         if self.overlay_tw.rowCount() > ind:
             self.select_overlay(ind)
@@ -409,17 +409,17 @@ class OverlayControlWidget(QtWidgets.QWidget):
             self.select_overlay(self.overlay_tw.rowCount() - 1)
 
     def color_btn_click(self, button):
-        self.color_btn_clicked.emit(self.overlay_color_btns.index(button), button)
+        self.color_btn_clicked.emit(self.color_btns.index(button), button)
 
     def show_cb_changed(self, checkbox):
-        self.show_cb_state_changed.emit(self.overlay_show_cbs.index(checkbox), checkbox.isChecked())
+        self.show_cb_state_changed.emit(self.show_cbs.index(checkbox), checkbox.isChecked())
 
     def show_cb_set_checked(self, ind, state):
-        checkbox = self.overlay_show_cbs[ind]
+        checkbox = self.show_cbs[ind]
         checkbox.setChecked(state)
 
     def show_cb_is_checked(self, ind):
-        checkbox = self.overlay_show_cbs[ind]
+        checkbox = self.show_cbs[ind]
         return checkbox.isChecked()
 
     def label_editingFinished(self, row, col):
