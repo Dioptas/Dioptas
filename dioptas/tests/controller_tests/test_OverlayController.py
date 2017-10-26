@@ -18,7 +18,6 @@
 
 from ..utility import QtTest, click_button
 import os
-import unittest
 import gc
 from mock import MagicMock
 
@@ -241,8 +240,8 @@ class OverlayControllerTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(data_path, filename)])
         click_button(self.integration_widget.overlay_add_btn)
 
-    @unittest.skip('')
     def test_move_single_overlay_one_step_up(self):
+        # setting up the test
         self.load_overlays()
         self.overlay_widget.select_overlay(3)
         new_name = 'special'
@@ -253,14 +252,17 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(self.integration_widget.overlay_tw.item(3, 2).text(), new_name)
         self.assertEqual(self.model.overlay_model.overlays[2].name, 'pattern_001')
 
+        # moving the overlay
         self.integration_widget.overlay_move_up_btn.click()
+
+        # test for wanted result
         self.assertEqual(self.model.overlay_model.overlays[2].name, new_name)
         self.assertEqual(self.integration_widget.overlay_tw.item(2, 2).text(), new_name)
         self.assertEqual(self.model.overlay_model.overlays[3].name, 'pattern_001')
         self.assertEqual(self.integration_widget.overlay_tw.item(3, 2).text(), 'pattern_001')
 
-    @unittest.skip('')
     def test_move_single_overlay_one_step_down(self):
+        # setting up the test
         self.load_overlays()
         self.overlay_widget.select_overlay(3)
         new_name = 'special'
@@ -271,7 +273,10 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(self.integration_widget.overlay_tw.item(3, 2).text(), new_name)
         self.assertEqual(self.model.overlay_model.overlays[4].name, 'pattern_001')
 
+        # moving the overlay
         self.integration_widget.overlay_move_down_btn.click()
+
+        # test for wanted result
         self.assertEqual(self.model.overlay_model.overlays[4].name, new_name)
         self.assertEqual(self.integration_widget.overlay_tw.item(4, 2).text(), new_name)
         self.assertEqual(self.model.overlay_model.overlays[3].name, 'pattern_001')
