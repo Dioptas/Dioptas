@@ -131,19 +131,10 @@ class OverlayController(object):
         if cur_ind < 1:
             return
         new_row = cur_ind - 1
-        self.overlay_widget.overlay_tw.blockSignals(True)
-        self.overlay_widget.overlay_tw.insertRow(new_row)
-        self.overlay_widget.overlay_tw.setCellWidget(new_row, 0, self.integration_widget.overlay_tw.cellWidget(cur_ind + 1, 0))
-        self.overlay_widget.overlay_tw.setCellWidget(new_row, 1, self.integration_widget.overlay_tw.cellWidget(cur_ind + 1, 1))
-        self.overlay_widget.overlay_tw.setItem(new_row, 2, self.integration_widget.overlay_tw.takeItem(cur_ind + 1, 2))
-        self.overlay_widget.overlay_tw.setCurrentCell(new_row, 2)
-        self.overlay_widget.overlay_tw.removeRow(cur_ind + 1)
-        self.overlay_widget.overlay_tw.setRowHeight(self.integration_widget.overlay_tw.rowCount(), 25)
-        self.overlay_widget.overlay_tw.blockSignals(False)
+
+        self.overlay_widget.move_overlay_up(cur_ind)
 
         self.model.overlay_model.overlays.insert(new_row, self.model.overlay_model.overlays.pop(cur_ind))
-        self.overlay_widget.overlay_color_btns.insert(new_row, self.integration_widget.overlay_color_btns.pop(cur_ind))
-        self.overlay_widget.overlay_show_cbs.insert(new_row, self.integration_widget.overlay_show_cbs.pop(cur_ind))
         self.integration_widget.pattern_widget.overlays.insert(new_row, self.integration_widget.pattern_widget.overlays.pop(cur_ind))
         self.integration_widget.pattern_widget.overlay_names.insert(new_row, self.integration_widget.pattern_widget.overlay_names.pop(cur_ind))
         self.integration_widget.pattern_widget.overlay_show.insert(new_row, self.integration_widget.pattern_widget.overlay_show.pop(cur_ind))
@@ -159,12 +150,12 @@ class OverlayController(object):
         self.integration_widget.pattern_widget.legend.legendItems[new_row + 1][1].setAttr('color', color)
         self.integration_widget.pattern_widget.legend.legendItems[new_row + 1][1].setText(label)
 
-        if self.integration_widget.overlay_show_cbs[cur_ind].isChecked():
+        if self.overlay_widget.show_cbs[cur_ind].isChecked():
             self.integration_widget.pattern_widget.legend.showItem(cur_ind + 1)
         else:
             self.integration_widget.pattern_widget.legend.hideItem(cur_ind + 1)
 
-        if self.integration_widget.overlay_show_cbs[new_row].isChecked():
+        if self.overlay_widget.show_cbs[new_row].isChecked():
             self.integration_widget.pattern_widget.legend.showItem(new_row + 1)
         else:
             self.integration_widget.pattern_widget.legend.hideItem(new_row + 1)
@@ -174,19 +165,10 @@ class OverlayController(object):
         if cur_ind < 0 or cur_ind >= self.integration_widget.overlay_tw.rowCount() - 1:
             return
         new_row = cur_ind + 2
-        self.overlay_widget.overlay_tw.blockSignals(True)
-        self.overlay_widget.overlay_tw.insertRow(new_row)
-        self.overlay_widget.overlay_tw.setCellWidget(new_row, 0, self.integration_widget.overlay_tw.cellWidget(cur_ind, 0))
-        self.overlay_widget.overlay_tw.setCellWidget(new_row, 1, self.integration_widget.overlay_tw.cellWidget(cur_ind, 1))
-        self.overlay_widget.overlay_tw.setItem(new_row, 2, self.integration_widget.overlay_tw.takeItem(cur_ind, 2))
-        self.overlay_widget.overlay_tw.setCurrentCell(new_row, 2)
-        self.overlay_widget.overlay_tw.removeRow(cur_ind)
-        self.overlay_widget.overlay_tw.setRowHeight(self.integration_widget.overlay_tw.rowCount(), 25)
-        self.overlay_widget.overlay_tw.blockSignals(False)
+
+        self.overlay_widget.move_overlay_down(cur_ind)
 
         self.model.overlay_model.overlays.insert(cur_ind + 1, self.model.overlay_model.overlays.pop(cur_ind))
-        self.overlay_widget.color_btns.insert(cur_ind + 1, self.overlay_widget.color_btns.pop(cur_ind))
-        self.overlay_widget.show_cbs.insert(cur_ind + 1, self.overlay_widget.show_cbs.pop(cur_ind))
         self.integration_widget.pattern_widget.overlays.insert(cur_ind + 1, self.integration_widget.pattern_widget.overlays.pop(cur_ind))
         self.integration_widget.pattern_widget.overlay_names.insert(cur_ind + 1,
                                                                     self.integration_widget.pattern_widget.overlay_names.pop(cur_ind))
@@ -202,12 +184,12 @@ class OverlayController(object):
         self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 2][1].setAttr('color', color)
         self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 2][1].setText(label)
 
-        if self.integration_widget.overlay_show_cbs[cur_ind].isChecked():
+        if self.overlay_widget.show_cbs[cur_ind].isChecked():
             self.integration_widget.pattern_widget.legend.showItem(cur_ind + 1)
         else:
             self.integration_widget.pattern_widget.legend.hideItem(cur_ind + 1)
 
-        if self.integration_widget.overlay_show_cbs[cur_ind + 1].isChecked():
+        if self.overlay_widget.show_cbs[cur_ind + 1].isChecked():
             self.integration_widget.pattern_widget.legend.showItem(cur_ind + 2)
         else:
             self.integration_widget.pattern_widget.legend.hideItem(cur_ind + 2)
