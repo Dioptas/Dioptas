@@ -170,7 +170,7 @@ class OverlayController(object):
             self.integration_widget.pattern_widget.legend.hideItem(new_row + 1)
 
     def move_down_overlay_btn_click_callback(self):
-        cur_ind = self.integration_widget.get_selected_overlay_row()
+        cur_ind = self.overlay_widget.get_selected_overlay_row()
         if cur_ind < 0 or cur_ind >= self.integration_widget.overlay_tw.rowCount() - 1:
             return
         new_row = cur_ind + 2
@@ -185,8 +185,8 @@ class OverlayController(object):
         self.overlay_widget.overlay_tw.blockSignals(False)
 
         self.model.overlay_model.overlays.insert(cur_ind + 1, self.model.overlay_model.overlays.pop(cur_ind))
-        self.overlay_widget.overlay_color_btns.insert(cur_ind + 1, self.integration_widget.overlay_color_btns.pop(cur_ind))
-        self.overlay_widget.overlay_show_cbs.insert(cur_ind + 1, self.integration_widget.overlay_show_cbs.pop(cur_ind))
+        self.overlay_widget.color_btns.insert(cur_ind + 1, self.overlay_widget.color_btns.pop(cur_ind))
+        self.overlay_widget.show_cbs.insert(cur_ind + 1, self.overlay_widget.show_cbs.pop(cur_ind))
         self.integration_widget.pattern_widget.overlays.insert(cur_ind + 1, self.integration_widget.pattern_widget.overlays.pop(cur_ind))
         self.integration_widget.pattern_widget.overlay_names.insert(cur_ind + 1,
                                                                     self.integration_widget.pattern_widget.overlay_names.pop(cur_ind))
