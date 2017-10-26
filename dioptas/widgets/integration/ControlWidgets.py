@@ -417,7 +417,7 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind + 1, 2))
         self.overlay_tw.setCurrentCell(new_ind, 2)
         self.overlay_tw.removeRow(ind + 1)
-        self.overlay_tw.setRowHeight(self.overlay_tw.rowCount(), 25)
+        self.overlay_tw.setRowHeight(new_ind, 25)
         self.overlay_tw.blockSignals(False)
 
         self.color_btns.insert(new_ind, self.color_btns.pop(ind))
@@ -432,7 +432,7 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.overlay_tw.setItem(new_row, 2, self.overlay_tw.takeItem(cur_ind, 2))
         self.overlay_tw.setCurrentCell(new_row, 2)
         self.overlay_tw.removeRow(cur_ind)
-        self.overlay_tw.setRowHeight(self.overlay_tw.rowCount(), 25)
+        self.overlay_tw.setRowHeight(new_row-1, 25)
         self.overlay_tw.blockSignals(False)
 
         self.color_btns.insert(cur_ind + 1, self.color_btns.pop(cur_ind))
