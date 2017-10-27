@@ -130,59 +130,30 @@ class OverlayController(object):
         cur_ind = self.overlay_widget.get_selected_overlay_row()
         if cur_ind < 1:
             return
-        new_row = cur_ind - 1
+        new_ind = cur_ind - 1
 
         self.overlay_widget.move_overlay_up(cur_ind)
-
-        self.model.overlay_model.overlays.insert(new_row, self.model.overlay_model.overlays.pop(cur_ind))
-        self.integration_widget.pattern_widget.overlays.insert(new_row, self.integration_widget.pattern_widget.overlays.pop(cur_ind))
-        self.integration_widget.pattern_widget.overlay_names.insert(new_row, self.integration_widget.pattern_widget.overlay_names.pop(cur_ind))
-        self.integration_widget.pattern_widget.overlay_show.insert(new_row, self.integration_widget.pattern_widget.overlay_show.pop(cur_ind))
-
-        # The following takes care of the legend. No idea why cur_ind+1 is needed.
-        # Maybe the legendItems indexing starts form 1?
-        color = self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 1][1].opts['color']
-        label = self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 1][1].text
-        self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 1][1].setAttr(
-            'color', self.integration_widget.pattern_widget.legend.legendItems[new_row + 1][1].opts['color'])
-        self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 1][1].setText(
-            self.integration_widget.pattern_widget.legend.legendItems[new_row + 1][1].text)
-        self.integration_widget.pattern_widget.legend.legendItems[new_row + 1][1].setAttr('color', color)
-        self.integration_widget.pattern_widget.legend.legendItems[new_row + 1][1].setText(label)
+        self.model.overlay_model.overlays.insert(new_ind, self.model.overlay_model.overlays.pop(cur_ind))
+        self.integration_widget.pattern_widget.move_overlay_up(cur_ind)
 
         if self.overlay_widget.show_cbs[cur_ind].isChecked():
             self.integration_widget.pattern_widget.legend.showItem(cur_ind + 1)
         else:
             self.integration_widget.pattern_widget.legend.hideItem(cur_ind + 1)
 
-        if self.overlay_widget.show_cbs[new_row].isChecked():
-            self.integration_widget.pattern_widget.legend.showItem(new_row + 1)
+        if self.overlay_widget.show_cbs[new_ind].isChecked():
+            self.integration_widget.pattern_widget.legend.showItem(cur_ind)
         else:
-            self.integration_widget.pattern_widget.legend.hideItem(new_row + 1)
+            self.integration_widget.pattern_widget.legend.hideItem(cur_ind)
 
     def move_down_overlay_btn_click_callback(self):
         cur_ind = self.overlay_widget.get_selected_overlay_row()
         if cur_ind < 0 or cur_ind >= self.integration_widget.overlay_tw.rowCount() - 1:
             return
-        new_row = cur_ind + 2
 
         self.overlay_widget.move_overlay_down(cur_ind)
-
         self.model.overlay_model.overlays.insert(cur_ind + 1, self.model.overlay_model.overlays.pop(cur_ind))
-        self.integration_widget.pattern_widget.overlays.insert(cur_ind + 1, self.integration_widget.pattern_widget.overlays.pop(cur_ind))
-        self.integration_widget.pattern_widget.overlay_names.insert(cur_ind + 1,
-                                                                    self.integration_widget.pattern_widget.overlay_names.pop(cur_ind))
-        self.integration_widget.pattern_widget.overlay_show.insert(cur_ind + 1,
-                                                                   self.integration_widget.pattern_widget.overlay_show.pop(cur_ind))
-
-        color = self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 1][1].opts['color']
-        label = self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 1][1].text
-        self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 1][1].setAttr(
-            'color', self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 2][1].opts['color'])
-        self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 1][1].setText(
-            self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 2][1].text)
-        self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 2][1].setAttr('color', color)
-        self.integration_widget.pattern_widget.legend.legendItems[cur_ind + 2][1].setText(label)
+        self.integration_widget.pattern_widget.move_overlay_down(cur_ind)
 
         if self.overlay_widget.show_cbs[cur_ind].isChecked():
             self.integration_widget.pattern_widget.legend.showItem(cur_ind + 1)
