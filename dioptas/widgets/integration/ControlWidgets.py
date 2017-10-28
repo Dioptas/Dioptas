@@ -16,13 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets
+from functools import partial
+
+from qtpy import QtWidgets, QtCore
 
 from ..CustomWidgets import NumberTextField, IntegerTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
     CheckableFlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, HorizontalLine, HorizontalSpacerItem, \
     ListTableWidget, VerticalLine
 
 from .CustomWidgets import BrowseFileWidget
+from .. CustomWidgets import NoRectDelegate
 
 
 class IntegrationControlWidget(QtWidgets.QTabWidget):
@@ -246,6 +249,10 @@ class PhaseControlWidget(QtWidgets.QWidget):
 
 
 class OverlayControlWidget(QtWidgets.QWidget):
+    color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    show_cb_state_changed = QtCore.Signal(int, bool)
+    name_changed = QtCore.Signal(int, str)
+
     def __init__(self):
         super(OverlayControlWidget, self).__init__()
 
@@ -260,10 +267,14 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.add_btn = FlatButton('Add')
         self.delete_btn = FlatButton('Delete')
         self.clear_btn = FlatButton('Clear')
+        self.move_up_btn = FlatButton('Move Up')
+        self.move_down_btn = FlatButton('Move Down')
 
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.delete_btn)
         self._button_layout.addWidget(self.clear_btn)
+        self._button_layout.addWidget(self.move_up_btn)
+        self._button_layout.addWidget(self.move_down_btn)
         self._button_layout.addSpacerItem(HorizontalSpacerItem())
         self._layout.addWidget(self.button_widget)
 
@@ -278,7 +289,7 @@ class OverlayControlWidget(QtWidgets.QWidget):
         self.waterfall_separation_txt = NumberTextField('100')
         self.waterfall_btn = FlatButton('Waterfall')
         self.waterfall_reset_btn = FlatButton('Reset')
-        self.set_as_background_btn = CheckableFlatButton('Set as Background')
+        self.set_as_bkg_btn = CheckableFlatButton('Set as Background')
 
         self._parameter_layout.addWidget(QtWidgets.QLabel('Step'), 0, 2)
         self._parameter_layout.addWidget(LabelAlignRight('Scale:'), 1, 0)
@@ -300,7 +311,7 @@ class OverlayControlWidget(QtWidgets.QWidget):
 
         self._background_layout = QtWidgets.QHBoxLayout()
         self._background_layout.addSpacerItem(HorizontalSpacerItem())
-        self._background_layout.addWidget(self.set_as_background_btn)
+        self._background_layout.addWidget(self.set_as_bkg_btn)
         self._parameter_layout.addLayout(self._background_layout, 6, 0, 1, 3)
         self.parameter_widget.setLayout(self._parameter_layout)
 
@@ -313,6 +324,11 @@ class OverlayControlWidget(QtWidgets.QWidget):
 
         self.setLayout(self._layout)
         self.style_widgets()
+
+        self.overlay_tw.cellChanged.connect(self.label_editingFinished)
+        self.overlay_tw.setItemDelegate(NoRectDelegate())
+        self.show_cbs = []
+        self.color_btns = []
 
     def style_widgets(self):
         step_txt_width = 70
@@ -339,6 +355,107 @@ class OverlayControlWidget(QtWidgets.QWidget):
                 max-width: 110;
             }
         """)
+
+    def add_overlay(self, name, color):
+        current_rows = self.overlay_tw.rowCount()
+        self.overlay_tw.setRowCount(current_rows + 1)
+        self.overlay_tw.blockSignals(True)
+
+        show_cb = QtWidgets.QCheckBox()
+        show_cb.setChecked(True)
+        show_cb.stateChanged.connect(partial(self.show_cb_changed, show_cb))
+        show_cb.setStyleSheet("background-color: transparent")
+        self.overlay_tw.setCellWidget(current_rows, 0, show_cb)
+        self.show_cbs.append(show_cb)
+
+        color_button = FlatButton()
+        color_button.setStyleSheet("background-color: " + color)
+        color_button.clicked.connect(partial(self.color_btn_click, color_button))
+        self.overlay_tw.setCellWidget(current_rows, 1, color_button)
+        self.color_btns.append(color_button)
+
+        name_item = QtWidgets.QTableWidgetItem(name)
+        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
+
+        self.overlay_tw.setColumnWidth(0, 20)
+        self.overlay_tw.setColumnWidth(1, 25)
+        self.overlay_tw.setRowHeight(current_rows, 25)
+        self.select_overlay(current_rows)
+        self.overlay_tw.blockSignals(False)
+
+    def select_overlay(self, ind):
+        if self.overlay_tw.rowCount() > 0:
+            self.overlay_tw.selectRow(ind)
+
+    def get_selected_overlay_row(self):
+        selected = self.overlay_tw.selectionModel().selectedRows()
+        try:
+            row = selected[0].row()
+        except IndexError:
+            row = -1
+        return row
+
+    def remove_overlay(self, ind):
+        self.overlay_tw.blockSignals(True)
+        self.overlay_tw.removeRow(ind)
+        self.overlay_tw.blockSignals(False)
+        del self.show_cbs[ind]
+        del self.color_btns[ind]
+
+        if self.overlay_tw.rowCount() > ind:
+            self.select_overlay(ind)
+        else:
+            self.select_overlay(self.overlay_tw.rowCount() - 1)
+
+    def move_overlay_up(self, ind):
+        new_ind = ind - 1
+        self.overlay_tw.blockSignals(True)
+        self.overlay_tw.insertRow(new_ind)
+        self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind + 1, 0))
+        self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind + 1, 1))
+        self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind + 1, 2))
+        self.overlay_tw.setCurrentCell(new_ind, 2)
+        self.overlay_tw.removeRow(ind + 1)
+        self.overlay_tw.setRowHeight(new_ind, 25)
+        self.overlay_tw.blockSignals(False)
+
+        self.color_btns.insert(new_ind, self.color_btns.pop(ind))
+        self.show_cbs.insert(new_ind, self.show_cbs.pop(ind))
+
+    def move_overlay_down(self, ind):
+        new_ind = ind + 2
+        self.overlay_tw.blockSignals(True)
+        self.overlay_tw.insertRow(new_ind)
+        self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind, 0))
+        self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind, 1))
+        self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind, 2))
+        self.overlay_tw.setCurrentCell(new_ind, 2)
+        self.overlay_tw.setRowHeight(new_ind, 25)
+        self.overlay_tw.removeRow(ind)
+        self.overlay_tw.blockSignals(False)
+
+        self.color_btns.insert(ind + 1, self.color_btns.pop(ind))
+        self.show_cbs.insert(ind + 1, self.show_cbs.pop(ind))
+
+
+    def color_btn_click(self, button):
+        self.color_btn_clicked.emit(self.color_btns.index(button), button)
+
+    def show_cb_changed(self, checkbox):
+        self.show_cb_state_changed.emit(self.show_cbs.index(checkbox), checkbox.isChecked())
+
+    def show_cb_set_checked(self, ind, state):
+        checkbox = self.show_cbs[ind]
+        checkbox.setChecked(state)
+
+    def show_cb_is_checked(self, ind):
+        checkbox = self.show_cbs[ind]
+        return checkbox.isChecked()
+
+    def label_editingFinished(self, row, col):
+        label_item = self.overlay_tw.item(row, col)
+        self.name_changed.emit(row, str(label_item.text()))
 
 
 class CorrectionsControlWidget(QtWidgets.QWidget):
