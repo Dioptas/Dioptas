@@ -253,7 +253,7 @@ class OverlayController(object):
             self.overlay_widget.offset_sb.blockSignals(False)
             self.overlay_widget.scale_sb.blockSignals(False)
 
-    def overlay_waterfall_btn_click_callback(self):
+    def waterfall_btn_click_callback(self):
         separation = self.overlay_widget.waterfall_separation_msb.value()
         self.model.overlay_model.overlay_waterfall(separation)
 
