@@ -409,19 +409,19 @@ class OverlayControlWidget(QtWidgets.QWidget):
             self.select_overlay(self.overlay_tw.rowCount() - 1)
 
     def move_overlay_up(self, ind):
-        ind = ind - 1
+        new_ind = ind - 1
         self.overlay_tw.blockSignals(True)
-        self.overlay_tw.insertRow(ind)
-        self.overlay_tw.setCellWidget(ind, 0, self.overlay_tw.cellWidget(ind + 1, 0))
-        self.overlay_tw.setCellWidget(ind, 1, self.overlay_tw.cellWidget(ind + 1, 1))
-        self.overlay_tw.setItem(ind, 2, self.overlay_tw.takeItem(ind + 1, 2))
-        self.overlay_tw.setCurrentCell(ind, 2)
+        self.overlay_tw.insertRow(new_ind)
+        self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind + 1, 0))
+        self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind + 1, 1))
+        self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind + 1, 2))
+        self.overlay_tw.setCurrentCell(new_ind, 2)
         self.overlay_tw.removeRow(ind + 1)
-        self.overlay_tw.setRowHeight(ind, 25)
+        self.overlay_tw.setRowHeight(new_ind, 25)
         self.overlay_tw.blockSignals(False)
 
-        self.color_btns.insert(ind, self.color_btns.pop(ind))
-        self.show_cbs.insert(ind, self.show_cbs.pop(ind))
+        self.color_btns.insert(new_ind, self.color_btns.pop(ind))
+        self.show_cbs.insert(new_ind, self.show_cbs.pop(ind))
 
     def move_overlay_down(self, ind):
         new_ind = ind + 2
