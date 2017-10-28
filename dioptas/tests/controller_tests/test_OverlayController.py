@@ -144,28 +144,28 @@ class OverlayControllerTest(QtTest):
 
     def test_scaling_auto_step_change(self):
         self.load_overlays()
-        self.widget.overlay_scale_step_msb.setValue(0.5)
-        self.widget.overlay_scale_step_msb.stepUp()
+        self.overlay_widget.scale_step_msb.setValue(0.5)
+        self.overlay_widget.scale_step_msb.stepUp()
 
-        new_scale_step = float(self.widget.overlay_scale_step_msb.text())
+        new_scale_step = self.overlay_widget.scale_step_msb.value()
         self.assertAlmostEqual(new_scale_step, 1.0, places=5)
 
-        self.widget.overlay_scale_step_msb.stepDown()
-        self.widget.overlay_scale_step_msb.stepDown()
-        new_scale_step = float(self.widget.overlay_scale_step_msb.text())
+        self.overlay_widget.scale_step_msb.stepDown()
+        self.overlay_widget.scale_step_msb.stepDown()
+        new_scale_step = self.overlay_widget.scale_step_msb.value()
         self.assertAlmostEqual(new_scale_step, 0.2, places=5)
 
     def test_offset_auto_step_change(self):
         self.load_overlays()
-        self.widget.overlay_offset_step_msb.setValue(10.0)
-        self.widget.overlay_offset_step_msb.stepUp()
+        self.overlay_widget.offset_step_msb.setValue(10.0)
+        self.overlay_widget.offset_step_msb.stepUp()
 
-        new_offset_step = float(self.widget.overlay_offset_step_msb.text())
+        new_offset_step = self.overlay_widget.offset_step_msb.value()
         self.assertAlmostEqual(new_offset_step, 20.0, places=5)
 
-        self.widget.overlay_offset_step_msb.stepDown()
-        self.widget.overlay_offset_step_msb.stepDown()
-        new_offset_step = float(self.widget.overlay_offset_step_msb.text())
+        self.overlay_widget.offset_step_msb.stepDown()
+        self.overlay_widget.offset_step_msb.stepDown()
+        new_offset_step = self.overlay_widget.offset_step_msb.value()
         self.assertAlmostEqual(new_offset_step, 5.0, places=5)
 
     def test_setting_overlay_as_bkg(self):
