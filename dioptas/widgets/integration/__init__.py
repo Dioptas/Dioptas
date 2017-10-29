@@ -27,7 +27,7 @@ from ..EpicsWidgets import MoveStageWidget
 from ..CustomWidgets import NoRectDelegate, FlatButton
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
-from .ControlWidgets import IntegrationControlWidget
+from .control import IntegrationControlWidget
 from .IntegrationWidgets import IntegrationImgDisplayWidget, IntegrationPatternWidget, IntegrationStatusWidget
 
 
