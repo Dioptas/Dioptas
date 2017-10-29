@@ -28,7 +28,9 @@ from ..CustomWidgets import NoRectDelegate, FlatButton
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .control import IntegrationControlWidget
-from .IntegrationWidgets import IntegrationImgDisplayWidget, IntegrationPatternWidget, IntegrationStatusWidget
+from .display.ImgWidget import IntegrationImgDisplayWidget
+from .display.PatternWidget import IntegrationPatternWidget
+from .display.StatusWidget import IntegrationStatusWidget
 
 
 class IntegrationWidget(QtWidgets.QWidget):
