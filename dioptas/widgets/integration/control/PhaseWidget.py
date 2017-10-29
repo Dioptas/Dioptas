@@ -16,13 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets
+from functools import partial
 
-from ...CustomWidgets import FlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, HorizontalLine, \
+from qtpy import QtWidgets, QtCore
+
+from ...CustomWidgets import FlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, NoRectDelegate, \
     HorizontalSpacerItem, ListTableWidget, VerticalLine, DoubleMultiplySpinBoxAlignRight
 
 
 class PhaseWidget(QtWidgets.QWidget):
+
+    color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
+    show_cb_state_changed = QtCore.Signal(int, bool)
+
     def __init__(self):
         super(PhaseWidget, self).__init__()
 
@@ -90,6 +96,17 @@ class PhaseWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
         self.style_widgets()
 
+        self.phase_show_cbs = []
+        self.phase_color_btns = []
+        self.show_parameter_in_pattern = True
+        header_view = QtWidgets.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
+        self.phase_tw.setHorizontalHeader(header_view)
+        header_view.setResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        header_view.setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        header_view.setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        header_view.hide()
+        self.phase_tw.setItemDelegate(NoRectDelegate())
+
     def style_widgets(self):
         self.phase_tw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
@@ -123,3 +140,117 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self.apply_to_all_cb.setChecked(True)
         self.show_in_pattern_cb.setChecked(True)
+
+    # ###############################################################################################
+    # Now comes all the phase tw stuff
+    ################################################################################################
+
+    def add_phase(self, name, color):
+        current_rows = self.phase_tw.rowCount()
+        self.phase_tw.setRowCount(current_rows + 1)
+        self.phase_tw.blockSignals(True)
+
+        show_cb = QtWidgets.QCheckBox()
+        show_cb.setChecked(True)
+        show_cb.stateChanged.connect(partial(self.phase_show_cb_changed, show_cb))
+        show_cb.setStyleSheet("background-color: transparent")
+        self.phase_tw.setCellWidget(current_rows, 0, show_cb)
+        self.phase_show_cbs.append(show_cb)
+
+        color_button = FlatButton()
+        color_button.setStyleSheet("background-color: " + color)
+        color_button.clicked.connect(partial(self.phase_color_btn_click, color_button))
+        self.phase_tw.setCellWidget(current_rows, 1, color_button)
+        self.phase_color_btns.append(color_button)
+
+        name_item = QtWidgets.QTableWidgetItem(name)
+        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        name_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.phase_tw.setItem(current_rows, 2, name_item)
+
+        pressure_item = QtWidgets.QTableWidgetItem('0 GPa')
+        pressure_item.setFlags(pressure_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        pressure_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.phase_tw.setItem(current_rows, 3, pressure_item)
+
+        temperature_item = QtWidgets.QTableWidgetItem('298 K')
+        temperature_item.setFlags(temperature_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        temperature_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.phase_tw.setItem(current_rows, 4, temperature_item)
+
+        self.phase_tw.setColumnWidth(0, 20)
+        self.phase_tw.setColumnWidth(1, 25)
+        self.phase_tw.setRowHeight(current_rows, 25)
+        self.select_phase(current_rows)
+        self.phase_tw.blockSignals(False)
+
+    def select_phase(self, ind):
+        self.phase_tw.selectRow(ind)
+
+    def get_selected_phase_row(self):
+        selected = self.phase_tw.selectionModel().selectedRows()
+        try:
+            row = selected[0].row()
+        except IndexError:
+            row = -1
+        return row
+
+    def get_phase(self):
+        pass
+
+    def del_phase(self, ind):
+        self.phase_tw.blockSignals(True)
+        self.phase_tw.removeRow(ind)
+        self.phase_tw.blockSignals(False)
+        del self.phase_show_cbs[ind]
+        del self.phase_color_btns[ind]
+
+        if self.phase_tw.rowCount() > ind:
+            self.select_phase(ind)
+        else:
+            self.select_phase(self.phase_tw.rowCount() - 1)
+
+    def rename_phase(self, ind, name):
+        name_item = self.phase_tw.item(ind, 2)
+        name_item.setText(name)
+
+    def set_phase_temperature(self, ind, T):
+        temperature_item = self.phase_tw.item(ind, 4)
+        try:
+            temperature_item.setText("{0:.2f} K".format(T))
+        except ValueError:
+            temperature_item.setText("{0} K".format(T))
+
+    def get_phase_temperature(self, ind):
+        temperature_item = self.phase_tw.item(ind, 4)
+        try:
+            temperature = float(str(temperature_item.text()).split()[0])
+        except:
+            temperature = None
+        return temperature
+
+    def set_phase_pressure(self, ind, P):
+        pressure_item = self.phase_tw.item(ind, 3)
+        try:
+            pressure_item.setText("{0:.2f} GPa".format(P))
+        except ValueError:
+            pressure_item.setText("{0} GPa".format(P))
+
+    def get_phase_pressure(self, ind):
+        pressure_item = self.phase_tw.item(ind, 3)
+        pressure = float(str(pressure_item.text()).split()[0])
+        return pressure
+
+    def phase_color_btn_click(self, button):
+        self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
+
+    def phase_show_cb_changed(self, checkbox):
+        self.phase_show_cb_state_changed.emit(self.phase_show_cbs.index(checkbox), checkbox.isChecked())
+
+    def phase_show_cb_set_checked(self, ind, state):
+        checkbox = self.phase_show_cbs[ind]
+        checkbox.setChecked(state)
+
+    def phase_show_cb_is_checked(self, ind):
+        checkbox = self.phase_show_cbs[ind]
+        return checkbox.isChecked()

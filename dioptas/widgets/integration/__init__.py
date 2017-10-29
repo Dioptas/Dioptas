@@ -18,13 +18,10 @@
 
 CLICKED_COLOR = '#00DD00'
 
-from functools import partial
-
 from qtpy import QtWidgets, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
 from ..EpicsWidgets import MoveStageWidget
-from ..CustomWidgets import NoRectDelegate, FlatButton
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .control import IntegrationControlWidget
@@ -41,9 +38,6 @@ class IntegrationWidget(QtWidgets.QWidget):
     Integration Pattern Widget - showing the integrated pattern
     Integration Status Widget - showing the current mouse position and current background filename
     """
-
-    phase_color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
-    phase_show_cb_state_changed = QtCore.Signal(int, bool)
 
     def __init__(self, *args, **kwargs):
         super(IntegrationWidget, self).__init__(*args, **kwargs)
@@ -72,17 +66,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
         self.create_shortcuts()
-
-        self.phase_show_cbs = []
-        self.phase_color_btns = []
-        self.show_parameter_in_pattern = True
-        header_view = QtWidgets.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
-        self.phase_tw.setHorizontalHeader(header_view)
-        header_view.setResizeMode(2, QtWidgets.QHeaderView.Stretch)
-        header_view.setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        header_view.setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
-        header_view.hide()
-        self.phase_tw.setItemDelegate(NoRectDelegate())
 
         self.bkg_image_scale_sb.setKeyboardTracking(False)
         self.bkg_image_offset_sb.setKeyboardTracking(False)
@@ -132,6 +115,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.pattern_header_fxye_cb = self.integration_control_widget.pattern_control_widget.fxye_cb
 
         phase_control_widget = self.integration_control_widget.phase_control_widget
+        self.phase_widget = phase_control_widget
         self.phase_add_btn = phase_control_widget.add_btn
         self.phase_edit_btn = phase_control_widget.edit_btn
         self.phase_del_btn = phase_control_widget.delete_btn
@@ -334,137 +318,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         msg_box.setDefaultButton(QtWidgets.QMessageBox.Ok)
         msg_box.exec_()
 
-    # ###############################################################################################
-    # Now comes all the phase tw stuff
-    ################################################################################################
-
-    def add_phase(self, name, color):
-        current_rows = self.phase_tw.rowCount()
-        self.phase_tw.setRowCount(current_rows + 1)
-        self.phase_tw.blockSignals(True)
-
-        show_cb = QtWidgets.QCheckBox()
-        show_cb.setChecked(True)
-        show_cb.stateChanged.connect(partial(self.phase_show_cb_changed, show_cb))
-        show_cb.setStyleSheet("background-color: transparent")
-        self.phase_tw.setCellWidget(current_rows, 0, show_cb)
-        self.phase_show_cbs.append(show_cb)
-
-        color_button = FlatButton()
-        color_button.setStyleSheet("background-color: " + color)
-        color_button.clicked.connect(partial(self.phase_color_btn_click, color_button))
-        self.phase_tw.setCellWidget(current_rows, 1, color_button)
-        self.phase_color_btns.append(color_button)
-
-        name_item = QtWidgets.QTableWidgetItem(name)
-        name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        name_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-        self.phase_tw.setItem(current_rows, 2, name_item)
-
-        pressure_item = QtWidgets.QTableWidgetItem('0 GPa')
-        pressure_item.setFlags(pressure_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        pressure_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.phase_tw.setItem(current_rows, 3, pressure_item)
-
-        temperature_item = QtWidgets.QTableWidgetItem('298 K')
-        temperature_item.setFlags(temperature_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        temperature_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.phase_tw.setItem(current_rows, 4, temperature_item)
-
-        self.phase_tw.setColumnWidth(0, 20)
-        self.phase_tw.setColumnWidth(1, 25)
-        self.phase_tw.setRowHeight(current_rows, 25)
-        self.select_phase(current_rows)
-        self.phase_tw.blockSignals(False)
-
-    def select_phase(self, ind):
-        self.phase_tw.selectRow(ind)
-
-    def get_selected_phase_row(self):
-        selected = self.phase_tw.selectionModel().selectedRows()
-        try:
-            row = selected[0].row()
-        except IndexError:
-            row = -1
-        return row
-
-    def get_phase(self):
-        pass
-
-    def del_phase(self, ind):
-        self.phase_tw.blockSignals(True)
-        self.phase_tw.removeRow(ind)
-        self.phase_tw.blockSignals(False)
-        del self.phase_show_cbs[ind]
-        del self.phase_color_btns[ind]
-
-        if self.phase_tw.rowCount() > ind:
-            self.select_phase(ind)
-        else:
-            self.select_phase(self.phase_tw.rowCount() - 1)
-
-    def rename_phase(self, ind, name):
-        self.pattern_widget.rename_phase(ind, name)
-        name_item = self.phase_tw.item(ind, 2)
-        name_item.setText(name)
-
-    def set_phase_temperature(self, ind, T):
-        temperature_item = self.phase_tw.item(ind, 4)
-        try:
-            temperature_item.setText("{0:.2f} K".format(T))
-        except ValueError:
-            temperature_item.setText("{0} K".format(T))
-        self.update_phase_parameters_in_legend(ind)
-
-    def get_phase_temperature(self, ind):
-        temperature_item = self.phase_tw.item(ind, 4)
-        try:
-            temperature = float(str(temperature_item.text()).split()[0])
-        except:
-            temperature = None
-        return temperature
-
-    def set_phase_pressure(self, ind, P):
-        pressure_item = self.phase_tw.item(ind, 3)
-        try:
-            pressure_item.setText("{0:.2f} GPa".format(P))
-        except ValueError:
-            pressure_item.setText("{0} GPa".format(P))
-        self.update_phase_parameters_in_legend(ind)
-
-    def get_phase_pressure(self, ind):
-        pressure_item = self.phase_tw.item(ind, 3)
-        pressure = float(str(pressure_item.text()).split()[0])
-        return pressure
-
-    def update_phase_parameters_in_legend(self, ind):
-        pressure = self.get_phase_pressure(ind)
-        temperature = self.get_phase_temperature(ind)
-
-        name_str = str(self.phase_tw.item(ind, 2).text())
-        parameter_str = ''
-
-        if self.show_parameter_in_pattern:
-            if pressure != 0:
-                parameter_str += '{:0.2f} GPa '.format(pressure)
-            if temperature != 0 and temperature != 298 and temperature is not None:
-                parameter_str += '{:0.2f} K '.format(temperature)
-
-        self.pattern_widget.rename_phase(ind, parameter_str + name_str)
-
-    def phase_color_btn_click(self, button):
-        self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
-
-    def phase_show_cb_changed(self, checkbox):
-        self.phase_show_cb_state_changed.emit(self.phase_show_cbs.index(checkbox), checkbox.isChecked())
-
-    def phase_show_cb_set_checked(self, ind, state):
-        checkbox = self.phase_show_cbs[ind]
-        checkbox.setChecked(state)
-
-    def phase_show_cb_is_checked(self, ind):
-        checkbox = self.phase_show_cbs[ind]
-        return checkbox.isChecked()
+    ############################################
+    ## background parameter stuff
 
     def get_bkg_pattern_parameters(self):
         smooth_width = float(self.bkg_pattern_smooth_width_sb.value())

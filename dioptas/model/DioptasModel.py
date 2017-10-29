@@ -125,8 +125,8 @@ class DioptasModel(QtCore.QObject):
         phases_group = f.create_group('phases')
         for ind, phase in enumerate(self.phase_model.phases):
             phase_group = phases_group.create_group(str(ind))
-            phase_group.attrs['name'] = phase.name
-            phase_group.attrs['filename'] = phase.filename
+            phase_group.attrs['name'] = phase._name
+            phase_group.attrs['filename'] = phase._filename
             phase_parameter_group = phase_group.create_group('params')
             for key in phase.params:
                 if key == 'comments':
@@ -144,7 +144,7 @@ class DioptasModel(QtCore.QObject):
                 phase_reflection_group.attrs['h'] = reflection.h
                 phase_reflection_group.attrs['k'] = reflection.k
                 phase_reflection_group.attrs['l'] = reflection.l
-
+            print(phase_parameter_group.attrs['modified'])
         f.flush()
         f.close()
 
@@ -171,6 +171,7 @@ class DioptasModel(QtCore.QObject):
         # load phase model
         for ind, phase_group in f.get('phases').items():
             new_jcpds = jcpds()
+            new_jcpds.name = phase_group.attrs.get('name')
             new_jcpds.filename = phase_group.attrs.get('filename')
             for p_key, p_value in phase_group.get('params').attrs.items():
                 new_jcpds.params[p_key] = p_value
@@ -179,6 +180,7 @@ class DioptasModel(QtCore.QObject):
             for r_key, reflection in phase_group.get('reflections').items():
                 new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
                                          reflection.attrs['intensity'], reflection.attrs['d'])
+            new_jcpds.params['modified'] = bool(phase_group.get('params').attrs['modified'])
             self.phase_model.phases.append(new_jcpds)
             self.phase_model.phase_files.append(new_jcpds.filename)
             self.phase_model.reflections.append([])
