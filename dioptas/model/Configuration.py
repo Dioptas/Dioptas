@@ -60,6 +60,7 @@ class Configuration(QtCore.QObject):
         self._integration_num_points = None
         self._integration_azimuth_points = 2048
         self._integration_unit = '2th_deg'
+        self._correct_solid_angle = True
 
         self._auto_integrate_pattern = True
         self._auto_integrate_cake = False
@@ -220,6 +221,18 @@ class Configuration(QtCore.QObject):
             self.pattern_model.pattern.auto_background_subtraction = True
             self.pattern_model.pattern.recalculate_pattern()
             self.pattern_model.pattern_changed.emit()
+
+    @property
+    def correct_solid_angle(self):
+        return self.calibration_model.correct_solid_angle
+
+    @correct_solid_angle.setter
+    def correct_solid_angle(self, new_val):
+        self.calibration_model.correct_solid_angle = new_val
+        if self.auto_integrate_pattern:
+            self.integrate_image_1d()
+        if self._auto_integrate_cake:
+            self.integrate_image_2d()
 
     def update_auto_background_parameters_unit(self, old_unit, new_unit):
         """
