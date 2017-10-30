@@ -43,7 +43,7 @@ class OptionsWidget(QtWidgets.QWidget):
         self._integration_gb_layout.addWidget(self.bin_count_txt, 0, 1)
         self._integration_gb_layout.addWidget(self.bin_count_cb, 0, 2)
         self._integration_gb_layout.addWidget(self.supersampling_sb, 1, 1)
-        self._integration_gb_layout.addWidget(self.correct_solid_angle_cb, 2, 2)
+        self._integration_gb_layout.addWidget(self.correct_solid_angle_cb, 2, 1, 1, 2)
 
         self.integration_gb.setLayout(self._integration_gb_layout)
 

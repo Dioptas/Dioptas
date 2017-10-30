@@ -60,7 +60,6 @@ class Configuration(QtCore.QObject):
         self._integration_num_points = None
         self._integration_azimuth_points = 2048
         self._integration_unit = '2th_deg'
-        self._correct_solid_angle = True
 
         self._auto_integrate_pattern = True
         self._auto_integrate_cake = False
@@ -422,6 +421,7 @@ class Configuration(QtCore.QObject):
                 pfp.attrs[key] = pyfai_param[key]
             except TypeError:
                 pfp.attrs[key] = ''
+        calibration_group.attrs['correct_solid_angle'] = self.correct_solid_angle
 
         # save background pattern and pattern model
         background_pattern_group = f.create_group('background_pattern')
@@ -506,6 +506,12 @@ class Configuration(QtCore.QObject):
         except (KeyError, ValueError):
             print('Problem with saved pyFAI calibration parameters')
             pass
+
+        try:
+            self.correct_solid_angle =  f.get('calibration_model').attrs['correct_solid_angle']
+        except KeyError:
+            pass
+
 
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
