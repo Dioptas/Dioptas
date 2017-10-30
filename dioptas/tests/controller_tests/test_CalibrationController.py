@@ -117,6 +117,7 @@ class TestCalibrationController(QtTest):
 
         model_calibration = self.model.configurations[0].calibration_model.pattern_geometry.getPyFAI()
         del model_calibration['detector']
+        del model_calibration['splineFile']
         current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
         del current_displayed_calibration['polarization_factor']
         self.assertEqual(model_calibration, current_displayed_calibration)
@@ -124,6 +125,7 @@ class TestCalibrationController(QtTest):
         self.model.select_configuration(1)
         model_calibration = self.model.configurations[1].calibration_model.pattern_geometry.getPyFAI()
         del model_calibration['detector']
+        del model_calibration['splineFile']
         current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
         del current_displayed_calibration['polarization_factor']
         self.assertEqual(model_calibration, current_displayed_calibration)
