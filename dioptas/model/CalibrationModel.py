@@ -68,6 +68,7 @@ class CalibrationModel(QtCore.QObject):
         self.calibration_name = 'None'
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
+        self.correct_solid_angle = True
         self._calibrants_working_dir = calibrants_path
 
         self.tth = np.linspace(0, 25)
@@ -249,11 +250,11 @@ class CalibrationModel(QtCore.QObject):
 
     def calibrate(self):
         self.pattern_geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
-                                                    dist=self.start_values['dist'],
-                                                    wavelength=self.start_values['wavelength'],
-                                                    pixel1=self.start_values['pixel_width'],
-                                                    pixel2=self.start_values['pixel_height'],
-                                                    calibrant=self.calibrant)
+                                                   dist=self.start_values['dist'],
+                                                   wavelength=self.start_values['wavelength'],
+                                                   pixel1=self.start_values['pixel_width'],
+                                                   pixel2=self.start_values['pixel_height'],
+                                                   calibrant=self.calibrant)
         self.orig_pixel1 = self.start_values['pixel_width']
         self.orig_pixel2 = self.start_values['pixel_height']
 
@@ -307,35 +308,39 @@ class CalibrationModel(QtCore.QObject):
         if unit is 'd_A':
             try:
                 self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
-                                                                        method=method,
-                                                                        unit='2th_deg',
-                                                                        mask=mask,
-                                                                        polarization_factor=polarization_factor,
-                                                                        filename=filename)
+                                                                       method=method,
+                                                                       unit='2th_deg',
+                                                                       mask=mask,
+                                                                       polarization_factor=polarization_factor,
+                                                                       correctSolidAngle=self.correct_solid_angle,
+                                                                       filename=filename)
             except NameError:
                 self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
-                                                                        method='csr',
-                                                                        unit='2th_deg',
-                                                                        mask=mask,
-                                                                        polarization_factor=polarization_factor,
-                                                                        filename=filename)
+                                                                       method='csr',
+                                                                       unit='2th_deg',
+                                                                       mask=mask,
+                                                                       polarization_factor=polarization_factor,
+                                                                       correctSolidAngle=self.correct_solid_angle,
+                                                                       filename=filename)
             self.tth = self.pattern_geometry.wavelength / (2 * np.sin(self.tth / 360 * np.pi)) * 1e10
             self.int = self.int
         else:
             try:
                 self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
-                                                                        method=method,
-                                                                        unit=unit,
-                                                                        mask=mask,
-                                                                        polarization_factor=polarization_factor,
-                                                                        filename=filename)
+                                                                       method=method,
+                                                                       unit=unit,
+                                                                       mask=mask,
+                                                                       polarization_factor=polarization_factor,
+                                                                       correctSolidAngle=self.correct_solid_angle,
+                                                                       filename=filename)
             except NameError:
                 self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
-                                                                        method='csr',
-                                                                        unit=unit,
-                                                                        mask=mask,
-                                                                        polarization_factor=polarization_factor,
-                                                                        filename=filename)
+                                                                       method='csr',
+                                                                       unit=unit,
+                                                                       mask=mask,
+                                                                       polarization_factor=polarization_factor,
+                                                                       correctSolidAngle=self.correct_solid_angle,
+                                                                       filename=filename)
         logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
 
         ind = np.where((self.int > 0) & (~np.isnan(self.int)))
@@ -354,9 +359,12 @@ class CalibrationModel(QtCore.QObject):
 
         t1 = time.time()
 
-        res = self.cake_geometry.integrate2d(self.img_model.img_data, dimensions[0], dimensions[1], method=method,
+        res = self.cake_geometry.integrate2d(self.img_model.img_data, dimensions[0], dimensions[1],
+                                             method=method,
                                              mask=mask,
-                                             unit=unit, polarization_factor=polarization_factor)
+                                             unit=unit,
+                                             polarization_factor=polarization_factor,
+                                             correctSolidAngle=self.correct_solid_angle)
         logger.info('2d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
         self.cake_img = res[0]
         self.cake_tth = res[1]
@@ -451,12 +459,12 @@ class CalibrationModel(QtCore.QObject):
         'polarization_factor', 'wavelength'
         """
         self.pattern_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
-                                        centerX=fit2d_parameter['centerX'],
-                                        centerY=fit2d_parameter['centerY'],
-                                        tilt=fit2d_parameter['tilt'],
-                                        tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
-                                        pixelX=fit2d_parameter['pixelX'],
-                                        pixelY=fit2d_parameter['pixelY'])
+                                       centerX=fit2d_parameter['centerX'],
+                                       centerY=fit2d_parameter['centerY'],
+                                       tilt=fit2d_parameter['tilt'],
+                                       tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
+                                       pixelX=fit2d_parameter['pixelX'],
+                                       pixelY=fit2d_parameter['pixelY'])
         self.pattern_geometry.wavelength = fit2d_parameter['wavelength']
         self.create_cake_geometry()
         self.polarization_factor = fit2d_parameter['polarization_factor']
@@ -472,13 +480,13 @@ class CalibrationModel(QtCore.QObject):
         'polarization_factor'
         """
         self.pattern_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
-                                        poni1=pyFAI_parameter['poni1'],
-                                        poni2=pyFAI_parameter['poni2'],
-                                        rot1=pyFAI_parameter['rot1'],
-                                        rot2=pyFAI_parameter['rot2'],
-                                        rot3=pyFAI_parameter['rot3'],
-                                        pixel1=pyFAI_parameter['pixel1'],
-                                        pixel2=pyFAI_parameter['pixel2'])
+                                       poni1=pyFAI_parameter['poni1'],
+                                       poni2=pyFAI_parameter['poni2'],
+                                       rot1=pyFAI_parameter['rot1'],
+                                       rot2=pyFAI_parameter['rot2'],
+                                       rot3=pyFAI_parameter['rot3'],
+                                       pixel1=pyFAI_parameter['pixel1'],
+                                       pixel2=pyFAI_parameter['pixel2'])
         self.pattern_geometry.wavelength = pyFAI_parameter['wavelength']
         self.create_cake_geometry()
         self.polarization_factor = pyFAI_parameter['polarization_factor']
