@@ -5,6 +5,7 @@ New features:
 
     - easier step selection for pressure, temperature in the phases widget and scaling and offset in the overlay widget,
       the steps are now selected by a spinbox which behaves more or less logarithmically (0.1, 1, 5, 10, 50, 100 etc.)
+    - the solid angle correction can now be switched off (please see the X-tab in the Integration View)
 
 Bugfixes:
 
