@@ -184,6 +184,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         options_control_widget = self.integration_control_widget.integration_options_widget
         self.bin_count_txt = options_control_widget.bin_count_txt
         self.automatic_binning_cb = options_control_widget.bin_count_cb
+        self.correct_solid_angle_cb = options_control_widget.correct_solid_angle_cb
         self.supersampling_sb = options_control_widget.supersampling_sb
 
         self.mouse_x_lbl = self.integration_status_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl
