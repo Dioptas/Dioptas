@@ -34,6 +34,8 @@ class OptionsWidget(QtWidgets.QWidget):
         self.bin_count_txt = IntegerTextField('0')
         self.bin_count_cb = QtWidgets.QCheckBox('auto')
         self.supersampling_sb = SpinBoxAlignRight()
+        self.correct_solid_angle_cb = QtWidgets.QCheckBox('correct Solid Angle')
+        self.correct_solid_angle_cb.setChecked(True)
 
         self._integration_gb_layout.addWidget(LabelAlignRight('Number of Bins:'), 0, 0)
         self._integration_gb_layout.addWidget(LabelAlignRight('Supersampling:'), 1, 0)
@@ -41,6 +43,7 @@ class OptionsWidget(QtWidgets.QWidget):
         self._integration_gb_layout.addWidget(self.bin_count_txt, 0, 1)
         self._integration_gb_layout.addWidget(self.bin_count_cb, 0, 2)
         self._integration_gb_layout.addWidget(self.supersampling_sb, 1, 1)
+        self._integration_gb_layout.addWidget(self.correct_solid_angle_cb, 2, 1, 1, 2)
 
         self.integration_gb.setLayout(self._integration_gb_layout)
 
