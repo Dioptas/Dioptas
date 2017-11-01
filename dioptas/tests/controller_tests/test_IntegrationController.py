@@ -19,7 +19,7 @@
 import os
 import gc
 import unittest
-from ..utility import QtTest, click_button
+from ..utility import QtTest, click_button, click_checkbox
 
 import mock
 from mock import MagicMock
@@ -141,6 +141,10 @@ class IntegrationControllerTest(QtTest):
         self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_cake,
                          self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
 
+    def test_disable_solid_angle_correction(self):
+        click_checkbox(self.widget.integration_control_widget.integration_options_widget.correct_solid_angle_cb)
+        self.assertFalse(self.model.calibration_model.correct_solid_angle)
+
     @unittest.skip("Axes are currently not used for 'Image' mode")
     def test_cake_zoom_changes_axes_scale(self):
         self.widget.integration_image_widget.mode_btn.click()
@@ -149,7 +153,6 @@ class IntegrationControllerTest(QtTest):
         # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
         rect = QtCore.QRectF(512, 512, 512, 512)
         self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)
-        self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)  # for some reason must run twice
 
         # print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
         # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
