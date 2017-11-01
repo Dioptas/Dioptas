@@ -23,3 +23,4 @@ from .JcpdsEditorController import JcpdsEditorController
 from .OverlayController import OverlayController
 from .PhaseController import PhaseController
 from .PatternController import PatternController
+from .OptionsController import OptionsController
