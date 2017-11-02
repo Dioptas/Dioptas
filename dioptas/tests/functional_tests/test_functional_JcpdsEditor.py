@@ -383,13 +383,13 @@ class JcpdsEditorFunctionalTest(QtTest):
                                                             os.path.join(jcpds_path, 're.jcpds')])
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
-        click_button(self.phase_controller.widget.phase_add_btn)
+        click_button(self.phase_controller.phase_widget.add_btn)
 
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
 
-        self.phase_controller.widget.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.phase_widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
         # He changes some parameter but then realizes that he screwed it up and presses cancel to revert all his changes
@@ -405,11 +405,11 @@ class JcpdsEditorFunctionalTest(QtTest):
         # phase --  so he just selects it without closing and reopening the editor
         # and magically the new parameters show up
 
-        self.phase_controller.widget.phase_tw.selectRow(1)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.phase_widget.phase_tw.selectRow(1)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
-        self.phase_controller.widget.phase_tw.selectRow(2)
+        self.phase_controller.phase_widget.phase_tw.selectRow(2)
         self.assertTrue(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')),
                         5.51280)  # Argon lattice parameter
 
@@ -498,15 +498,15 @@ class JcpdsEditorFunctionalTest(QtTest):
                                                             os.path.join(jcpds_path, 're.jcpds')])
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
-        click_button(self.phase_controller.widget.phase_add_btn)
+        click_button(self.phase_controller.phase_widget.add_btn)
 
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
-        self.phase_controller.widget.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.phase_widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
@@ -576,7 +576,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
         self.phase_controller = self.main_controller.integration_controller.phase_controller
-        click_button(self.phase_controller.widget.phase_add_btn)
+        click_button(self.phase_controller.phase_widget.add_btn)
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
         # change anything the names every are the same...
@@ -588,12 +588,12 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
-        self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
-        self.phase_controller.widget.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.assertEqual('au_Anderson', str(self.phase_controller.phase_widget.phase_tw.item(0, 2).text()))
+        self.phase_controller.phase_widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
-        self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
+        self.assertEqual('au_Anderson', str(self.phase_controller.phase_widget.phase_tw.item(0, 2).text()))
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
         self.main_controller = MainController(use_settings=False)
@@ -607,7 +607,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
         self.phase_controller = self.main_controller.integration_controller.phase_controller
-        click_button(self.phase_controller.widget.phase_add_btn)
+        click_button(self.phase_controller.phase_widget.add_btn)
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
@@ -616,8 +616,8 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
-        self.phase_controller.widget.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.phase_widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
         # he looks at the jcpds_editor and sees that there are not only hkl and intensity values for each reflection but
@@ -644,7 +644,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
         # values
 
-        self.phase_controller.widget.phase_pressure_sb.setValue(30)
+        self.phase_controller.phase_widget.pressure_sb.setValue(30)
         for row_ind in range(13):
             self.assertNotEqual(self.get_reflection_table_value(row_ind, 4),
                                 self.get_reflection_table_value(row_ind, 5))

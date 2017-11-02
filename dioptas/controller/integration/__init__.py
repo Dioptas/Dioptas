@@ -24,3 +24,4 @@ from .OverlayController import OverlayController
 from .PhaseController import PhaseController
 from .PatternController import PatternController
 from .MapController import MapController
+from .OptionsController import OptionsController

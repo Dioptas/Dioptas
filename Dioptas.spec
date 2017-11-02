@@ -131,7 +131,7 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           console=False,
-          icon="dioptas/widgets/icns/icon.ico")
+          icon="dioptas/resources/icons/icon.ico")
 
 coll = COLLECT(exe,
                a.binaries,

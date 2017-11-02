@@ -246,7 +246,6 @@ class MainController(object):
         if os.path.exists(working_directories_path):
             self.model.working_directories = json.load(open(working_directories_path, 'r'))
 
-
     def close_event(self, ev):
         """
         Intervention of the Dioptas close event to save settings before closing the Program.
@@ -259,24 +258,26 @@ class MainController(object):
 
     def save_btn_clicked(self):
         try:
-            default_file_name = os.path.join(self.model.working_directories['image'], 'config.dio')
-        except TypeError:
+            default_file_name = os.path.join(self.model.working_directories['project'], 'config.dio')
+        except (TypeError, KeyError):
             default_file_name = '.'
-        filename = save_file_dialog(self.widget, "Save Current Configuration", default_file_name,
+        filename = save_file_dialog(self.widget, "Save Current Dioptas Project", default_file_name,
                                     filter='Dioptas Project (*.dio)')
 
         if filename is not None and filename != '':
             self.model.save(filename)
+            self.model.working_directories['project'] = os.path.dirname(filename)
 
     def load_btn_clicked(self):
         try:
-            default_file_name = os.path.join(self.model.working_directories['image'], 'config.dio')
-        except TypeError:
+            default_file_name = os.path.join(self.model.working_directories['project'], 'config.dio')
+        except (TypeError, KeyError):
             default_file_name = '.'
-        filename = open_file_dialog(self.widget, "Load a Configuration", default_file_name,
+        filename = open_file_dialog(self.widget, "Load a Dioptas Project", default_file_name,
                                     filter='Dioptas Project (*.dio)')
         if filename is not None and filename != '':
             self.model.load(filename)
+            self.model.working_directories['project'] = os.path.dirname(filename)
 
     def reset_btn_clicked(self):
         if QtWidgets.QMessageBox.Yes == \
