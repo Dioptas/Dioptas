@@ -35,11 +35,13 @@ class ImageWidget(QtWidgets.QWidget):
         self.file_widget = BrowseFileWidget(files='Image', checkbox_text='autoprocess')
         self.file_info_btn = FlatButton('File Info')
         self.move_btn = FlatButton('Position')
+        self.map_2D_btn = FlatButton('2D Map')  # MAP2D
 
         self.batch_mode_widget = QtWidgets.QWidget()
         self.batch_mode_lbl = LabelAlignRight("Batch Mode:")
         self.batch_mode_integrate_rb = QtWidgets.QRadioButton("integrate")
         self.batch_mode_add_rb = QtWidgets.QRadioButton("add")
+        self.batch_mode_map_rb = QtWidgets.QRadioButton("2D Map")
         self.batch_mode_image_save_rb = QtWidgets.QRadioButton("image save")
 
     def _create_layout(self):
@@ -51,6 +53,7 @@ class ImageWidget(QtWidgets.QWidget):
         self._file_info_layout = QtWidgets.QHBoxLayout()
         self._file_info_layout.addWidget(self.file_info_btn)
         self._file_info_layout.addWidget(self.move_btn)
+        self._file_info_layout.addWidget(self.map_2D_btn)  # MAP2D
         self._file_info_layout.addSpacerItem(HorizontalSpacerItem())
 
         self._batch_layout = QtWidgets.QHBoxLayout()
@@ -58,6 +61,7 @@ class ImageWidget(QtWidgets.QWidget):
         self._batch_layout.addWidget(self.batch_mode_lbl)
         self._batch_layout.addWidget(self.batch_mode_integrate_rb)
         self._batch_layout.addWidget(self.batch_mode_add_rb)
+        self._batch_layout.addWidget(self.batch_mode_map_rb)
         self._batch_layout.addWidget(self.batch_mode_image_save_rb)
         self.batch_mode_widget.setLayout(self._batch_layout)
 
