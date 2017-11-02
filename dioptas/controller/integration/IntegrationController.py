@@ -23,6 +23,7 @@ from .ImageController import ImageController
 from .OverlayController import OverlayController
 from .PatternController import PatternController
 from .PhaseController import PhaseController
+from .OptionsController import OptionsController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -62,3 +63,4 @@ class IntegrationController(object):
         self.overlay_controller = OverlayController(self.widget, self.model)
         self.phase_controller = PhaseController(self.widget, self.model)
         self.background_controller = BackgroundController(self.widget, self.model)
+        self.options_controller = OptionsController(self.widget, self.model)

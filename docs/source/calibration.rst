@@ -49,7 +49,7 @@ If the peak search was successful it should look like this:
 
 .. figure:: images/peak_selection2.png
     :align:  center
-    :width: 750 px
+    :width: 600 px
 
     LaB\ :sub:`6` \  2D diffraction image with the first ring selected.
 
@@ -102,6 +102,7 @@ is selected.
 
 .. figure:: images/refinement_options.png
     :align: center
+    :width: 300 px
 
     Available options for calibration refinement
 

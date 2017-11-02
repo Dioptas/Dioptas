@@ -144,7 +144,7 @@ class PatternController(object):
             self.widget.bkg_name_lbl.setText('')
 
     def reset_background(self, popup=True):
-        self.widget.overlay_show_cb_set_checked(self.model.pattern_model.bkg_ind, True)  # show the old overlay again
+        self.widget.show_cb_set_checked(self.model.pattern_model.bkg_ind, True)  # show the old overlay again
         self.model.pattern_model.bkg_ind = -1
         self.model.pattern.unset_background_pattern()
         self.widget.overlay_set_as_bkg_btn.setChecked(False)

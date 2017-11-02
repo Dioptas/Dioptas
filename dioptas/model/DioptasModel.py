@@ -114,7 +114,8 @@ class DioptasModel(QtCore.QObject):
         overlay_group = f.create_group('overlays')
 
         for ind, overlay in enumerate(self.overlay_model.overlays):
-            ov = overlay_group.create_group(str(ind))
+            ov = overlay_group.create_group(str(ind).zfill(5)) # need to fill the ind string, in order to keep it
+                                                               # ordered also for larger numbers of overlays
             ov.attrs['name'] = overlay.name
             ov.create_dataset('x', overlay.original_x.shape, 'f', overlay.original_x)
             ov.create_dataset('y', overlay.original_y.shape, 'f', overlay.original_y)
@@ -125,8 +126,8 @@ class DioptasModel(QtCore.QObject):
         phases_group = f.create_group('phases')
         for ind, phase in enumerate(self.phase_model.phases):
             phase_group = phases_group.create_group(str(ind))
-            phase_group.attrs['name'] = phase.name
-            phase_group.attrs['filename'] = phase.filename
+            phase_group.attrs['name'] = phase._name
+            phase_group.attrs['filename'] = phase._filename
             phase_parameter_group = phase_group.create_group('params')
             for key in phase.params:
                 if key == 'comments':
@@ -144,7 +145,7 @@ class DioptasModel(QtCore.QObject):
                 phase_reflection_group.attrs['h'] = reflection.h
                 phase_reflection_group.attrs['k'] = reflection.k
                 phase_reflection_group.attrs['l'] = reflection.l
-
+            print(phase_parameter_group.attrs['modified'])
         f.flush()
         f.close()
 
@@ -171,6 +172,7 @@ class DioptasModel(QtCore.QObject):
         # load phase model
         for ind, phase_group in f.get('phases').items():
             new_jcpds = jcpds()
+            new_jcpds.name = phase_group.attrs.get('name')
             new_jcpds.filename = phase_group.attrs.get('filename')
             for p_key, p_value in phase_group.get('params').attrs.items():
                 new_jcpds.params[p_key] = p_value
@@ -179,6 +181,7 @@ class DioptasModel(QtCore.QObject):
             for r_key, reflection in phase_group.get('reflections').items():
                 new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
                                          reflection.attrs['intensity'], reflection.attrs['d'])
+            new_jcpds.params['modified'] = bool(phase_group.get('params').attrs['modified'])
             self.phase_model.phases.append(new_jcpds)
             self.phase_model.phase_files.append(new_jcpds.filename)
             self.phase_model.reflections.append([])
@@ -189,9 +192,9 @@ class DioptasModel(QtCore.QObject):
             self.overlay_model.add_overlay(overlay_group.get('x')[...],
                                            overlay_group.get('y')[...],
                                            overlay_group.attrs['name'])
-            ind = len(self.overlay_model.overlays) - 1
-            self.overlay_model.set_overlay_offset(ind, overlay_group.attrs['offset'])
-            self.overlay_model.set_overlay_scaling(ind, overlay_group.attrs['scaling'])
+            index = len(self.overlay_model.overlays) - 1
+            self.overlay_model.set_overlay_offset(index, overlay_group.attrs['offset'])
+            self.overlay_model.set_overlay_scaling(index, overlay_group.attrs['scaling'])
 
         f.close()
 
