@@ -245,7 +245,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
 
     def phase_show_cb_changed(self, checkbox):
-        self.phase_show_cb_state_changed.emit(self.phase_show_cbs.index(checkbox), checkbox.isChecked())
+        self.show_cb_state_changed.emit(self.phase_show_cbs.index(checkbox), checkbox.isChecked())
 
     def phase_show_cb_set_checked(self, ind, state):
         checkbox = self.phase_show_cbs[ind]
