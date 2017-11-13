@@ -242,7 +242,7 @@ class PhaseWidget(QtWidgets.QWidget):
         return pressure
 
     def phase_color_btn_click(self, button):
-        self.phase_color_btn_clicked.emit(self.phase_color_btns.index(button), button)
+        self.color_btn_clicked.emit(self.phase_color_btns.index(button), button)
 
     def phase_show_cb_changed(self, checkbox):
         self.show_cb_state_changed.emit(self.phase_show_cbs.index(checkbox), checkbox.isChecked())
