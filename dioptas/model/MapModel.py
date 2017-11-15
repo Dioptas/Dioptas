@@ -188,8 +188,8 @@ class MapModel(QtCore.QObject):
         Returns:
             pos_range: a slice with the start and end pixels for drawing the current map file
         """
-        range_start = (pos - min_pos) / diff_pos * pix_per_pos
-        range_end = range_start + pix_per_pos
+        range_start = round((pos - min_pos) / diff_pos * pix_per_pos)
+        range_end = round(range_start + pix_per_pos)
         pos_range = slice(range_start, range_end)
         return pos_range
 
