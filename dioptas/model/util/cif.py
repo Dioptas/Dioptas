@@ -245,9 +245,9 @@ def compute_d_hkl(h, k, l, cif_phase):
     a = cif_phase.a
     b = cif_phase.b
     c = cif_phase.c
-    alpha = cif_phase.alpha
-    beta = cif_phase.beta
-    gamma = cif_phase.gamma
+    alpha = np.deg2rad(cif_phase.alpha)
+    beta = np.deg2rad(cif_phase.beta)
+    gamma = np.deg2rad(cif_phase.gamma)
 
     symmetry = cif_phase.symmetry
 
