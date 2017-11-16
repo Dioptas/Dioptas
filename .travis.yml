@@ -6,7 +6,7 @@ sudo: required
 
 python:
     - 2.7
-#    - 3.5
+    - 3.6
 
 before_install:
   - echo $TRAVIS_PYTHON_VERSION
@@ -18,7 +18,7 @@ before_install:
         ./miniconda.sh -b;
       fi
     fi
-  - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
+  - if [ "$TRAVIS_PYTHON_VERSION" == "3.6" ]; then
       if [ ! -d "/home/travis/miniconda3/bin" ]; then
         rm -rf /home/travis/miniconda3;
         wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -33,8 +33,8 @@ before_install:
       export PATH=/home/travis/miniconda3/bin:$PATH;
     fi
 
-  - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
-      conda install --yes python=3.5;
+  - if [ "$TRAVIS_PYTHON_VERSION" == "3.6" ]; then
+      conda install --yes python=3.6;
     fi
 
   - conda update --yes conda
@@ -51,9 +51,8 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock pytest pytest-cov -c conda-forge
-    - conda install --yes pyqtgraph -c cprescher
-    - conda install --yes pyepics -c  lightsource2
+    - conda install --yes numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock pytest pytest-cov pyqtgraph -c conda-forge
+    - pip install pyepics
 
     - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
