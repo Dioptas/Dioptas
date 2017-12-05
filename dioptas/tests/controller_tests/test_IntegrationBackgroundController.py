@@ -100,6 +100,23 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.assertAlmostEqual(x_min, 5,  delta=0.02)
         self.assertAlmostEqual(x_max, 11, delta=0.02)
 
+    def test_pattern_bkg_range_remains_when_loading_new_pattern(self):
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.widget.bkg_pattern_gb.setChecked(True)
+        self.widget.bkg_pattern_inspect_btn.toggle()
+
+        self.widget.bkg_pattern_x_min_txt.setText('5')
+        QTest.keyPress(self.widget.bkg_pattern_x_min_txt, QtCore.Qt.Key_Enter)
+        self.widget.bkg_pattern_x_max_txt.setText('11')
+        QTest.keyPress(self.widget.bkg_pattern_x_max_txt, QtCore.Qt.Key_Enter)
+
+        x_min = self.widget.bkg_pattern_x_min_txt.text()
+        x_max = self.widget.bkg_pattern_x_max_txt.text()
+
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.assertEqual(x_min, self.widget.bkg_pattern_x_min_txt.text())
+        self.assertEqual(x_max, self.widget.bkg_pattern_x_max_txt.text())
+
 
 if __name__ == '__main__':
     unittest.main()
