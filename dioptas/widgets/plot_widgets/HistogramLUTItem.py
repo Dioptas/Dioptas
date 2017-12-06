@@ -311,5 +311,8 @@ class LogarithmRegionItem(LinearRegionItem):
         self.blockLineSignal = False
         self.lines[1].setValue(rgn[1])
         # self.blockLineSignal = False
-        self.lineMoved()
+        try:
+            self.lineMoved(0)
+        except TypeError:
+            self.lineMoved()
         self.lineMoveFinished()
