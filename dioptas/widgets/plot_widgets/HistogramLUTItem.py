@@ -311,7 +311,7 @@ class LogarithmRegionItem(LinearRegionItem):
         self.blockLineSignal = False
         self.lines[1].setValue(rgn[1])
         # self.blockLineSignal = False
-        try:
+        try: # needed due to changes in the pyqtgraph API
             self.lineMoved(0)
         except TypeError:
             self.lineMoved()
