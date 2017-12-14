@@ -21,9 +21,10 @@ import os
 import gc
 import unittest
 
-from qtpy import QtWidgets, QtCore
-from qtpy.QtTest import QTest
+from qtpy import QtWidgets
 from mock import MagicMock
+
+from ..utility import enter_value_into_text_field
 
 from ...controller.integration import BackgroundController
 from ...controller.integration import PatternController
@@ -90,10 +91,8 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.widget.bkg_pattern_gb.setChecked(True)
         self.widget.bkg_pattern_inspect_btn.toggle()
 
-        self.widget.bkg_pattern_x_min_txt.setText('5')
-        QTest.keyPress(self.widget.bkg_pattern_x_min_txt, QtCore.Qt.Key_Enter)
-        self.widget.bkg_pattern_x_max_txt.setText('11')
-        QTest.keyPress(self.widget.bkg_pattern_x_max_txt, QtCore.Qt.Key_Enter)
+        enter_value_into_text_field(self.widget.bkg_pattern_x_min_txt, '5')
+        enter_value_into_text_field(self.widget.bkg_pattern_x_max_txt, '11')
 
         x_min, x_max = self.widget.pattern_widget.linear_region_item.getRegion()
 
@@ -105,10 +104,8 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.widget.bkg_pattern_gb.setChecked(True)
         self.widget.bkg_pattern_inspect_btn.toggle()
 
-        self.widget.bkg_pattern_x_min_txt.setText('5')
-        QTest.keyPress(self.widget.bkg_pattern_x_min_txt, QtCore.Qt.Key_Enter)
-        self.widget.bkg_pattern_x_max_txt.setText('11')
-        QTest.keyPress(self.widget.bkg_pattern_x_max_txt, QtCore.Qt.Key_Enter)
+        enter_value_into_text_field(self.widget.bkg_pattern_x_min_txt, '5')
+        enter_value_into_text_field(self.widget.bkg_pattern_x_max_txt, '11')
 
         x_min = self.widget.bkg_pattern_x_min_txt.text()
         x_max = self.widget.bkg_pattern_x_max_txt.text()
@@ -116,6 +113,7 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
         self.assertEqual(x_min, self.widget.bkg_pattern_x_min_txt.text())
         self.assertEqual(x_max, self.widget.bkg_pattern_x_max_txt.text())
+
 
 
 if __name__ == '__main__':
