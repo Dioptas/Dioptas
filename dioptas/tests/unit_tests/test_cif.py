@@ -103,4 +103,9 @@ class TestCifModule(unittest.TestCase):
         self.assertEqual(jcpds_phase.params['b0'], 4.702)
         self.assertEqual(jcpds_phase.params['c0'], 4.603)
 
+    def test_read_cif_with_triclinic_geometry(self):
+        cif_converter = CifConverter(0.31, min_d_spacing=1, min_intensity=5)
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'ICSD_triclinic.cif'))
+
+
 
