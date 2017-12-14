@@ -169,6 +169,13 @@ class CalibrationModelTest(QtTest):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.calibration_model.integrate_2d()
 
+    def test_correct_solid_angle(self):
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        _, y1 = self.calibration_model.integrate_1d()
+        self.calibration_model.correct_solid_angle = False
+        _, y2 = self.calibration_model.integrate_1d()
+        self.assertNotEqual(np.sum(y1), np.sum(y2))
 
 if __name__ == '__main__':
     unittest.main()
