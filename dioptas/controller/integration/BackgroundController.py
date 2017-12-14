@@ -56,8 +56,8 @@ class BackgroundController(object):
         self.connect_click_function(self.widget.bkg_image_load_btn, self.load_background_image)
         self.connect_click_function(self.widget.bkg_image_delete_btn, self.remove_background_image)
 
-        self.widget.bkg_image_scale_step_txt.editingFinished.connect(self.update_bkg_image_scale_step)
-        self.widget.bkg_image_offset_step_txt.editingFinished.connect(self.update_bkg_image_offset_step)
+        self.widget.bkg_image_scale_step_msb.editingFinished.connect(self.update_bkg_image_scale_step)
+        self.widget.bkg_image_offset_step_msb.editingFinished.connect(self.update_bkg_image_offset_step)
         self.widget.bkg_image_scale_sb.valueChanged.connect(self.background_img_scale_changed)
         self.widget.bkg_image_offset_sb.valueChanged.connect(self.background_img_offset_changed)
 
@@ -107,11 +107,11 @@ class BackgroundController(object):
         self.model.img_model.reset_background()
 
     def update_bkg_image_scale_step(self):
-        value = np.float(self.widget.bkg_image_scale_step_txt.text())
+        value = np.float(self.widget.bkg_image_scale_step_msb.text())
         self.widget.bkg_image_scale_sb.setSingleStep(value)
 
     def update_bkg_image_offset_step(self):
-        value = np.float(self.widget.bkg_image_offset_step_txt.text())
+        value = np.float(self.widget.bkg_image_offset_step_msb.text())
         self.widget.bkg_image_offset_sb.setSingleStep(value)
 
     def update_background_image_filename(self):
