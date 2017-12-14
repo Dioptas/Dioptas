@@ -13,6 +13,7 @@ Bugfixes:
     - cif and jcpds now als can handle trigonal symmetry (not only hexagonal)
     - auto zoom for cakes works now correctly when browsing through several files
     - entering numbers with a "," as a decimal separator work now correctly
+    - loading new files with automatic background subtraction enabled will now correctly keep the x limits constant
 
 
 0.4.0 (stable 07/26/2017)
