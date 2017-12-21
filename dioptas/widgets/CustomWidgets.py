@@ -26,6 +26,12 @@ class NumberTextField(QtWidgets.QLineEdit):
         self.setValidator(QtGui.QDoubleValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
+    def text(self):
+        return super(NumberTextField, self).text().replace(",", ".")
+
+    def value(self):
+        return float(self.text())
+
 
 class IntegerTextField(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
