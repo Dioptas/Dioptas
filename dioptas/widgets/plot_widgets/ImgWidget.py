@@ -138,7 +138,7 @@ class ImgWidget(QtCore.QObject):
             return
 
         view_x_range, view_y_range = self.img_view_box.viewRange()
-        if view_x_range[1] > self.img_data.shape[0] or \
+        if view_x_range[1] > self.img_data.shape[0] and \
                         view_y_range[1] > self.img_data.shape[1]:
             self.auto_range()
 
