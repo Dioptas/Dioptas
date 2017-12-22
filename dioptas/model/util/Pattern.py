@@ -144,8 +144,8 @@ class Pattern(QtCore.QObject):
         if self.auto_background_subtraction:
             self._auto_background_before_subtraction_pattern = Pattern(x, y)
             if self.auto_background_subtraction_roi is not None:
-                ind = (x > np.min(self.auto_background_subtraction_roi)) & \
-                      (x < np.max(self.auto_background_subtraction_roi))
+                ind = (x >= np.min(self.auto_background_subtraction_roi)) & \
+                      (x <= np.max(self.auto_background_subtraction_roi))
                 x = x[ind]
                 y = y[ind]
                 self.auto_background_subtraction_roi = [np.min(x), np.max(x)]

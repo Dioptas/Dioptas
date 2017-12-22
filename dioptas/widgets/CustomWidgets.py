@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from qtpy import QtCore, QtWidgets, QtGui
+from math import floor, log10
 
 
 class NumberTextField(QtWidgets.QLineEdit):
@@ -24,6 +25,12 @@ class NumberTextField(QtWidgets.QLineEdit):
         super(NumberTextField, self).__init__(*args, **kwargs)
         self.setValidator(QtGui.QDoubleValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+
+    def text(self):
+        return super(NumberTextField, self).text().replace(",", ".")
+
+    def value(self):
+        return float(self.text())
 
 
 class IntegerTextField(QtWidgets.QLineEdit):
@@ -57,6 +64,34 @@ class DoubleSpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
         super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
+
+
+class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
+    def __init__(self, *args, **kwargs):
+        super(DoubleMultiplySpinBoxAlignRight, self).__init__(*args, **kwargs)
+        self.setAlignment(QtCore.Qt.AlignRight)
+
+    def stepBy(self, p_int):
+        self.setValue(self.calc_new_step(self.value(), p_int))
+
+    def calc_new_step(self, value, p_int):
+        pow10floor = 10**floor(log10(value))
+        if p_int > 0:
+            if value / pow10floor < 1.9:
+                return pow10floor * 2.0
+            elif value / pow10floor < 4.9:
+                return pow10floor * 5.0
+            else:
+                return pow10floor * 10.0
+        else:
+            if value / pow10floor < 1.1:
+                return pow10floor / 2.0
+            elif value / pow10floor < 2.1:
+                return pow10floor
+            elif value / pow10floor < 5.1:
+                return pow10floor * 2.0
+            else:
+                return pow10floor * 5.0
 
 
 class FlatButton(QtWidgets.QPushButton):

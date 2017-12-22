@@ -1,0 +1,102 @@
+
+#(C) 2017 by FIZ Karlsruhe - Leibniz Institute for Information Infrastructure.  All rights reserved.
+data_84849-ICSD
+_database_code_ICSD 84849
+_audit_creation_date 1999-01-19
+_audit_update_record 2013-08-01
+_chemical_name_systematic 'Lead oxide - lead sulfate(VI) - water(3/1/1)'
+_chemical_formula_structural '(Pb O)3 (Pb (S O4)) (H2 O)'
+_chemical_formula_sum 'H2 O8 Pb4 S1'
+_chemical_name_structure_type (PbO)3PbSO4H2O
+_exptl_crystal_density_diffrn 7.07
+_publ_section_title
+
+;
+Crystal structure of tribasic lead sulfate (3(Pb O) . (Pb S O4) . (H2 O)) by
+X-rays and neutrons: an intermediate phase in the production of lead acid
+batteries
+;
+loop_
+_citation_id
+_citation_journal_full
+_citation_year
+_citation_journal_volume
+_citation_page_first
+_citation_page_last
+_citation_journal_id_ASTM
+primary 'Journal of Solid State Chemistry' 1997 132 173 181 JSSCBI
+loop_
+_publ_author_name
+'Steele, I.M.'
+'Pluth, J.J.'
+'Richardson, J.W.jr.'
+_cell_length_a 6.378(1)
+_cell_length_b 7.454(2)
+_cell_length_c 10.308(2)
+_cell_angle_alpha 75.26(3)
+_cell_angle_beta 79.37(3)
+_cell_angle_gamma 88.16(3)
+_cell_volume 465.74
+_cell_formula_units_Z 2
+_symmetry_space_group_name_H-M 'P -1'
+_symmetry_Int_Tables_number 2
+_refine_ls_R_factor_all 0.024
+loop_
+_symmetry_equiv_pos_site_id
+_symmetry_equiv_pos_as_xyz
+1 '-x, -y, -z'
+2 'x, y, z'
+loop_
+_atom_type_symbol
+_atom_type_oxidation_number
+Pb2+ 2
+S6+ 6
+O2- -2
+H1+ 1
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_Wyckoff_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_B_iso_or_equiv
+_atom_site_occupancy
+_atom_site_attached_hydrogens
+Pb1 Pb2+ 2 i 0.22887(4) 0.61432(4) 0.02890(3) . 1. 0
+Pb2 Pb2+ 2 i 0.24292(4) 0.11800(4) 0.00669(3) . 1. 0
+Pb3 Pb2+ 2 i 0.77852(5) 0.51694(4) 0.32200(3) . 1. 0
+Pb4 Pb2+ 2 i 0.81869(6) 0.00098(4) 0.31843(3) . 1. 0
+S1 S6+ 2 i 0.3006(3) 0.2396(3) 0.3250(2) . 1. 0
+O1 O2- 2 i 0.3968(3) 0.2048(8) 0.7439(6) . 1. 0
+O2 O2- 2 i 0.1353(8) 0.4156(7) -.0926(6) . 1. 0
+O3 O2- 2 i 0.0401(9) 0.7533(9) 0.2703(7) . 1. 0
+O4 O2- 2 i 0.8855(8) 0.1008(7) 0.0864(6) . 1. 0
+O5 O2- 2 i 0.1329(9) 0.3037(9) 0.2403(7) . 1. 0
+O6 O2- 2 i 0.5086(9) 0.3015(11) 0.2367(7) . 1. 0
+O7 O2- 2 i 0.2666(12) 0.318(1) 0.4427(7) . 1. 0
+O8 O2- 2 i 0.2905(11) 0.0361(10) 0.3677(7) . 1. 0
+loop_
+_atom_site_aniso_label
+_atom_site_aniso_type_symbol
+_atom_site_aniso_U_11
+_atom_site_aniso_U_22
+_atom_site_aniso_U_33
+_atom_site_aniso_U_12
+_atom_site_aniso_U_13
+_atom_site_aniso_U_23
+Pb1 Pb2+ 0.0144(2) 0.0124(2) 0.0190(2) -.0005(1) -.0028(1) -.0040(1)
+Pb2 Pb2+ 0.0162(2) 0.0140(2) 0.0201(2) 0.0018(1) -.0045(1) -.0053(1)
+Pb3 Pb2+ 0.0275(2) 0.0152(2) 0.0148(2) -.0024(1) 0.0015(1) -.0025(1)
+Pb4 Pb2+ 0.0382(2) 0.0160(2) 0.0138(2) -.0040(1) 0.0028(1) -.0057(1)
+S1 S6+ 0.019(1) 0.021(1) 0.012(1) -.001(1) -.001(1) -.005(1)
+O1 O2- 0.026(3) 0.019(3) 0.023(3) 0.000(2) 0.002(3) -.006(3)
+O2 O2- 0.018(3) 0.011(3) 0.013(3) -.001(2) 0.001(2) -.006(2)
+O3 O2- 0.024(3) 0.022(3) 0.031(4) -.005(2) -.003(5) -.005(3)
+O4 O2- 0.019(3) 0.013(3) 0.014(3) -.001(2) 0.002(2) -.003(2)
+O5 O2- 0.021(3) 0.036(4) 0.030(4) 0.002(3) -.007(3) 0.001(3)
+O6 O2- 0.023(3) 0.060(5) 0.027(4) -.010(3) 0.002(3) -.004(4)
+O7 O2- 0.070(5) 0.036(4) 0.016(3) -.003(4) 0.002(3) -.016(3)
+O8 O2- 0.052(4) 0.022(3) 0.028(4) 0.004(3) -.003(3) -.001(3)
+#End of TTdata_84849-ICSD
