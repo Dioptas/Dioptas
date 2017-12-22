@@ -221,6 +221,18 @@ class Configuration(QtCore.QObject):
             self.pattern_model.pattern.recalculate_pattern()
             self.pattern_model.pattern_changed.emit()
 
+    @property
+    def correct_solid_angle(self):
+        return self.calibration_model.correct_solid_angle
+
+    @correct_solid_angle.setter
+    def correct_solid_angle(self, new_val):
+        self.calibration_model.correct_solid_angle = new_val
+        if self.auto_integrate_pattern:
+            self.integrate_image_1d()
+        if self._auto_integrate_cake:
+            self.integrate_image_2d()
+
     def update_auto_background_parameters_unit(self, old_unit, new_unit):
         """
         This handles the changes for the auto background subtraction parameters in the PatternModel when the integration
@@ -409,6 +421,7 @@ class Configuration(QtCore.QObject):
                 pfp.attrs[key] = pyfai_param[key]
             except TypeError:
                 pfp.attrs[key] = ''
+        calibration_group.attrs['correct_solid_angle'] = self.correct_solid_angle
 
         # save background pattern and pattern model
         background_pattern_group = f.create_group('background_pattern')
@@ -493,6 +506,12 @@ class Configuration(QtCore.QObject):
         except (KeyError, ValueError):
             print('Problem with saved pyFAI calibration parameters')
             pass
+
+        try:
+            self.correct_solid_angle =  f.get('calibration_model').attrs['correct_solid_angle']
+        except KeyError:
+            pass
+
 
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])

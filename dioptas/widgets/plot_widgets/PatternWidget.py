@@ -194,6 +194,31 @@ class PatternWidget(QtCore.QObject):
     def rename_overlay(self, ind, name):
         self.legend.renameItem(ind + 1, name)
 
+    def move_overlay_up(self, ind):
+        new_ind = ind - 1
+        self.overlays.insert(new_ind, self.overlays.pop(ind))
+        self.overlay_names.insert(new_ind, self.overlay_names.pop(ind))
+        self.overlay_show.insert(new_ind, self.overlay_show.pop(ind))
+
+        color = self.legend.legendItems[ind + 1][1].opts['color']
+        label = self.legend.legendItems[ind + 1][1].text
+        self.legend.legendItems[ind + 1][1].setAttr('color', self.legend.legendItems[new_ind + 1][1].opts['color'])
+        self.legend.legendItems[ind + 1][1].setText(self.legend.legendItems[new_ind + 1][1].text)
+        self.legend.legendItems[new_ind + 1][1].setAttr('color', color)
+        self.legend.legendItems[new_ind + 1][1].setText(label)
+
+    def move_overlay_down(self, cur_ind):
+        self.overlays.insert(cur_ind + 1, self.overlays.pop(cur_ind))
+        self.overlay_names.insert(cur_ind + 1, self.overlay_names.pop(cur_ind))
+        self.overlay_show.insert(cur_ind + 1, self.overlay_show.pop(cur_ind))
+
+        color = self.legend.legendItems[cur_ind + 1][1].opts['color']
+        label = self.legend.legendItems[cur_ind + 1][1].text
+        self.legend.legendItems[cur_ind + 1][1].setAttr('color', self.legend.legendItems[cur_ind + 2][1].opts['color'])
+        self.legend.legendItems[cur_ind + 1][1].setText(self.legend.legendItems[cur_ind + 2][1].text)
+        self.legend.legendItems[cur_ind + 2][1].setAttr('color', color)
+        self.legend.legendItems[cur_ind + 2][1].setText(label)
+
     def set_antialias(self, value):
         for overlay in self.overlays:
             overlay.opts['antialias'] = value

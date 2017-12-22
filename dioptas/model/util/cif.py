@@ -245,9 +245,9 @@ def compute_d_hkl(h, k, l, cif_phase):
     a = cif_phase.a
     b = cif_phase.b
     c = cif_phase.c
-    alpha = cif_phase.alpha
-    beta = cif_phase.beta
-    gamma = cif_phase.gamma
+    alpha = np.deg2rad(cif_phase.alpha)
+    beta = np.deg2rad(cif_phase.beta)
+    gamma = np.deg2rad(cif_phase.gamma)
 
     symmetry = cif_phase.symmetry
 
@@ -257,7 +257,7 @@ def compute_d_hkl(h, k, l, cif_phase):
         d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
     elif symmetry == 'ORTHORHOMBIC':
         d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
-    elif symmetry == 'HEXAGONAL':
+    elif symmetry == 'HEXAGONAL' or symmetry == 'TRIGONAL':
         d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
     elif symmetry == 'RHOMBOHEDRAL':
         d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -
