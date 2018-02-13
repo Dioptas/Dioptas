@@ -126,6 +126,7 @@ class MapModel(QtCore.QObject):
             current_math = self.calculate_roi_math(sum_int)
             range_hor = self.pos_to_range(float(filedata['pos_hor']), self.min_hor, self.pix_per_hor, self.diff_hor)
             range_ver = self.pos_to_range(float(filedata['pos_ver']), self.min_ver, self.pix_per_ver, self.diff_ver)
+            print(range_hor, range_ver)
             self.new_image[range_hor, range_ver] = current_math
 
     def update_map(self):
@@ -282,3 +283,5 @@ class MapModel(QtCore.QObject):
         sorted_datalist = sorted(datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
                                                           re.split('(\d+)', s)])
         return sorted_datalist
+
+
