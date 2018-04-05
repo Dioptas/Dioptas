@@ -48,7 +48,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self._symmetry_layout = QtWidgets.QHBoxLayout()
         self._symmetry_layout.addWidget(LabelAlignRight('Symmetry'))
         self.symmetry_cb = CleanLooksComboBox()
-        self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'rhombohedral',
+        self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'trigonal', 'rhombohedral',
                            'orthorhombic', 'monoclinic', 'triclinic']
         self.symmetry_cb.addItems(self.symmetries)
         self._symmetry_layout.addWidget(self.symmetry_cb)
@@ -352,7 +352,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             self.lattice_ca_sb.setEnabled(True)
             self.lattice_cb_sb.setEnabled(True)
 
-        elif symmetry == 'HEXAGONAL':
+        elif symmetry == 'HEXAGONAL' or symmetry == 'TRIGONAL':
             self.lattice_a_sb.setEnabled(True)
             self.lattice_b_sb.setEnabled(False)
             self.lattice_c_sb.setEnabled(True)
