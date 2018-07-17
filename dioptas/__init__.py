@@ -24,7 +24,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 if __version__ == "0+unknown":
-    __version__ = "0.4.0"
+    __version__ = "0.4.1"
 
 import sys
 import os
