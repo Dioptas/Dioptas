@@ -435,7 +435,7 @@ class jcpds(object):
             self.params['beta0'] = 90.
             self.params['gamma0'] = 90.
 
-        elif self.params['symmetry'] == 'HEXAGONAL' or self.params['symmetry'] == 'TRIGONAL':
+        elif self.params['symmetry'] == 'HEXAGONAL' or self.params['symmetry'] == "TRIGONAL":
             self.params['b0'] = self.params['a0']
             self.params['alpha0'] = 90.
             self.params['beta0'] = 90.
