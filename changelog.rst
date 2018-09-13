@@ -1,5 +1,17 @@
-0.4.1 (in development)
-----------------------
+0.4.2 (under development)
+---
+
+New features:
+
+
+Bug fixes:
+
+    - cosmic removal in the mask panel is now working again
+
+
+
+0.4.1 (stable 12/22/2017)
+-------------------------
 
 New features:
 
