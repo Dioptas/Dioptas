@@ -42,6 +42,7 @@ class MapController(object):
         self.model.map_model.map_changed.connect(self.update_map_image)
         self.model.map_model.map_cleared.connect(self.clear_map)
         self.model.map_model.map_problem.connect(self.map_positions_problem)
+        self.model.map_model.roi_problem.connect(self.roi_problem)
 
         self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
@@ -455,6 +456,9 @@ class MapController(object):
 
     def map_positions_problem(self):
         MapError(map_positions_bad)
+
+    def roi_problem(self):
+        MapError(wrong_roi_letter)
 
     def manual_map_positions_setup_btn_clicked(self):
         self.manual_map_positions_dialog.exec_()
