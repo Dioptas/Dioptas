@@ -23,15 +23,18 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 class IntegrationControllerTest(QtTest):
     def setUp(self):
-        sys.excepthook = excepthook
         self.model = DioptasModel()
-
+        self.model.working_directories['image'] = data_path
+        self.model.working_directories['pattern'] = data_path
+        self.model.working_directories['phase'] = data_path
         self.widget = IntegrationWidget()
-        self.integration_controller = IntegrationController({'pattern': data_path,
-                                                             'image': data_path,
-                                                             'phase': data_path},
-                                                            widget=self.widget,
-                                                            dioptas_model=self.model)
+        # self.integration_controller = IntegrationController({'pattern': data_path,
+        #                                                      'image': data_path,
+        #                                                      'phase': data_path},
+        #                                                     widget=self.widget,
+        #                                                     dioptas_model=self.model)
+
+        self.integration_controller = IntegrationController(widget=self.widget, dioptas_model=self.model)
 
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
@@ -53,7 +56,7 @@ class IntegrationControllerTest(QtTest):
         working_dir = os.path.join(map_path, 'patterns2')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
-        self.integration_controller.image_controller.working_dir['pattern'] = os.path.join(working_dir)
+        self.model.working_directories['pattern'] = os.path.join(working_dir)
         self.widget.pattern_autocreate_cb.setChecked(True)
         return map_file_paths, map_file_names, working_dir
 
@@ -63,6 +66,7 @@ class IntegrationControllerTest(QtTest):
         os.rmdir(working_dir)
 
     def test_map_batch_integration_of_multiple_files(self, delete_upon_finish=True):
+        # sys.excepthook = excepthook
         map_file_paths, map_file_names, working_dir = self._setup_map_batch_integration()
         click_button(self.widget.map_2D_btn)
         self.assertTrue(self.widget.img_batch_mode_map_rb.isChecked())
@@ -155,7 +159,7 @@ class IntegrationControllerTest(QtTest):
         click_button(self.widget.map_2D_widget.roi_add_phase_btn)
         self.assertEqual(self.widget.map_2D_widget.roi_list.count(), 5)
 
-        current_phase_ind = self.widget.get_selected_phase_row()
+        current_phase_ind = self.widget.phase_widget.get_selected_phase_row()
         phase_lines = self.model.phase_model.get_lines_d(current_phase_ind)
         xcenter = []
         for line in phase_lines[0:5]:

@@ -28,7 +28,7 @@ class MapController(object):
         self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
-        self.map_widget = widget.map_2D_widget
+        self.map_widget = widget.map_2D_widget  # type: Map2DWidget
 
         self.manual_map_positions_dialog = ManualMapPositionsDialog(self.map_widget)
         self.open_bg_image_dialog = OpenBGImageDialog(self.map_widget, gsecars_photo)
@@ -148,6 +148,7 @@ class MapController(object):
 
         self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_count]['Obj'])
         self.map_widget.map_roi[roi_count]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_count))
+        self.map_widget.map_roi[roi_count]['Obj'].sigRegionChanged.connect(self.make_roi_changing(roi_count))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
         self.map_widget.roi_count = self.map_widget.roi_count + 1
         if self.map_widget.roi_num == 1:
@@ -156,7 +157,7 @@ class MapController(object):
         self.roi_list_selection_changed()
 
     def btn_roi_add_phase_clicked(self):
-        cur_ind = self.widget.get_selected_phase_row()
+        cur_ind = self.widget.phase_widget.get_selected_phase_row()
         if cur_ind < 0:
             return
         phase_lines = self.model.phase_model.get_lines_d(cur_ind)
@@ -165,9 +166,11 @@ class MapController(object):
                                                                self.map_model.wavelength)}
             self.btn_roi_add_clicked(tc)
 
-    # create a function for each ROI when ROI is modified
+    # create a function for each ROI when ROI modification is done
     def make_roi_changed(self, curr_map_roi):
         def roi_changed():
+            if self.map_widget.auto_update_map_cb.isChecked():
+                return
             tth_start, tth_end = self.map_widget.map_roi[curr_map_roi]['Obj'].getRegion()
             row = self.map_widget.roi_list.row(self.map_widget.map_roi[curr_map_roi]['List_Obj'])
             new_roi_name = self.generate_roi_name(tth_start, tth_end, row)
@@ -176,8 +179,26 @@ class MapController(object):
             # self.map_widget.map_roi[curr_map_roi]['roi_name'] = new_roi_name
             self.map_widget.map_roi[curr_map_roi]['List_Obj'] = self.map_widget.roi_list.item(row)
             self.map_widget.roi_list.item(row).setSelected(True)
+            self.btn_update_map_clicked()
 
         return roi_changed
+
+    # create a function for each ROI when ROI modification is going on
+    def make_roi_changing(self, curr_map_roi):
+        def roi_changing():
+            if not self.map_widget.auto_update_map_cb.isChecked():
+                return
+            tth_start, tth_end = self.map_widget.map_roi[curr_map_roi]['Obj'].getRegion()
+            row = self.map_widget.roi_list.row(self.map_widget.map_roi[curr_map_roi]['List_Obj'])
+            new_roi_name = self.generate_roi_name(tth_start, tth_end, row)
+            self.map_widget.roi_list.takeItem(row)
+            self.map_widget.roi_list.insertItem(row, new_roi_name)
+            # self.map_widget.map_roi[curr_map_roi]['roi_name'] = new_roi_name
+            self.map_widget.map_roi[curr_map_roi]['List_Obj'] = self.map_widget.roi_list.item(row)
+            self.map_widget.roi_list.item(row).setSelected(True)
+            self.btn_update_map_clicked()
+
+        return roi_changing
 
     def roi_list_selection_changed(self):
         selected_rois = self.map_widget.roi_list.selectedItems()

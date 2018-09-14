@@ -36,6 +36,8 @@ class Map2DWidget(QtWidgets.QWidget):
         self.old_roi_math_txt = ''
 
         # WIDGETS
+        self.auto_update_map_cb = QtWidgets.QCheckBox('Auto Update?')
+        self.auto_update_map_cb.setChecked(True)
         self.update_map_btn = QtWidgets.QPushButton(self)
         self.manual_map_positions_setup_btn = QtWidgets.QPushButton("Setup Map")
         self.lbl_map_pos = QtWidgets.QLabel()
@@ -106,8 +108,11 @@ class Map2DWidget(QtWidgets.QWidget):
         self.lbl_hbox = QtWidgets.QHBoxLayout()
         self.bg_hbox = QtWidgets.QHBoxLayout()
         self.roi_vbox = QtWidgets.QVBoxLayout()
+        self.update_hbox = QtWidgets.QHBoxLayout()
         self.roi_vbox.addWidget(self.manual_map_positions_setup_btn)
-        self.roi_vbox.addWidget(self.update_map_btn)
+        self.update_hbox.addWidget(self.auto_update_map_cb)
+        self.update_hbox.addWidget(self.update_map_btn)
+        self.roi_vbox.addLayout(self.update_hbox)
         self.roi_vbox.addWidget(self.roi_list)
         self.roi_vbox.addWidget(self.roi_math_txt)
         self.roi_vbox.addLayout(self.roi_grid)
