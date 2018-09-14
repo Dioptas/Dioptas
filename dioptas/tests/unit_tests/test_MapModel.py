@@ -136,8 +136,8 @@ class MapModelTest(unittest.TestCase):
         val4 = self.roi_end - 0.001
         self.assertFalse(self.map_model.is_val_in_roi_range(val1))
         self.assertFalse(self.map_model.is_val_in_roi_range(val2))
-        self.assertEqual(self.map_model.is_val_in_roi_range(val3), self.roi_letter)
-        self.assertEqual(self.map_model.is_val_in_roi_range(val4), self.roi_letter)
+        self.assertTrue(self.roi_letter in self.map_model.is_val_in_roi_range(val3))
+        self.assertTrue(self.roi_letter in self.map_model.is_val_in_roi_range(val4))
 
     def test_calculate_roi_math(self):
         math_to_perform = '(A + B)/2.0'
@@ -185,7 +185,7 @@ class MapModelTest(unittest.TestCase):
                                                 is_hor_first, map_files)
         self.assertNotEqual(self.map_model.map_data, old_map_data)
 
-        # Then change bak manually to the same positions in the organize_map_test and make sure the map_data returns
+        # Then change back manually to the same positions in the organize_map_test and make sure the map_data returns
 
         hor_min = 0.123
         ver_min = -0.456
@@ -195,3 +195,10 @@ class MapModelTest(unittest.TestCase):
                                                 is_hor_first, map_files)
         self.assertEqual(self.map_model.map_data, old_map_data)
         self.assertDictEqual(self.map_model.map_data, old_map_data)
+
+    def test_prepare_map_data(self):
+        map_path = os.path.join(data_path, 'map')
+        map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
+        self.test_organize_map_data()
+        self.helper_add_roi_to_roi_list()
+        self.map_model.prepare_map_data()

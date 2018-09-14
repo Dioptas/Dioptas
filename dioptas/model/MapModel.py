@@ -45,7 +45,7 @@ class MapModel(QtCore.QObject):
 
     def add_file_to_map_data(self, filepath, map_working_directory, motors_info):
         """
-
+        Add a single file to map_data data structure, including all metadata
         Args:
             filepath: path to the 2D XRD image file (needed for sending command to open the file when clicked)
             map_working_directory: Where the integrated patterns are saved
@@ -57,13 +57,46 @@ class MapModel(QtCore.QObject):
         base_filename = os.path.basename(filepath)
         self.map_data[filepath] = {}
         self.map_data[filepath]['image_file_name'] = filepath.replace('\\', '/')
-        self.map_data[filepath]['pattern_file_name'] = map_working_directory + '/' + \
-                                                       os.path.splitext(base_filename)[0] + '.xy'
+        pattern_file_name = map_working_directory + '/' + os.path.splitext(base_filename)[0] + '.xy'
+        self.map_data[filepath]['pattern_file_name'] = pattern_file_name
+        self.read_map_file_data(filepath, pattern_file_name)
         try:
             self.map_data[filepath]['pos_hor'] = str(round(float(motors_info['Horizontal']), 3))
             self.map_data[filepath]['pos_ver'] = str(round(float(motors_info['Vertical']), 3))
         except (KeyError, TypeError):
             self.all_positions_defined_in_files = False
+
+    def read_map_file_data(self, filepath, pattern_file_name):
+        """
+        Adds the x, y data to the map_data data structure, along with x_units and wavelength
+        Args:
+            filepath: used as a key to the data structure
+            pattern_file_name: used to read from the actual file
+
+        """
+        pattern_file = pattern_file_name.replace('\\', '/')
+        current_pattern_file = open(pattern_file, 'r')
+        file_units = '2th_deg'
+        wavelength = self.wavelength
+        self.map_data[filepath]['x_data'] = []
+        self.map_data[filepath]['y_data'] = []
+        for line in current_pattern_file:
+            if 'Wavelength:' in line:
+                wavelength = float(line.split()[-1])
+            elif '2th_deg' in line:
+                file_units = '2th_deg'
+            elif 'q_A^-1' in line:
+                file_units = 'q_A^-1'
+            elif 'd_A' in line:
+                file_units = 'd_A'
+            elif line[0] is not '#':
+                x_val = float(line.split()[0])
+                y_val = float(line.split()[1])
+                self.map_data[filepath]['x_data'].append(x_val)
+                self.map_data[filepath]['y_data'].append(y_val)
+        self.map_data[filepath]['x_units'] = file_units
+        self.map_data[filepath]['wavelength'] = wavelength
+        current_pattern_file.close()
 
     def organize_map_files(self):
         datalist = []
@@ -98,6 +131,34 @@ class MapModel(QtCore.QObject):
             self.map_problem.emit()
             return False
 
+    def prepare_map_data(self):
+        """
+        Calculates the ROI math and create the map image
+        """
+        if self.roi_math == '':
+            for item in self.map_roi_list:
+                self.roi_math = self.roi_math + item['roi_letter'] + '+'
+            self.roi_math = self.roi_math.rsplit('+', 1)[0]
+
+        for map_item_name in self.map_data:
+            wavelength = self.map_data[map_item_name]['wavelength']
+            file_units = self.map_data[map_item_name]['x_units']
+            sum_int = {}
+            for roi in self.map_roi_list:
+                sum_int[roi['roi_letter']] = 0
+            for x_val, y_val in zip(self.map_data[map_item_name]['x_data'], self.map_data[map_item_name]['y_data']):
+                if not self.map_data[map_item_name]['x_units'] == self.units:
+                    x_val = self.convert_units(x_val, file_units, self.units, wavelength)
+                roi_letters = self.is_val_in_roi_range(x_val)
+                for roi_letter in roi_letters:
+                    sum_int[roi_letter] += y_val
+            current_math = self.calculate_roi_math(sum_int)
+            range_hor = self.pos_to_range(float(self.map_data[map_item_name]['pos_hor']), self.min_hor,
+                                          self.pix_per_hor, self.diff_hor)
+            range_ver = self.pos_to_range(float(self.map_data[map_item_name]['pos_ver']), self.min_ver,
+                                          self.pix_per_ver, self.diff_ver)
+            self.new_image[range_hor, range_ver] = current_math
+
     def read_map_files_and_prepare_map_data(self):
         for filepath, filedata in self.map_data.items():
             pattern_file = self.map_data[filepath]['pattern_file_name'].replace('\\', '/')
@@ -119,8 +180,8 @@ class MapModel(QtCore.QObject):
                 elif line[0] is not '#':
                     x_val = float(line.split()[0])
                     x_val = self.convert_units(x_val, file_units, self.units, wavelength)
-                    roi_letter = self.is_val_in_roi_range(x_val)
-                    if roi_letter:
+                    roi_letters = self.is_val_in_roi_range(x_val)
+                    for roi_letter in roi_letters:
                         sum_int[roi_letter] += float(line.split()[1])
 
             current_math = self.calculate_roi_math(sum_int)
@@ -142,7 +203,8 @@ class MapModel(QtCore.QObject):
                 self.roi_math = self.roi_math + item['roi_letter'] + '+'
             self.roi_math = self.roi_math.rsplit('+', 1)[0]
 
-        self.read_map_files_and_prepare_map_data()
+        # self.read_map_files_and_prepare_map_data()
+        self.prepare_map_data()
 
         self.map_changed.emit()
 
@@ -152,13 +214,14 @@ class MapModel(QtCore.QObject):
         Args:
             val: x_value (ttheta, q, or d)
 
-        Returns: ROI letter of ROI containing x_value, or False if not in any ROI in map_roi_list
+        Returns: ROI letters, a list of ROIs containing x_value, or an empty list if not in any ROI in map_roi_list
 
         """
+        roi_letters = []
         for item in self.map_roi_list:
             if float(item['roi_start']) < val < float(item['roi_end']):
-                return item['roi_letter']
-        return False
+                roi_letters.append(item['roi_letter'])
+        return roi_letters
 
     def add_roi_to_roi_list(self, roi):
         self.map_roi_list.append(roi)
