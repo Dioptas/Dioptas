@@ -44,3 +44,11 @@ too_many_rois = {
     'informative_text': 'See additional info...',
     'window_title': 'Warning: Maximum of 26 ranges allowed',
 }
+
+wrong_roi_letter = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Problem with ROI math',
+    'short_msg': 'ROI math error',
+    'informative_text': 'See additional info...',
+    'window_title': 'ROI Math error',
+}
