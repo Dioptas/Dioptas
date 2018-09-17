@@ -49,7 +49,7 @@ class MapModel(QtCore.QObject):
         """
         Add a single file to map_data data structure, including all metadata
         Args:
-            filepath: path to the 2D XRD image file (needed for sending command to open the file when clicked)
+            filepath: path to the original image file (needed for sending command to open the file when clicked)
             map_working_directory: Where the integrated patterns are saved
             motors_info: contains the horizontal/vertical positions needed for the map
 
@@ -58,8 +58,10 @@ class MapModel(QtCore.QObject):
             self.all_positions_defined_in_files = True
         base_filename = os.path.basename(filepath)
         self.map_data[filepath] = {}
-        self.map_data[filepath]['image_file_name'] = filepath.replace('\\', '/')
+
         pattern_file_name = map_working_directory + '/' + os.path.splitext(base_filename)[0] + '.xy'
+
+        self.map_data[filepath]['image_file_name'] = filepath.replace('\\', '/')
         self.map_data[filepath]['pattern_file_name'] = pattern_file_name
         self.read_map_file_data(filepath, pattern_file_name)
         try:
