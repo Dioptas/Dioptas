@@ -55,8 +55,7 @@ class MapModelTest(unittest.TestCase):
                                             None)
         self.assertFalse(self.map_model.all_positions_defined_in_files)
 
-    def test_organize_map_data(self):
-        map_path = os.path.join(data_path, 'map')
+    def helper_prepare_good_map(self, map_path):
         map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
         working_dir = os.path.join(map_path, 'patterns')
         if not os.path.exists(working_dir):
@@ -77,6 +76,11 @@ class MapModelTest(unittest.TestCase):
                 hor_pos = start_hor
                 counter = 0
             counter += 1
+        return map_files
+
+    def test_organize_map_data(self):
+        map_path = os.path.join(data_path, 'map')
+        map_files = self.helper_prepare_good_map(map_path)
 
         self.assertEqual(len(self.map_model.map_data), len(map_files))
         self.assertTrue(self.map_model.all_positions_defined_in_files)
@@ -87,7 +91,7 @@ class MapModelTest(unittest.TestCase):
         self.assertAlmostEqual(self.map_model.diff_hor, 0.005, 5)
         self.assertAlmostEqual(self.map_model.diff_ver, 0.003, 5)
 
-    def test_check_map(self):
+    def test_check_map_fails_when_map_is_not_rectangular(self):
         map_path = os.path.join(data_path, 'map')
         map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
         working_dir = os.path.join(map_path, 'patterns')
@@ -159,8 +163,10 @@ class MapModelTest(unittest.TestCase):
         self.assertAlmostEqual(range1.stop, 4 * pix_per_hor, 7)
 
     def test_sort_map_files_by_natural_name(self):
-        map_files = ['map1', 'map2', 'map3']
-        for map_file in map_files:
+        map_files = ['map1', 'map2', 'map3', 'map4', 'map5', 'map6', 'map7', 'map8', 'map9']
+        shuffled_map_files = map_files.copy()
+        random.shuffle(shuffled_map_files)
+        for map_file in shuffled_map_files:
             self.map_model.map_data[map_file] = {}
         sorted_list = self.map_model.sort_map_files_by_natural_name()
         self.assertEqual(sorted_list, map_files)
@@ -196,9 +202,12 @@ class MapModelTest(unittest.TestCase):
         self.assertEqual(self.map_model.map_data, old_map_data)
         self.assertDictEqual(self.map_model.map_data, old_map_data)
 
-    def test_prepare_map_data(self):
+    def test_prepare_map_data_updates_map_image(self):
         map_path = os.path.join(data_path, 'map')
         map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
         self.test_organize_map_data()
         self.helper_add_roi_to_roi_list()
+        empty_map_image = self.map_model.new_image.copy()
+        self.assertTrue(not np.any(empty_map_image))
         self.map_model.prepare_map_data()
+        self.assertFalse(np.array_equal(empty_map_image, self.map_model.new_image))
