@@ -28,11 +28,6 @@ class IntegrationControllerTest(QtTest):
         self.model.working_directories['pattern'] = data_path
         self.model.working_directories['phase'] = data_path
         self.widget = IntegrationWidget()
-        # self.integration_controller = IntegrationController({'pattern': data_path,
-        #                                                      'image': data_path,
-        #                                                      'phase': data_path},
-        #                                                     widget=self.widget,
-        #                                                     dioptas_model=self.model)
 
         self.integration_controller = IntegrationController(widget=self.widget, dioptas_model=self.model)
 
