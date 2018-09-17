@@ -209,5 +209,6 @@ class MapModelTest(unittest.TestCase):
         self.helper_add_roi_to_roi_list()
         empty_map_image = self.map_model.new_image.copy()
         self.assertTrue(not np.any(empty_map_image))
+        self.map_model.check_roi_math()
         self.map_model.prepare_map_data()
         self.assertFalse(np.array_equal(empty_map_image, self.map_model.new_image))

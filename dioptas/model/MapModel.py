@@ -139,10 +139,6 @@ class MapModel(QtCore.QObject):
         """
         Calculates the ROI math and create the map image
         """
-        if self.roi_math == '':
-            for item in self.map_roi_list:
-                self.roi_math = self.roi_math + item['roi_letter'] + '+'
-            self.roi_math = self.roi_math.rsplit('+', 1)[0]
 
         for map_item_name in self.map_data:
             wavelength = self.map_data[map_item_name]['wavelength']
@@ -202,21 +198,29 @@ class MapModel(QtCore.QObject):
         if self.all_positions_defined_in_files and not self.positions_set_manually:
             self.organize_map_files()
 
+        self.check_roi_math()
+
+        self.prepare_map_data()
+
+        self.map_changed.emit()
+
+    def check_roi_math(self):
+        """
+
+        Returns: False if a ROI in the math is missing from the list.
+
+        """
         if self.roi_math == '':
             for item in self.map_roi_list:
                 self.roi_math = self.roi_math + item['roi_letter'] + '+'
             self.roi_math = self.roi_math.rsplit('+', 1)[0]
 
-        # self.read_map_files_and_prepare_map_data()
         rois_in_roi_math = re.findall('([A-Z])', self.roi_math)
         for roi in rois_in_roi_math:
             if not roi in [r['roi_letter'] for r in self.map_roi_list]:
                 self.roi_problem.emit()
-                return
-
-        self.prepare_map_data()
-
-        self.map_changed.emit()
+                return False
+        return True
 
     def is_val_in_roi_range(self, val):
         """
