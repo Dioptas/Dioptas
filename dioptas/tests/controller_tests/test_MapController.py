@@ -67,7 +67,6 @@ class IntegrationControllerTest(QtTest):
         self.assertTrue(self.widget.img_batch_mode_map_rb.isChecked())
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_file_paths)
         click_button(self.widget.load_img_btn)
-        print(self.widget.map_2D_widget.spec_plot)
 
         for filename in map_file_names:
             filename = filename.split('.')[0] + '.xy'

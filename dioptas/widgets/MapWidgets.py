@@ -157,8 +157,7 @@ class Map2DWidget(QtWidgets.QWidget):
                             QtCore.Qt.X11BypassWindowManagerHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
-    def raise_widget(self, spec_plot, widget):
-        self.spec_plot = spec_plot
+    def raise_widget(self, widget):
         self.widget = widget
 
         self.widget.img_batch_mode_map_rb.setChecked(True)
