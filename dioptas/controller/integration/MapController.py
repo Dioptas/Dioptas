@@ -10,8 +10,11 @@ from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
 from ...widgets.MapWidgets import OpenBGImageDialog
-from ...widgets.UtilityWidgets import save_file_dialog
+from ...widgets.UtilityWidgets import save_file_dialog, open_files_dialog
+from ...widgets.MainWidget import MainWidget
 from .MapErrors import *
+from ...model.MapModel import MapModel
+from ...model.DioptasModel import DioptasModel
 
 
 class MapController(object):
@@ -26,13 +29,13 @@ class MapController(object):
         """
 
         self.working_dir = working_dir
-        self.widget = widget
+        self.widget = widget  # type: MainWidget
         self.model = dioptas_model
         self.map_widget = widget.map_2D_widget  # type: Map2DWidget
 
         self.manual_map_positions_dialog = ManualMapPositionsDialog(self.map_widget)
         self.open_bg_image_dialog = OpenBGImageDialog(self.map_widget, gsecars_photo)
-        self.map_model = self.model.map_model
+        self.map_model = self.model.map_model  # type: MapModel
 
         self.bg_image = None
         self.setup_connections()
@@ -44,6 +47,7 @@ class MapController(object):
         self.model.map_model.map_problem.connect(self.map_positions_problem)
         self.model.map_model.roi_problem.connect(self.roi_problem)
 
+        self.map_widget.load_ascii_files_btn.clicked.connect(self.load_ascii_files_btn_clicked)
         self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
         self.map_widget.roi_add_phase_btn.clicked.connect(self.btn_roi_add_phase_clicked)
@@ -96,6 +100,17 @@ class MapController(object):
         self.map_widget.snapshot_btn.setStyleSheet(new_style)
         self.map_widget.add_bg_btn.setStyleSheet(new_style)
         self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
+
+    def load_ascii_files_btn_clicked(self):
+        filenames = open_files_dialog(self.map_widget, "Load Map files.",
+                                      self.model.working_directories['pattern'])
+        if len(filenames):
+            self.map_model.map_uses_patterns = True
+            self.model.working_directories['pattern'] = os.path.dirname(filenames[0])
+            for filename in filenames:
+                filename = str(filename)
+                self.map_model.add_file_to_map_data(filename, self.model.working_directories['pattern'], None)
+            self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
 
     def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []
@@ -324,7 +339,10 @@ class MapController(object):
             y = pos.y()
             hor, ver = self.xy_to_horver(x, y)
             file_name = self.horver_to_file_name(hor, ver)
-            self.map_widget.img_model.load(str(file_name))
+            if self.map_model.map_uses_patterns:
+                self.model.pattern_model.load_pattern(str(file_name))
+            else:
+                self.map_widget.img_model.load(str(file_name))
 
     def xy_to_horver(self, x, y):
         hor = self.map_model.min_hor + x // self.map_model.pix_per_hor * self.map_model.diff_hor

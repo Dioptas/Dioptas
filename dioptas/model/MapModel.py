@@ -35,6 +35,7 @@ class MapModel(QtCore.QObject):
         self.wavelength = 3.344e-11
         self.all_positions_defined_in_files = False
         self.positions_set_manually = False
+        self.map_uses_patterns = False
 
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
