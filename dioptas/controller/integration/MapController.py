@@ -11,7 +11,7 @@ from ...widgets.MapWidgets import Map2DWidget
 from ...widgets.MapWidgets import ManualMapPositionsDialog
 from ...widgets.MapWidgets import OpenBGImageDialog
 from ...widgets.UtilityWidgets import save_file_dialog, open_files_dialog
-from ...widgets.MainWidget import MainWidget
+from ...widgets.MainWidget import IntegrationWidget
 from .MapErrors import *
 from ...model.MapModel import MapModel
 from ...model.DioptasModel import DioptasModel
@@ -29,7 +29,7 @@ class MapController(object):
         """
 
         self.working_dir = working_dir
-        self.widget = widget  # type: MainWidget
+        self.widget = widget  # type: IntegrationWidget
         self.model = dioptas_model
         self.map_widget = widget.map_2D_widget  # type: Map2DWidget
 
@@ -162,7 +162,7 @@ class MapController(object):
         self.map_widget.map_roi[roi_count]['List_Obj'] = self.map_widget.roi_list.item(
             self.map_widget.roi_list.count() - 1)
 
-        self.map_widget.spec_plot.addItem(self.map_widget.map_roi[roi_count]['Obj'])
+        self.widget.pattern_widget.pattern_plot.addItem(self.map_widget.map_roi[roi_count]['Obj'])
         self.map_widget.map_roi[roi_count]['Obj'].sigRegionChangeFinished.connect(self.make_roi_changed(roi_count))
         self.map_widget.map_roi[roi_count]['Obj'].sigRegionChanged.connect(self.make_roi_changing(roi_count))
         self.map_widget.roi_num = self.map_widget.roi_num + 1
@@ -243,7 +243,7 @@ class MapController(object):
         for each_roi in self.map_widget.roi_list.selectedItems():
             for key in self.map_widget.map_roi:
                 if self.map_widget.map_roi[key]['List_Obj'] == each_roi:
-                    self.map_widget.spec_plot.removeItem(self.map_widget.map_roi[key]['Obj'])
+                    self.widget.pattern_widget.pattern_plot.removeItem(self.map_widget.map_roi[key]['Obj'])
                     del self.map_widget.map_roi[key]
                     break
             self.map_widget.roi_list.takeItem(self.map_widget.roi_list.row(each_roi))
@@ -256,7 +256,7 @@ class MapController(object):
     def btn_roi_clear_clicked(self):
         self.map_widget.roi_list.clear()
         for key in self.map_widget.map_roi:
-            self.map_widget.spec_plot.removeItem(self.map_widget.map_roi[key]['Obj'])
+            self.widget.pattern_widget.pattern_plot.removeItem(self.map_widget.map_roi[key]['Obj'])
         self.map_widget.map_roi.clear()
         self.map_widget.roi_num = 0
         self.toggle_map_widgets_enable(False)
