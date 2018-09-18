@@ -342,7 +342,7 @@ class MapController(object):
             if self.map_model.map_uses_patterns:
                 self.model.pattern_model.load_pattern(str(file_name))
             else:
-                self.map_widget.img_model.load(str(file_name))
+                self.model.img_model.load(str(file_name))
 
     def xy_to_horver(self, x, y):
         hor = self.map_model.min_hor + x // self.map_model.pix_per_hor * self.map_model.diff_hor

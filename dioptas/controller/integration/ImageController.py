@@ -380,8 +380,7 @@ class ImageController(object):
         self.widget.file_info_widget.raise_widget()
 
     def map_2d(self):  # MAP2D
-        self.widget.map_2D_widget.raise_widget(self.model.img_model, self.widget.pattern_widget.pattern_plot,
-                                               self.widget)
+        self.widget.map_2D_widget.raise_widget(self.widget.pattern_widget.pattern_plot, self.widget)
 
     def get_integration_unit(self):
         if self.widget.pattern_tth_btn.isChecked():
