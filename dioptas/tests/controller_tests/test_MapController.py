@@ -171,3 +171,13 @@ class IntegrationControllerTest(QtTest):
     def helper_load_phase(self, filename):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
         click_button(self.widget.phase_add_btn)
+
+    def test_create_map_from_xy_files(self):
+        map_path = os.path.join(data_path, 'map/xy')
+        map_file_names = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
+        map_file_paths = []
+        for file_name in map_file_names:
+            map_file_paths.append(os.path.join(map_path, file_name))
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_file_paths)
+        click_button(self.widget.map_2D_widget.load_ascii_files_btn)
+        self.assertTrue(len(self.model.map_model.map_data) > 0)

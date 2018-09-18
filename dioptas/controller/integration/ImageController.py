@@ -272,6 +272,7 @@ class ImageController(object):
             self._save_pattern(base_filename, working_directory, x, y)
             # MAP2D
             if self.widget.img_batch_mode_map_rb.isChecked():
+                self.model.map_model.map_uses_patterns = False
                 if self.model.pattern.has_background():
                     map_working_directory = os.path.join(working_directory, 'bkg_subtracted')
                 else:
