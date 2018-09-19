@@ -106,12 +106,14 @@ class MapController(object):
         filenames = open_files_dialog(self.map_widget, "Load Map files.",
                                       self.model.working_directories['pattern'])
         if len(filenames):
+            self.map_model.reset_map_data()
             self.map_model.map_uses_patterns = True
             self.model.working_directories['pattern'] = os.path.dirname(filenames[0])
             for filename in filenames:
                 filename = str(filename)
                 self.map_model.add_file_to_map_data(filename, self.model.working_directories['pattern'], None)
             self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
+            self.manual_map_positions_dialog.selected_map_files.clear()
 
     def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []
