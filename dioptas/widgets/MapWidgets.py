@@ -509,7 +509,7 @@ class OpenBGImageDialog(QtWidgets.QDialog):
 
     def exec_(self):
         """
-        Overwriting the dialog exec_ function to center the widget in the parent window before execution.
+        Overriding the dialog exec_ function to center the widget in the parent window before execution.
         """
         parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
         self.move(parent_center.x() - 101, parent_center.y() - 48)
