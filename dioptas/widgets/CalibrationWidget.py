@@ -111,6 +111,12 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.f2_distance_cb = self.calibration_control_widget.fit2d_parameters_widget.distance_cb
         self.pf_distance_cb = self.calibration_control_widget.pyfai_parameters_widget.distance_cb
 
+        self.pf_poni1_cb = self.calibration_control_widget.pyfai_parameters_widget.poni1_cb
+        self.pf_poni2_cb = self.calibration_control_widget.pyfai_parameters_widget.poni2_cb
+        self.pf_rot1_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation1_cb
+        self.pf_rot2_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation2_cb
+        self.pf_rot3_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation3_cb
+
         self.img_widget = self.calibration_display_widget.img_widget
         self.cake_widget = self.calibration_display_widget.cake_widget
         self.pattern_widget = self.calibration_display_widget.pattern_widget
@@ -525,23 +531,38 @@ class PyfaiParametersWidget(QtWidgets.QWidget):
 
         self._layout.addWidget(LabelAlignRight('PONI:'), 3, 0)
         self.poni1_txt = NumberTextField()
+        self.poni1_cb = QtWidgets.QCheckBox()
+        self.poni1_cb.setChecked(True)
         self._layout.addWidget(self.poni1_txt, 3, 1)
         self._layout.addWidget(QtWidgets.QLabel('m'), 3, 2)
+        self._layout.addWidget(self.poni1_cb, 3, 3)
 
         self.poni2_txt = NumberTextField()
+        self.poni2_cb = QtWidgets.QCheckBox()
+        self.poni2_cb.setChecked(True)
         self._layout.addWidget(self.poni2_txt, 4, 1)
         self._layout.addWidget(QtWidgets.QLabel('m'), 4, 2)
+        self._layout.addWidget(self.poni2_cb, 4, 3)
 
         self._layout.addWidget(LabelAlignRight('Rotations'), 5, 0)
         self.rotation1_txt = NumberTextField()
         self.rotation2_txt = NumberTextField()
         self.rotation3_txt = NumberTextField()
+        self.rotation1_cb = QtWidgets.QCheckBox()
+        self.rotation2_cb = QtWidgets.QCheckBox()
+        self.rotation3_cb = QtWidgets.QCheckBox()
+        self.rotation1_cb.setChecked(True)
+        self.rotation2_cb.setChecked(True)
+        self.rotation3_cb.setChecked(True)
         self._layout.addWidget(self.rotation1_txt, 5, 1)
         self._layout.addWidget(self.rotation2_txt, 6, 1)
         self._layout.addWidget(self.rotation3_txt, 7, 1)
         self._layout.addWidget(QtWidgets.QLabel('rad'), 5, 2)
         self._layout.addWidget(QtWidgets.QLabel('rad'), 6, 2)
         self._layout.addWidget(QtWidgets.QLabel('rad'), 7, 2)
+        self._layout.addWidget(self.rotation1_cb, 5, 3)
+        self._layout.addWidget(self.rotation2_cb, 6, 3)
+        self._layout.addWidget(self.rotation3_cb, 7, 3)
 
         self._layout.addWidget(LabelAlignRight('Pixel width:'), 8, 0)
         self.pixel_width_txt = NumberTextField()
