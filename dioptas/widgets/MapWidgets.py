@@ -12,6 +12,8 @@ from .. import style_path
 
 
 class Map2DWidget(QtWidgets.QWidget):
+    map_window_raised = QtCore.Signal()
+
     def __init__(self, parent=None):
         super(Map2DWidget, self).__init__(parent)
 
@@ -40,7 +42,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.manual_map_positions_setup_btn = QtWidgets.QPushButton("Setup Map")
         self.auto_update_map_cb = QtWidgets.QCheckBox('Auto Update?')
         self.auto_update_map_cb.setChecked(True)
-        self.update_map_btn = QtWidgets.QPushButton(self)
+        self.update_map_btn = QtWidgets.QPushButton()
         self.lbl_map_pos = QtWidgets.QLabel()
         # Map Image and Histogram
         self.map_image = pq.ImageItem()
@@ -52,22 +54,22 @@ class Map2DWidget(QtWidgets.QWidget):
         bg_rect = QtCore.QRectF(0, 0, 1920, 1200)
         self.map_bg_image.setImage(self.bg_image, opacity=0.5)
         self.map_bg_image.setRect(bg_rect)
-        self.reset_zoom_btn = QtWidgets.QPushButton(self)
-        self.snapshot_btn = QtWidgets.QPushButton(self)
+        self.reset_zoom_btn = QtWidgets.QPushButton()
+        self.snapshot_btn = QtWidgets.QPushButton()
 
         # ROI Widgets
-        self.roi_list = QtWidgets.QListWidget(self)
+        self.roi_list = QtWidgets.QListWidget()
         self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.roi_math_txt = QtWidgets.QLineEdit()
-        self.roi_add_btn = QtWidgets.QPushButton(self)
-        self.roi_add_phase_btn = QtWidgets.QPushButton(self)
-        self.roi_del_btn = QtWidgets.QPushButton(self)
-        self.roi_clear_btn = QtWidgets.QPushButton(self)
-        self.roi_toggle_btn = QtWidgets.QPushButton(self)
-        self.roi_select_all_btn = QtWidgets.QPushButton(self)
+        self.roi_add_btn = QtWidgets.QPushButton()
+        self.roi_add_phase_btn = QtWidgets.QPushButton()
+        self.roi_del_btn = QtWidgets.QPushButton()
+        self.roi_clear_btn = QtWidgets.QPushButton()
+        self.roi_toggle_btn = QtWidgets.QPushButton()
+        self.roi_select_all_btn = QtWidgets.QPushButton()
 
         # Background control
-        self.add_bg_btn = QtWidgets.QPushButton(self)
+        self.add_bg_btn = QtWidgets.QPushButton()
         self.bg_opacity_lbl = QtWidgets.QLabel("Opacity: BG")
         self.bg_opacity_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.map_opacity_lbl = QtWidgets.QLabel("Map")
@@ -157,14 +159,12 @@ class Map2DWidget(QtWidgets.QWidget):
                             QtCore.Qt.X11BypassWindowManagerHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
-    def raise_widget(self, widget):
-        self.widget = widget
-
-        self.widget.img_batch_mode_map_rb.setChecked(True)
+    def raise_widget(self):
         self.show()
         self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.activateWindow()
         self.raise_()
+        self.map_window_raised.emit()
 
 
 class ManualMapPositionsDialog(QtWidgets.QDialog):

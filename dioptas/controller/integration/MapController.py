@@ -65,6 +65,7 @@ class MapController(object):
         self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
         self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
         self.map_widget.map_view_box.mouseClickEvent = self.do_nothing
+        self.map_widget.map_window_raised.connect(self.map_window_raised)
 
         self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
         self.manual_map_positions_dialog.read_list_btn.clicked.connect(self.read_list_btn_clicked)
@@ -578,3 +579,6 @@ class MapController(object):
         self.manual_map_positions_dialog.total_files_lbl.setText(
             str(self.manual_map_positions_dialog.selected_map_files.count()) + ' files')
         self.check_num_points()
+
+    def map_window_raised(self):
+        self.widget.img_batch_mode_map_rb.setChecked(True)
