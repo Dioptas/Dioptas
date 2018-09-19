@@ -161,8 +161,7 @@ class IntegrationControllerTest(QtTest):
                                                               self.model.map_model.wavelength))
 
         for roi_item, xcen in zip(self.widget.map_2D_widget.roi_list.selectedItems(), xcenter):
-            print(roi_item.text())
-            print(xcen)
+
             roi_range = roi_item.text().rsplit('_', 1)[-1]
             roi_center = (float(roi_range.split('-')[0]) + float(roi_range.split('-')[1])) / 2.0
             self.assertAlmostEqual(roi_center, xcen, 3)
