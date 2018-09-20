@@ -163,7 +163,11 @@ class IntegrationControllerTest(QtTest):
         output_file_name = "test.txt"
         self.widget.integration_image_widget.mode_btn.click()  # change to cake mode
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, output_file_name))
-        # self.model.calibration_model.create_file_header = MagicMock(return_value="None")
+
+        cake_tth = np.copy(self.model.cake_tth) # make sure nothing is changed
+
         click_button(self.widget.qa_save_img_btn)
         self.assertTrue(os.path.exists(os.path.join(data_path, output_file_name)))
-        delete_if_exists(os.path.join(data_path, "test.xy"))
+        delete_if_exists(os.path.join(data_path, "test.txt"))
+
+        self.assertEqual(len(cake_tth), len(self.model.cake_tth))
