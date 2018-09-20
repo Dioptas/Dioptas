@@ -62,6 +62,11 @@ class CalibrationModel(QtCore.QObject):
         self.orig_pixel2 = 79e-6
         self.fit_wavelength = False
         self.fit_distance = True
+        self.fit_poni1 = True
+        self.fit_poni2 = True
+        self.fit_rot1 = True
+        self.fit_rot2 = True
+        self.fit_rot3 = True
         self.is_calibrated = False
         self.use_mask = False
         self.filename = ''
@@ -276,6 +281,16 @@ class CalibrationModel(QtCore.QObject):
             fix = []
         if not self.fit_distance:
             fix.append('dist')
+        if not self.fit_poni1:
+            fix.append('poni1')
+        if not self.fit_poni2:
+            fix.append('poni2')
+        if not self.fit_rot1:
+            fix.append('rot1')
+        if not self.fit_rot2:
+            fix.append('rot2')
+        if not self.fit_rot3:
+            fix.append('rot3')
         if self.fit_wavelength:
             self.pattern_geometry.refine2()
         self.pattern_geometry.refine2_wavelength(fix=fix)
