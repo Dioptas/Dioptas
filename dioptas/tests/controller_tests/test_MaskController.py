@@ -140,3 +140,6 @@ class MaskControllerTest(QtTest):
         self.model.select_configuration(1)
         self.assertTrue(self.mask_widget.transparent_rb.isChecked())
         self.assertTrue(np.array_equal(self.mask_widget.img_widget.mask_img_item.lut, transparent_color))
+
+    def test_apply_cosmic_removal(self):
+        click_button(self.mask_widget.cosmic_btn)
