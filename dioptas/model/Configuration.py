@@ -112,8 +112,7 @@ class Configuration(QtCore.QObject):
         else:
             mask = None
 
-        self.calibration_model.integrate_2d(mask=mask,
-                                            dimensions=(2048, 2048))
+        self.calibration_model.integrate_2d(mask=mask)
         self.cake_changed.emit()
 
     def save_pattern(self, filename=None, subtract_background=False):
@@ -508,10 +507,9 @@ class Configuration(QtCore.QObject):
             pass
 
         try:
-            self.correct_solid_angle =  f.get('calibration_model').attrs['correct_solid_angle']
+            self.correct_solid_angle = f.get('calibration_model').attrs['correct_solid_angle']
         except KeyError:
             pass
-
 
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
