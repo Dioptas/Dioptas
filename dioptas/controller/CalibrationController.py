@@ -86,6 +86,12 @@ class CalibrationController(object):
         self.widget.pf_distance_cb.stateChanged.connect(self.distance_cb_changed)
         self.widget.sv_distance_cb.stateChanged.connect(self.distance_cb_changed)
 
+        self.widget.pf_poni1_cb.stateChanged.connect(self.poni1_cb_changed)
+        self.widget.pf_poni2_cb.stateChanged.connect(self.poni2_cb_changed)
+        self.widget.pf_rot1_cb.stateChanged.connect(self.rot1_cb_changed)
+        self.widget.pf_rot2_cb.stateChanged.connect(self.rot2_cb_changed)
+        self.widget.pf_rot3_cb.stateChanged.connect(self.rot3_cb_changed)
+
         self.widget.use_mask_cb.stateChanged.connect(self.plot_mask)
         self.widget.mask_transparent_cb.stateChanged.connect(self.mask_transparent_status_changed)
 
@@ -353,6 +359,21 @@ class CalibrationController(object):
         self.widget.sv_distance_cb.blockSignals(False)
 
         self.model.calibration_model.fit_distance = value
+
+    def poni1_cb_changed(self, value):
+        self.model.calibration_model.fit_poni1 = value
+
+    def poni2_cb_changed(self, value):
+        self.model.calibration_model.fit_poni2 = value
+
+    def rot1_cb_changed(self, value):
+        self.model.calibration_model.fit_rot1 = value
+
+    def rot2_cb_changed(self, value):
+        self.model.calibration_model.fit_rot2 = value
+
+    def rot3_cb_changed(self, value):
+        self.model.calibration_model.fit_rot3 = value
 
     def calibrate(self):
         """
