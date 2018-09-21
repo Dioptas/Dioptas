@@ -116,7 +116,7 @@ class IntegrationControllerTest(QtTest):
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
 
     def test_shift_cake_azimuth(self):
-        shift = 300
+        shift = 30
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), -len(self.model.cake_azi) / 2)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi) / 2)
