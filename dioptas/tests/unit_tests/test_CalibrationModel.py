@@ -146,8 +146,8 @@ class CalibrationModelTest(QtTest):
         azi_array = self.calibration_model.pattern_geometry.chia
 
         for i in range(100):
-            ind1 = np.random.random_integers(0, 2023)
-            ind2 = np.random.random_integers(0, 2023)
+            ind1 = np.random.randint(0, 2024)
+            ind2 = np.random.randint(0, 2024)
 
             tth = tth_array[ind1, ind2]
             azi = azi_array[ind1, ind2]
