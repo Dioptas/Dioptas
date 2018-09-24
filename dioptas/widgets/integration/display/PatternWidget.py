@@ -129,25 +129,3 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self.background_inspect_btn.setMaximumWidth(right_controls_button_width)
         self.antialias_btn.setMaximumWidth(right_controls_button_width)
         self.auto_range_btn.setMaximumWidth(right_controls_button_width)
-
-
-class IntegrationStatusWidget(QtWidgets.QWidget):
-    def __init__(self):
-        super(IntegrationStatusWidget, self).__init__()
-
-        self._layout = QtWidgets.QHBoxLayout()
-        self._layout.setContentsMargins(0, 0, 0, 0)
-
-        self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)
-        self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget(CLICKED_COLOR)
-        self.bkg_name_lbl = LabelAlignRight('')
-        self.change_gui_view_btn = QtWidgets.QPushButton('Change View')
-
-        self._layout.addWidget(self.change_gui_view_btn)
-        self._layout.addWidget(self.mouse_pos_widget)
-        self._layout.addSpacerItem(HorizontalSpacerItem())
-        self._layout.addWidget(self.mouse_unit_widget)
-        self._layout.addSpacerItem(HorizontalSpacerItem())
-        self._layout.addWidget(self.bkg_name_lbl)
-
-        self.setLayout(self._layout)
