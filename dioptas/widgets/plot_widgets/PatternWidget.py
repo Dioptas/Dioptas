@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -26,10 +26,6 @@ from pyqtgraph.exporters.SVGExporter import SVGExporter
 
 from .ExLegendItem import LegendItem
 from ...model.util.HelperModule import calculate_color
-
-
-# TODO refactoring of the 3 lists: overlays, overlay_names, overlay_show,
-# should probably a class, making it more readable
 
 
 class PatternWidget(QtCore.QObject):
@@ -197,6 +193,31 @@ class PatternWidget(QtCore.QObject):
 
     def rename_overlay(self, ind, name):
         self.legend.renameItem(ind + 1, name)
+
+    def move_overlay_up(self, ind):
+        new_ind = ind - 1
+        self.overlays.insert(new_ind, self.overlays.pop(ind))
+        self.overlay_names.insert(new_ind, self.overlay_names.pop(ind))
+        self.overlay_show.insert(new_ind, self.overlay_show.pop(ind))
+
+        color = self.legend.legendItems[ind + 1][1].opts['color']
+        label = self.legend.legendItems[ind + 1][1].text
+        self.legend.legendItems[ind + 1][1].setAttr('color', self.legend.legendItems[new_ind + 1][1].opts['color'])
+        self.legend.legendItems[ind + 1][1].setText(self.legend.legendItems[new_ind + 1][1].text)
+        self.legend.legendItems[new_ind + 1][1].setAttr('color', color)
+        self.legend.legendItems[new_ind + 1][1].setText(label)
+
+    def move_overlay_down(self, cur_ind):
+        self.overlays.insert(cur_ind + 1, self.overlays.pop(cur_ind))
+        self.overlay_names.insert(cur_ind + 1, self.overlay_names.pop(cur_ind))
+        self.overlay_show.insert(cur_ind + 1, self.overlay_show.pop(cur_ind))
+
+        color = self.legend.legendItems[cur_ind + 1][1].opts['color']
+        label = self.legend.legendItems[cur_ind + 1][1].text
+        self.legend.legendItems[cur_ind + 1][1].setAttr('color', self.legend.legendItems[cur_ind + 2][1].opts['color'])
+        self.legend.legendItems[cur_ind + 1][1].setText(self.legend.legendItems[cur_ind + 2][1].text)
+        self.legend.legendItems[cur_ind + 2][1].setAttr('color', color)
+        self.legend.legendItems[cur_ind + 2][1].setText(label)
 
     def set_antialias(self, value):
         for overlay in self.overlays:
@@ -402,7 +423,8 @@ class PatternWidget(QtCore.QObject):
 
 
 class PhaseLinesPlot(object):
-    def __init__(self, plot_item, positions=None, name='Dummy', pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine)):
+    def __init__(self, plot_item, positions=None, name='Dummy',
+                 pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine)):
         self.plot_item = plot_item
         self.peak_positions = []
         self.line_items = []

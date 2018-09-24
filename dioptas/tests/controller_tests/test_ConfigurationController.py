@@ -1,11 +1,27 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import unittest
+import gc
 
 import numpy as np
 
-from mock import MagicMock
 
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
@@ -45,6 +61,12 @@ class ConfigurationControllerTest(unittest.TestCase):
             dioptas_model=self.model,
             controllers=[]
         )
+
+    def tearDown(self):
+        del self.model
+        del self.config_widget
+        del self.config_controller
+        gc.collect()
 
     def test_initial_configuration_display(self):
         self.assertEqual(len(self.config_widget.configuration_btns), 1)
@@ -87,6 +109,7 @@ class ConfigurationControllerTest(unittest.TestCase):
 
         self.assertEqual(self.model.configuration_ind, 2)
         self.assertTrue(self.config_widget.configuration_btns[2].isChecked())
+        self.assertEqual(len(self.config_widget.configuration_btn_group.buttons()), 3)
 
     def test_remove_first_configuration(self):
         click_button(self.config_widget.add_configuration_btn)
@@ -180,6 +203,3 @@ class ConfigurationControllerTest(unittest.TestCase):
 
         self.assertEqual(self.model.configurations[1].img_model.filename,
                          os.path.abspath(os.path.join(data_path, "FileIterator", "run1", "image_1.tif")))
-
-
-
