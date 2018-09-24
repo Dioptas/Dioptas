@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -35,20 +35,20 @@ class BackgroundController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary with working directories (uses the 'image' key) for the background image
         :param widget: IntegrationWidget
         :param dioptas_model: DioptasModel reference
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
-        self.model.configuration_selected.connect(self.update_gui)
+        self.model.configuration_selected.connect(self.update_bkg_image_widgets)
+        self.model.configuration_selected.connect(self.update_auto_pattern_bkg_widgets)
+
         self.create_image_background_signals()
         self.create_pattern_background_signals()
 
@@ -56,8 +56,8 @@ class BackgroundController(object):
         self.connect_click_function(self.widget.bkg_image_load_btn, self.load_background_image)
         self.connect_click_function(self.widget.bkg_image_delete_btn, self.remove_background_image)
 
-        self.widget.bkg_image_scale_step_txt.editingFinished.connect(self.update_bkg_image_scale_step)
-        self.widget.bkg_image_offset_step_txt.editingFinished.connect(self.update_bkg_image_offset_step)
+        self.widget.bkg_image_scale_step_msb.editingFinished.connect(self.update_bkg_image_scale_step)
+        self.widget.bkg_image_offset_step_msb.editingFinished.connect(self.update_bkg_image_offset_step)
         self.widget.bkg_image_scale_sb.valueChanged.connect(self.background_img_scale_changed)
         self.widget.bkg_image_offset_sb.valueChanged.connect(self.background_img_offset_changed)
 
@@ -87,7 +87,7 @@ class BackgroundController(object):
     def load_background_image(self):
         filename = open_file_dialog(
             self.widget, "Load an image background file",
-            self.working_dir['image'])
+            self.model.working_directories['image'])
 
         if filename is not None and filename is not '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
@@ -107,11 +107,11 @@ class BackgroundController(object):
         self.model.img_model.reset_background()
 
     def update_bkg_image_scale_step(self):
-        value = np.float(self.widget.bkg_image_scale_step_txt.text())
+        value = np.float(self.widget.bkg_image_scale_step_msb.text())
         self.widget.bkg_image_scale_sb.setSingleStep(value)
 
     def update_bkg_image_offset_step(self):
-        value = np.float(self.widget.bkg_image_offset_step_txt.text())
+        value = np.float(self.widget.bkg_image_offset_step_msb.text())
         self.widget.bkg_image_offset_sb.setSingleStep(value)
 
     def update_background_image_filename(self):
@@ -200,6 +200,26 @@ class BackgroundController(object):
         self.widget.pattern_widget.set_linear_region(*self.widget.get_bkg_pattern_roi())
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
-    def update_gui(self):
+    def update_bkg_image_widgets(self):
+        self.update_background_image_filename()
         self.widget.bkg_image_offset_sb.setValue(self.model.img_model.background_offset)
         self.widget.bkg_image_scale_sb.setValue(self.model.img_model.background_scaling)
+        self.widget.img_show_background_subtracted_btn.setVisible(self.model.img_model.has_background())
+
+    def update_auto_pattern_bkg_widgets(self):
+        # set the state of the toggles:
+        self.widget.bkg_pattern_gb.setChecked(self.model.pattern.auto_background_subtraction)
+        self.widget.qa_bkg_pattern_btn.setChecked(self.model.pattern.auto_background_subtraction)
+        self.update_bkg_gui_parameters()
+        self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)
+        self.widget.bkg_pattern_inspect_btn.setChecked(False)
+
+    def auto_background_set(self, bg_params, bg_roi):
+        self.widget.bkg_pattern_gb.setChecked(True)
+        self.widget.qa_bkg_pattern_btn.setChecked(True)
+        self.widget.bkg_pattern_smooth_width_sb.setValue(bg_params[0])
+        self.widget.bkg_pattern_iterations_sb.setValue(bg_params[1])
+        self.widget.bkg_pattern_poly_order_sb.setValue(bg_params[2])
+        self.widget.bkg_pattern_x_min_txt.setText(str(bg_roi[0]))
+        self.widget.bkg_pattern_x_max_txt.setText(str(bg_roi[1]))
+        self.bkg_pattern_gb_toggled_callback(True)

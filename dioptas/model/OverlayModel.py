@@ -1,4 +1,20 @@
 # -*- coding: utf8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 import logging
@@ -35,6 +51,7 @@ class OverlayModel(QtCore.QObject):
         """
         self.overlays.append(Pattern(x, y, name))
         self.overlay_added.emit()
+        return self.overlays[-1]
 
     def add_overlay_pattern(self, pattern):
         """
@@ -68,7 +85,6 @@ class OverlayModel(QtCore.QObject):
         """
         :param ind: overlay ind
         :return: returns overlay if existent or None if it does not exist
-        :type return: Pattern
         """
         try:
             return self.overlays[ind]
@@ -123,3 +139,7 @@ class OverlayModel(QtCore.QObject):
         for ind, overlay in enumerate(self.overlays):
             overlay.offset = 0
             self.overlay_changed.emit(ind)
+
+    def reset(self):
+        for _ in range(len(self.overlays)):
+            self.remove_overlay(0)

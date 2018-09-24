@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,6 +23,7 @@ from .ImageController import ImageController
 from .OverlayController import OverlayController
 from .PatternController import PatternController
 from .PhaseController import PhaseController
+from .OptionsController import OptionsController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -40,16 +41,14 @@ class IntegrationController(object):
     This controller hosts all the Subcontroller of the integration tab.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary of working directories
         :param widget: Reference to an IntegrationWidget
         :param dioptas_model: Reference to a DioptasModel object
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
         self.widget = widget
         self.model = dioptas_model
 
@@ -59,8 +58,9 @@ class IntegrationController(object):
         """
         Creates the sub controller with the appropriate data.
         """
-        self.pattern_controller = PatternController(self.working_dir, self.widget, self.model)
-        self.image_controller = ImageController(self.working_dir, self.widget, self.model)
-        self.overlay_controller = OverlayController(self.working_dir, self.widget, self.model)
-        self.phase_controller = PhaseController(self.working_dir, self.widget, self.model)
-        self.background_controller = BackgroundController(self.working_dir, self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
+        self.image_controller = ImageController(self.widget, self.model)
+        self.overlay_controller = OverlayController(self.widget, self.model)
+        self.phase_controller = PhaseController(self.widget, self.model)
+        self.background_controller = BackgroundController(self.widget, self.model)
+        self.options_controller = OptionsController(self.widget, self.model)

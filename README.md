@@ -48,14 +48,14 @@ The executable versions are self-contained folders, which do not need any python
 In order to make changes to the source code yourself or always get the latest development versions you need to install
 the required python packages on your machine.
 
-The easiest way to install the all the dependencies for Dioptas is to use the Anaconda 64bit Python 2.7 distribution.
+The easiest way to install the all the dependencies for Dioptas is to use the Anaconda 64bit Python 3 distribution.
 Please download it from https://www.continuum.io/downloads. After having the added the scripts to you path (or use the
 Anaconda prompt on windows) please run the following commands on the commandline:
 
 ```bash
-conda install --yes numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock -c conda-forge
-conda install --yes pyqtgraph -c cprescher
-conda install --yes pyepics -c  lightsource2
+conda install --yes python=3.5 numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy fabio lmfit mock -c conda-forge
+conda install --yes pyqtgraph pyfai -c cprescher
+pip install pyepics
 ```
 
 
