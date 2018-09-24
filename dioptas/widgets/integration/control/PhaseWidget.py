@@ -34,6 +34,9 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QVBoxLayout()
 
+        self.phase_lbl = QtWidgets.QLabel('Phases')
+        self._layout.addWidget(self.phase_lbl)
+
         self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('phase_control_button_widget')
         self._button_layout = QtWidgets.QHBoxLayout()
@@ -108,6 +111,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setItemDelegate(NoRectDelegate())
 
     def style_widgets(self):
+        self.phase_lbl.setVisible(False)
         self.phase_tw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.phase_tw.setMinimumHeight(130)
