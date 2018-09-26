@@ -222,7 +222,7 @@ def make_shortcut_linux(name, script, description='',
 make_shortcut = None
 
 if sys.platform.startswith('win') or os.name == 'nt':
-    make_shortcut = makes_hortcut_windows
+    make_shortcut = make_shortcut_windows
 elif sys.platform == 'darwin':
     make_shortcut = make_shortcut_macosx
 elif sys.platform == 'linux':
