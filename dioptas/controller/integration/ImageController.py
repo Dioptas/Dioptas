@@ -916,7 +916,7 @@ class ImageController(object):
             filename = save_file_dialog(self.widget, "Save Image.",
                                         os.path.join(self.model.working_directories['image'],
                                                      img_filename + '.png'),
-                                        ('Image (*.png);;Data (*.tiff)'))
+                                        ('Image (*.png);;Data (*.tiff);;Text (*.txt)'))
 
         if filename is not '':
             if filename.endswith('.png'):
@@ -943,6 +943,18 @@ class ImageController(object):
                 im_array = np.flipud(im_array)
                 im = Image.fromarray(im_array)
                 im.save(filename)
+            elif filename.endswith('.txt') or filename.endswith('.csv'):
+                if self.img_mode == 'Image':
+                    return
+                elif self.img_mode == 'Cake':  # saving cake data as a text file for export.
+                    with open(filename, 'w') as out_file:  # this is done in an odd and slow way because the headers
+                                                            # should be floats and the data itself int.
+                        cake_tth = np.insert(self.model.cake_tth, 0, 0)
+                        np.savetxt(out_file, cake_tth[None], fmt='%6.3f')
+                        for azi, row in zip(self.model.cake_azi, self.model.cake_data):
+                            row_str = " ".join(["{:6.0f}".format(el) for el in row])
+                            out_file.write("{:6.2f}".format(azi) + row_str + '\n')
+
 
     def cbn_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:

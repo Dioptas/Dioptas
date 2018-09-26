@@ -19,7 +19,7 @@
 import os
 import gc
 import unittest
-from ..utility import QtTest, click_button, click_checkbox
+from ..utility import QtTest, click_button, click_checkbox, delete_if_exists
 
 import mock
 from mock import MagicMock
@@ -193,3 +193,16 @@ class IntegrationControllerTest(QtTest):
         # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
         # print(self.widget.integration_image_widget.img_view.img_view_box.viewRect())
         self.assertEqual(self.widget.integration_image_widget.img_view.img_view_box.viewRect(), rect)
+
+    def test_save_cake_as_text_data(self):
+        output_file_name = "test.txt"
+        self.widget.integration_image_widget.mode_btn.click()  # change to cake mode
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, output_file_name))
+
+        cake_tth = np.copy(self.model.cake_tth) # make sure nothing is changed
+
+        click_button(self.widget.qa_save_img_btn)
+        self.assertTrue(os.path.exists(os.path.join(data_path, output_file_name)))
+        delete_if_exists(os.path.join(data_path, "test.txt"))
+
+        self.assertEqual(len(cake_tth), len(self.model.cake_tth))
