@@ -4,8 +4,8 @@ package:
     version: 0.4.1.post1
 
 source:
-    git_rev: develop
-    git_url: https://github.com/newville/Dioptas
+    git_rev: dioptas_gsecars
+    git_url: https://github.com/erangre/Dioptas
 
 build:
   number: 0
