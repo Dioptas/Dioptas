@@ -30,7 +30,7 @@ import fabio
 from ...model.CalibrationModel import CalibrationModel
 from ...model.util.HelperModule import rotate_matrix_m90, rotate_matrix_p90
 from ...controller.MainController import MainController
-from ..utility import QtTest, click_button, delete_if_exists
+from ..utility import QtTest, click_button, delete_if_exists, enter_value_into_text_field
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -60,6 +60,8 @@ test_image_file_name_2 = os.path.join(data_path, 'a_CeO2_Pilatus1M.tif')
 test_calibration_file = os.path.join(data_path, 'CeO2_Pilatus1M.poni')
 test_calibration_file_2 = os.path.join(data_path, 'a_CeO2_Pilatus1M.poni')
 poly_order = 55
+x_min = 1.0
+x_max = 8.0
 pyfai_params = {'detector': 'Detector',
                 'dist': 0.196711580484,
                 'poni1': 0.0813975852141,
@@ -313,6 +315,13 @@ class ProjectSaveLoadTest(QtTest):
         self.save_and_load_configuration(self.fit_bg_settings)
         self.assertEqual(self.widget.integration_widget.bkg_pattern_poly_order_sb.value(), poly_order)
 
+    def test_with_q_and_fit_bg(self):
+        self.save_and_load_configuration(self.q_and_fit_bg_settings)
+        self.assertAlmostEqual(float(self.controller.integration_controller.widget.bkg_pattern_x_min_txt.text()), x_min,
+                               1)
+        self.assertAlmostEqual(float(self.controller.integration_controller.widget.bkg_pattern_x_max_txt.text()), x_max,
+                               1)
+
     ####################################################################################################################
     def test_multiple_configurations(self):
         self.save_and_load_configuration(self.add_configuration)
@@ -324,6 +333,14 @@ class ProjectSaveLoadTest(QtTest):
     def fit_bg_settings(self):
         self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
         self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
+
+    def q_and_fit_bg_settings(self):
+        self.controller.integration_controller.widget.pattern_q_btn.click()
+        self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
+        self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
+
+        enter_value_into_text_field(self.controller.integration_controller.widget.bkg_pattern_x_min_txt, str(x_min))
+        enter_value_into_text_field(self.controller.integration_controller.widget.bkg_pattern_x_max_txt, str(x_max))
 
     ####################################################################################################################
     def test_with_background_image(self):
