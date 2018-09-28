@@ -24,6 +24,7 @@ from functools import partial
 import numpy as np
 from PIL import Image
 from qtpy import QtWidgets, QtCore
+import pyqtgraph as pg
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
@@ -61,6 +62,9 @@ class ImageController(object):
 
         self.clicked_tth = None
         self.clicked_azi = None
+
+        self.vertical_splitter_alternative_state = None
+        self.vertical_splitter_normal_state = None
 
         self.initialize()
         self.create_signals()
@@ -146,6 +150,8 @@ class ImageController(object):
 
         self.connect_click_function(self.widget.file_info_btn, self.show_file_info)
 
+        self.connect_click_function(self.widget.map_2D_btn, self.map_2d)  # MAP2D
+
         self.connect_click_function(self.widget.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.widget.mask_transparent_cb, self.update_mask_transparency)
@@ -168,6 +174,7 @@ class ImageController(object):
 
         self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
+        self.connect_click_function(self.widget.set_wavelnegth_btn, self.set_wavelength)
 
         self.connect_click_function(self.widget.cbn_groupbox, self.cbn_groupbox_changed)
         self.widget.cbn_diamond_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
@@ -187,7 +194,9 @@ class ImageController(object):
         self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
-        # signals
+        self.connect_click_function(self.widget.change_gui_view_btn, self.change_gui_view_btn_clicked)
+
+        # self.create_auto_process_signal()
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
     def connect_click_function(self, emitter, function):
@@ -223,7 +232,8 @@ class ImageController(object):
                         self.model.img_model.add(filenames[ind])
                     self.model.img_model.blockSignals(False)
                     self.model.img_model.img_changed.emit()
-                elif self.widget.img_batch_mode_integrate_rb.isChecked():
+                elif self.widget.img_batch_mode_integrate_rb.isChecked() or \
+                        self.widget.img_batch_mode_map_rb.isChecked():
                     self._load_multiple_files(filenames)
                 elif self.widget.img_batch_mode_image_save_rb.isChecked():
                     self._save_multiple_image_files(filenames)
@@ -242,6 +252,12 @@ class ImageController(object):
                                                           len(filenames))
         self._set_up_batch_processing()
 
+        if self.widget.img_batch_mode_map_rb.isChecked():
+            self.widget.pattern_header_xy_cb.setChecked(True)
+            self.model.map_model.reset_map_data()  # MAP2D
+            self.model.map_model.all_positions_defined_in_files = True
+            self.model.map_model.map_uses_patterns = False
+
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
             base_filename = os.path.basename(filename)
@@ -255,6 +271,14 @@ class ImageController(object):
 
             x, y = self.integrate_pattern()
             self._save_pattern(base_filename, working_directory, x, y)
+            # MAP2D
+            if self.widget.img_batch_mode_map_rb.isChecked():
+                if self.model.pattern.has_background():
+                    map_working_directory = os.path.join(working_directory, 'bkg_subtracted')
+                else:
+                    map_working_directory = working_directory
+                self.model.map_model.add_file_to_map_data(filename, map_working_directory,
+                                                          self.model.img_model.motors_info)
 
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
@@ -355,6 +379,9 @@ class ImageController(object):
     def show_file_info(self):
         self.widget.file_info_widget.raise_widget()
 
+    def map_2d(self):  # MAP2D
+        self.widget.map_2D_widget.raise_widget()
+
     def get_integration_unit(self):
         if self.widget.pattern_tth_btn.isChecked():
             return '2th_deg'
@@ -428,7 +455,7 @@ class ImageController(object):
         new_filename = str(self.widget.img_filename_txt.text())
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
-                self.load_file(filename=os.path.join(current_directory, new_filename))
+                self.load_file(filename=os.path.join(current_directory, new_filename).replace('\\', '/'))
             except TypeError:
                 self.widget.img_filename_txt.setText(current_filename)
         else:
@@ -580,6 +607,12 @@ class ImageController(object):
     def img_dock_btn_clicked(self):
         self.img_docked = not self.img_docked
         self.widget.dock_img(self.img_docked)
+        if self.img_docked:
+            if not self.widget.docked_alternative_gui_view == self.widget.undocked_alternative_gui_view:
+                self.change_gui_view(not self.widget.docked_alternative_gui_view)
+        else:
+            if not self.widget.undocked_alternative_gui_view == self.widget.docked_alternative_gui_view:
+                self.change_gui_view(not self.widget.undocked_alternative_gui_view)
 
     def show_background_subtracted_img_btn_clicked(self):
         if self.widget.img_mode_btn.text() == 'Cake':
@@ -864,6 +897,14 @@ class ImageController(object):
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
+            self.model.img_model.img_changed.emit()
+
+    def set_wavelength(self):
+        wavelength, ok = QtWidgets.QInputDialog.getText(self.widget, 'Set Wavelength', 'Wavelength in Angstroms:')
+        if ok:
+            self.model.calibration_model.pattern_geometry.wavelength = float(wavelength)*1e-10
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
             self.model.img_model.img_changed.emit()
 
     def auto_process_cb_click(self):
@@ -1082,4 +1123,43 @@ class ImageController(object):
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
 
+    def change_gui_view_btn_clicked(self):
+        # ind = self.find_ind_of_item_in_splitter(self.widget.integration_pattern_widget, self.widget.vertical_splitter)
+        # delete_me = self.widget.vertical_splitter.widget(ind)
+        # delete_me.hide()
+        # delete_me.deleteLater()
+        if self.img_docked:
+            current_view_mode = self.widget.docked_alternative_gui_view
+        else:
+            current_view_mode = self.widget.undocked_alternative_gui_view
+        self.change_gui_view(current_view_mode)
+        if self.img_docked:
+            self.widget.docked_alternative_gui_view = not self.widget.docked_alternative_gui_view
+        else:
+            self.widget.undocked_alternative_gui_view = not self.widget.undocked_alternative_gui_view
 
+    def change_gui_view(self, to_normal):
+        if to_normal:  # change to normal view
+            self.vertical_splitter_alternative_state = self.widget.vertical_splitter.saveState()
+            self.widget.vertical_splitter.addWidget(self.widget.integration_pattern_widget)
+            self.widget.integration_control_widget.insertTab(2,
+                 self.widget.integration_control_widget.overlay_control_widget, 'Overlay')
+            self.widget.integration_control_widget.insertTab(3,
+                 self.widget.integration_control_widget.phase_control_widget, 'Phase')
+            if self.vertical_splitter_normal_state:
+                self.widget.vertical_splitter.restoreState(self.vertical_splitter_normal_state)
+        else:  # change to alternative view
+            self.vertical_splitter_normal_state = self.widget.vertical_splitter.saveState()
+            self.widget.vertical_splitter_left.addWidget(self.widget.integration_pattern_widget)
+            self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.overlay_control_widget)
+            self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.phase_control_widget)
+            self.widget.integration_control_widget.overlay_control_widget.setVisible(True)
+            self.widget.integration_control_widget.phase_control_widget.setVisible(True)
+            if self.vertical_splitter_alternative_state:
+                self.widget.vertical_splitter.restoreState(self.vertical_splitter_alternative_state)
+
+    def find_ind_of_item_in_splitter(self, item, splitter):
+        for ind in range(0, splitter.count()):
+            if splitter.widget(ind) == item:
+                return ind
+        return False

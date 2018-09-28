@@ -26,7 +26,7 @@ import h5py
 from .util import jcpds
 from .util import Pattern
 from .Configuration import Configuration
-from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
+from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel, MapModel
 from .. import __version__
 
 
@@ -51,6 +51,7 @@ class DioptasModel(QtCore.QObject):
 
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
+        self.map_model = MapModel()
 
         self._combine_patterns = False
         self._combine_cakes = False

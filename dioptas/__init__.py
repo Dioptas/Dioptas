@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -45,6 +45,7 @@ icons_path = os.path.join(resources_path, 'icons')
 data_path = os.path.join(resources_path, 'data')
 style_path = os.path.join(resources_path, 'style')
 
+from ._desktop_shortcuts import make_shortcut
 
 from .widgets.UtilityWidgets import ErrorMessageBox
 
@@ -74,6 +75,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
     time_string = time.strftime("%Y-%m-%d, %H:%M:%S")
     tb_info_file = StringIO()
     traceback.print_tb(traceback_obj, None, tb_info_file)
+    traceback.print_exception(exc_type, exc_value, traceback_obj)
     tb_info_file.seek(0)
     tb_info = tb_info_file.read()
     errmsg = '%s: \n%s' % (str(exc_type), str(exc_value))

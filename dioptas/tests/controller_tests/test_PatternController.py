@@ -16,22 +16,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
+import os, sys
 
 from ..utility import QtTest, click_button, delete_if_exists
 from mock import MagicMock
 
 from qtpy import QtWidgets
 
+import numpy as np
+
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.PatternController import PatternController
 from ...model.DioptasModel import DioptasModel
 
 data_path = os.path.join(os.path.dirname(__file__), '../data')
+from ..ehook import excepthook
 
 
 class PatternControllerTest(QtTest):
     def setUp(self):
+        self.working_dir = {'image': '', 'pattern': ''}
+        sys.excepthook = excepthook
+
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
 

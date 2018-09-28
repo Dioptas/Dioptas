@@ -55,7 +55,7 @@ a = Analysis(['Dioptas.py'],
                             'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy'],
              hookspath=[],
              runtime_hooks=[],
-             excludes=['PyQt4', 'PySide'],
+             excludes=['PyQt4', 'PySide', 'pyepics'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)

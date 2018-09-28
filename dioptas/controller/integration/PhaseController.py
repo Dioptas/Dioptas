@@ -30,6 +30,7 @@ from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_f
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 from ...widgets.UtilityWidgets import CifConversionParametersDialog
+from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 
 class PhaseController(object):

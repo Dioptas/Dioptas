@@ -116,6 +116,11 @@ QGraphicsView {
      color: #F1F1F1;
     font-size: 12px;
  }
+
+ QListWidget::item:selected{
+     background: #F100F1;
+ }
+
  QCheckBox{
      border-radius: 5px;
  }
