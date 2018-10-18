@@ -197,10 +197,10 @@ class CalibrationModelTest(QtTest):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
 
-        self.calibration_model.integrate_2d(num_points_rad=200)
+        self.calibration_model.integrate_2d(rad_points=200)
         self.assertEqual(len(self.calibration_model.cake_tth), 200)
 
-        self.calibration_model.integrate_2d(num_points_azi=200)
+        self.calibration_model.integrate_2d(azimuth_points=200)
         self.assertEqual(len(self.calibration_model.cake_azi), 200)
 
 

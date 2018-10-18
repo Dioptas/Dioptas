@@ -57,9 +57,11 @@ class Configuration(QtCore.QObject):
 
         self.transparent_mask = False
 
-        self._integration_num_points = None
-        self._integration_azimuth_points = 2048
+        self._integration_rad_points = None
         self._integration_unit = '2th_deg'
+
+        self._integration_azimuth_points = 360
+        self._integration_azimuth_range = (-180, 180)
 
         self._auto_integrate_pattern = True
         self._auto_integrate_cake = False
@@ -92,7 +94,7 @@ class Configuration(QtCore.QObject):
                 mask = None
 
             x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
-                                                       num_points=self.integration_num_points)
+                                                       num_points=self.integration_rad_points)
 
             self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
 
@@ -112,7 +114,11 @@ class Configuration(QtCore.QObject):
         else:
             mask = None
 
-        self.calibration_model.integrate_2d(mask=mask)
+        self.calibration_model.integrate_2d(mask=mask,
+                                            rad_points=self._integration_rad_points,
+                                            azimuth_points=self._integration_azimuth_points,
+                                            azimuth_range=self._integration_azimuth_range)
+
         self.cake_changed.emit()
 
     def save_pattern(self, filename=None, subtract_background=False):
@@ -190,13 +196,33 @@ class Configuration(QtCore.QObject):
         self.mask_model.set_dimension(self.img_model._img_data.shape)
 
     @property
-    def integration_num_points(self):
-        return self._integration_num_points
+    def integration_rad_points(self):
+        return self._integration_rad_points
 
-    @integration_num_points.setter
-    def integration_num_points(self, new_value):
-        self._integration_num_points = new_value
+    @integration_rad_points.setter
+    def integration_rad_points(self, new_value):
+        self._integration_rad_points = new_value
         self.integrate_image_1d()
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
+
+    @property
+    def integration_azimuth_points(self):
+        return self._integration_azimuth_points
+
+    @integration_azimuth_points.setter
+    def integration_azimuth_points(self, new_value):
+        self._integration_azimuth_points = new_value
+        self.integrate_image_2d()
+
+    @property
+    def integration_azimuth_range(self):
+        return self._integration_azimuth_range
+
+    @integration_azimuth_range.setter
+    def integration_azimuth_range(self, new_value):
+        self._integration_azimuth_range = new_value
+        self.integrate_image_2d()
 
     @property
     def integration_unit(self):
@@ -326,8 +352,8 @@ class Configuration(QtCore.QObject):
         # save general information
         general_information = f.create_group('general_information')
         general_information.attrs['integration_unit'] = self.integration_unit
-        if self.integration_num_points:
-            general_information.attrs['integration_num_points'] = self.integration_num_points
+        if self.integration_rad_points:
+            general_information.attrs['integration_num_points'] = self.integration_rad_points
         else:
             general_information.attrs['integration_num_points'] = 0
         general_information.attrs['auto_integrate_cake'] = self.auto_integrate_cake
@@ -573,7 +599,7 @@ class Configuration(QtCore.QObject):
 
         # load general configuration
         if f.get('general_information').attrs['integration_num_points']:
-            self.integration_num_points = f.get('general_information').attrs['integration_num_points']
+            self.integration_rad_points = f.get('general_information').attrs['integration_num_points']
 
         self.auto_integrate_cake = f.get('general_information').attrs['auto_integrate_cake']
         self.use_mask = f.get('general_information').attrs['use_mask']
