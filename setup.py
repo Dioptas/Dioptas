@@ -1,13 +1,19 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 from setuptools import find_packages
 from numpy.distutils.core import Extension, setup
 
 import versioneer
 
-smooth_bruckner = Extension(
-    name='dioptas.model.util.smooth_bruckner',
-    sources= ['dioptas/model/util/smooth_bruckner.f95']
-)
+with_bruckner_f95 = False
+
+ext_modules = []
+
+if with_bruckner_f95:
+    ext_modules.append(Extension(
+        name='dioptas.model.util.smooth_bruckner',
+        sources= ['dioptas/model/util/smooth_bruckner.f95']
+        )
+                       )
 
 setup(
     name='dioptas',
@@ -32,5 +38,5 @@ setup(
                               ]
                   },
     scripts=['scripts/dioptas'],
-    ext_modules=[smooth_bruckner]
+    ext_modules=ext_modules,
 )
