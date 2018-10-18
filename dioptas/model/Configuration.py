@@ -555,6 +555,7 @@ class Configuration(QtCore.QObject):
                                            f.get('pattern').attrs['pattern_filename'],
                                            f.get('pattern').attrs['unit'])
             self.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
+        self.integration_unit = f.get('general_information').attrs['integration_unit']
 
         if f.get('background_pattern').attrs['has_background_pattern']:
             self.pattern_model.background_pattern = Pattern(f.get('background_pattern').get('x')[...],
@@ -573,7 +574,6 @@ class Configuration(QtCore.QObject):
                                                                        recalc_pattern=False)
 
         # load general configuration
-        self.integration_unit = f.get('general_information').attrs['integration_unit']
         if f.get('general_information').attrs['integration_num_points']:
             self.integration_num_points = f.get('general_information').attrs['integration_num_points']
 
