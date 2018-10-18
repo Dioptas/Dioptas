@@ -48,10 +48,12 @@ class OptionsController(object):
     def connect_signals(self):
         self.options_widget.correct_solid_angle_cb.stateChanged.connect(self.correct_solid_angle_cb_clicked)
         self.model.configuration_selected.connect(self.update_gui)
+        self.model.pattern_changed.connect(self.update_gui)
+
 
     def correct_solid_angle_cb_clicked(self):
         self.model.current_configuration.correct_solid_angle = self.options_widget.correct_solid_angle_cb.isChecked()
 
     def update_gui(self):
-        print(self.model.current_configuration.correct_solid_angle)
         self.options_widget.correct_solid_angle_cb.setChecked(self.model.current_configuration.correct_solid_angle)
+        self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))
