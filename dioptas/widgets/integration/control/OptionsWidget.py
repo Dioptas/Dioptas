@@ -16,10 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtGui, QtCore
 
 from ...CustomWidgets import IntegerTextField, NumberTextField, LabelAlignRight, SpinBoxAlignRight, VerticalSpacerItem, \
-    HorizontalSpacerItem
+    HorizontalSpacerItem, ConservativeSpinBox
 
 
 class OptionsWidget(QtWidgets.QWidget):
@@ -66,18 +66,18 @@ class OptionsWidget(QtWidgets.QWidget):
     def create_cake_gb(self):
         self.cake_gb = QtWidgets.QGroupBox('2D (Cake-) integration')
         self._cake_gb_layout = QtWidgets.QGridLayout()
-        self._cake_azimuth_points_sb = SpinBoxAlignRight()
-        self._cake_azimuth_min_txt = NumberTextField('-180')
-        self._cake_azimuth_max_txt = NumberTextField('180')
+        self.cake_azimuth_points_sb = ConservativeSpinBox()
+        self.cake_azimuth_min_txt = NumberTextField('-180')
+        self.cake_azimuth_max_txt = NumberTextField('180')
 
         self._cake_gb_layout.addWidget(LabelAlignRight('Azimuth bins:'), 0, 0)
-        self._cake_gb_layout.addWidget(self._cake_azimuth_points_sb, 0, 1)
+        self._cake_gb_layout.addWidget(self.cake_azimuth_points_sb, 0, 1)
         self._cake_gb_layout.addWidget(LabelAlignRight('Azimuth range:'), 1, 0)
         self._azi_range_layout = QtWidgets.QHBoxLayout()
-        self._azi_range_layout.addWidget(self._cake_azimuth_min_txt)
+        self._azi_range_layout.addWidget(self.cake_azimuth_min_txt)
         self._azi_range_separater_lbl = LabelAlignRight('-')
         self._azi_range_layout.addWidget(self._azi_range_separater_lbl)
-        self._azi_range_layout.addWidget(self._cake_azimuth_max_txt)
+        self._azi_range_layout.addWidget(self.cake_azimuth_max_txt)
         self._cake_gb_layout.addLayout(self._azi_range_layout, 1, 1)
         self.cake_gb.setLayout(self._cake_gb_layout)
 
@@ -94,13 +94,12 @@ class OptionsWidget(QtWidgets.QWidget):
         self.bin_count_cb.setChecked(True)
 
     def style_cake_widgets(self):
-        self._cake_azimuth_points_sb.setMaximumWidth(85)
-        self._cake_azimuth_points_sb.setMinimum(1)
-        self._cake_azimuth_points_sb.setSingleStep(1)
+        self.cake_azimuth_points_sb.setMaximumWidth(85)
+        self.cake_azimuth_points_sb.setMinimum(1)
+        self.cake_azimuth_points_sb.setMaximum(10000)
+        self.cake_azimuth_points_sb.setSingleStep(100)
 
-        self._cake_azimuth_max_txt.setMaximumWidth(35)
-        self._cake_azimuth_min_txt.setMaximumWidth(35)
+        self.cake_azimuth_max_txt.setMaximumWidth(35)
+        self.cake_azimuth_min_txt.setMaximumWidth(35)
         self._azi_range_separater_lbl.setMaximumWidth(5)
-
-
 

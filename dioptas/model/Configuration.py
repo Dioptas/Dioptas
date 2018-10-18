@@ -213,7 +213,8 @@ class Configuration(QtCore.QObject):
     @integration_azimuth_points.setter
     def integration_azimuth_points(self, new_value):
         self._integration_azimuth_points = new_value
-        self.integrate_image_2d()
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
 
     @property
     def integration_azimuth_range(self):
@@ -222,7 +223,8 @@ class Configuration(QtCore.QObject):
     @integration_azimuth_range.setter
     def integration_azimuth_range(self, new_value):
         self._integration_azimuth_range = new_value
-        self.integrate_image_2d()
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
 
     @property
     def integration_unit(self):
