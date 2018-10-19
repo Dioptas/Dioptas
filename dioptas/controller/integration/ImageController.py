@@ -704,7 +704,7 @@ class ImageController(object):
         if self.img_mode == "Image":
             img_shape = self.model.img_data.shape
         elif self.img_mode == "Cake":
-            img_shape = (len(self.model.cake_tth), len(self.model.cake_azi))
+            img_shape = self.model.cake_data.shape
 
         if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
@@ -779,8 +779,8 @@ class ImageController(object):
         if self.model.calibration_model.is_calibrated:
             x, y = y, x  # the indices are reversed for the img_array
             if self.img_mode == 'Cake':  # cake mode
-                cake_shape = (len(self.model.cake_tth), len(self.model.cake_azi))
-                if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):
+                cake_shape = self.model.cake_data.shape
+                if x < 0 or y < 0 or x > cake_shape[0] - 1 or y > cake_shape[1] - 1:
                     return
                 y = np.array([y])
                 x = np.array([x])
