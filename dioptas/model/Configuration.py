@@ -61,7 +61,7 @@ class Configuration(QtCore.QObject):
         self._integration_unit = '2th_deg'
 
         self._cake_azimuth_points = 360
-        self._cake_azimuth_range = (-180, 180)
+        self._cake_azimuth_range = None
 
         self._auto_integrate_pattern = True
         self._auto_integrate_cake = False
@@ -363,7 +363,10 @@ class Configuration(QtCore.QObject):
         # cake parameters:
         general_information.attrs['auto_integrate_cake'] = self.auto_integrate_cake
         general_information.attrs['cake_azimuth_points'] = self.cake_azimuth_points
-        general_information.attrs['cake_azimuth_range'] = self.cake_azimuth_range
+        if self.cake_azimuth_range is None:
+            general_information.attrs['cake_azimuth_range'] = "None"
+        else:
+            general_information.attrs['cake_azimuth_range'] = self.cake_azimuth_range
 
         # mask parameters
         general_information.attrs['use_mask'] = self.use_mask
@@ -619,7 +622,10 @@ class Configuration(QtCore.QObject):
         except KeyError as e:
             pass
         try:
-            self.cake_azimuth_range = f.get('general_information').attrs['cake_azimuth_range']
+            if f.get('general_information').attrs['cake_azimuth_range'] == "None":
+                self.cake_azimuth_range = None
+            else:
+                self.cake_azimuth_range = f.get('general_information').attrs['cake_azimuth_range']
         except KeyError as e:
             pass
 
