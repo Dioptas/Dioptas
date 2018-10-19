@@ -19,7 +19,7 @@
 from qtpy import QtWidgets, QtGui, QtCore
 
 from ...CustomWidgets import IntegerTextField, NumberTextField, LabelAlignRight, SpinBoxAlignRight, VerticalSpacerItem, \
-    HorizontalSpacerItem, ConservativeSpinBox
+    HorizontalSpacerItem, ConservativeSpinBox, CheckableFlatButton
 
 
 class OptionsWidget(QtWidgets.QWidget):
@@ -69,6 +69,7 @@ class OptionsWidget(QtWidgets.QWidget):
         self.cake_azimuth_points_sb = ConservativeSpinBox()
         self.cake_azimuth_min_txt = NumberTextField('-180')
         self.cake_azimuth_max_txt = NumberTextField('180')
+        self.cake_full_toggle_btn = CheckableFlatButton('Full Range')
 
         self._cake_gb_layout.addWidget(LabelAlignRight('Azimuth bins:'), 0, 0)
         self._cake_gb_layout.addWidget(self.cake_azimuth_points_sb, 0, 1)
@@ -79,6 +80,7 @@ class OptionsWidget(QtWidgets.QWidget):
         self._azi_range_layout.addWidget(self._azi_range_separater_lbl)
         self._azi_range_layout.addWidget(self.cake_azimuth_max_txt)
         self._cake_gb_layout.addLayout(self._azi_range_layout, 1, 1)
+        self._cake_gb_layout.addWidget(self.cake_full_toggle_btn, 2, 1)
         self.cake_gb.setLayout(self._cake_gb_layout)
 
     def style_integration_widgets(self):
@@ -94,12 +96,21 @@ class OptionsWidget(QtWidgets.QWidget):
         self.bin_count_cb.setChecked(True)
 
     def style_cake_widgets(self):
-        self.cake_azimuth_points_sb.setMaximumWidth(85)
+        self.cake_azimuth_points_sb.setMaximumWidth(95)
+        self.cake_azimuth_points_sb.setMinimumWidth(95)
         self.cake_azimuth_points_sb.setMinimum(1)
         self.cake_azimuth_points_sb.setMaximum(10000)
         self.cake_azimuth_points_sb.setSingleStep(100)
 
-        self.cake_azimuth_max_txt.setMaximumWidth(35)
-        self.cake_azimuth_min_txt.setMaximumWidth(35)
+        self.cake_azimuth_min_txt.setMinimumWidth(40)
+        self.cake_azimuth_min_txt.setMaximumWidth(40)
+        self.cake_azimuth_max_txt.setMinimumWidth(40)
+        self.cake_azimuth_max_txt.setMaximumWidth(40)
         self._azi_range_separater_lbl.setMaximumWidth(5)
+        self._azi_range_layout.setSpacing(0)
+        self._azi_range_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.cake_full_toggle_btn.setChecked(True)
+        self.cake_azimuth_min_txt.setDisabled(True)
+        self.cake_azimuth_max_txt.setDisabled(True)
 
