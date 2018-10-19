@@ -102,6 +102,7 @@ class ImageController(object):
 
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         self.widget.img_widget.plot_image(np.roll(self.model.cake_data, shift_amount, axis=0))
+        self.update_cake_axes_range()
         if auto_scale:
             self.widget.img_widget.auto_level()
 
