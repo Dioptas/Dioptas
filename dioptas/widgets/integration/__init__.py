@@ -299,7 +299,7 @@ class IntegrationWidget(QtWidgets.QWidget):
             # remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
             self.img_frame.setParent(self.vertical_splitter_left)
 
-            self.vertical_splitter_left.insertWidget(0, self.img_frame)
+            self.vertical_splitter_left.insertWidget(1, self.img_frame)
             # self.horizontal_splitter.addWidget(self.vertical_splitter)
 
             # restore the previously used size when image was undocked
