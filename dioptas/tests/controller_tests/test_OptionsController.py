@@ -51,14 +51,14 @@ class OptionsControllerTest(QtTest):
 
     def test_change_azimuth_bins(self):
         enter_value_into_text_field(self.options_widget.cake_azimuth_points_sb.lineEdit(), 100)
-        self.assertEqual(self.model.current_configuration.integration_azimuth_points, 100)
+        self.assertEqual(self.model.current_configuration.cake_azimuth_points, 100)
 
     def test_change_azimuth_range(self):
         enter_value_into_text_field(self.options_widget.cake_azimuth_min_txt, -100)
-        self.assertEqual(self.model.current_configuration.integration_azimuth_range[0], -100)
+        self.assertEqual(self.model.current_configuration.cake_azimuth_range[0], -100)
 
         enter_value_into_text_field(self.options_widget.cake_azimuth_max_txt, 200)
-        self.assertEqual(self.model.current_configuration.integration_azimuth_range[1], 200)
+        self.assertEqual(self.model.current_configuration.cake_azimuth_range[1], 200)
 
 
 

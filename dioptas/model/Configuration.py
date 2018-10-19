@@ -60,8 +60,8 @@ class Configuration(QtCore.QObject):
         self._integration_rad_points = None
         self._integration_unit = '2th_deg'
 
-        self._integration_azimuth_points = 360
-        self._integration_azimuth_range = (-180, 180)
+        self._cake_azimuth_points = 360
+        self._cake_azimuth_range = (-180, 180)
 
         self._auto_integrate_pattern = True
         self._auto_integrate_cake = False
@@ -116,8 +116,8 @@ class Configuration(QtCore.QObject):
 
         self.calibration_model.integrate_2d(mask=mask,
                                             rad_points=self._integration_rad_points,
-                                            azimuth_points=self._integration_azimuth_points,
-                                            azimuth_range=self._integration_azimuth_range)
+                                            azimuth_points=self._cake_azimuth_points,
+                                            azimuth_range=self._cake_azimuth_range)
 
         self.cake_changed.emit()
 
@@ -207,22 +207,22 @@ class Configuration(QtCore.QObject):
             self.integrate_image_2d()
 
     @property
-    def integration_azimuth_points(self):
-        return self._integration_azimuth_points
+    def cake_azimuth_points(self):
+        return self._cake_azimuth_points
 
-    @integration_azimuth_points.setter
-    def integration_azimuth_points(self, new_value):
-        self._integration_azimuth_points = new_value
+    @cake_azimuth_points.setter
+    def cake_azimuth_points(self, new_value):
+        self._cake_azimuth_points = new_value
         if self.auto_integrate_cake:
             self.integrate_image_2d()
 
     @property
-    def integration_azimuth_range(self):
-        return self._integration_azimuth_range
+    def cake_azimuth_range(self):
+        return self._cake_azimuth_range
 
-    @integration_azimuth_range.setter
-    def integration_azimuth_range(self, new_value):
-        self._integration_azimuth_range = new_value
+    @cake_azimuth_range.setter
+    def cake_azimuth_range(self, new_value):
+        self._cake_azimuth_range = new_value
         if self.auto_integrate_cake:
             self.integrate_image_2d()
 
@@ -353,14 +353,23 @@ class Configuration(QtCore.QObject):
         f = hdf5_group
         # save general information
         general_information = f.create_group('general_information')
+        # integration parameters:
         general_information.attrs['integration_unit'] = self.integration_unit
         if self.integration_rad_points:
             general_information.attrs['integration_num_points'] = self.integration_rad_points
         else:
             general_information.attrs['integration_num_points'] = 0
+
+        # cake parameters:
         general_information.attrs['auto_integrate_cake'] = self.auto_integrate_cake
+        general_information.attrs['cake_azimuth_points'] = self.cake_azimuth_points
+        general_information.attrs['cake_azimuth_range'] = self.cake_azimuth_range
+
+        # mask parameters
         general_information.attrs['use_mask'] = self.use_mask
         general_information.attrs['transparent_mask'] = self.transparent_mask
+
+        # auto save parameters
         general_information.attrs['auto_save_integrated_pattern'] = self.auto_save_integrated_pattern
         formats = [n.encode('ascii', 'ignore') for n in self.integrated_patterns_file_formats]
         general_information.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
@@ -603,10 +612,22 @@ class Configuration(QtCore.QObject):
         if f.get('general_information').attrs['integration_num_points']:
             self.integration_rad_points = f.get('general_information').attrs['integration_num_points']
 
+        # cake parameters:
         self.auto_integrate_cake = f.get('general_information').attrs['auto_integrate_cake']
+        try:
+            self.cake_azimuth_points = f.get('general_information').attrs['cake_azimuth_points']
+        except KeyError as e:
+            pass
+        try:
+            self.cake_azimuth_range = f.get('general_information').attrs['cake_azimuth_range']
+        except KeyError as e:
+            pass
+
+        # mask parameters
         self.use_mask = f.get('general_information').attrs['use_mask']
         self.transparent_mask = f.get('general_information').attrs['transparent_mask']
 
+        # autosave parameters
         self.auto_save_integrated_pattern = f.get('general_information').attrs['auto_save_integrated_pattern']
         self.integrated_patterns_file_formats = []
         for file_format in f.get('general_information').get('integrated_patterns_file_formats'):

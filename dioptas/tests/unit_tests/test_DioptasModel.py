@@ -121,7 +121,7 @@ class DioptasModelTest(QtTest):
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
         self.assertEqual(self.model.current_configuration.cake_img.shape[0], 360)
-        self.model.current_configuration.integration_azimuth_points = 720
+        self.model.current_configuration.cake_azimuth_points = 720
         self.assertEqual(self.model.current_configuration.cake_img.shape[0], 720)
 
     def test_integrate_cake_with_different_rad_points(self):
@@ -141,7 +141,7 @@ class DioptasModelTest(QtTest):
         self.assertAlmostEqual(self.model.current_configuration.calibration_model.cake_azi[0], -179.5, places=4)
         self.assertAlmostEqual(self.model.current_configuration.calibration_model.cake_azi[-1], 179.5, places=4)
 
-        self.model.current_configuration.integration_azimuth_range = [-100, 100]
+        self.model.current_configuration.cake_azimuth_range = [-100, 100]
         self.assertGreater(self.model.current_configuration.calibration_model.cake_azi[0], -100)
         self.assertLess(self.model.current_configuration.calibration_model.cake_azi[-1], 100)
 

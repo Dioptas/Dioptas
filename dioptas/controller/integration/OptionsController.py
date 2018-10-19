@@ -62,20 +62,20 @@ class OptionsController(object):
         self.options_widget.correct_solid_angle_cb.setChecked(self.model.current_configuration.correct_solid_angle)
         self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))
 
-        self.options_widget.cake_azimuth_points_sb.setValue(self.model.current_configuration.integration_azimuth_points)
+        self.options_widget.cake_azimuth_points_sb.setValue(self.model.current_configuration.cake_azimuth_points)
         self.options_widget.cake_azimuth_min_txt.setText(
-            '{}'.format(self.model.current_configuration.integration_azimuth_range[0]))
+            '{}'.format(self.model.current_configuration.cake_azimuth_range[0]))
         self.options_widget.cake_azimuth_max_txt.setText(
-            '{}'.format(self.model.current_configuration.integration_azimuth_range[1]))
+            '{}'.format(self.model.current_configuration.cake_azimuth_range[1]))
         self.options_widget.blockSignals(False)
 
     def cake_azimuth_range_changed(self):
         range_min = float(self.options_widget.cake_azimuth_min_txt.text())
         range_max = float(self.options_widget.cake_azimuth_max_txt.text())
-        self.model.current_configuration.integration_azimuth_range = (range_min, range_max)
+        self.model.current_configuration.cake_azimuth_range = (range_min, range_max)
 
     def cake_azimuth_points_changed(self):
-        self.model.current_configuration.integration_azimuth_points = int(
+        self.model.current_configuration.cake_azimuth_points = int(
             self.options_widget.cake_azimuth_points_sb.value())
 
 
