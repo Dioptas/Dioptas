@@ -54,6 +54,8 @@ class OptionsController(object):
         self.options_widget.cake_azimuth_min_txt.editingFinished.connect(self.cake_azimuth_range_changed)
         self.options_widget.cake_azimuth_max_txt.editingFinished.connect(self.cake_azimuth_range_changed)
 
+        self.options_widget.cake_full_toggle_btn.toggled.connect(self.cake_full_toggled_btn_changed)
+
     def correct_solid_angle_cb_clicked(self):
         self.model.current_configuration.correct_solid_angle = self.options_widget.correct_solid_angle_cb.isChecked()
 
@@ -69,6 +71,12 @@ class OptionsController(object):
             '{}'.format(self.model.current_configuration.cake_azimuth_range[1]))
         self.options_widget.blockSignals(False)
 
+        if self.model.current_configuration.cake_azimuth_range[0] == -180 and \
+            self.model.current_configuration.cake_azimuth_range[1] == 180:
+            self.enable_full_cake()
+        else:
+            self.disable_full_cake()
+
     def cake_azimuth_range_changed(self):
         range_min = float(self.options_widget.cake_azimuth_min_txt.text())
         range_max = float(self.options_widget.cake_azimuth_max_txt.text())
@@ -77,5 +85,25 @@ class OptionsController(object):
     def cake_azimuth_points_changed(self):
         self.model.current_configuration.cake_azimuth_points = int(
             self.options_widget.cake_azimuth_points_sb.value())
+
+    def cake_full_toggled_btn_changed(self):
+        if self.options_widget.cake_full_toggle_btn.isChecked():
+            self.enable_full_cake()
+            self.model.current_configuration.cake_azimuth_range = (-180, 180)
+
+        elif not self.options_widget.cake_full_toggle_btn.isChecked():
+            self.disable_full_cake()
+            self.cake_azimuth_range_changed()
+
+    def enable_full_cake(self):
+        self.options_widget.cake_azimuth_min_txt.setDisabled(True)
+        self.options_widget.cake_azimuth_max_txt.setDisabled(True)
+        self.integration_widget.cake_shift_azimuth_sl.setDisabled(False)
+
+    def disable_full_cake(self):
+        self.options_widget.cake_azimuth_min_txt.setDisabled(False)
+        self.options_widget.cake_azimuth_max_txt.setDisabled(False)
+        self.integration_widget.cake_shift_azimuth_sl.setDisabled(True)
+        self.integration_widget.cake_shift_azimuth_sl.setValue(0)
 
 
