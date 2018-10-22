@@ -211,8 +211,8 @@ class OverlayWidget(QtWidgets.QWidget):
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
 
-        self.overlay_tw.setColumnWidth(0, 0)
-        self.overlay_tw.setColumnWidth(1, 0)
+        self.overlay_tw.setColumnWidth(0, 20)
+        self.overlay_tw.setColumnWidth(1, 25)
         self.overlay_tw.setRowHeight(current_rows, 25)
         self.select_overlay(current_rows)
         self.overlay_tw.blockSignals(False)
