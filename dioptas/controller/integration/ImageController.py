@@ -49,7 +49,6 @@ class ImageController(object):
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-
         self.widget = widget
         self.model = dioptas_model
 
@@ -61,6 +60,9 @@ class ImageController(object):
 
         self.clicked_tth = None
         self.clicked_azi = None
+
+        self.vertical_splitter_alternative_state = None
+        self.vertical_splitter_normal_state = None
 
         self.initialize()
         self.create_signals()
@@ -189,6 +191,7 @@ class ImageController(object):
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
         # signals
+        self.connect_click_function(self.widget.change_gui_view_btn, self.change_gui_view_btn_clicked)
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
     def connect_click_function(self, emitter, function):
@@ -581,6 +584,12 @@ class ImageController(object):
     def img_dock_btn_clicked(self):
         self.img_docked = not self.img_docked
         self.widget.dock_img(self.img_docked)
+        if self.img_docked:
+            if not self.widget.is_docked_in_alternative_gui_view == self.widget.is_undocked_in_alternative_gui_view:
+                self.change_gui_view_to_normal()
+        else:
+            if not self.widget.is_undocked_in_alternative_gui_view == self.widget.is_docked_in_alternative_gui_view:
+                self.change_gui_view_to_alternative()
 
     def show_background_subtracted_img_btn_clicked(self):
         if self.widget.img_mode_btn.text() == 'Cake':
@@ -1083,4 +1092,50 @@ class ImageController(object):
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
 
+    def change_gui_view_btn_clicked(self):
+        # ind = self.find_ind_of_item_in_splitter(self.widget.integration_pattern_widget, self.widget.vertical_splitter)
+        # delete_me = self.widget.vertical_splitter.widget(ind)
+        # delete_me.hide()
+        # delete_me.deleteLater()
+        if self.img_docked:
+            is_current_view_mode_in_alternative = self.widget.is_docked_in_alternative_gui_view
+            self.widget.is_docked_in_alternative_gui_view = not self.widget.is_docked_in_alternative_gui_view
+        else:
+            is_current_view_mode_in_alternative = self.widget.is_undocked_in_alternative_gui_view
+            self.widget.is_undocked_in_alternative_gui_view = not self.widget.is_undocked_in_alternative_gui_view
 
+        if is_current_view_mode_in_alternative:
+            self.change_gui_view_to_normal()
+        else:
+            self.change_gui_view_to_alternative()
+
+    def change_gui_view_to_normal(self):
+        self.vertical_splitter_alternative_state = self.widget.vertical_splitter.saveState()
+        self.widget.vertical_splitter.addWidget(self.widget.integration_pattern_widget)
+        self.widget.integration_control_widget.insertTab(2,
+             self.widget.integration_control_widget.overlay_control_widget, 'Overlay')
+        self.widget.integration_control_widget.insertTab(3,
+             self.widget.integration_control_widget.phase_control_widget, 'Phase')
+        if self.vertical_splitter_normal_state:
+            self.widget.vertical_splitter.restoreState(self.vertical_splitter_normal_state)
+        self.widget.integration_control_widget.overlay_control_widget.overlay_lbl.setVisible(False)
+        self.widget.integration_control_widget.phase_control_widget.phase_lbl.setVisible(False)
+
+    def change_gui_view_to_alternative(self):
+        self.vertical_splitter_normal_state = self.widget.vertical_splitter.saveState()
+        self.widget.vertical_splitter_left.insertWidget(0, self.widget.integration_pattern_widget)
+        # self.widget.vertical_splitter_left.addWidget(self.widget.integration_pattern_widget)
+        self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.overlay_control_widget)
+        self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.phase_control_widget)
+        self.widget.integration_control_widget.overlay_control_widget.setVisible(True)
+        self.widget.integration_control_widget.phase_control_widget.setVisible(True)
+        self.widget.integration_control_widget.overlay_control_widget.overlay_lbl.setVisible(True)
+        self.widget.integration_control_widget.phase_control_widget.phase_lbl.setVisible(True)
+        if self.vertical_splitter_alternative_state:
+            self.widget.vertical_splitter.restoreState(self.vertical_splitter_alternative_state)
+
+    def find_ind_of_item_in_splitter(self, item, splitter):
+        for ind in range(0, splitter.count()):
+            if splitter.widget(ind) == item:
+                return ind
+        return False
