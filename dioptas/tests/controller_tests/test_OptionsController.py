@@ -23,7 +23,7 @@ import gc
 from qtpy import QtWidgets
 from mock import MagicMock
 
-from ..utility import enter_value_into_text_field
+from ..utility import enter_value_into_text_field, click_button
 
 from ...controller.integration import OptionsController
 from ...model.DioptasModel import DioptasModel
@@ -54,6 +54,7 @@ class OptionsControllerTest(QtTest):
         self.assertEqual(self.model.current_configuration.cake_azimuth_points, 100)
 
     def test_change_azimuth_range(self):
+        click_button(self.options_widget.cake_full_toggle_btn)
         enter_value_into_text_field(self.options_widget.cake_azimuth_min_txt, -100)
         self.assertEqual(self.model.current_configuration.cake_azimuth_range[0], -100)
 
