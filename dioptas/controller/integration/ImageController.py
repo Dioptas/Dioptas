@@ -56,6 +56,7 @@ class ImageController(object):
 
         self.img_mode = 'Image'
         self.img_docked = True
+        self.view_mode = 'normal'  # modes available: normal, alternative
         self.roi_active = False
 
         self.clicked_tth = None
@@ -63,6 +64,8 @@ class ImageController(object):
 
         self.vertical_splitter_alternative_state = None
         self.vertical_splitter_normal_state = None
+        self.horizontal_splitter_alternative_state = None
+        self.horizontal_splitter_normal_state = None
 
         self.initialize()
         self.create_signals()
@@ -191,7 +194,7 @@ class ImageController(object):
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
         # signals
-        self.connect_click_function(self.widget.change_gui_view_btn, self.change_gui_view_btn_clicked)
+        self.connect_click_function(self.widget.change_view_btn, self.change_view_btn_clicked)
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
     def connect_click_function(self, emitter, function):
@@ -546,8 +549,8 @@ class ImageController(object):
         self.update_cake_axes_range()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
-        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi)/2)
-        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi)/2)
+        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi) / 2)
+        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi) / 2)
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
 
     def activate_image_mode(self):
@@ -584,12 +587,6 @@ class ImageController(object):
     def img_dock_btn_clicked(self):
         self.img_docked = not self.img_docked
         self.widget.dock_img(self.img_docked)
-        if self.img_docked:
-            if not self.widget.is_docked_in_alternative_gui_view == self.widget.is_undocked_in_alternative_gui_view:
-                self.change_gui_view_to_normal()
-        else:
-            if not self.widget.is_undocked_in_alternative_gui_view == self.widget.is_docked_in_alternative_gui_view:
-                self.change_gui_view_to_alternative()
 
     def show_background_subtracted_img_btn_clicked(self):
         if self.widget.img_mode_btn.text() == 'Cake':
@@ -666,11 +663,10 @@ class ImageController(object):
             self.update_cake_azimuth_axis()
             self.update_cake_x_axis()
 
-
     def update_cake_azimuth_axis(self):
         data_img_item = self.widget.integration_image_widget.img_view.data_img_item
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
-        cake_azi = self.model.cake_azi-shift_amount*np.mean(np.diff(self.model.cake_azi))
+        cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
 
         height = data_img_item.viewRect().height()
         bottom = data_img_item.viewRect().top()
@@ -701,7 +697,6 @@ class ImageController(object):
             self.widget.integration_image_widget.img_view.bottom_axis_cake.setRange(
                 self.convert_x_value(min_tth, '2th_deg', 'q_A^-1'),
                 self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
-
 
     def set_cake_axis_unit(self, unit='2th_deg'):
         if unit == '2th_deg':
@@ -917,13 +912,12 @@ class ImageController(object):
                     return
                 elif self.img_mode == 'Cake':  # saving cake data as a text file for export.
                     with open(filename, 'w') as out_file:  # this is done in an odd and slow way because the headers
-                                                            # should be floats and the data itself int.
+                        # should be floats and the data itself int.
                         cake_tth = np.insert(self.model.cake_tth, 0, 0)
                         np.savetxt(out_file, cake_tth[None], fmt='%6.3f')
                         for azi, row in zip(self.model.cake_azi, self.model.cake_data):
                             row_str = " ".join(["{:6.0f}".format(el) for el in row])
                             out_file.write("{:6.2f}".format(azi) + row_str + '\n')
-
 
     def cbn_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
@@ -1092,50 +1086,50 @@ class ImageController(object):
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
 
-    def change_gui_view_btn_clicked(self):
-        # ind = self.find_ind_of_item_in_splitter(self.widget.integration_pattern_widget, self.widget.vertical_splitter)
-        # delete_me = self.widget.vertical_splitter.widget(ind)
-        # delete_me.hide()
-        # delete_me.deleteLater()
-        if self.img_docked:
-            is_current_view_mode_in_alternative = self.widget.is_docked_in_alternative_gui_view
-            self.widget.is_docked_in_alternative_gui_view = not self.widget.is_docked_in_alternative_gui_view
-        else:
-            is_current_view_mode_in_alternative = self.widget.is_undocked_in_alternative_gui_view
-            self.widget.is_undocked_in_alternative_gui_view = not self.widget.is_undocked_in_alternative_gui_view
+    def change_view_btn_clicked(self):
+        if self.view_mode == 'alternative':
+            self.change_view_to_normal()
+        elif self.view_mode == 'normal':
+            self.change_view_to_alternative()
 
-        if is_current_view_mode_in_alternative:
-            self.change_gui_view_to_normal()
-        else:
-            self.change_gui_view_to_alternative()
-
-    def change_gui_view_to_normal(self):
+    def change_view_to_normal(self):
+        if self.view_mode == 'normal':
+            return
         self.vertical_splitter_alternative_state = self.widget.vertical_splitter.saveState()
+        self.horizontal_splitter_alternative_state = self.widget.horizontal_splitter.saveState()
         self.widget.vertical_splitter.addWidget(self.widget.integration_pattern_widget)
         self.widget.integration_control_widget.insertTab(2,
-             self.widget.integration_control_widget.overlay_control_widget, 'Overlay')
+                                                         self.widget.integration_control_widget.overlay_control_widget,
+                                                         'Overlay')
         self.widget.integration_control_widget.insertTab(3,
-             self.widget.integration_control_widget.phase_control_widget, 'Phase')
+                                                         self.widget.integration_control_widget.phase_control_widget,
+                                                         'Phase')
         if self.vertical_splitter_normal_state:
             self.widget.vertical_splitter.restoreState(self.vertical_splitter_normal_state)
+        if self.horizontal_splitter_normal_state:
+            self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_normal_state)
         self.widget.integration_control_widget.overlay_control_widget.overlay_lbl.setVisible(False)
         self.widget.integration_control_widget.phase_control_widget.phase_lbl.setVisible(False)
+        self.view_mode = 'normal'
 
-    def change_gui_view_to_alternative(self):
+    def change_view_to_alternative(self):
+        if self.view_mode == 'alternative':
+            return
+
         self.vertical_splitter_normal_state = self.widget.vertical_splitter.saveState()
+        self.horizontal_splitter_normal_state = self.widget.horizontal_splitter.saveState()
+
         self.widget.vertical_splitter_left.insertWidget(0, self.widget.integration_pattern_widget)
-        # self.widget.vertical_splitter_left.addWidget(self.widget.integration_pattern_widget)
+        self.widget.vertical_splitter_left.insertWidget(0, self.widget.integration_pattern_widget)
         self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.overlay_control_widget)
         self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.phase_control_widget)
         self.widget.integration_control_widget.overlay_control_widget.setVisible(True)
         self.widget.integration_control_widget.phase_control_widget.setVisible(True)
         self.widget.integration_control_widget.overlay_control_widget.overlay_lbl.setVisible(True)
         self.widget.integration_control_widget.phase_control_widget.phase_lbl.setVisible(True)
+
         if self.vertical_splitter_alternative_state:
             self.widget.vertical_splitter.restoreState(self.vertical_splitter_alternative_state)
-
-    def find_ind_of_item_in_splitter(self, item, splitter):
-        for ind in range(0, splitter.count()):
-            if splitter.widget(ind) == item:
-                return ind
-        return False
+        if self.horizontal_splitter_alternative_state:
+            self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_alternative_state)
+        self.view_mode = 'alternative'
