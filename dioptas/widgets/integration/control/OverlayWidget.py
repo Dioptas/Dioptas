@@ -17,12 +17,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from functools import partial
+import os
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, DoubleSpinBoxAlignRight, \
     VerticalSpacerItem, HorizontalSpacerItem, ListTableWidget, DoubleMultiplySpinBoxAlignRight
 from ...CustomWidgets import NoRectDelegate
+from .... import icons_path
 
 
 class OverlayWidget(QtWidgets.QWidget):
@@ -33,29 +35,29 @@ class OverlayWidget(QtWidgets.QWidget):
     def __init__(self):
         super(OverlayWidget, self).__init__()
 
-        self._layout = QtWidgets.QVBoxLayout()
+        self._layout = QtWidgets.QHBoxLayout()
 
         self.overlay_lbl = QtWidgets.QLabel('Overlays')
         self._layout.addWidget(self.overlay_lbl)
 
         self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('overlay_control_widget')
-        self._button_layout = QtWidgets.QHBoxLayout(self.button_widget)
+        self._button_layout = QtWidgets.QVBoxLayout(self.button_widget)
         self._button_layout.setContentsMargins(0, 0, 0, 0)
         self._button_layout.setSpacing(6)
 
-        self.add_btn = FlatButton('Add')
-        self.delete_btn = FlatButton('Delete')
-        self.clear_btn = FlatButton('Clear')
-        self.move_up_btn = FlatButton('Move Up')
-        self.move_down_btn = FlatButton('Move Down')
+        self.add_btn = FlatButton()
+        self.delete_btn = FlatButton()
+        self.clear_btn = FlatButton()
+        self.move_up_btn = FlatButton()
+        self.move_down_btn = FlatButton()
 
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.delete_btn)
         self._button_layout.addWidget(self.clear_btn)
+        self._button_layout.addSpacerItem(VerticalSpacerItem())
         self._button_layout.addWidget(self.move_up_btn)
         self._button_layout.addWidget(self.move_down_btn)
-        self._button_layout.addSpacerItem(HorizontalSpacerItem())
         self._layout.addWidget(self.button_widget)
 
         self.parameter_widget = QtWidgets.QWidget(self)
@@ -95,15 +97,14 @@ class OverlayWidget(QtWidgets.QWidget):
         self._parameter_layout.addLayout(self._background_layout, 6, 0, 1, 3)
         self.parameter_widget.setLayout(self._parameter_layout)
 
-        self._body_layout = QtWidgets.QHBoxLayout()
         self.overlay_tw = ListTableWidget(columns=3)
-        self._body_layout.addWidget(self.overlay_tw, 10)
-        self._body_layout.addWidget(self.parameter_widget, 0)
+        self._layout.addWidget(self.overlay_tw, 10)
+        self._layout.addWidget(self.parameter_widget, 0)
 
-        self._layout.addLayout(self._body_layout)
 
         self.setLayout(self._layout)
         self.style_widgets()
+        self.add_tooltips()
 
         self.overlay_tw.cellChanged.connect(self.label_editingFinished)
         self.overlay_tw.setItemDelegate(NoRectDelegate())
@@ -111,6 +112,36 @@ class OverlayWidget(QtWidgets.QWidget):
         self.color_btns = []
 
     def style_widgets(self):
+        icon_size = QtCore.QSize(17, 17)
+        self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset_dark.ico')))
+        self.clear_btn.setIconSize(icon_size)
+
+        self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.add_btn.setIconSize(icon_size)
+
+        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'delete_bright.ico')))
+        self.delete_btn.setIconSize(icon_size)
+
+        self.move_up_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'arrow_up.ico')))
+        self.move_up_btn.setIconSize(icon_size)
+
+        self.move_down_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'arrow_down.ico')))
+        self.move_down_btn.setIconSize(icon_size)
+
+        def modify_btn_to_icon_size(btn):
+            button_height = 25
+            button_width = 25
+            btn.setMinimumHeight(button_height)
+            btn.setMaximumHeight(button_height)
+            btn.setMinimumWidth(button_width)
+            btn.setMaximumWidth(button_width)
+
+        modify_btn_to_icon_size(self.add_btn)
+        modify_btn_to_icon_size(self.delete_btn)
+        modify_btn_to_icon_size(self.clear_btn)
+        modify_btn_to_icon_size(self.move_up_btn)
+        modify_btn_to_icon_size(self.move_down_btn)
+
         self.overlay_lbl.setVisible(False)
         step_txt_width = 70
         self.scale_step_msb.setMaximumWidth(step_txt_width)
@@ -140,14 +171,17 @@ class OverlayWidget(QtWidgets.QWidget):
         self.waterfall_separation_msb.setValue(100.0)
 
         self.setStyleSheet("""
-            #overlay_control_widget QPushButton {
-                min-width: 95;
-            }
+            #overlay_control_widget 
             QSpinBox {
-                min-width: 110;
-                max-width: 110;
+                min-width: 100;
+                max-width: 100;
             }
         """)
+
+    def add_tooltips(self):
+        self.add_btn.setToolTip('Loads Overlay(s) from file(s)')
+        self.delete_btn.setToolTip('Removes currently selected overlay')
+        self.clear_btn.setToolTip('Removes all overlays')
 
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()
