@@ -43,7 +43,7 @@ class IntegrationControlWidget(QtWidgets.QTabWidget):
         self.addTab(self.pattern_control_widget, 'Pattern')
         self.addTab(self.overlay_control_widget, 'Overlay')
         self.addTab(self.phase_control_widget, 'Phase')
-        self.addTab(self.corrections_control_widget, 'Cor')
+        #self.addTab(self.corrections_control_widget, 'Cor')
         self.addTab(self.background_control_widget, 'Bkg')
         self.addTab(self.integration_options_widget, 'X')
 
