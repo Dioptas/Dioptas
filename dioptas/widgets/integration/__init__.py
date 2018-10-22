@@ -84,8 +84,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
 
-        self.is_undocked_in_alternative_gui_view = True
-        self.is_docked_in_alternative_gui_view = False
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
@@ -256,7 +254,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_widget_click_azi_lbl = self.integration_image_widget.mouse_unit_widget.clicked_unit_widget.azi_lbl
 
         self.footer_img_mouse_position_widget = self.integration_status_widget.mouse_pos_widget
-        self.change_gui_view_btn = self.integration_status_widget.change_gui_view_btn
+        self.change_view_btn = self.integration_status_widget.change_view_btn
 
     def switch_to_cake(self):
         self.img_widget.img_view_box.setAspectLocked(False)
