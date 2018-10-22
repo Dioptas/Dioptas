@@ -176,13 +176,13 @@ class IntegrationControllerTest(QtTest):
         self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
                                                         self.widget.vertical_splitter))
 
-        self.widget.change_gui_view_btn.click()  # switch to alternative view
+        self.widget.change_view_btn.click()  # switch to alternative view
         self.assertFalse(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
                                                          self.widget.vertical_splitter))
         self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
                                                         self.widget.vertical_splitter_left))
 
-        self.widget.change_gui_view_btn.click()  # switch back
+        self.widget.change_view_btn.click()  # switch back
         self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
                                                         self.widget.vertical_splitter))
 
@@ -190,7 +190,7 @@ class IntegrationControllerTest(QtTest):
                                                          self.widget.vertical_splitter_left))
 
     def test_undock_in_alternate_view(self):
-        self.widget.change_gui_view_btn.click()  # switch to alternative view
+        self.widget.change_view_btn.click()  # switch to alternative view
         self.assertTrue(self.helper_is_item_in_splitter(self.widget.img_frame,
                                                         self.widget.vertical_splitter_left))
         self.widget.img_dock_btn.click()
