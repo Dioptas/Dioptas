@@ -138,6 +138,8 @@ class DioptasModelTest(QtTest):
         self.model.current_configuration.auto_integrate_cake = True
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
+        self.model.current_configuration.cake_azimuth_range = [-180, 180]
+
         self.assertAlmostEqual(self.model.current_configuration.calibration_model.cake_azi[0], -179.5, places=4)
         self.assertAlmostEqual(self.model.current_configuration.calibration_model.cake_azi[-1], 179.5, places=4)
 
