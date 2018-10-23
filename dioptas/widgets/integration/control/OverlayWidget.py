@@ -31,6 +31,7 @@ class OverlayWidget(QtWidgets.QWidget):
     color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
     show_cb_state_changed = QtCore.Signal(int, bool)
     name_changed = QtCore.Signal(int, str)
+    scale_sb_value_changed = QtCore.Signal(int, float)
 
     def __init__(self):
         super(OverlayWidget, self).__init__()
@@ -97,7 +98,10 @@ class OverlayWidget(QtWidgets.QWidget):
         self._parameter_layout.addLayout(self._background_layout, 6, 0, 1, 3)
         self.parameter_widget.setLayout(self._parameter_layout)
 
-        self.overlay_tw = ListTableWidget(columns=3)
+        self.overlay_tw = ListTableWidget(columns=4)
+        self.overlay_tw.setHorizontalHeaderLabels(['', '', 'Name', 'Scale', 'Offset'])
+        self.overlay_tw.horizontalHeader().setVisible(True)
+
         self._layout.addWidget(self.overlay_tw, 10)
         self._layout.addWidget(self.parameter_widget, 0)
 
@@ -110,6 +114,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setItemDelegate(NoRectDelegate())
         self.show_cbs = []
         self.color_btns = []
+        self.scale_sbs = []
 
     def style_widgets(self):
         icon_size = QtCore.QSize(17, 17)
@@ -211,8 +216,17 @@ class OverlayWidget(QtWidgets.QWidget):
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
 
+        scale_sb = DoubleSpinBoxAlignRight()
+        scale_sb.setMinimumSize(50, 22)
+        scale_sb.setMaximumSize(50, 22)
+        scale_sb.valueChanged.connect(partial(self.scale_sb_callback, scale_sb))
+        self.overlay_tw.setCellWidget(current_rows, 3, scale_sb)
+        self.scale_sbs.append(scale_sb)
+
+
         self.overlay_tw.setColumnWidth(0, 20)
         self.overlay_tw.setColumnWidth(1, 25)
+        self.overlay_tw.setColumnWidth(3, 50)
         self.overlay_tw.setRowHeight(current_rows, 25)
         self.select_overlay(current_rows)
         self.overlay_tw.blockSignals(False)
@@ -288,3 +302,6 @@ class OverlayWidget(QtWidgets.QWidget):
     def label_editingFinished(self, row, col):
         label_item = self.overlay_tw.item(row, col)
         self.name_changed.emit(row, str(label_item.text()))
+
+    def scale_sb_callback(self, scale_sb):
+        self.scale_sb_value_changed.emit(self.scale_sbs.index(scale_sb), scale_sb.value())
