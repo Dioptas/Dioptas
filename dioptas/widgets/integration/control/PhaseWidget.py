@@ -88,8 +88,10 @@ class PhaseWidget(QtWidgets.QWidget):
         self._parameter_layout.addWidget(self.apply_to_all_cb, 3, 0, 1, 5)
         self._parameter_layout.addWidget(self.show_in_pattern_cb, 4, 0, 1, 5)
 
-        self._parameter_layout.addWidget(self.save_list_btn)
-        self._parameter_layout.addWidget(self.load_list_btn)
+        self._save_list_layout = QtWidgets.QHBoxLayout()
+        self._save_list_layout.addWidget(self.save_list_btn)
+        self._save_list_layout.addWidget(self.load_list_btn)
+        self._parameter_layout.addLayout(self._save_list_layout, 5, 0, 1, 5)
 
         self._parameter_layout.addItem(VerticalSpacerItem(), 5, 0)
         self.parameter_widget.setLayout(self._parameter_layout)
