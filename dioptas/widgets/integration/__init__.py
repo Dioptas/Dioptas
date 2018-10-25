@@ -143,9 +143,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.overlay_move_up_btn = overlay_control_widget.move_up_btn
         self.overlay_move_down_btn = overlay_control_widget.move_down_btn
         self.overlay_tw = overlay_control_widget.overlay_tw
-        self.overlay_scale_sb = overlay_control_widget.scale_sb
         self.overlay_scale_step_msb = overlay_control_widget.scale_step_msb
-        self.overlay_offset_sb = overlay_control_widget.offset_sb
         self.overlay_offset_step_msb = overlay_control_widget.offset_step_msb
         self.waterfall_separation_msb = overlay_control_widget.waterfall_separation_msb
         self.waterfall_btn = overlay_control_widget.waterfall_btn

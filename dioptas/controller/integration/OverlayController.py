@@ -62,8 +62,8 @@ class OverlayController(object):
 
         self.overlay_widget.scale_step_msb.editingFinished.connect(self.update_scale_step)
         self.overlay_widget.offset_step_msb.editingFinished.connect(self.update_overlay_offset_step)
-        self.overlay_widget.scale_sb.valueChanged.connect(self.scale_sb_changed)
-        self.overlay_widget.offset_sb.valueChanged.connect(self.offset_sb_changed)
+        #self.overlay_widget.scale_sb.valueChanged.connect(self.scale_sb_changed)
+        #self.overlay_widget.offset_sb.valueChanged.connect(self.offset_sb_changed)
 
         self.overlay_widget.waterfall_btn.clicked.connect(self.waterfall_btn_click_callback)
         self.overlay_widget.waterfall_reset_btn.clicked.connect(self.model.overlay_model.reset_overlay_offsets)
@@ -193,18 +193,19 @@ class OverlayController(object):
         the set_as_bkg_btn appropriately.
         :param row: selected row in the overlay table
         """
-        cur_ind = row
-        self.overlay_widget.scale_sb.blockSignals(True)
-        self.overlay_widget.offset_sb.blockSignals(True)
-        self.overlay_widget.scale_sb.setValue(self.model.overlay_model.overlays[cur_ind].scaling)
-        self.overlay_widget.offset_sb.setValue(self.model.overlay_model.overlays[cur_ind].offset)
-
-        self.overlay_widget.scale_sb.blockSignals(False)
-        self.overlay_widget.offset_sb.blockSignals(False)
-        if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[cur_ind]:
-            self.overlay_widget.set_as_bkg_btn.setChecked(True)
-        else:
-            self.overlay_widget.set_as_bkg_btn.setChecked(False)
+        pass
+        # cur_ind = row
+        #         # self.overlay_widget.scale_sb.blockSignals(True)
+        #         # self.overlay_widget.offset_sb.blockSignals(True)
+        #         # self.overlay_widget.scale_sb.setValue(self.model.overlay_model.overlays[cur_ind].scaling)
+        #         # self.overlay_widget.offset_sb.setValue(self.model.overlay_model.overlays[cur_ind].offset)
+        #         #
+        #         # self.overlay_widget.scale_sb.blockSignals(False)
+        #         # self.overlay_widget.offset_sb.blockSignals(False)
+        #         # if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[cur_ind]:
+        #         #     self.overlay_widget.set_as_bkg_btn.setChecked(True)
+        #         # else:
+        #         #     self.overlay_widget.set_as_bkg_btn.setChecked(False)
 
     def color_btn_clicked(self, ind, button):
         """
