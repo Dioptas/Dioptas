@@ -35,6 +35,9 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QVBoxLayout()
 
+        self.overlay_lbl = QtWidgets.QLabel('Overlays')
+        self._layout.addWidget(self.overlay_lbl)
+
         self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('overlay_control_widget')
         self._button_layout = QtWidgets.QHBoxLayout(self.button_widget)
@@ -108,6 +111,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.color_btns = []
 
     def style_widgets(self):
+        self.overlay_lbl.setVisible(False)
         step_txt_width = 70
         self.scale_step_msb.setMaximumWidth(step_txt_width)
         self.scale_step_msb.setMinimumWidth(step_txt_width)

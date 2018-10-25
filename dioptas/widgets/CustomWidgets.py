@@ -93,6 +93,48 @@ class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
             else:
                 return pow10floor * 5.0
 
+class ConservativeSpinBox(QtWidgets.QSpinBox):
+    """
+    This is a modification of the QSpinBox class. The ConservativeSpinbox does not emit the valueChanged signal for
+    every keypress in the lineedit. The signal is only emitted for the following occasions:
+      - pressing enter
+      - the spinbox loses focus
+      - pressing the up or down arrows
+    Also the wheel events are disabled.
+
+    This Spinbox is intended for usage with applications were the change in the spinbox value causes long calculations
+    and does a valueChanged signal on every keypress results in a strange behavior.
+    """
+    valueChanged = QtCore.Signal()
+
+    def __init__(self):
+        super(QtWidgets.QSpinBox, self).__init__()
+
+        self.lineEdit().editingFinished.connect(self.valueChanged)
+        self.lineEdit().setAlignment(QtCore.Qt.AlignRight)
+
+    def mousePressEvent(self, e: QtGui.QMouseEvent):
+        opt = QtWidgets.QStyleOptionSpinBox()
+        self.initStyleOption(opt)
+
+        if self.style().subControlRect(QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxUp).contains(
+                e.pos()):
+            self.setValue(self.value() + 1)
+            self.valueChanged.emit()
+        elif self.style().subControlRect(QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxDown).contains(
+                e.pos()):
+            self.setValue(self.value() - 1)
+            self.valueChanged.emit()
+
+    def wheelEvent(self, e: QtGui.QWheelEvent):
+        pass
+
+    def keyPressEvent(self, e: QtGui.QKeyEvent):
+        self.lineEdit().keyPressEvent(e)
+
+    def keyReleaseEvent(self, e: QtGui.QKeyEvent):
+        self.lineEdit().keyReleaseEvent(e)
+
 
 class FlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):

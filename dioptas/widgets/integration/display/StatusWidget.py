@@ -33,7 +33,9 @@ class IntegrationStatusWidget(QtWidgets.QWidget):
         self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget(CLICKED_COLOR)
         self.bkg_name_lbl = LabelAlignRight('')
+        self.change_view_btn = QtWidgets.QPushButton('Change View')
 
+        self._layout.addWidget(self.change_view_btn)
         self._layout.addWidget(self.mouse_pos_widget)
         self._layout.addSpacerItem(HorizontalSpacerItem())
         self._layout.addWidget(self.mouse_unit_widget)
