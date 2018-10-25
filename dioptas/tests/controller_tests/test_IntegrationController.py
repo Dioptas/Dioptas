@@ -116,7 +116,7 @@ class IntegrationControllerTest(QtTest):
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
 
     def test_shift_cake_azimuth(self):
-        shift = 300
+        shift = 30
         QTest.mouseClick(self.widget.img_mode_btn, QtCore.Qt.LeftButton)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.minimum(), -len(self.model.cake_azi) / 2)
         self.assertEqual(self.widget.cake_shift_azimuth_sl.maximum(), len(self.model.cake_azi) / 2)
@@ -171,3 +171,38 @@ class IntegrationControllerTest(QtTest):
         delete_if_exists(os.path.join(data_path, "test.txt"))
 
         self.assertEqual(len(cake_tth), len(self.model.cake_tth))
+
+    def test_switch_to_alternate_view_mode_and_back(self):
+        self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                        self.widget.vertical_splitter))
+
+        self.widget.change_view_btn.click()  # switch to alternative view
+        self.assertFalse(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                         self.widget.vertical_splitter))
+        self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                        self.widget.vertical_splitter_left))
+
+        self.widget.change_view_btn.click()  # switch back
+        self.assertTrue(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                        self.widget.vertical_splitter))
+
+        self.assertFalse(self.helper_is_item_in_splitter(self.widget.integration_pattern_widget,
+                                                         self.widget.vertical_splitter_left))
+
+    def test_undock_in_alternate_view(self):
+        self.widget.change_view_btn.click()  # switch to alternative view
+        self.assertTrue(self.helper_is_item_in_splitter(self.widget.img_frame,
+                                                        self.widget.vertical_splitter_left))
+        self.widget.img_dock_btn.click()
+        self.assertFalse(self.helper_is_item_in_splitter(self.widget.img_frame,
+                                                         self.widget.vertical_splitter_left))
+        self.widget.img_dock_btn.click()
+        self.assertTrue(self.helper_is_item_in_splitter(self.widget.img_frame,
+                                                        self.widget.vertical_splitter_left))
+
+    def helper_is_item_in_splitter(self, item, splitter):
+        for ind in range(0, splitter.count()):
+            if splitter.widget(ind) == item:
+                return True
+        return False
+

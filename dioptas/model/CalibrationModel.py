@@ -363,7 +363,9 @@ class CalibrationModel(QtCore.QObject):
         self.int = self.int[ind]
         return self.tth, self.int
 
-    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr', dimensions=(2048, 2048)):
+    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr',
+                     rad_points=None, azimuth_points=360,
+                     azimuth_range=None):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
@@ -372,9 +374,14 @@ class CalibrationModel(QtCore.QObject):
             self.cake_geometry.reset()
             self.cake_geometry_img_shape = self.img_model.img_data.shape
 
+        if rad_points is None:
+            rad_points = self.calculate_number_of_pattern_points(2)
+        self.num_points = rad_points
+
         t1 = time.time()
 
-        res = self.cake_geometry.integrate2d(self.img_model.img_data, dimensions[0], dimensions[1],
+        res = self.cake_geometry.integrate2d(self.img_model.img_data, rad_points, azimuth_points,
+                                             azimuth_range=azimuth_range,
                                              method=method,
                                              mask=mask,
                                              unit=unit,

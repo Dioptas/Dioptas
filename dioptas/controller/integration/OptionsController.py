@@ -50,10 +50,59 @@ class OptionsController(object):
         self.model.configuration_selected.connect(self.update_gui)
         self.model.pattern_changed.connect(self.update_gui)
 
+        self.options_widget.cake_azimuth_points_sb.valueChanged.connect(self.cake_azimuth_points_changed)
+        self.options_widget.cake_azimuth_min_txt.editingFinished.connect(self.cake_azimuth_range_changed)
+        self.options_widget.cake_azimuth_max_txt.editingFinished.connect(self.cake_azimuth_range_changed)
+
+        self.options_widget.cake_full_toggle_btn.toggled.connect(self.cake_full_toggled_btn_changed)
 
     def correct_solid_angle_cb_clicked(self):
         self.model.current_configuration.correct_solid_angle = self.options_widget.correct_solid_angle_cb.isChecked()
 
     def update_gui(self):
+        self.options_widget.blockSignals(True)
         self.options_widget.correct_solid_angle_cb.setChecked(self.model.current_configuration.correct_solid_angle)
         self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))
+
+        self.options_widget.cake_azimuth_points_sb.setValue(self.model.current_configuration.cake_azimuth_points)
+
+        if self.model.current_configuration.cake_azimuth_range is None:
+            self.enable_full_cake_range()
+        else:
+            self.options_widget.cake_azimuth_min_txt.setText(
+                '{}'.format(self.model.current_configuration.cake_azimuth_range[0]))
+            self.options_widget.cake_azimuth_max_txt.setText(
+                '{}'.format(self.model.current_configuration.cake_azimuth_range[1]))
+            self.options_widget.blockSignals(False)
+            self.disable_full_cake_range()
+
+    def cake_azimuth_range_changed(self):
+        range_min = float(self.options_widget.cake_azimuth_min_txt.text())
+        range_max = float(self.options_widget.cake_azimuth_max_txt.text())
+        self.model.current_configuration.cake_azimuth_range = (range_min, range_max)
+
+    def cake_azimuth_points_changed(self):
+        self.model.current_configuration.cake_azimuth_points = int(
+            self.options_widget.cake_azimuth_points_sb.value())
+
+    def cake_full_toggled_btn_changed(self):
+        if self.options_widget.cake_full_toggle_btn.isChecked():
+            self.enable_full_cake_range()
+            self.model.current_configuration.cake_azimuth_range = None
+
+        elif not self.options_widget.cake_full_toggle_btn.isChecked():
+            self.disable_full_cake_range()
+            self.cake_azimuth_range_changed()
+
+    def enable_full_cake_range(self):
+        self.options_widget.cake_azimuth_min_txt.setDisabled(True)
+        self.options_widget.cake_azimuth_max_txt.setDisabled(True)
+        self.integration_widget.cake_shift_azimuth_sl.setDisabled(False)
+
+    def disable_full_cake_range(self):
+        self.options_widget.cake_azimuth_min_txt.setDisabled(False)
+        self.options_widget.cake_azimuth_max_txt.setDisabled(False)
+        self.integration_widget.cake_shift_azimuth_sl.setDisabled(True)
+        self.integration_widget.cake_shift_azimuth_sl.setValue(0)
+
+
