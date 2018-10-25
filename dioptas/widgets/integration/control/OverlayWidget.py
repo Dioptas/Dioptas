@@ -22,7 +22,7 @@ import os
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, DoubleSpinBoxAlignRight, \
-    VerticalSpacerItem, HorizontalSpacerItem, ListTableWidget, DoubleMultiplySpinBoxAlignRight
+    VerticalSpacerItem, HorizontalSpacerItem, ListTableWidget, DoubleMultiplySpinBoxAlignRight, HorizontalLine
 from ...CustomWidgets import NoRectDelegate
 from .... import icons_path
 
@@ -32,6 +32,7 @@ class OverlayWidget(QtWidgets.QWidget):
     show_cb_state_changed = QtCore.Signal(int, bool)
     name_changed = QtCore.Signal(int, str)
     scale_sb_value_changed = QtCore.Signal(int, float)
+    offset_sb_value_changed = QtCore.Signal(int, float)
 
     def __init__(self):
         super(OverlayWidget, self).__init__()
@@ -55,6 +56,8 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.delete_btn)
+        self._button_layout.addWidget(HorizontalLine())
+        self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.clear_btn)
         self._button_layout.addSpacerItem(VerticalSpacerItem())
         self._button_layout.addWidget(self.move_up_btn)
@@ -62,49 +65,59 @@ class OverlayWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.button_widget)
 
         self.parameter_widget = QtWidgets.QWidget(self)
-        self._parameter_layout = QtWidgets.QGridLayout(self.parameter_widget)
-        self._parameter_layout.setSpacing(6)
+        self._parameter_layout = QtWidgets.QVBoxLayout()
+        self._parameter_layout.setContentsMargins(0, 0, 0, 0)
+        self._parameter_layout.setSpacing(4)
 
-        self.scale_sb = DoubleSpinBoxAlignRight()
-        self.offset_sb = DoubleSpinBoxAlignRight()
         self.scale_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.offset_step_msb = DoubleMultiplySpinBoxAlignRight()
+
+        self._step_gb = QtWidgets.QWidget()
+        self._step_layout = QtWidgets.QVBoxLayout()
+        self._step_layout.setContentsMargins(0, 0, 0, 0)
+        self._step_layout.addWidget(QtWidgets.QLabel('Scale Step'))
+        self._step_layout.addWidget(self.scale_step_msb)
+        self._step_layout.addWidget(QtWidgets.QLabel('Offset Step'))
+        self._step_layout.addWidget(self.offset_step_msb)
+        self._step_gb.setLayout(self._step_layout)
+        self._parameter_layout.addWidget(self._step_gb)
+        self._parameter_layout.addWidget(HorizontalLine())
+
+        self._waterfall_gb = QtWidgets.QWidget()
         self.waterfall_separation_msb = DoubleMultiplySpinBoxAlignRight()
         self.waterfall_btn = FlatButton('Waterfall')
         self.waterfall_reset_btn = FlatButton('Reset')
-        self.set_as_bkg_btn = CheckableFlatButton('Set as Background')
 
-        self._parameter_layout.addWidget(QtWidgets.QLabel('Step'), 0, 2)
-        self._parameter_layout.addWidget(LabelAlignRight('Scale:'), 1, 0)
-        self._parameter_layout.addWidget(LabelAlignRight('Offset:'), 2, 0)
-
-        self._parameter_layout.addWidget(self.scale_sb, 1, 1)
-        self._parameter_layout.addWidget(self.scale_step_msb, 1, 2)
-        self._parameter_layout.addWidget(self.offset_sb, 2, 1)
-        self._parameter_layout.addWidget(self.offset_step_msb, 2, 2)
-
-        self._parameter_layout.addItem(VerticalSpacerItem(), 3, 0, 1, 3)
-
-        self._waterfall_layout = QtWidgets.QHBoxLayout()
+        self._waterfall_layout = QtWidgets.QVBoxLayout()
+        self._waterfall_layout.setContentsMargins(0, 0, 0, 0)
         self._waterfall_layout.addWidget(self.waterfall_btn)
         self._waterfall_layout.addWidget(self.waterfall_separation_msb)
         self._waterfall_layout.addWidget(self.waterfall_reset_btn)
-        self._parameter_layout.addLayout(self._waterfall_layout, 4, 0, 1, 3)
-        self._parameter_layout.addItem(VerticalSpacerItem(), 5, 0, 1, 3)
+        self._waterfall_gb.setLayout(self._waterfall_layout)
+        self._parameter_layout.addWidget(self._waterfall_gb)
+        self._parameter_layout.addWidget(HorizontalLine())
 
+        self._parameter_layout.addItem(VerticalSpacerItem())
+
+        self.set_as_bkg_btn = CheckableFlatButton('Set as\nBackground')
         self._background_layout = QtWidgets.QHBoxLayout()
         self._background_layout.addSpacerItem(HorizontalSpacerItem())
         self._background_layout.addWidget(self.set_as_bkg_btn)
-        self._parameter_layout.addLayout(self._background_layout, 6, 0, 1, 3)
+        self._parameter_layout.addLayout(self._background_layout)
+
         self.parameter_widget.setLayout(self._parameter_layout)
 
-        self.overlay_tw = ListTableWidget(columns=4)
+        self.overlay_tw = ListTableWidget(columns=5)
         self.overlay_tw.setHorizontalHeaderLabels(['', '', 'Name', 'Scale', 'Offset'])
         self.overlay_tw.horizontalHeader().setVisible(True)
+        self.overlay_tw.horizontalHeader().setStretchLastSection(False)
+        self.overlay_tw.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        self.overlay_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        self.overlay_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        # self.overlay_tw.horizontalHeader().
 
         self._layout.addWidget(self.overlay_tw, 10)
         self._layout.addWidget(self.parameter_widget, 0)
-
 
         self.setLayout(self._layout)
         self.style_widgets()
@@ -115,6 +128,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.show_cbs = []
         self.color_btns = []
         self.scale_sbs = []
+        self.offset_sbs = []
 
     def style_widgets(self):
         icon_size = QtCore.QSize(17, 17)
@@ -154,15 +168,6 @@ class OverlayWidget(QtWidgets.QWidget):
         self.offset_step_msb.setMaximumWidth(step_txt_width)
         self.waterfall_separation_msb.setMaximumWidth(step_txt_width)
 
-        self.scale_sb.setMinimum(-9999999)
-        self.scale_sb.setMaximum(9999999)
-        self.scale_sb.setValue(1)
-        self.scale_sb.setSingleStep(0.01)
-
-        self.offset_sb.setMaximum(999999998)
-        self.offset_sb.setMinimum(-99999999)
-        self.offset_sb.setSingleStep(100)
-
         self.scale_step_msb.setMaximum(10.0)
         self.scale_step_msb.setMinimum(0.01)
         self.scale_step_msb.setValue(0.01)
@@ -175,11 +180,18 @@ class OverlayWidget(QtWidgets.QWidget):
         self.waterfall_separation_msb.setMinimum(0.01)
         self.waterfall_separation_msb.setValue(100.0)
 
+        self.set_as_bkg_btn.setStyleSheet('font-size: 11px')
+        self.waterfall_btn.setMaximumWidth(step_txt_width)
+        self.waterfall_reset_btn.setMaximumWidth(step_txt_width)
+
+        self.set_as_bkg_btn.setMinimumHeight(40)
+        self.set_as_bkg_btn.setMaximumHeight(40)
+
         self.setStyleSheet("""
             #overlay_control_widget 
-            QSpinBox {
-                min-width: 100;
-                max-width: 100;
+            QSpinBox, QDoubleSpinBox {
+                min-width: 50;
+                max-width: 70;
             }
         """)
 
@@ -217,16 +229,26 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
 
         scale_sb = DoubleSpinBoxAlignRight()
-        scale_sb.setMinimumSize(50, 22)
-        scale_sb.setMaximumSize(50, 22)
+        scale_sb.setMinimum(-9999999)
+        scale_sb.setMaximum(9999999)
+        scale_sb.setValue(1)
+        scale_sb.setStyleSheet("background-color: #3C3C3C; color:#D1D1D1;")
+        # scale_sb.lineEdit().setStyleSheet("font-color: ")
         scale_sb.valueChanged.connect(partial(self.scale_sb_callback, scale_sb))
         self.overlay_tw.setCellWidget(current_rows, 3, scale_sb)
         self.scale_sbs.append(scale_sb)
 
+        offset_sb = DoubleSpinBoxAlignRight()
+        offset_sb.setMinimum(-9999999)
+        offset_sb.setMaximum(9999999)
+        offset_sb.setValue(1)
+        offset_sb.setStyleSheet("background-color: #3C3C3C; color:#D1D1D1;")
+        offset_sb.valueChanged.connect(partial(self.offset_sb_callback, offset_sb))
+        self.overlay_tw.setCellWidget(current_rows, 4, offset_sb)
+        self.offset_sbs.append(offset_sb)
 
         self.overlay_tw.setColumnWidth(0, 20)
         self.overlay_tw.setColumnWidth(1, 25)
-        self.overlay_tw.setColumnWidth(3, 50)
         self.overlay_tw.setRowHeight(current_rows, 25)
         self.select_overlay(current_rows)
         self.overlay_tw.blockSignals(False)
@@ -261,6 +283,8 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.insertRow(new_ind)
         self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind + 1, 0))
         self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind + 1, 1))
+        self.overlay_tw.setCellWidget(new_ind, 3, self.overlay_tw.cellWidget(ind + 1, 3))
+        self.overlay_tw.setCellWidget(new_ind, 4, self.overlay_tw.cellWidget(ind + 1, 4))
         self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind + 1, 2))
         self.overlay_tw.setCurrentCell(new_ind, 2)
         self.overlay_tw.removeRow(ind + 1)
@@ -276,6 +300,8 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.insertRow(new_ind)
         self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind, 0))
         self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind, 1))
+        self.overlay_tw.setCellWidget(new_ind, 3, self.overlay_tw.cellWidget(ind, 3))
+        self.overlay_tw.setCellWidget(new_ind, 4, self.overlay_tw.cellWidget(ind, 4))
         self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind, 2))
         self.overlay_tw.setCurrentCell(new_ind, 2)
         self.overlay_tw.setRowHeight(new_ind, 25)
@@ -305,3 +331,6 @@ class OverlayWidget(QtWidgets.QWidget):
 
     def scale_sb_callback(self, scale_sb):
         self.scale_sb_value_changed.emit(self.scale_sbs.index(scale_sb), scale_sb.value())
+
+    def offset_sb_callback(self, offset_sb):
+        self.offset_sb_value_changed.emit(self.offset_sbs.index(offset_sb), offset_sb.value())
