@@ -60,8 +60,8 @@ class OverlayController(object):
         self.overlay_widget.show_cb_state_changed.connect(self.show_cb_state_changed)
         self.overlay_widget.name_changed.connect(self.rename_overlay)
 
-        self.overlay_widget.scale_step_msb.editingFinished.connect(self.update_scale_step)
-        self.overlay_widget.offset_step_msb.editingFinished.connect(self.update_overlay_offset_step)
+        self.overlay_widget.scale_step_msb.valueChanged.connect(self.update_scale_step)
+        self.overlay_widget.offset_step_msb.valueChanged.connect(self.update_overlay_offset_step)
         self.overlay_widget.scale_sb_value_changed.connect(self.scale_sb_changed)
         self.overlay_widget.offset_sb_value_changed.connect(self.offset_sb_changed)
 
@@ -174,17 +174,19 @@ class OverlayController(object):
 
     def update_scale_step(self):
         """
-        Sets the step size for scale spinbox from the step text box.
+        Sets the step size for the scale spinboxes from the step text box.
         """
         value = self.overlay_widget.scale_step_msb.value()
-        self.overlay_widget.scale_sb.setSingleStep(value)
+        for scale_sb in self.overlay_widget.scale_sbs:
+            scale_sb.setSingleStep(value)
 
     def update_overlay_offset_step(self):
         """
         Sets the step size for the offset spinbox from the offset_step text box.
         """
         value = self.overlay_widget.offset_step_msb.value()
-        self.overlay_widget.offset_sb.setSingleStep(value)
+        for offset_sb in self.overlay_widget.offset_sbs:
+            offset_sb.setSingleStep(value)
 
     def overlay_selected(self, row, *args):
         """
