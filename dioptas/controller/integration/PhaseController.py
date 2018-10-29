@@ -61,17 +61,17 @@ class PhaseController(object):
 
     def create_signals(self):
         self.connect_click_function(self.phase_widget.add_btn, self.add_btn_click_callback)
-        self.connect_click_function(self.phase_widget.delete_btn, self.remove_btn_click_callback)
+        self.connect_click_function(self.phase_widget.delete_btn, self.delete_btn_click_callback)
         self.connect_click_function(self.phase_widget.clear_btn, self.clear_phases)
         self.connect_click_function(self.phase_widget.edit_btn, self.edit_btn_click_callback)
         self.connect_click_function(self.phase_widget.save_list_btn, self.save_btn_clicked_callback)
         self.connect_click_function(self.phase_widget.load_list_btn, self.load_btn_clicked_callback)
 
-        self.phase_widget.pressure_step_msb.editingFinished.connect(self.update_pressure_step)
-        self.phase_widget.temperature_step_msb.editingFinished.connect(self.update_temperature_step)
+        self.phase_widget.pressure_step_msb.valueChanged.connect(self.update_pressure_step)
+        self.phase_widget.temperature_step_msb.valueChanged.connect(self.update_temperature_step)
 
-        # self.phase_widget.pressure_sb.valueChanged.connect(self.pressure_sb_changed)
-        # self.phase_widget.temperature_sb.valueChanged.connect(self.temperature_sb_changed)
+        self.phase_widget.pressure_sb_value_changed.connect(self.pressure_sb_changed)
+        self.phase_widget.temperature_sb_value_changed.connect(self.temperature_sb_changed)
 
         self.phase_widget.show_in_pattern_cb.stateChanged.connect(self.update_phase_legend)
 
@@ -212,7 +212,7 @@ class PhaseController(object):
         self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
         self.jcpds_editor_controller.show_view()
 
-    def remove_btn_click_callback(self):
+    def delete_btn_click_callback(self):
         """
         Deletes the currently selected Phase
         """
@@ -223,7 +223,6 @@ class PhaseController(object):
     def phase_removed(self, ind):
         self.phase_widget.del_phase(ind)
         self.pattern_widget.del_phase(ind)
-        self.update_temperature_control_visibility()
         if self.jcpds_editor_controller.active:
             ind = self.phase_widget.get_selected_phase_row()
             if ind >= 0:
@@ -285,18 +284,18 @@ class PhaseController(object):
         Deletes all phases from the GUI and phase data
         """
         while self.phase_widget.phase_tw.rowCount() > 0:
-            self.remove_btn_click_callback()
+            self.delete_btn_click_callback()
             self.jcpds_editor_controller.close_view()
 
     def update_pressure_step(self):
-        value = self.phase_widget.pressure_step_msb.value()
-        # self.phase_widget.pressure_sb.setSingleStep(value)
+        for pressure_sb in self.phase_widget.pressure_sbs:
+            pressure_sb.setSingleStep(self.phase_widget.pressure_step_msb.value())
 
     def update_temperature_step(self):
-        value = self.phase_widget.temperature_step_msb.value()
-        # self.phase_widget.temperature_sb.setSingleStep(value)
+        for temperature_sb in self.phase_widget.temperature_sbs:
+            temperature_sb.setSingleStep(self.phase_widget.temperature_step_msb.value())
 
-    def pressure_sb_changed(self, val):
+    def pressure_sb_changed(self, ind, val):
         """
         Called when pressure spinbox emits a new value. Calculates the appropriate EOS values and updates line
         positions and intensities.
@@ -308,15 +307,14 @@ class PhaseController(object):
             self.update_all_phase_intensities()
 
         else:
-            cur_ind = self.phase_widget.get_selected_phase_row()
-            self.model.phase_model.set_pressure(cur_ind, np.float(val))
-            self.phase_widget.set_phase_pressure(cur_ind, val)
-            self.update_phase_intensities(cur_ind)
+            self.model.phase_model.set_pressure(ind, np.float(val))
+            self.phase_widget.set_phase_pressure(ind, val)
+            self.update_phase_intensities(ind)
 
         self.update_phase_legend()
         self.update_jcpds_editor()
 
-    def temperature_sb_changed(self, val):
+    def temperature_sb_changed(self, ind, val):
         """
         Called when temperature spinbox emits a new value. Calculates the appropriate EOS values and updates line
         positions and intensities.
@@ -325,7 +323,6 @@ class PhaseController(object):
             for ind in range(len(self.model.phase_model.phases)):
                 self.update_temperature(ind, val)
             self.update_all_phase_intensities()
-
         else:
             cur_ind = self.phase_widget.get_selected_phase_row()
             self.update_temperature(cur_ind, val)
