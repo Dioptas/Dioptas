@@ -26,6 +26,10 @@ from qtpy import QtCore
 
 import fabio
 
+from pyFAI.distortion import Distortion
+from pyFAI.detectors import Detector
+
+
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
@@ -84,6 +88,8 @@ class ImgModel(QtCore.QObject):
 
         self._img_data = np.zeros((2048, 2048))
 
+        self._distortion = None
+
         ### setting up autoprocess
         self._autoprocess = False
         self._directory_watcher = NewFileInDirectoryWatcher(
@@ -118,6 +124,9 @@ class ImgModel(QtCore.QObject):
                 self._img_data = self._img_data_fabio.data[::-1]
         self.file_name_iterator.update_filename(filename)
         self._directory_watcher.path = os.path.dirname(str(filename))
+
+        if self._distortion is not None:
+            self._img_data = self._distortion.correct(self._img_data)
 
         self._perform_img_transformations()
         self._calculate_img_data()
@@ -158,6 +167,9 @@ class ImgModel(QtCore.QObject):
             self.img_changed.emit()
             raise BackgroundDimensionWrongException()
 
+        if self._distortion is not None:
+            self._img_data = self._distortion.correct(self._img_data)
+
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -196,6 +208,31 @@ class ImgModel(QtCore.QObject):
 
         self._calculate_img_data()
         self.img_changed.emit()
+
+    def load_distortion(self, filename):
+        """
+        Loads a *.spline file in order to correct for detector distortion. The distortion will be applied to the current
+        image all new ones loaded. Applying a new distortion will reload the image file from disk and apply the
+        distortion before all other corrections.
+        Thus, this function will also result in a img_changed signal.
+        :param filename: name of the distortion file
+        """
+        detector = Detector(splineFile=filename)
+        detector.set_mask(np.zeros(self._img_data.shape))
+        self._distortion = Distortion(detector, resize=True)
+        self.load(self.filename)
+        if self.has_background():
+            self.load_background(self.background_filename)
+
+
+    def reset_distortion(self):
+        """
+        Resets the distortion correction and retriggers all image corrections.
+        Thus, this function will also result in a img_changed signal.
+        """
+        self._distortion = None
+        self.load(self.filename)
+
 
     def _image_and_background_shape_equal(self):
         """
