@@ -347,6 +347,10 @@ QTableWidget {
 	text-align: center;
 }
 
+#phase_table_widget QCheckBox, #overlay_table_widget QCheckBox {
+    margin-left: 5px;
+}
+
 #overlay_table_widget QDoubleSpinBox, #phase_table_widget QDoubleSpinBox {
     min-width: 50;
     max-width: 70;
