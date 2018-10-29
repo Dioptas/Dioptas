@@ -167,6 +167,10 @@ class PhaseControllerTest(QtTest):
 
         for ind in range(len(self.model.phase_model.phases)):
             phase = self.model.phase_model.phases[ind]
+            temperature += ind
+
+            self.assertEqual(self.phase_widget.temperature_sbs[ind].isEnabled(),
+                             phase.has_thermal_expansion())
 
             if self.phase_widget.temperature_sbs[ind].isEnabled():
                 self.phase_widget.temperature_sbs[ind].setValue(temperature)
@@ -176,7 +180,7 @@ class PhaseControllerTest(QtTest):
                 self.assertEqual(self.phase_widget.get_phase_temperature(ind), temperature)
             else:
                 self.assertEqual(phase.params['temperature'], 298)
-                self.assertEqual(self.phase_widget.get_phase_temperature(ind), None)
+                self.assertEqual(self.phase_widget.get_phase_temperature(ind), 298)
 
     def test_pressure_auto_step_change(self):
         self.load_phases()
@@ -207,23 +211,21 @@ class PhaseControllerTest(QtTest):
     def test_apply_to_all_for_new_added_phase_in_table_widget(self):
         temperature = 1500
         pressure = 200
-        self.phase_widget.temperature_sb.setValue(temperature)
-        self.phase_widget.pressure_sb.setValue(pressure)
         self.load_phases()
+        self.phase_widget.temperature_sbs[0].setValue(temperature)
+        self.phase_widget.pressure_sbs[0].setValue(pressure)
+        self.load_phases()
+
         for ind, phase in enumerate(self.model.phase_model.phases):
+
             self.assertEqual(phase.params['pressure'], pressure)
             self.assertEqual(self.phase_widget.get_phase_pressure(ind), pressure)
-            if phase.has_thermal_expansion():
-                self.assertEqual(phase.params['temperature'], temperature)
-                self.assertEqual(self.phase_widget.get_phase_temperature(ind), temperature)
-            else:
-                self.assertEqual(phase.params['temperature'], 298)
-                self.assertEqual(self.phase_widget.get_phase_temperature(ind), None)
+
 
     def test_apply_to_all_for_new_added_phase_d_positions(self):
         pressure = 50
         self.load_phase('au_Anderson.jcpds')
-        self.widget.phase_pressure_sb.setValue(pressure)
+        self.phase_widget.pressure_sbs[0].setValue(pressure)
         self.load_phase('au_Anderson.jcpds')
 
         reflections1 = self.model.phase_model.get_lines_d(0)
@@ -295,8 +297,8 @@ class PhaseControllerTest(QtTest):
         old_phase_list_data = [[0 for x in range(5)] for y in range(old_phase_list_length)]
         for row in range(self.widget.phase_tw.rowCount()):
             old_phase_list_data[row][2] = self.phase_tw.item(row, 2).text()
-            old_phase_list_data[row][3] = self.phase_tw.item(row, 3).text()
-            old_phase_list_data[row][4] = self.phase_tw.item(row, 4).text()
+            old_phase_list_data[row][3] = self.phase_widget.pressure_sbs[row].text()
+            old_phase_list_data[row][4] = self.phase_widget.temperature_sbs[row].text()
 
         # clear and load the saved list to make sure all phases have been loaded
         click_button(self.widget.phase_clear_btn)
@@ -307,8 +309,8 @@ class PhaseControllerTest(QtTest):
 
         for row in range(self.widget.phase_tw.rowCount()):
             self.assertEqual(self.phase_tw.item(row, 2).text(), old_phase_list_data[row][2])
-            self.assertEqual(self.phase_tw.item(row, 3).text(), old_phase_list_data[row][3])
-            self.assertEqual(self.phase_tw.item(row, 4).text(), old_phase_list_data[row][4])
+            self.assertEqual(self.phase_widget.pressure_sbs[row].text(), old_phase_list_data[row][3])
+            self.assertEqual(self.phase_widget.temperature_sbs[row].text(), old_phase_list_data[row][4])
 
         # delete phase list file
         os.remove(os.path.join(data_path, phase_list_file_name))
