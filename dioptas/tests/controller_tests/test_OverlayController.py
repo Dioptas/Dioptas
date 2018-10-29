@@ -120,7 +120,6 @@ class OverlayControllerTest(QtTest):
         self.load_overlays()
         for ind in [0, 3, 4]:
             self.overlay_widget.scale_sbs[ind].setValue(2.0)
-            self.app.processEvents()
             self.assertEqual(self.model.overlay_model.get_overlay_scaling(ind), 2)
 
             # tests if overlay is updated in pattern
@@ -153,6 +152,26 @@ class OverlayControllerTest(QtTest):
         self.overlay_widget.scale_step_msb.stepDown()
         new_scale_step = self.overlay_widget.scale_step_msb.value()
         self.assertAlmostEqual(new_scale_step, 0.2, places=5)
+
+    def test_scalestep_spinbox_changes_scale_spinboxes(self):
+        self.load_overlays()
+        for ind in range(6):
+            self.assertEqual(self.overlay_widget.scale_sbs[ind].singleStep(), 0.01)
+
+        new_step = 5
+        self.overlay_widget.scale_step_msb.setValue(new_step)
+        for ind in range(6):
+            self.assertEqual(self.overlay_widget.scale_sbs[ind].singleStep(), new_step)
+
+    def test_offsetstep_spinbox_changes_offset_spinboxes(self):
+        self.load_overlays()
+        for ind in range(6):
+            self.assertEqual(self.overlay_widget.offset_sbs[ind].singleStep(), 100)
+
+        new_step = 5
+        self.overlay_widget.offset_step_msb.setValue(new_step)
+        for ind in range(6):
+            self.assertEqual(self.overlay_widget.offset_sbs[ind].singleStep(), new_step)
 
     def test_offset_auto_step_change(self):
         self.load_overlays()
@@ -306,6 +325,3 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(self.integration_widget.overlay_tw.item(4, 2).text(), new_name)
         self.assertEqual(self.model.overlay_model.overlays[3].name, 'pattern_001')
         self.assertEqual(self.integration_widget.overlay_tw.item(3, 2).text(), 'pattern_001')
-
-if __name__ == '__main__':
-    unittest.main()
