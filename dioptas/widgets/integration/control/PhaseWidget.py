@@ -22,15 +22,17 @@ import os
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ...CustomWidgets import FlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, NoRectDelegate, \
-    HorizontalSpacerItem, ListTableWidget, VerticalLine, DoubleMultiplySpinBoxAlignRight
+    ListTableWidget, HorizontalLine, DoubleMultiplySpinBoxAlignRight
 
 from .... import icons_path
 
 
 class PhaseWidget(QtWidgets.QWidget):
-
     color_btn_clicked = QtCore.Signal(int, QtWidgets.QWidget)
     show_cb_state_changed = QtCore.Signal(int, bool)
+
+    pressure_sb_value_changed = QtCore.Signal(int, float)
+    temperature_sb_value_changed = QtCore.Signal(int, float)
 
     def __init__(self):
         super(PhaseWidget, self).__init__()
@@ -55,49 +57,51 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.edit_btn)
+        self._button_layout.addWidget(HorizontalLine())
+        self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.delete_btn)
+        self._button_layout.addWidget(HorizontalLine())
+        self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.clear_btn)
         self._button_layout.addSpacerItem(VerticalSpacerItem())
         self.button_widget.setLayout(self._button_layout)
         self._layout.addWidget(self.button_widget)
 
-
-
         self.parameter_widget = QtWidgets.QWidget()
 
-        self._parameter_layout = QtWidgets.QGridLayout()
-        self.pressure_sb = DoubleSpinBoxAlignRight()
-        self.temperature_sb = DoubleSpinBoxAlignRight()
+        self._parameter_layout = QtWidgets.QVBoxLayout()
+        self._parameter_layout.setContentsMargins(0, 0, 0, 0)
+        self._parameter_layout.setSpacing(4)
+
         self.pressure_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.temperature_step_msb = DoubleMultiplySpinBoxAlignRight()
-        self.apply_to_all_cb = QtWidgets.QCheckBox('Apply to all phases')
-        self.show_in_pattern_cb = QtWidgets.QCheckBox('Show in Pattern')
+        self.apply_to_all_cb = QtWidgets.QCheckBox('apply to all')
+        self.show_in_pattern_cb = QtWidgets.QCheckBox('show')
 
-        self._parameter_layout.addWidget(QtWidgets.QLabel('Parameter'), 0, 1)
-        self._parameter_layout.addWidget(QtWidgets.QLabel('Step'), 0, 3)
-        self._parameter_layout.addWidget(QtWidgets.QLabel('P:'), 1, 0)
-        self._parameter_layout.addWidget(QtWidgets.QLabel('T:'), 2, 0)
-        self._parameter_layout.addWidget(QtWidgets.QLabel('GPa'), 1, 2)
-        self._parameter_layout.addWidget(QtWidgets.QLabel('K'), 2, 2)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('P step'))
+        self._parameter_layout.addWidget(self.pressure_step_msb)
+        self._parameter_layout.addWidget(QtWidgets.QLabel('T Step'))
+        self._parameter_layout.addWidget(self.temperature_step_msb)
+        self._parameter_layout.addWidget(self.apply_to_all_cb)
+        self._parameter_layout.addWidget(self.show_in_pattern_cb)
+        self._parameter_layout.addWidget(HorizontalLine())
+        self._parameter_layout.addItem(VerticalSpacerItem())
+        self._parameter_layout.addWidget(self.save_list_btn)
+        self._parameter_layout.addWidget(self.load_list_btn)
 
-        self._parameter_layout.addWidget(self.pressure_sb, 1, 1)
-        self._parameter_layout.addWidget(self.pressure_step_msb, 1, 3)
-        self._parameter_layout.addWidget(self.temperature_sb, 2, 1)
-        self._parameter_layout.addWidget(self.temperature_step_msb, 2, 3)
-
-        self._parameter_layout.addWidget(self.apply_to_all_cb, 3, 0, 1, 5)
-        self._parameter_layout.addWidget(self.show_in_pattern_cb, 4, 0, 1, 5)
-
-        self._save_list_layout = QtWidgets.QHBoxLayout()
-        self._save_list_layout.addWidget(self.save_list_btn)
-        self._save_list_layout.addWidget(self.load_list_btn)
-        self._parameter_layout.addLayout(self._save_list_layout, 5, 0, 1, 5)
-
-        self._parameter_layout.addItem(VerticalSpacerItem(), 5, 0)
         self.parameter_widget.setLayout(self._parameter_layout)
 
         self._body_layout = QtWidgets.QHBoxLayout()
+
+
         self.phase_tw = ListTableWidget(columns=5)
+        self.phase_tw.setObjectName('phase_table_widget')
+        self.phase_tw.setHorizontalHeaderLabels(['', '', 'Name', 'P (GPa)', 'T (K)'])
+        self.phase_tw.horizontalHeader().setVisible(True)
+        self.phase_tw.horizontalHeader().setStretchLastSection(False)
+        self.phase_tw.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        self.phase_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        self.phase_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
         self._body_layout.addWidget(self.phase_tw, 10)
         self._body_layout.addWidget(self.parameter_widget, 0)
 
@@ -109,6 +113,9 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self.phase_show_cbs = []
         self.phase_color_btns = []
+        self.pressure_sbs = []
+        self.temperature_sbs = []
+
         self.show_parameter_in_pattern = True
         header_view = QtWidgets.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
         self.phase_tw.setHorizontalHeader(header_view)
@@ -133,8 +140,6 @@ class PhaseWidget(QtWidgets.QWidget):
         self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset_dark.ico')))
         self.clear_btn.setIconSize(icon_size)
 
-
-
         def modify_btn_to_icon_size(btn):
             button_height = 25
             button_width = 25
@@ -148,35 +153,26 @@ class PhaseWidget(QtWidgets.QWidget):
         modify_btn_to_icon_size(self.clear_btn)
         modify_btn_to_icon_size(self.edit_btn)
 
-
         self.phase_lbl.setVisible(False)
+
         self.phase_tw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        self.phase_tw.setMinimumHeight(130)
 
-        self.temperature_step_msb.setMaximumWidth(60)
-        self.pressure_step_msb.setMaximumWidth(60)
-        self.pressure_sb.setMinimumWidth(100)
+        step_txt_width = 70
 
-        self.pressure_sb.setMaximum(9999999)
-        self.pressure_sb.setMinimum(-9999999)
-        self.pressure_sb.setValue(0)
-
-        self.pressure_step_msb.setMaximum(1000.0)
-        self.pressure_step_msb.setMinimum(0.01)
-        self.pressure_step_msb.setValue(0.5)
-
-        self.temperature_sb.setMaximum(99999999)
-        self.temperature_sb.setMinimum(0)
-        self.temperature_sb.setValue(298)
+        self.pressure_step_msb.setMinimumWidth(step_txt_width)
+        self.pressure_step_msb.setMaximumWidth(step_txt_width)
+        self.temperature_step_msb.setMinimumWidth(step_txt_width)
+        self.temperature_step_msb.setMaximumWidth(step_txt_width)
 
         self.temperature_step_msb.setMaximum(1000.0)
         self.temperature_step_msb.setMinimum(1.0)
         self.temperature_step_msb.setValue(100.0)
 
+        self.pressure_step_msb.setValue(1)
+
         self.apply_to_all_cb.setChecked(True)
         self.show_in_pattern_cb.setChecked(True)
-
 
     def add_tooltips(self):
         self.add_btn.setToolTip('Loads Phase(s) from jcpds or cif file(s)')
@@ -211,15 +207,23 @@ class PhaseWidget(QtWidgets.QWidget):
         name_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.phase_tw.setItem(current_rows, 2, name_item)
 
-        pressure_item = QtWidgets.QTableWidgetItem('0 GPa')
-        pressure_item.setFlags(pressure_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        pressure_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.phase_tw.setItem(current_rows, 3, pressure_item)
+        pressure_sb = DoubleSpinBoxAlignRight()
+        pressure_sb.setMinimum(-9999999)
+        pressure_sb.setMaximum(9999999)
+        pressure_sb.setValue(0)
+        pressure_sb.setSingleStep(self.pressure_step_msb.value())
+        pressure_sb.valueChanged.connect(partial(self.pressure_sb_callback, pressure_sb))
+        self.phase_tw.setCellWidget(current_rows, 3, pressure_sb)
+        self.pressure_sbs.append(pressure_sb)
 
-        temperature_item = QtWidgets.QTableWidgetItem('298 K')
-        temperature_item.setFlags(temperature_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        temperature_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.phase_tw.setItem(current_rows, 4, temperature_item)
+        temperature_sb = DoubleSpinBoxAlignRight()
+        temperature_sb.setMinimum(-9999999)
+        temperature_sb.setMaximum(9999999)
+        temperature_sb.setValue(300)
+        temperature_sb.setSingleStep(self.temperature_step_msb.value())
+        temperature_sb.valueChanged.connect(partial(self.temperature_sb_callback, temperature_sb))
+        self.phase_tw.setCellWidget(current_rows, 4, temperature_sb)
+        self.temperature_sbs.append(temperature_sb)
 
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
@@ -257,32 +261,21 @@ class PhaseWidget(QtWidgets.QWidget):
         name_item = self.phase_tw.item(ind, 2)
         name_item.setText(name)
 
-    def set_phase_temperature(self, ind, T):
-        temperature_item = self.phase_tw.item(ind, 4)
-        try:
-            temperature_item.setText("{0:.2f} K".format(T))
-        except ValueError:
-            temperature_item.setText("{0} K".format(T))
+    def set_phase_temperature(self, ind, temperature):
+        self.temperature_sbs[ind].blockSignals(True)
+        self.temperature_sbs[ind].setValue(temperature)
+        self.temperature_sbs[ind].blockSignals(False)
 
     def get_phase_temperature(self, ind):
-        temperature_item = self.phase_tw.item(ind, 4)
-        try:
-            temperature = float(str(temperature_item.text()).split()[0])
-        except:
-            temperature = None
-        return temperature
+        return self.temperature_sbs[ind].value()
 
-    def set_phase_pressure(self, ind, P):
-        pressure_item = self.phase_tw.item(ind, 3)
-        try:
-            pressure_item.setText("{0:.2f} GPa".format(P))
-        except ValueError:
-            pressure_item.setText("{0} GPa".format(P))
+    def set_phase_pressure(self, ind, pressure):
+        self.pressure_sbs[ind].blockSignals(True)
+        self.pressure_sbs[ind].setValue(pressure)
+        self.pressure_sbs[ind].blockSignals(False)
 
     def get_phase_pressure(self, ind):
-        pressure_item = self.phase_tw.item(ind, 3)
-        pressure = float(str(pressure_item.text()).split()[0])
-        return pressure
+        return self.pressure_sbs[ind].value()
 
     def phase_color_btn_click(self, button):
         self.color_btn_clicked.emit(self.phase_color_btns.index(button), button)
@@ -297,3 +290,9 @@ class PhaseWidget(QtWidgets.QWidget):
     def phase_show_cb_is_checked(self, ind):
         checkbox = self.phase_show_cbs[ind]
         return checkbox.isChecked()
+
+    def pressure_sb_callback(self, pressure_sb):
+        self.pressure_sb_value_changed.emit(self.pressure_sbs.index(pressure_sb), pressure_sb.value())
+
+    def temperature_sb_callback(self, temperature_sb):
+        self.temperature_sb_value_changed.emit(self.temperature_sbs.index(temperature_sb), temperature_sb.value())
