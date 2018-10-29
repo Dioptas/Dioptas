@@ -65,7 +65,7 @@ class PhaseController(object):
         self.connect_click_function(self.phase_widget.clear_btn, self.clear_phases)
         self.connect_click_function(self.phase_widget.edit_btn, self.edit_btn_click_callback)
         self.connect_click_function(self.phase_widget.save_list_btn, self.save_btn_clicked_callback)
-        self.connect_click_function(self.phase_widget.load_list_btn, self.load_btn_clicked_callback)
+        self.connect_click_function(self.phase_widget.load_list_btn, self.load_list_btn_clicked_callback)
 
         self.phase_widget.pressure_step_msb.valueChanged.connect(self.update_pressure_step)
         self.phase_widget.temperature_step_msb.valueChanged.connect(self.update_temperature_step)
@@ -148,14 +148,15 @@ class PhaseController(object):
                                                self.cif_conversion_dialog.int_cutoff,
                                                self.cif_conversion_dialog.min_d_spacing)
 
-            # if self.phase_widget.apply_to_all_cb.isChecked():
-            #     pressure = self.phase_widget.pressure_sb.value()
-            #     temperature = self.phase_widget.temperature_sb.value()
-            #     self.model.phase_model.phases[-1].compute_d(pressure=pressure,
-            #                                                 temperature=temperature)
-            # else:
-            pressure = 0
-            temperature = 298
+            if self.phase_widget.apply_to_all_cb.isChecked() and len(self.model.phase_model.phases)>1 :
+                pressure = float(self.phase_widget.pressure_sbs[0].value())
+                temperature = float(self.phase_widget.temperature_sbs[0].value())
+                self.model.phase_model.phases[-1].compute_d(pressure=pressure,
+                                                            temperature=temperature)
+                assert(True)
+            else:
+                pressure = 0
+                temperature = 298
 
             self.model.phase_model.get_lines_d(-1)
             color = self.add_phase_plot()
@@ -175,7 +176,7 @@ class PhaseController(object):
     def phase_added(self):
         self.model.phase_model.get_lines_d(-1)
         color = self.add_phase_plot()
-        print(self.model.phase_model.phases[-1].params['modified'])
+
         self.phase_widget.add_phase(self.model.phase_model.phases[-1].name, '#%02x%02x%02x' %
                                     (int(color[0]), int(color[1]), int(color[2])))
 
@@ -184,6 +185,7 @@ class PhaseController(object):
         self.update_temperature(len(self.model.phase_model.phases) - 1,
                                 self.model.phase_model.phases[-1].params['temperature'])
         self.update_phase_legend()
+
         if self.jcpds_editor_controller.active:
             self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
 
@@ -230,7 +232,7 @@ class PhaseController(object):
             else:
                 self.jcpds_editor_controller.widget.close()
 
-    def load_btn_clicked_callback(self):
+    def load_list_btn_clicked_callback(self):
         filename = open_file_dialog(self.integration_widget, caption="Load Phase List",
                                     directory=self.model.working_directories['phase'],
                                     filter="*.txt")
@@ -248,13 +250,13 @@ class PhaseController(object):
                 self.phase_widget.phase_color_btns[row].setStyleSheet('background-color:' + color)
                 self.pattern_widget.set_phase_color(row, color)
                 self.phase_widget.phase_tw.item(row, 2).setText(name)
-                self.phase_widget.set_phase_pressure(row, pressure.replace(' GPa', ''))
-                self.model.phase_model.set_pressure(row, float(pressure.replace(' GPa', '')))
-                temperature = temperature.replace(' K', '').replace('-', '')
+                self.phase_widget.set_phase_pressure(row, float(pressure))
+                self.model.phase_model.set_pressure(row, float(pressure))
+                temperature = float(temperature)
 
                 if temperature is not '':
                     self.phase_widget.set_phase_temperature(row, temperature)
-                    self.model.phase_model.set_temperature(row, float(temperature))
+                    self.model.phase_model.set_temperature(row, temperature)
                     self.update_phase_intensities(row)
                 self.update_phase_legend()
 
@@ -276,8 +278,8 @@ class PhaseController(object):
                 phase_file.write(file_name + ',' + str(phase_cb.isChecked()) + ',' +
                                  color_btn.styleSheet().replace('background-color:', '').replace(' ', '') + ',' +
                                  self.phase_widget.phase_tw.item(row, 2).text() + ',' +
-                                 self.phase_widget.phase_tw.item(row, 3).text() + ',' +
-                                 self.phase_widget.phase_tw.item(row, 4).text() + '\n')
+                                 self.phase_widget.pressure_sbs[row].text() + ',' +
+                                 self.phase_widget.temperature_sbs[row].text() + '\n')
 
     def clear_phases(self):
         """
@@ -324,9 +326,8 @@ class PhaseController(object):
                 self.update_temperature(ind, val)
             self.update_all_phase_intensities()
         else:
-            cur_ind = self.phase_widget.get_selected_phase_row()
-            self.update_temperature(cur_ind, val)
-            self.update_phase_intensities(cur_ind)
+            self.update_temperature(ind, val)
+            self.update_phase_intensities(ind)
         self.update_phase_legend()
         self.update_jcpds_editor()
 
@@ -448,7 +449,6 @@ class PhaseController(object):
         cur_ind = self.phase_widget.get_selected_phase_row()
         self.model.phase_model.get_lines_d(cur_ind)
         self.update_phase_intensities(cur_ind)
-        self.update_temperature_control_visibility(cur_ind)
         self.pattern_widget.update_phase_line_visibility(cur_ind)
 
     def jcpds_editor_reflection_removed(self, reflection_ind):
