@@ -351,6 +351,43 @@ QTableWidget {
 	text-align: center;
 }
 
+#overlay_table_widget QDoubleSpinBox {
+    min-width: 50;
+    max-width: 70;
+    background: transparent;
+    background-color: transparent;
+    color:#D1D1D1;
+    border: 1px solid transparent;
+}
+
+#overlay_table_widget QDoubleSpinBox::up-button, #overlay_table_widget QDoubleSpinBox::down-button {
+    width: 11px;
+    height: 9px;
+    background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #323232, stop:1 #505050);
+    border: 0.5px solid #5B5B5B;
+    border-radius: 2px;
+}
+#overlay_table_widget QDoubleSpinBox::up-button:hover, #overlay_table_widget QDoubleSpinBox::down-button:hover {
+    border:0.5px solid #ADADAD;
+}
+
+#overlay_table_widget QDoubleSpinBox::up-button:pressed {
+    width: 10px;
+    height: 8px;
+}
+#overlay_table_widget QDoubleSpinBox::down-button:pressed {
+    width: 10px;
+    height: 8px;
+}
+
+#overlay_table_widget QDoubleSpinBox::up-button {
+    image: url(dioptas/resources/icons/arrow_up.ico) 1;
+}
+
+#overlay_table_widget QDoubleSpinBox::down-button {
+    image: url(dioptas/resources/icons/arrow_down.ico) 1;
+}
+
 
 QFrame#main_frame {
     color: #F1F1F1;
