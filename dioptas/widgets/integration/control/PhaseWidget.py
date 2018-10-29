@@ -244,6 +244,8 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.blockSignals(False)
         del self.phase_show_cbs[ind]
         del self.phase_color_btns[ind]
+        del self.temperature_sbs[ind]
+        del self.pressure_sbs[ind]
 
         if self.phase_tw.rowCount() > ind:
             self.select_phase(ind)
@@ -255,6 +257,7 @@ class PhaseWidget(QtWidgets.QWidget):
         name_item.setText(name)
 
     def set_phase_temperature(self, ind, temperature):
+        pass
         self.temperature_sbs[ind].blockSignals(True)
         self.temperature_sbs[ind].setValue(temperature)
         self.temperature_sbs[ind].blockSignals(False)
