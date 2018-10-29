@@ -93,7 +93,6 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._body_layout = QtWidgets.QHBoxLayout()
 
-
         self.phase_tw = ListTableWidget(columns=5)
         self.phase_tw.setObjectName('phase_table_widget')
         self.phase_tw.setHorizontalHeaderLabels(['', '', 'Name', 'P (GPa)', 'T (K)'])
@@ -102,6 +101,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
         self.phase_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
         self.phase_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        self.phase_tw.setItemDelegate(NoRectDelegate())
         self._body_layout.addWidget(self.phase_tw, 10)
         self._body_layout.addWidget(self.parameter_widget, 0)
 
@@ -117,13 +117,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.temperature_sbs = []
 
         self.show_parameter_in_pattern = True
-        header_view = QtWidgets.QHeaderView(QtCore.Qt.Horizontal, self.phase_tw)
-        self.phase_tw.setHorizontalHeader(header_view)
-        header_view.setResizeMode(2, QtWidgets.QHeaderView.Stretch)
-        header_view.setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        header_view.setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
-        header_view.hide()
-        self.phase_tw.setItemDelegate(NoRectDelegate())
+
 
     def style_widgets(self):
         icon_size = QtCore.QSize(17, 17)

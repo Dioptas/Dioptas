@@ -137,7 +137,6 @@ class PhaseController(object):
                     break
             progress_dialog.close()
             QtWidgets.QApplication.processEvents()
-            self.update_temperature_control_visibility()
 
     def _add_phase(self, filename):
         try:
@@ -363,36 +362,8 @@ class PhaseController(object):
                 self.pattern_widget.rename_phase(ind, name)
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
-        cur_ind = row
-        pressure = self.model.phase_model.phases[cur_ind].params['pressure']
-        temperature = self.model.phase_model.phases[cur_ind].params['temperature']
-
-        self.phase_widget.pressure_sb.blockSignals(True)
-        self.phase_widget.pressure_sb.setValue(pressure)
-        self.phase_widget.pressure_sb.blockSignals(False)
-
-        self.phase_widget.temperature_sb.blockSignals(True)
-        self.phase_widget.temperature_sb.setValue(temperature)
-        self.phase_widget.temperature_sb.blockSignals(False)
-        self.update_temperature_control_visibility(row)
-
         if self.jcpds_editor_controller.active:
-            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
-
-    def update_temperature_control_visibility(self, row_ind=None):
-        pass
-        # if row_ind is None:
-        #     row_ind = self.phase_widget.get_selected_phase_row()
-        #
-        # if row_ind == -1:
-        #     return
-        #
-        # if self.model.phase_model.phases[row_ind].has_thermal_expansion():
-        #     self.phase_widget.temperature_sb.setEnabled(True)
-        #     self.phase_widget.temperature_step_msb.setEnabled(True)
-        # else:
-        #     self.phase_widget.temperature_sb.setDisabled(True)
-        #     self.phase_widget.temperature_step_msb.setDisabled(True)
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[row])
 
     def color_btn_clicked(self, ind, button):
         previous_color = button.palette().color(1)
