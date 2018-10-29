@@ -131,15 +131,15 @@ class OverlayControllerTest(QtTest):
 
     def test_change_offset_in_view(self):
         self.load_overlays()
-        self.overlay_widget.select_overlay(3)
 
-        self.integration_widget.overlay_offset_sb.setValue(100)
-        self.assertEqual(self.model.overlay_model.get_overlay_offset(3), 100)
+        for ind in [0, 3, 4]:
+            self.overlay_widget.offset_sbs[ind].setValue(100)
+            self.assertEqual(self.model.overlay_model.get_overlay_offset(ind), 100)
 
-        x, y = self.model.overlay_model.overlays[3].data
-        x_spec, y_spec = self.integration_widget.pattern_widget.overlays[3].getData()
+            x, y = self.model.overlay_model.overlays[ind].data
+            x_spec, y_spec = self.integration_widget.pattern_widget.overlays[ind].getData()
 
-        self.assertAlmostEqual(np.sum(y - y_spec), 0)
+            self.assertAlmostEqual(np.sum(y - y_spec), 0)
 
     def test_scaling_auto_step_change(self):
         self.load_overlays()
