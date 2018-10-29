@@ -118,7 +118,6 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self.show_parameter_in_pattern = True
 
-
     def style_widgets(self):
         icon_size = QtCore.QSize(17, 17)
 
