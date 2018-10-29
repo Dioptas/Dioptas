@@ -70,8 +70,8 @@ class PhaseController(object):
         self.phase_widget.pressure_step_msb.editingFinished.connect(self.update_pressure_step)
         self.phase_widget.temperature_step_msb.editingFinished.connect(self.update_temperature_step)
 
-        self.phase_widget.pressure_sb.valueChanged.connect(self.pressure_sb_changed)
-        self.phase_widget.temperature_sb.valueChanged.connect(self.temperature_sb_changed)
+        # self.phase_widget.pressure_sb.valueChanged.connect(self.pressure_sb_changed)
+        # self.phase_widget.temperature_sb.valueChanged.connect(self.temperature_sb_changed)
 
         self.phase_widget.show_in_pattern_cb.stateChanged.connect(self.update_phase_legend)
 
@@ -149,14 +149,14 @@ class PhaseController(object):
                                                self.cif_conversion_dialog.int_cutoff,
                                                self.cif_conversion_dialog.min_d_spacing)
 
-            if self.phase_widget.apply_to_all_cb.isChecked():
-                pressure = self.phase_widget.pressure_sb.value()
-                temperature = self.phase_widget.temperature_sb.value()
-                self.model.phase_model.phases[-1].compute_d(pressure=pressure,
-                                                            temperature=temperature)
-            else:
-                pressure = 0
-                temperature = 298
+            # if self.phase_widget.apply_to_all_cb.isChecked():
+            #     pressure = self.phase_widget.pressure_sb.value()
+            #     temperature = self.phase_widget.temperature_sb.value()
+            #     self.model.phase_model.phases[-1].compute_d(pressure=pressure,
+            #                                                 temperature=temperature)
+            # else:
+            pressure = 0
+            temperature = 298
 
             self.model.phase_model.get_lines_d(-1)
             color = self.add_phase_plot()
@@ -291,11 +291,11 @@ class PhaseController(object):
 
     def update_pressure_step(self):
         value = self.phase_widget.pressure_step_msb.value()
-        self.phase_widget.pressure_sb.setSingleStep(value)
+        # self.phase_widget.pressure_sb.setSingleStep(value)
 
     def update_temperature_step(self):
         value = self.phase_widget.temperature_step_msb.value()
-        self.phase_widget.temperature_sb.setSingleStep(value)
+        # self.phase_widget.temperature_sb.setSingleStep(value)
 
     def pressure_sb_changed(self, val):
         """
@@ -338,9 +338,11 @@ class PhaseController(object):
         if self.model.phase_model.phases[ind].has_thermal_expansion():
             self.model.phase_model.set_temperature(ind, np.float(val))
             self.phase_widget.set_phase_temperature(ind, val)
+            self.phase_widget.temperature_sbs[ind].setEnabled(True)
         else:
             self.model.phase_model.set_temperature(ind, 298)
-            self.phase_widget.set_phase_temperature(ind, '-')
+            self.phase_widget.set_phase_temperature(ind, 298)
+            self.phase_widget.temperature_sbs[ind].setEnabled(False)
         self.update_phase_legend()
 
     def update_phase_legend(self):
@@ -378,18 +380,19 @@ class PhaseController(object):
             self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
 
     def update_temperature_control_visibility(self, row_ind=None):
-        if row_ind is None:
-            row_ind = self.phase_widget.get_selected_phase_row()
-
-        if row_ind == -1:
-            return
-
-        if self.model.phase_model.phases[row_ind].has_thermal_expansion():
-            self.phase_widget.temperature_sb.setEnabled(True)
-            self.phase_widget.temperature_step_msb.setEnabled(True)
-        else:
-            self.phase_widget.temperature_sb.setDisabled(True)
-            self.phase_widget.temperature_step_msb.setDisabled(True)
+        pass
+        # if row_ind is None:
+        #     row_ind = self.phase_widget.get_selected_phase_row()
+        #
+        # if row_ind == -1:
+        #     return
+        #
+        # if self.model.phase_model.phases[row_ind].has_thermal_expansion():
+        #     self.phase_widget.temperature_sb.setEnabled(True)
+        #     self.phase_widget.temperature_step_msb.setEnabled(True)
+        # else:
+        #     self.phase_widget.temperature_sb.setDisabled(True)
+        #     self.phase_widget.temperature_step_msb.setDisabled(True)
 
     def color_btn_clicked(self, ind, button):
         previous_color = button.palette().color(1)
