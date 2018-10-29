@@ -76,14 +76,12 @@ class PhaseWidget(QtWidgets.QWidget):
         self.pressure_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.temperature_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.apply_to_all_cb = QtWidgets.QCheckBox('apply to all')
-        self.show_in_pattern_cb = QtWidgets.QCheckBox('show')
 
         self._parameter_layout.addWidget(QtWidgets.QLabel('P step'))
         self._parameter_layout.addWidget(self.pressure_step_msb)
         self._parameter_layout.addWidget(QtWidgets.QLabel('T Step'))
         self._parameter_layout.addWidget(self.temperature_step_msb)
         self._parameter_layout.addWidget(self.apply_to_all_cb)
-        self._parameter_layout.addWidget(self.show_in_pattern_cb)
         self._parameter_layout.addWidget(HorizontalLine())
         self._parameter_layout.addItem(VerticalSpacerItem())
         self._parameter_layout.addWidget(self.save_list_btn)
@@ -165,7 +163,6 @@ class PhaseWidget(QtWidgets.QWidget):
         self.pressure_step_msb.setValue(1)
 
         self.apply_to_all_cb.setChecked(True)
-        self.show_in_pattern_cb.setChecked(True)
 
     def add_tooltips(self):
         self.add_btn.setToolTip('Loads Phase(s) from jcpds or cif file(s)')
