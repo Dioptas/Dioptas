@@ -63,7 +63,7 @@ class OverlayController(object):
         self.overlay_widget.scale_step_msb.editingFinished.connect(self.update_scale_step)
         self.overlay_widget.offset_step_msb.editingFinished.connect(self.update_overlay_offset_step)
         self.overlay_widget.scale_sb_value_changed.connect(self.scale_sb_changed)
-        #self.overlay_widget.offset_sb.valueChanged.connect(self.offset_sb_changed)
+        self.overlay_widget.offset_sb_value_changed.connect(self.offset_sb_changed)
 
         self.overlay_widget.waterfall_btn.clicked.connect(self.waterfall_btn_click_callback)
         self.overlay_widget.waterfall_reset_btn.clicked.connect(self.model.overlay_model.reset_overlay_offsets)
@@ -233,14 +233,14 @@ class OverlayController(object):
         if self.model.overlay_model.overlays[overlay_ind] == self.model.pattern_model.background_pattern:
             self.model.pattern_changed.emit()
 
-    def offset_sb_changed(self, value):
+    def offset_sb_changed(self, overlay_ind, new_value):
         """
         Callback gor the offset_sb spinbox.
-        :param value: new value
+        :param overlay_ind: index of overlay
+        :param new_value: new value
         """
-        cur_ind = self.overlay_widget.get_selected_overlay_row()
-        self.model.overlay_model.set_overlay_offset(cur_ind, value)
-        if self.model.overlay_model.overlays[cur_ind] == self.model.pattern_model.background_pattern:
+        self.model.overlay_model.set_overlay_offset(overlay_ind, new_value)
+        if self.model.overlay_model.overlays[overlay_ind] == self.model.pattern_model.background_pattern:
             self.model.pattern_changed.emit()
 
     def overlay_changed(self, ind):
