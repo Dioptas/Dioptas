@@ -172,6 +172,9 @@ class PhaseWidget(QtWidgets.QWidget):
         self.edit_btn.setToolTip('Edit selected Phase')
         self.delete_btn.setToolTip('Removes currently selected phase')
         self.clear_btn.setToolTip('Removes all phases')
+        self.apply_to_all_cb.setToolTip('Whether individual changes in P or T\nare applied to all other phases')
+        self.pressure_step_msb.setToolTip('Sets the step for the pressure spinboxes')
+        self.temperature_step_msb.setToolTip('Sets the step for the temperature spinboxes')
 
     # ###############################################################################################
     # Now comes all the phase tw stuff
