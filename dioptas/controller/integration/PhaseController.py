@@ -73,8 +73,6 @@ class PhaseController(object):
         self.phase_widget.pressure_sb_value_changed.connect(self.pressure_sb_changed)
         self.phase_widget.temperature_sb_value_changed.connect(self.temperature_sb_changed)
 
-        self.phase_widget.show_in_pattern_cb.stateChanged.connect(self.update_phase_legend)
-
         self.phase_widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
         self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
         self.phase_widget.show_cb_state_changed.connect(self.show_cb_state_changed)
@@ -343,21 +341,16 @@ class PhaseController(object):
         self.update_phase_legend()
 
     def update_phase_legend(self):
-        value = self.phase_widget.show_in_pattern_cb.isChecked()
-        self.phase_widget.show_parameter_in_pattern = value
         for ind in range(len(self.model.phase_model.phases)):
             name = self.model.phase_model.phases[ind].name
-            if self.phase_widget.show_in_pattern_cb.isChecked():
-                parameter_str = ''
-                pressure = self.model.phase_model.phases[ind].params['pressure']
-                temperature = self.model.phase_model.phases[ind].params['temperature']
-                if pressure != 0:
-                    parameter_str += '{:0.2f} GPa '.format(pressure)
-                if temperature != 0 and temperature != 298 and temperature is not None:
-                    parameter_str += '{:0.2f} K '.format(temperature)
-                self.pattern_widget.rename_phase(ind, parameter_str + name)
-            else:
-                self.pattern_widget.rename_phase(ind, name)
+            parameter_str = ''
+            pressure = self.model.phase_model.phases[ind].params['pressure']
+            temperature = self.model.phase_model.phases[ind].params['temperature']
+            if pressure != 0:
+                parameter_str += '{:0.2f} GPa '.format(pressure)
+            if temperature != 0 and temperature != 298 and temperature is not None:
+                parameter_str += '{:0.2f} K '.format(temperature)
+            self.pattern_widget.rename_phase(ind, parameter_str + name)
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
         if self.jcpds_editor_controller.active:

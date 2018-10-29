@@ -131,7 +131,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_pressure_step_msb = phase_control_widget.pressure_step_msb
         self.phase_temperature_step_msb = phase_control_widget.temperature_step_msb
         self.phase_apply_to_all_cb = phase_control_widget.apply_to_all_cb
-        self.phase_show_parameter_in_pattern_cb = phase_control_widget.show_in_pattern_cb
 
         overlay_control_widget = self.integration_control_widget.overlay_control_widget
         self.overlay_widget = overlay_control_widget
