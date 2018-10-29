@@ -284,6 +284,8 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self.color_btns.insert(new_ind, self.color_btns.pop(ind))
         self.show_cbs.insert(new_ind, self.show_cbs.pop(ind))
+        self.scale_sbs.insert(new_ind, self.scale_sbs.pop(ind))
+        self.offset_sbs.insert(new_ind, self.offset_sbs.pop(ind))
 
     def move_overlay_down(self, ind):
         new_ind = ind + 2
@@ -301,6 +303,8 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self.color_btns.insert(ind + 1, self.color_btns.pop(ind))
         self.show_cbs.insert(ind + 1, self.show_cbs.pop(ind))
+        self.scale_sbs.insert(ind + 1, self.scale_sbs.pop(ind))
+        self.offset_sbs.insert(ind + 1, self.offset_sbs.pop(ind))
 
     def color_btn_click(self, button):
         self.color_btn_clicked.emit(self.color_btns.index(button), button)
