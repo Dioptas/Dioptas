@@ -195,19 +195,10 @@ class OverlayController(object):
         the set_as_bkg_btn appropriately.
         :param row: selected row in the overlay table
         """
-        pass
-        # cur_ind = row
-        #         # self.overlay_widget.scale_sb.blockSignals(True)
-        #         # self.overlay_widget.offset_sb.blockSignals(True)
-        #         # self.overlay_widget.scale_sb.setValue(self.model.overlay_model.overlays[cur_ind].scaling)
-        #         # self.overlay_widget.offset_sb.setValue(self.model.overlay_model.overlays[cur_ind].offset)
-        #         #
-        #         # self.overlay_widget.scale_sb.blockSignals(False)
-        #         # self.overlay_widget.offset_sb.blockSignals(False)
-        #         # if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[cur_ind]:
-        #         #     self.overlay_widget.set_as_bkg_btn.setChecked(True)
-        #         # else:
-        #         #     self.overlay_widget.set_as_bkg_btn.setChecked(False)
+        if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[row]:
+            self.overlay_widget.set_as_bkg_btn.setChecked(True)
+        else:
+            self.overlay_widget.set_as_bkg_btn.setChecked(False)
 
     def color_btn_clicked(self, ind, button):
         """
@@ -247,14 +238,12 @@ class OverlayController(object):
 
     def overlay_changed(self, ind):
         self.integration_widget.pattern_widget.update_overlay(self.model.overlay_model.overlays[ind], ind)
-        cur_ind = self.overlay_widget.get_selected_overlay_row()
-        if ind == cur_ind:
-            self.overlay_widget.offset_sb.blockSignals(True)
-            self.overlay_widget.scale_sb.blockSignals(True)
-            self.overlay_widget.offset_sb.setValue(self.model.overlay_model.get_overlay_offset(ind))
-            self.overlay_widget.scale_sb.setValue(self.model.overlay_model.get_overlay_scaling(ind))
-            self.overlay_widget.offset_sb.blockSignals(False)
-            self.overlay_widget.scale_sb.blockSignals(False)
+        self.overlay_widget.offset_sbs[ind].blockSignals(True)
+        self.overlay_widget.scale_sbs[ind].blockSignals(True)
+        self.overlay_widget.offset_sbs[ind].setValue(self.model.overlay_model.get_overlay_offset(ind))
+        self.overlay_widget.scale_sbs[ind].setValue(self.model.overlay_model.get_overlay_scaling(ind))
+        self.overlay_widget.offset_sbs[ind].blockSignals(False)
+        self.overlay_widget.scale_sbs[ind].blockSignals(False)
 
     def waterfall_btn_click_callback(self):
         separation = self.overlay_widget.waterfall_separation_msb.value()
