@@ -201,10 +201,14 @@ class OverlayControllerTest(QtTest):
     def test_setting_overlay_as_bkg_and_changing_scale(self):
         self.load_overlays()
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
-        self.overlay_widget.select_overlay(0)
+
+        ind = 2
+
+        self.overlay_widget.select_overlay(ind)
         QTest.mouseClick(self.integration_widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
-        self.integration_widget.overlay_scale_sb.setValue(2)
+        self.overlay_widget.scale_sbs[ind].setValue(2)
+
         _, y = self.model.pattern.data
         _, y_original = self.model.pattern.data
         self.assertEqual(np.sum(y - y_original), 0)
@@ -212,24 +216,29 @@ class OverlayControllerTest(QtTest):
     def test_setting_overlay_as_bkg_and_changing_offset(self):
         self.load_overlays()
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
-        self.overlay_widget.select_overlay(0)
+
+        ind = 2
+        self.overlay_widget.select_overlay(2)
         QTest.mouseClick(self.integration_widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
-        self.integration_widget.overlay_offset_sb.setValue(100)
+        self.overlay_widget.offset_sbs[ind].setValue(100)
         _, y = self.model.pattern.data
         self.assertEqual(np.sum(y), -100 * y.size)
 
     def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(self):
         self.load_overlays()
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
-        self.overlay_widget.select_overlay(0)
+
+        ind = 2
+        self.overlay_widget.select_overlay(ind)
         QTest.mouseClick(self.integration_widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         _, y = self.model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
-        self.overlay_widget.select_overlay(1)
-        self.integration_widget.overlay_scale_sb.setValue(2)
+        new_ind = 1
+        self.overlay_widget.select_overlay(new_ind)
+        self.overlay_widget.scale_sbs[new_ind].setValue(2)
         QTest.mouseClick(self.integration_widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         _, y = self.model.pattern.data
