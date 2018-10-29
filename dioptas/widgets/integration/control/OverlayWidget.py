@@ -108,13 +108,13 @@ class OverlayWidget(QtWidgets.QWidget):
         self.parameter_widget.setLayout(self._parameter_layout)
 
         self.overlay_tw = ListTableWidget(columns=5)
+        self.overlay_tw.setObjectName('overlay_table_widget')
         self.overlay_tw.setHorizontalHeaderLabels(['', '', 'Name', 'Scale', 'Offset'])
         self.overlay_tw.horizontalHeader().setVisible(True)
         self.overlay_tw.horizontalHeader().setStretchLastSection(False)
         self.overlay_tw.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
         self.overlay_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
         self.overlay_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
-        # self.overlay_tw.horizontalHeader().
 
         self._layout.addWidget(self.overlay_tw, 10)
         self._layout.addWidget(self.parameter_widget, 0)
@@ -187,14 +187,6 @@ class OverlayWidget(QtWidgets.QWidget):
         self.set_as_bkg_btn.setMinimumHeight(40)
         self.set_as_bkg_btn.setMaximumHeight(40)
 
-        self.setStyleSheet("""
-            #overlay_control_widget 
-            QSpinBox, QDoubleSpinBox {
-                min-width: 50;
-                max-width: 70;
-            }
-        """)
-
     def add_tooltips(self):
         self.add_btn.setToolTip('Loads Overlay(s) from file(s)')
         self.delete_btn.setToolTip('Removes currently selected overlay')
@@ -232,8 +224,6 @@ class OverlayWidget(QtWidgets.QWidget):
         scale_sb.setMinimum(-9999999)
         scale_sb.setMaximum(9999999)
         scale_sb.setValue(1)
-        scale_sb.setStyleSheet("background-color: #3C3C3C; color:#D1D1D1;")
-        # scale_sb.lineEdit().setStyleSheet("font-color: ")
         scale_sb.valueChanged.connect(partial(self.scale_sb_callback, scale_sb))
         self.overlay_tw.setCellWidget(current_rows, 3, scale_sb)
         self.scale_sbs.append(scale_sb)
@@ -242,7 +232,6 @@ class OverlayWidget(QtWidgets.QWidget):
         offset_sb.setMinimum(-9999999)
         offset_sb.setMaximum(9999999)
         offset_sb.setValue(1)
-        offset_sb.setStyleSheet("background-color: #3C3C3C; color:#D1D1D1;")
         offset_sb.valueChanged.connect(partial(self.offset_sb_callback, offset_sb))
         self.overlay_tw.setCellWidget(current_rows, 4, offset_sb)
         self.offset_sbs.append(offset_sb)
