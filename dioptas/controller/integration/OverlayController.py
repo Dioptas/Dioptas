@@ -62,7 +62,7 @@ class OverlayController(object):
 
         self.overlay_widget.scale_step_msb.editingFinished.connect(self.update_scale_step)
         self.overlay_widget.offset_step_msb.editingFinished.connect(self.update_overlay_offset_step)
-        #self.overlay_widget.scale_sb.valueChanged.connect(self.scale_sb_changed)
+        self.overlay_widget.scale_sb_value_changed.connect(self.scale_sb_changed)
         #self.overlay_widget.offset_sb.valueChanged.connect(self.offset_sb_changed)
 
         self.overlay_widget.waterfall_btn.clicked.connect(self.waterfall_btn_click_callback)
@@ -223,14 +223,14 @@ class OverlayController(object):
         self.integration_widget.pattern_widget.set_overlay_color(ind, color)
         button.setStyleSheet('background-color:' + color)
 
-    def scale_sb_changed(self, value):
+    def scale_sb_changed(self, overlay_ind, new_value):
         """
         Callback for scale_sb spinbox.
-        :param value: new scale value
+        :param overlay_ind: index of overlay
+        :param new_value: new scale value
         """
-        cur_ind = self.overlay_widget.get_selected_overlay_row()
-        self.model.overlay_model.set_overlay_scaling(cur_ind, value)
-        if self.model.overlay_model.overlays[cur_ind] == self.model.pattern_model.background_pattern:
+        self.model.overlay_model.set_overlay_scaling(overlay_ind, new_value)
+        if self.model.overlay_model.overlays[overlay_ind] == self.model.pattern_model.background_pattern:
             self.model.pattern_changed.emit()
 
     def offset_sb_changed(self, value):
