@@ -271,15 +271,23 @@ class OverlayControllerTest(QtTest):
     def test_overlay_waterfall(self):
         self.load_overlays()
         self.overlay_widget.waterfall_separation_msb.setValue(10)
-        QTest.mouseClick(self.overlay_widget.waterfall_btn, QtCore.Qt.LeftButton)
+        click_button(self.overlay_widget.waterfall_btn)
 
         self.assertEqual(self.model.overlay_model.overlays[5].offset, -10)
         self.assertEqual(self.model.overlay_model.overlays[4].offset, -20)
 
-        QTest.mouseClick(self.integration_widget.reset_waterfall_btn, QtCore.Qt.LeftButton)
+        click_button(self.integration_widget.reset_waterfall_btn)
 
         self.assertEqual(self.model.overlay_model.overlays[5].offset, 0)
         self.assertEqual(self.model.overlay_model.overlays[5].offset, 0)
+
+    def test_overlay_waterfall_after_deleting_one_overlay(self):
+        self.load_overlays()
+        self.overlay_widget.select_overlay(4)
+        click_button(self.overlay_widget.delete_btn)
+        click_button(self.overlay_widget.delete_btn)
+
+        click_button(self.overlay_widget.waterfall_btn)
 
     def load_overlays(self):
         self.load_overlay('pattern_001.xy')
