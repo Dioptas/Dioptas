@@ -1108,8 +1108,8 @@ class ImageController(object):
             self.widget.vertical_splitter.restoreState(self.vertical_splitter_normal_state)
         if self.horizontal_splitter_normal_state:
             self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_normal_state)
-        self.widget.integration_control_widget.overlay_control_widget.overlay_lbl.setVisible(False)
-        self.widget.integration_control_widget.phase_control_widget.phase_lbl.setVisible(False)
+        self.widget.integration_control_widget.overlay_control_widget.overlay_header_btn.setVisible(False)
+        self.widget.integration_control_widget.phase_control_widget.phase_header_btn.setVisible(False)
         self.view_mode = 'normal'
 
     def change_view_to_alternative(self):
@@ -1120,13 +1120,13 @@ class ImageController(object):
         self.horizontal_splitter_normal_state = self.widget.horizontal_splitter.saveState()
 
         self.widget.vertical_splitter_left.insertWidget(0, self.widget.integration_pattern_widget)
-        self.widget.vertical_splitter_left.insertWidget(0, self.widget.integration_pattern_widget)
         self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.overlay_control_widget)
         self.widget.vertical_splitter.addWidget(self.widget.integration_control_widget.phase_control_widget)
+
         self.widget.integration_control_widget.overlay_control_widget.setVisible(True)
         self.widget.integration_control_widget.phase_control_widget.setVisible(True)
-        self.widget.integration_control_widget.overlay_control_widget.overlay_lbl.setVisible(True)
-        self.widget.integration_control_widget.phase_control_widget.phase_lbl.setVisible(True)
+        self.widget.integration_control_widget.overlay_control_widget.overlay_header_btn.setVisible(True)
+        self.widget.integration_control_widget.phase_control_widget.phase_header_btn.setVisible(True)
 
         if self.vertical_splitter_alternative_state:
             self.widget.vertical_splitter.restoreState(self.vertical_splitter_alternative_state)
