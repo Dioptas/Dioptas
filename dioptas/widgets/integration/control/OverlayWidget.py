@@ -256,6 +256,8 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.blockSignals(False)
         del self.show_cbs[ind]
         del self.color_btns[ind]
+        del self.offset_sbs[ind]
+        del self.scale_sbs[ind]
 
         if self.overlay_tw.rowCount() > ind:
             self.select_overlay(ind)
