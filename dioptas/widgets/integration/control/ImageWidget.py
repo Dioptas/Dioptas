@@ -48,20 +48,21 @@ class ImageWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.file_widget)
         self._layout.addWidget(HorizontalLine())
 
-        self._file_info_layout = QtWidgets.QHBoxLayout()
-        self._file_info_layout.addWidget(self.file_info_btn)
-        self._file_info_layout.addWidget(self.move_btn)
-        self._file_info_layout.addSpacerItem(HorizontalSpacerItem())
-
         self._batch_layout = QtWidgets.QHBoxLayout()
-
         self._batch_layout.addWidget(self.batch_mode_lbl)
         self._batch_layout.addWidget(self.batch_mode_integrate_rb)
         self._batch_layout.addWidget(self.batch_mode_add_rb)
         self._batch_layout.addWidget(self.batch_mode_image_save_rb)
+        self._batch_layout.addItem(HorizontalSpacerItem())
         self.batch_mode_widget.setLayout(self._batch_layout)
+        self._layout.addWidget(self.batch_mode_widget)
 
-        self._file_info_layout.addWidget(self.batch_mode_widget)
+        self._layout.addWidget(HorizontalLine())
+
+        self._file_info_layout = QtWidgets.QHBoxLayout()
+        self._file_info_layout.addWidget(self.file_info_btn)
+        self._file_info_layout.addWidget(self.move_btn)
+        self._file_info_layout.addSpacerItem(HorizontalSpacerItem())
 
         self._layout.addLayout(self._file_info_layout)
         self._layout.addSpacerItem(VerticalSpacerItem())
