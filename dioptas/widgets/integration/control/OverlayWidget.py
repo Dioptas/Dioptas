@@ -39,9 +39,6 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QHBoxLayout()
 
-        self.overlay_lbl = QtWidgets.QLabel('Overlays')
-        self._layout.addWidget(self.overlay_lbl)
-
         self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('overlay_control_widget')
         self._button_layout = QtWidgets.QVBoxLayout(self.button_widget)
@@ -116,15 +113,25 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
         self.overlay_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
 
+        self.overlay_tw.setColumnWidth(0, 20)
+        self.overlay_tw.setColumnWidth(1, 25)
+        self.overlay_tw.cellChanged.connect(self.label_editingFinished)
+        self.overlay_tw.setItemDelegate(NoRectDelegate())
+
         self._layout.addWidget(self.overlay_tw, 10)
         self._layout.addWidget(self.parameter_widget, 0)
 
-        self.setLayout(self._layout)
+        # label for alternative view:
+        self.overlay_header_btn = FlatButton('Overlay')
+        self.overlay_header_btn.setEnabled(False)
+        self._main_layout = QtWidgets.QVBoxLayout()
+        self._main_layout.setContentsMargins(0, 0, 0, 0)
+        self._main_layout.addWidget(self.overlay_header_btn)
+        self._main_layout.addLayout(self._layout)
+        self.setLayout(self._main_layout)
         self.style_widgets()
         self.add_tooltips()
 
-        self.overlay_tw.cellChanged.connect(self.label_editingFinished)
-        self.overlay_tw.setItemDelegate(NoRectDelegate())
         self.show_cbs = []
         self.color_btns = []
         self.scale_sbs = []
@@ -161,7 +168,6 @@ class OverlayWidget(QtWidgets.QWidget):
         modify_btn_to_icon_size(self.move_up_btn)
         modify_btn_to_icon_size(self.move_down_btn)
 
-        self.overlay_lbl.setVisible(False)
         step_txt_width = 70
         self.scale_step_msb.setMaximumWidth(step_txt_width)
         self.scale_step_msb.setMinimumWidth(step_txt_width)
@@ -186,6 +192,8 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self.set_as_bkg_btn.setMinimumHeight(40)
         self.set_as_bkg_btn.setMaximumHeight(40)
+
+        self.overlay_header_btn.setStyleSheet("border-radius: 0px")
 
     def add_tooltips(self):
         self.add_btn.setToolTip('Loads Overlay(s) from file(s)')
