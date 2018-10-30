@@ -39,9 +39,6 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QHBoxLayout()
 
-        self.phase_lbl = QtWidgets.QLabel('Phases')
-        self._layout.addWidget(self.phase_lbl)
-
         self.add_btn = FlatButton()
         self.edit_btn = FlatButton()
         self.delete_btn = FlatButton()
@@ -99,13 +96,22 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
         self.phase_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
         self.phase_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        self.phase_tw.setColumnWidth(0, 20)
+        self.phase_tw.setColumnWidth(1, 25)
         self.phase_tw.setItemDelegate(NoRectDelegate())
         self._body_layout.addWidget(self.phase_tw, 10)
         self._body_layout.addWidget(self.parameter_widget, 0)
 
         self._layout.addLayout(self._body_layout)
 
-        self.setLayout(self._layout)
+        # label for alternative view:
+        self.phase_header_btn = FlatButton('Phase')
+        self.phase_header_btn.setEnabled(False)
+        self._main_layout = QtWidgets.QVBoxLayout()
+        self._main_layout.setContentsMargins(0, 0, 0, 0)
+        self._main_layout.addWidget(self.phase_header_btn)
+        self._main_layout.addLayout(self._layout)
+        self.setLayout(self._main_layout)
         self.style_widgets()
         self.add_tooltips()
 
@@ -144,8 +150,6 @@ class PhaseWidget(QtWidgets.QWidget):
         modify_btn_to_icon_size(self.clear_btn)
         modify_btn_to_icon_size(self.edit_btn)
 
-        self.phase_lbl.setVisible(False)
-
         self.phase_tw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
 
@@ -161,6 +165,8 @@ class PhaseWidget(QtWidgets.QWidget):
         self.temperature_step_msb.setValue(100.0)
 
         self.pressure_step_msb.setValue(1)
+
+        self.phase_header_btn.setStyleSheet("border-radius: 0px")
 
         self.apply_to_all_cb.setChecked(True)
 
