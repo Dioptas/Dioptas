@@ -124,6 +124,7 @@ class OverlayWidget(QtWidgets.QWidget):
         # label for alternative view:
         self.overlay_header_btn = FlatButton('Overlay')
         self.overlay_header_btn.setEnabled(False)
+        self.overlay_header_btn.setVisible(False)
         self._main_layout = QtWidgets.QVBoxLayout()
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self._main_layout.addWidget(self.overlay_header_btn)
