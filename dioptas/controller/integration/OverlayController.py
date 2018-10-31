@@ -70,6 +70,8 @@ class OverlayController(object):
 
         self.overlay_widget.set_as_bkg_btn.clicked.connect(self.set_as_bkg_btn_click_callback)
 
+        self.overlay_widget.overlay_tw.horizontalHeader().sectionClicked.connect(self.overlay_tw_header_section_clicked)
+
         # creating the quick-actions signals
 
         self.connect_click_function(self.integration_widget.qa_set_as_overlay_btn, self.set_current_pattern_as_overlay)
@@ -312,3 +314,10 @@ class OverlayController(object):
         """
         self.integration_widget.pattern_widget.rename_overlay(ind, name)
         self.model.overlay_model.overlays[ind].name = name
+
+    def overlay_tw_header_section_clicked(self, ind):
+        if ind != 0:
+            return
+
+        for cb in self.overlay_widget.show_cbs:
+            cb.setChecked(not cb.isChecked())

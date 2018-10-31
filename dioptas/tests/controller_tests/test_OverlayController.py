@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ..utility import QtTest, click_button
+from ..utility import QtTest, click_button, click_checkbox
 import os
 import gc
 from mock import MagicMock
@@ -342,3 +342,23 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(self.integration_widget.overlay_tw.item(4, 2).text(), new_name)
         self.assertEqual(self.model.overlay_model.overlays[3].name, 'pattern_001')
         self.assertEqual(self.integration_widget.overlay_tw.item(3, 2).text(), 'pattern_001')
+
+    def test_bulk_change_visibility_of_overlays(self):
+        self.load_overlays()
+        for cb in self.overlay_widget.show_cbs:
+            self.assertTrue(cb.isChecked())
+
+        self.overlay_controller.overlay_tw_header_section_clicked(0)
+
+        for cb in self.overlay_widget.show_cbs:
+            self.assertFalse(cb.isChecked())
+
+        click_checkbox(self.overlay_widget.show_cbs[1])
+
+        self.overlay_controller.overlay_tw_header_section_clicked(0)
+
+        for ind, cb in enumerate(self.overlay_widget.show_cbs):
+            if ind == 1:
+                self.assertFalse(cb.isChecked())
+            else:
+                self.assertTrue(cb.isChecked())
