@@ -231,6 +231,9 @@ class PhaseWidget(QtWidgets.QWidget):
         self.select_phase(current_rows)
         self.phase_tw.blockSignals(False)
 
+        self.phase_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        self.phase_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+
     def select_phase(self, ind):
         self.phase_tw.selectRow(ind)
 
