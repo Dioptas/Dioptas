@@ -47,22 +47,3 @@ class IntegrationControlWidget(QtWidgets.QTabWidget):
         self.addTab(self.background_control_widget, 'Bkg')
         self.addTab(self.integration_options_widget, 'X')
 
-        self.style_widgets()
-
-    def style_widgets(self):
-        self.setStyleSheet("""
-        QTableWidget QPushButton {
-            margin: 5px;
-        }
-
-        QTableWidget QPushButton::pressed{
-            margin-top: 7px;
-            margin-left: 7px;
-        }
-
-        QTableWidget {
-            selection-background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(177,80,0,255), stop:1 rgba(255,120,0,255));
-            selection-color: #F1F1F1;
-        }
-        """)
-
