@@ -38,6 +38,7 @@ class PhaseWidget(QtWidgets.QWidget):
         super(PhaseWidget, self).__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(5, 5, 5, 5)
 
         self.add_btn = FlatButton()
         self.edit_btn = FlatButton()
