@@ -27,6 +27,8 @@ class PatternWidget(QtWidgets.QWidget):
         super(PatternWidget, self).__init__()
 
         self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(5, 5 , 5, 5)
+        self._layout.setSpacing(5)
 
         self.file_widget = BrowseFileWidget(files='Pattern', checkbox_text='autocreate')
 
