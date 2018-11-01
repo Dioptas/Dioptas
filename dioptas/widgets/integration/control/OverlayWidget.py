@@ -39,6 +39,7 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(5, 5, 5, 5)
+        self._layout.setSpacing(5)
 
         self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('overlay_control_widget')
@@ -68,7 +69,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.parameter_widget = QtWidgets.QWidget(self)
         self._parameter_layout = QtWidgets.QVBoxLayout()
         self._parameter_layout.setContentsMargins(0, 0, 0, 0)
-        self._parameter_layout.setSpacing(4)
+        self._parameter_layout.setSpacing(5)
 
         self.scale_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.offset_step_msb = DoubleMultiplySpinBoxAlignRight()
@@ -76,6 +77,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self._step_gb = QtWidgets.QWidget()
         self._step_layout = QtWidgets.QVBoxLayout()
         self._step_layout.setContentsMargins(0, 0, 0, 0)
+        self._step_layout.setSpacing(4)
         self._step_layout.addWidget(QtWidgets.QLabel('Scale Step'))
         self._step_layout.addWidget(self.scale_step_msb)
         self._step_layout.addWidget(QtWidgets.QLabel('Offset Step'))
@@ -91,6 +93,7 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._waterfall_layout = QtWidgets.QVBoxLayout()
         self._waterfall_layout.setContentsMargins(0, 0, 0, 0)
+        self._waterfall_layout.setSpacing(4)
         self._waterfall_layout.addWidget(self.waterfall_btn)
         self._waterfall_layout.addWidget(self.waterfall_separation_msb)
         self._waterfall_layout.addWidget(self.waterfall_reset_btn)
@@ -102,6 +105,7 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self.set_as_bkg_btn = CheckableFlatButton('Set as\nBackground')
         self._background_layout = QtWidgets.QHBoxLayout()
+        self._background_layout.setContentsMargins(0, 0, 0, 0)
         self._background_layout.addSpacerItem(HorizontalSpacerItem())
         self._background_layout.addWidget(self.set_as_bkg_btn)
         self._parameter_layout.addLayout(self._background_layout)
