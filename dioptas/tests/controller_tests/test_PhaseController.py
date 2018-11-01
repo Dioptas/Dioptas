@@ -315,6 +315,24 @@ class PhaseControllerTest(QtTest):
         # delete phase list file
         os.remove(os.path.join(data_path, phase_list_file_name))
 
+    def test_bulk_change_visibility_of_phases(self):
+        self.load_phases()
+        for cb in self.phase_widget.phase_show_cbs:
+            self.assertTrue(cb.isChecked())
+
+        self.controller.phase_tw_header_section_clicked(0)
+        for cb in self.phase_widget.phase_show_cbs:
+            self.assertFalse(cb.isChecked())
+
+        click_checkbox(self.phase_widget.phase_show_cbs[1])
+        self.controller.phase_tw_header_section_clicked(0)
+        for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
+                self.assertFalse(cb.isChecked())
+
+        self.controller.phase_tw_header_section_clicked(0)
+        for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
+            self.assertTrue(cb.isChecked())
+
     def load_phases(self):
         self.load_phase('ar.jcpds')
         self.load_phase('ag.jcpds')

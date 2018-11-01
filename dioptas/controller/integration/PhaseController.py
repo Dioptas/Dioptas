@@ -77,6 +77,8 @@ class PhaseController(object):
         self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
         self.phase_widget.show_cb_state_changed.connect(self.show_cb_state_changed)
 
+        self.phase_widget.phase_tw.horizontalHeader().sectionClicked.connect(self.phase_tw_header_section_clicked)
+
         self.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
         # self.widget.pattern_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
         self.pattern_widget.pattern_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
@@ -371,6 +373,19 @@ class PhaseController(object):
             self.pattern_widget.show_phase(ind)
         else:
             self.pattern_widget.hide_phase(ind)
+
+    def phase_tw_header_section_clicked(self, ind):
+        if ind != 0:
+            return
+
+        current_checkbox_state = False
+        # check whether any checkbox is checked, if one is true current_checkbox_state will be True too
+        for cb in self.phase_widget.phase_show_cbs:
+            current_checkbox_state = current_checkbox_state or cb.isChecked()
+
+        # assign the the opposite to all checkboxes
+        for cb in self.phase_widget.phase_show_cbs:
+            cb.setChecked(not current_checkbox_state)
 
     def get_unit(self):
         """
