@@ -38,6 +38,7 @@ class OverlayWidget(QtWidgets.QWidget):
         super(OverlayWidget, self).__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(5, 5, 5, 5)
 
         self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('overlay_control_widget')
