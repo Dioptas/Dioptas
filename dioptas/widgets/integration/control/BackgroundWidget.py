@@ -28,10 +28,13 @@ class BackgroundWidget(QtWidgets.QWidget):
         super(BackgroundWidget, self).__init__()
 
         self._layout = QtWidgets.QGridLayout()
+        self._layout.setContentsMargins(5, 5 , 5, 5)
+        self._layout.setSpacing(5)
 
         self.image_background_gb = QtWidgets.QGroupBox('Image Background', self)
         self._image_background_gb_layout = QtWidgets.QGridLayout(self.image_background_gb)
-        self._image_background_gb_layout.setSpacing(6)
+        self._image_background_gb_layout.setContentsMargins(5, 8, 5, 7)
+        self._image_background_gb_layout.setSpacing(5)
 
         self.load_image_btn = FlatButton('Load')
         self.filename_lbl = QtWidgets.QLabel('None')
@@ -61,6 +64,8 @@ class BackgroundWidget(QtWidgets.QWidget):
 
         self.pattern_background_gb = QtWidgets.QGroupBox('Pattern Background')
         self._pattern_bkg_layout = QtWidgets.QGridLayout()
+        self._pattern_bkg_layout.setContentsMargins(5, 8, 5, 7)
+        self._pattern_bkg_layout.setSpacing(5)
 
         self.smooth_with_sb = DoubleSpinBoxAlignRight()
         self.iterations_sb = SpinBoxAlignRight()
