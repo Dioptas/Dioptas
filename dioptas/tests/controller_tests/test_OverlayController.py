@@ -349,16 +349,14 @@ class OverlayControllerTest(QtTest):
             self.assertTrue(cb.isChecked())
 
         self.overlay_controller.overlay_tw_header_section_clicked(0)
-
         for cb in self.overlay_widget.show_cbs:
             self.assertFalse(cb.isChecked())
 
         click_checkbox(self.overlay_widget.show_cbs[1])
+        self.overlay_controller.overlay_tw_header_section_clicked(0)
+        for ind, cb in enumerate(self.overlay_widget.show_cbs):
+                self.assertFalse(cb.isChecked())
 
         self.overlay_controller.overlay_tw_header_section_clicked(0)
-
         for ind, cb in enumerate(self.overlay_widget.show_cbs):
-            if ind == 1:
-                self.assertFalse(cb.isChecked())
-            else:
-                self.assertTrue(cb.isChecked())
+            self.assertTrue(cb.isChecked())

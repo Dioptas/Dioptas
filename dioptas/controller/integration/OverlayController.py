@@ -319,5 +319,11 @@ class OverlayController(object):
         if ind != 0:
             return
 
+        current_checkbox_state = False
+        # check whether any checkbox is checked, if one is true current_checkbox_state will be True too
         for cb in self.overlay_widget.show_cbs:
-            cb.setChecked(not cb.isChecked())
+            current_checkbox_state = current_checkbox_state or cb.isChecked()
+
+        # assign the the opposite to all checkboxes
+        for cb in self.overlay_widget.show_cbs:
+            cb.setChecked(not current_checkbox_state)
