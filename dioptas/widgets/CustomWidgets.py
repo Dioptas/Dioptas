@@ -93,6 +93,7 @@ class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
             else:
                 return pow10floor * 5.0
 
+
 class ConservativeSpinBox(QtWidgets.QSpinBox):
     """
     This is a modification of the QSpinBox class. The ConservativeSpinbox does not emit the valueChanged signal for
