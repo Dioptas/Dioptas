@@ -123,21 +123,13 @@ class MouseUnitWidget(QtWidgets.QWidget):
             self.azi_lbl.setStyleSheet(style_str)
 
 
-class BrowseFileWidget(QtWidgets.QWidget):
+class BrowseFileWidget(QtWidgets.QGroupBox):
     def __init__(self, files, checkbox_text):
         super(BrowseFileWidget, self).__init__()
 
-        self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(0, 0, 0, 0)
-
-        self._control_layout = QtWidgets.QGridLayout()
-        self._control_layout.setContentsMargins(0, 0, 0, 0)
-        self._control_layout.setVerticalSpacing(6)
-        self._control_layout.setHorizontalSpacing(12)
-        self._name_layout = QtWidgets.QGridLayout()
-        self._name_layout.setContentsMargins(0, 0, 0, 0)
-        self._name_layout.setVerticalSpacing(6)
-        self._name_layout.setHorizontalSpacing(12)
+        self._layout = QtWidgets.QGridLayout()
+        self._layout.setContentsMargins(5, 8, 5, 7)
+        self._layout.setSpacing(5)
 
         self.load_btn = FlatButton('Load {}(s)'.format(files))
         self.file_cb = QtWidgets.QCheckBox(checkbox_text)
@@ -152,27 +144,27 @@ class BrowseFileWidget(QtWidgets.QWidget):
         self.directory_btn = FlatButton('...')
         self.file_txt = QtWidgets.QLineEdit('')
 
-        self._control_layout.addWidget(self.load_btn, 0, 0)
-        self._control_layout.addWidget(self.file_cb, 1, 0)
+        self._layout.addWidget(self.load_btn, 0, 0)
+        self._layout.addWidget(self.file_cb, 1, 0)
 
-        self._control_layout.addWidget(self.previous_btn, 0, 1)
-        self._control_layout.addWidget(self.next_btn, 0, 2)
+        self._layout.addWidget(self.previous_btn, 0, 1)
+        self._layout.addWidget(self.next_btn, 0, 2)
         self._step_layout = QtWidgets.QHBoxLayout()
         self._step_layout.addWidget(LabelAlignRight('Step:'))
         self._step_layout.addWidget(self.step_txt)
-        self._control_layout.addLayout(self._step_layout, 1, 1, 1, 2)
+        self._layout.addLayout(self._step_layout, 1, 1, 1, 2)
 
-        self._control_layout.addWidget(self.browse_by_name_rb, 0, 3)
-        self._control_layout.addWidget(self.browse_by_time_rb, 1, 3)
+        self._layout.addWidget(self.browse_by_name_rb, 0, 3)
+        self._layout.addWidget(self.browse_by_time_rb, 1, 3)
 
-        self._name_layout.addWidget(self.file_txt, 0, 0, 1, 2)
-        self._name_layout.addWidget(self.directory_txt, 1, 0)
-        self._name_layout.addWidget(self.directory_btn, 1, 1)
-        self._name_layout.addItem(HorizontalSpacerItem(), 1, 2)
+        self._layout.addWidget(self.file_txt, 2, 0, 1, 5)
+        self._directory_layout = QtWidgets.QHBoxLayout()
+        self._directory_layout.addWidget(self.directory_txt)
+        self._directory_layout.addWidget(self.directory_btn)
+        self._layout.addLayout(self._directory_layout, 3, 0, 1, 5)
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum,
+                                 QtWidgets.QSizePolicy.Minimum), 1, 5)
 
-        self._layout.addLayout(self._control_layout)
-        self._layout.addWidget(HorizontalLine())
-        self._layout.addLayout(self._name_layout)
         self.setLayout(self._layout)
 
         self.style_widgets()

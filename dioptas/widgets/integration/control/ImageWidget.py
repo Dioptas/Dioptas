@@ -44,11 +44,10 @@ class ImageWidget(QtWidgets.QWidget):
 
     def _create_layout(self):
         self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(5, 5 , 5, 5)
+        self._layout.setContentsMargins(5, 0, 5, 5)
         self._layout.setSpacing(5)
 
         self._layout.addWidget(self.file_widget)
-        self._layout.addWidget(HorizontalLine())
 
         self._batch_layout = QtWidgets.QHBoxLayout()
         self._batch_layout.addWidget(self.batch_mode_lbl)
