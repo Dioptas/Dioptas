@@ -57,6 +57,11 @@ class CorrectionController(object):
             self.widget.oiadac_param_tw.cellWidget(row_ind, 1).editingFinished.connect(self.oiadac_groupbox_changed)
         self.widget.oiadac_plot_btn.clicked.connect(self.oiadac_plot_btn_clicked)
 
+        self.widget.oiadac_groupbox.toggled.connect(
+            self.widget.integration_control_widget.corrections_control_widget.toggle_oiadac_widget_visibility)
+        self.widget.cbn_groupbox.toggled.connect(
+            self.widget.integration_control_widget.corrections_control_widget.toggle_cbn_widget_visibility)
+
         self.model.img_changed.connect(self.reset_plot_btns)
         self.model.cake_changed.connect(self.reset_plot_btns)
 
