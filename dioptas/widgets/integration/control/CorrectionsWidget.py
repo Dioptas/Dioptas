@@ -26,6 +26,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         super(CorrectionsWidget, self).__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(5, 5, 5, 5)
 
         self.create_cbn_correction_widgets()
         self.create_cbn_correction_layout()
@@ -103,7 +104,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
     def create_cbn_correction_layout(self):
         self._cbn_seat_layout = QtWidgets.QHBoxLayout()
-        self._cbn_seat_layout.setSpacing(6)
+        self._cbn_seat_layout.setSpacing(5)
 
         self._cbn_seat_layout.addWidget(self.cbn_param_tw)
 
@@ -138,7 +139,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
     def create_oiadac_layout(self):
         self._oiadac_layout = QtWidgets.QHBoxLayout()
-        self._oiadac_layout.setSpacing(6)
+        self._oiadac_layout.setSpacing(5)
 
         self._oiadac_layout.addWidget(self.oiadac_param_tw)
 
