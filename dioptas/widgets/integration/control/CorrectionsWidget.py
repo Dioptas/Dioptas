@@ -18,8 +18,7 @@
 
 from qtpy import QtWidgets, QtCore
 
-from ...CustomWidgets import NumberTextField, LabelAlignRight, CheckableFlatButton, VerticalSpacerItem, \
-    HorizontalSpacerItem, ListTableWidget
+from ...CustomWidgets import NumberTextField, CheckableFlatButton, ListTableWidget
 
 
 class CorrectionsWidget(QtWidgets.QWidget):
@@ -34,19 +33,23 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.create_oiadac_widgets()
         self.create_oiadac_layout()
 
-        vert_layout_1 = QtWidgets.QHBoxLayout()
-        vert_layout_1.addWidget(self.cbn_seat_gb)
-        vert_layout_1.addSpacerItem(HorizontalSpacerItem())
-        self._layout.addLayout(vert_layout_1)
-        self._layout.addWidget(self.oiadac_gb)
-        self._layout.addSpacerItem(VerticalSpacerItem())
+        vertical_layout_1 = QtWidgets.QHBoxLayout()
+        vertical_layout_1.addWidget(self.cbn_seat_gb)
+        vertical_layout_1.addStretch(1)
+        self._layout.addLayout(vertical_layout_1, 20)
+
+        vertical_layout_2 = QtWidgets.QHBoxLayout()
+        vertical_layout_2.addWidget(self.oiadac_gb)
+        vertical_layout_2.addStretch(1)
+        self._layout.addLayout(vertical_layout_2,)
+
+        self._layout.addStretch(5)
 
         self.setLayout(self._layout)
         self.style_widgets()
 
     def create_cbn_correction_widgets(self):
         self.cbn_seat_gb = QtWidgets.QGroupBox('cBN Seat Correction')
-
         self.cbn_seat_plot_btn = CheckableFlatButton('Plot')
 
         self.cbn_param_tw = ListTableWidget()
@@ -69,30 +72,31 @@ class CorrectionsWidget(QtWidgets.QWidget):
         ]
 
         for cbn_parameter in cbn_parameters:
-            self.add_cbn_param_to_tw(*cbn_parameter)
+            self.add_param_to_tw(self.cbn_param_tw, *cbn_parameter)
 
-    def add_cbn_param_to_tw(self, name, value, unit):
-        self.cbn_param_tw.blockSignals(True)
-        new_row_ind = int(self.cbn_param_tw.rowCount())
-        self.cbn_param_tw.setRowCount(new_row_ind + 1)
+    @staticmethod
+    def add_param_to_tw(tw, name, value, unit):
+        tw.blockSignals(True)
+        new_row_ind = int(tw.rowCount())
+        tw.setRowCount(new_row_ind + 1)
 
-        name_item = QtWidgets.QTableWidgetItem(name+':')
+        name_item = QtWidgets.QTableWidgetItem(name + ':')
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         name_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.cbn_param_tw.setItem(new_row_ind, 0, name_item)
+        tw.setItem(new_row_ind, 0, name_item)
 
         value_item = NumberTextField('{:g}'.format(value))
-        self.cbn_param_tw.setCellWidget(new_row_ind, 1, value_item)
+        tw.setCellWidget(new_row_ind, 1, value_item)
 
         unit_item = QtWidgets.QTableWidgetItem(unit)
         unit_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         unit_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-        self.cbn_param_tw.setItem(new_row_ind, 2, unit_item)
+        tw.setItem(new_row_ind, 2, unit_item)
 
-        self.cbn_param_tw.resizeColumnToContents(0)
-        self.cbn_param_tw.resizeColumnToContents(2)
+        tw.resizeColumnToContents(0)
+        tw.resizeColumnToContents(2)
 
-        self.cbn_param_tw.blockSignals(False)
+        tw.blockSignals(False)
 
     def create_cbn_correction_layout(self):
         self._cbn_seat_layout = QtWidgets.QHBoxLayout()
@@ -102,37 +106,51 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         self._cbn_seat_right_layout = QtWidgets.QVBoxLayout()
         self._cbn_seat_right_layout.addWidget(self.cbn_seat_plot_btn)
-        self._cbn_seat_right_layout.addSpacerItem(VerticalSpacerItem())
+        self._cbn_seat_right_layout.addStretch()
         self._cbn_seat_layout.addLayout(self._cbn_seat_right_layout)
 
         self.cbn_seat_gb.setLayout(self._cbn_seat_layout)
 
     def create_oiadac_widgets(self):
-        self.oiadac_gb = QtWidgets.QGroupBox('Oblique Incidence Angle Detector Absorption Correction')
+        self.oiadac_gb = QtWidgets.QGroupBox('Detector Incidence Absorption Correction')
+
+        self.oiadac_param_tw = ListTableWidget()
+        self.oiadac_param_tw.setColumnCount(3)
+
+        self.oiadac_param_tw.horizontalHeader().setResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.oiadac_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+
         self.detector_thickness_txt = NumberTextField('40')
         self.detector_absorption_length_txt = NumberTextField('465.5')
+
+        oiadac_parameters = [
+            ['Detector thickness', 40, 'mm'],
+            ['Detector absorption length', 465.5, 'um'],
+        ]
+
+        for param in oiadac_parameters:
+            self.add_param_to_tw(self.oiadac_param_tw, *param)
+
         self.oiadac_plot_btn = CheckableFlatButton('Plot')
 
     def create_oiadac_layout(self):
         self._oiadac_layout = QtWidgets.QHBoxLayout()
-        self._oiadac_layout.addWidget(LabelAlignRight('Det. Thickness:'))
-        self._oiadac_layout.addWidget(self.detector_thickness_txt)
-        self._oiadac_layout.addWidget(QtWidgets.QLabel('mm'))
-        self._oiadac_layout.addSpacing(10)
-        self._oiadac_layout.addWidget(LabelAlignRight('Abs. Length:'))
-        self._oiadac_layout.addWidget(self.detector_absorption_length_txt)
-        self._oiadac_layout.addWidget(QtWidgets.QLabel('um'))
-        self._oiadac_layout.addWidget(self.oiadac_plot_btn)
-        self._oiadac_layout.addSpacerItem(HorizontalSpacerItem())
+        self._oiadac_layout.setSpacing(6)
+
+        self._oiadac_layout.addWidget(self.oiadac_param_tw)
+
+        self._oiadac_right_layout = QtWidgets.QVBoxLayout()
+        self._oiadac_right_layout.addWidget(self.oiadac_plot_btn)
+        self._oiadac_right_layout.addStretch()
+        self._oiadac_layout.addLayout(self._oiadac_right_layout)
 
         self.oiadac_gb.setLayout(self._oiadac_layout)
 
     def style_widgets(self):
         self.cbn_seat_gb.setCheckable(True)
         self.cbn_seat_gb.setChecked(False)
-
-        self.cbn_param_tw.setMaximumWidth(260)
-        self.cbn_param_tw.setMinimumWidth(260)
+        self.oiadac_gb.setCheckable(True)
+        self.oiadac_gb.setChecked(False)
 
         self.setStyleSheet("""
                     QLineEdit {
@@ -147,11 +165,13 @@ class CorrectionsWidget(QtWidgets.QWidget):
                         min-height: 30 px;
                         max-width: 30 px;
                     }
-               """)
+                    """)
 
-        self.oiadac_gb.setCheckable(True)
-        self.oiadac_gb.setChecked(False)
-        self.detector_thickness_txt.setMinimumWidth(60)
-        self.detector_thickness_txt.setMaximumWidth(60)
-        self.detector_absorption_length_txt.setMinimumWidth(60)
-        self.detector_absorption_length_txt.setMaximumWidth(60)
+        self.oiadac_param_tw.setMinimumWidth(280)
+        self.cbn_param_tw.setMinimumWidth(280)
+
+        self.oiadac_param_tw.setMinimumHeight(65)
+        self.oiadac_param_tw.setMaximumHeight(80)
+
+        self.cbn_param_tw.setMaximumHeight(500)
+

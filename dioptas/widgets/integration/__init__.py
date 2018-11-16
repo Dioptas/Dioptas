@@ -152,8 +152,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.cbn_param_tw = corrections_control_widget.cbn_param_tw
         self.cbn_plot_correction_btn = corrections_control_widget.cbn_seat_plot_btn
         self.oiadac_groupbox = corrections_control_widget.oiadac_gb
-        self.oiadac_thickness_txt = corrections_control_widget.detector_thickness_txt
-        self.oiadac_abs_length_txt = corrections_control_widget.detector_absorption_length_txt
+        self.oiadac_param_tw = corrections_control_widget.oiadac_param_tw
         self.oiadac_plot_btn = corrections_control_widget.oiadac_plot_btn
 
         background_control_widget = self.integration_control_widget.background_control_widget

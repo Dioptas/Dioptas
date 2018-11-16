@@ -176,15 +176,13 @@ class ImageController(object):
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
 
         self.connect_click_function(self.widget.cbn_groupbox, self.cbn_groupbox_changed)
-
         for row_ind in range(self.widget.cbn_param_tw.rowCount()):
             self.widget.cbn_param_tw.cellWidget(row_ind, 1).editingFinished.connect(self.cbn_groupbox_changed)
-
         self.connect_click_function(self.widget.cbn_plot_correction_btn, self.cbn_plot_correction_btn_clicked)
 
         self.connect_click_function(self.widget.oiadac_groupbox, self.oiadac_groupbox_changed)
-        self.widget.oiadac_thickness_txt.editingFinished.connect(self.oiadac_groupbox_changed)
-        self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
+        for row_ind in range(self.widget.oiadac_param_tw.rowCount()):
+            self.widget.oiadac_param_tw.cellWidget(row_ind, 1).editingFinished.connect(self.oiadac_groupbox_changed)
         self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
 
         # signals
@@ -1003,8 +1001,8 @@ class ImageController(object):
             return
 
         if self.widget.oiadac_groupbox.isChecked():
-            detector_thickness = float(str(self.widget.oiadac_thickness_txt.text()))
-            absorption_length = float(str(self.widget.oiadac_abs_length_txt.text()))
+            detector_thickness = self.widget.oiadac_param_tw.cellWidget(0, 1).value()
+            absorption_length = self.widget.oiadac_param_tw.cellWidget(1, 1).value()
 
             _, fit2d_parameter = self.model.calibration_model.get_calibration_parameter()
             detector_tilt = fit2d_parameter['tilt']
@@ -1047,8 +1045,8 @@ class ImageController(object):
 
     def update_oiadac_widgets(self):
         params = self.model.img_model.img_corrections.get_correction("oiadac").get_params()
-        self.widget.oiadac_thickness_txt.setText(str(params['detector_thickness']))
-        self.widget.oiadac_abs_length_txt.setText(str(params['absorption_length']))
+        self.widget.oiadac_param_tw.cellWidget(0, 1).setText(str(params['detector_thickness']))
+        self.widget.oiadac_param_tw.cellWidget(1, 1).setText(str(params['absorption_length']))
         self.widget.oiadac_groupbox.setChecked(True)
 
     def _check_absorption_correction_shape(self):
