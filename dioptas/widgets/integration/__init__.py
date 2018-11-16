@@ -149,16 +149,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         corrections_control_widget = self.integration_control_widget.corrections_control_widget
         self.cbn_groupbox = corrections_control_widget.cbn_seat_gb
-        self.cbn_diamond_thickness_txt = corrections_control_widget.anvil_thickness_txt
-        self.cbn_seat_thickness_txt = corrections_control_widget.seat_thickness_txt
-        self.cbn_inner_seat_radius_txt = corrections_control_widget.seat_inner_radius_txt
-        self.cbn_outer_seat_radius_txt = corrections_control_widget.seat_outer_radius_txt
-        self.cbn_cell_tilt_txt = corrections_control_widget.cell_tilt_txt
-        self.cbn_tilt_rotation_txt = corrections_control_widget.cell_tilt_rotation_txt
-        self.cbn_center_offset_txt = corrections_control_widget.center_offset_txt
-        self.cbn_center_offset_angle_txt = corrections_control_widget.center_offset_angle_txt
-        self.cbn_anvil_al_txt = corrections_control_widget.anvil_absorption_length_txt
-        self.cbn_seat_al_txt = corrections_control_widget.seat_absorption_length_txt
+        self.cbn_param_tw = corrections_control_widget.cbn_param_tw
         self.cbn_plot_correction_btn = corrections_control_widget.cbn_seat_plot_btn
         self.oiadac_groupbox = corrections_control_widget.oiadac_gb
         self.oiadac_thickness_txt = corrections_control_widget.detector_thickness_txt

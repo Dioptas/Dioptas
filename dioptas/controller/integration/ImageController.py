@@ -176,16 +176,10 @@ class ImageController(object):
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
 
         self.connect_click_function(self.widget.cbn_groupbox, self.cbn_groupbox_changed)
-        self.widget.cbn_diamond_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_seat_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_inner_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_outer_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_cell_tilt_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_tilt_rotation_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_center_offset_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_center_offset_angle_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_anvil_al_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_seat_al_txt.editingFinished.connect(self.cbn_groupbox_changed)
+
+        for row_ind in range(self.widget.cbn_param_tw.rowCount()):
+            self.widget.cbn_param_tw.cellWidget(row_ind, 1).editingFinished.connect(self.cbn_groupbox_changed)
+
         self.connect_click_function(self.widget.cbn_plot_correction_btn, self.cbn_plot_correction_btn_clicked)
 
         self.connect_click_function(self.widget.oiadac_groupbox, self.oiadac_groupbox_changed)
@@ -929,16 +923,16 @@ class ImageController(object):
             return
 
         if self.widget.cbn_groupbox.isChecked():
-            diamond_thickness = float(str(self.widget.cbn_diamond_thickness_txt.text()))
-            seat_thickness = float(str(self.widget.cbn_seat_thickness_txt.text()))
-            inner_seat_radius = float(str(self.widget.cbn_inner_seat_radius_txt.text()))
-            outer_seat_radius = float(str(self.widget.cbn_outer_seat_radius_txt.text()))
-            tilt = float(str(self.widget.cbn_cell_tilt_txt.text()))
-            tilt_rotation = float(str(self.widget.cbn_tilt_rotation_txt.text()))
-            center_offset = float(str(self.widget.cbn_center_offset_txt.text()))
-            center_offset_angle = float(str(self.widget.cbn_center_offset_angle_txt.text()))
-            seat_absorption_length = float(str(self.widget.cbn_seat_al_txt.text()))
-            anvil_absorption_length = float(str(self.widget.cbn_anvil_al_txt.text()))
+            diamond_thickness = self.widget.cbn_param_tw.cellWidget(0, 1).value()
+            seat_thickness = self.widget.cbn_param_tw.cellWidget(1, 1).value()
+            inner_seat_radius = self.widget.cbn_param_tw.cellWidget(2, 1).value()
+            outer_seat_radius = self.widget.cbn_param_tw.cellWidget(3, 1).value()
+            tilt = self.widget.cbn_param_tw.cellWidget(4, 1).value()
+            tilt_rotation = self.widget.cbn_param_tw.cellWidget(5, 1).value()
+            center_offset = self.widget.cbn_param_tw.cellWidget(6, 1).value()
+            center_offset_angle = self.widget.cbn_param_tw.cellWidget(7, 1).value()
+            seat_absorption_length = self.widget.cbn_param_tw.cellWidget(8, 1).value()
+            anvil_absorption_length = self.widget.cbn_param_tw.cellWidget(9, 1).value()
 
             tth_array = 180.0 / np.pi * self.model.calibration_model.pattern_geometry.ttha
             azi_array = 180.0 / np.pi * self.model.calibration_model.pattern_geometry.chia
@@ -984,16 +978,16 @@ class ImageController(object):
 
     def update_cbn_widgets(self):
         params = self.model.img_model.img_corrections.get_correction("cbn").get_params()
-        self.widget.cbn_diamond_thickness_txt.setText(str(params['diamond_thickness']))
-        self.widget.cbn_seat_thickness_txt.setText(str(params['seat_thickness']))
-        self.widget.cbn_inner_seat_radius_txt.setText(str(params['small_cbn_seat_radius']))
-        self.widget.cbn_outer_seat_radius_txt.setText(str(params['large_cbn_seat_radius']))
-        self.widget.cbn_cell_tilt_txt.setText(str(params['tilt']))
-        self.widget.cbn_tilt_rotation_txt.setText(str(params['tilt_rotation']))
-        self.widget.cbn_anvil_al_txt.setText(str(params['diamond_abs_length']))
-        self.widget.cbn_seat_al_txt.setText(str(params['seat_abs_length']))
-        self.widget.cbn_center_offset_txt.setText(str(params['center_offset']))
-        self.widget.cbn_center_offset_angle_txt.setText(str(params['center_offset_angle']))
+        self.widget.cbn_param_tw.cellWidget(0, 1).setText(str(params['diamond_thickness']))
+        self.widget.cbn_param_tw.cellWidget(1, 1).setText(str(params['seat_thickness']))
+        self.widget.cbn_param_tw.cellWidget(2, 1).setText(str(params['small_cbn_seat_radius']))
+        self.widget.cbn_param_tw.cellWidget(3, 1).setText(str(params['large_cbn_seat_radius']))
+        self.widget.cbn_param_tw.cellWidget(4, 1).setText(str(params['tilt']))
+        self.widget.cbn_param_tw.cellWidget(5, 1).setText(str(params['tilt_rotation']))
+        self.widget.cbn_param_tw.cellWidget(6, 1).setText(str(params['diamond_abs_length']))
+        self.widget.cbn_param_tw.cellWidget(7, 1).setText(str(params['seat_abs_length']))
+        self.widget.cbn_param_tw.cellWidget(8, 1).setText(str(params['center_offset']))
+        self.widget.cbn_param_tw.cellWidget(9, 1).setText(str(params['center_offset_angle']))
         self.widget.cbn_groupbox.setChecked(True)
 
     def oiadac_groupbox_changed(self):
