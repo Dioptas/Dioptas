@@ -150,7 +150,7 @@ class MainController(object):
             self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
 
-            if self.integration_controller.image_controller.img_mode == "Image":
+            if self.widget.integration_widget.img_mode == "Image":
                 self.integration_controller.image_controller.plot_img()
 
             if self.model.use_mask:
