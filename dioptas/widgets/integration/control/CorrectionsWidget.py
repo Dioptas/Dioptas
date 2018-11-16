@@ -36,17 +36,20 @@ class CorrectionsWidget(QtWidgets.QWidget):
         vertical_layout_1 = QtWidgets.QHBoxLayout()
         vertical_layout_1.addWidget(self.cbn_seat_gb)
         vertical_layout_1.addStretch(1)
-        self._layout.addLayout(vertical_layout_1, 20)
+        self._layout.addLayout(vertical_layout_1, 2)
 
         vertical_layout_2 = QtWidgets.QHBoxLayout()
         vertical_layout_2.addWidget(self.oiadac_gb)
         vertical_layout_2.addStretch(1)
-        self._layout.addLayout(vertical_layout_2,)
+        self._layout.addLayout(vertical_layout_2, 1)
 
-        self._layout.addStretch(5)
+        self._layout.addStretch(1)
 
         self.setLayout(self._layout)
         self.style_widgets()
+
+        self.hide_cbn_widgets()
+        self.hide_oiadac_widgets()
 
     def create_cbn_correction_widgets(self):
         self.cbn_seat_gb = QtWidgets.QGroupBox('cBN Seat Correction')
@@ -175,3 +178,37 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         self.cbn_param_tw.setMaximumHeight(500)
 
+        self.cbn_seat_gb.setMinimumWidth(380)
+        self.oiadac_gb.setMinimumWidth(380)
+
+    def hide_cbn_widgets(self):
+        self.cbn_seat_plot_btn.hide()
+        self.cbn_param_tw.hide()
+        self.cbn_seat_gb.setMaximumHeight(20)
+
+    def show_cbn_widgets(self):
+        self.cbn_seat_plot_btn.show()
+        self.cbn_param_tw.show()
+        self.cbn_seat_gb.setMaximumHeight(999999)
+
+    def hide_oiadac_widgets(self):
+        self.oiadac_plot_btn.hide()
+        self.oiadac_param_tw.hide()
+        self.oiadac_gb.setMaximumHeight(20)
+
+    def show_oiadac_widgets(self):
+        self.oiadac_plot_btn.show()
+        self.oiadac_param_tw.show()
+        self.oiadac_gb.setMaximumHeight(999999)
+
+    def toggle_cbn_widget_visibility(self, flag):
+        if flag:
+            self.show_cbn_widgets()
+        else:
+            self.hide_cbn_widgets()
+
+    def toggle_oiadac_widget_visibility(self, flag):
+        if flag:
+            self.show_oiadac_widgets()
+        else:
+            self.hide_oiadac_widgets()
