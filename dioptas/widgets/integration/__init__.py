@@ -195,7 +195,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_name_lbl = self.integration_status_widget.bkg_name_lbl
 
         pattern_widget = self.integration_pattern_widget
-        self.qa_save_img_btn = pattern_widget.save_image_btn
         self.qa_save_pattern_btn = pattern_widget.save_pattern_btn
         self.qa_set_as_overlay_btn = pattern_widget.as_overlay_btn
         self.qa_set_as_background_btn = pattern_widget.as_bkg_btn
@@ -211,6 +210,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.pattern_widget = pattern_widget.pattern_view
 
         image_widget = self.integration_image_widget
+        self.qa_save_img_btn = image_widget.save_image_btn
         self.img_frame = image_widget
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn

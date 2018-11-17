@@ -16,12 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets
+import os
+from qtpy import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets import PatternWidget
 from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
-
+from .... import icons_path
 
 class IntegrationPatternWidget(QtWidgets.QWidget):
     def __init__(self):
@@ -36,14 +37,13 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self._top_control_layout = QtWidgets.QHBoxLayout()
         self._top_control_layout.setContentsMargins(8, 8, 0, 0)
 
-        self.save_image_btn = FlatButton('Save Image')
-        self.save_pattern_btn = FlatButton('Save Pattern')
+        self.save_pattern_btn = FlatButton()
+        self.save_pattern_btn.setToolTip("Save Pattern")
         self.as_overlay_btn = FlatButton('As Overlay')
         self.as_bkg_btn = FlatButton('As Bkg')
         self.load_calibration_btn = FlatButton('Load Calibration')
         self.calibration_lbl = LabelAlignRight('None')
 
-        self._top_control_layout.addWidget(self.save_image_btn)
         self._top_control_layout.addWidget(self.save_pattern_btn)
         self._top_control_layout.addWidget(self.as_overlay_btn)
         self._top_control_layout.addWidget(self.as_bkg_btn)
@@ -129,3 +129,7 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self.background_inspect_btn.setMaximumWidth(right_controls_button_width)
         self.antialias_btn.setMaximumWidth(right_controls_button_width)
         self.auto_range_btn.setMaximumWidth(right_controls_button_width)
+
+        self.save_pattern_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
+        self.save_pattern_btn.setIconSize(QtCore.QSize(13, 13))
+        self.save_pattern_btn.setMaximumWidth(right_controls_button_width)
