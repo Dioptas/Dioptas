@@ -32,13 +32,16 @@ class OptionsWidget(QtWidgets.QWidget):
         self.style_integration_widgets()
         self.style_cake_widgets()
 
-        self._layout = QtWidgets.QGridLayout()
+        self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(5, 5, 5, 5)
         self._layout.setSpacing(5)
-        self._layout.addWidget(self.integration_gb, 0, 0)
-        self._layout.addWidget(self.cake_gb, 1, 0)
-        self._layout.addItem(HorizontalSpacerItem(), 1, 1)
-        self._layout.addItem(VerticalSpacerItem(), 2, 0)
+
+        self._left_layout = QtWidgets.QVBoxLayout()
+        self._left_layout.addWidget(self.integration_gb)
+        self._left_layout.addWidget(self.cake_gb)
+        self._left_layout.addStretch(1)
+        self._layout.addLayout(self._left_layout)
+        self._layout.addStretch(1)
         self.setLayout(self._layout)
 
     def create_integration_gb(self):
