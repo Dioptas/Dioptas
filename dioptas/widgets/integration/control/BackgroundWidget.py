@@ -27,7 +27,7 @@ class BackgroundWidget(QtWidgets.QWidget):
     def __init__(self):
         super(BackgroundWidget, self).__init__()
 
-        self._layout = QtWidgets.QGridLayout()
+        self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(5, 5 , 5, 5)
         self._layout.setSpacing(5)
 
@@ -93,10 +93,12 @@ class BackgroundWidget(QtWidgets.QWidget):
 
         self.pattern_background_gb.setLayout(self._pattern_bkg_layout)
 
-        self._layout.addWidget(self.image_background_gb, 0, 0)
-        self._layout.addWidget(self.pattern_background_gb, 1, 0)
-        self._layout.addItem(HorizontalSpacerItem(), 1, 1)
-        self._layout.addItem(VerticalSpacerItem(), 2, 0)
+        self._left_layout = QtWidgets.QVBoxLayout()
+        self._left_layout.addWidget(self.image_background_gb)
+        self._left_layout.addWidget(self.pattern_background_gb)
+        self._left_layout.addStretch(1)
+        self._layout.addLayout(self._left_layout)
+        self._layout.addStretch(1)
 
         self.setLayout(self._layout)
         self.style_widgets()
