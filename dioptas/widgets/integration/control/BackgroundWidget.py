@@ -27,11 +27,14 @@ class BackgroundWidget(QtWidgets.QWidget):
     def __init__(self):
         super(BackgroundWidget, self).__init__()
 
-        self._layout = QtWidgets.QVBoxLayout()
+        self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(5, 5 , 5, 5)
+        self._layout.setSpacing(5)
 
         self.image_background_gb = QtWidgets.QGroupBox('Image Background', self)
         self._image_background_gb_layout = QtWidgets.QGridLayout(self.image_background_gb)
-        self._image_background_gb_layout.setSpacing(6)
+        self._image_background_gb_layout.setContentsMargins(5, 8, 5, 7)
+        self._image_background_gb_layout.setSpacing(5)
 
         self.load_image_btn = FlatButton('Load')
         self.filename_lbl = QtWidgets.QLabel('None')
@@ -49,19 +52,20 @@ class BackgroundWidget(QtWidgets.QWidget):
         self._image_background_gb_layout.addWidget(self.scale_sb, 1, 2)
         self._image_background_gb_layout.addWidget(self.scale_step_msb, 1, 3)
         self._image_background_gb_layout.addItem(HorizontalSpacerItem(), 1, 4)
-        self._image_background_gb_layout.addWidget(LabelAlignRight('Offset:'), 1, 5)
-        self._image_background_gb_layout.addWidget(self.offset_sb, 1, 6)
-        self._image_background_gb_layout.addWidget(self.offset_step_msb, 1, 7)
-        self._image_background_gb_layout.addItem(HorizontalSpacerItem(), 1, 8)
+        self._image_background_gb_layout.addWidget(LabelAlignRight('Offset:'), 2, 1)
+        self._image_background_gb_layout.addWidget(self.offset_sb, 2, 2)
+        self._image_background_gb_layout.addWidget(self.offset_step_msb, 2, 3)
+        self._image_background_gb_layout.addItem(HorizontalSpacerItem(), 2, 4)
 
         self.image_background_gb.setLayout(self._image_background_gb_layout)
 
-        self._layout.addWidget(self.image_background_gb)
 
         self.setLayout(self._layout)
 
         self.pattern_background_gb = QtWidgets.QGroupBox('Pattern Background')
-        self._pattern_background_gb = QtWidgets.QGridLayout()
+        self._pattern_bkg_layout = QtWidgets.QGridLayout()
+        self._pattern_bkg_layout.setContentsMargins(5, 8, 5, 7)
+        self._pattern_bkg_layout.setSpacing(5)
 
         self.smooth_with_sb = DoubleSpinBoxAlignRight()
         self.iterations_sb = SpinBoxAlignRight()
@@ -70,31 +74,31 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.x_range_max_txt = NumberTextField('50')
         self.inspect_btn = CheckableFlatButton('Inspect')
 
-        self._smooth_layout = QtWidgets.QHBoxLayout()
-        self._smooth_layout.addWidget(LabelAlignRight('Smooth Width:'))
-        self._smooth_layout.addWidget(self.smooth_with_sb)
-        self._smooth_layout.addWidget(LabelAlignRight('Iterations:'))
-        self._smooth_layout.addWidget(self.iterations_sb)
-        self._smooth_layout.addWidget(LabelAlignRight('Poly Order:'))
-        self._smooth_layout.addWidget(self.poly_order_sb)
+        self._pattern_bkg_layout.addWidget(LabelAlignRight('Smooth Width:'), 0, 0)
+        self._pattern_bkg_layout.addWidget(self.smooth_with_sb, 0, 1)
+        self._pattern_bkg_layout.addWidget(LabelAlignRight('Iterations:'), 0, 2)
+        self._pattern_bkg_layout.addWidget(self.iterations_sb, 0, 3)
+        self._pattern_bkg_layout.addItem(HorizontalSpacerItem(), 0, 4)
+        self._pattern_bkg_layout.addWidget(LabelAlignRight('Poly Order:'), 1, 0)
+        self._pattern_bkg_layout.addWidget(self.poly_order_sb, 1, 1)
 
+        self._pattern_bkg_layout.addWidget(LabelAlignRight('X-Range:'), 2, 0)
         self._range_layout = QtWidgets.QHBoxLayout()
-        self._range_layout.addWidget(QtWidgets.QLabel('X-Range:'))
         self._range_layout.addWidget(self.x_range_min_txt)
         self._range_layout.addWidget(QtWidgets.QLabel('-'))
         self._range_layout.addWidget(self.x_range_max_txt)
-        self._range_layout.addSpacerItem(HorizontalSpacerItem())
+        self._range_layout.addWidget(self.inspect_btn)
+        self._range_layout.addItem(HorizontalSpacerItem())
+        self._pattern_bkg_layout.addLayout(self._range_layout, 2, 1, 1, 3)
 
-        self._pattern_background_gb.addLayout(self._smooth_layout, 0, 0)
-        self._pattern_background_gb.addLayout(self._range_layout, 1, 0)
+        self.pattern_background_gb.setLayout(self._pattern_bkg_layout)
 
-        self._pattern_background_gb.addWidget(self.inspect_btn, 0, 2, 2, 1)
-        self._pattern_background_gb.addItem(HorizontalSpacerItem(), 0, 3, 2, 1)
-
-        self.pattern_background_gb.setLayout(self._pattern_background_gb)
-
-        self._layout.addWidget(self.pattern_background_gb)
-        self._layout.addSpacerItem(VerticalSpacerItem())
+        self._left_layout = QtWidgets.QVBoxLayout()
+        self._left_layout.addWidget(self.image_background_gb)
+        self._left_layout.addWidget(self.pattern_background_gb)
+        self._left_layout.addStretch(1)
+        self._layout.addLayout(self._left_layout)
+        self._layout.addStretch(1)
 
         self.setLayout(self._layout)
         self.style_widgets()
@@ -104,17 +108,6 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.style_pattern_background_widgets()
 
     def style_image_background_widgets(self):
-        step_txt_width = 70
-        self.scale_step_msb.setMaximumWidth(step_txt_width)
-        self.scale_step_msb.setMinimumWidth(step_txt_width)
-        self.offset_step_msb.setMaximumWidth(step_txt_width)
-
-        sb_width = 110
-        self.scale_sb.setMaximumWidth(sb_width)
-        self.scale_sb.setMinimumWidth(sb_width)
-        self.offset_sb.setMaximumWidth(sb_width)
-        self.offset_sb.setMinimumWidth(sb_width)
-
         self.scale_sb.setMinimum(-9999999)
         self.scale_sb.setMaximum(9999999)
         self.scale_sb.setValue(1)
@@ -133,6 +126,13 @@ class BackgroundWidget(QtWidgets.QWidget):
 
         self.offset_sb.setMaximum(999999998)
         self.offset_sb.setMinimum(-99999999)
+
+        self.setStyleSheet("""
+            QSpinBox,  QDoubleSpinBox,QLineEdit {
+                min-width: 50px;
+                max-width: 50px;
+            } 
+        """)
 
     def style_pattern_background_widgets(self):
         self.smooth_with_sb.setValue(0.100)
