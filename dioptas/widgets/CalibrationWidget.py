@@ -18,7 +18,7 @@
 
 import os
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
 from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
@@ -26,6 +26,8 @@ from ..widgets.plot_widgets import PatternWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, FlatButton
+
+from .. import icons_path
 
 
 class CalibrationWidget(QtWidgets.QWidget):
@@ -349,10 +351,12 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self.start_values_gb = StartValuesGroupBox(self)
         self.peak_selection_gb = PeakSelectionGroupBox()
         self.refinement_options_gb = RefinementOptionsGroupBox()
+        self.distortion_correction_gb = DistortionCorrectionGroupBox()
 
         self._layout.addWidget(self.start_values_gb)
         self._layout.addWidget(self.peak_selection_gb)
         self._layout.addWidget(self.refinement_options_gb)
+        self._layout.addWidget(self.distortion_correction_gb)
         self._layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                      QtWidgets.QSizePolicy.Expanding))
 
@@ -500,6 +504,26 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self.number_of_rings_sb = SpinBoxAlignRight()
         self.number_of_rings_sb.setValue(15)
         self._layout.addWidget(self.number_of_rings_sb, 6, 1)
+
+        self.setLayout(self._layout)
+
+
+class DistortionCorrectionGroupBox(QtWidgets.QGroupBox):
+    def __init__(self):
+        super(DistortionCorrectionGroupBox, self).__init__('Distortion Correction')
+
+        self._layout = QtWidgets.QGridLayout()
+        self.spline_load_btn = FlatButton('Load Splinefile')
+        self.spline_filename_txt = QtWidgets.QLabel('None')
+        self.spline_reset_btn = FlatButton()
+        self.spline_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.spline_reset_btn.setIconSize(QtCore.QSize(13, 13))
+        self.spline_reset_btn.setMaximumWidth(21)
+        self.spline_reset_btn.setToolTip('Reset distortion correction')
+
+        self._layout.addWidget(self.spline_load_btn, 0, 0)
+        self._layout.addWidget(self.spline_filename_txt, 1, 0, 1, 2)
+        self._layout.addWidget(self.spline_reset_btn, 0, 1)
 
         self.setLayout(self._layout)
 
