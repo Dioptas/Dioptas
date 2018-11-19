@@ -211,8 +211,9 @@ class PhaseController(object):
 
     def edit_btn_click_callback(self):
         cur_ind = self.phase_widget.get_selected_phase_row()
-        self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
-        self.jcpds_editor_controller.show_view()
+        if cur_ind >= 0:
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
+            self.jcpds_editor_controller.show_view()
 
     def delete_btn_click_callback(self):
         """
