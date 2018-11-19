@@ -130,11 +130,11 @@ class PhaseWidget(QtWidgets.QWidget):
         self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
         self.add_btn.setIconSize(icon_size)
 
-        self.edit_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'edit.ico')))
-        self.edit_btn.setIconSize(icon_size)
+        self.edit_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'edit.png')))
+        self.edit_btn.setIconSize(QtCore.QSize(14, 14))
 
-        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'delete_bright.ico')))
-        self.delete_btn.setIconSize(icon_size)
+        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'delete.png')))
+        self.delete_btn.setIconSize(QtCore.QSize(12, 14))
 
         self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset_dark.ico')))
         self.clear_btn.setIconSize(icon_size)

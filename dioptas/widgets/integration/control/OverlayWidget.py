@@ -154,8 +154,8 @@ class OverlayWidget(QtWidgets.QWidget):
         self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
         self.add_btn.setIconSize(icon_size)
 
-        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'delete_bright.ico')))
-        self.delete_btn.setIconSize(icon_size)
+        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'delete.png')))
+        self.delete_btn.setIconSize(QtCore.QSize(12, 14))
 
         self.move_up_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'arrow_up.ico')))
         self.move_up_btn.setIconSize(icon_size)
