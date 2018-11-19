@@ -29,7 +29,6 @@ import fabio
 from pyFAI.distortion import Distortion
 from pyFAI.detectors import Detector
 
-
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
@@ -90,7 +89,7 @@ class ImgModel(QtCore.QObject):
 
         self._distortion = None
 
-        ### setting up autoprocess
+        # setting up autoprocess
         self._autoprocess = False
         self._directory_watcher = NewFileInDirectoryWatcher(
             file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
@@ -200,8 +199,8 @@ class ImgModel(QtCore.QObject):
 
         logger.info("Adding {0}.".format(filename))
 
-        if self._img_data.dtype == np.uint16: # if dtype is only uint16 we will convert to 32 bit, so that more
-                                              # additions are possible
+        if self._img_data.dtype == np.uint16:  # if dtype is only uint16 we will convert to 32 bit, so that more
+            # additions are possible
             self._img_data = self._img_data.astype(np.uint32)
 
         self._img_data += img_data
@@ -224,7 +223,6 @@ class ImgModel(QtCore.QObject):
         if self.has_background():
             self.load_background(self.background_filename)
 
-
     def reset_distortion(self):
         """
         Resets the distortion correction and retriggers all image corrections.
@@ -232,7 +230,6 @@ class ImgModel(QtCore.QObject):
         """
         self._distortion = None
         self.load(self.filename)
-
 
     def _image_and_background_shape_equal(self):
         """
@@ -372,7 +369,7 @@ class ImgModel(QtCore.QObject):
 
         elif self._background_data is not None and self._img_corrections.has_items():
             self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
-                self._background_scaling * self._background_data + self._background_offset)) / \
+                    self._background_scaling * self._background_data + self._background_offset)) / \
                                                                         self._img_corrections.get_data()
 
         # supersample the current image data
@@ -427,7 +424,6 @@ class ImgModel(QtCore.QObject):
             elif self._background_data is not None and self._img_corrections.has_items():
                 return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
         return self._img_data * self.factor
-
 
     @property
     def raw_img_data(self):
@@ -566,7 +562,6 @@ class ImgModel(QtCore.QObject):
         self._perform_img_transformations()
         self._perform_background_transformations()
 
-
     def set_supersampling(self, factor=None):
         """
         Stores the supersampling factor and calculates supersampled original and background image arrays.
@@ -611,7 +606,7 @@ class ImgModel(QtCore.QObject):
         self.img_changed.emit()
         if external == 'cbn':
             self.cbn_correction_changed.emit()
-        if external  == 'oiadac':
+        if external == 'oiadac':
             self.oiadac_correction_changed.emit()
 
     def get_img_correction(self, name):
