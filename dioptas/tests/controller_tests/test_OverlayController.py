@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ..utility import QtTest, click_button
+from ..utility import QtTest, click_button, click_checkbox
 import os
 import gc
 from mock import MagicMock
@@ -118,29 +118,27 @@ class OverlayControllerTest(QtTest):
 
     def test_change_scaling_in_view(self):
         self.load_overlays()
-        self.overlay_widget.select_overlay(2)
+        for ind in [0, 3, 4]:
+            self.overlay_widget.scale_sbs[ind].setValue(2.0)
+            self.assertEqual(self.model.overlay_model.get_overlay_scaling(ind), 2)
 
-        self.integration_widget.overlay_scale_sb.setValue(2.0)
-        self.app.processEvents()
-        self.assertEqual(self.model.overlay_model.get_overlay_scaling(2), 2)
+            # tests if overlay is updated in pattern
+            x, y = self.model.overlay_model.overlays[ind].data
+            x_spec, y_spec = self.integration_widget.pattern_widget.overlays[ind].getData()
 
-        # tests if overlay is updated in pattern
-        x, y = self.model.overlay_model.overlays[2].data
-        x_spec, y_spec = self.integration_widget.pattern_widget.overlays[2].getData()
-
-        self.assertAlmostEqual(np.sum(y - y_spec), 0)
+            self.assertAlmostEqual(np.sum(y - y_spec), 0)
 
     def test_change_offset_in_view(self):
         self.load_overlays()
-        self.overlay_widget.select_overlay(3)
 
-        self.integration_widget.overlay_offset_sb.setValue(100)
-        self.assertEqual(self.model.overlay_model.get_overlay_offset(3), 100)
+        for ind in [0, 3, 4]:
+            self.overlay_widget.offset_sbs[ind].setValue(100)
+            self.assertEqual(self.model.overlay_model.get_overlay_offset(ind), 100)
 
-        x, y = self.model.overlay_model.overlays[3].data
-        x_spec, y_spec = self.integration_widget.pattern_widget.overlays[3].getData()
+            x, y = self.model.overlay_model.overlays[ind].data
+            x_spec, y_spec = self.integration_widget.pattern_widget.overlays[ind].getData()
 
-        self.assertAlmostEqual(np.sum(y - y_spec), 0)
+            self.assertAlmostEqual(np.sum(y - y_spec), 0)
 
     def test_scaling_auto_step_change(self):
         self.load_overlays()
@@ -154,6 +152,26 @@ class OverlayControllerTest(QtTest):
         self.overlay_widget.scale_step_msb.stepDown()
         new_scale_step = self.overlay_widget.scale_step_msb.value()
         self.assertAlmostEqual(new_scale_step, 0.2, places=5)
+
+    def test_scalestep_spinbox_changes_scale_spinboxes(self):
+        self.load_overlays()
+        for ind in range(6):
+            self.assertEqual(self.overlay_widget.scale_sbs[ind].singleStep(), 0.01)
+
+        new_step = 5
+        self.overlay_widget.scale_step_msb.setValue(new_step)
+        for ind in range(6):
+            self.assertEqual(self.overlay_widget.scale_sbs[ind].singleStep(), new_step)
+
+    def test_offsetstep_spinbox_changes_offset_spinboxes(self):
+        self.load_overlays()
+        for ind in range(6):
+            self.assertEqual(self.overlay_widget.offset_sbs[ind].singleStep(), 100)
+
+        new_step = 5
+        self.overlay_widget.offset_step_msb.setValue(new_step)
+        for ind in range(6):
+            self.assertEqual(self.overlay_widget.offset_sbs[ind].singleStep(), new_step)
 
     def test_offset_auto_step_change(self):
         self.load_overlays()
@@ -183,10 +201,14 @@ class OverlayControllerTest(QtTest):
     def test_setting_overlay_as_bkg_and_changing_scale(self):
         self.load_overlays()
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
-        self.overlay_widget.select_overlay(0)
+
+        ind = 2
+
+        self.overlay_widget.select_overlay(ind)
         QTest.mouseClick(self.integration_widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
-        self.integration_widget.overlay_scale_sb.setValue(2)
+        self.overlay_widget.scale_sbs[ind].setValue(2)
+
         _, y = self.model.pattern.data
         _, y_original = self.model.pattern.data
         self.assertEqual(np.sum(y - y_original), 0)
@@ -194,24 +216,29 @@ class OverlayControllerTest(QtTest):
     def test_setting_overlay_as_bkg_and_changing_offset(self):
         self.load_overlays()
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
-        self.overlay_widget.select_overlay(0)
+
+        ind = 2
+        self.overlay_widget.select_overlay(2)
         QTest.mouseClick(self.integration_widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
-        self.integration_widget.overlay_offset_sb.setValue(100)
+        self.overlay_widget.offset_sbs[ind].setValue(100)
         _, y = self.model.pattern.data
         self.assertEqual(np.sum(y), -100 * y.size)
 
     def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(self):
         self.load_overlays()
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
-        self.overlay_widget.select_overlay(0)
+
+        ind = 2
+        self.overlay_widget.select_overlay(ind)
         QTest.mouseClick(self.integration_widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         _, y = self.model.pattern.data
         self.assertEqual(np.sum(y), 0)
 
-        self.overlay_widget.select_overlay(1)
-        self.integration_widget.overlay_scale_sb.setValue(2)
+        new_ind = 1
+        self.overlay_widget.select_overlay(new_ind)
+        self.overlay_widget.scale_sbs[new_ind].setValue(2)
         QTest.mouseClick(self.integration_widget.overlay_set_as_bkg_btn, QtCore.Qt.LeftButton)
 
         _, y = self.model.pattern.data
@@ -244,15 +271,23 @@ class OverlayControllerTest(QtTest):
     def test_overlay_waterfall(self):
         self.load_overlays()
         self.overlay_widget.waterfall_separation_msb.setValue(10)
-        QTest.mouseClick(self.overlay_widget.waterfall_btn, QtCore.Qt.LeftButton)
+        click_button(self.overlay_widget.waterfall_btn)
 
         self.assertEqual(self.model.overlay_model.overlays[5].offset, -10)
         self.assertEqual(self.model.overlay_model.overlays[4].offset, -20)
 
-        QTest.mouseClick(self.integration_widget.reset_waterfall_btn, QtCore.Qt.LeftButton)
+        click_button(self.integration_widget.reset_waterfall_btn)
 
         self.assertEqual(self.model.overlay_model.overlays[5].offset, 0)
         self.assertEqual(self.model.overlay_model.overlays[5].offset, 0)
+
+    def test_overlay_waterfall_after_deleting_one_overlay(self):
+        self.load_overlays()
+        self.overlay_widget.select_overlay(4)
+        click_button(self.overlay_widget.delete_btn)
+        click_button(self.overlay_widget.delete_btn)
+
+        click_button(self.overlay_widget.waterfall_btn)
 
     def load_overlays(self):
         self.load_overlay('pattern_001.xy')
@@ -308,5 +343,20 @@ class OverlayControllerTest(QtTest):
         self.assertEqual(self.model.overlay_model.overlays[3].name, 'pattern_001')
         self.assertEqual(self.integration_widget.overlay_tw.item(3, 2).text(), 'pattern_001')
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_bulk_change_visibility_of_overlays(self):
+        self.load_overlays()
+        for cb in self.overlay_widget.show_cbs:
+            self.assertTrue(cb.isChecked())
+
+        self.overlay_controller.overlay_tw_header_section_clicked(0)
+        for cb in self.overlay_widget.show_cbs:
+            self.assertFalse(cb.isChecked())
+
+        click_checkbox(self.overlay_widget.show_cbs[1])
+        self.overlay_controller.overlay_tw_header_section_clicked(0)
+        for ind, cb in enumerate(self.overlay_widget.show_cbs):
+                self.assertFalse(cb.isChecked())
+
+        self.overlay_controller.overlay_tw_header_section_clicked(0)
+        for ind, cb in enumerate(self.overlay_widget.show_cbs):
+            self.assertTrue(cb.isChecked())

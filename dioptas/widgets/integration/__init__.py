@@ -57,6 +57,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
+
         self.vertical_splitter_left = QtWidgets.QSplitter(self)
         self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter_left.addWidget(self.integration_image_widget)
@@ -65,6 +66,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
         self.horizontal_splitter.addWidget(self.vertical_splitter_left)
         self.horizontal_splitter.addWidget(self.vertical_splitter)
+        self.horizontal_splitter.addWidget(self.vertical_splitter)
+
         self._layout.addWidget(self.horizontal_splitter, 10)
         self._layout.addWidget(self.integration_status_widget, 0)
         self.setLayout(self._layout)
@@ -84,6 +87,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
 
+        self.img_mode = 'Image'
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
@@ -128,12 +132,9 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_save_list_btn = phase_control_widget.save_list_btn
         self.phase_load_list_btn = phase_control_widget.load_list_btn
         self.phase_tw = phase_control_widget.phase_tw
-        self.phase_pressure_sb = phase_control_widget.pressure_sb
         self.phase_pressure_step_msb = phase_control_widget.pressure_step_msb
-        self.phase_temperature_sb = phase_control_widget.temperature_sb
         self.phase_temperature_step_msb = phase_control_widget.temperature_step_msb
         self.phase_apply_to_all_cb = phase_control_widget.apply_to_all_cb
-        self.phase_show_parameter_in_pattern_cb = phase_control_widget.show_in_pattern_cb
 
         overlay_control_widget = self.integration_control_widget.overlay_control_widget
         self.overlay_widget = overlay_control_widget
@@ -143,9 +144,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.overlay_move_up_btn = overlay_control_widget.move_up_btn
         self.overlay_move_down_btn = overlay_control_widget.move_down_btn
         self.overlay_tw = overlay_control_widget.overlay_tw
-        self.overlay_scale_sb = overlay_control_widget.scale_sb
         self.overlay_scale_step_msb = overlay_control_widget.scale_step_msb
-        self.overlay_offset_sb = overlay_control_widget.offset_sb
         self.overlay_offset_step_msb = overlay_control_widget.offset_step_msb
         self.waterfall_separation_msb = overlay_control_widget.waterfall_separation_msb
         self.waterfall_btn = overlay_control_widget.waterfall_btn
@@ -154,20 +153,10 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         corrections_control_widget = self.integration_control_widget.corrections_control_widget
         self.cbn_groupbox = corrections_control_widget.cbn_seat_gb
-        self.cbn_diamond_thickness_txt = corrections_control_widget.anvil_thickness_txt
-        self.cbn_seat_thickness_txt = corrections_control_widget.seat_thickness_txt
-        self.cbn_inner_seat_radius_txt = corrections_control_widget.seat_inner_radius_txt
-        self.cbn_outer_seat_radius_txt = corrections_control_widget.seat_outer_radius_txt
-        self.cbn_cell_tilt_txt = corrections_control_widget.cell_tilt_txt
-        self.cbn_tilt_rotation_txt = corrections_control_widget.cell_tilt_rotation_txt
-        self.cbn_center_offset_txt = corrections_control_widget.center_offset_txt
-        self.cbn_center_offset_angle_txt = corrections_control_widget.center_offset_angle_txt
-        self.cbn_anvil_al_txt = corrections_control_widget.anvil_absorption_length_txt
-        self.cbn_seat_al_txt = corrections_control_widget.seat_absorption_length_txt
+        self.cbn_param_tw = corrections_control_widget.cbn_param_tw
         self.cbn_plot_correction_btn = corrections_control_widget.cbn_seat_plot_btn
         self.oiadac_groupbox = corrections_control_widget.oiadac_gb
-        self.oiadac_thickness_txt = corrections_control_widget.detector_thickness_txt
-        self.oiadac_abs_length_txt = corrections_control_widget.detector_absorption_length_txt
+        self.oiadac_param_tw = corrections_control_widget.oiadac_param_tw
         self.oiadac_plot_btn = corrections_control_widget.oiadac_plot_btn
 
         background_control_widget = self.integration_control_widget.background_control_widget
@@ -209,7 +198,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_name_lbl = self.integration_status_widget.bkg_name_lbl
 
         pattern_widget = self.integration_pattern_widget
-        self.qa_save_img_btn = pattern_widget.save_image_btn
         self.qa_save_pattern_btn = pattern_widget.save_pattern_btn
         self.qa_set_as_overlay_btn = pattern_widget.as_overlay_btn
         self.qa_set_as_background_btn = pattern_widget.as_bkg_btn
@@ -225,6 +213,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.pattern_widget = pattern_widget.pattern_view
 
         image_widget = self.integration_image_widget
+        self.qa_save_img_btn = image_widget.save_image_btn
         self.img_frame = image_widget
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn
