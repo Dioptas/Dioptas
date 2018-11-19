@@ -119,6 +119,11 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.pf_rot2_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation2_cb
         self.pf_rot3_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation3_cb
 
+        distortion_gb = self.calibration_control_widget.calibration_parameters_widget.distortion_correction_gb
+        self.load_spline_btn = distortion_gb.spline_load_btn
+        self.spline_filename_txt = distortion_gb.spline_filename_txt
+        self.spline_reset_btn = distortion_gb.spline_reset_btn
+
         self.img_widget = self.calibration_display_widget.img_widget
         self.cake_widget = self.calibration_display_widget.cake_widget
         self.pattern_widget = self.calibration_display_widget.pattern_widget
