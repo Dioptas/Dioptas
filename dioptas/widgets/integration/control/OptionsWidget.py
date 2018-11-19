@@ -32,20 +32,23 @@ class OptionsWidget(QtWidgets.QWidget):
         self.style_integration_widgets()
         self.style_cake_widgets()
 
-        self._layout = QtWidgets.QVBoxLayout()
-        self._integration_layout = QtWidgets.QHBoxLayout()
-        self._integration_layout.addWidget(self.integration_gb)
-        self._integration_layout.addWidget(self.cake_gb)
-        self._integration_layout.addSpacerItem(HorizontalSpacerItem())
+        self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(5, 5, 5, 5)
+        self._layout.setSpacing(5)
 
-        self._layout.addLayout(self._integration_layout)
-        self._layout.addItem(VerticalSpacerItem())
-
+        self._left_layout = QtWidgets.QVBoxLayout()
+        self._left_layout.addWidget(self.integration_gb)
+        self._left_layout.addWidget(self.cake_gb)
+        self._left_layout.addStretch(1)
+        self._layout.addLayout(self._left_layout)
+        self._layout.addStretch(1)
         self.setLayout(self._layout)
 
     def create_integration_gb(self):
         self.integration_gb = QtWidgets.QGroupBox('1D integration')
         self._integration_gb_layout = QtWidgets.QGridLayout()
+        self._integration_gb_layout.setContentsMargins(5, 8, 5, 7)
+        self._integration_gb_layout.setSpacing(5)
 
         self.bin_count_txt = IntegerTextField('0')
         self.bin_count_cb = QtWidgets.QCheckBox('auto')
@@ -66,6 +69,9 @@ class OptionsWidget(QtWidgets.QWidget):
     def create_cake_gb(self):
         self.cake_gb = QtWidgets.QGroupBox('2D (Cake-) integration')
         self._cake_gb_layout = QtWidgets.QGridLayout()
+        self._cake_gb_layout.setContentsMargins(5, 8, 5, 7)
+        self._cake_gb_layout.setSpacing(5)
+
         self.cake_azimuth_points_sb = ConservativeSpinBox()
         self.cake_azimuth_min_txt = NumberTextField('-180')
         self.cake_azimuth_max_txt = NumberTextField('180')
