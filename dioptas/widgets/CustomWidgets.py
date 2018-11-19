@@ -93,6 +93,7 @@ class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
             else:
                 return pow10floor * 5.0
 
+
 class ConservativeSpinBox(QtWidgets.QSpinBox):
     """
     This is a modification of the QSpinBox class. The ConservativeSpinbox does not emit the valueChanged signal for
@@ -237,4 +238,4 @@ def HorizontalSpacerItem(minimum_width=0):
 
 
 def VerticalSpacerItem():
-    return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+    return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)
