@@ -78,6 +78,9 @@ class CalibrationController(object):
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks_btn_click)
 
+        self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
+        self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
+
         self.widget.f2_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
         self.widget.pf_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
         self.widget.sv_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
@@ -162,7 +165,8 @@ class CalibrationController(object):
         Loads an image file.
         """
         filename = open_file_dialog(self.widget, caption="Load Calibration Image",
-                                    directory=self.model.working_directories['image'])
+                                    directory=self.model.working_directories['image'],
+                                    )
 
         if filename is not '':
             self.model.working_directories['image'] = os.path.dirname(filename)
@@ -323,6 +327,19 @@ class CalibrationController(object):
         self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
+
+    def load_spline_btn_click(self):
+        filename = open_file_dialog(self.widget, caption="Load Distortion Spline File",
+                                    directory=self.model.working_directories['image'],
+                                    filter='*.spline')
+
+        if filename is not '':
+            self.model.img_model.load_distortion(filename)
+            self.widget.spline_filename_txt.setText(os.path.basename(filename))
+
+    def reset_spline_btn_click(self):
+        self.model.reset()
+        self.widget.spline_filename_txt.setText('None')
 
     def wavelength_cb_changed(self, value):
         """
