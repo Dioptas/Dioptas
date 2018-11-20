@@ -334,11 +334,11 @@ class CalibrationController(object):
                                     filter='*.spline')
 
         if filename is not '':
-            self.model.img_model.load_distortion(filename)
+            self.model.calibration_model.load_distortion(filename)
             self.widget.spline_filename_txt.setText(os.path.basename(filename))
 
     def reset_spline_btn_click(self):
-        self.model.reset()
+        self.model.calibration_model.reset_distortion_correction()
         self.widget.spline_filename_txt.setText('None')
 
     def wavelength_cb_changed(self, value):

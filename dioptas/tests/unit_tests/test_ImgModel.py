@@ -296,26 +296,6 @@ class ImgModelTest(QtTest):
         self.img_model.add(os.path.join(data_path, 'image_001.tif'))
         self.assertTrue(np.array_equal(2 * data1, self.img_model._img_data))
 
-    def test_distortion_correction(self):
-        self.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
-        data1 = np.copy(self.img_model._img_data).astype(np.uint32)
-        self.img_model.load_distortion(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
-        self.assertFalse(np.array_equal(data1, self.img_model.img_data))
-
-        self.img_model.reset_distortion()
-        self.assertTrue(np.array_equal(data1, self.img_model.img_data))
-
-    def test_distortion_correction_with_background(self):
-        self.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
-        self.img_model.load_background(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
-        self.img_model.background_scaling = 0.1
-
-        bkg_data =  np.copy(self.img_model.background_data).astype(np.uint32)
-
-        self.img_model.load_distortion(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
-        self.assertIsNotNone(self.img_model.background_data)
-        self.assertFalse(np.array_equal(bkg_data, self.img_model.background_data))
-
 
 if __name__ == '__main__':
     unittest.main()
