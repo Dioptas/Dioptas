@@ -75,18 +75,14 @@ class TestCalibrationController(QtTest):
 
     def test_splines(self):
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
-            return_value=os.path.join(unittest_data_path, 'distortion', 'CeO2_calib.edf'))
-        click_button(self.calibration_widget.load_img_btn)
-
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, 'distortion', 'f4mnew.spline'))
         click_button(self.calibration_widget.load_spline_btn)
 
-        self.assertIsNotNone(self.model.img_model._distortion)
+        self.assertIsNotNone(self.model.calibration_model.distortion_spline_filename)
         self.assertEqual(self.calibration_widget.spline_filename_txt.text(), 'f4mnew.spline')
-
+        #
         click_button(self.calibration_widget.spline_reset_btn)
-        self.assertIsNone(self.model.img_model._distortion)
+        self.assertIsNone(self.model.calibration_model.distortion_spline_filename)
         self.assertEqual(self.calibration_widget.spline_filename_txt.text(), 'None')
 
     def test_loading_and_saving_of_calibration_files(self):

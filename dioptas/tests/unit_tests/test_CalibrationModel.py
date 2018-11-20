@@ -177,6 +177,27 @@ class CalibrationModelTest(QtTest):
         _, y2 = self.calibration_model.integrate_1d()
         self.assertNotEqual(np.sum(y1), np.sum(y2))
 
+    def test_distortion_correction(self):
+        self.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
+
+        self.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
+        self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
+        self.calibration_model.start_values['dist'] = 300e-3
+        self.calibration_model.start_values['pixel_height'] = 50e-6
+        self.calibration_model.start_values['pixel_width'] = 50e-6
+        self.calibration_model.start_values['wavelength'] = 0.1e-10
+
+        self.calibration_model.calibrate()
+
+        _, y1 = self.calibration_model.integrate_1d()
+
+        self.calibration_model.load_distortion(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
+        self.calibration_model.calibrate()
+
+        _, y2 = self.calibration_model.integrate_1d()
+        self.assertNotAlmostEqual(np.sum(y1-y2), 0)
+
+
     def test_cake_integration_with_small_azimuth_range(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
