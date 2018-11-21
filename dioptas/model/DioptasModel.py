@@ -144,7 +144,6 @@ class DioptasModel(QtCore.QObject):
                 phase_reflection_group.attrs['h'] = reflection.h
                 phase_reflection_group.attrs['k'] = reflection.k
                 phase_reflection_group.attrs['l'] = reflection.l
-            print(phase_parameter_group.attrs['modified'])
         f.flush()
         f.close()
 
