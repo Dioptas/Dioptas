@@ -765,8 +765,8 @@ class ImageController(object):
                 cake_shape = self.model.cake_data.shape
                 if x < 0 or y < 0 or x > cake_shape[0] - 1 or y > cake_shape[1] - 1:
                     return
-                y = np.array([y])
                 x = np.array([x])
+                y = np.array([y])
                 tth = get_partial_value(self.model.cake_tth, y - 0.5) / 180 * np.pi
                 shift_amount = self.widget.cake_shift_azimuth_sl.value()
                 azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
@@ -774,8 +774,10 @@ class ImageController(object):
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
                     return
+                x = np.array([x])
+                y = np.array([y])
                 tth = self.model.calibration_model.get_two_theta_img(x, y)
-                azi = self.model.calibration_model.get_azi_img(np.array([x]), np.array([y])) / np.pi * 180
+                azi = self.model.calibration_model.get_azi_img(x, y) / np.pi * 180
                 self.widget.img_widget.set_circle_line(
                     self.model.calibration_model.get_two_theta_array(), tth)
             else:  # in the case of whatever
