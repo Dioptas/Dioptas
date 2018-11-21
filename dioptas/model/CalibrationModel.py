@@ -560,27 +560,31 @@ class CalibrationModel(QtCore.QObject):
         """
         Gives the two_theta value for the x,y coordinates on the image. Be aware that this function will be incorrect
         for pixel indices, since it does not correct for center of the pixel.
-        :return:
-            two theta in radians
+        :param  x: x-coordinate in pixel on the image
+        :type   x: ndarray
+        :param  y: y-coordinate in pixel on the image
+        :type   y: ndarray
+
+        :return  : two theta in radians
         """
-        x = np.array([x]) * self.supersampling_factor
-        y = np.array([y]) * self.supersampling_factor
+        x *= self.supersampling_factor
+        y *= self.supersampling_factor
 
         return self.pattern_geometry.tth(x - 0.5, y - 0.5)[0]  # deletes 0.5 because tth function uses pixel indices
 
     def get_azi_img(self, x, y):
         """
         Gives chi for position on image.
-        :param x:
-            x-coordinate in pixel
-        :param y:
-            y-coordinate in pixel
-        :return:
-            azimuth in radians
+        :param  x: x-coordinate in pixel on the image
+        :type   x: ndarray
+        :param  y: y-coordinate in pixel on the image
+        :type   y: ndarray
+
+        :return  : azimuth in radians
         """
         x *= self.supersampling_factor
         y *= self.supersampling_factor
-        return self.pattern_geometry.chi(x, y)[0]
+        return self.pattern_geometry.chi(x - 0.5, y - 0.5)[0]
 
     def get_two_theta_array(self):
         return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,
