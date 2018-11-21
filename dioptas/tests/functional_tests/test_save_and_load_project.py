@@ -32,6 +32,8 @@ from ...model.util.HelperModule import rotate_matrix_m90, rotate_matrix_p90
 from ...controller.MainController import MainController
 from ..utility import QtTest, click_button, delete_if_exists, enter_value_into_text_field
 
+from ... import calibrants_path
+
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
@@ -130,7 +132,6 @@ class ProjectSaveLoadTest(QtTest):
         self.raw_img_data = self.model.current_configuration.img_model.raw_img_data
 
     def save_and_load_configuration(self, prepare_function, intermediate_function=None, mock_1d_integration=True):
-
         if mock_1d_integration:
             with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                               np.ones((1001,)))):
@@ -374,3 +375,28 @@ class ProjectSaveLoadTest(QtTest):
 
     def prepare_file_browsing(self):
         self.load_image(os.path.join(data_path, 'image_001.tif'))
+
+    ####################################################################################################################
+    def test_distortion_correction(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_distortion_correction_test)
+        self.assertIsNotNone(self.model.calibration_model.distortion_spline_filename)
+        self.assertEqual(self.widget.calibration_widget.spline_filename_txt.text(),
+                         'f4mnew.spline')
+
+    def prepare_distortion_correction_test(self):
+        self.model.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
+
+        self.model.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
+        self.model.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
+        self.model.calibration_model.start_values['dist'] = 300e-3
+        self.model.calibration_model.start_values['pixel_height'] = 50e-6
+        self.model.calibration_model.start_values['pixel_width'] = 50e-6
+        self.model.calibration_model.start_values['wavelength'] = 0.1e-10
+
+        self.model.calibration_model.load_distortion(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
+        self.model.calibration_model.calibrate()
+
+        _, y1 = self.model.calibration_model.integrate_1d()
+
+

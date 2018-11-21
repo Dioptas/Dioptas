@@ -461,6 +461,8 @@ class Configuration(QtCore.QObject):
             except TypeError:
                 pfp.attrs[key] = ''
         calibration_group.attrs['correct_solid_angle'] = self.correct_solid_angle
+        if self.calibration_model.distortion_spline_filename is not None:
+            calibration_group.attrs['distortion_spline_filename'] = self.calibration_model.distortion_spline_filename
 
         # save background pattern and pattern model
         background_pattern_group = f.create_group('background_pattern')
@@ -550,6 +552,13 @@ class Configuration(QtCore.QObject):
             self.correct_solid_angle = f.get('calibration_model').attrs['correct_solid_angle']
         except KeyError:
             pass
+
+        try:
+            distortion_spline_filename =  f.get('calibration_model').attrs['distortion_spline_filename']
+            self.calibration_model.load_distortion(distortion_spline_filename)
+        except KeyError:
+            pass
+
 
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
