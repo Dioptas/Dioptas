@@ -131,6 +131,8 @@ class TestCalibrationController(QtTest):
         del model_calibration['detector']
         if 'splineFile' in model_calibration.keys():
             del model_calibration['splineFile']
+        if 'max_shape' in model_calibration.keys():
+            del model_calibration['max_shape']
         current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
         del current_displayed_calibration['polarization_factor']
         self.assertEqual(model_calibration, current_displayed_calibration)
@@ -140,6 +142,8 @@ class TestCalibrationController(QtTest):
         del model_calibration['detector']
         if 'splineFile' in model_calibration.keys():
             del model_calibration['splineFile']
+        if 'max_shape' in model_calibration.keys():
+            del model_calibration['max_shape']
         current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
         del current_displayed_calibration['polarization_factor']
         self.assertEqual(model_calibration, current_displayed_calibration)
