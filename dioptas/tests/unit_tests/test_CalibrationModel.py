@@ -194,7 +194,7 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.calibrate()
 
         _, y2 = self.calibration_model.integrate_1d()
-        self.assertNotAlmostEqual(np.sum(y1-y2), 0)
+        self.assertNotAlmostEqual(y1[100]-y2[100])
 
     def test_get_two_theta_img_with_distortion(self):
         self.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
