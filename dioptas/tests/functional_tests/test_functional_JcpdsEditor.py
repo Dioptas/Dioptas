@@ -374,7 +374,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
+        # self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(jcpds_path, 'au_Anderson.jcpds'),
@@ -450,7 +450,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # then he increases the pressure and sees the line moving, but he realizes that the equation of state may 
         # be wrong so he decides to change the parameters in the jcpds-editor
-        self.main_controller.integration_controller.widget.phase_pressure_sb.setValue(10)
+        self.main_controller.integration_controller.widget.phase_widget.pressure_sbs[0].setValue(10)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 120)
@@ -463,7 +463,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 6.234e-5)
         self.assertEqual(self.phase_controller.model.phase_model.phases[2].params['alpha_t0'], 6.234e-5)
 
-        self.main_controller.integration_controller.widget.phase_temperature_sb.setValue(1300)
+        self.main_controller.integration_controller.widget.phase_widget.temperature_sbs[0].setValue(1300)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 10.234e-5)
@@ -489,7 +489,6 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(jcpds_path, 'au_Anderson.jcpds'),
@@ -571,7 +570,6 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
@@ -602,7 +600,6 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
@@ -644,7 +641,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
         # values
 
-        self.phase_controller.phase_widget.pressure_sb.setValue(30)
+        self.phase_controller.phase_widget.pressure_sbs[0].setValue(30)
         for row_ind in range(13):
             self.assertNotEqual(self.get_reflection_table_value(row_ind, 4),
                                 self.get_reflection_table_value(row_ind, 5))

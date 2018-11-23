@@ -78,6 +78,9 @@ class CalibrationController(object):
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks_btn_click)
 
+        self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
+        self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
+
         self.widget.f2_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
         self.widget.pf_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
         self.widget.sv_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
@@ -162,7 +165,8 @@ class CalibrationController(object):
         Loads an image file.
         """
         filename = open_file_dialog(self.widget, caption="Load Calibration Image",
-                                    directory=self.model.working_directories['image'])
+                                    directory=self.model.working_directories['image'],
+                                    )
 
         if filename is not '':
             self.model.working_directories['image'] = os.path.dirname(filename)
@@ -246,8 +250,8 @@ class CalibrationController(object):
         # filter them to only show the ones visible with the current pattern
         pattern_min = np.min(self.model.pattern.x)
         pattern_max = np.max(self.model.pattern.x)
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions>pattern_min]
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions<pattern_max]
+        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions > pattern_min]
+        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions < pattern_max]
         self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
                                                        name=self._calibrants_file_names_list[current_index])
 
@@ -323,6 +327,19 @@ class CalibrationController(object):
         self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
+
+    def load_spline_btn_click(self):
+        filename = open_file_dialog(self.widget, caption="Load Distortion Spline File",
+                                    directory=self.model.working_directories['image'],
+                                    filter='*.spline')
+
+        if filename is not '':
+            self.model.calibration_model.load_distortion(filename)
+            self.widget.spline_filename_txt.setText(os.path.basename(filename))
+
+    def reset_spline_btn_click(self):
+        self.model.calibration_model.reset_distortion_correction()
+        self.widget.spline_filename_txt.setText('None')
 
     def wavelength_cb_changed(self, value):
         """
@@ -405,9 +422,9 @@ class CalibrationController(object):
                                                     self.widget)
 
         progress_dialog.move(int(self.widget.tab_widget.x() + self.widget.tab_widget.size().width() / 2.0 - \
-                             progress_dialog.size().width() / 2.0),
+                                 progress_dialog.size().width() / 2.0),
                              int(self.widget.tab_widget.y() + self.widget.tab_widget.size().height() / 2.0 -
-                             progress_dialog.size().height() / 2.0))
+                                 progress_dialog.size().height() / 2.0))
 
         progress_dialog.setWindowTitle('   ')
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -556,7 +573,7 @@ class CalibrationController(object):
             self.widget.tab_widget.setCurrentIndex(1)
 
         if self.widget.ToolBox.currentIndex() is not 2 or \
-                        self.widget.ToolBox.currentIndex() is not 3:
+                self.widget.ToolBox.currentIndex() is not 3:
             self.widget.ToolBox.setCurrentIndex(2)
         self.update_calibration_parameter_in_view()
         self.load_calibrant('pyFAI')
@@ -568,6 +585,12 @@ class CalibrationController(object):
         """
         pyFAI_parameter, fit2d_parameter = self.model.calibration_model.get_calibration_parameter()
         self.widget.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
+
+        if self.model.calibration_model.distortion_spline_filename:
+            self.widget.spline_filename_txt.setText(
+                os.path.basename(self.model.calibration_model.distortion_spline_filename))
+        else:
+            self.widget.spline_filename_txt.setText('None')
 
     def save_calibration(self):
         """
