@@ -18,6 +18,7 @@
 
 import os
 import gc
+from collections import OrderedDict
 
 import numpy as np
 
@@ -64,18 +65,20 @@ test_calibration_file_2 = os.path.join(data_path, 'a_CeO2_Pilatus1M.poni')
 poly_order = 55
 x_min = 1.0
 x_max = 8.0
-pyfai_params = {'detector': 'Detector',
+pyfai_params = OrderedDict({
+                'detector': 'Detector',
+                'pixel1': 7.9e-05,
+                'pixel2': 7.9e-05,
+                'max_shape': None,
                 'dist': 0.196711580484,
                 'poni1': 0.0813975852141,
                 'poni2': 0.0820662115429,
                 'rot1': 0.00615439716514,
                 'rot2': -0.00156720465515,
                 'rot3': 1.68707221612e-06,
-                'pixel1': 7.9e-05,
-                'pixel2': 7.9e-05,
                 'wavelength': 3.1e-11,
                 'polarization_factor': 0.99
-                }
+                })
 pressure = 12.0
 
 
@@ -182,6 +185,7 @@ class ProjectSaveLoadTest(QtTest):
             saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
             if 'splineFile' in saved_pyfai_params:
                 del saved_pyfai_params['splineFile']
+            print(saved_pyfai_params)
             self.assertDictEqual(saved_pyfai_params, pyfai_params)
 
     ####################################################################################################################
@@ -281,13 +285,14 @@ class ProjectSaveLoadTest(QtTest):
     ####################################################################################################################
     def test_with_cbn_correction(self):
         self.save_and_load_configuration(self.cbn_correction_settings, mock_1d_integration=False)
-        self.assertEqual(self.model.current_configuration.img_model.img_corrections.
-                         corrections["cbn"]._diamond_thickness, 1.9)
+        print(self.model.current_configuration.img_model.img_corrections.corrections)
+        self.assertEqual(self.model.current_configuration.img_model.img_corrections.corrections["cbn"].\
+                         _diamond_thickness, 1.9)
 
     def cbn_correction_settings(self):
         self.controller.widget.integration_widget.cbn_groupbox.setChecked(True)
-        self.controller.widget.integration_widget.cbn_diamond_thickness_txt.setText('1.9')
-        self.controller.integration_controller.image_controller.cbn_groupbox_changed()
+        self.controller.widget.integration_widget.cbn_param_tw.cellWidget(0, 1).setText('1.9')
+        self.controller.integration_controller.correction_controller.cbn_groupbox_changed()
 
     ####################################################################################################################
     def test_with_oiadac_correction(self):
@@ -299,9 +304,9 @@ class ProjectSaveLoadTest(QtTest):
 
     def oiadac_correction_settings(self):
         self.controller.widget.integration_widget.oiadac_groupbox.setChecked(True)
-        self.controller.widget.integration_widget.oiadac_thickness_txt.setText('30')
-        self.controller.widget.integration_widget.oiadac_abs_length_txt.setText('450')
-        self.controller.integration_controller.image_controller.oiadac_groupbox_changed()
+        self.controller.widget.integration_widget.oiadac_param_tw.cellWidget(0, 1).setText('30')
+        self.controller.widget.integration_widget.oiadac_param_tw.cellWidget(1, 1).setText('450')
+        self.controller.integration_controller.correction_controller.oiadac_groupbox_changed()
 
     ####################################################################################################################
     def test_configuration_in_cake_mode(self):
