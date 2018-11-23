@@ -176,6 +176,7 @@ class PhaseController(object):
     def phase_added(self):
         self.model.phase_model.get_lines_d(-1)
         color = self.add_phase_plot()
+
         self.phase_widget.add_phase(self.model.phase_model.phases[-1].name, '#%02x%02x%02x' %
                                     (int(color[0]), int(color[1]), int(color[2])))
 
