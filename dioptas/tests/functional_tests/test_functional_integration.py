@@ -304,15 +304,15 @@ class IntegrationFunctionalTest(QtTest):
 
     def test_configuration_selected_changes_img_mode(self):
         click_button(self.integration_widget.img_mode_btn)
-        self.assertEqual(self.integration_image_controller.img_mode, "Cake")
+        self.assertEqual(self.integration_widget.img_mode, "Cake")
         self.assertTrue(self.model.current_configuration.auto_integrate_cake)
 
         self.model.add_configuration()
         self.model.select_configuration(0)
-        self.assertEqual(self.integration_image_controller.img_mode, "Cake")
+        self.assertEqual(self.integration_widget.img_mode, "Cake")
         self.model.select_configuration(1)
         self.assertFalse(self.model.current_configuration.auto_integrate_cake)
-        self.assertEqual(self.integration_image_controller.img_mode, "Image")
+        self.assertEqual(self.integration_widget.img_mode, "Image")
 
     def test_configuration_selected_changes_green_line_position_in_image_mode(self):
         self.integration_image_controller.img_mouse_click(0, 500)

@@ -76,6 +76,8 @@ class CalibrationModel(QtCore.QObject):
         self.correct_solid_angle = True
         self._calibrants_working_dir = calibrants_path
 
+        self.distortion_spline_filename = None
+
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
         self.num_points = len(self.int)
@@ -139,7 +141,7 @@ class CalibrationModel(QtCore.QObject):
         self.points_index = []
 
     def create_cake_geometry(self):
-        self.cake_geometry = AzimuthalIntegrator()
+        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename)
 
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
         pyFAI_parameter['polarization_factor'] = self.polarization_factor
@@ -259,7 +261,8 @@ class CalibrationModel(QtCore.QObject):
                                                    wavelength=self.start_values['wavelength'],
                                                    pixel1=self.start_values['pixel_width'],
                                                    pixel2=self.start_values['pixel_height'],
-                                                   calibrant=self.calibrant)
+                                                   calibrant=self.calibrant,
+                                                   splineFile=self.distortion_spline_filename)
         self.orig_pixel1 = self.start_values['pixel_width']
         self.orig_pixel2 = self.start_values['pixel_height']
 
@@ -517,6 +520,18 @@ class CalibrationModel(QtCore.QObject):
         self.is_calibrated = True
         self.set_supersampling()
 
+    def load_distortion(self, spline_filename):
+        self.distortion_spline_filename = spline_filename
+        self.pattern_geometry.set_splineFile(spline_filename)
+        if self.cake_geometry:
+            self.cake_geometry.set_splineFile(spline_filename)
+
+    def reset_distortion_correction(self):
+        self.distortion_spline_filename = None
+        self.pattern_geometry.set_splineFile(None)
+        if self.cake_geometry:
+            self.cake_geometry.set_splineFile(None)
+
     def set_supersampling(self, factor=None):
         """
         Sets the supersampling to a specific factor. Whereby the factor determines in how many artificial pixel the
@@ -545,27 +560,31 @@ class CalibrationModel(QtCore.QObject):
         """
         Gives the two_theta value for the x,y coordinates on the image. Be aware that this function will be incorrect
         for pixel indices, since it does not correct for center of the pixel.
-        :return:
-            two theta in radians
+        :param  x: x-coordinate in pixel on the image
+        :type   x: ndarray
+        :param  y: y-coordinate in pixel on the image
+        :type   y: ndarray
+
+        :return  : two theta in radians
         """
-        x = np.array([x]) * self.supersampling_factor
-        y = np.array([y]) * self.supersampling_factor
+        x *= self.supersampling_factor
+        y *= self.supersampling_factor
 
         return self.pattern_geometry.tth(x - 0.5, y - 0.5)[0]  # deletes 0.5 because tth function uses pixel indices
 
     def get_azi_img(self, x, y):
         """
         Gives chi for position on image.
-        :param x:
-            x-coordinate in pixel
-        :param y:
-            y-coordinate in pixel
-        :return:
-            azimuth in radians
+        :param  x: x-coordinate in pixel on the image
+        :type   x: ndarray
+        :param  y: y-coordinate in pixel on the image
+        :type   y: ndarray
+
+        :return  : azimuth in radians
         """
         x *= self.supersampling_factor
         y *= self.supersampling_factor
-        return self.pattern_geometry.chi(x, y)[0]
+        return self.pattern_geometry.chi(x - 0.5, y - 0.5)[0]
 
     def get_two_theta_array(self):
         return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,

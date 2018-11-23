@@ -18,7 +18,7 @@
 
 import os
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
 from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
@@ -26,6 +26,8 @@ from ..widgets.plot_widgets import PatternWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, FlatButton
+
+from .. import icons_path
 
 
 class CalibrationWidget(QtWidgets.QWidget):
@@ -116,6 +118,11 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.pf_rot1_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation1_cb
         self.pf_rot2_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation2_cb
         self.pf_rot3_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation3_cb
+
+        distortion_gb = self.calibration_control_widget.calibration_parameters_widget.distortion_correction_gb
+        self.load_spline_btn = distortion_gb.spline_load_btn
+        self.spline_filename_txt = distortion_gb.spline_filename_txt
+        self.spline_reset_btn = distortion_gb.spline_reset_btn
 
         self.img_widget = self.calibration_display_widget.img_widget
         self.cake_widget = self.calibration_display_widget.cake_widget
@@ -349,10 +356,12 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self.start_values_gb = StartValuesGroupBox(self)
         self.peak_selection_gb = PeakSelectionGroupBox()
         self.refinement_options_gb = RefinementOptionsGroupBox()
+        self.distortion_correction_gb = DistortionCorrectionGroupBox()
 
         self._layout.addWidget(self.start_values_gb)
         self._layout.addWidget(self.peak_selection_gb)
         self._layout.addWidget(self.refinement_options_gb)
+        self._layout.addWidget(self.distortion_correction_gb)
         self._layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                      QtWidgets.QSizePolicy.Expanding))
 
@@ -500,6 +509,26 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self.number_of_rings_sb = SpinBoxAlignRight()
         self.number_of_rings_sb.setValue(15)
         self._layout.addWidget(self.number_of_rings_sb, 6, 1)
+
+        self.setLayout(self._layout)
+
+
+class DistortionCorrectionGroupBox(QtWidgets.QGroupBox):
+    def __init__(self):
+        super(DistortionCorrectionGroupBox, self).__init__('Distortion Correction')
+
+        self._layout = QtWidgets.QGridLayout()
+        self.spline_load_btn = FlatButton('Load Splinefile')
+        self.spline_filename_txt = QtWidgets.QLabel('None')
+        self.spline_reset_btn = FlatButton()
+        self.spline_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.spline_reset_btn.setIconSize(QtCore.QSize(13, 13))
+        self.spline_reset_btn.setMaximumWidth(21)
+        self.spline_reset_btn.setToolTip('Reset distortion correction')
+
+        self._layout.addWidget(self.spline_load_btn, 0, 0)
+        self._layout.addWidget(self.spline_filename_txt, 1, 0, 1, 2)
+        self._layout.addWidget(self.spline_reset_btn, 0, 1)
 
         self.setLayout(self._layout)
 
