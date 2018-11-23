@@ -27,7 +27,7 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock pytest pytest-cov -c conda-forge
+    - conda install --yes numpy pillow pycifrw scipy pandas matplotlib python-dateutil nose h5py pyqt scikit-image cython future qtpy pyfai fabio lmfit mock pytest pytest-cov -c cprescher
     - conda install --yes pyqtgraph -c cprescher
     - pip install pyepics
 
