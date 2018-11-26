@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -145,7 +145,6 @@ class DioptasModel(QtCore.QObject):
                 phase_reflection_group.attrs['h'] = reflection.h
                 phase_reflection_group.attrs['k'] = reflection.k
                 phase_reflection_group.attrs['l'] = reflection.l
-            print(phase_parameter_group.attrs['modified'])
         f.flush()
         f.close()
 

@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -84,7 +84,7 @@ class ImgModel(QtCore.QObject):
 
         self._img_data = np.zeros((2048, 2048))
 
-        ### setting up autoprocess
+        # setting up autoprocess
         self._autoprocess = False
         self._directory_watcher = NewFileInDirectoryWatcher(
             file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
@@ -188,8 +188,8 @@ class ImgModel(QtCore.QObject):
 
         logger.info("Adding {0}.".format(filename))
 
-        if self._img_data.dtype == np.uint16: # if dtype is only uint16 we will convert to 32 bit, so that more
-                                              # additions are possible
+        if self._img_data.dtype == np.uint16:  # if dtype is only uint16 we will convert to 32 bit, so that more
+            # additions are possible
             self._img_data = self._img_data.astype(np.uint32)
 
         self._img_data += img_data
@@ -335,7 +335,7 @@ class ImgModel(QtCore.QObject):
 
         elif self._background_data is not None and self._img_corrections.has_items():
             self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
-                self._background_scaling * self._background_data + self._background_offset)) / \
+                    self._background_scaling * self._background_data + self._background_offset)) / \
                                                                         self._img_corrections.get_data()
 
         # supersample the current image data
@@ -390,7 +390,6 @@ class ImgModel(QtCore.QObject):
             elif self._background_data is not None and self._img_corrections.has_items():
                 return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
         return self._img_data * self.factor
-
 
     @property
     def raw_img_data(self):
@@ -529,7 +528,6 @@ class ImgModel(QtCore.QObject):
         self._perform_img_transformations()
         self._perform_background_transformations()
 
-
     def set_supersampling(self, factor=None):
         """
         Stores the supersampling factor and calculates supersampled original and background image arrays.
@@ -574,7 +572,7 @@ class ImgModel(QtCore.QObject):
         self.img_changed.emit()
         if external == 'cbn':
             self.cbn_correction_changed.emit()
-        if external  == 'oiadac':
+        if external == 'oiadac':
             self.oiadac_correction_changed.emit()
 
     def get_img_correction(self, name):

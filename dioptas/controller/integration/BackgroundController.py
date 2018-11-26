@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -107,12 +107,10 @@ class BackgroundController(object):
         self.model.img_model.reset_background()
 
     def update_bkg_image_scale_step(self):
-        value = np.float(self.widget.bkg_image_scale_step_msb.text())
-        self.widget.bkg_image_scale_sb.setSingleStep(value)
+        self.widget.bkg_image_scale_sb.setSingleStep(self.widget.bkg_image_scale_step_msb.value())
 
     def update_bkg_image_offset_step(self):
-        value = np.float(self.widget.bkg_image_offset_step_msb.text())
-        self.widget.bkg_image_offset_sb.setSingleStep(value)
+        self.widget.bkg_image_offset_sb.setSingleStep(self.widget.bkg_image_offset_step_msb.value())
 
     def update_background_image_filename(self):
         if self.model.img_model.has_background():

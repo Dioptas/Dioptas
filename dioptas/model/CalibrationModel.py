@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -62,6 +62,11 @@ class CalibrationModel(QtCore.QObject):
         self.orig_pixel2 = 79e-6
         self.fit_wavelength = False
         self.fit_distance = True
+        self.fit_poni1 = True
+        self.fit_poni2 = True
+        self.fit_rot1 = True
+        self.fit_rot2 = True
+        self.fit_rot3 = True
         self.is_calibrated = False
         self.use_mask = False
         self.filename = ''
@@ -70,6 +75,8 @@ class CalibrationModel(QtCore.QObject):
         self.supersampling_factor = 1
         self.correct_solid_angle = True
         self._calibrants_working_dir = calibrants_path
+
+        self.distortion_spline_filename = None
 
         self.tth = np.linspace(0, 25)
         self.int = np.sin(self.tth)
@@ -134,7 +141,7 @@ class CalibrationModel(QtCore.QObject):
         self.points_index = []
 
     def create_cake_geometry(self):
-        self.cake_geometry = AzimuthalIntegrator()
+        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename)
 
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
         pyFAI_parameter['polarization_factor'] = self.polarization_factor
@@ -254,7 +261,8 @@ class CalibrationModel(QtCore.QObject):
                                                    wavelength=self.start_values['wavelength'],
                                                    pixel1=self.start_values['pixel_width'],
                                                    pixel2=self.start_values['pixel_height'],
-                                                   calibrant=self.calibrant)
+                                                   calibrant=self.calibrant,
+                                                   splineFile=self.distortion_spline_filename)
         self.orig_pixel1 = self.start_values['pixel_width']
         self.orig_pixel2 = self.start_values['pixel_height']
 
@@ -276,6 +284,16 @@ class CalibrationModel(QtCore.QObject):
             fix = []
         if not self.fit_distance:
             fix.append('dist')
+        if not self.fit_poni1:
+            fix.append('poni1')
+        if not self.fit_poni2:
+            fix.append('poni2')
+        if not self.fit_rot1:
+            fix.append('rot1')
+        if not self.fit_rot2:
+            fix.append('rot2')
+        if not self.fit_rot3:
+            fix.append('rot3')
         if self.fit_wavelength:
             self.pattern_geometry.refine2()
         self.pattern_geometry.refine2_wavelength(fix=fix)
@@ -348,7 +366,9 @@ class CalibrationModel(QtCore.QObject):
         self.int = self.int[ind]
         return self.tth, self.int
 
-    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr', dimensions=(2048, 2048)):
+    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr',
+                     rad_points=None, azimuth_points=360,
+                     azimuth_range=None):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
@@ -357,9 +377,14 @@ class CalibrationModel(QtCore.QObject):
             self.cake_geometry.reset()
             self.cake_geometry_img_shape = self.img_model.img_data.shape
 
+        if rad_points is None:
+            rad_points = self.calculate_number_of_pattern_points(2)
+        self.num_points = rad_points
+
         t1 = time.time()
 
-        res = self.cake_geometry.integrate2d(self.img_model.img_data, dimensions[0], dimensions[1],
+        res = self.cake_geometry.integrate2d(self.img_model.img_data, rad_points, azimuth_points,
+                                             azimuth_range=azimuth_range,
                                              method=method,
                                              mask=mask,
                                              unit=unit,
@@ -495,6 +520,18 @@ class CalibrationModel(QtCore.QObject):
         self.is_calibrated = True
         self.set_supersampling()
 
+    def load_distortion(self, spline_filename):
+        self.distortion_spline_filename = spline_filename
+        self.pattern_geometry.set_splineFile(spline_filename)
+        if self.cake_geometry:
+            self.cake_geometry.set_splineFile(spline_filename)
+
+    def reset_distortion_correction(self):
+        self.distortion_spline_filename = None
+        self.pattern_geometry.set_splineFile(None)
+        if self.cake_geometry:
+            self.cake_geometry.set_splineFile(None)
+
     def set_supersampling(self, factor=None):
         """
         Sets the supersampling to a specific factor. Whereby the factor determines in how many artificial pixel the
@@ -523,27 +560,31 @@ class CalibrationModel(QtCore.QObject):
         """
         Gives the two_theta value for the x,y coordinates on the image. Be aware that this function will be incorrect
         for pixel indices, since it does not correct for center of the pixel.
-        :return:
-            two theta in radians
+        :param  x: x-coordinate in pixel on the image
+        :type   x: ndarray
+        :param  y: y-coordinate in pixel on the image
+        :type   y: ndarray
+
+        :return  : two theta in radians
         """
-        x = np.array([x]) * self.supersampling_factor
-        y = np.array([y]) * self.supersampling_factor
+        x *= self.supersampling_factor
+        y *= self.supersampling_factor
 
         return self.pattern_geometry.tth(x - 0.5, y - 0.5)[0]  # deletes 0.5 because tth function uses pixel indices
 
     def get_azi_img(self, x, y):
         """
         Gives chi for position on image.
-        :param x:
-            x-coordinate in pixel
-        :param y:
-            y-coordinate in pixel
-        :return:
-            azimuth in radians
+        :param  x: x-coordinate in pixel on the image
+        :type   x: ndarray
+        :param  y: y-coordinate in pixel on the image
+        :type   y: ndarray
+
+        :return  : azimuth in radians
         """
         x *= self.supersampling_factor
         y *= self.supersampling_factor
-        return self.pattern_geometry.chi(x, y)[0]
+        return self.pattern_geometry.chi(x - 0.5, y - 0.5)[0]
 
     def get_two_theta_array(self):
         return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,

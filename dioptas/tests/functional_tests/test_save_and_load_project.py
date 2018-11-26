@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -18,6 +18,7 @@
 
 import os
 import gc
+from collections import OrderedDict
 
 import numpy as np
 
@@ -30,7 +31,9 @@ import fabio
 from ...model.CalibrationModel import CalibrationModel
 from ...model.util.HelperModule import rotate_matrix_m90, rotate_matrix_p90
 from ...controller.MainController import MainController
-from ..utility import QtTest, click_button, delete_if_exists
+from ..utility import QtTest, click_button, delete_if_exists, enter_value_into_text_field
+
+from ... import calibrants_path
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -60,18 +63,22 @@ test_image_file_name_2 = os.path.join(data_path, 'a_CeO2_Pilatus1M.tif')
 test_calibration_file = os.path.join(data_path, 'CeO2_Pilatus1M.poni')
 test_calibration_file_2 = os.path.join(data_path, 'a_CeO2_Pilatus1M.poni')
 poly_order = 55
-pyfai_params = {'detector': 'Detector',
+x_min = 1.0
+x_max = 8.0
+pyfai_params = OrderedDict({
+                'detector': 'Detector',
+                'pixel1': 7.9e-05,
+                'pixel2': 7.9e-05,
+                'max_shape': None,
                 'dist': 0.196711580484,
                 'poni1': 0.0813975852141,
                 'poni2': 0.0820662115429,
                 'rot1': 0.00615439716514,
                 'rot2': -0.00156720465515,
                 'rot3': 1.68707221612e-06,
-                'pixel1': 7.9e-05,
-                'pixel2': 7.9e-05,
                 'wavelength': 3.1e-11,
                 'polarization_factor': 0.99
-                }
+                })
 pressure = 12.0
 
 
@@ -128,7 +135,6 @@ class ProjectSaveLoadTest(QtTest):
         self.raw_img_data = self.model.current_configuration.img_model.raw_img_data
 
     def save_and_load_configuration(self, prepare_function, intermediate_function=None, mock_1d_integration=True):
-
         if mock_1d_integration:
             with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                               np.ones((1001,)))):
@@ -179,6 +185,7 @@ class ProjectSaveLoadTest(QtTest):
             saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
             if 'splineFile' in saved_pyfai_params:
                 del saved_pyfai_params['splineFile']
+            print(saved_pyfai_params)
             self.assertDictEqual(saved_pyfai_params, pyfai_params)
 
     ####################################################################################################################
@@ -278,13 +285,14 @@ class ProjectSaveLoadTest(QtTest):
     ####################################################################################################################
     def test_with_cbn_correction(self):
         self.save_and_load_configuration(self.cbn_correction_settings, mock_1d_integration=False)
-        self.assertEqual(self.model.current_configuration.img_model.img_corrections.
-                         corrections["cbn"]._diamond_thickness, 1.9)
+        print(self.model.current_configuration.img_model.img_corrections.corrections)
+        self.assertEqual(self.model.current_configuration.img_model.img_corrections.corrections["cbn"].\
+                         _diamond_thickness, 1.9)
 
     def cbn_correction_settings(self):
         self.controller.widget.integration_widget.cbn_groupbox.setChecked(True)
-        self.controller.widget.integration_widget.cbn_diamond_thickness_txt.setText('1.9')
-        self.controller.integration_controller.image_controller.cbn_groupbox_changed()
+        self.controller.widget.integration_widget.cbn_param_tw.cellWidget(0, 1).setText('1.9')
+        self.controller.integration_controller.correction_controller.cbn_groupbox_changed()
 
     ####################################################################################################################
     def test_with_oiadac_correction(self):
@@ -296,9 +304,9 @@ class ProjectSaveLoadTest(QtTest):
 
     def oiadac_correction_settings(self):
         self.controller.widget.integration_widget.oiadac_groupbox.setChecked(True)
-        self.controller.widget.integration_widget.oiadac_thickness_txt.setText('30')
-        self.controller.widget.integration_widget.oiadac_abs_length_txt.setText('450')
-        self.controller.integration_controller.image_controller.oiadac_groupbox_changed()
+        self.controller.widget.integration_widget.oiadac_param_tw.cellWidget(0, 1).setText('30')
+        self.controller.widget.integration_widget.oiadac_param_tw.cellWidget(1, 1).setText('450')
+        self.controller.integration_controller.correction_controller.oiadac_groupbox_changed()
 
     ####################################################################################################################
     def test_configuration_in_cake_mode(self):
@@ -313,6 +321,13 @@ class ProjectSaveLoadTest(QtTest):
         self.save_and_load_configuration(self.fit_bg_settings)
         self.assertEqual(self.widget.integration_widget.bkg_pattern_poly_order_sb.value(), poly_order)
 
+    def test_with_q_and_fit_bg(self):
+        self.save_and_load_configuration(self.q_and_fit_bg_settings)
+        self.assertAlmostEqual(float(self.controller.integration_controller.widget.bkg_pattern_x_min_txt.text()), x_min,
+                               1)
+        self.assertAlmostEqual(float(self.controller.integration_controller.widget.bkg_pattern_x_max_txt.text()), x_max,
+                               1)
+
     ####################################################################################################################
     def test_multiple_configurations(self):
         self.save_and_load_configuration(self.add_configuration)
@@ -324,6 +339,14 @@ class ProjectSaveLoadTest(QtTest):
     def fit_bg_settings(self):
         self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
         self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
+
+    def q_and_fit_bg_settings(self):
+        self.controller.integration_controller.widget.pattern_q_btn.click()
+        self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
+        self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
+
+        enter_value_into_text_field(self.controller.integration_controller.widget.bkg_pattern_x_min_txt, str(x_min))
+        enter_value_into_text_field(self.controller.integration_controller.widget.bkg_pattern_x_max_txt, str(x_max))
 
     ####################################################################################################################
     def test_with_background_image(self):
@@ -357,3 +380,28 @@ class ProjectSaveLoadTest(QtTest):
 
     def prepare_file_browsing(self):
         self.load_image(os.path.join(data_path, 'image_001.tif'))
+
+    ####################################################################################################################
+    def test_distortion_correction(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_distortion_correction_test)
+        self.assertIsNotNone(self.model.calibration_model.distortion_spline_filename)
+        self.assertEqual(self.widget.calibration_widget.spline_filename_txt.text(),
+                         'f4mnew.spline')
+
+    def prepare_distortion_correction_test(self):
+        self.model.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
+
+        self.model.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
+        self.model.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
+        self.model.calibration_model.start_values['dist'] = 300e-3
+        self.model.calibration_model.start_values['pixel_height'] = 50e-6
+        self.model.calibration_model.start_values['pixel_width'] = 50e-6
+        self.model.calibration_model.start_values['wavelength'] = 0.1e-10
+
+        self.model.calibration_model.load_distortion(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
+        self.model.calibration_model.calibrate()
+
+        _, y1 = self.model.calibration_model.integrate_1d()
+
+

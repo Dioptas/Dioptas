@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -57,9 +57,11 @@ class Configuration(QtCore.QObject):
 
         self.transparent_mask = False
 
-        self._integration_num_points = None
-        self._integration_azimuth_points = 2048
+        self._integration_rad_points = None
         self._integration_unit = '2th_deg'
+
+        self._cake_azimuth_points = 360
+        self._cake_azimuth_range = None
 
         self._auto_integrate_pattern = True
         self._auto_integrate_cake = False
@@ -92,7 +94,7 @@ class Configuration(QtCore.QObject):
                 mask = None
 
             x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
-                                                       num_points=self.integration_num_points)
+                                                       num_points=self.integration_rad_points)
 
             self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
 
@@ -113,7 +115,10 @@ class Configuration(QtCore.QObject):
             mask = None
 
         self.calibration_model.integrate_2d(mask=mask,
-                                            dimensions=(2048, 2048))
+                                            rad_points=self._integration_rad_points,
+                                            azimuth_points=self._cake_azimuth_points,
+                                            azimuth_range=self._cake_azimuth_range)
+
         self.cake_changed.emit()
 
     def save_pattern(self, filename=None, subtract_background=False):
@@ -191,13 +196,35 @@ class Configuration(QtCore.QObject):
         self.mask_model.set_dimension(self.img_model._img_data.shape)
 
     @property
-    def integration_num_points(self):
-        return self._integration_num_points
+    def integration_rad_points(self):
+        return self._integration_rad_points
 
-    @integration_num_points.setter
-    def integration_num_points(self, new_value):
-        self._integration_num_points = new_value
+    @integration_rad_points.setter
+    def integration_rad_points(self, new_value):
+        self._integration_rad_points = new_value
         self.integrate_image_1d()
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
+
+    @property
+    def cake_azimuth_points(self):
+        return self._cake_azimuth_points
+
+    @cake_azimuth_points.setter
+    def cake_azimuth_points(self, new_value):
+        self._cake_azimuth_points = new_value
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
+
+    @property
+    def cake_azimuth_range(self):
+        return self._cake_azimuth_range
+
+    @cake_azimuth_range.setter
+    def cake_azimuth_range(self, new_value):
+        self._cake_azimuth_range = new_value
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
 
     @property
     def integration_unit(self):
@@ -326,14 +353,26 @@ class Configuration(QtCore.QObject):
         f = hdf5_group
         # save general information
         general_information = f.create_group('general_information')
+        # integration parameters:
         general_information.attrs['integration_unit'] = self.integration_unit
-        if self.integration_num_points:
-            general_information.attrs['integration_num_points'] = self.integration_num_points
+        if self.integration_rad_points:
+            general_information.attrs['integration_num_points'] = self.integration_rad_points
         else:
             general_information.attrs['integration_num_points'] = 0
+
+        # cake parameters:
         general_information.attrs['auto_integrate_cake'] = self.auto_integrate_cake
+        general_information.attrs['cake_azimuth_points'] = self.cake_azimuth_points
+        if self.cake_azimuth_range is None:
+            general_information.attrs['cake_azimuth_range'] = "None"
+        else:
+            general_information.attrs['cake_azimuth_range'] = self.cake_azimuth_range
+
+        # mask parameters
         general_information.attrs['use_mask'] = self.use_mask
         general_information.attrs['transparent_mask'] = self.transparent_mask
+
+        # auto save parameters
         general_information.attrs['auto_save_integrated_pattern'] = self.auto_save_integrated_pattern
         formats = [n.encode('ascii', 'ignore') for n in self.integrated_patterns_file_formats]
         general_information.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
@@ -422,6 +461,8 @@ class Configuration(QtCore.QObject):
             except TypeError:
                 pfp.attrs[key] = ''
         calibration_group.attrs['correct_solid_angle'] = self.correct_solid_angle
+        if self.calibration_model.distortion_spline_filename is not None:
+            calibration_group.attrs['distortion_spline_filename'] = self.calibration_model.distortion_spline_filename
 
         # save background pattern and pattern model
         background_pattern_group = f.create_group('background_pattern')
@@ -508,7 +549,13 @@ class Configuration(QtCore.QObject):
             pass
 
         try:
-            self.correct_solid_angle =  f.get('calibration_model').attrs['correct_solid_angle']
+            self.correct_solid_angle = f.get('calibration_model').attrs['correct_solid_angle']
+        except KeyError:
+            pass
+
+        try:
+            distortion_spline_filename =  f.get('calibration_model').attrs['distortion_spline_filename']
+            self.calibration_model.load_distortion(distortion_spline_filename)
         except KeyError:
             pass
 
@@ -555,6 +602,7 @@ class Configuration(QtCore.QObject):
                                            f.get('pattern').attrs['pattern_filename'],
                                            f.get('pattern').attrs['unit'])
             self.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
+        self.integration_unit = f.get('general_information').attrs['integration_unit']
 
         if f.get('background_pattern').attrs['has_background_pattern']:
             self.pattern_model.background_pattern = Pattern(f.get('background_pattern').get('x')[...],
@@ -573,14 +621,28 @@ class Configuration(QtCore.QObject):
                                                                        recalc_pattern=False)
 
         # load general configuration
-        self.integration_unit = f.get('general_information').attrs['integration_unit']
         if f.get('general_information').attrs['integration_num_points']:
-            self.integration_num_points = f.get('general_information').attrs['integration_num_points']
+            self.integration_rad_points = f.get('general_information').attrs['integration_num_points']
 
+        # cake parameters:
         self.auto_integrate_cake = f.get('general_information').attrs['auto_integrate_cake']
+        try:
+            self.cake_azimuth_points = f.get('general_information').attrs['cake_azimuth_points']
+        except KeyError as e:
+            pass
+        try:
+            if f.get('general_information').attrs['cake_azimuth_range'] == "None":
+                self.cake_azimuth_range = None
+            else:
+                self.cake_azimuth_range = f.get('general_information').attrs['cake_azimuth_range']
+        except KeyError as e:
+            pass
+
+        # mask parameters
         self.use_mask = f.get('general_information').attrs['use_mask']
         self.transparent_mask = f.get('general_information').attrs['transparent_mask']
 
+        # autosave parameters
         self.auto_save_integrated_pattern = f.get('general_information').attrs['auto_save_integrated_pattern']
         self.integrated_patterns_file_formats = []
         for file_format in f.get('general_information').get('integrated_patterns_file_formats'):

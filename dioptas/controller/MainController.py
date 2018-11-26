@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -152,7 +152,7 @@ class MainController(object):
                 '{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
             self.integration_controller.image_controller._auto_scale = False
 
-            if self.integration_controller.image_controller.img_mode == "Image":
+            if self.widget.integration_widget.img_mode == "Image":
                 self.integration_controller.image_controller.plot_img()
 
             if self.model.use_mask:

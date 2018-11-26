@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -60,15 +60,17 @@ class OverlayController(object):
         self.overlay_widget.show_cb_state_changed.connect(self.show_cb_state_changed)
         self.overlay_widget.name_changed.connect(self.rename_overlay)
 
-        self.overlay_widget.scale_step_msb.editingFinished.connect(self.update_scale_step)
-        self.overlay_widget.offset_step_msb.editingFinished.connect(self.update_overlay_offset_step)
-        self.overlay_widget.scale_sb.valueChanged.connect(self.scale_sb_changed)
-        self.overlay_widget.offset_sb.valueChanged.connect(self.offset_sb_changed)
+        self.overlay_widget.scale_step_msb.valueChanged.connect(self.update_scale_step)
+        self.overlay_widget.offset_step_msb.valueChanged.connect(self.update_overlay_offset_step)
+        self.overlay_widget.scale_sb_value_changed.connect(self.scale_sb_changed)
+        self.overlay_widget.offset_sb_value_changed.connect(self.offset_sb_changed)
 
         self.overlay_widget.waterfall_btn.clicked.connect(self.waterfall_btn_click_callback)
         self.overlay_widget.waterfall_reset_btn.clicked.connect(self.model.overlay_model.reset_overlay_offsets)
 
         self.overlay_widget.set_as_bkg_btn.clicked.connect(self.set_as_bkg_btn_click_callback)
+
+        self.overlay_widget.overlay_tw.horizontalHeader().sectionClicked.connect(self.overlay_tw_header_section_clicked)
 
         # creating the quick-actions signals
 
@@ -174,17 +176,19 @@ class OverlayController(object):
 
     def update_scale_step(self):
         """
-        Sets the step size for scale spinbox from the step text box.
+        Sets the step size for the scale spinboxes from the step text box.
         """
         value = self.overlay_widget.scale_step_msb.value()
-        self.overlay_widget.scale_sb.setSingleStep(value)
+        for scale_sb in self.overlay_widget.scale_sbs:
+            scale_sb.setSingleStep(value)
 
     def update_overlay_offset_step(self):
         """
         Sets the step size for the offset spinbox from the offset_step text box.
         """
         value = self.overlay_widget.offset_step_msb.value()
-        self.overlay_widget.offset_sb.setSingleStep(value)
+        for offset_sb in self.overlay_widget.offset_sbs:
+            offset_sb.setSingleStep(value)
 
     def overlay_selected(self, row, *args):
         """
@@ -193,15 +197,7 @@ class OverlayController(object):
         the set_as_bkg_btn appropriately.
         :param row: selected row in the overlay table
         """
-        cur_ind = row
-        self.overlay_widget.scale_sb.blockSignals(True)
-        self.overlay_widget.offset_sb.blockSignals(True)
-        self.overlay_widget.scale_sb.setValue(self.model.overlay_model.overlays[cur_ind].scaling)
-        self.overlay_widget.offset_sb.setValue(self.model.overlay_model.overlays[cur_ind].offset)
-
-        self.overlay_widget.scale_sb.blockSignals(False)
-        self.overlay_widget.offset_sb.blockSignals(False)
-        if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[cur_ind]:
+        if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[row]:
             self.overlay_widget.set_as_bkg_btn.setChecked(True)
         else:
             self.overlay_widget.set_as_bkg_btn.setChecked(False)
@@ -222,36 +218,34 @@ class OverlayController(object):
         self.integration_widget.pattern_widget.set_overlay_color(ind, color)
         button.setStyleSheet('background-color:' + color)
 
-    def scale_sb_changed(self, value):
+    def scale_sb_changed(self, overlay_ind, new_value):
         """
         Callback for scale_sb spinbox.
-        :param value: new scale value
+        :param overlay_ind: index of overlay
+        :param new_value: new scale value
         """
-        cur_ind = self.overlay_widget.get_selected_overlay_row()
-        self.model.overlay_model.set_overlay_scaling(cur_ind, value)
-        if self.model.overlay_model.overlays[cur_ind] == self.model.pattern_model.background_pattern:
+        self.model.overlay_model.set_overlay_scaling(overlay_ind, new_value)
+        if self.model.overlay_model.overlays[overlay_ind] == self.model.pattern_model.background_pattern:
             self.model.pattern_changed.emit()
 
-    def offset_sb_changed(self, value):
+    def offset_sb_changed(self, overlay_ind, new_value):
         """
         Callback gor the offset_sb spinbox.
-        :param value: new value
+        :param overlay_ind: index of overlay
+        :param new_value: new value
         """
-        cur_ind = self.overlay_widget.get_selected_overlay_row()
-        self.model.overlay_model.set_overlay_offset(cur_ind, value)
-        if self.model.overlay_model.overlays[cur_ind] == self.model.pattern_model.background_pattern:
+        self.model.overlay_model.set_overlay_offset(overlay_ind, new_value)
+        if self.model.overlay_model.overlays[overlay_ind] == self.model.pattern_model.background_pattern:
             self.model.pattern_changed.emit()
 
     def overlay_changed(self, ind):
         self.integration_widget.pattern_widget.update_overlay(self.model.overlay_model.overlays[ind], ind)
-        cur_ind = self.overlay_widget.get_selected_overlay_row()
-        if ind == cur_ind:
-            self.overlay_widget.offset_sb.blockSignals(True)
-            self.overlay_widget.scale_sb.blockSignals(True)
-            self.overlay_widget.offset_sb.setValue(self.model.overlay_model.get_overlay_offset(ind))
-            self.overlay_widget.scale_sb.setValue(self.model.overlay_model.get_overlay_scaling(ind))
-            self.overlay_widget.offset_sb.blockSignals(False)
-            self.overlay_widget.scale_sb.blockSignals(False)
+        self.overlay_widget.offset_sbs[ind].blockSignals(True)
+        self.overlay_widget.scale_sbs[ind].blockSignals(True)
+        self.overlay_widget.offset_sbs[ind].setValue(self.model.overlay_model.get_overlay_offset(ind))
+        self.overlay_widget.scale_sbs[ind].setValue(self.model.overlay_model.get_overlay_scaling(ind))
+        self.overlay_widget.offset_sbs[ind].blockSignals(False)
+        self.overlay_widget.scale_sbs[ind].blockSignals(False)
 
     def waterfall_btn_click_callback(self):
         separation = self.overlay_widget.waterfall_separation_msb.value()
@@ -320,3 +314,16 @@ class OverlayController(object):
         """
         self.integration_widget.pattern_widget.rename_overlay(ind, name)
         self.model.overlay_model.overlays[ind].name = name
+
+    def overlay_tw_header_section_clicked(self, ind):
+        if ind != 0:
+            return
+
+        current_checkbox_state = False
+        # check whether any checkbox is checked, if one is true current_checkbox_state will be True too
+        for cb in self.overlay_widget.show_cbs:
+            current_checkbox_state = current_checkbox_state or cb.isChecked()
+
+        # assign the the opposite to all checkboxes
+        for cb in self.overlay_widget.show_cbs:
+            cb.setChecked(not current_checkbox_state)
