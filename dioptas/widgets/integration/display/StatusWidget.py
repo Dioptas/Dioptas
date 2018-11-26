@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -33,9 +33,9 @@ class IntegrationStatusWidget(QtWidgets.QWidget):
         self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget(CLICKED_COLOR)
         self.bkg_name_lbl = LabelAlignRight('')
-        self.change_gui_view_btn = QtWidgets.QPushButton('Change View')
+        self.change_view_btn = QtWidgets.QPushButton('Change View')
 
-        self._layout.addWidget(self.change_gui_view_btn)
+        self._layout.addWidget(self.change_view_btn)
         self._layout.addWidget(self.mouse_pos_widget)
         self._layout.addSpacerItem(HorizontalSpacerItem())
         self._layout.addWidget(self.mouse_unit_widget)

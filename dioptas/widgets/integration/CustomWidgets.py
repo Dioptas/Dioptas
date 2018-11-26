@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -18,7 +18,7 @@
 
 from qtpy import QtWidgets, QtGui
 
-from ..CustomWidgets import LabelAlignRight, FlatButton
+from ..CustomWidgets import LabelAlignRight, FlatButton, HorizontalSpacerItem, HorizontalLine
 
 
 class MouseCurrentAndClickedWidget(QtWidgets.QWidget):
@@ -123,14 +123,13 @@ class MouseUnitWidget(QtWidgets.QWidget):
             self.azi_lbl.setStyleSheet(style_str)
 
 
-class BrowseFileWidget(QtWidgets.QWidget):
+class BrowseFileWidget(QtWidgets.QGroupBox):
     def __init__(self, files, checkbox_text):
         super(BrowseFileWidget, self).__init__()
 
         self._layout = QtWidgets.QGridLayout()
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setVerticalSpacing(6)
-        self._layout.setHorizontalSpacing(12)
+        self._layout.setContentsMargins(5, 8, 5, 7)
+        self._layout.setSpacing(5)
 
         self.load_btn = FlatButton('Load {}(s)'.format(files))
         self.file_cb = QtWidgets.QCheckBox(checkbox_text)
@@ -158,9 +157,13 @@ class BrowseFileWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.browse_by_name_rb, 0, 3)
         self._layout.addWidget(self.browse_by_time_rb, 1, 3)
 
-        self._layout.addWidget(self.file_txt, 0, 4, 1, 2)
-        self._layout.addWidget(self.directory_txt, 1, 4)
-        self._layout.addWidget(self.directory_btn, 1, 5)
+        self._layout.addWidget(self.file_txt, 2, 0, 1, 5)
+        self._directory_layout = QtWidgets.QHBoxLayout()
+        self._directory_layout.addWidget(self.directory_txt)
+        self._directory_layout.addWidget(self.directory_btn)
+        self._layout.addLayout(self._directory_layout, 3, 0, 1, 5)
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum,
+                                 QtWidgets.QSizePolicy.Minimum), 1, 5)
 
         self.setLayout(self._layout)
 

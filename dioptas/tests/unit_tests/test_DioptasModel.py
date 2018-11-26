@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -115,6 +115,38 @@ class DioptasModelTest(QtTest):
         cake_img2 = self.model.current_configuration.cake_img
         self.assertFalse(np.array_equal(cake_img1, cake_img2))
 
+    def test_integrate_cake_with_different_azimuth_points(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.auto_integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.assertEqual(self.model.current_configuration.cake_img.shape[0], 360)
+        self.model.current_configuration.cake_azimuth_points = 720
+        self.assertEqual(self.model.current_configuration.cake_img.shape[0], 720)
+
+    def test_integrate_cake_with_different_rad_points(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.auto_integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.assertGreater(self.model.current_configuration.cake_img.shape[1], 360)
+        self.model.current_configuration.integration_rad_points = 720
+        self.assertEqual(self.model.current_configuration.cake_img.shape[1], 720)
+
+    def test_change_cake_azimuth_range(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.auto_integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.model.current_configuration.cake_azimuth_range = [-180, 180]
+
+        self.assertAlmostEqual(self.model.current_configuration.calibration_model.cake_azi[0], -179.5, places=4)
+        self.assertAlmostEqual(self.model.current_configuration.calibration_model.cake_azi[-1], 179.5, places=4)
+
+        self.model.current_configuration.cake_azimuth_range = [-100, 100]
+        self.assertGreater(self.model.current_configuration.calibration_model.cake_azi[0], -100)
+        self.assertLess(self.model.current_configuration.calibration_model.cake_azi[-1], 100)
+
     def test_combine_patterns(self):
         x1 = np.linspace(0, 10)
         y1 = np.ones(x1.shape)
@@ -223,4 +255,3 @@ class DioptasModelTest(QtTest):
         self.model.add_configuration()
 
         self.model.reset()
-

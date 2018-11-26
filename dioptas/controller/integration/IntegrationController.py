@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -19,6 +19,7 @@
 import pyqtgraph as pg
 
 from .BackgroundController import BackgroundController
+from .CorrectionController import CorrectionController
 from .ImageController import ImageController
 from .OverlayController import OverlayController
 from .PatternController import PatternController
@@ -63,4 +64,5 @@ class IntegrationController(object):
         self.overlay_controller = OverlayController(self.widget, self.model)
         self.phase_controller = PhaseController(self.widget, self.model)
         self.background_controller = BackgroundController(self.widget, self.model)
+        self.correction_controller = CorrectionController(self.widget, self.model)
         self.options_controller = OptionsController(self.widget, self.model)

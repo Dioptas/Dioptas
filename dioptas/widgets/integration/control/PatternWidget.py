@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray data
 # Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
 # Institute for Geology and Mineralogy, University of Cologne
@@ -27,6 +27,8 @@ class PatternWidget(QtWidgets.QWidget):
         super(PatternWidget, self).__init__()
 
         self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(5, 0, 5, 5)
+        self._layout.setSpacing(5)
 
         self.file_widget = BrowseFileWidget(files='Pattern', checkbox_text='autocreate')
 
