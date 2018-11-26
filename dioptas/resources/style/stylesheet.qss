@@ -115,18 +115,16 @@ QLabel , QCheckBox, QGroupBox, QRadioButton, QListWidget::item, QPushButton, QTo
     color: #F1F1F1;
     font-size: 12px;
 }
-
-QListWidget::item:selected{
-    background: #F100F1;
-}
-
-}
 QCheckBox{
     border-radius: 5px;
 }
 QRadioButton, QCheckBox {
     font-weight: normal;
     height: 15px;
+}
+
+QListWidget::item:selected{
+    background: #F100F1;
 }
 
 QLineEdit  {
