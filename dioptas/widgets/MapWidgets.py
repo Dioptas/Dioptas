@@ -60,6 +60,7 @@ class Map2DWidget(QtWidgets.QWidget):
         # ROI Widgets
         self.roi_list = QtWidgets.QListWidget()
         self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.roi_math_lbl = QtWidgets.QLabel('Math:')
         self.roi_math_txt = QtWidgets.QLineEdit()
         self.roi_add_btn = QtWidgets.QPushButton()
         self.roi_add_phase_btn = QtWidgets.QPushButton()
@@ -110,6 +111,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.hbox = QtWidgets.QHBoxLayout()
         self.lbl_hbox = QtWidgets.QHBoxLayout()
         self.bg_hbox = QtWidgets.QHBoxLayout()
+        self.math_hbox = QtWidgets.QHBoxLayout()
         self.roi_vbox = QtWidgets.QVBoxLayout()
         self.update_hbox = QtWidgets.QHBoxLayout()
         self.roi_vbox.addWidget(self.load_ascii_files_btn)
@@ -118,7 +120,10 @@ class Map2DWidget(QtWidgets.QWidget):
         self.update_hbox.addWidget(self.update_map_btn)
         self.roi_vbox.addLayout(self.update_hbox)
         self.roi_vbox.addWidget(self.roi_list)
-        self.roi_vbox.addWidget(self.roi_math_txt)
+
+        self.math_hbox.addWidget(self.roi_math_lbl)
+        self.math_hbox.addWidget(self.roi_math_txt)
+        self.roi_vbox.addLayout(self.math_hbox)
         self.roi_vbox.addLayout(self.roi_grid)
         self.hbox.addLayout(self.roi_vbox)
         self.hbox.addStretch(1)

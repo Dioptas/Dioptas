@@ -199,7 +199,8 @@ class MapModel(QtCore.QObject):
         if self.all_positions_defined_in_files and not self.positions_set_manually:
             self.organize_map_files()
 
-        self.check_roi_math()
+        if not self.check_roi_math():
+            return
 
         self.prepare_map_data()
 
