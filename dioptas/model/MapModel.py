@@ -13,6 +13,7 @@ class MapModel(QtCore.QObject):
     map_cleared = QtCore.Signal()
     map_problem = QtCore.Signal()
     roi_problem = QtCore.Signal()
+    map_loaded = QtCore.Signal()
 
     def __init__(self):
         """
@@ -153,43 +154,15 @@ class MapModel(QtCore.QObject):
                 roi_letters = self.is_val_in_roi_range(x_val)
                 for roi_letter in roi_letters:
                     sum_int[roi_letter] += y_val
-            current_math = self.calculate_roi_math(sum_int)
+            try:
+                current_math = self.calculate_roi_math(sum_int)
+            except SyntaxError:
+                return
             range_hor = self.pos_to_range(float(self.map_data[map_item_name]['pos_hor']), self.min_hor,
                                           self.pix_per_hor, self.diff_hor)
             range_ver = self.pos_to_range(float(self.map_data[map_item_name]['pos_ver']), self.min_ver,
                                           self.pix_per_ver, self.diff_ver)
             self.new_image[range_hor, range_ver] = current_math
-    #
-    # def read_map_files_and_prepare_map_data(self):
-    #     for filepath, filedata in self.map_data.items():
-    #         pattern_file = self.map_data[filepath]['pattern_file_name'].replace('\\', '/')
-    #         current_pattern_file = open(pattern_file, 'r')
-    #         sum_int = {}
-    #         for roi in self.map_roi_list:
-    #             sum_int[roi['roi_letter']] = 0
-    #         file_units = '2th_deg'
-    #         wavelength = self.wavelength
-    #         for line in current_pattern_file:
-    #             if 'Wavelength:' in line:
-    #                 wavelength = float(line.split()[-1])
-    #             elif '2th_deg' in line:
-    #                 file_units = '2th_deg'
-    #             elif 'q_A^-1' in line:
-    #                 file_units = 'q_A^-1'
-    #             elif 'd_A' in line:
-    #                 file_units = 'd_A'
-    #             elif line[0] is not '#':
-    #                 x_val = float(line.split()[0])
-    #                 x_val = self.convert_units(x_val, file_units, self.units, wavelength)
-    #                 roi_letters = self.is_val_in_roi_range(x_val)
-    #                 for roi_letter in roi_letters:
-    #                     sum_int[roi_letter] += float(line.split()[1])
-    #
-    #         current_math = self.calculate_roi_math(sum_int)
-    #         range_hor = self.pos_to_range(float(filedata['pos_hor']), self.min_hor, self.pix_per_hor, self.diff_hor)
-    #         range_ver = self.pos_to_range(float(filedata['pos_ver']), self.min_ver, self.pix_per_ver, self.diff_ver)
-    #         print(range_hor, range_ver)
-    #         self.new_image[range_hor, range_ver] = current_math
 
     def update_map(self):
         if not self.all_positions_defined_in_files and not self.positions_set_manually:
@@ -363,4 +336,6 @@ class MapModel(QtCore.QObject):
                                                           re.split('(\d+)', s)])
         return sorted_datalist
 
-
+    @property
+    def num_map_files(self):
+        return len(self.map_data)

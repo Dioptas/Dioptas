@@ -30,7 +30,7 @@ class MapController(object):
 
         self.working_dir = working_dir
         self.widget = widget  # type: IntegrationWidget
-        self.model = dioptas_model
+        self.model = dioptas_model  # type: DioptasModel
         self.map_widget = widget.map_2D_widget  # type: Map2DWidget
 
         self.manual_map_positions_dialog = ManualMapPositionsDialog(self.map_widget)
@@ -46,6 +46,7 @@ class MapController(object):
         self.model.map_model.map_cleared.connect(self.clear_map)
         self.model.map_model.map_problem.connect(self.map_positions_problem)
         self.model.map_model.roi_problem.connect(self.roi_problem)
+        self.model.map_model.map_loaded.connect(self.map_loaded)
 
         self.map_widget.load_ascii_files_btn.clicked.connect(self.load_ascii_files_btn_clicked)
         self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
@@ -101,6 +102,28 @@ class MapController(object):
         self.map_widget.snapshot_btn.setStyleSheet(new_style)
         self.map_widget.add_bg_btn.setStyleSheet(new_style)
         self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
+
+    def map_loaded(self):
+        self.update_map_status_files_lbl()
+
+    def update_map_status_files_lbl(self):
+        num_files = self.map_model.num_map_files
+        if not num_files:
+            self.map_widget.map_status_files_lbl.setText('No Files')
+            self.map_widget.map_status_files_lbl.setStyleSheet('color: red')
+        status_lbl = str(num_files)
+        if self.map_model.map_uses_patterns:
+            status_lbl = status_lbl + ' patterns'
+        else:
+            status_lbl = status_lbl + ' images'
+        self.map_widget.map_status_files_lbl.setText(status_lbl)
+        self.map_widget.map_status_files_lbl.setStyleSheet('color: green')
+
+    def update_map_status_positions_lbl(self):
+        pass
+
+    def update_map_status_size_and_step_lbl(self):
+        pass
 
     def load_ascii_files_btn_clicked(self):
         filenames = open_files_dialog(self.map_widget, "Load Map files.",
@@ -285,6 +308,7 @@ class MapController(object):
                 return
         self.map_widget.old_roi_math_txt = roi_math_txt
         self.map_widget.roi_math_txt.setText(roi_math_txt)
+        self.btn_update_map_clicked()
 
     def reset_zoom_btn_clicked(self):
         self.map_widget.map_view_box.autoRange()
