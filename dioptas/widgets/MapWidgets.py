@@ -75,6 +75,12 @@ class Map2DWidget(QtWidgets.QWidget):
         self.bg_opacity_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.map_opacity_lbl = QtWidgets.QLabel("Map")
 
+        # Status Line
+        self.map_status_lbl = QtWidgets.QLabel("Map:")
+        self.map_status_files_lbl = QtWidgets.QLabel("No Files")
+        self.map_status_positions_lbl = QtWidgets.QLabel("No Positions")
+        self.map_status_size_and_step_lbl = QtWidgets.QLabel("No Info")
+
         # positions
 
         # ROI positions
@@ -105,6 +111,9 @@ class Map2DWidget(QtWidgets.QWidget):
         self.bg_opacity_slider.setValue(50)
         self.bg_opacity_slider.setSingleStep(5)
         self.bg_opacity_slider.setPageStep(20)
+        self.map_status_files_lbl.setStyleSheet('color: red')
+        self.map_status_positions_lbl.setStyleSheet('color: red')
+        self.map_status_size_and_step_lbl.setStyleSheet('color: red')
 
         # Layout
         self.main_vbox = QtWidgets.QVBoxLayout()
@@ -114,6 +123,8 @@ class Map2DWidget(QtWidgets.QWidget):
         self.math_hbox = QtWidgets.QHBoxLayout()
         self.roi_vbox = QtWidgets.QVBoxLayout()
         self.update_hbox = QtWidgets.QHBoxLayout()
+        self.status_hbox = QtWidgets.QHBoxLayout()
+
         self.roi_vbox.addWidget(self.load_ascii_files_btn)
         self.roi_vbox.addWidget(self.manual_map_positions_setup_btn)
         self.update_hbox.addWidget(self.auto_update_map_cb)
@@ -139,6 +150,11 @@ class Map2DWidget(QtWidgets.QWidget):
         self.lbl_hbox.addStretch(1)
         self.lbl_hbox.addWidget(self.lbl_map_pos)
 
+        self.status_hbox.addWidget(self.map_status_lbl)
+        self.status_hbox.addWidget(self.map_status_files_lbl)
+        self.status_hbox.addWidget(self.map_status_positions_lbl)
+        self.status_hbox.addWidget(self.map_status_size_and_step_lbl)
+
         self.hist_layout = GraphicsLayoutWidget()
         self.map_view_box = self.hist_layout.addViewBox(0, 0, lockAspect=1.0)
 
@@ -157,6 +173,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.main_vbox.addLayout(self.lbl_hbox)
         self.main_vbox.addLayout(self.bg_hbox)
         self.main_vbox.addStretch(1)
+        self.main_vbox.addLayout(self.status_hbox)
         self.setLayout(self.main_vbox)
 
         self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |

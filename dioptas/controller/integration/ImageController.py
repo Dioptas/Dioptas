@@ -264,6 +264,9 @@ class ImageController(object):
             if progress_dialog.wasCanceled():
                 break
 
+        if self.widget.img_batch_mode_map_rb.isChecked():
+            self.model.map_model.map_loaded.emit()
+
         progress_dialog.close()
         self._tear_down_batch_processing()
 
