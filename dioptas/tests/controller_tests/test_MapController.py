@@ -177,5 +177,5 @@ class IntegrationControllerTest(QtTest):
         for file_name in map_file_names:
             map_file_paths.append(os.path.join(map_path, file_name))
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_file_paths)
-        click_button(self.widget.map_2D_widget.load_ascii_files_btn)
+        click_button(self.widget.map_2D_widget.load_ascii_files_btn)  # this brings up a notification and the test needs to be fixed to approve the notificaiton.
         self.assertTrue(len(self.model.map_model.map_data) > 0)
