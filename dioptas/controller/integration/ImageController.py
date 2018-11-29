@@ -236,7 +236,7 @@ class ImageController(object):
             # TODO: Add here to save all pattern autosave checkboxes, switches only to xy and then load at the end
             self.widget.pattern_header_xy_cb.setChecked(True)
             self.model.map_model.reset_map_data()  # MAP2D
-            self.model.map_model.all_positions_defined_in_files = True
+            self.model.map_model.all_positions_defined_in_files = True  # maybe this line is not needed
 
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
@@ -253,7 +253,7 @@ class ImageController(object):
             self._save_pattern(base_filename, working_directory, x, y)
             # MAP2D
             if self.widget.img_batch_mode_map_rb.isChecked():
-                self.model.map_model.map_uses_patterns = False
+                self.model.map_model.map_uses_patterns = False  # maybe move this to the reset_map.
                 if self.model.pattern.has_background():
                     map_working_directory = os.path.join(working_directory, 'bkg_subtracted')
                 else:

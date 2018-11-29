@@ -226,6 +226,8 @@ class MapController(object):
         self.map_widget.roi_count = self.map_widget.roi_count + 1
         if self.map_widget.roi_num == 1:
             self.toggle_map_widgets_enable(True)
+            if self.map_model.map_organized:
+                self.map_widget.update_map_btn.click()
 
         self.roi_list_selection_changed()
 
