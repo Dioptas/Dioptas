@@ -172,6 +172,7 @@ class MapModel(QtCore.QObject):
             self.map_problem.emit()
             return
 
+        # TODO: Check, maybe this next line is not needed now since it gets organized upon completion of loading images
         if self.all_positions_defined_in_files and not self.positions_set_manually and not self.are_map_files_organized:
             self.organize_map_files()
 

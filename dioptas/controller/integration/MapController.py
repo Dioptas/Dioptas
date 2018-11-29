@@ -109,7 +109,7 @@ class MapController(object):
         if self.map_model.all_positions_defined_in_files:
             self.map_model.organize_map_files()
         self.update_map_status_size_and_step_lbl()
-        # TODO: Make sure these work when loading Ascii files, and when setting manual map positions.
+        # TODO: Make sure these work when setting manual map positions.
 
     def update_map_status_files_lbl(self):
         num_files = self.map_model.num_map_files
@@ -164,6 +164,7 @@ class MapController(object):
                 filename = str(filename)
                 self.map_model.add_file_to_map_data(filename, self.model.working_directories['pattern'], None)
             self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
+            self.update_map_status_files_lbl()
 
     def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []
@@ -547,6 +548,8 @@ class MapController(object):
                                                     self.manual_map_positions_dialog.ver_number,
                                                     self.manual_map_positions_dialog.is_hor_first,
                                                     map_file_list)
+            self.update_map_status_positions_lbl()
+            self.update_map_status_size_and_step_lbl()
 
     def read_list_btn_clicked(self):
         self.manual_map_positions_dialog.selected_map_files.clear()
