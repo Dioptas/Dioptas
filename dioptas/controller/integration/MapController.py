@@ -108,8 +108,9 @@ class MapController(object):
         self.update_map_status_positions_lbl()
         if self.map_model.all_positions_defined_in_files:
             self.map_model.organize_map_files()
+        else:
+            MapError(cannot_read_positions_from_image_files)
         self.update_map_status_size_and_step_lbl()
-        # TODO: Make sure these work when setting manual map positions.
 
     def update_map_status_files_lbl(self):
         num_files = self.map_model.num_map_files
@@ -165,6 +166,7 @@ class MapController(object):
                 self.map_model.add_file_to_map_data(filename, self.model.working_directories['pattern'], None)
             self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
             self.update_map_status_files_lbl()
+            MapError(cannot_read_positions_from_image_files)
 
     def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []

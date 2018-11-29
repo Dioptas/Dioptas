@@ -114,6 +114,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.map_status_files_lbl.setStyleSheet('color: red')
         self.map_status_positions_lbl.setStyleSheet('color: red')
         self.map_status_size_and_step_lbl.setStyleSheet('color: red')
+        self.manual_map_positions_setup_btn.setToolTip('Load files and add range first')
 
         # Layout
         self.main_vbox = QtWidgets.QVBoxLayout()
@@ -460,6 +461,7 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self.img_ver_px_txt.setValidator(QtGui.QIntValidator())
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self.ok_btn.setToolTip('# of files must equal # of points')
 
         file = open(os.path.join(style_path, "stylesheet.qss"))
         stylesheet = file.read()

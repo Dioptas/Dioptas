@@ -52,3 +52,11 @@ wrong_roi_letter = {
     'informative_text': 'See additional info...',
     'window_title': 'ROI Math error',
 }
+
+cannot_read_positions_from_image_files = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Please use the Setup Map button in the Map 2D window to setup the map positions',
+    'short_msg': 'Could not read positions from image file meta-data',
+    'informative_text': 'See additional info...',
+    'window_title': 'Positions Missing',
+}
