@@ -233,6 +233,7 @@ class ImageController(object):
         self._set_up_batch_processing()
 
         if self.widget.img_batch_mode_map_rb.isChecked():
+            # TODO: Add here to save all pattern autosave checkboxes, switches only to xy and then load at the end
             self.widget.pattern_header_xy_cb.setChecked(True)
             self.model.map_model.reset_map_data()  # MAP2D
             self.model.map_model.all_positions_defined_in_files = True
@@ -264,8 +265,9 @@ class ImageController(object):
             if progress_dialog.wasCanceled():
                 break
 
+        # MAP2D
         if self.widget.img_batch_mode_map_rb.isChecked():
-            self.model.map_model.map_loaded.emit()
+            self.model.map_model.map_images_loaded.emit()
 
         progress_dialog.close()
         self._tear_down_batch_processing()

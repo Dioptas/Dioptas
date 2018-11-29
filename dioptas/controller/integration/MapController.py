@@ -46,7 +46,7 @@ class MapController(object):
         self.model.map_model.map_cleared.connect(self.clear_map)
         self.model.map_model.map_problem.connect(self.map_positions_problem)
         self.model.map_model.roi_problem.connect(self.roi_problem)
-        self.model.map_model.map_loaded.connect(self.map_loaded)
+        self.model.map_model.map_images_loaded.connect(self.map_images_loaded)
 
         self.map_widget.load_ascii_files_btn.clicked.connect(self.load_ascii_files_btn_clicked)
         self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
@@ -103,11 +103,13 @@ class MapController(object):
         self.map_widget.add_bg_btn.setStyleSheet(new_style)
         self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
 
-    def map_loaded(self):
+    def map_images_loaded(self):
         self.update_map_status_files_lbl()
         self.update_map_status_positions_lbl()
+        if self.map_model.all_positions_defined_in_files:
+            self.map_model.organize_map_files()
+        self.update_map_status_size_and_step_lbl()
         # TODO: Make sure these work when loading Ascii files, and when setting manual map positions.
-        # TODO: Fix that updating the map doesn't need to organize the files each time.
 
     def update_map_status_files_lbl(self):
         num_files = self.map_model.num_map_files
