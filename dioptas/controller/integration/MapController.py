@@ -159,6 +159,7 @@ class MapController(object):
         filenames = open_files_dialog(self.map_widget, "Load Map files.",
                                       self.model.working_directories['pattern'])
         if len(filenames):
+            self.map_model.reset_map_data()
             self.map_model.map_uses_patterns = True
             self.model.working_directories['pattern'] = os.path.dirname(filenames[0])
             for filename in filenames:
