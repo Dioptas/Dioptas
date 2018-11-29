@@ -22,19 +22,10 @@ class Map2DWidget(QtWidgets.QWidget):
         self.setGeometry(200, 100, 800, 600)
 
         # setup initial data structures and default parameters
-        self.map_data = {}
         self.map_roi = {}
-        self.theta_center = 5.9
-        self.theta_range = 0.1
-        self.num_hor = 0
-        self.num_ver = 0
-        self.roi_num = 0
-        self.roi_count = 0
-        self.pix_per_hor = 100
-        self.pix_per_ver = 100
+        self.roi_num = 0  # number of existing ROIs
+        self.roi_count = 0  # number of created ROIs, including deleted ones
         self.map_loaded = False
-        self.units = '2th_deg'
-        self.wavelength = 0.3344
         self.old_roi_math_txt = ''
 
         # WIDGETS

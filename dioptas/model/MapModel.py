@@ -37,6 +37,7 @@ class MapModel(QtCore.QObject):
         self.all_positions_defined_in_files = False
         self.positions_set_manually = False
         self.map_uses_patterns = False
+        self.map_organized = False
 
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
@@ -45,6 +46,7 @@ class MapModel(QtCore.QObject):
         self.map_data = {}
         self.all_positions_defined_in_files = False
         self.positions_set_manually = False
+        self.map_organized = False
         self.map_cleared.emit()
 
     def add_file_to_map_data(self, filepath, map_working_directory, motors_info):
@@ -129,6 +131,7 @@ class MapModel(QtCore.QObject):
         self.ver_um_per_px = self.diff_ver / self.pix_per_ver
 
         self.new_image = np.zeros([self.hor_size, self.ver_size])
+        self.map_organized = True
 
     def check_map(self):
         if self.num_ver*self.num_hor == len(self.sorted_datalist):
@@ -156,7 +159,7 @@ class MapModel(QtCore.QObject):
                     sum_int[roi_letter] += y_val
             try:
                 current_math = self.calculate_roi_math(sum_int)
-            except SyntaxError:
+            except SyntaxError:  # needed in case of problem with math
                 return
             range_hor = self.pos_to_range(float(self.map_data[map_item_name]['pos_hor']), self.min_hor,
                                           self.pix_per_hor, self.diff_hor)
