@@ -140,11 +140,12 @@ class MapController(object):
     def update_map_status_size_and_step_lbl(self):
         if self.map_model.all_positions_defined_in_files or self.map_model.positions_set_manually:
             map_size = str(self.map_model.num_hor) + 'x' + str(self.map_model.num_ver)
-            map_range = '\tX:\tRange: ' + str(self.map_model.min_hor) + '-' + \
-                        str(self.map_model.min_hor + self.map_model.num_hor*self.map_model.diff_hor) + '\tStep: ' + \
-                        str(self.map_model.diff_hor) + '\n' + '\tY:\tRange: ' + str(self.map_model.min_ver) + '-' + \
-                        str(self.map_model.min_ver + self.map_model.num_ver*self.map_model.diff_ver) + '\tStep: ' + \
-                        str(self.map_model.diff_ver)
+            map_range = '\tX:\tRange: ' + "{:.4f}".format(self.map_model.min_hor) + ',' + \
+                        "{:.4f}".format(self.map_model.min_hor + self.map_model.num_hor*self.map_model.diff_hor) + \
+                        '\tStep: ' + "{:.4f}".format(self.map_model.diff_hor) + '\n' + '\tY:\tRange: ' + \
+                        "{:.4f}".format(self.map_model.min_ver) + ',' + \
+                        "{:.4f}".format(self.map_model.min_ver + self.map_model.num_ver*self.map_model.diff_ver) + \
+                        '\tStep: ' + "{:.4f}".format(self.map_model.diff_ver)
             self.map_widget.map_status_size_and_step_lbl.setText(map_size + map_range)
             self.map_widget.map_status_size_and_step_lbl.setStyleSheet('color: green')
         else:
