@@ -105,6 +105,9 @@ class MapController(object):
 
     def map_loaded(self):
         self.update_map_status_files_lbl()
+        self.update_map_status_positions_lbl()
+        # TODO: Make sure these work when loading Ascii files, and when setting manual map positions.
+        # TODO: Fix that updating the map doesn't need to organize the files each time.
 
     def update_map_status_files_lbl(self):
         num_files = self.map_model.num_map_files
@@ -120,10 +123,33 @@ class MapController(object):
         self.map_widget.map_status_files_lbl.setStyleSheet('color: green')
 
     def update_map_status_positions_lbl(self):
-        pass
+        self.map_widget.map_status_positions_lbl.setStyleSheet('color: green')
+
+        if self.map_model.all_positions_defined_in_files:
+            status_pos_lbl = "Positions Found"
+
+        elif self.map_model.positions_set_manually:
+            status_pos_lbl = "Manual Positions"
+
+        else:
+            status_pos_lbl = "No Positions"
+            self.map_widget.map_status_positions_lbl.setStyleSheet('color: red')
+
+        self.map_widget.map_status_positions_lbl.setText(status_pos_lbl)
 
     def update_map_status_size_and_step_lbl(self):
-        pass
+        if self.map_model.all_positions_defined_in_files or self.map_model.positions_set_manually:
+            map_size = str(self.map_model.num_hor) + 'x' + str(self.map_model.num_ver)
+            map_range = '\tX:\tRange: ' + str(self.map_model.min_hor) + '-' + \
+                        str(self.map_model.min_hor + self.map_model.num_hor*self.map_model.diff_hor) + '\tStep: ' + \
+                        str(self.map_model.diff_hor) + '\n' + '\tY:\tRange: ' + str(self.map_model.min_ver) + '-' + \
+                        str(self.map_model.min_ver + self.map_model.num_ver*self.map_model.diff_ver) + '\tStep: ' + \
+                        str(self.map_model.diff_ver)
+            self.map_widget.map_status_size_and_step_lbl.setText(map_size + map_range)
+            self.map_widget.map_status_size_and_step_lbl.setStyleSheet('color: green')
+        else:
+            self.map_widget.map_status_size_and_step_lbl.setStyleSheet('color: red')
+            self.map_widget.map_status_size_and_step_lbl.setText("No Info")
 
     def load_ascii_files_btn_clicked(self):
         filenames = open_files_dialog(self.map_widget, "Load Map files.",
@@ -329,6 +355,7 @@ class MapController(object):
         self.map_widget.map_image.setImage(self.map_model.new_image, True)
         self.auto_range()
         self.map_widget.map_loaded = True
+        self.update_map_status_size_and_step_lbl()
 
     # Auto-range for map image
     def auto_range(self):
