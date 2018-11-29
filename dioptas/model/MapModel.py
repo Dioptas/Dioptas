@@ -13,7 +13,7 @@ class MapModel(QtCore.QObject):
     map_cleared = QtCore.Signal()
     map_problem = QtCore.Signal()
     roi_problem = QtCore.Signal()
-    map_loaded = QtCore.Signal()
+    map_images_loaded = QtCore.Signal()
 
     def __init__(self):
         """
@@ -37,6 +37,7 @@ class MapModel(QtCore.QObject):
         self.all_positions_defined_in_files = False
         self.positions_set_manually = False
         self.map_uses_patterns = False
+        self.are_map_files_organized = False
 
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
@@ -45,6 +46,7 @@ class MapModel(QtCore.QObject):
         self.map_data = {}
         self.all_positions_defined_in_files = False
         self.positions_set_manually = False
+        self.are_map_files_organized = False
         self.map_cleared.emit()
 
     def add_file_to_map_data(self, filepath, map_working_directory, motors_info):
@@ -129,6 +131,7 @@ class MapModel(QtCore.QObject):
         self.ver_um_per_px = self.diff_ver / self.pix_per_ver
 
         self.new_image = np.zeros([self.hor_size, self.ver_size])
+        self.are_map_files_organized = True
 
     def check_map(self):
         if self.num_ver*self.num_hor == len(self.sorted_datalist):
@@ -169,7 +172,7 @@ class MapModel(QtCore.QObject):
             self.map_problem.emit()
             return
 
-        if self.all_positions_defined_in_files and not self.positions_set_manually:
+        if self.all_positions_defined_in_files and not self.positions_set_manually and not self.are_map_files_organized:
             self.organize_map_files()
 
         if not self.check_roi_math():
