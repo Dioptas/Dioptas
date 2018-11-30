@@ -114,19 +114,22 @@ class IntegrationControlWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.overlay_control_widget)
         self.vertical_splitter.addWidget(self.phase_control_widget)
 
+        self.overlay_control_widget.show()
+        self.phase_control_widget.show()
+
         self.overlay_control_widget.overlay_header_btn.show()
         self.phase_control_widget.phase_header_btn.show()
 
-    def update_layout(self):
+    def update_layout(self, force_layout=False):
         if self.orientation == QtCore.Qt.Horizontal:
-            if self.width() < 700:
-                if self.current_layout != 1:
+            if self.width() < 800:
+                if self.current_layout != 1 or force_layout:
                     self.horizontal_layout_1()
             elif self.width() > 1400:
-                if self.current_layout != 3:
+                if self.current_layout != 3 or force_layout:
                     self.horizontal_layout_3()
             else:
-                if self.current_layout != 2:
+                if self.current_layout != 2 or force_layout:
                     self.horizontal_layout_2()
         elif self.orientation == QtCore.Qt.Vertical:
             self.vertical_layout()
@@ -141,6 +144,6 @@ class IntegrationControlWidget(QtWidgets.QWidget):
         :param a0: either QtCore.Qt.Horizontal or QtCore.Qt.Vertical
         """
         self.orientation = a0
-        self.update_layout()
+        self.update_layout(True)
 
 

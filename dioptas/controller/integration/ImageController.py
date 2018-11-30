@@ -947,6 +947,8 @@ class ImageController(object):
             self.widget.vertical_splitter.restoreState(self.vertical_splitter_normal_state)
         if self.horizontal_splitter_normal_state:
             self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_normal_state)
+
+        self.widget.img_widget.set_orientation("horizontal")
         self.view_mode = 'normal'
 
     def change_view_to_alternative(self):
@@ -964,4 +966,6 @@ class ImageController(object):
             self.widget.vertical_splitter.restoreState(self.vertical_splitter_alternative_state)
         if self.horizontal_splitter_alternative_state:
             self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_alternative_state)
+
+        self.widget.img_widget.set_orientation("vertical")
         self.view_mode = 'alternative'
