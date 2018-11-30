@@ -135,13 +135,13 @@ class MainController(object):
         old_hist_levels = None
         if old_index == 0:  # calibration tab
             old_view_range = self.widget.calibration_widget.img_widget.img_view_box.targetRange()
-            old_hist_levels = self.widget.calibration_widget.img_widget.img_histogram_LUT.getExpLevels()
+            old_hist_levels = self.widget.calibration_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
         elif old_index == 1:  # mask tab
             old_view_range = self.widget.mask_widget.img_widget.img_view_box.targetRange()
-            old_hist_levels = self.widget.mask_widget.img_widget.img_histogram_LUT.getExpLevels()
+            old_hist_levels = self.widget.mask_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
         elif old_index == 2:
             old_view_range = self.widget.integration_widget.img_widget.img_view_box.targetRange()
-            old_hist_levels = self.widget.integration_widget.img_widget.img_histogram_LUT.getExpLevels()
+            old_hist_levels = self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
 
         # update the GUI
         if ind == 2:  # integration tab
@@ -160,12 +160,13 @@ class MainController(object):
             else:
                 self.model.pattern_changed.emit()
             self.widget.integration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
-            self.widget.integration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
+            self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.setLevels(*old_hist_levels)
+            self.widget.integration_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
         elif ind == 1:  # mask tab
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
             self.widget.mask_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
-            self.widget.mask_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
+            self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
         elif ind == 0:  # calibration tab
             self.calibration_controller.plot_mask()
             try:
@@ -173,7 +174,7 @@ class MainController(object):
             except (TypeError, AttributeError):
                 pass
             self.widget.calibration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
-            self.widget.calibration_widget.img_widget.img_histogram_LUT.setLevels(*old_hist_levels)
+            self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
 
     def update_title(self):
         """
