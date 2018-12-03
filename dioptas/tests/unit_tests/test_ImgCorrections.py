@@ -156,6 +156,8 @@ class CbnCorrectionTest(unittest.TestCase):
         self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)
 
 
+
+
 from ...model.CalibrationModel import CalibrationModel
 from ...model.ImgModel import ImgModel
 from ...model.MaskModel import MaskModel
@@ -323,6 +325,38 @@ class ObliqueAngleDetectorAbsorptionCorrectionTest(unittest.TestCase):
         self.assertGreater(np.sum(oblique_correction_data), 0)
         self.assertEqual(oblique_correction_data.shape, self.dummy_img.shape)
         del oblique_correction
+
+
+from ...model.util.ImgCorrection import TransferFunctionCorrection, load_image
+from ..utility import unittest_data_path
+
+
+class TransferFunctionCorrectionTest(unittest.TestCase):
+    def setUp(self):
+        self.original_image_filename = os.path.join(unittest_data_path, 'TransferCorrection', 'original.tif')
+        self.response_image_filename = os.path.join(unittest_data_path, 'TransferCorrection', 'response.tif')
+        self.original_data = load_image(self.original_image_filename)
+        self.response_data = load_image(self.response_image_filename)
+
+        self.transfer_correction = TransferFunctionCorrection(self.original_image_filename,
+                                                              self.response_image_filename)
+
+    def test_general_behavior(self):
+        transfer_data = self.transfer_correction.get_data()
+        self.assertEqual(transfer_data.shape, self.original_data.shape)
+        self.assertEqual(transfer_data.shape, self.response_data.shape)
+        self.assertAlmostEqual(np.sum(transfer_data-self.original_data/self.response_data), 0)
+
+    def test_apply_img_transformations(self):
+        from ...model.util.HelperModule import rotate_matrix_m90
+        img_transformations = [np.fliplr, rotate_matrix_m90]
+        self.transfer_correction.set_img_transformations(img_transformations)
+
+        transfer_data = self.transfer_correction.get_data()
+        self.assertNotEqual(transfer_data, self.original_data)
+        self.assertNotEqual(transfer_data, self.response_data)
+
+
 
 
 if __name__ == '__main__':
