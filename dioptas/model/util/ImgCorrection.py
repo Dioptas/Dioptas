@@ -303,6 +303,7 @@ class TransferFunctionCorrection(ImgCorrectionInterface):
         self.response_filename = None
         self.original_data = None
         self.response_data = None
+        self.transfer_data = None
 
         self.img_transformations = img_transformations
 

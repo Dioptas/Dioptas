@@ -18,13 +18,16 @@
 
 import numpy as np
 import time
+import os
 from qtpy import QtWidgets
 
 from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
+from ...widgets.UtilityWidgets import open_file_dialog
 from ...model.DioptasModel import DioptasModel
+from ...model.util.ImgCorrection import TransferFunctionCorrection
 
 
 class CorrectionController(object):
@@ -43,27 +46,57 @@ class CorrectionController(object):
 
         self.widget = widget
         self.model = dioptas_model
+        self.transfer_correction = TransferFunctionCorrection()
 
         self.create_signals()
 
     def create_signals(self):
+        # cbn correction
         self.widget.cbn_groupbox.clicked.connect(self.cbn_groupbox_changed)
         for row_ind in range(self.widget.cbn_param_tw.rowCount()):
             self.widget.cbn_param_tw.cellWidget(row_ind, 1).editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_plot_correction_btn.clicked.connect(self.cbn_plot_correction_btn_clicked)
+        self.widget.cbn_plot_btn.clicked.connect(self.cbn_plot_correction_btn_clicked)
 
+        # oiadac correction
         self.widget.oiadac_groupbox.clicked.connect(self.oiadac_groupbox_changed)
         for row_ind in range(self.widget.oiadac_param_tw.rowCount()):
             self.widget.oiadac_param_tw.cellWidget(row_ind, 1).editingFinished.connect(self.oiadac_groupbox_changed)
         self.widget.oiadac_plot_btn.clicked.connect(self.oiadac_plot_btn_clicked)
 
+        # transfer correction
+        self.widget.transfer_load_original_btn.pressed.connect(self.transfer_load_original_btn_clicked)
+        self.widget.transfer_load_response_btn.pressed.connect(self.transfer_load_response_btn_clicked)
+
+
+        # toggle visibilities
         self.widget.oiadac_groupbox.toggled.connect(
             self.widget.integration_control_widget.corrections_control_widget.toggle_oiadac_widget_visibility)
         self.widget.cbn_groupbox.toggled.connect(
             self.widget.integration_control_widget.corrections_control_widget.toggle_cbn_widget_visibility)
+        self.widget.transfer_gb.toggled.connect(
+            self.widget.integration_control_widget.corrections_control_widget.toggle_transfer_widget_visibility)
 
+        # resetting plot buttons
         self.model.img_changed.connect(self.reset_plot_btns)
         self.model.cake_changed.connect(self.reset_plot_btns)
+
+    def transfer_load_original_btn_clicked(self):
+        filename = open_file_dialog(self.widget, caption="Load Original Image File",
+                                    directory=self.model.working_directories['image'])
+        if filename is not '':
+            self.widget.transfer_original_filename_lbl.setText(os.path.basename(filename))
+            self.transfer_correction.load_original_image(filename)
+            if self.transfer_correction.get_data() is not None:
+                self.model.img_model.add_img_correction(self.transfer_correction, 'transfer')
+
+    def transfer_load_response_btn_clicked(self):
+        filename = open_file_dialog(self.widget, caption="Load Response Image File",
+                                    directory=self.model.working_directories['image'])
+        if filename is not '':
+            self.widget.transfer_response_filename_lbl.setText(os.path.basename(filename))
+            self.transfer_correction.load_response_image(filename)
+            if self.transfer_correction.get_data() is not None:
+                self.model.img_model.add_img_correction(self.transfer_correction, 'transfer')
 
     def cbn_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
@@ -116,13 +149,13 @@ class CorrectionController(object):
             self.model.img_model.delete_img_correction("cbn")
 
     def cbn_plot_correction_btn_clicked(self):
-        if str(self.widget.cbn_plot_correction_btn.text()) == 'Plot':
+        if str(self.widget.cbn_plot_btn.text()) == 'Plot':
             self.widget.img_widget.plot_image(self.model.img_model.img_corrections.get_correction("cbn").get_data(),
                                               True)
-            self.widget.cbn_plot_correction_btn.setText('Back')
+            self.widget.cbn_plot_btn.setText('Back')
             self.widget.oiadac_plot_btn.setText('Plot')
         else:
-            self.widget.cbn_plot_correction_btn.setText('Plot')
+            self.widget.cbn_plot_btn.setText('Plot')
             if self.widget.img_mode == 'Cake':
                 self.model.cake_changed.emit()
             elif self.widget.img_mode == 'Image':
@@ -189,7 +222,7 @@ class CorrectionController(object):
             self.widget.img_widget.plot_image(self.model.img_model._img_corrections.get_correction("oiadac").get_data(),
                                               True)
             self.widget.oiadac_plot_btn.setText('Back')
-            self.widget.cbn_plot_correction_btn.setText('Plot')
+            self.widget.cbn_plot_btn.setText('Plot')
         else:
             self.widget.oiadac_plot_btn.setText('Plot')
             if self.widget.img_mode == 'Cake':
@@ -206,5 +239,7 @@ class CorrectionController(object):
     def reset_plot_btns(self):
         self.widget.oiadac_plot_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setChecked(False)
-        self.widget.cbn_plot_correction_btn.setText('Plot')
-        self.widget.cbn_plot_correction_btn.setChecked(False)
+        self.widget.cbn_plot_btn.setText('Plot')
+        self.widget.cbn_plot_btn.setChecked(False)
+        self.widget.transfer_plot_btn.setText('Plot')
+        self.widget.transfer_plot_btn.setChecked(False)

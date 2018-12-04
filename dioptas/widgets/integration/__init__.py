@@ -154,10 +154,16 @@ class IntegrationWidget(QtWidgets.QWidget):
         corrections_control_widget = self.integration_control_widget.corrections_control_widget
         self.cbn_groupbox = corrections_control_widget.cbn_seat_gb
         self.cbn_param_tw = corrections_control_widget.cbn_param_tw
-        self.cbn_plot_correction_btn = corrections_control_widget.cbn_seat_plot_btn
+        self.cbn_plot_btn = corrections_control_widget.cbn_seat_plot_btn
         self.oiadac_groupbox = corrections_control_widget.oiadac_gb
         self.oiadac_param_tw = corrections_control_widget.oiadac_param_tw
         self.oiadac_plot_btn = corrections_control_widget.oiadac_plot_btn
+        self.transfer_gb = corrections_control_widget.transfer_gb
+        self.transfer_load_original_btn = corrections_control_widget.transfer_load_original_btn
+        self.transfer_load_response_btn = corrections_control_widget.transfer_load_response_btn
+        self.transfer_plot_btn = corrections_control_widget.transfer_plot_btn
+        self.transfer_original_filename_lbl = corrections_control_widget.transfer_original_filename_lbl
+        self.transfer_response_filename_lbl = corrections_control_widget.transfer_response_filename_lbl
 
         background_control_widget = self.integration_control_widget.background_control_widget
         self.bkg_image_load_btn = background_control_widget.load_image_btn
