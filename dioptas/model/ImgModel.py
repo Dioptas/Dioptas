@@ -29,7 +29,7 @@ import fabio
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
-from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface
+from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +76,8 @@ class ImgModel(QtCore.QObject):
         self._background_offset = 0
 
         self._factor = 1
+
+        self.transfer_correction = TransferFunctionCorrection()
 
         self.file_info = ''
         self.motors_info = {}
@@ -591,6 +593,15 @@ class ImgModel(QtCore.QObject):
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()
+
+    def enable_transfer_function(self):
+        if self.transfer_correction.get_data() is not None and \
+                self.get_img_correction('transfer') is None:
+            self.add_img_correction(self.transfer_correction, 'transfer')
+
+    def disable_transfer_function(self):
+        if self.get_img_correction('transfer') is not None:
+            self.delete_img_correction('transfer')
 
     @property
     def img_corrections(self):
