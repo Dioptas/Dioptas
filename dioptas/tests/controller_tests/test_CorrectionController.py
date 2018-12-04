@@ -38,33 +38,49 @@ class OptionsControllerTest(QtTest):
 
         self.correction_controller = CorrectionController(self.widget, self.model)
 
+        self.original_filename = os.path.join(unittest_data_path, 'TransferCorrection', 'original.tif')
+        self.response_filename = os.path.join(unittest_data_path, 'TransferCorrection', 'response.tif')
+
     def tearDown(self):
         del self.correction_controller
         del self.widget
         del self.model
         gc.collect()
 
-    def test_load_correction(self):
-        img_filename = os.path.join(unittest_data_path, 'TransferCorrection', 'response.tif')
-        self.model.img_model.load(img_filename)
-
-        original_filename = os.path.join(unittest_data_path, 'TransferCorrection', 'original.tif')
-        response_filename = img_filename
-
-        click_checkbox(self.correction_widget.transfer_gb)
-
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=original_filename)
+    def load_original_img(self):
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=self.original_filename)
         click_button(self.widget.transfer_load_original_btn)
 
-        self.assertEqual(self.correction_widget.transfer_original_filename_lbl.text(),
-                         os.path.basename(original_filename))
-
-        self.assertFalse(self.model.img_model.has_corrections())
-
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=response_filename)
+    def load_response_img(self):
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=self.response_filename)
         click_button(self.widget.transfer_load_response_btn)
 
-        self.assertEqual(self.correction_widget.transfer_response_filename_lbl.text(),
-                         os.path.basename(response_filename))
+    def test_filenames_are_displayed_in_widget(self):
+        self.correction_widget.transfer_gb.setChecked(True)
 
+        self.load_original_img()
+        self.assertEqual(self.correction_widget.transfer_original_filename_lbl.text(),
+                         os.path.basename(self.original_filename))
+        self.load_response_img()
+        self.assertEqual(self.correction_widget.transfer_response_filename_lbl.text(),
+                         os.path.basename(self.response_filename))
+
+    def test_correction_loaded(self):
+        self.correction_widget.transfer_gb.setChecked(True)
+
+        self.model.img_model.load(self.response_filename)
+
+        self.load_original_img()
+        self.assertFalse(self.model.img_model.has_corrections())
+        self.load_response_img()
         self.assertTrue(self.model.img_model.has_corrections())
+
+    def test_disable_transfer_correction(self):
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.model.img_model.load(self.response_filename)
+        self.load_original_img()
+        self.load_response_img()
+        self.assertTrue(self.model.img_model.has_corrections())
+        self.correction_widget.transfer_gb.setChecked(False)
+        self.assertFalse(self.model.img_model.has_corrections())
+
