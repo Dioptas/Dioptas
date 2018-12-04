@@ -65,6 +65,7 @@ class CorrectionController(object):
         self.widget.transfer_load_original_btn.pressed.connect(self.transfer_load_original_btn_clicked)
         self.widget.transfer_load_response_btn.pressed.connect(self.transfer_load_response_btn_clicked)
         self.widget.transfer_gb.toggled.connect(self.transfer_gb_toggled)
+        self.model.img_model.corrections_removed.connect(self.corrections_removed)
 
         # toggle visibilities
         self.widget.oiadac_groupbox.toggled.connect(
@@ -99,6 +100,17 @@ class CorrectionController(object):
             self.model.img_model.enable_transfer_function()
         else:
             self.model.img_model.disable_transfer_function()
+
+    def corrections_removed(self):
+        self.widget.cbn_groupbox.setChecked(False)
+        self.widget.oiadac_groupbox.setChecked(False)
+        self.widget.transfer_gb.setChecked(False)
+        self.widget.transfer_original_filename_lbl.setText('None')
+        self.widget.transfer_response_filename_lbl.setText('None')
+        QtWidgets.QMessageBox.critical(self.widget,
+                                       'Shape Mismatch',
+                                       'The loaded image and corrections have different shapes. ' + \
+                                       'The corrections have been reset.')
 
     def cbn_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
