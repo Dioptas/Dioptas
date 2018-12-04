@@ -446,7 +446,7 @@ class ImageController(object):
         self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.model.img_model.file_info)
 
-        self.widget.cbn_plot_correction_btn.setText('Plot')
+        self.widget.cbn_plot_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
 
         # update the window due to some errors on mac when using macports

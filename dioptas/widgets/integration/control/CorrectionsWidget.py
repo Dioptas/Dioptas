@@ -169,6 +169,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
     def create_transfer_layout(self):
         self._transfer_layout = QtWidgets.QGridLayout()
+        self._transfer_layout.setSpacing(5)
         self._transfer_layout.addWidget(self.transfer_load_original_btn, 0, 0)
         self._transfer_layout.addWidget(self.transfer_load_response_btn, 1, 0)
         self._transfer_layout.addWidget(self.transfer_original_filename_lbl, 0, 1)
@@ -193,7 +194,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
                     
                     QPushButton {
                         min-width: 50 px;
-                        max-width: 80 px;
+                        max-width: 90 px;
                         min-height: 30 px;
                         max-height: 30 px;
                     }
