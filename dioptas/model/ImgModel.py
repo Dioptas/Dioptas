@@ -50,6 +50,7 @@ class ImgModel(QtCore.QObject):
     img_changed = QtCore.Signal()
     autoprocess_changed = QtCore.Signal()
     transformations_changed = QtCore.Signal()
+    corrections_removed = QtCore.Signal()
 
     def __init__(self):
         super(ImgModel, self).__init__()
@@ -324,7 +325,11 @@ class ImgModel(QtCore.QObject):
             if self._img_data.shape != self._background_data.shape:
                 self._background_data = None
         if self._img_corrections.has_items():
-            self._img_corrections.set_shape(self._img_data.shape)
+            if self._img_data.shape != self._img_corrections.shape:
+                self._img_corrections.clear()
+                self.transfer_correction.reset()
+                self.corrections_removed.emit()
+                self._img_corrections.set_shape(self._img_data.shape)
 
         # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():

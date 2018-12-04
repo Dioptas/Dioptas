@@ -58,6 +58,8 @@ class CorrectionControllerTest(QtTest):
     def test_filenames_are_displayed_in_widget(self):
         self.correction_widget.transfer_gb.setChecked(True)
 
+        self.model.img_model.load(self.response_filename)
+
         self.load_original_img()
         self.assertEqual(self.correction_widget.transfer_original_filename_lbl.text(),
                          os.path.basename(self.original_filename))
@@ -85,11 +87,19 @@ class CorrectionControllerTest(QtTest):
         self.assertFalse(self.model.img_model.has_corrections())
 
     def test_load_img_with_different_dimension(self):
+        QtWidgets.QMessageBox.critical = MagicMock()
         self.correction_widget.transfer_gb.setChecked(True)
         self.model.img_model.load(self.response_filename)
         self.load_original_img()
         self.load_response_img()
         self.assertTrue(self.model.img_model.has_corrections())
+
         self.model.img_model.load(os.path.join(unittest_data_path, 'image_001.tif'))
         self.assertFalse(self.model.img_model.has_corrections())
+
+        self.assertIsNone(self.model.img_model.transfer_correction.response_filename)
+        self.assertFalse(self.widget.transfer_load_original_btn.isVisible())
+
+        self.assertEqual(self.widget.transfer_original_filename_lbl.text(), 'None')
+        self.assertEqual(self.widget.transfer_response_filename_lbl.text(), 'None')
 
