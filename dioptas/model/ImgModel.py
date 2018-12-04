@@ -50,8 +50,6 @@ class ImgModel(QtCore.QObject):
     img_changed = QtCore.Signal()
     autoprocess_changed = QtCore.Signal()
     transformations_changed = QtCore.Signal()
-    cbn_correction_changed = QtCore.Signal()
-    oiadac_correction_changed = QtCore.Signal()
 
     def __init__(self):
         super(ImgModel, self).__init__()
