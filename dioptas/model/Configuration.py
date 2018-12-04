@@ -661,7 +661,7 @@ class Configuration(QtCore.QObject):
                         params[param] = val
                     cbn_correction.set_params(params)
                     cbn_correction.update()
-                    self.img_model.add_img_correction(cbn_correction, name, name)
+                    self.img_model.add_img_correction(cbn_correction, name)
                 elif name == 'oiadac':
                     tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
                     azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
@@ -671,4 +671,4 @@ class Configuration(QtCore.QObject):
                         params[param] = val
                     oiadac.set_params(params)
                     oiadac.update()
-                    self.img_model.add_img_correction(oiadac, name, name)
+                    self.img_model.add_img_correction(oiadac, name)
