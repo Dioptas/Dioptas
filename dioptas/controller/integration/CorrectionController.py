@@ -66,7 +66,7 @@ class CorrectionController(object):
         # transfer correction
         self.widget.transfer_load_original_btn.pressed.connect(self.transfer_load_original_btn_clicked)
         self.widget.transfer_load_response_btn.pressed.connect(self.transfer_load_response_btn_clicked)
-
+        self.widget.transfer_gb.toggled.connect(self.transfer_gb_toggled)
 
         # toggle visibilities
         self.widget.oiadac_groupbox.toggled.connect(
@@ -86,8 +86,7 @@ class CorrectionController(object):
         if filename is not '':
             self.widget.transfer_original_filename_lbl.setText(os.path.basename(filename))
             self.transfer_correction.load_original_image(filename)
-            if self.transfer_correction.get_data() is not None:
-                self.model.img_model.add_img_correction(self.transfer_correction, 'transfer')
+            self.add_transfer_correction()
 
     def transfer_load_response_btn_clicked(self):
         filename = open_file_dialog(self.widget, caption="Load Response Image File",
@@ -95,8 +94,22 @@ class CorrectionController(object):
         if filename is not '':
             self.widget.transfer_response_filename_lbl.setText(os.path.basename(filename))
             self.transfer_correction.load_response_image(filename)
-            if self.transfer_correction.get_data() is not None:
-                self.model.img_model.add_img_correction(self.transfer_correction, 'transfer')
+            self.add_transfer_correction()
+
+    def add_transfer_correction(self):
+        if self.transfer_correction.get_data() is not None and \
+                self.model.img_model.get_img_correction('transfer') is None:
+            self.model.img_model.add_img_correction(self.transfer_correction, 'transfer')
+
+    def remove_transfer_correction(self):
+        if self.model.img_model.get_img_correction('transfer') is not None:
+            self.model.img_model.delete_img_correction('transfer')
+
+    def transfer_gb_toggled(self):
+        if self.widget.transfer_gb.isChecked():
+            self.add_transfer_correction()
+        else:
+            self.remove_transfer_correction()
 
     def cbn_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
