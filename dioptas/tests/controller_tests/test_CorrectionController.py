@@ -30,7 +30,7 @@ from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
 
-class OptionsControllerTest(QtTest):
+class CorrectionControllerTest(QtTest):
     def setUp(self):
         self.widget = IntegrationWidget()
         self.correction_widget = self.widget.integration_control_widget.corrections_control_widget
@@ -82,5 +82,14 @@ class OptionsControllerTest(QtTest):
         self.load_response_img()
         self.assertTrue(self.model.img_model.has_corrections())
         self.correction_widget.transfer_gb.setChecked(False)
+        self.assertFalse(self.model.img_model.has_corrections())
+
+    def test_load_img_with_different_dimension(self):
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.model.img_model.load(self.response_filename)
+        self.load_original_img()
+        self.load_response_img()
+        self.assertTrue(self.model.img_model.has_corrections())
+        self.model.img_model.load(os.path.join(unittest_data_path, 'image_001.tif'))
         self.assertFalse(self.model.img_model.has_corrections())
 

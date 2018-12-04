@@ -27,7 +27,6 @@ from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsor
 from ...widgets.integration import IntegrationWidget
 from ...widgets.UtilityWidgets import open_file_dialog
 from ...model.DioptasModel import DioptasModel
-from ...model.util.ImgCorrection import TransferFunctionCorrection
 
 
 class CorrectionController(object):
@@ -46,7 +45,6 @@ class CorrectionController(object):
 
         self.widget = widget
         self.model = dioptas_model
-        self.transfer_correction = TransferFunctionCorrection()
 
         self.create_signals()
 
@@ -85,31 +83,22 @@ class CorrectionController(object):
                                     directory=self.model.working_directories['image'])
         if filename is not '':
             self.widget.transfer_original_filename_lbl.setText(os.path.basename(filename))
-            self.transfer_correction.load_original_image(filename)
-            self.add_transfer_correction()
+            self.model.img_model.transfer_correction.load_original_image(filename)
+            self.model.img_model.enable_transfer_function()
 
     def transfer_load_response_btn_clicked(self):
         filename = open_file_dialog(self.widget, caption="Load Response Image File",
                                     directory=self.model.working_directories['image'])
         if filename is not '':
             self.widget.transfer_response_filename_lbl.setText(os.path.basename(filename))
-            self.transfer_correction.load_response_image(filename)
-            self.add_transfer_correction()
-
-    def add_transfer_correction(self):
-        if self.transfer_correction.get_data() is not None and \
-                self.model.img_model.get_img_correction('transfer') is None:
-            self.model.img_model.add_img_correction(self.transfer_correction, 'transfer')
-
-    def remove_transfer_correction(self):
-        if self.model.img_model.get_img_correction('transfer') is not None:
-            self.model.img_model.delete_img_correction('transfer')
+            self.model.img_model.transfer_correction.load_response_image(filename)
+            self.model.img_model.enable_transfer_function()
 
     def transfer_gb_toggled(self):
         if self.widget.transfer_gb.isChecked():
-            self.add_transfer_correction()
+            self.model.img_model.enable_transfer_function()
         else:
-            self.remove_transfer_correction()
+            self.model.img_model.disable_transfer_function()
 
     def cbn_groupbox_changed(self):
         if not self.model.calibration_model.is_calibrated:
