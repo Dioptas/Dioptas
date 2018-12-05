@@ -19,11 +19,12 @@
 from ..utility import QtTest
 import os
 import gc
+import numpy as np
 
 from qtpy import QtWidgets
 from mock import MagicMock
 
-from ..utility import enter_value_into_text_field, click_button, click_checkbox, unittest_data_path
+from ..utility import click_button, unittest_data_path
 
 from ...controller.integration.CorrectionController import CorrectionController
 from ...model.DioptasModel import DioptasModel
@@ -86,7 +87,7 @@ class CorrectionControllerTest(QtTest):
         self.correction_widget.transfer_gb.setChecked(False)
         self.assertFalse(self.model.img_model.has_corrections())
 
-    def test_load_img_with_different_dimension(self):
+    def test_load_img_with_different_shape(self):
         QtWidgets.QMessageBox.critical = MagicMock()
         self.correction_widget.transfer_gb.setChecked(True)
         self.model.img_model.load(self.response_filename)
@@ -102,4 +103,52 @@ class CorrectionControllerTest(QtTest):
 
         self.assertEqual(self.widget.transfer_original_filename_lbl.text(), 'None')
         self.assertEqual(self.widget.transfer_response_filename_lbl.text(), 'None')
+
+    def test_load_img_with_different_shape_and_calibration(self):
+        QtWidgets.QMessageBox.critical = MagicMock()
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.model.img_model.load(self.response_filename)
+        self.model.calibration_model.load(os.path.join(unittest_data_path, 'CeO2_Pilatus1M_2.poni'))
+
+        self.load_original_img()
+        self.load_response_img()
+        self.assertTrue(self.model.img_model.has_corrections())
+
+        self.model.img_model.load(os.path.join(unittest_data_path, 'image_001.tif'))
+        self.assertFalse(self.model.img_model.has_corrections())
+
+        self.assertIsNone(self.model.img_model.transfer_correction.response_filename)
+        self.assertFalse(self.widget.transfer_load_original_btn.isVisible())
+
+        self.assertEqual(self.widget.transfer_original_filename_lbl.text(), 'None')
+        self.assertEqual(self.widget.transfer_response_filename_lbl.text(), 'None')
+
+    def test_image_enable_and_disable(self):
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.model.img_model.load(self.response_filename)
+        before_data = self.model.img_data.copy()
+        self.load_original_img()
+        self.load_response_img()
+
+        self.assertNotAlmostEqual(np.sum(before_data - self.model.img_data), 0)
+
+        self.correction_widget.transfer_gb.setChecked(False)
+        self.assertAlmostEqual(np.sum(before_data - self.model.img_data), 0)
+
+    def test_image_enable_and_disable_with_calibration(self):
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.model.img_model.load(self.response_filename)
+        self.model.calibration_model.load(os.path.join(unittest_data_path, 'CeO2_Pilatus1M_2.poni'))
+        before_data = self.model.img_data.copy()
+        self.load_original_img()
+        self.load_response_img()
+
+        self.assertNotAlmostEqual(np.sum(before_data - self.model.img_data), 0)
+
+        self.correction_widget.transfer_gb.setChecked(False)
+        self.assertAlmostEqual(np.sum(before_data - self.model.img_data), 0)
+
+
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.assertNotAlmostEqual(np.sum(before_data - self.model.img_data), 0)
 
