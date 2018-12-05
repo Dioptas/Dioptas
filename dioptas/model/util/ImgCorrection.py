@@ -57,8 +57,6 @@ class ImgCorrectionManager(object):
         self.shape = None
         self._ind = 0
 
-    def set_shape(self, shape):
-        self.shape = shape
 
     def get_data(self):
         if len(self._corrections) == 0:

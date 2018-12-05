@@ -97,14 +97,6 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
         self.corrections.delete()
         self.assertEqual(np.mean(self.corrections.get_data()), 5)
 
-    def test_set_shape(self):
-        self.corrections.add(DummyCorrection((2048, 2048), 3), "cbn Correction")
-        self.corrections.add(DummyCorrection((2048, 2048), 5), "oblique angle Correction")
-
-        # setting it to a different shape should remove the existent corrections
-        self.corrections.set_shape((2048, 1024))
-        self.assertEqual(self.corrections.get_data(), None)
-
 
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from ...model.util.ImgCorrection import CbnCorrection

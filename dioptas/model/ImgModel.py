@@ -329,7 +329,6 @@ class ImgModel(QtCore.QObject):
                 self._img_corrections.clear()
                 self.transfer_correction.reset()
                 self.corrections_removed.emit()
-                self._img_corrections.set_shape(self._img_data.shape)
 
         # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():
