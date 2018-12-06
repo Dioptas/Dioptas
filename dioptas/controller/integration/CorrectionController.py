@@ -82,6 +82,9 @@ class CorrectionController(object):
         self.model.img_changed.connect(self.reset_plot_btns)
         self.model.cake_changed.connect(self.reset_plot_btns)
 
+        # configurations
+        self.model.configuration_selected.connect(self.update_gui)
+
     def transfer_load_original_btn_clicked(self):
         filename = open_file_dialog(self.widget, caption="Load Original Image File",
                                     directory=self.model.working_directories['image'])
@@ -109,6 +112,18 @@ class CorrectionController(object):
         else:
             self.widget.transfer_plot_btn.setText('Plot')
             self.reset_img_widget()
+
+    def update_transfer_widgets(self):
+        original_filename = self.model.img_model.transfer_correction.original_filename
+        response_filename = self.model.img_model.transfer_correction.response_filename
+        if original_filename is not None:
+            self.widget.transfer_original_filename_lbl.setText(os.path.basename(original_filename))
+        else:
+            self.widget.transfer_original_filename_lbl.setText('None')
+        if original_filename is not None:
+            self.widget.transfer_response_filename_lbl.setText(os.path.basename(response_filename))
+        else:
+            self.widget.transfer_response_filename_lbl.setText('None')
 
     def transfer_gb_toggled(self):
         if self.widget.transfer_gb.isChecked():
@@ -272,3 +287,28 @@ class CorrectionController(object):
         self.widget.cbn_plot_btn.setChecked(False)
         self.widget.transfer_plot_btn.setText('Plot')
         self.widget.transfer_plot_btn.setChecked(False)
+
+    def update_gui(self):
+        if self.model.img_model.get_img_correction('cbn') is not None:
+            self.update_cbn_widgets()
+            self.widget.cbn_groupbox.blockSignals(True)
+            self.widget.cbn_groupbox.setChecked(True)
+            self.widget.cbn_groupbox.blockSignals(False)
+        else:
+            self.widget.cbn_groupbox.setChecked(False)
+
+        if self.model.img_model.get_img_correction('oiadac') is not None:
+            self.update_oiadac_widgets()
+            self.widget.oiadac_groupbox.blockSignals(True)
+            self.widget.oiadac_groupbox.setChecked(True)
+            self.widget.oiadac_groupbox.blockSignals(False)
+        else:
+            self.widget.oiadac_groupbox.setChecked(False)
+
+        if self.model.img_model.get_img_correction('transfer') is not None:
+            self.update_transfer_widgets()
+            # self.widget.transfer_gb.blockSignals(True)
+            self.widget.transfer_gb.setChecked(True)
+            # self.widget.transfer_gb.blockSignals(False)
+        else:
+            self.widget.transfer_gb.setChecked(False)
