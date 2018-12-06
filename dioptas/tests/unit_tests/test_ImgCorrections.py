@@ -333,7 +333,7 @@ class TransferFunctionCorrectionTest(unittest.TestCase):
         transfer_data = self.transfer_correction.get_data()
         self.assertEqual(transfer_data.shape, self.original_data.shape)
         self.assertEqual(transfer_data.shape, self.response_data.shape)
-        self.assertAlmostEqual(np.sum(transfer_data - self.original_data / self.response_data), 0)
+        self.assertAlmostEqual(np.sum(transfer_data - self.response_data / self.original_data), 0)
 
     def test_apply_img_transformations(self):
         from ...model.util.HelperModule import rotate_matrix_m90
