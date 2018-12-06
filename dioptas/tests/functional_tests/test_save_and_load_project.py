@@ -166,7 +166,7 @@ class ProjectSaveLoadTest(QtTest):
 
         delete_if_exists(config_file_path)
 
-    def existing_files_intermediate_settings(self):
+    def disable_calibration_check(self):
         self.check_calibration = False
 
     def save_configuration(self):
@@ -413,7 +413,8 @@ class ProjectSaveLoadTest(QtTest):
     ####################################################################################################################
     def test_distortion_correction(self):
         self.check_calibration = False
-        self.save_and_load_configuration(self.prepare_distortion_correction_test)
+        self.save_and_load_configuration(self.prepare_distortion_correction_test,
+                                         intermediate_function=self.disable_calibration_check)
         self.assertIsNotNone(self.model.calibration_model.distortion_spline_filename)
         self.assertEqual(self.widget.calibration_widget.spline_filename_txt.text(),
                          'f4mnew.spline')
