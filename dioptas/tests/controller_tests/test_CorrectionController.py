@@ -183,6 +183,21 @@ class CorrectionControllerTest(QtTest):
 
         self.assertAlmostEqual(np.sum(y_original-y_response_with_transfer), 0)
 
+    def test_changing_transfer_function_several_times(self):
+        self.model.img_model.load(self.original_filename)
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.load_original_img()
+        self.load_response_img()
+
+        img_1 = self.model.img_data.copy()
+
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=self.original_filename)
+        click_button(self.widget.transfer_load_response_btn)
+
+        img_2 = self.model.img_data.copy()
+
+        self.assertFalse(np.array_equal(img_1, img_2))
+
 
 
 

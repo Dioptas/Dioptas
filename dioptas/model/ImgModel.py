@@ -602,6 +602,9 @@ class ImgModel(QtCore.QObject):
         if self.transfer_correction.get_data() is not None and \
                 self.get_img_correction('transfer') is None:
             self.add_img_correction(self.transfer_correction, 'transfer')
+        if self.get_img_correction('transfer') is not None:
+            self._calculate_img_data()
+            self.img_changed.emit()
 
     def disable_transfer_function(self):
         if self.get_img_correction('transfer') is not None:
