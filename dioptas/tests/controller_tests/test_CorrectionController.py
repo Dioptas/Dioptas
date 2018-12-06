@@ -23,6 +23,7 @@ import numpy as np
 
 from qtpy import QtWidgets
 from mock import MagicMock
+import mock
 
 from ..utility import click_button, unittest_data_path
 
@@ -148,7 +149,25 @@ class CorrectionControllerTest(QtTest):
         self.correction_widget.transfer_gb.setChecked(False)
         self.assertAlmostEqual(np.sum(before_data - self.model.img_data), 0)
 
-
         self.correction_widget.transfer_gb.setChecked(True)
         self.assertNotAlmostEqual(np.sum(before_data - self.model.img_data), 0)
+
+    def test_show_correction_in_img_widget_and_back(self):
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.model.img_model.load(self.response_filename)
+        self.load_original_img()
+        self.load_response_img()
+
+        click_button(self.correction_widget.transfer_plot_btn)
+        transfer_data = self.model.img_model.transfer_correction.transfer_data
+        img_data = self.widget.img_widget.img_data
+        self.assertAlmostEqual(np.sum(transfer_data - img_data), 0)
+        self.assertTrue(self.correction_widget.transfer_plot_btn.isChecked())
+        self.assertEqual(self.correction_widget.transfer_plot_btn.text(), 'Back')
+
+        click_button(self.correction_widget.transfer_plot_btn)
+
+        self.assertFalse(self.correction_widget.transfer_plot_btn.isChecked())
+        self.assertEqual(self.correction_widget.transfer_plot_btn.text(), 'Plot')
+
 
