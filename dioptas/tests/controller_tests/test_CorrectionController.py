@@ -170,4 +170,20 @@ class CorrectionControllerTest(QtTest):
         self.assertFalse(self.correction_widget.transfer_plot_btn.isChecked())
         self.assertEqual(self.correction_widget.transfer_plot_btn.text(), 'Plot')
 
+    def test_transfer_correction_is_applied_correctly(self):
+        self.model.calibration_model.load(os.path.join(unittest_data_path, 'TransferCorrection', 'transfer.poni'))
+        self.model.img_model.load(self.original_filename)
+        y_original = self.model.pattern.y
+        self.model.img_model.load(self.response_filename)
+
+        self.correction_widget.transfer_gb.setChecked(True)
+        self.load_original_img()
+        self.load_response_img()
+        y_response_with_transfer = self.model.pattern.y
+
+        self.assertAlmostEqual(np.sum(y_original-y_response_with_transfer), 0)
+
+
+
+
 
