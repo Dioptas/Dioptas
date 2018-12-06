@@ -407,14 +407,20 @@ class Configuration(QtCore.QObject):
         corrections_group = image_group.create_group('corrections')
         corrections_group.attrs['has_corrections'] = self.img_model.has_corrections()
         for correction, correction_object in self.img_model.img_corrections.corrections.items():
-            correction_data = correction_object.get_data()
-            imcd = corrections_group.create_dataset(correction, correction_data.shape, 'f', correction_data)
-            if correction == 'cbn':
+            if correction in ['cbn', 'oiadac']:
+                correction_data = correction_object.get_data()
+                imcd = corrections_group.create_dataset(correction, correction_data.shape, 'f', correction_data)
                 for param, value in correction_object.get_params().items():
                     imcd.attrs[param] = value
-            elif correction == 'oiadac':
-                for param, value in correction_object.get_params().items():
-                    imcd.attrs[param] = value
+            elif correction == 'transfer':
+                params = correction_object.get_params()
+                transfer_group = corrections_group.create_group('transfer')
+                original_data = params['original_data']
+                response_data = params['response_data']
+                original_ds = transfer_group.create_dataset('original_data', original_data.shape, 'f', original_data)
+                original_ds.attrs['filename'] = params['original_filename']
+                response_ds = transfer_group.create_dataset('response_data', response_data.shape, 'f', response_data)
+                response_ds.attrs['filename'] = params['response_filename']
 
         # the actual image
         image_group.attrs['filename'] = self.img_model.filename
@@ -554,11 +560,10 @@ class Configuration(QtCore.QObject):
             pass
 
         try:
-            distortion_spline_filename =  f.get('calibration_model').attrs['distortion_spline_filename']
+            distortion_spline_filename = f.get('calibration_model').attrs['distortion_spline_filename']
             self.calibration_model.load_distortion(distortion_spline_filename)
         except KeyError:
             pass
-
 
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
@@ -642,23 +647,17 @@ class Configuration(QtCore.QObject):
         self.use_mask = f.get('general_information').attrs['use_mask']
         self.transparent_mask = f.get('general_information').attrs['transparent_mask']
 
-        # autosave parameters
-        self.auto_save_integrated_pattern = f.get('general_information').attrs['auto_save_integrated_pattern']
-        self.integrated_patterns_file_formats = []
-        for file_format in f.get('general_information').get('integrated_patterns_file_formats'):
-            self.integrated_patterns_file_formats.append(file_format[0].decode('utf-8'))
-
-        self.integrate_image_1d()
-
+        # corrections
         if f.get('image_model').get('corrections').attrs['has_corrections']:
             for name, correction_group in f.get('image_model').get('corrections').items():
+                params = {}
+                for param, val in correction_group.attrs.items():
+                    params[param] = val
                 if name == 'cbn':
                     tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
                     azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
                     cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
-                    params = {}
-                    for param, val in correction_group.attrs.items():
-                        params[param] = val
+
                     cbn_correction.set_params(params)
                     cbn_correction.update()
                     self.img_model.add_img_correction(cbn_correction, name)
@@ -666,9 +665,25 @@ class Configuration(QtCore.QObject):
                     tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
                     azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
                     oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
-                    params = {}
-                    for param, val in correction_group.attrs.items():
-                        params[param] = val
+
                     oiadac.set_params(params)
                     oiadac.update()
                     self.img_model.add_img_correction(oiadac, name)
+                elif name == 'transfer':
+                    params = {
+                        'original_data': correction_group.get('original_data')[...],
+                        'original_filename': correction_group.get('original_data').attrs['filename'],
+                        'response_data': correction_group.get('response_data')[...],
+                        'response_filename': correction_group.get('response_data').attrs['filename']
+                    }
+
+                    self.img_model.transfer_correction.set_params(params)
+                    self.img_model.enable_transfer_function()
+
+        # autosave parameters
+        self.auto_save_integrated_pattern = f.get('general_information').attrs['auto_save_integrated_pattern']
+        self.integrated_patterns_file_formats = []
+        for file_format in f.get('general_information').get('integrated_patterns_file_formats'):
+            self.integrated_patterns_file_formats.append(file_format[0].decode('utf-8'))
+
+        self.integrate_image_1d()

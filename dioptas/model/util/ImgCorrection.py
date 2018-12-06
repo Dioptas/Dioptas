@@ -57,7 +57,6 @@ class ImgCorrectionManager(object):
         self.shape = None
         self._ind = 0
 
-
     def get_data(self):
         if len(self._corrections) == 0:
             return None
@@ -341,6 +340,21 @@ class TransferFunctionCorrection(ImgCorrectionInterface):
 
     def shape(self):
         return self.transfer_data.shape
+
+    def get_params(self):
+        return {
+            'original_filename': self.original_filename,
+            'response_filename': self.response_filename,
+            'original_data': self.original_data,
+            'response_data': self.response_data,
+        }
+
+    def set_params(self, params):
+        self.original_filename = params['original_filename']
+        self.response_filename = params['response_filename']
+        self.original_data = params['original_data']
+        self.response_data = params['response_data']
+        self.calculate_transfer_data()
 
     def reset(self):
         self.original_filename = None
