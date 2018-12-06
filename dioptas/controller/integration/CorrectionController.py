@@ -62,9 +62,12 @@ class CorrectionController(object):
         self.widget.oiadac_plot_btn.clicked.connect(self.oiadac_plot_btn_clicked)
 
         # transfer correction
-        self.widget.transfer_load_original_btn.pressed.connect(self.transfer_load_original_btn_clicked)
-        self.widget.transfer_load_response_btn.pressed.connect(self.transfer_load_response_btn_clicked)
+        self.widget.transfer_load_original_btn.clicked.connect(self.transfer_load_original_btn_clicked)
+        self.widget.transfer_load_response_btn.clicked.connect(self.transfer_load_response_btn_clicked)
+        self.widget.transfer_plot_btn.clicked.connect(self.transfer_plot_btn_clicked)
         self.widget.transfer_gb.toggled.connect(self.transfer_gb_toggled)
+
+        # general
         self.model.img_model.corrections_removed.connect(self.corrections_removed)
 
         # toggle visibilities
@@ -94,6 +97,18 @@ class CorrectionController(object):
             self.widget.transfer_response_filename_lbl.setText(os.path.basename(filename))
             self.model.img_model.transfer_correction.load_response_image(filename)
             self.model.img_model.enable_transfer_function()
+
+    def transfer_plot_btn_clicked(self):
+        if self.widget.transfer_plot_btn.isChecked():
+            transfer_data = self.model.img_model.transfer_correction.get_data()
+            if transfer_data is not None:
+                self.widget.img_widget.plot_image(transfer_data, auto_level=True)
+                self.widget.transfer_plot_btn.setText('Back')
+            else:
+                self.widget.transfer_plot_btn.setChecked(False)
+        else:
+            self.widget.transfer_plot_btn.setText('Plot')
+            self.reset_img_widget()
 
     def transfer_gb_toggled(self):
         if self.widget.transfer_gb.isChecked():
@@ -170,10 +185,7 @@ class CorrectionController(object):
             self.widget.oiadac_plot_btn.setText('Plot')
         else:
             self.widget.cbn_plot_btn.setText('Plot')
-            if self.widget.img_mode == 'Cake':
-                self.model.cake_changed.emit()
-            elif self.widget.img_mode == 'Image':
-                self.model.img_changed.emit()
+            self.reset_img_widget()
 
     def update_cbn_widgets(self):
         params = self.model.img_model.img_corrections.get_correction("cbn").get_params()
@@ -239,10 +251,13 @@ class CorrectionController(object):
             self.widget.cbn_plot_btn.setText('Plot')
         else:
             self.widget.oiadac_plot_btn.setText('Plot')
-            if self.widget.img_mode == 'Cake':
-                self.model.cake_changed.emit()
-            elif self.widget.img_mode == 'Image':
-                self.model.img_changed.emit()
+            self.reset_img_widget()
+
+    def reset_img_widget(self):
+        if self.widget.img_mode == 'Cake':
+            self.model.cake_changed.emit()
+        elif self.widget.img_mode == 'Image':
+            self.model.img_changed.emit()
 
     def update_oiadac_widgets(self):
         params = self.model.img_model.img_corrections.get_correction("oiadac").get_params()
