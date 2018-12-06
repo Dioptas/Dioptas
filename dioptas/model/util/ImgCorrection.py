@@ -330,7 +330,7 @@ class TransferFunctionCorrection(ImgCorrectionInterface):
             self.calculate_transfer_data()
 
     def calculate_transfer_data(self):
-        transfer_data = self.original_data / self.response_data
+        transfer_data = self.response_data / self.original_data
         if self.img_transformations:
             for transformation in self.img_transformations:
                 transfer_data = transformation(transfer_data)
