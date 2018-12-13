@@ -128,7 +128,7 @@ class MapController(object):
     def update_map_status_positions_lbl(self):
         self.map_widget.map_status_positions_lbl.setStyleSheet('color: green')
 
-        if self.map_model.all_positions_defined_in_files:
+        if self.map_model.all_positions_defined_in_files and not self.map_model.positions_set_manually:
             status_pos_lbl = "Positions Found"
 
         elif self.map_model.positions_set_manually:
