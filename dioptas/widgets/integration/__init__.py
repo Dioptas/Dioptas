@@ -164,10 +164,16 @@ class IntegrationWidget(QtWidgets.QWidget):
         corrections_control_widget = self.integration_control_widget.corrections_control_widget
         self.cbn_groupbox = corrections_control_widget.cbn_seat_gb
         self.cbn_param_tw = corrections_control_widget.cbn_param_tw
-        self.cbn_plot_correction_btn = corrections_control_widget.cbn_seat_plot_btn
+        self.cbn_plot_btn = corrections_control_widget.cbn_seat_plot_btn
         self.oiadac_groupbox = corrections_control_widget.oiadac_gb
         self.oiadac_param_tw = corrections_control_widget.oiadac_param_tw
         self.oiadac_plot_btn = corrections_control_widget.oiadac_plot_btn
+        self.transfer_gb = corrections_control_widget.transfer_gb
+        self.transfer_load_original_btn = corrections_control_widget.transfer_load_original_btn
+        self.transfer_load_response_btn = corrections_control_widget.transfer_load_response_btn
+        self.transfer_plot_btn = corrections_control_widget.transfer_plot_btn
+        self.transfer_original_filename_lbl = corrections_control_widget.transfer_original_filename_lbl
+        self.transfer_response_filename_lbl = corrections_control_widget.transfer_response_filename_lbl
 
         background_control_widget = self.integration_control_widget.background_control_widget
         self.bkg_image_load_btn = background_control_widget.load_image_btn
@@ -329,40 +335,3 @@ class IntegrationWidget(QtWidgets.QWidget):
         msg_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg_box.setDefaultButton(QtWidgets.QMessageBox.Ok)
         msg_box.exec_()
-
-    ############################################
-    ## background parameter stuff
-
-    def get_bkg_pattern_parameters(self):
-        smooth_width = float(self.bkg_pattern_smooth_width_sb.value())
-        iterations = int(self.bkg_pattern_iterations_sb.value())
-        polynomial_order = int(self.bkg_pattern_poly_order_sb.value())
-        return smooth_width, iterations, polynomial_order
-
-    def set_bkg_pattern_parameters(self, bkg_pattern_parameters):
-        self.bkg_pattern_smooth_width_sb.blockSignals(True)
-        self.bkg_pattern_iterations_sb.blockSignals(True)
-        self.bkg_pattern_poly_order_sb.blockSignals(True)
-
-        self.bkg_pattern_smooth_width_sb.setValue(bkg_pattern_parameters[0])
-        self.bkg_pattern_iterations_sb.setValue(bkg_pattern_parameters[1])
-        self.bkg_pattern_poly_order_sb.setValue(bkg_pattern_parameters[2])
-
-        self.bkg_pattern_smooth_width_sb.blockSignals(False)
-        self.bkg_pattern_iterations_sb.blockSignals(False)
-        self.bkg_pattern_poly_order_sb.blockSignals(False)
-
-    def get_bkg_pattern_roi(self):
-        x_min = float(str(self.bkg_pattern_x_min_txt.text()))
-        x_max = float(str(self.bkg_pattern_x_max_txt.text()))
-        return x_min, x_max
-
-    def set_bkg_pattern_roi(self, roi):
-        self.bkg_pattern_x_max_txt.blockSignals(True)
-        self.bkg_pattern_x_min_txt.blockSignals(True)
-
-        self.bkg_pattern_x_min_txt.setText('{:.3f}'.format(roi[0]))
-        self.bkg_pattern_x_max_txt.setText('{:.3f}'.format(roi[1]))
-
-        self.bkg_pattern_x_max_txt.blockSignals(False)
-        self.bkg_pattern_x_min_txt.blockSignals(False)
