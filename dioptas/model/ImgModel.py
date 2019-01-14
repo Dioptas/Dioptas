@@ -29,7 +29,7 @@ import fabio
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
-from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface
+from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,8 @@ class ImgModel(QtCore.QObject):
     """
     img_changed = QtCore.Signal()
     autoprocess_changed = QtCore.Signal()
-    cbn_correction_changed = QtCore.Signal()
-    oiadac_correction_changed = QtCore.Signal()
+    transformations_changed = QtCore.Signal()
+    corrections_removed = QtCore.Signal()
 
     def __init__(self):
         super(ImgModel, self).__init__()
@@ -77,6 +77,8 @@ class ImgModel(QtCore.QObject):
         self._background_offset = 0
 
         self._factor = 1
+
+        self.transfer_correction = TransferFunctionCorrection()
 
         self.file_info = ''
         self.motors_info = {}
@@ -323,7 +325,10 @@ class ImgModel(QtCore.QObject):
             if self._img_data.shape != self._background_data.shape:
                 self._background_data = None
         if self._img_corrections.has_items():
-            self._img_corrections.set_shape(self._img_data.shape)
+            if self._img_data.shape != self._img_corrections.shape:
+                self._img_corrections.clear()
+                self.transfer_correction.reset()
+                self.corrections_removed.emit()
 
         # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():
@@ -408,6 +413,7 @@ class ImgModel(QtCore.QObject):
 
         self.img_transformations.append(rotate_matrix_p90)
 
+        self.transformations_changed.emit()
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -421,6 +427,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = rotate_matrix_m90(self._background_data)
         self.img_transformations.append(rotate_matrix_m90)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -435,6 +442,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = np.fliplr(self._background_data)
         self.img_transformations.append(np.fliplr)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -449,6 +457,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
         self.img_transformations.append(np.flipud)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -472,6 +481,8 @@ class ImgModel(QtCore.QObject):
                 if self._background_data is not None:
                     self._background_data = transformation(self._background_data)
         self.img_transformations = []
+        self.transformations_changed.emit()
+
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -557,7 +568,7 @@ class ImgModel(QtCore.QObject):
         else:
             return img_data
 
-    def add_img_correction(self, correction, name=None, external=None):
+    def add_img_correction(self, correction, name=None):
         """
         Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
         each other, depending on the order of addition.
@@ -570,10 +581,6 @@ class ImgModel(QtCore.QObject):
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
         self.img_changed.emit()
-        if external == 'cbn':
-            self.cbn_correction_changed.emit()
-        if external == 'oiadac':
-            self.oiadac_correction_changed.emit()
 
     def get_img_correction(self, name):
         """
@@ -590,6 +597,18 @@ class ImgModel(QtCore.QObject):
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()
+
+    def enable_transfer_function(self):
+        if self.transfer_correction.get_data() is not None and \
+                self.get_img_correction('transfer') is None:
+            self.add_img_correction(self.transfer_correction, 'transfer')
+        if self.get_img_correction('transfer') is not None:
+            self._calculate_img_data()
+            self.img_changed.emit()
+
+    def disable_transfer_function(self):
+        if self.get_img_correction('transfer') is not None:
+            self.delete_img_correction('transfer')
 
     @property
     def img_corrections(self):

@@ -66,19 +66,19 @@ poly_order = 55
 x_min = 1.0
 x_max = 8.0
 pyfai_params = OrderedDict({
-                'detector': 'Detector',
-                'pixel1': 7.9e-05,
-                'pixel2': 7.9e-05,
-                'max_shape': None,
-                'dist': 0.196711580484,
-                'poni1': 0.0813975852141,
-                'poni2': 0.0820662115429,
-                'rot1': 0.00615439716514,
-                'rot2': -0.00156720465515,
-                'rot3': 1.68707221612e-06,
-                'wavelength': 3.1e-11,
-                'polarization_factor': 0.99
-                })
+    'detector': 'Detector',
+    'pixel1': 7.9e-05,
+    'pixel2': 7.9e-05,
+    'max_shape': None,
+    'dist': 0.196711580484,
+    'poni1': 0.0813975852141,
+    'poni2': 0.0820662115429,
+    'rot1': 0.00615439716514,
+    'rot2': -0.00156720465515,
+    'rot3': 1.68707221612e-06,
+    'wavelength': 3.1e-11,
+    'polarization_factor': 0.99
+})
 pressure = 12.0
 
 
@@ -145,7 +145,7 @@ class ProjectSaveLoadTest(QtTest):
                 self.model.reset()
                 self.model.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"),
                                                   'pattern': '', 'overlay': '', 'phase': ''}
-
+                self.setUp()
                 if intermediate_function:
                     intermediate_function()
 
@@ -159,7 +159,6 @@ class ProjectSaveLoadTest(QtTest):
             self.model.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"),
                                               'pattern': '', 'overlay': '', 'phase': ''}
             self.setUp()
-
             if intermediate_function:
                 intermediate_function()
 
@@ -167,7 +166,7 @@ class ProjectSaveLoadTest(QtTest):
 
         delete_if_exists(config_file_path)
 
-    def existing_files_intermediate_settings(self):
+    def disable_calibration_check(self):
         self.check_calibration = False
 
     def save_configuration(self):
@@ -286,7 +285,7 @@ class ProjectSaveLoadTest(QtTest):
     def test_with_cbn_correction(self):
         self.save_and_load_configuration(self.cbn_correction_settings, mock_1d_integration=False)
         print(self.model.current_configuration.img_model.img_corrections.corrections)
-        self.assertEqual(self.model.current_configuration.img_model.img_corrections.corrections["cbn"].\
+        self.assertEqual(self.model.current_configuration.img_model.img_corrections.corrections["cbn"]. \
                          _diamond_thickness, 1.9)
 
     def cbn_correction_settings(self):
@@ -307,6 +306,36 @@ class ProjectSaveLoadTest(QtTest):
         self.controller.widget.integration_widget.oiadac_param_tw.cellWidget(0, 1).setText('30')
         self.controller.widget.integration_widget.oiadac_param_tw.cellWidget(1, 1).setText('450')
         self.controller.integration_controller.correction_controller.oiadac_groupbox_changed()
+
+    ####################################################################################################################
+    def test_with_transfer_correction(self):
+        self.save_and_load_configuration(self.transfer_correction_settings)
+
+        # test model
+        self.assertEqual(self.model.img_model.transfer_correction.original_filename, self.original_filename)
+        self.assertEqual(self.model.img_model.transfer_correction.response_filename, self.response_filename)
+        self.assertTrue(self.model.img_model.has_corrections())
+
+        # test widget
+        correction_widget = self.widget.integration_widget.integration_control_widget.corrections_control_widget
+        self.assertTrue(correction_widget.transfer_gb.isChecked())
+        self.assertEqual(correction_widget.transfer_original_filename_lbl.text(),
+                         os.path.basename(self.original_filename))
+        self.assertEqual(correction_widget.transfer_original_filename_lbl.text(),
+                         os.path.basename(self.original_filename))
+
+    def transfer_correction_settings(self):
+        self.original_filename = os.path.join(data_path, 'TransferCorrection', 'original.tif')
+        self.response_filename = os.path.join(data_path, 'TransferCorrection', 'response.tif')
+        correction_widget = self.widget.integration_widget.integration_control_widget.corrections_control_widget
+
+        correction_widget.transfer_gb.setChecked(True)
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[self.original_filename])
+        click_button(self.widget.integration_widget.load_img_btn)
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=self.original_filename)
+        click_button(correction_widget.transfer_load_original_btn)
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=self.response_filename)
+        click_button(correction_widget.transfer_load_response_btn)
 
     ####################################################################################################################
     def test_configuration_in_cake_mode(self):
@@ -361,6 +390,19 @@ class ProjectSaveLoadTest(QtTest):
         click_button(self.controller.integration_controller.widget.bkg_image_load_btn)
 
     ####################################################################################################################
+    def test_with_automatic_background_subtraction(self):
+        self.save_and_load_configuration(self.activate_automatic_background_subtraction, mock_1d_integration=True)
+        self.assertGreater(self.model.pattern.auto_background_subtraction_roi[0], 9.)
+        self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_btn.isChecked())
+        self.assertGreater(float(self.widget.integration_widget.bkg_pattern_x_min_txt.text()), 9)
+
+    def activate_automatic_background_subtraction(self):
+        self.model.pattern.load(os.path.join(data_path, 'pattern_001.xy'))
+        click_button(self.widget.integration_widget.qa_bkg_pattern_btn)
+        enter_value_into_text_field(self.widget.integration_widget.bkg_pattern_x_min_txt, '9')
+        self.assertGreater(self.model.pattern.auto_background_subtraction_roi[0], 9)
+
+    ####################################################################################################################
     def test_save_settings_on_closing(self):
         with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                           np.ones((1001,)))):
@@ -384,7 +426,8 @@ class ProjectSaveLoadTest(QtTest):
     ####################################################################################################################
     def test_distortion_correction(self):
         self.check_calibration = False
-        self.save_and_load_configuration(self.prepare_distortion_correction_test)
+        self.save_and_load_configuration(self.prepare_distortion_correction_test,
+                                         intermediate_function=self.disable_calibration_check)
         self.assertIsNotNone(self.model.calibration_model.distortion_spline_filename)
         self.assertEqual(self.widget.calibration_widget.spline_filename_txt.text(),
                          'f4mnew.spline')
@@ -403,5 +446,3 @@ class ProjectSaveLoadTest(QtTest):
         self.model.calibration_model.calibrate()
 
         _, y1 = self.model.calibration_model.integrate_1d()
-
-

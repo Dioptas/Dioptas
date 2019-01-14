@@ -217,7 +217,6 @@ class ImageController(object):
                     self._load_multiple_files(filenames)
                 elif self.widget.img_batch_mode_image_save_rb.isChecked():
                     self._save_multiple_image_files(filenames)
-            self._check_absorption_correction_shape()
 
     def _load_multiple_files(self, filenames):
         if not self.model.calibration_model.is_calibrated:
@@ -480,7 +479,7 @@ class ImageController(object):
         self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.model.img_model.file_info)
 
-        self.widget.cbn_plot_correction_btn.setText('Plot')
+        self.widget.cbn_plot_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
 
         # update the window due to some errors on mac when using macports
@@ -940,15 +939,6 @@ class ImageController(object):
                         for azi, row in zip(self.model.cake_azi, self.model.cake_data):
                             row_str = " ".join(["{:6.0f}".format(el) for el in row])
                             out_file.write("{:6.2f}".format(azi) + row_str + '\n')
-
-    def _check_absorption_correction_shape(self):
-        if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
-            self.widget.cbn_groupbox.setChecked(False)
-            self.widget.oiadac_groupbox.setChecked(False)
-            QtWidgets.QMessageBox.critical(self.widget,
-                                           'ERROR',
-                                           'Due to a change in image dimensions the absorption ' +
-                                           'corrections have been removed')
 
     def update_gui_from_configuration(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
