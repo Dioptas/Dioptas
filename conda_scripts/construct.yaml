@@ -5,10 +5,10 @@ channels:
     - http://repo.continuum.io/pkgs/main
     - http://repo.continuum.io/pkgs/free
     - http://repo.continuum.io/pkgs/msys2 [win]
-    - https://conda.anaconda.org/gsecars/
+    - https://conda.anaconda.org/cprescher/
 
 specs:
-    - python 3.6*
+    - python
     - conda
     - anaconda
     - setuptools
@@ -32,10 +32,9 @@ specs:
     - requests
     - scikit-image
     - pycifrw
-    - fabio>=0.6.0 # [linux64 or osx]
-    - pyfai>=0.15.0  # [linux64 or osx]
-    - tifffile
-    - lmfit>=0.9.11
+    - fabio>=0.6.0
+    - pyfai>=0.15.0
+    - lmfit
     - dioptas
 
 ## someday, hopefully!
