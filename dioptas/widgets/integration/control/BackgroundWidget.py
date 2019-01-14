@@ -59,7 +59,6 @@ class BackgroundWidget(QtWidgets.QWidget):
 
         self.image_background_gb.setLayout(self._image_background_gb_layout)
 
-
         self.setLayout(self._layout)
 
         self.pattern_background_gb = QtWidgets.QGroupBox('Pattern Background')
@@ -153,3 +152,37 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.x_range_max_txt.setMaximumWidth(70)
 
         self.inspect_btn.setMaximumHeight(150)
+
+    def get_bkg_pattern_parameters(self):
+        smooth_width = float(self.smooth_with_sb.value())
+        iterations = int(self.iterations_sb.value())
+        polynomial_order = int(self.poly_order_sb.value())
+        return smooth_width, iterations, polynomial_order
+
+    def set_bkg_pattern_parameters(self, bkg_pattern_parameters):
+        self.smooth_with_sb.blockSignals(True)
+        self.iterations_sb.blockSignals(True)
+        self.poly_order_sb.blockSignals(True)
+
+        self.smooth_with_sb.setValue(bkg_pattern_parameters[0])
+        self.iterations_sb.setValue(bkg_pattern_parameters[1])
+        self.poly_order_sb.setValue(bkg_pattern_parameters[2])
+
+        self.smooth_with_sb.blockSignals(False)
+        self.iterations_sb.blockSignals(False)
+        self.poly_order_sb.blockSignals(False)
+
+    def get_bkg_pattern_roi(self):
+        x_min = float(str(self.x_range_min_txt.text()))
+        x_max = float(str(self.x_range_max_txt.text()))
+        return x_min, x_max
+
+    def set_bkg_pattern_roi(self, roi):
+        self.x_range_min_txt.blockSignals(True)
+        self.x_range_max_txt.blockSignals(True)
+
+        self.x_range_min_txt.setText('{:.3f}'.format(roi[0]))
+        self.x_range_max_txt.setText('{:.3f}'.format(roi[1]))
+
+        self.x_range_min_txt.blockSignals(False)
+        self.x_range_max_txt.blockSignals(False)

@@ -44,6 +44,7 @@ class BackgroundController(object):
         :type dioptas_model: DioptasModel
         """
         self.widget = widget
+        self.background_widget = widget.integration_control_widget.background_control_widget
         self.model = dioptas_model
 
         self.model.configuration_selected.connect(self.update_bkg_image_widgets)
@@ -137,8 +138,8 @@ class BackgroundController(object):
         self.widget.qa_bkg_pattern_inspect_btn.setVisible(is_checked)
 
         if is_checked:
-            bkg_pattern_parameters = self.widget.get_bkg_pattern_parameters()
-            bkg_pattern_roi = self.widget.get_bkg_pattern_roi()
+            bkg_pattern_parameters = self.background_widget.get_bkg_pattern_parameters()
+            bkg_pattern_roi = self.background_widget.get_bkg_pattern_roi()
             self.model.pattern_model.set_auto_background_subtraction(bkg_pattern_parameters, bkg_pattern_roi)
         else:
             self.widget.bkg_pattern_inspect_btn.setChecked(False)
@@ -147,15 +148,15 @@ class BackgroundController(object):
             self.model.pattern_model.unset_auto_background_subtraction()
 
     def bkg_pattern_parameters_changed(self):
-        bkg_pattern_parameters = self.widget.get_bkg_pattern_parameters()
-        bkg_pattern_roi = self.widget.get_bkg_pattern_roi()
+        bkg_pattern_parameters = self.background_widget.get_bkg_pattern_parameters()
+        bkg_pattern_roi = self.background_widget.get_bkg_pattern_roi()
         if self.model.pattern_model.pattern.auto_background_subtraction:
             self.model.pattern_model.set_auto_background_subtraction(bkg_pattern_parameters, bkg_pattern_roi)
 
     def update_bkg_gui_parameters(self):
         if self.model.pattern_model.pattern.auto_background_subtraction:
-            self.widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
-            self.widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
+            self.background_widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
+            self.background_widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
 
             self.widget.pattern_widget.linear_region_item.blockSignals(True)
             self.widget.pattern_widget.set_linear_region(
