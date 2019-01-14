@@ -18,7 +18,7 @@
 
 from qtpy import QtWidgets, QtCore
 
-from ...CustomWidgets import NumberTextField, CheckableFlatButton, ListTableWidget
+from ...CustomWidgets import NumberTextField, CheckableFlatButton, ListTableWidget, FlatButton
 
 
 class CorrectionsWidget(QtWidgets.QWidget):
@@ -34,6 +34,9 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.create_oiadac_widgets()
         self.create_oiadac_layout()
 
+        self.create_transfer_widgets()
+        self.create_transfer_layout()
+
         vertical_layout_1 = QtWidgets.QHBoxLayout()
         vertical_layout_1.addWidget(self.cbn_seat_gb)
         vertical_layout_1.addStretch(1)
@@ -42,7 +45,12 @@ class CorrectionsWidget(QtWidgets.QWidget):
         vertical_layout_2 = QtWidgets.QHBoxLayout()
         vertical_layout_2.addWidget(self.oiadac_gb)
         vertical_layout_2.addStretch(1)
-        self._layout.addLayout(vertical_layout_2, 1)
+        self._layout.addLayout(vertical_layout_2, 2)
+
+        vertical_layout_3 = QtWidgets.QHBoxLayout()
+        vertical_layout_3.addWidget(self.transfer_gb)
+        vertical_layout_3.addStretch(1)
+        self._layout.addLayout(vertical_layout_3, 2)
 
         self._layout.addStretch(1)
 
@@ -51,6 +59,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         self.hide_cbn_widgets()
         self.hide_oiadac_widgets()
+        self.hide_transfer_widgets()
 
     def create_cbn_correction_widgets(self):
         self.cbn_seat_gb = QtWidgets.QGroupBox('cBN Seat Correction')
@@ -150,11 +159,31 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         self.oiadac_gb.setLayout(self._oiadac_layout)
 
+    def create_transfer_widgets(self):
+        self.transfer_gb = QtWidgets.QGroupBox('Transfer Correction')
+        self.transfer_load_original_btn = FlatButton('Load Original')
+        self.transfer_load_response_btn = FlatButton('Load Response')
+        self.transfer_original_filename_lbl = QtWidgets.QLabel('None')
+        self.transfer_response_filename_lbl = QtWidgets.QLabel('None')
+        self.transfer_plot_btn = CheckableFlatButton('Plot')
+
+    def create_transfer_layout(self):
+        self._transfer_layout = QtWidgets.QGridLayout()
+        self._transfer_layout.setSpacing(5)
+        self._transfer_layout.addWidget(self.transfer_load_original_btn, 0, 0)
+        self._transfer_layout.addWidget(self.transfer_load_response_btn, 1, 0)
+        self._transfer_layout.addWidget(self.transfer_original_filename_lbl, 0, 1)
+        self._transfer_layout.addWidget(self.transfer_response_filename_lbl, 1, 1)
+        self._transfer_layout.addWidget(self.transfer_plot_btn, 0, 2)
+        self.transfer_gb.setLayout(self._transfer_layout)
+
     def style_widgets(self):
         self.cbn_seat_gb.setCheckable(True)
         self.cbn_seat_gb.setChecked(False)
         self.oiadac_gb.setCheckable(True)
         self.oiadac_gb.setChecked(False)
+        self.transfer_gb.setCheckable(True)
+        self.transfer_gb.setChecked(False)
 
         self.setStyleSheet("""
                     QLineEdit {
@@ -165,9 +194,9 @@ class CorrectionsWidget(QtWidgets.QWidget):
                     
                     QPushButton {
                         min-width: 50 px;
-                        max-width: 60 px;
+                        max-width: 90 px;
                         min-height: 30 px;
-                        max-width: 30 px;
+                        max-height: 30 px;
                     }
                     """)
 
@@ -181,6 +210,9 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         self.cbn_seat_gb.setMinimumWidth(380)
         self.oiadac_gb.setMinimumWidth(380)
+        self.transfer_gb.setMinimumWidth(380)
+        self.transfer_plot_btn.setMinimumWidth(35)
+        self.transfer_plot_btn.setMaximumWidth(35)
 
     def hide_cbn_widgets(self):
         self.cbn_seat_plot_btn.hide()
@@ -202,6 +234,22 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.oiadac_param_tw.show()
         self.oiadac_gb.setMaximumHeight(999999)
 
+    def hide_transfer_widgets(self):
+        self.transfer_plot_btn.hide()
+        self.transfer_original_filename_lbl.hide()
+        self.transfer_load_original_btn.hide()
+        self.transfer_response_filename_lbl.hide()
+        self.transfer_load_response_btn.hide()
+        self.transfer_gb.setMaximumHeight(20)
+
+    def show_transfer_widgets(self):
+        self.transfer_plot_btn.show()
+        self.transfer_original_filename_lbl.show()
+        self.transfer_load_original_btn.show()
+        self.transfer_response_filename_lbl.show()
+        self.transfer_load_response_btn.show()
+        self.transfer_gb.setMaximumHeight(99999)
+
     def toggle_cbn_widget_visibility(self, flag):
         if flag:
             self.show_cbn_widgets()
@@ -213,3 +261,9 @@ class CorrectionsWidget(QtWidgets.QWidget):
             self.show_oiadac_widgets()
         else:
             self.hide_oiadac_widgets()
+
+    def toggle_transfer_widget_visibility(self, flag):
+        if flag:
+            self.show_transfer_widgets()
+        else:
+            self.hide_transfer_widgets()

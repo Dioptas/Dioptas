@@ -16,9 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtCore
-
 import numpy as np
+import fabio
+from PIL import Image
 
 
 class ImgCorrectionManager(object):
@@ -56,11 +56,6 @@ class ImgCorrectionManager(object):
         self._corrections = {}
         self.shape = None
         self._ind = 0
-
-    def set_shape(self, shape):
-        if self.shape != shape:
-            self.clear()
-        self.shape = shape
 
     def get_data(self):
         if len(self._corrections) == 0:
@@ -165,7 +160,7 @@ class CbnCorrection(ImgCorrectionInterface):
         # calculate radius of the cone for each pixel specific to a center_offset and rotation angle
         if self._center_offset != 0:
             beta = azi - np.arcsin(
-                    self._center_offset * np.sin((np.pi - (azi + center_offset_angle))) / r1) + center_offset_angle
+                self._center_offset * np.sin((np.pi - (azi + center_offset_angle))) / r1) + center_offset_angle
             r1 = np.sqrt(r1 ** 2 + self._center_offset ** 2 - 2 * r1 * self._center_offset * np.cos(beta))
             r2 = np.sqrt(r2 ** 2 + self._center_offset ** 2 - 2 * r2 * self._center_offset * np.cos(beta))
 
@@ -287,14 +282,87 @@ class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
         rotation_rad = self.rotation / 180.0 * np.pi
 
         path_length = self.detector_thickness / np.cos(
-                np.sqrt(self.tth_array ** 2 + tilt_rad ** 2 - 2 * tilt_rad * self.tth_array * \
-                        np.cos(np.pi - self.azi_array + rotation_rad)))
+            np.sqrt(self.tth_array ** 2 + tilt_rad ** 2 - 2 * tilt_rad * self.tth_array * \
+                    np.cos(np.pi - self.azi_array + rotation_rad)))
 
         attenuation_constant = 1.0 / self.absorption_length
         absorption_correction = (1 - np.exp(-attenuation_constant * path_length)) / \
                                 (1 - np.exp(-attenuation_constant * self.detector_thickness))
 
         self._data = absorption_correction
+
+
+class TransferFunctionCorrection(ImgCorrectionInterface):
+    def __init__(self, original_filename=None, response_filename=None, img_transformations=None):
+        self.original_filename = None
+        self.response_filename = None
+        self.original_data = None
+        self.response_data = None
+        self.transfer_data = None
+
+        self.img_transformations = img_transformations
+
+        if original_filename:
+            self.load_original_image(original_filename)
+        if response_filename:
+            self.load_response_image(response_filename)
+
+    def load_original_image(self, img_filename):
+        self.original_filename = img_filename
+        self.original_data = load_image(img_filename)
+        if self.response_filename:
+            self.calculate_transfer_data()
+
+    def load_response_image(self, img_filename):
+        self.response_filename = img_filename
+        self.response_data = load_image(img_filename)
+        if self.original_filename:
+            self.calculate_transfer_data()
+
+    def set_img_transformations(self, img_transformations):
+        """
+        sets the image transformations
+        :param img_transformations:
+        """
+        self.img_transformations = img_transformations
+        if self.response_filename and self.original_filename:
+            self.calculate_transfer_data()
+
+    def calculate_transfer_data(self):
+        transfer_data = self.response_data / self.original_data
+        if self.img_transformations:
+            for transformation in self.img_transformations:
+                transfer_data = transformation(transfer_data)
+        self.transfer_data = transfer_data
+
+    def get_data(self):
+        return self.transfer_data
+
+    def shape(self):
+        return self.transfer_data.shape
+
+    def get_params(self):
+        return {
+            'original_filename': self.original_filename,
+            'response_filename': self.response_filename,
+            'original_data': self.original_data,
+            'response_data': self.response_data,
+        }
+
+    def set_params(self, params):
+        self.original_filename = params['original_filename']
+        self.response_filename = params['response_filename']
+        self.original_data = params['original_data']
+        self.response_data = params['response_data']
+        self.calculate_transfer_data()
+
+    def reset(self):
+        self.original_filename = None
+        self.response_filename = None
+        self.original_data = None
+        self.response_data = None
+        self.transfer_data = None
+        self.img_transformations = None
 
 
 class DummyCorrection(ImgCorrectionInterface):
@@ -311,6 +379,17 @@ class DummyCorrection(ImgCorrectionInterface):
 
     def shape(self):
         return self._shape
+
+
+def load_image(filename):
+    try:
+        im = Image.open(filename)
+        img_data = np.array(im)[::-1]
+        im.close()
+    except IOError:
+        _img_data_fabio = fabio.open(filename)
+        img_data = _img_data_fabio.data[::-1]
+    return img_data
 
 
 def vector_len(vec):

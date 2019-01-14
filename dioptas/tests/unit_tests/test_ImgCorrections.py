@@ -23,6 +23,8 @@ import numpy as np
 
 from ...model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
     ObliqueAngleDetectorAbsorptionCorrection
+from ...model.util.ImgCorrection import TransferFunctionCorrection, load_image
+from ..utility import unittest_data_path
 
 
 class DummyCorrection(ImgCorrectionInterface):
@@ -94,14 +96,6 @@ class ImgCorrectionsUnitTest(unittest.TestCase):
         # just deleting something, when all corrections have a name will not change anything
         self.corrections.delete()
         self.assertEqual(np.mean(self.corrections.get_data()), 5)
-
-    def test_set_shape(self):
-        self.corrections.add(DummyCorrection((2048, 2048), 3), "cbn Correction")
-        self.corrections.add(DummyCorrection((2048, 2048), 5), "oblique angle Correction")
-
-        # setting it to a different shape should remove the existent corrections
-        self.corrections.set_shape((2048, 1024))
-        self.assertEqual(self.corrections.get_data(), None)
 
 
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
@@ -185,11 +179,11 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
         self.azi_array = self.calibration_data.pattern_geometry.chiArray((2048, 2048))
 
         self.oiadac_correction = ObliqueAngleDetectorAbsorptionCorrection(
-                self.tth_array, self.azi_array,
-                detector_thickness=40,
-                absorption_length=465.5,
-                tilt=detector_tilt,
-                rotation=detector_tilt_rotation,
+            self.tth_array, self.azi_array,
+            detector_thickness=40,
+            absorption_length=465.5,
+            tilt=detector_tilt,
+            rotation=detector_tilt_rotation,
         )
         self.img_data.add_img_correction(self.oiadac_correction, "oiadac")
 
@@ -214,15 +208,15 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
 
         def fcn2min(params):
             cbn_correction = CbnCorrection(
-                    tth_array=self.tth_array,
-                    azi_array=self.azi_array,
-                    diamond_thickness=params['diamond_thickness'].value,
-                    seat_thickness=params['seat_thickness'].value,
-                    small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
-                    large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
-                    tilt=params['tilt'].value,
-                    tilt_rotation=params['tilt_rotation'].value,
-                    cbn_abs_length=params["cbn_abs_length"].value
+                tth_array=self.tth_array,
+                azi_array=self.azi_array,
+                diamond_thickness=params['diamond_thickness'].value,
+                seat_thickness=params['seat_thickness'].value,
+                small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
+                large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
+                tilt=params['tilt'].value,
+                tilt_rotation=params['tilt_rotation'].value,
+                cbn_abs_length=params["cbn_abs_length"].value
             )
             self.img_data.add_img_correction(cbn_correction, "cbn")
             tth, int = self.calibration_data.integrate_1d(mask=self.mask_data.get_mask())
@@ -239,15 +233,15 @@ class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
 
         # plotting result:
         cbn_correction = CbnCorrection(
-                tth_array=self.tth_array,
-                azi_array=self.azi_array,
-                diamond_thickness=params['diamond_thickness'].value,
-                seat_thickness=params['seat_thickness'].value,
-                small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
-                large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
-                tilt=params['tilt'].value,
-                tilt_rotation=params['tilt_rotation'].value,
-                cbn_abs_length=params['cbn_abs_length'].value
+            tth_array=self.tth_array,
+            azi_array=self.azi_array,
+            diamond_thickness=params['diamond_thickness'].value,
+            seat_thickness=params['seat_thickness'].value,
+            small_cbn_seat_radius=params['small_cbn_seat_radius'].value,
+            large_cbn_seat_radius=params['large_cbn_seat_radius'].value,
+            tilt=params['tilt'].value,
+            tilt_rotation=params['tilt_rotation'].value,
+            cbn_abs_length=params['cbn_abs_length'].value
         )
         self.img_data.add_img_correction(cbn_correction, "cbn")
         tth, int = self.calibration_data.integrate_1d(mask=self.mask_data.get_mask())
@@ -312,17 +306,43 @@ class ObliqueAngleDetectorAbsorptionCorrectionTest(unittest.TestCase):
 
     def test_that_it_is_correctly_calculating(self):
         oblique_correction = ObliqueAngleDetectorAbsorptionCorrection(
-                tth_array=self.tth_array,
-                azi_array=self.azi_array,
-                detector_thickness=40,
-                absorption_length=465.5,
-                tilt=self.tilt,
-                rotation=self.rotation
+            tth_array=self.tth_array,
+            azi_array=self.azi_array,
+            detector_thickness=40,
+            absorption_length=465.5,
+            tilt=self.tilt,
+            rotation=self.rotation
         )
         oblique_correction_data = oblique_correction.get_data()
         self.assertGreater(np.sum(oblique_correction_data), 0)
         self.assertEqual(oblique_correction_data.shape, self.dummy_img.shape)
         del oblique_correction
+
+
+class TransferFunctionCorrectionTest(unittest.TestCase):
+    def setUp(self):
+        self.original_image_filename = os.path.join(unittest_data_path, 'TransferCorrection', 'original.tif')
+        self.response_image_filename = os.path.join(unittest_data_path, 'TransferCorrection', 'response.tif')
+        self.original_data = load_image(self.original_image_filename)
+        self.response_data = load_image(self.response_image_filename)
+
+        self.transfer_correction = TransferFunctionCorrection(self.original_image_filename,
+                                                              self.response_image_filename)
+
+    def test_general_behavior(self):
+        transfer_data = self.transfer_correction.get_data()
+        self.assertEqual(transfer_data.shape, self.original_data.shape)
+        self.assertEqual(transfer_data.shape, self.response_data.shape)
+        self.assertAlmostEqual(np.sum(transfer_data - self.response_data / self.original_data), 0)
+
+    def test_apply_img_transformations(self):
+        from ...model.util.HelperModule import rotate_matrix_m90
+        img_transformations = [np.fliplr, rotate_matrix_m90]
+        self.transfer_correction.set_img_transformations(img_transformations)
+
+        transfer_data = self.transfer_correction.get_data()
+        self.assertNotEqual(transfer_data, self.original_data)
+        self.assertNotEqual(transfer_data, self.response_data)
 
 
 if __name__ == '__main__':
