@@ -390,6 +390,19 @@ class ProjectSaveLoadTest(QtTest):
         click_button(self.controller.integration_controller.widget.bkg_image_load_btn)
 
     ####################################################################################################################
+    def test_with_automatic_background_subtraction(self):
+        self.save_and_load_configuration(self.activate_automatic_background_subtraction, mock_1d_integration=True)
+        self.assertGreater(self.model.pattern.auto_background_subtraction_roi[0], 9.)
+        self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_btn.isChecked())
+        self.assertGreater(float(self.widget.integration_widget.bkg_pattern_x_min_txt.text()), 9)
+
+    def activate_automatic_background_subtraction(self):
+        self.model.pattern.load(os.path.join(data_path, 'pattern_001.xy'))
+        click_button(self.widget.integration_widget.qa_bkg_pattern_btn)
+        enter_value_into_text_field(self.widget.integration_widget.bkg_pattern_x_min_txt, '9')
+        self.assertGreater(self.model.pattern.auto_background_subtraction_roi[0], 9)
+
+    ####################################################################################################################
     def test_save_settings_on_closing(self):
         with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                           np.ones((1001,)))):

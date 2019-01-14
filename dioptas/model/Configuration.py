@@ -686,4 +686,7 @@ class Configuration(QtCore.QObject):
         for file_format in f.get('general_information').get('integrated_patterns_file_formats'):
             self.integrated_patterns_file_formats.append(file_format[0].decode('utf-8'))
 
-        self.integrate_image_1d()
+        if self.calibration_model.is_calibrated:
+            self.integrate_image_1d()
+        else:
+            self.pattern_model.pattern.recalculate_pattern()

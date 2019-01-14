@@ -206,18 +206,13 @@ class BackgroundController(object):
 
     def update_auto_pattern_bkg_widgets(self):
         # set the state of the toggles:
+        self.widget.bkg_pattern_gb.blockSignals(True)
+        self.widget.qa_bkg_pattern_btn.blockSignals(True)
         self.widget.bkg_pattern_gb.setChecked(self.model.pattern.auto_background_subtraction)
         self.widget.qa_bkg_pattern_btn.setChecked(self.model.pattern.auto_background_subtraction)
+        self.widget.bkg_pattern_gb.blockSignals(False)
+        self.widget.qa_bkg_pattern_btn.blockSignals(False)
+
         self.update_bkg_gui_parameters()
         self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)
         self.widget.bkg_pattern_inspect_btn.setChecked(False)
-
-    def auto_background_set(self, bg_params, bg_roi):
-        self.widget.bkg_pattern_gb.setChecked(True)
-        self.widget.qa_bkg_pattern_btn.setChecked(True)
-        self.widget.bkg_pattern_smooth_width_sb.setValue(bg_params[0])
-        self.widget.bkg_pattern_iterations_sb.setValue(bg_params[1])
-        self.widget.bkg_pattern_poly_order_sb.setValue(bg_params[2])
-        self.widget.bkg_pattern_x_min_txt.setText(str(bg_roi[0]))
-        self.widget.bkg_pattern_x_max_txt.setText(str(bg_roi[1]))
-        self.bkg_pattern_gb_toggled_callback(True)
