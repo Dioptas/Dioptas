@@ -7,12 +7,9 @@ import re
 import os
 
 from .PhotoConfig import gsecars_photo
-from ...widgets.MapWidgets import Map2DWidget
-from ...widgets.MapWidgets import ManualMapPositionsDialog
-from ...widgets.MapWidgets import OpenBGImageDialog
+from ...widgets.MapWidgets import Map2DWidget, ManualMapPositionsDialog, OpenBGImageDialog, MapErrorDialog
 from ...widgets.UtilityWidgets import save_file_dialog, open_files_dialog
 from ...widgets.MainWidget import IntegrationWidget
-from .MapErrors import *
 from ...model.MapModel import MapModel
 from ...model.DioptasModel import DioptasModel
 
@@ -50,15 +47,17 @@ class MapController(object):
 
         self.map_widget.load_ascii_files_btn.clicked.connect(self.load_ascii_files_btn_clicked)
         self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
+
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
         self.map_widget.roi_add_phase_btn.clicked.connect(self.btn_roi_add_phase_clicked)
         self.map_widget.roi_del_btn.clicked.connect(self.btn_roi_del_clicked)
         self.map_widget.roi_clear_btn.clicked.connect(self.btn_roi_clear_clicked)
         self.map_widget.roi_toggle_btn.clicked.connect(self.btn_roi_toggle_clicked)
         self.map_widget.roi_select_all_btn.clicked.connect(self.btn_roi_select_all_clicked)
+
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
         self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
-        self.map_widget.reset_zoom_btn.clicked.connect(self.reset_zoom_btn_clicked)
+
         self.map_widget.snapshot_btn.clicked.connect(self.snapshot_btn_clicked)
         self.map_widget.roi_math_txt.textEdited.connect(self.roi_math_txt_changed)
         self.map_widget.roi_list.itemSelectionChanged.connect(self.roi_list_selection_changed)
@@ -83,7 +82,6 @@ class MapController(object):
         self.map_widget.roi_del_btn.setEnabled(toggle)
         self.map_widget.roi_clear_btn.setEnabled(toggle)
         self.map_widget.roi_select_all_btn.setEnabled(toggle)
-        self.map_widget.reset_zoom_btn.setEnabled(toggle)
         self.map_widget.snapshot_btn.setEnabled(toggle)
         self.map_widget.add_bg_btn.setEnabled(toggle)
         self.map_widget.bg_opacity_slider.setEnabled(toggle)
@@ -98,7 +96,6 @@ class MapController(object):
         self.map_widget.roi_del_btn.setStyleSheet(new_style)
         self.map_widget.roi_clear_btn.setStyleSheet(new_style)
         self.map_widget.roi_select_all_btn.setStyleSheet(new_style)
-        self.map_widget.reset_zoom_btn.setStyleSheet(new_style)
         self.map_widget.snapshot_btn.setStyleSheet(new_style)
         self.map_widget.add_bg_btn.setStyleSheet(new_style)
         self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
@@ -109,7 +106,7 @@ class MapController(object):
         if self.map_model.all_positions_defined_in_files:
             self.map_model.organize_map_files()
         else:
-            MapError(cannot_read_positions_from_image_files)
+            MapErrorDialog(cannot_read_positions_from_image_files)
         self.update_map_status_size_and_step_lbl()
 
     def update_map_status_files_lbl(self):
@@ -167,7 +164,7 @@ class MapController(object):
                 self.map_model.add_img_file_to_map_data(filename, self.model.working_directories['pattern'], None)
             self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
             self.update_map_status_files_lbl()
-            MapError(cannot_read_positions_from_image_files)
+            MapErrorDialog(cannot_read_positions_from_image_files)
 
     def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []
@@ -201,7 +198,7 @@ class MapController(object):
         # add ROI to list
         roi_num = self.map_widget.roi_num
         if roi_num > 25:
-            MapError(too_many_rois)
+            MapErrorDialog(too_many_rois)
             return
         roi_name = self.generate_roi_name(roi_start, roi_end, roi_num)
         roi_list_item = QtWidgets.QListWidgetItem(self.map_widget.roi_list)
@@ -345,9 +342,6 @@ class MapController(object):
         self.map_widget.roi_math_txt.setText(roi_math_txt)
         self.btn_update_map_clicked()
 
-    def reset_zoom_btn_clicked(self):
-        self.map_widget.map_view_box.autoRange()
-
     def snapshot_btn_clicked(self):
         snapshot_filename = save_file_dialog(self.widget, "Save Map Snapshot.",
                                              os.path.join(self.working_dir['pattern'], 'map.png'),
@@ -438,13 +432,13 @@ class MapController(object):
 
     def btn_add_bg_image_clicked(self):
         if not self.map_widget.map_loaded:
-            MapError(no_map_loaded)
+            MapErrorDialog(no_map_loaded)
             return
 
         load_name = self.load_bg_image_file()
 
         if not load_name:
-            MapError(no_bg_image_selected)
+            MapErrorDialog(no_bg_image_selected)
             return
 
         load_name_file = str(load_name).rsplit('/', 1)[-1]
@@ -534,10 +528,10 @@ class MapController(object):
         self.manual_map_positions_dialog.selected_map_files.clear()
 
     def map_positions_problem(self):
-        MapError(map_positions_bad)
+        MapErrorDialog(map_positions_bad)
 
     def roi_problem(self):
-        MapError(wrong_roi_letter)
+        MapErrorDialog(wrong_roi_letter)
 
     def manual_map_positions_setup_btn_clicked(self):
         self.manual_map_positions_dialog.exec_()
@@ -644,3 +638,56 @@ class MapController(object):
 
     def map_window_raised(self):
         self.widget.img_batch_mode_map_rb.setChecked(True)
+
+
+## Map error Messages ####################
+##########################################
+
+no_map_loaded = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Please follow these steps first:\n1. Load a map\n2. Click "Update Map"',
+    'short_msg': 'Map not fully loaded',
+    'informative_text': 'See additional info...',
+    'window_title': 'Error: No Map Shown',
+}
+
+no_bg_image_selected = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Please make sure to select an image when prompted to, and press "Open"',
+    'short_msg': 'No background image selected',
+    'informative_text': 'See additional info...',
+    'window_title': 'Error: No background image selected',
+}
+
+map_positions_bad = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Either not all map files have been loaded or, metadata does not contain map positions.\nPlease'
+                    ' set up the map positions manually by clicking "Setup Map"',
+    'short_msg': 'Map positions missing',
+    'informative_text': 'See additional info...',
+    'window_title': 'Warning: Map positions missing',
+}
+
+too_many_rois = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Too many ranges created. try deleting some of the ranges',
+    'short_msg': 'Too many ranges',
+    'informative_text': 'See additional info...',
+    'window_title': 'Warning: Maximum of 26 ranges allowed',
+}
+
+wrong_roi_letter = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Problem with ROI math',
+    'short_msg': 'ROI math error',
+    'informative_text': 'See additional info...',
+    'window_title': 'ROI Math error',
+}
+
+cannot_read_positions_from_image_files = {
+    'icon': 'QtWidgets.QMessageBox.Information',
+    'detailed_msg': 'Please use the Setup Map button in the Map 2D window to setup the map positions',
+    'short_msg': 'Could not read positions from image file meta-data',
+    'informative_text': 'See additional info...',
+    'window_title': 'Positions Missing',
+}

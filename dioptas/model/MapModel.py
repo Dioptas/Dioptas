@@ -199,7 +199,7 @@ class MapModel(QtCore.QObject):
 
         rois_in_roi_math = re.findall('([A-Z])', self.roi_math)
         for roi in rois_in_roi_math:
-            if not roi in [r['roi_letter'] for r in self.map_roi_list]:
+            if roi not in [r['roi_letter'] for r in self.map_roi_list]:
                 self.roi_problem.emit()
                 return False
         return True
@@ -299,15 +299,15 @@ class MapModel(QtCore.QObject):
             for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
                 for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
                     if not self.sorted_datalist[ind] == 'Empty':
-                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = str(round(hor_pos, 3))
-                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = str(round(ver_pos, 3))
+                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
+                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
                     ind = ind + 1
         else:
             for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
                 for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
                     if not self.sorted_datalist[ind] == 'Empty':
-                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = str(round(hor_pos, 3))
-                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = str(round(ver_pos, 3))
+                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
+                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
                     ind = ind + 1
 
         self.min_hor = hor_min

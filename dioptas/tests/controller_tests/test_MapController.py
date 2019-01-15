@@ -1,67 +1,59 @@
 # -*- coding: utf8 -*-
 
-import os, sys
+import os
 import gc
-from ..utility import QtTest, click_button
-from ..exceptionhook import excepthook
+from ..utility import QtTest, click_button, unittest_data_path
 
-import mock
 from mock import MagicMock
-import numpy as np
-from qtpy import QtCore, QtWidgets
-from qtpy.QtTest import QTest
-import time
+from qtpy import QtWidgets
 
 from ...controller.integration import IntegrationController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
-unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
-jcpds_path = os.path.join(data_path, 'jcpds')
+jcpds_path = os.path.join(unittest_data_path, 'jcpds')
 
 
-class IntegrationControllerTest(QtTest):
+class MapControllerTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
-        self.model.working_directories['image'] = data_path
-        self.model.working_directories['pattern'] = data_path
-        self.model.working_directories['phase'] = data_path
+        self.model.working_directories['image'] = unittest_data_path
+        self.model.working_directories['pattern'] = unittest_data_path
+        self.model.working_directories['phase'] = unittest_data_path
         self.widget = IntegrationWidget()
+
+        self.widget.map_2D_widget.show = MagicMock()
 
         self.integration_controller = IntegrationController(widget=self.widget, dioptas_model=self.model)
 
-        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.model.calibration_model.load(os.path.join(unittest_data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(unittest_data_path, 'CeO2_Pilatus1M.tif'))
 
     def tearDown(self):
         del self.integration_controller
-        # del self.image_controller
         del self.model
         del self.widget
         gc.collect()
 
     def _setup_map_batch_integration(self):
         # setting up filenames and working directories
-        map_path = os.path.join(data_path, 'map')
-        map_file_names = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-        map_file_paths = []
-        for file_name in map_file_names:
-            map_file_paths.append(os.path.join(map_path, file_name))
-        working_dir = os.path.join(map_path, 'patterns2')
+        map_path = os.path.join(unittest_data_path, 'map')
+        map_img_file_names = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
+        map_img_file_paths = [os.path.join(map_path, filename) for filename in map_img_file_names]
+        working_dir = os.path.join(map_path, 'patterns')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
         self.model.working_directories['pattern'] = os.path.join(working_dir)
         self.widget.pattern_autocreate_cb.setChecked(True)
-        return map_file_paths, map_file_names, working_dir
+        return map_img_file_paths, map_img_file_names, working_dir
 
-    def helper_delete_integrated_map_files_and_working_directory(self, file_names, working_dir):
+    @staticmethod
+    def helper_delete_integrated_map_files_and_working_directory(file_names, working_dir):
         for file_name in file_names:
             os.remove(os.path.join(working_dir, file_name.split('.')[0] + '.xy'))
         os.rmdir(working_dir)
 
     def test_map_batch_integration_of_multiple_files(self, delete_upon_finish=True):
-        # sys.excepthook = excepthook
         map_file_paths, map_file_names, working_dir = self._setup_map_batch_integration()
         click_button(self.widget.map_2D_btn)
         self.assertTrue(self.widget.img_batch_mode_map_rb.isChecked())
@@ -171,11 +163,13 @@ class IntegrationControllerTest(QtTest):
         click_button(self.widget.phase_add_btn)
 
     def test_create_map_from_xy_files(self):
-        map_path = os.path.join(data_path, 'map/xy')
+        map_path = os.path.join(unittest_data_path, 'map', 'xy')
         map_file_names = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
         map_file_paths = []
         for file_name in map_file_names:
             map_file_paths.append(os.path.join(map_path, file_name))
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_file_paths)
-        click_button(self.widget.map_2D_widget.load_ascii_files_btn)  # this brings up a notification and the test needs to be fixed to approve the notificaiton.
+        QtWidgets.QMessageBox = MagicMock()
+        click_button(self.widget.map_2D_widget.load_ascii_files_btn)
+        QtWidgets.QMessageBox.assert_called_once()
         self.assertTrue(len(self.model.map_model.map_data) > 0)

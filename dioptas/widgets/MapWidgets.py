@@ -6,8 +6,6 @@ import numpy as np
 from .plot_widgets.HistogramLUTItem import HistogramLUTItem
 
 from .CustomWidgets import FlatButton
-
-widget_path = os.path.dirname(__file__)
 from .. import style_path
 
 
@@ -33,7 +31,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.manual_map_positions_setup_btn = QtWidgets.QPushButton("Setup Map")
         self.auto_update_map_cb = QtWidgets.QCheckBox('Auto Update?')
         self.auto_update_map_cb.setChecked(True)
-        self.update_map_btn = QtWidgets.QPushButton()
+        self.update_map_btn = QtWidgets.QPushButton("Update Map")
         self.lbl_map_pos = QtWidgets.QLabel()
         # Map Image and Histogram
         self.map_image = pq.ImageItem()
@@ -45,23 +43,22 @@ class Map2DWidget(QtWidgets.QWidget):
         bg_rect = QtCore.QRectF(0, 0, 1920, 1200)
         self.map_bg_image.setImage(self.bg_image, opacity=0.5)
         self.map_bg_image.setRect(bg_rect)
-        self.reset_zoom_btn = QtWidgets.QPushButton()
-        self.snapshot_btn = QtWidgets.QPushButton()
+        self.snapshot_btn = QtWidgets.QPushButton("Snapshot")
 
         # ROI Widgets
         self.roi_list = QtWidgets.QListWidget()
         self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.roi_math_lbl = QtWidgets.QLabel('Math:')
         self.roi_math_txt = QtWidgets.QLineEdit()
-        self.roi_add_btn = QtWidgets.QPushButton()
-        self.roi_add_phase_btn = QtWidgets.QPushButton()
-        self.roi_del_btn = QtWidgets.QPushButton()
-        self.roi_clear_btn = QtWidgets.QPushButton()
-        self.roi_toggle_btn = QtWidgets.QPushButton()
-        self.roi_select_all_btn = QtWidgets.QPushButton()
+        self.roi_add_btn = QtWidgets.QPushButton("Add Range")
+        self.roi_add_phase_btn = QtWidgets.QPushButton("Add Phase")
+        self.roi_del_btn = QtWidgets.QPushButton("Remove Range(s)")
+        self.roi_clear_btn = QtWidgets.QPushButton("Clear Ranges")
+        self.roi_toggle_btn = QtWidgets.QPushButton("Toggle Show")
+        self.roi_select_all_btn = QtWidgets.QPushButton("Select All")
 
         # Background control
-        self.add_bg_btn = QtWidgets.QPushButton()
+        self.add_bg_btn = QtWidgets.QPushButton("Add BG Image")
         self.bg_opacity_lbl = QtWidgets.QLabel("Opacity: BG")
         self.bg_opacity_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.map_opacity_lbl = QtWidgets.QLabel("Map")
@@ -76,27 +73,16 @@ class Map2DWidget(QtWidgets.QWidget):
 
         # ROI positions
         self.roi_grid = QtWidgets.QGridLayout()
-        self.roi_grid.addWidget(self.roi_add_btn, 0, 0, 1, 1)
-        self.roi_grid.addWidget(self.roi_add_phase_btn, 0, 1, 1, 1)
-        self.roi_grid.addWidget(self.roi_del_btn, 1, 0, 1, 1)
-        self.roi_grid.addWidget(self.roi_clear_btn, 1, 1, 1, 1)
-        self.roi_grid.addWidget(self.roi_toggle_btn, 2, 1, 1, 1)
-        self.roi_grid.addWidget(self.roi_select_all_btn, 2, 0, 1, 1)
+        self.roi_grid.addWidget(self.roi_add_btn, 0, 0)
+        self.roi_grid.addWidget(self.roi_add_phase_btn, 0, 1)
+        self.roi_grid.addWidget(self.roi_del_btn, 1, 0)
+        self.roi_grid.addWidget(self.roi_clear_btn, 1, 1)
+        self.roi_grid.addWidget(self.roi_toggle_btn, 2, 1)
+        self.roi_grid.addWidget(self.roi_select_all_btn, 2, 0)
 
         # Widget Properties
-        self.setWindowTitle("2D Map")
-        self.update_map_btn.setText("Update Map")
-        self.roi_add_btn.setText("Add Range")
-        self.roi_add_phase_btn.setText("Add Phase")
-        self.roi_del_btn.setText("Remove Range(s)")
-        self.roi_clear_btn.setText("Clear Ranges")
-        self.roi_toggle_btn.setText("Toggle Show")
         self.roi_toggle_btn.setCheckable(True)
         self.roi_toggle_btn.setChecked(True)
-        self.roi_select_all_btn.setText("Select All")
-        self.add_bg_btn.setText("Add BG Image")
-        self.reset_zoom_btn.setText("Reset Zoom")
-        self.snapshot_btn.setText("Snapshot")
         self.bg_opacity_slider.setMinimum(0)
         self.bg_opacity_slider.setMaximum(100)
         self.bg_opacity_slider.setValue(50)
@@ -137,7 +123,6 @@ class Map2DWidget(QtWidgets.QWidget):
         self.bg_hbox.addWidget(self.map_opacity_lbl)
         self.bg_hbox.addStretch(1)
 
-        self.lbl_hbox.addWidget(self.reset_zoom_btn)
         self.lbl_hbox.addWidget(self.snapshot_btn)
         self.lbl_hbox.addStretch(1)
         self.lbl_hbox.addWidget(self.lbl_map_pos)
@@ -530,3 +515,14 @@ class OpenBGImageDialog(QtWidgets.QDialog):
         self.move(parent_center.x() - 101, parent_center.y() - 48)
         super(OpenBGImageDialog, self).exec_()
 
+
+class MapErrorDialog(object):
+    def __init__(self, msg):
+        err_msg = QtWidgets.QMessageBox()
+        err_msg.setIcon(eval(msg['icon']))
+        err_msg.setText(msg['short_msg'])
+        err_msg.setInformativeText(msg['informative_text'])
+        err_msg.setWindowTitle(msg['window_title'])
+        err_msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        err_msg.setDetailedText(msg['detailed_msg'])
+        err_msg.exec_()
