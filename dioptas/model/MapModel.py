@@ -90,7 +90,10 @@ class MapModel(QtCore.QObject):
         self.map_data[filepath]['y_data'] = []
         for line in current_pattern_file:
             if 'Wavelength:' in line:
-                wavelength = float(line.split()[-1])
+                try:
+                    wavelength = float(line.split()[-2])  # new pyfai
+                except ValueError:
+                    wavelength = float(line.split()[-1])  # old pyfai
             elif '2th_deg' in line:
                 file_units = '2th_deg'
             elif 'q_A^-1' in line:
