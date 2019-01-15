@@ -28,6 +28,7 @@ from .. import calibrants_path
 from ..widgets.CalibrationWidget import CalibrationWidget
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
+from ..model.CalibrationModel import NotEnoughSpacingsInCalibrant
 
 
 class CalibrationController(object):
@@ -482,8 +483,15 @@ class CalibrationController(object):
 
         refinement_canceled = False
         for i in range(num_rings - 2):
-            points = self.model.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
-                                                                       intensity_max, mask)
+            try:
+                points = self.model.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
+                                                                           intensity_max, mask)
+            except NotEnoughSpacingsInCalibrant:
+                QtWidgets.QMessageBox.critical(self.widget,
+                                               'Not enough d-spacings!.',
+                                               'The calibrant file does not contain enough d-spacings.',
+                                               QtWidgets.QMessageBox.Ok)
+                break
             self.widget.peak_num_sb.setValue(i + 4)
             if len(self.model.calibration_model.points):
                 self.plot_points(points)
