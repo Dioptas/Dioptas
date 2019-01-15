@@ -68,14 +68,14 @@ class MapModel(QtCore.QObject):
 
         self.map_data[img_filepath]['image_file_name'] = img_filepath
         self.map_data[img_filepath]['pattern_file_name'] = pattern_file_name
-        self.read_map_file_data(img_filepath, pattern_file_name)
+        self.read_pattern_file_into_map(img_filepath, pattern_file_name)
         try:
             self.map_data[img_filepath]['pos_hor'] = position[0]
             self.map_data[img_filepath]['pos_ver'] = position[1]
         except (KeyError, TypeError):
             self.all_positions_defined_in_files = False
 
-    def read_map_file_data(self, img_filepath, pattern_file_name):
+    def read_pattern_file_into_map(self, img_filepath, pattern_file_name):
         """
         Adds the x, y data to the map_data data structure, along with x_units and wavelength
         Args:
@@ -145,25 +145,29 @@ class MapModel(QtCore.QObject):
 
     def prepare_map_data(self):
         """
-        Calculates the ROI math and create the map image
+        Calculates the ROI math and creates the map image
         """
 
         for map_item_name in self.map_data:
             wavelength = self.map_data[map_item_name]['wavelength']
-            file_units = self.map_data[map_item_name]['x_units']
+            file_unit = self.map_data[map_item_name]['x_units']
             sum_int = {}
+
             for roi in self.map_roi_list:
                 sum_int[roi['roi_letter']] = 0
+
             for x_val, y_val in zip(self.map_data[map_item_name]['x_data'], self.map_data[map_item_name]['y_data']):
                 if not self.map_data[map_item_name]['x_units'] == self.units:
-                    x_val = self.convert_units(x_val, file_units, self.units, wavelength)
+                    x_val = self.convert_units(x_val, file_unit, self.units, wavelength)
                 roi_letters = self.is_val_in_roi_range(x_val)
                 for roi_letter in roi_letters:
                     sum_int[roi_letter] += y_val
+
             try:
                 current_math = self.calculate_roi_math(sum_int)
             except SyntaxError:  # needed in case of problem with math
                 return
+
             range_hor = self.pos_to_range(float(self.map_data[map_item_name]['pos_hor']), self.min_hor,
                                           self.pix_per_hor, self.diff_hor)
             range_ver = self.pos_to_range(float(self.map_data[map_item_name]['pos_ver']), self.min_ver,
@@ -234,7 +238,6 @@ class MapModel(QtCore.QObject):
 
     def pos_to_range(self, pos, min_pos, pix_per_pos, diff_pos):
         """
-
         Args:
             pos: hor/ver position of current map file
             min_pos: minimum corresponding map position
@@ -327,7 +330,6 @@ class MapModel(QtCore.QObject):
 
     def sort_map_files_by_natural_name(self):
         """
-
         Returns:
             sorted_datalist: a list of all the map files, sorted by natural filename
         """
