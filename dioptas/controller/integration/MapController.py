@@ -164,7 +164,7 @@ class MapController(object):
             self.model.working_directories['pattern'] = os.path.dirname(filenames[0])
             for filename in filenames:
                 filename = str(filename)
-                self.map_model.add_file_to_map_data(filename, self.model.working_directories['pattern'], None)
+                self.map_model.add_img_file_to_map_data(filename, self.model.working_directories['pattern'], None)
             self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
             self.update_map_status_files_lbl()
             MapError(cannot_read_positions_from_image_files)

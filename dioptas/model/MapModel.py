@@ -49,45 +49,46 @@ class MapModel(QtCore.QObject):
         self.map_organized = False
         self.map_cleared.emit()
 
-    def add_file_to_map_data(self, filepath, map_working_directory, motors_info):
+    def add_img_file_to_map_data(self, img_filepath, map_working_directory, position):
         """
         Add a single file to map_data data structure, including all metadata
         Args:
-            filepath: path to the original image file (needed for sending command to open the file when clicked)
+            img_filepath: path to the original image file (needed for sending command to open the file when clicked)
             map_working_directory: Where the integrated patterns are saved
-            motors_info: contains the horizontal/vertical positions needed for the map
+            position: [pos_hor, pos_ver], needed for the map
 
         """
         if len(self.map_data) == 0:
             self.all_positions_defined_in_files = True
-        base_filename = os.path.basename(filepath)
-        self.map_data[filepath] = {}
 
-        pattern_file_name = map_working_directory + '/' + os.path.splitext(base_filename)[0] + '.xy'
+        base_img_filename = os.path.basename(img_filepath)
+        self.map_data[img_filepath] = {}
 
-        self.map_data[filepath]['image_file_name'] = filepath.replace('\\', '/')
-        self.map_data[filepath]['pattern_file_name'] = pattern_file_name
-        self.read_map_file_data(filepath, pattern_file_name)
+        pattern_file_name = os.path.join(map_working_directory, os.path.splitext(base_img_filename)[0] + '.xy')
+
+        self.map_data[img_filepath]['image_file_name'] = img_filepath
+        self.map_data[img_filepath]['pattern_file_name'] = pattern_file_name
+        self.read_map_file_data(img_filepath, pattern_file_name)
         try:
-            self.map_data[filepath]['pos_hor'] = str(round(float(motors_info['Horizontal']), 3))
-            self.map_data[filepath]['pos_ver'] = str(round(float(motors_info['Vertical']), 3))
+            self.map_data[img_filepath]['pos_hor'] = position[0]
+            self.map_data[img_filepath]['pos_ver'] = position[1]
         except (KeyError, TypeError):
             self.all_positions_defined_in_files = False
 
-    def read_map_file_data(self, filepath, pattern_file_name):
+    def read_map_file_data(self, img_filepath, pattern_file_name):
         """
         Adds the x, y data to the map_data data structure, along with x_units and wavelength
         Args:
-            filepath: used as a key to the data structure
+            img_filepath: used as a key to the data structure
             pattern_file_name: used to read from the actual file
-
         """
-        pattern_file = pattern_file_name.replace('\\', '/')
-        current_pattern_file = open(pattern_file, 'r')
-        file_units = '2th_deg'
+        current_pattern_file = open(pattern_file_name, 'r')
+
+        file_unit = '2th_deg'  # default value
         wavelength = self.wavelength
-        self.map_data[filepath]['x_data'] = []
-        self.map_data[filepath]['y_data'] = []
+
+        self.map_data[img_filepath]['x_data'] = []
+        self.map_data[img_filepath]['y_data'] = []
         for line in current_pattern_file:
             if 'Wavelength:' in line:
                 try:
@@ -95,18 +96,17 @@ class MapModel(QtCore.QObject):
                 except ValueError:
                     wavelength = float(line.split()[-1])  # old pyfai
             elif '2th_deg' in line:
-                file_units = '2th_deg'
+                file_unit = '2th_deg'
             elif 'q_A^-1' in line:
-                file_units = 'q_A^-1'
+                file_unit = 'q_A^-1'
             elif 'd_A' in line:
-                file_units = 'd_A'
+                file_unit = 'd_A'
             elif line[0] is not '#':
-                x_val = float(line.split()[0])
-                y_val = float(line.split()[1])
-                self.map_data[filepath]['x_data'].append(x_val)
-                self.map_data[filepath]['y_data'].append(y_val)
-        self.map_data[filepath]['x_units'] = file_units
-        self.map_data[filepath]['wavelength'] = wavelength
+                x_val, y_val = float(line.split()[0]), float(line.split()[1])
+                self.map_data[img_filepath]['x_data'].append(x_val)
+                self.map_data[img_filepath]['y_data'].append(y_val)
+        self.map_data[img_filepath]['x_units'] = file_unit
+        self.map_data[img_filepath]['wavelength'] = wavelength
         current_pattern_file.close()
 
     def organize_map_files(self):
@@ -275,7 +275,6 @@ class MapModel(QtCore.QObject):
 
     def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first, file_list):
         """
-
         Args:
             hor_min: Horizontal minimum position
             ver_min: Vertical minimum position

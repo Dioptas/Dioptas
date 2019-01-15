@@ -7,15 +7,8 @@ import numpy as np
 import random
 import copy
 
-from mock import MagicMock
-
-
 from ...model.MapModel import MapModel
-
-from ..utility import delete_if_exists
-
-unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
+from ..utility import unittest_data_path
 
 
 class MapModelTest(unittest.TestCase):
@@ -23,41 +16,43 @@ class MapModelTest(unittest.TestCase):
         self.map_model = MapModel()
         self.img = np.zeros((10, 10))
 
+        self.maxDiff = None  # to enable large comparisons
+
     def tearDown(self):
-        # delete_if_exists(os.path.join(data_path, "test_save.mask"))
         del self.map_model
         del self.img
         gc.collect()
 
     def test_add_file_to_map_data(self):
-        # QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(unittest_data_path, "test.xy"))
-        first_file = 'CeO2_Pilatus1M.tif'
-        first_file_path = os.path.join(data_path, first_file)
+        first_file = 'Fe3O4C_M1_map_1_P1_E1_001.tif'
+        first_file_path = os.path.join(unittest_data_path, 'map', first_file)
         hor = 0.1234
         ver = -0.4568
-        motors_info = {'Horizontal': str(hor),
-                       'Vertical': str(ver),
-                       }
-        self.assertEqual(len(self.map_model.map_data), 0)  # start with empty map data
-        self.map_model.add_file_to_map_data(first_file_path,
-                                            os.path.join(data_path, 'map/patterns'),
-                                            motors_info)
+
+        # start with empty map data
+        self.assertEqual(len(self.map_model.map_data), 0)
+
+        self.map_model.add_img_file_to_map_data(first_file_path,
+                                                os.path.join(unittest_data_path, 'map', 'xy'),
+                                                position=[hor, ver])
         self.assertEqual(len(self.map_model.map_data), 1)  # 1 file in map data
+
         # make sure motor positions are within 3 decimal points
         self.assertAlmostEqual(float(self.map_model.map_data[first_file_path]['pos_hor']), hor, 3)
         self.assertAlmostEqual(float(self.map_model.map_data[first_file_path]['pos_ver']), ver, 3)
 
     def test_add_file_to_map_data_without_motor_info(self):
-        first_file = 'CeO2_Pilatus1M.tif'
-        first_file_path = os.path.join(data_path, first_file)
-        self.map_model.add_file_to_map_data(first_file_path,
-                                            os.path.join(data_path, 'map/patterns'),
-                                            None)
+        first_file = 'Fe3O4C_M1_map_1_P1_E1_001.tif'
+        first_file_path = os.path.join(unittest_data_path, 'map', first_file)
+
+        self.map_model.add_img_file_to_map_data(first_file_path,
+                                                os.path.join(unittest_data_path, 'map', 'xy'),
+                                                None)
         self.assertFalse(self.map_model.all_positions_defined_in_files)
 
     def helper_prepare_good_map(self, map_path):
         map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-        working_dir = os.path.join(map_path, 'patterns')
+        working_dir = os.path.join(map_path, 'xy')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
         start_hor = 0.123
@@ -67,9 +62,9 @@ class MapModelTest(unittest.TestCase):
         ver_step = 0.003
         counter = 1
         for map_file in map_files:
-            motor_info = {'Horizontal': hor_pos,
-                          'Vertical': ver_pos}
-            self.map_model.add_file_to_map_data(map_file, working_dir, motor_info)
+            self.map_model.add_img_file_to_map_data(map_file,
+                                                    working_dir,
+                                                    [hor_pos, ver_pos])
             hor_pos += hor_step
             if counter == 3:
                 ver_pos += ver_step
@@ -79,7 +74,7 @@ class MapModelTest(unittest.TestCase):
         return map_files
 
     def test_organize_map_data(self):
-        map_path = os.path.join(data_path, 'map')
+        map_path = os.path.join(unittest_data_path, 'map')
         map_files = self.helper_prepare_good_map(map_path)
 
         self.assertEqual(len(self.map_model.map_data), len(map_files))
@@ -92,9 +87,9 @@ class MapModelTest(unittest.TestCase):
         self.assertAlmostEqual(self.map_model.diff_ver, 0.003, 5)
 
     def test_check_map_fails_when_map_is_not_rectangular(self):
-        map_path = os.path.join(data_path, 'map')
+        map_path = os.path.join(unittest_data_path, 'map')
         map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-        working_dir = os.path.join(map_path, 'patterns')
+        working_dir = os.path.join(map_path, 'xy')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
         hor_pos = 0.123
@@ -102,9 +97,9 @@ class MapModelTest(unittest.TestCase):
         hor_step = 0.005
         ver_step = 0.003
         for map_file in map_files:
-            motor_info = {'Horizontal': hor_pos,
-                          'Vertical': ver_pos}
-            self.map_model.add_file_to_map_data(map_file, working_dir, motor_info)
+            self.map_model.add_img_file_to_map_data(map_file,
+                                                    working_dir,
+                                                    [hor_pos, ver_pos])
             hor_pos += hor_step
             ver_pos += ver_step
 
@@ -172,13 +167,12 @@ class MapModelTest(unittest.TestCase):
         self.assertEqual(sorted_list, map_files)
 
     def test_add_manual_map_positions(self):
-        map_path = os.path.join(data_path, 'map')
-        map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-        self.test_organize_map_data()
+        map_path = os.path.join(unittest_data_path, 'map')
+        map_files = self.helper_prepare_good_map(map_path)
+
         old_map_data = copy.deepcopy(self.map_model.map_data)
 
         # First change the positions manually to something different and make sure that map_data changes
-
         hor_min = 0.268
         ver_min = -0.101
         hor_step = 0.002
@@ -199,16 +193,20 @@ class MapModelTest(unittest.TestCase):
         ver_step = 0.003
         self.map_model.add_manual_map_positions(hor_min, ver_min, hor_step, ver_step, hor_num, ver_num,
                                                 is_hor_first, map_files)
+
         self.assertEqual(self.map_model.map_data, old_map_data)
         self.assertDictEqual(self.map_model.map_data, old_map_data)
 
     def test_prepare_map_data_updates_map_image(self):
-        map_path = os.path.join(data_path, 'map')
-        map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-        self.test_organize_map_data()
+        map_path = os.path.join(unittest_data_path, 'map')
+        self.helper_prepare_good_map(map_path)
+        self.map_model.organize_map_files()
+
         self.helper_add_roi_to_roi_list()
+
         empty_map_image = self.map_model.new_image.copy()
         self.assertTrue(not np.any(empty_map_image))
+
         self.map_model.check_roi_math()
         self.map_model.prepare_map_data()
         self.assertFalse(np.array_equal(empty_map_image, self.map_model.new_image))
