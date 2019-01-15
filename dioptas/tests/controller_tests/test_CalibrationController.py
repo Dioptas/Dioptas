@@ -38,7 +38,6 @@ QtWidgets.QProgressDialog.setValue = MagicMock()
 class TestCalibrationController(QtTest):
     def setUp(self):
         self.model = DioptasModel()
-        #self.model.calibration_model._calibrants_working_dir = os.path.join(unittest_data_path, 'calibrants')
         self.model.calibration_model.integrate_1d = MagicMock(return_value=([np.linspace(0, 100), np.linspace(0, 100)]))
         self.model.calibration_model.integrate_2d = MagicMock()
 
