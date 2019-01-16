@@ -101,6 +101,8 @@ class Configuration(QtCore.QObject):
             if self.auto_save_integrated_pattern:
                 self._auto_save_patterns()
 
+            return x, y
+
     def integrate_image_2d(self):
         """
         Integrates the image in the ImageModel to a Cake.

@@ -343,3 +343,6 @@ class MapModel(QtCore.QObject):
     @property
     def num_map_files(self):
         return len(self.map_data)
+
+    def is_empty(self):
+        return self.num_map_files == 0
