@@ -12,6 +12,9 @@ from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
+map_path = os.path.join(unittest_data_path, 'map')
+map_img_file_names = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
+map_img_file_paths = [os.path.join(map_path, filename) for filename in map_img_file_names]
 
 
 class MapControllerTest(QtTest):
@@ -37,9 +40,6 @@ class MapControllerTest(QtTest):
 
     def _setup_map_batch_integration(self):
         # setting up filenames and working directories
-        map_path = os.path.join(unittest_data_path, 'map')
-        map_img_file_names = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-        map_img_file_paths = [os.path.join(map_path, filename) for filename in map_img_file_names]
         working_dir = os.path.join(map_path, 'patterns')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
@@ -50,8 +50,18 @@ class MapControllerTest(QtTest):
     @staticmethod
     def helper_delete_integrated_map_files_and_working_directory(file_names, working_dir):
         for file_name in file_names:
-            os.remove(os.path.join(working_dir, file_name.split('.')[0] + '.xy'))
+            os.remove(os.path.join(working_dir, os.path.splitext(file_name)[0] + '.xy'))
         os.rmdir(working_dir)
+
+    def test_opening_map_2d_dialog(self):
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_img_file_paths)
+        working_dir = os.path.join(map_path, 'patterns')
+        if not os.path.exists(working_dir):
+            os.mkdir(working_dir)
+        QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=working_dir)
+        click_button(self.widget.map_2D_btn)
+        self.assertFalse(self.model.map_model.is_empty())
+        self.helper_delete_integrated_map_files_and_working_directory(map_img_file_names, working_dir)
 
     def test_map_batch_integration_of_multiple_files(self, delete_upon_finish=True):
         map_file_paths, map_file_names, working_dir = self._setup_map_batch_integration()

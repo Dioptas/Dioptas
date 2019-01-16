@@ -149,8 +149,6 @@ class ImageController(object):
 
         self.connect_click_function(self.widget.file_info_btn, self.show_file_info)
 
-        self.connect_click_function(self.widget.map_2D_btn, self.map_2d)  # MAP2D
-
         self.connect_click_function(self.widget.img_browse_by_name_rb, self.set_iteration_mode_number)
         self.connect_click_function(self.widget.img_browse_by_time_rb, self.set_iteration_mode_time)
         self.connect_click_function(self.widget.mask_transparent_cb, self.update_mask_transparency)
@@ -231,16 +229,6 @@ class ImageController(object):
                                                           len(filenames))
         self._set_up_batch_processing()
 
-        if self.widget.img_batch_mode_map_rb.isChecked():
-            pattern_headers_values = []
-            for pattern_header in self.widget.pattern_headers:
-                pattern_headers_values.append(pattern_header.isChecked())
-            for pattern_header in self.widget.pattern_headers:
-                pattern_header.setChecked(False)
-            self.widget.pattern_header_xy_cb.setChecked(True)
-            self.model.map_model.reset_map_data()  # MAP2D
-            self.model.map_model.all_positions_defined_in_files = True  # maybe this line is not needed
-
         for ind in range(len(filenames)):
             filename = str(filenames[ind])
             base_filename = os.path.basename(filename)
@@ -254,27 +242,10 @@ class ImageController(object):
 
             x, y = self.integrate_pattern()
             self._save_pattern(base_filename, working_directory, x, y)
-            # MAP2D
-            if self.widget.img_batch_mode_map_rb.isChecked():
-                self.model.map_model.map_uses_patterns = False  # maybe move this to the reset_map.
-                if self.model.pattern.has_background():
-                    map_working_directory = os.path.join(working_directory, 'bkg_subtracted')
-                else:
-                    map_working_directory = working_directory
-                self.model.map_model.add_img_file_to_map_data(filename, map_working_directory,
-                                                              [self.model.img_model.motors_info["Horizontal"],
-                                                               self.model.img_model.motors_info["Vertical"]])
 
             QtWidgets.QApplication.processEvents()
             if progress_dialog.wasCanceled():
                 break
-
-        # MAP2D
-        if self.widget.img_batch_mode_map_rb.isChecked():
-            self.model.map_model.map_images_loaded.emit()
-
-        for pattern_header, pattern_header_value in zip(self.widget.pattern_headers, pattern_headers_values):
-            pattern_header.setChecked(pattern_header_value)
 
         progress_dialog.close()
         self._tear_down_batch_processing()
@@ -370,9 +341,6 @@ class ImageController(object):
 
     def show_file_info(self):
         self.widget.file_info_widget.raise_widget()
-
-    def map_2d(self):  # MAP2D
-        self.widget.map_2D_widget.raise_widget()
 
     def get_integration_unit(self):
         if self.widget.pattern_tth_btn.isChecked():

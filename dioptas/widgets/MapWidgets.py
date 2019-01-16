@@ -27,7 +27,8 @@ class Map2DWidget(QtWidgets.QWidget):
         self.old_roi_math_txt = ''
 
         # WIDGETS
-        self.load_ascii_files_btn = QtWidgets.QPushButton("Load Ascii Files")
+        self.load_map_files_btn = QtWidgets.QPushButton("Load Map Files")
+        self.load_map_files_btn.setToolTip("Load the image or pattern files for your map")
         self.manual_map_positions_setup_btn = QtWidgets.QPushButton("Setup Map")
         self.auto_update_map_cb = QtWidgets.QCheckBox('Auto Update?')
         self.auto_update_map_cb.setChecked(True)
@@ -103,7 +104,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.update_hbox = QtWidgets.QHBoxLayout()
         self.status_hbox = QtWidgets.QHBoxLayout()
 
-        self.roi_vbox.addWidget(self.load_ascii_files_btn)
+        self.roi_vbox.addWidget(self.load_map_files_btn)
         self.roi_vbox.addWidget(self.manual_map_positions_setup_btn)
         self.update_hbox.addWidget(self.auto_update_map_cb)
         self.update_hbox.addWidget(self.update_map_btn)

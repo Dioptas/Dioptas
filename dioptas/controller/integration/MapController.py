@@ -39,34 +39,37 @@ class MapController(object):
         self.toggle_map_widgets_enable(toggle=False)
 
     def setup_connections(self):
+        # Map model Signals
         self.model.map_model.map_changed.connect(self.update_map_image)
         self.model.map_model.map_cleared.connect(self.clear_map)
         self.model.map_model.map_problem.connect(self.map_positions_problem)
         self.model.map_model.roi_problem.connect(self.roi_problem)
         self.model.map_model.map_images_loaded.connect(self.map_images_loaded)
 
-        self.map_widget.load_ascii_files_btn.clicked.connect(self.load_ascii_files_btn_clicked)
+        # General Signals
+        self.widget.map_2D_btn.clicked.connect(self.map_2d_btn_clicked)
+        self.map_widget.load_map_files_btn.clicked.connect(self.load_map_files_btn_clicked)
         self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
+        self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
+        self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
+        self.map_widget.snapshot_btn.clicked.connect(self.snapshot_btn_clicked)
 
+        # ROI
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
         self.map_widget.roi_add_phase_btn.clicked.connect(self.btn_roi_add_phase_clicked)
         self.map_widget.roi_del_btn.clicked.connect(self.btn_roi_del_clicked)
         self.map_widget.roi_clear_btn.clicked.connect(self.btn_roi_clear_clicked)
         self.map_widget.roi_toggle_btn.clicked.connect(self.btn_roi_toggle_clicked)
         self.map_widget.roi_select_all_btn.clicked.connect(self.btn_roi_select_all_clicked)
-
-        self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
-        self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
-
-        self.map_widget.snapshot_btn.clicked.connect(self.snapshot_btn_clicked)
         self.map_widget.roi_math_txt.textEdited.connect(self.roi_math_txt_changed)
         self.map_widget.roi_list.itemSelectionChanged.connect(self.roi_list_selection_changed)
 
+        # Map mouse events
         self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
-        self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
         self.map_widget.map_view_box.mouseClickEvent = self.do_nothing
-        self.map_widget.map_window_raised.connect(self.map_window_raised)
+        self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
 
+        # map setup
         self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
         self.manual_map_positions_dialog.read_list_btn.clicked.connect(self.read_list_btn_clicked)
         self.manual_map_positions_dialog.hor_num_txt.textChanged.connect(self.manual_map_num_points_changed)
@@ -75,6 +78,11 @@ class MapController(object):
         self.manual_map_positions_dialog.move_down_btn.clicked.connect(self.move_files_down_in_list)
         self.manual_map_positions_dialog.add_empty_btn.clicked.connect(self.add_empty_btn_clicked)
         self.manual_map_positions_dialog.delete_btn.clicked.connect(self.delete_btn_clicked)
+
+    def map_2d_btn_clicked(self):
+        self.widget.map_2D_widget.raise_widget()
+        if self.map_model.is_empty():
+            self.load_map_files_btn_clicked()
 
     def toggle_map_widgets_enable(self, toggle=True):
         self.map_widget.update_map_btn.setEnabled(toggle)
@@ -141,10 +149,12 @@ class MapController(object):
         if self.map_model.all_positions_defined_in_files or self.map_model.positions_set_manually:
             map_size = str(self.map_model.num_hor) + 'x' + str(self.map_model.num_ver)
             map_range = '\tX:\tRange: ' + "{:.4f}".format(self.map_model.min_hor) + ',' + \
-                        "{:.4f}".format(self.map_model.min_hor + (self.map_model.num_hor-1)*self.map_model.diff_hor) + \
+                        "{:.4f}".format(
+                            self.map_model.min_hor + (self.map_model.num_hor - 1) * self.map_model.diff_hor) + \
                         '\tStep: ' + "{:.4f}".format(self.map_model.diff_hor) + '\n' + '\tY:\tRange: ' + \
                         "{:.4f}".format(self.map_model.min_ver) + ',' + \
-                        "{:.4f}".format(self.map_model.min_ver + (self.map_model.num_ver-1)*self.map_model.diff_ver) + \
+                        "{:.4f}".format(
+                            self.map_model.min_ver + (self.map_model.num_ver - 1) * self.map_model.diff_ver) + \
                         '\tStep: ' + "{:.4f}".format(self.map_model.diff_ver)
             self.map_widget.map_status_size_and_step_lbl.setText(map_size + map_range)
             self.map_widget.map_status_size_and_step_lbl.setStyleSheet('color: green')
@@ -152,19 +162,75 @@ class MapController(object):
             self.map_widget.map_status_size_and_step_lbl.setStyleSheet('color: red')
             self.map_widget.map_status_size_and_step_lbl.setText("No Info")
 
-    def load_ascii_files_btn_clicked(self):
+    def load_map_files_btn_clicked(self):
         filenames = open_files_dialog(self.map_widget, "Load Map files.",
-                                      self.model.working_directories['pattern'])
+                                      self.model.working_directories['image'])
         if len(filenames):
             self.map_model.reset_map_data()
-            self.map_model.map_uses_patterns = True
-            self.model.working_directories['pattern'] = os.path.dirname(filenames[0])
-            for filename in filenames:
-                filename = str(filename)
-                self.map_model.add_img_file_to_map_data(filename, self.model.working_directories['pattern'], None)
-            self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
-            self.update_map_status_files_lbl()
-            MapErrorDialog(cannot_read_positions_from_image_files)
+
+            if os.path.basename(filenames[0]).split('.')[-1] in \
+                    ['xy', 'chi', 'txt', 'dat']:
+                self.map_model.map_uses_patterns = True
+                working_directory = os.path.dirname(filenames[0])
+                for filename in filenames:
+                    filename = str(filename)
+                    self.map_model.add_img_file_to_map_data(filename, working_directory, None)
+                self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
+                self.update_map_status_files_lbl()
+                MapErrorDialog(cannot_read_positions_from_image_files)
+
+            else:  # assuming the files are image files
+                if not self.model.calibration_model.is_calibrated:
+                    self.widget.show_error_msg("Can not integrate multiple images without calibration.")
+                    return
+                working_directory = self._get_map_working_directory()
+                if working_directory is '':
+                    return
+
+                self.map_model.map_uses_patterns = False
+
+                self.model.blockSignals(True)
+                progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
+                                                                  len(filenames))
+
+                for ind, filename in enumerate(filenames):
+                    base_filename = os.path.basename(filename)
+
+                    progress_dialog.setValue(ind)
+                    progress_dialog.setLabelText("Integrating: " + base_filename)
+
+                    self.model.img_model.blockSignals(True)
+                    self.model.img_model.load(filename)
+                    self.model.img_model.blockSignals(False)
+
+                    self._integrate_and_save_pattern(working_directory, base_filename)
+                    self.map_model.add_img_file_to_map_data(filename,
+                                                            working_directory,
+                                                            [self.model.img_model.motors_info['Horizontal'],
+                                                             self.model.img_model.motors_info['Vertical']])
+
+                    QtWidgets.QApplication.processEvents()
+                    if progress_dialog.wasCanceled():
+                        self.map_model.reset_map_data()
+                        break
+
+                progress_dialog.close()
+                self.model.blockSignals(False)
+                self.model.img_changed.emit()
+                self.model.pattern_changed.emit()
+                self.model.map_model.map_images_loaded.emit()
+
+    def _integrate_and_save_pattern(self, directory, base_filename):
+        self.model.current_configuration.integrate_image_1d()
+        path = os.path.join(directory, os.path.splitext(base_filename)[0] + '.xy')
+        self.model.current_configuration.save_pattern(path)
+
+    def _get_map_working_directory(self):
+        # if there is no working directory selected A file dialog opens up to choose a directory...
+        working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
+            self.widget, "Please choose the output directory for the integrated Patterns.",
+            self.model.working_directories['pattern']))
+        return working_directory
 
     def btn_update_map_clicked(self):
         self.map_model.map_roi_list = []
@@ -181,7 +247,6 @@ class MapController(object):
         self.map_widget.map_loaded = True
 
     # Controls for ROI
-
     def btn_roi_add_clicked(self, params):
         # roi_num - number of existing ROIs.
         # roi_count - number of rois created (includes deleted rois)
@@ -283,13 +348,13 @@ class MapController(object):
         self.widget.repaint()
 
     def generate_roi_name(self, roi_start, roi_end, roi_num):
-        roi_name = chr(roi_num+65) + '_' + '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
+        roi_name = chr(roi_num + 65) + '_' + '{:.3f}'.format(roi_start) + '-' + '{:.3f}'.format(roi_end)
         return roi_name
 
     def update_roi_letters(self):
         for row in range(self.map_widget.roi_list.count()):
             curr_roi = self.map_widget.roi_list.item(row)
-            curr_roi.setText(chr(row+65) + '_' + curr_roi.text().split('_')[1])
+            curr_roi.setText(chr(row + 65) + '_' + curr_roi.text().split('_')[1])
             # for key in self.map_widget.map_roi:
             #     if self.map_widget.map_roi[key]['List_Obj'] == curr_roi:
             #         self.map_widget.map_roi[key]['roi_name'] = 1
@@ -375,7 +440,7 @@ class MapController(object):
             roi_name = roi_full_name[1].split('-')
             roi_start = self.model.map_model.convert_units(float(roi_name[0]), previous_unit, new_unit, wavelength)
             roi_end = self.model.map_model.convert_units(float(roi_name[1]), previous_unit, new_unit, wavelength)
-            roi_new_name = self.generate_roi_name(roi_start, roi_end, ord(roi_full_name[0])-65)
+            roi_new_name = self.generate_roi_name(roi_start, roi_end, ord(roi_full_name[0]) - 65)
             item.setText(roi_new_name)
             for key in self.map_widget.map_roi:
                 if self.map_widget.map_roi[key]['List_Obj'] == item:
@@ -520,7 +585,7 @@ class MapController(object):
         return result
 
     def modify_map_opacity(self):
-        opacity = self.map_widget.bg_opacity_slider.value()/100.0
+        opacity = self.map_widget.bg_opacity_slider.value() / 100.0
         self.map_widget.map_image.setOpacity(opacity)
         self.map_widget.map_bg_image.setOpacity(1.0 - opacity)
 
@@ -635,9 +700,6 @@ class MapController(object):
         self.manual_map_positions_dialog.total_files_lbl.setText(
             str(self.manual_map_positions_dialog.selected_map_files.count()) + ' files')
         self.check_num_points()
-
-    def map_window_raised(self):
-        self.widget.img_batch_mode_map_rb.setChecked(True)
 
 
 ## Map error Messages ####################
