@@ -350,58 +350,66 @@ class MapModel(QtCore.QObject):
         return self.num_map_files == 0
 
 
-class MapGrid():
+class MapGrid:
     def __init__(self):
-        self.map_points = []
-        self.x_dimension = 0
-        self.y_dimension = 0
+        self.points = []  # list of MapPoints
+        self.sorted_points = []  # list of (points index, x, y)
+        self.sorted_map = []  # list of point indices, xs, ys (has a length of 3)
+
+        self.px_per_point_x = 100
+        self.px_per_point_y = 100
 
     def add_point(self, pattern_filename,  pattern, position=None, img_filename=None):
         map_point = MapPoint(pattern_filename, pattern, position, img_filename)
-        self.map_points.append(map_point)
+        self.points.append(map_point)
 
-    def organize_map_files(self):
+    def sort_points(self):
+        """
+        Sorts the current points according to x and y positions and saves them in the sorted_points variable.
+        """
         datalist = []
-
-        for ind, point in enumerate(self.map_points):
+        for ind, point in enumerate(self.points):
             datalist.append([ind, point.position[0], point.position[1]])
-        self.sorted_datalist = sorted(datalist, key=lambda x: (x[1], x[2]))
 
-        self.transposed_list = [[row[i] for row in self.sorted_datalist] for i in range(len(self.sorted_datalist[1]))]
+        self.sorted_points = sorted(datalist, key=lambda x: (x[1], x[2]))
+        self.sorted_map = [[row[i] for row in self.sorted_points] for i in range(len(self.sorted_points[1]))]
 
-        return
-        self.min_hor = self.sorted_datalist[0][1]
-        self.min_ver = self.sorted_datalist[0][2]
+    def get_map_dimensions(self):
+        """
+        Uses the sorted points and map to estimate minimum x and y position, the differences between points
+        """
+        self.min_x = self.sorted_map[1][0]
+        self.min_y = self.sorted_map[2][0]
 
-        self.num_hor = self.transposed_list[2].count(self.min_ver)
-        self.num_ver = self.transposed_list[1].count(self.min_hor)
+        self.num_x = self.sorted_map[2].count(self.min_y)
+        self.num_y = self.sorted_map[1].count(self.min_x)
 
-        self.check_map()  # Determine if there is problem with map
+        self.diff_x = self.sorted_points[self.num_y][1] - self.sorted_points[0][1]
+        self.diff_y = self.sorted_points[1][2] - self.sorted_points[0][2]
 
-        self.diff_hor = self.sorted_datalist[self.num_ver][1] - self.sorted_datalist[0][1]
-        self.diff_ver = self.sorted_datalist[1][2] - self.sorted_datalist[0][2]
+    def create_empty_map(self):
+        """
+        Uses the estimated map dimension to calculate
+        """
+        self.hor_size = self.px_per_point_x * self.num_x
+        self.ver_size = self.px_per_point_y * self.num_y
 
-        self.hor_size = self.pix_per_hor * self.num_hor
-        self.ver_size = self.pix_per_ver * self.num_ver
-
-        self.hor_um_per_px = self.diff_hor / self.pix_per_hor
-        self.ver_um_per_px = self.diff_ver / self.pix_per_ver
+        self.um_per_px_in_x = self.diff_x / self.px_per_point_x
+        self.um_per_px_in_y = self.diff_y / self.px_per_point_y
 
         self.new_image = np.zeros([self.hor_size, self.ver_size])
-        self.map_organized = True
-
 
     def all_positions_defined(self):
-        for point in self.map_points:
+        for point in self.points:
             if point.position is None:
                 return False
         return True
 
     def is_empty(self):
-        return len(self.map_points) == 0
+        return len(self.points) == 0
 
 
-class MapPoint():
+class MapPoint:
     def __init__(self, pattern_filename,  pattern, position=None, img_filename=None):
         """
         Defines a point in a map.

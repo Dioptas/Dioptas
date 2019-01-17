@@ -23,20 +23,31 @@ class MapGridTest(unittest.TestCase):
     def setUp(self):
         self.map_grid = MapGrid()
 
+    def add_point(self, pattern_filename, position=None, img_filename=None):
+        pattern = Pattern.from_file(pattern_filename)
+        self.map_grid.add_point(pattern_filename, pattern, (position[0], position[1]), img_filename)
+
     def create_grid(self):
         x, y = 0, 0
         for ind in range(9):
-            pattern_filename = map_pattern_file_paths[ind]
-            pattern = Pattern.from_file(pattern_filename)
-            self.map_grid.add_point(pattern_filename, pattern, (x, y))
+            self.add_point(map_pattern_file_paths[ind], [x, y])
             x += 1
             y += 1
+
+    def create_organized_grid(self):
+        x = np.linspace(-.005, 0.005, 3)
+        y = np.linspace(-.004, 0.004, 3)
+        x_grid, y_grid = np.meshgrid(x, y)
+        x_grid = x_grid.flatten()
+        y_grid = y_grid.flatten()
+        for filename, x, y in zip(map_pattern_file_paths, x_grid, y_grid):
+            self.add_point(filename, (x, y))
 
     def test_add_point_to_grid(self):
         pattern_filename = map_pattern_file_paths[0]
         pattern = Pattern.from_file(map_pattern_file_paths[0])
         self.map_grid.add_point(pattern_filename, pattern)
-        self.assertGreater(len(self.map_grid.map_points), 0)
+        self.assertGreater(len(self.map_grid.points), 0)
 
     def test_all_positions_defined(self):
         self.create_grid()
@@ -50,8 +61,51 @@ class MapGridTest(unittest.TestCase):
 
     def test_organize_map_points(self):
         self.create_grid()
+        self.map_grid.sort_points()
 
-        self.map_grid.organize_map_files()
+        self.assertEqual(len(self.map_grid.sorted_points), len(self.map_grid.points))
+        self.assertEqual(len(self.map_grid.sorted_map), 3)
+        self.assertEqual(len(self.map_grid.sorted_map[0]), len(self.map_grid.points))
+
+        x_diffs = np.diff(self.map_grid.sorted_map[1])
+        for x_diff in x_diffs:
+            self.assertGreater(x_diff, 0)
+
+        # add a random point add end to see if it still works
+        self.add_point(map_pattern_file_paths[0], (-3, 3))
+        self.map_grid.sort_points()
+
+        x_diffs = np.diff(self.map_grid.sorted_map[1])
+        for x_diff in x_diffs:
+            self.assertGreater(x_diff, 0)
+
+    def test_get_map_dimensions(self):
+        self.create_organized_grid()
+        self.map_grid.sort_points()
+        self.map_grid.get_map_dimensions()
+
+        self.assertEqual(self.map_grid.min_x, -0.005)
+        self.assertEqual(self.map_grid.min_y, -0.004)
+
+        self.assertEqual(self.map_grid.num_x, 3)
+        self.assertEqual(self.map_grid.num_y, 3)
+
+        self.assertEqual(self.map_grid.diff_x, 0.005)
+        self.assertEqual(self.map_grid.diff_y, 0.004)
+
+    def test_create_empty_map(self):
+        self.create_organized_grid()
+        self.map_grid.sort_points()
+        self.map_grid.get_map_dimensions()
+        self.map_grid.create_empty_map()
+
+        self.assertEqual(self.map_grid.hor_size, 300)
+        self.assertEqual(self.map_grid.um_per_px_in_x, 0.005/100)
+        self.assertEqual(self.map_grid.um_per_px_in_y, 0.004/100)
+        self.assertEqual(self.map_grid.new_image.shape, (300, 300))
+
+
+
 
 
 
