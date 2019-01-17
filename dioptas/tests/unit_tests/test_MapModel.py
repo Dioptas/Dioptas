@@ -7,8 +7,56 @@ import numpy as np
 import random
 import copy
 
-from ...model.MapModel import MapModel
+from ...model.MapModel import MapModel, MapGrid, Pattern
 from ..utility import unittest_data_path
+
+jcpds_path = os.path.join(unittest_data_path, 'jcpds')
+map_img_path = os.path.join(unittest_data_path, 'map')
+map_pattern_path = os.path.join(unittest_data_path, 'map', 'xy')
+map_img_file_names = [f for f in os.listdir(map_img_path) if os.path.isfile(os.path.join(map_img_path, f))]
+map_img_file_paths = [os.path.join(map_img_path, filename) for filename in map_img_file_names]
+map_pattern_file_paths = [os.path.join(map_pattern_path, os.path.splitext(filename)[0]+'.xy') for filename in
+                          map_img_file_names]
+
+
+class MapGridTest(unittest.TestCase):
+    def setUp(self):
+        self.map_grid = MapGrid()
+
+    def create_grid(self):
+        x, y = 0, 0
+        for ind in range(9):
+            pattern_filename = map_pattern_file_paths[ind]
+            pattern = Pattern.from_file(pattern_filename)
+            self.map_grid.add_point(pattern_filename, pattern, (x, y))
+            x += 1
+            y += 1
+
+    def test_add_point_to_grid(self):
+        pattern_filename = map_pattern_file_paths[0]
+        pattern = Pattern.from_file(map_pattern_file_paths[0])
+        self.map_grid.add_point(pattern_filename, pattern)
+        self.assertGreater(len(self.map_grid.map_points), 0)
+
+    def test_all_positions_defined(self):
+        self.create_grid()
+
+        self.assertTrue(self.map_grid.all_positions_defined())
+
+        pattern = Pattern.from_file(map_pattern_file_paths[0])
+        self.map_grid.add_point(map_pattern_file_paths[0], pattern)
+
+        self.assertFalse(self.map_grid.all_positions_defined())
+
+    def test_organize_map_points(self):
+        self.create_grid()
+
+        self.map_grid.organize_map_files()
+
+
+
+
+
 
 
 class MapModelTest(unittest.TestCase):

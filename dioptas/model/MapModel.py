@@ -3,6 +3,8 @@ import os
 import numpy as np
 import re
 
+from .util.Pattern import Pattern
+
 
 class MapModel(QtCore.QObject):
     """
@@ -337,7 +339,7 @@ class MapModel(QtCore.QObject):
         for filepath, filedata in self.map_data.items():
             datalist.append(filepath)
         sorted_datalist = sorted(datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
-                                                          re.split('(\d+)', s)])
+                                                          re.split('(\\d+)', s)])
         return sorted_datalist
 
     @property
@@ -346,3 +348,71 @@ class MapModel(QtCore.QObject):
 
     def is_empty(self):
         return self.num_map_files == 0
+
+
+class MapGrid():
+    def __init__(self):
+        self.map_points = []
+        self.x_dimension = 0
+        self.y_dimension = 0
+
+    def add_point(self, pattern_filename,  pattern, position=None, img_filename=None):
+        map_point = MapPoint(pattern_filename, pattern, position, img_filename)
+        self.map_points.append(map_point)
+
+    def organize_map_files(self):
+        datalist = []
+
+        for ind, point in enumerate(self.map_points):
+            datalist.append([ind, point.position[0], point.position[1]])
+        self.sorted_datalist = sorted(datalist, key=lambda x: (x[1], x[2]))
+
+        self.transposed_list = [[row[i] for row in self.sorted_datalist] for i in range(len(self.sorted_datalist[1]))]
+
+        return
+        self.min_hor = self.sorted_datalist[0][1]
+        self.min_ver = self.sorted_datalist[0][2]
+
+        self.num_hor = self.transposed_list[2].count(self.min_ver)
+        self.num_ver = self.transposed_list[1].count(self.min_hor)
+
+        self.check_map()  # Determine if there is problem with map
+
+        self.diff_hor = self.sorted_datalist[self.num_ver][1] - self.sorted_datalist[0][1]
+        self.diff_ver = self.sorted_datalist[1][2] - self.sorted_datalist[0][2]
+
+        self.hor_size = self.pix_per_hor * self.num_hor
+        self.ver_size = self.pix_per_ver * self.num_ver
+
+        self.hor_um_per_px = self.diff_hor / self.pix_per_hor
+        self.ver_um_per_px = self.diff_ver / self.pix_per_ver
+
+        self.new_image = np.zeros([self.hor_size, self.ver_size])
+        self.map_organized = True
+
+
+    def all_positions_defined(self):
+        for point in self.map_points:
+            if point.position is None:
+                return False
+        return True
+
+    def is_empty(self):
+        return len(self.map_points) == 0
+
+
+class MapPoint():
+    def __init__(self, pattern_filename,  pattern, position=None, img_filename=None):
+        """
+        Defines a point in a map.
+        :param img_filename: corresponding image filename
+        :param pattern_filename: corresponding pattern filename
+        :param position: tuple with the position of the map (x, y)
+        :param pattern: corresponding pattern
+        :type pattern: Pattern
+        """
+        self.pattern_filename = pattern_filename
+        self.x_data = pattern.x
+        self.y_data = pattern.y
+        self.position = position
+        self.img_filename = img_filename
