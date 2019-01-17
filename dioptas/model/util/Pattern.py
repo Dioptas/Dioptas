@@ -87,6 +87,12 @@ class Pattern(QtCore.QObject):
             print('Wrong data format for pattern file! - ' + filename)
             return -1
 
+    @classmethod
+    def from_file(cls, filename):
+        pattern = cls()
+        pattern.load(filename)
+        return pattern
+
     def save(self, filename, header=''):
         data = np.dstack((self._original_x, self._original_y))
         np.savetxt(filename, data[0], header=header)
