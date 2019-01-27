@@ -1,5 +1,22 @@
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2019 Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from qtpy import QtCore
-import os
 import numpy as np
 import re
 
@@ -8,38 +25,29 @@ from .util.Pattern import Pattern
 
 class MapModel(QtCore.QObject):
     """
-    Model for 2D maps from loading multiple images
-
+    Model for 2D maps from multiple pattern.
     """
     map_changed = QtCore.Signal()
     map_cleared = QtCore.Signal()
     map_problem = QtCore.Signal()
     roi_problem = QtCore.Signal()
-    map_images_loaded = QtCore.Signal()
 
     def __init__(self):
-        """
-        Defines all object variables and creates a dummy image.
-        :return:
-        """
         super(MapModel, self).__init__()
 
         self.map = Map()
         self.theta_center = 5.9
-        self.theta_range = 0.05
+        self.theta_range = 0.
 
-        self.map_roi_list = []
+        self.roi_manager = []
         self.roi_math = ''
-        self.roi_num = 0
 
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
 
     def reset_map_data(self):
-        self.map_data = {}
-        self.all_positions_defined_in_files = False
-        self.positions_set_manually = False
-        self.map_organized = False
+        self.map.reset()
+        self.roi_manager = []
         self.map_cleared.emit()
 
     def add_map_point(self, pattern_filename, pattern, position=None, img_filename=None):
@@ -53,112 +61,56 @@ class MapModel(QtCore.QObject):
         """
         self.map.add_point(pattern_filename, pattern, position, img_filename)
 
-    def prepare_map_data(self):
+    def add_roi(self, start, end, name=''):
+        self.roi_manager.append(Roi(start, end, name))
+
+    def calculate_map_data(self):
         """
-        Calculates the ROI math and creates the map image
+        Calculates the ROI math and creates the map image.
         """
+        self.map.prepare()
 
-        for map_item_name in self.map_data:
-            wavelength = self.map_data[map_item_name]['wavelength']
-            file_unit = self.map_data[map_item_name]['x_units']
-            sum_int = {}
-
-            for roi in self.map_roi_list:
-                sum_int[roi['roi_letter']] = 0
-
-            for x_val, y_val in zip(self.map_data[map_item_name]['x_data'], self.map_data[map_item_name]['y_data']):
-                if not self.map_data[map_item_name]['x_units'] == self.units:
-                    x_val = self.convert_units(x_val, file_unit, self.units, wavelength)
-                roi_letters = self.is_val_in_roi_range(x_val)
-                for roi_letter in roi_letters:
-                    sum_int[roi_letter] += y_val
+        for point in self.map:
+            sum_roi = {}
+            for roi in self.roi_manager:
+                indices_in_roi = roi.ind_in_roi(point.x_data)
+                sum_roi[roi.name] = np.sum(point.y_data[indices_in_roi])
 
             try:
-                current_math = self.calculate_roi_math(sum_int)
+                current_math = self.calculate_roi_math(sum_roi)
             except SyntaxError:  # needed in case of problem with math
                 return
 
-            range_hor = self.pos_to_range(float(self.map_data[map_item_name]['pos_hor']), self.min_hor,
-                                          self.pix_per_hor, self.diff_hor)
-            range_ver = self.pos_to_range(float(self.map_data[map_item_name]['pos_ver']), self.min_ver,
-                                          self.pix_per_ver, self.diff_ver)
-            self.new_image[range_hor, range_ver] = current_math
+            self.map.set_image_intensity(point.position, current_math)
 
-    def update_map(self):
-        if not self.all_positions_defined_in_files and not self.positions_set_manually:
-            self.map_problem.emit()
-            return
-
-        if not self.check_roi_math():
-            return
-
-        self.prepare_map_data()
-
-        self.map_changed.emit()
+    def create_simple_summing_roi_math(self):
+        """
+        Sets the roi_math to be summing of all ROIs.
+        """
+        self.roi_math = '+'.join([roi.name for roi in self.roi_manager])
 
     def check_roi_math(self):
         """
-        Returns: False if a ROI in the math is missing from the list.
+        Returns: False if a ROI in the math string is missing from the Rois
         """
-        if self.roi_math == '':
-            for item in self.map_roi_list:
-                self.roi_math = self.roi_math + item['roi_letter'] + '+'
-            self.roi_math = self.roi_math.rsplit('+', 1)[0]
-
-        rois_in_roi_math = re.findall('([A-Z])', self.roi_math)
-        for roi in rois_in_roi_math:
-            if roi not in [r['roi_letter'] for r in self.map_roi_list]:
-                self.roi_problem.emit()
+        names_in_roi_math = re.findall('([a-zA-Z]+)', self.roi_math)
+        for name in names_in_roi_math:
+            if name not in [roi.name for roi in self.roi_manager]:
                 return False
         return True
 
-    def is_val_in_roi_range(self, val):
-        """
-
-        Args:
-            val: x_value (ttheta, q, or d)
-
-        Returns: ROI letters, a list of ROIs containing x_value, or an empty list if not in any ROI in map_roi_list
-
-        """
-        roi_letters = []
-        for item in self.map_roi_list:
-            if float(item['roi_start']) < val < float(item['roi_end']):
-                roi_letters.append(item['roi_letter'])
-        return roi_letters
-
-    def add_roi_to_roi_list(self, roi):
-        self.map_roi_list.append(roi)
-
     def calculate_roi_math(self, sum_int):
         """
-        evaluates current_roi_math by replacing each ROI letter with the sum of the values in that range
-        Args:
-            sum_int: dictionary containing the ROI letters
-
-        Returns:
-        evaluated current_roi_math
+        Evaluates current_roi_math by replacing each ROI name with the sum of the values in that range
+        :param sum_int: dictionary with ROI names as key and there respective integral sums as values
+        :return: the result of the roi_math equation
         """
+        if self.roi_math == '':
+            self.create_simple_summing_roi_math()
         current_roi_math = self.roi_math
         for roi_letter in sum_int:
             current_roi_math = current_roi_math.replace(roi_letter, str(sum_int[roi_letter]))
         return eval(current_roi_math)
-
-    def pos_to_range(self, pos, min_pos, pix_per_pos, diff_pos):
-        """
-        Args:
-            pos: hor/ver position of current map file
-            min_pos: minimum corresponding map position
-            pix_per_pos: pixels to draw for each map position in the corresponding direction
-            diff_pos: difference in corresponding position between subsequent map files
-
-        Returns:
-            pos_range: a slice with the start and end pixels for drawing the current map file
-        """
-        range_start = round((pos - min_pos) / diff_pos * pix_per_pos)
-        range_end = round(range_start + pix_per_pos)
-        pos_range = slice(range_start, range_end)
-        return pos_range
 
 
 class Map:
@@ -179,10 +131,17 @@ class Map:
         :param position: tuple with x and y position
         :param img_filename: corresponding img filename
         """
-        map_point = MapPoint(pattern_filename, pattern, position, img_filename)
-        self.points.append(map_point)
+        self.points.append(MapPoint(pattern_filename, pattern, position, img_filename))
 
-    def sort_points(self):
+    def prepare(self):
+        """
+        Prepares the map for inserting intensities
+        """
+        self._sort_points()
+        self._get_map_dimensions()
+        self._create_empty_map()
+
+    def _sort_points(self):
         """
         Sorts the current points according to x and y positions and saves them in the sorted_points variable.
         """
@@ -193,7 +152,7 @@ class Map:
         self.sorted_points = sorted(datalist, key=lambda x: (x[1], x[2]))
         self.sorted_map = [[row[i] for row in self.sorted_points] for i in range(len(self.sorted_points[1]))]
 
-    def get_map_dimensions(self):
+    def _get_map_dimensions(self):
         """
         Uses the sorted points and map to estimate minimum x and y position, the differences between points
         """
@@ -206,7 +165,7 @@ class Map:
         self.diff_x = self.sorted_points[self.num_y][1] - self.sorted_points[0][1]
         self.diff_y = self.sorted_points[1][2] - self.sorted_points[0][2]
 
-    def create_empty_map(self):
+    def _create_empty_map(self):
         """
         Uses the estimated map dimension to calculate
         """
@@ -224,15 +183,15 @@ class Map:
                 return False
         return True
 
-    def sort_map_points_by_name(self):
+    def sort_points_by_name(self):
         """
         Returns:
             sorted_datalist: a list of all the map files, sorted by natural filename
         """
         return sorted(self.points, key=lambda point: [int(t) if t.isdigit() else t.lower() for t in
-                                                                 re.split('(\\d+)', point.pattern_filename)])
+                                                      re.split('(\\d+)', point.pattern_filename)])
 
-    def add_manual_map_positions(self, min_x, min_y, diff_x, diff_y, num_x, num_y, is_hor_first):
+    def add_manual_positions(self, min_x, min_y, diff_x, diff_y, num_x, num_y, is_hor_first):
         """
         Args:
             min_x: Horizontal minimum position
@@ -259,7 +218,6 @@ class Map:
                     self.points[ind].position = (x, y)
                     ind += 1
 
-
         self.min_x = min_x
         self.min_y = min_y
 
@@ -269,8 +227,28 @@ class Map:
         self.diff_x = diff_x
         self.diff_y = diff_y
 
-        self.create_empty_map()
+        self._create_empty_map()
         self.positions_set_manually = True
+
+    def set_image_intensity(self, position, intensity):
+        range_hor = self.pos_to_range(position[0], self.min_x, self.px_per_point_x, self.diff_x)
+        range_ver = self.pos_to_range(position[1], self.min_y, self.px_per_point_y, self.diff_y)
+        self.new_image[range_hor, range_ver] = intensity
+
+    def pos_to_range(self, pos, min_pos, px_per_point, diff_pos):
+        """
+        Args:
+            pos: x or y position of point
+            min_pos: minimum x or y value map position
+            px_per_point: pixels to draw for each map point in the corresponding direction
+            diff_pos: difference in corresponding direction between subsequent map files
+        Returns:
+            pos_range: a slice with the start and end pixels for drawing the current map file
+        """
+        range_start = round((pos - min_pos) / diff_pos * px_per_point)
+        range_end = round(range_start + px_per_point)
+        pos_range = slice(int(range_start), int(range_end))
+        return pos_range
 
     def is_empty(self):
         return len(self.points) == 0
@@ -278,8 +256,7 @@ class Map:
     def __getitem__(self, index):
         return self.points[index]
 
-    @property
-    def num_points(self):
+    def __len__(self):
         return len(self.points)
 
     def reset(self):
@@ -289,25 +266,20 @@ class Map:
 
 
 class MapPoint:
-    def __init__(self, pattern_filename,  pattern, position=None, img_filename=None):
+    def __init__(self, pattern_filename, pattern, position=None, img_filename=None):
         """
         Defines a point in a map.
-        :param img_filename: corresponding image filename
         :param pattern_filename: corresponding pattern filename
-        :param position: tuple with the position of the map (x, y)
         :param pattern: corresponding pattern
         :type pattern: Pattern
+        :param position: tuple with the position of the map (x, y)
+        :param img_filename: corresponding image filename
         """
         self.pattern_filename = pattern_filename
         self.x_data = pattern.x
         self.y_data = pattern.y
         self.position = position
         self.img_filename = img_filename
-
-
-class RoiManager:
-    def __init__(self):
-        self.rois = [] # list of rois
 
 
 class Roi:
@@ -321,3 +293,29 @@ class Roi:
         self.start = start
         self.end = end
         self.name = name
+
+    def is_in_roi(self, x):
+        """
+        whether value x is in the ROI
+        :param x: x-value
+        :type x: float
+        :return: True or False
+        :rtype: bool
+        """
+        return self.start < x < self.end
+
+    def ind_in_roi(self, x_array):
+        """
+        Gets the indices of an numpy array which are in the ROI
+        :param x_array: a numpy array
+        :return: list of indices
+        """
+        return np.where((x_array > self.start) & (x_array < self.end))[0]
+
+    @property
+    def center(self):
+        return self.range / 2 + self.start
+
+    @property
+    def range(self):
+        return self.end - self.start
