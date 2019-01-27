@@ -24,22 +24,13 @@ class MapModel(QtCore.QObject):
         """
         super(MapModel, self).__init__()
 
-        self.map_data = {}
-        self.map_roi_list = []
-        self.roi_math = ''
+        self.map = Map()
         self.theta_center = 5.9
         self.theta_range = 0.05
-        self.num_hor = 0
-        self.num_ver = 0
+
+        self.map_roi_list = []
+        self.roi_math = ''
         self.roi_num = 0
-        self.pix_per_hor = 100
-        self.pix_per_ver = 100
-        self.units = '2th_deg'
-        self.wavelength = 3.344e-11
-        self.all_positions_defined_in_files = False
-        self.positions_set_manually = False
-        self.map_uses_patterns = False
-        self.map_organized = False
 
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
@@ -51,99 +42,16 @@ class MapModel(QtCore.QObject):
         self.map_organized = False
         self.map_cleared.emit()
 
-    def add_img_file_to_map_data(self, img_filepath, map_working_directory, position):
+    def add_map_point(self, pattern_filename, pattern, position=None, img_filename=None):
         """
-        Add a single file to map_data data structure, including all metadata
-        Args:
-            img_filepath: path to the original image file (needed for sending command to open the file when clicked)
-            map_working_directory: Where the integrated patterns are saved
-            position: [pos_hor, pos_ver], needed for the map
-
+        Adds a Point to the map.
+        :param pattern_filename: filename of the corresponding map
+        :param pattern: Pattern object containing the x and y values of the integrated pattern
+        :type pattern: Pattern
+        :param position: tuple with x and y position
+        :param img_filename: corresponding img filename
         """
-        if len(self.map_data) == 0:
-            self.all_positions_defined_in_files = True
-
-        base_img_filename = os.path.basename(img_filepath)
-        self.map_data[img_filepath] = {}
-
-        pattern_file_name = os.path.join(map_working_directory, os.path.splitext(base_img_filename)[0] + '.xy')
-
-        self.map_data[img_filepath]['image_file_name'] = img_filepath
-        self.map_data[img_filepath]['pattern_file_name'] = pattern_file_name
-        self.read_pattern_file_into_map(img_filepath, pattern_file_name)
-        try:
-            self.map_data[img_filepath]['pos_hor'] = position[0]
-            self.map_data[img_filepath]['pos_ver'] = position[1]
-        except (KeyError, TypeError):
-            self.all_positions_defined_in_files = False
-
-    def read_pattern_file_into_map(self, img_filepath, pattern_file_name):
-        """
-        Adds the x, y data to the map_data data structure, along with x_units and wavelength
-        Args:
-            img_filepath: used as a key to the data structure
-            pattern_file_name: used to read from the actual file
-        """
-        current_pattern_file = open(pattern_file_name, 'r')
-
-        file_unit = '2th_deg'  # default value
-        wavelength = self.wavelength
-
-        self.map_data[img_filepath]['x_data'] = []
-        self.map_data[img_filepath]['y_data'] = []
-        for line in current_pattern_file:
-            if 'Wavelength:' in line:
-                try:
-                    wavelength = float(line.split()[-2])  # new pyfai
-                except ValueError:
-                    wavelength = float(line.split()[-1])  # old pyfai
-            elif '2th_deg' in line:
-                file_unit = '2th_deg'
-            elif 'q_A^-1' in line:
-                file_unit = 'q_A^-1'
-            elif 'd_A' in line:
-                file_unit = 'd_A'
-            elif line[0] is not '#':
-                x_val, y_val = float(line.split()[0]), float(line.split()[1])
-                self.map_data[img_filepath]['x_data'].append(x_val)
-                self.map_data[img_filepath]['y_data'].append(y_val)
-        self.map_data[img_filepath]['x_units'] = file_unit
-        self.map_data[img_filepath]['wavelength'] = wavelength
-        current_pattern_file.close()
-
-    def organize_map_files(self):
-        datalist = []
-        for filepath, filedata in self.map_data.items():
-            datalist.append([filepath, round(float(filedata['pos_hor']), 3), round(float(filedata['pos_ver']), 3)])
-        self.sorted_datalist = sorted(datalist, key=lambda x: (x[1], x[2]))
-
-        self.transposed_list = [[row[i] for row in self.sorted_datalist] for i in range(len(self.sorted_datalist[1]))]
-        self.min_hor = self.sorted_datalist[0][1]
-        self.min_ver = self.sorted_datalist[0][2]
-
-        self.num_hor = self.transposed_list[2].count(self.min_ver)
-        self.num_ver = self.transposed_list[1].count(self.min_hor)
-
-        self.check_map()  # Determine if there is problem with map
-
-        self.diff_hor = self.sorted_datalist[self.num_ver][1] - self.sorted_datalist[0][1]
-        self.diff_ver = self.sorted_datalist[1][2] - self.sorted_datalist[0][2]
-
-        self.hor_size = self.pix_per_hor * self.num_hor
-        self.ver_size = self.pix_per_ver * self.num_ver
-
-        self.hor_um_per_px = self.diff_hor / self.pix_per_hor
-        self.ver_um_per_px = self.diff_ver / self.pix_per_ver
-
-        self.new_image = np.zeros([self.hor_size, self.ver_size])
-        self.map_organized = True
-
-    def check_map(self):
-        if self.num_ver*self.num_hor == len(self.sorted_datalist):
-            return True
-        else:
-            self.map_problem.emit()
-            return False
+        self.map.add_point(pattern_filename, pattern, position, img_filename)
 
     def prepare_map_data(self):
         """
@@ -190,9 +98,7 @@ class MapModel(QtCore.QObject):
 
     def check_roi_math(self):
         """
-
         Returns: False if a ROI in the math is missing from the list.
-
         """
         if self.roi_math == '':
             for item in self.map_roi_list:
@@ -254,103 +160,8 @@ class MapModel(QtCore.QObject):
         pos_range = slice(range_start, range_end)
         return pos_range
 
-    def convert_units(self, value, previous_unit, new_unit, wavelength):
-        self.units = new_unit
-        if previous_unit == '2th_deg':
-            tth = value
-        elif previous_unit == 'q_A^-1':
-            tth = np.arcsin(
-                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
-        elif previous_unit == 'd_A':
-            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
-        else:
-            tth = 0
 
-        if new_unit == '2th_deg':
-            res = tth
-        elif new_unit == 'q_A^-1':
-            res = 4 * np.pi * \
-                  np.sin(tth / 360 * np.pi) / \
-                  wavelength / 1e10
-        elif new_unit == 'd_A':
-            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
-        else:
-            res = 0
-        return res
-
-    def add_manual_map_positions(self, hor_min, ver_min, hor_step, ver_step, hor_num, ver_num, is_hor_first, file_list):
-        """
-        Args:
-            hor_min: Horizontal minimum position
-            ver_min: Vertical minimum position
-            hor_step: Step in horizontal
-            ver_step: Step in vertical
-            hor_num: Number of horizontal positions
-            ver_num: Number of vertical positions
-            is_hor_first: True of horizontal changes first between files, False if vertical
-            file_list: List of the file names, as they appear in the map_data
-
-        Returns:
-            Does not return, but sets the positions_set_manually flag to True
-
-        """
-        self.sorted_datalist = file_list
-
-        ind = 0
-        if is_hor_first:
-            for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
-                for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
-                    if not self.sorted_datalist[ind] == 'Empty':
-                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
-                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
-                    ind = ind + 1
-        else:
-            for hor_pos in np.linspace(hor_min, hor_min + hor_step * (hor_num - 1), hor_num):
-                for ver_pos in np.linspace(ver_min, ver_min + ver_step * (ver_num - 1), ver_num):
-                    if not self.sorted_datalist[ind] == 'Empty':
-                        self.map_data[self.sorted_datalist[ind]]['pos_hor'] = hor_pos
-                        self.map_data[self.sorted_datalist[ind]]['pos_ver'] = ver_pos
-                    ind = ind + 1
-
-        self.min_hor = hor_min
-        self.min_ver = ver_min
-
-        self.num_hor = hor_num
-        self.num_ver = ver_num
-
-        self.diff_hor = hor_step
-        self.diff_ver = ver_step
-
-        self.hor_size = self.pix_per_hor * self.num_hor
-        self.ver_size = self.pix_per_ver * self.num_ver
-
-        self.hor_um_per_px = self.diff_hor / self.pix_per_hor
-        self.ver_um_per_px = self.diff_ver / self.pix_per_ver
-
-        self.new_image = np.zeros([self.hor_size, self.ver_size])
-        self.positions_set_manually = True
-
-    def sort_map_files_by_natural_name(self):
-        """
-        Returns:
-            sorted_datalist: a list of all the map files, sorted by natural filename
-        """
-        datalist = []
-        for filepath, filedata in self.map_data.items():
-            datalist.append(filepath)
-        sorted_datalist = sorted(datalist, key=lambda s: [int(t) if t.isdigit() else t.lower() for t in
-                                                          re.split('(\\d+)', s)])
-        return sorted_datalist
-
-    @property
-    def num_map_files(self):
-        return len(self.map_data)
-
-    def is_empty(self):
-        return self.num_map_files == 0
-
-
-class MapGrid:
+class Map:
     def __init__(self):
         self.points = []  # list of MapPoints
         self.sorted_points = []  # list of (points index, x, y)
@@ -359,7 +170,15 @@ class MapGrid:
         self.px_per_point_x = 100
         self.px_per_point_y = 100
 
-    def add_point(self, pattern_filename,  pattern, position=None, img_filename=None):
+    def add_point(self, pattern_filename, pattern, position=None, img_filename=None):
+        """
+        Adds a Point to the map
+        :param pattern_filename: filename of the corresponding map
+        :param pattern: Pattern object containing the x and y values of the integrated pattern
+        :type pattern: Pattern
+        :param position: tuple with x and y position
+        :param img_filename: corresponding img filename
+        """
         map_point = MapPoint(pattern_filename, pattern, position, img_filename)
         self.points.append(map_point)
 
@@ -405,8 +224,68 @@ class MapGrid:
                 return False
         return True
 
+    def sort_map_points_by_name(self):
+        """
+        Returns:
+            sorted_datalist: a list of all the map files, sorted by natural filename
+        """
+        return sorted(self.points, key=lambda point: [int(t) if t.isdigit() else t.lower() for t in
+                                                                 re.split('(\\d+)', point.pattern_filename)])
+
+    def add_manual_map_positions(self, min_x, min_y, diff_x, diff_y, num_x, num_y, is_hor_first):
+        """
+        Args:
+            min_x: Horizontal minimum position
+            min_y: Vertical minimum position
+            diff_x: Step in horizontal
+            diff_y: Step in vertical
+            num_x: Number of horizontal positions
+            num_y: Number of vertical positions
+            is_hor_first: True of horizontal changes first between files, False if vertical
+
+        """
+        x_grid = np.linspace(min_x, min_x + diff_x * (num_x - 1), num_x)
+        y_grid = np.linspace(min_y, min_y + diff_y * (num_y - 1), num_y)
+
+        ind = 0
+        if is_hor_first:
+            for y in y_grid:
+                for x in x_grid:
+                    self.points[ind].position = (x, y)
+                    ind += 1
+        else:
+            for x in x_grid:
+                for y in y_grid:
+                    self.points[ind].position = (x, y)
+                    ind += 1
+
+
+        self.min_x = min_x
+        self.min_y = min_y
+
+        self.num_x = num_x
+        self.num_y = num_y
+
+        self.diff_x = diff_x
+        self.diff_y = diff_y
+
+        self.create_empty_map()
+        self.positions_set_manually = True
+
     def is_empty(self):
         return len(self.points) == 0
+
+    def __getitem__(self, index):
+        return self.points[index]
+
+    @property
+    def num_points(self):
+        return len(self.points)
+
+    def reset(self):
+        self.points = []
+        self.sorted_points = []
+        self.sorted_map = []
 
 
 class MapPoint:
@@ -424,3 +303,21 @@ class MapPoint:
         self.y_data = pattern.y
         self.position = position
         self.img_filename = img_filename
+
+
+class RoiManager:
+    def __init__(self):
+        self.rois = [] # list of rois
+
+
+class Roi:
+    def __init__(self, start, end, name=None):
+        """
+        Defines a ROI
+        :param start: start_value of the ROI
+        :param end: end_value of the ROI
+        :param name: name of the ROI
+        """
+        self.start = start
+        self.end = end
+        self.name = name

@@ -7,7 +7,7 @@ import numpy as np
 import random
 import copy
 
-from ...model.MapModel import MapModel, MapGrid, Pattern
+from ...model.MapModel import MapModel, Map, Pattern
 from ..utility import unittest_data_path
 
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
@@ -19,13 +19,13 @@ map_pattern_file_paths = [os.path.join(map_pattern_path, os.path.splitext(filena
                           map_img_file_names]
 
 
-class MapGridTest(unittest.TestCase):
+class MapTest(unittest.TestCase):
     def setUp(self):
-        self.map_grid = MapGrid()
+        self.map = Map()
 
     def add_point(self, pattern_filename, position=None, img_filename=None):
         pattern = Pattern.from_file(pattern_filename)
-        self.map_grid.add_point(pattern_filename, pattern, (position[0], position[1]), img_filename)
+        self.map.add_point(pattern_filename, pattern, position, img_filename)
 
     def create_grid(self):
         x, y = 0, 0
@@ -46,70 +46,119 @@ class MapGridTest(unittest.TestCase):
     def test_add_point_to_grid(self):
         pattern_filename = map_pattern_file_paths[0]
         pattern = Pattern.from_file(map_pattern_file_paths[0])
-        self.map_grid.add_point(pattern_filename, pattern)
-        self.assertGreater(len(self.map_grid.points), 0)
+        self.map.add_point(pattern_filename, pattern)
+        self.assertGreater(len(self.map.points), 0)
 
     def test_all_positions_defined(self):
         self.create_grid()
 
-        self.assertTrue(self.map_grid.all_positions_defined())
+        self.assertTrue(self.map.all_positions_defined())
 
         pattern = Pattern.from_file(map_pattern_file_paths[0])
-        self.map_grid.add_point(map_pattern_file_paths[0], pattern)
+        self.map.add_point(map_pattern_file_paths[0], pattern)
 
-        self.assertFalse(self.map_grid.all_positions_defined())
+        self.assertFalse(self.map.all_positions_defined())
 
     def test_organize_map_points(self):
         self.create_grid()
-        self.map_grid.sort_points()
+        self.map.sort_points()
 
-        self.assertEqual(len(self.map_grid.sorted_points), len(self.map_grid.points))
-        self.assertEqual(len(self.map_grid.sorted_map), 3)
-        self.assertEqual(len(self.map_grid.sorted_map[0]), len(self.map_grid.points))
+        self.assertEqual(len(self.map.sorted_points), len(self.map.points))
+        self.assertEqual(len(self.map.sorted_map), 3)
+        self.assertEqual(len(self.map.sorted_map[0]), len(self.map.points))
 
-        x_diffs = np.diff(self.map_grid.sorted_map[1])
+        x_diffs = np.diff(self.map.sorted_map[1])
         for x_diff in x_diffs:
             self.assertGreater(x_diff, 0)
 
         # add a random point add end to see if it still works
         self.add_point(map_pattern_file_paths[0], (-3, 3))
-        self.map_grid.sort_points()
+        self.map.sort_points()
 
-        x_diffs = np.diff(self.map_grid.sorted_map[1])
+        x_diffs = np.diff(self.map.sorted_map[1])
         for x_diff in x_diffs:
             self.assertGreater(x_diff, 0)
 
     def test_get_map_dimensions(self):
         self.create_organized_grid()
-        self.map_grid.sort_points()
-        self.map_grid.get_map_dimensions()
+        self.map.sort_points()
+        self.map.get_map_dimensions()
 
-        self.assertEqual(self.map_grid.min_x, -0.005)
-        self.assertEqual(self.map_grid.min_y, -0.004)
+        self.assertEqual(self.map.min_x, -0.005)
+        self.assertEqual(self.map.min_y, -0.004)
 
-        self.assertEqual(self.map_grid.num_x, 3)
-        self.assertEqual(self.map_grid.num_y, 3)
+        self.assertEqual(self.map.num_x, 3)
+        self.assertEqual(self.map.num_y, 3)
 
-        self.assertEqual(self.map_grid.diff_x, 0.005)
-        self.assertEqual(self.map_grid.diff_y, 0.004)
+        self.assertEqual(self.map.diff_x, 0.005)
+        self.assertEqual(self.map.diff_y, 0.004)
 
     def test_create_empty_map(self):
         self.create_organized_grid()
-        self.map_grid.sort_points()
-        self.map_grid.get_map_dimensions()
-        self.map_grid.create_empty_map()
+        self.map.sort_points()
+        self.map.get_map_dimensions()
+        self.map.create_empty_map()
 
-        self.assertEqual(self.map_grid.hor_size, 300)
-        self.assertEqual(self.map_grid.um_per_px_in_x, 0.005/100)
-        self.assertEqual(self.map_grid.um_per_px_in_y, 0.004/100)
-        self.assertEqual(self.map_grid.new_image.shape, (300, 300))
+        self.assertEqual(self.map.hor_size, 300)
+        self.assertEqual(self.map.um_per_px_in_x, 0.005 / 100)
+        self.assertEqual(self.map.um_per_px_in_y, 0.004 / 100)
+        self.assertEqual(self.map.new_image.shape, (300, 300))
+
+    def test_reset_map_grid(self):
+        self.create_organized_grid()
+        self.map.reset()
+        self.assertTrue(self.map.is_empty())
+
+    def test_num_points(self):
+        self.create_organized_grid()
+        self.assertEqual(self.map.num_points, 9)
 
 
+    def test_add_manual_map_positions(self):
+        for ind in range(9):
+            self.add_point(map_pattern_file_paths[ind])
+        self.assertFalse(self.map.all_positions_defined())
+        # First change the positions manually to something different and make sure that map_data changes
+        min_x = 0.2
+        min_y = -0.15
+        diff_x = 0.002
+        diff_y = 0.004
+        num_x = 3
+        num_y = 3
+
+        self.map.add_manual_map_positions(min_x, min_y, diff_x, diff_y, num_x,
+                                          num_y, is_hor_first=True)
+        self.assertAlmostEqual(self.map.points[0].position[0], 0.2)
+        self.assertAlmostEqual(self.map.points[0].position[1], -0.15)
+        self.assertAlmostEqual(self.map.points[1].position[0], 0.202)
+        self.assertAlmostEqual(self.map.points[1] .position[1], -0.15)
+        self.assertAlmostEqual(self.map.points[-1].position[0], 0.204)
+        self.assertAlmostEqual(self.map.points[-1].position[1], -0.142)
+
+        self.assertTrue(self.map.all_positions_defined())
+
+        self.map.add_manual_map_positions(min_x, min_y, diff_x, diff_y, num_x,
+                                          num_y, is_hor_first=False)
+        self.assertAlmostEqual(self.map.points[0].position[0], 0.2)
+        self.assertAlmostEqual(self.map.points[0].position[1], -0.15)
+        self.assertAlmostEqual(self.map.points[1].position[0], 0.200)
+        self.assertAlmostEqual(self.map.points[1].position[1], -0.146)
+        self.assertAlmostEqual(self.map.points[-1].position[0], 0.204)
+        self.assertAlmostEqual(self.map.points[-1].position[1], -0.142)
 
 
+    def test_sort_map_files_by_natural_name(self):
+        map_files = ['map1', 'map2', 'map3', 'map4', 'map5', 'map6', 'map7', 'map8', 'map9']
+        shuffled_map_files = map_files.copy()
+        random.shuffle(shuffled_map_files)
+        self.assertNotEqual(map_files, shuffled_map_files)
 
+        for map_file in shuffled_map_files:
+            self.map.add_point(map_file, Pattern())
+        sorted_points = self.map.sort_map_points_by_name()
 
-
+        result_files = [p.pattern_filename for p in sorted_points]
+        self.assertEqual(result_files, map_files)
 
 
 
@@ -126,90 +175,16 @@ class MapModelTest(unittest.TestCase):
         gc.collect()
 
     def test_add_file_to_map_data(self):
-        first_file = 'Fe3O4C_M1_map_1_P1_E1_001.tif'
-        first_file_path = os.path.join(unittest_data_path, 'map', first_file)
-        hor = 0.1234
-        ver = -0.4568
+        self.map_model.add_map_point(map_pattern_file_paths[0],
+                                     Pattern.from_file(map_pattern_file_paths[0]),
+                                     (0.1234, -0.4568),
+                                     map_img_file_paths[0])
 
-        # start with empty map data
-        self.assertEqual(len(self.map_model.map_data), 0)
-
-        self.map_model.add_img_file_to_map_data(first_file_path,
-                                                os.path.join(unittest_data_path, 'map', 'xy'),
-                                                position=[hor, ver])
-        self.assertEqual(len(self.map_model.map_data), 1)  # 1 file in map data
+        self.assertEqual(len(self.map_model.map.points), 1)  # 1 file in map data
 
         # make sure motor positions are within 3 decimal points
-        self.assertAlmostEqual(float(self.map_model.map_data[first_file_path]['pos_hor']), hor, 3)
-        self.assertAlmostEqual(float(self.map_model.map_data[first_file_path]['pos_ver']), ver, 3)
-
-    def test_add_file_to_map_data_without_motor_info(self):
-        first_file = 'Fe3O4C_M1_map_1_P1_E1_001.tif'
-        first_file_path = os.path.join(unittest_data_path, 'map', first_file)
-
-        self.map_model.add_img_file_to_map_data(first_file_path,
-                                                os.path.join(unittest_data_path, 'map', 'xy'),
-                                                None)
-        self.assertFalse(self.map_model.all_positions_defined_in_files)
-
-    def helper_prepare_good_map(self, map_path):
-        map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-        working_dir = os.path.join(map_path, 'xy')
-        if not os.path.exists(working_dir):
-            os.mkdir(working_dir)
-        start_hor = 0.123
-        hor_pos = start_hor
-        ver_pos = -0.456
-        hor_step = 0.005
-        ver_step = 0.003
-        counter = 1
-        for map_file in map_files:
-            self.map_model.add_img_file_to_map_data(map_file,
-                                                    working_dir,
-                                                    [hor_pos, ver_pos])
-            hor_pos += hor_step
-            if counter == 3:
-                ver_pos += ver_step
-                hor_pos = start_hor
-                counter = 0
-            counter += 1
-        return map_files
-
-    def test_organize_map_data(self):
-        map_path = os.path.join(unittest_data_path, 'map')
-        map_files = self.helper_prepare_good_map(map_path)
-
-        self.assertEqual(len(self.map_model.map_data), len(map_files))
-        self.assertTrue(self.map_model.all_positions_defined_in_files)
-        # after all files loaded, test organization
-        self.map_model.organize_map_files()
-        self.assertEqual(self.map_model.num_hor, 3)
-        self.assertEqual(self.map_model.num_ver, 3)
-        self.assertAlmostEqual(self.map_model.diff_hor, 0.005, 5)
-        self.assertAlmostEqual(self.map_model.diff_ver, 0.003, 5)
-
-    def test_check_map_fails_when_map_is_not_rectangular(self):
-        map_path = os.path.join(unittest_data_path, 'map')
-        map_files = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-        working_dir = os.path.join(map_path, 'xy')
-        if not os.path.exists(working_dir):
-            os.mkdir(working_dir)
-        hor_pos = 0.123
-        ver_pos = -0.456
-        hor_step = 0.005
-        ver_step = 0.003
-        for map_file in map_files:
-            self.map_model.add_img_file_to_map_data(map_file,
-                                                    working_dir,
-                                                    [hor_pos, ver_pos])
-            hor_pos += hor_step
-            ver_pos += ver_step
-
-        self.assertEqual(len(self.map_model.map_data), len(map_files))
-        self.assertTrue(self.map_model.all_positions_defined_in_files)
-        # after all files loaded, test organization
-        self.map_model.organize_map_files()
-        self.assertFalse(self.map_model.check_map())
+        self.assertAlmostEqual(self.map_model.map[0].position[0], 0.1234)
+        self.assertAlmostEqual(self.map_model.map[0].position[1], -0.4568)
 
     def test_add_roi_to_roi_list(self):
         self.assertEqual(len(self.map_model.map_roi_list), 0)
@@ -259,46 +234,7 @@ class MapModelTest(unittest.TestCase):
         self.assertAlmostEqual(range1.start, 3 * pix_per_hor, 7)
         self.assertAlmostEqual(range1.stop, 4 * pix_per_hor, 7)
 
-    def test_sort_map_files_by_natural_name(self):
-        map_files = ['map1', 'map2', 'map3', 'map4', 'map5', 'map6', 'map7', 'map8', 'map9']
-        shuffled_map_files = map_files.copy()
-        random.shuffle(shuffled_map_files)
-        for map_file in shuffled_map_files:
-            self.map_model.map_data[map_file] = {}
-        sorted_list = self.map_model.sort_map_files_by_natural_name()
-        self.assertEqual(sorted_list, map_files)
-
-    def test_add_manual_map_positions(self):
-        map_path = os.path.join(unittest_data_path, 'map')
-        map_files = self.helper_prepare_good_map(map_path)
-
-        old_map_data = copy.deepcopy(self.map_model.map_data)
-
-        # First change the positions manually to something different and make sure that map_data changes
-        hor_min = 0.268
-        ver_min = -0.101
-        hor_step = 0.002
-        ver_step = 0.004
-
-        hor_num = 3
-        ver_num = 3
-        is_hor_first = True
-        self.map_model.add_manual_map_positions(hor_min, ver_min, hor_step, ver_step, hor_num, ver_num,
-                                                is_hor_first, map_files)
-        self.assertNotEqual(self.map_model.map_data, old_map_data)
-
-        # Then change back manually to the same positions in the organize_map_test and make sure the map_data returns
-
-        hor_min = 0.123
-        ver_min = -0.456
-        hor_step = 0.005
-        ver_step = 0.003
-        self.map_model.add_manual_map_positions(hor_min, ver_min, hor_step, ver_step, hor_num, ver_num,
-                                                is_hor_first, map_files)
-
-        self.assertEqual(self.map_model.map_data, old_map_data)
-        self.assertDictEqual(self.map_model.map_data, old_map_data)
-
+    @unittest.skip
     def test_prepare_map_data_updates_map_image(self):
         map_path = os.path.join(unittest_data_path, 'map')
         self.helper_prepare_good_map(map_path)
