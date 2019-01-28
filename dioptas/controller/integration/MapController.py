@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray data
+# Copyright (C) 2019 Clemens Prescher (clemens.prescher@gmail.com)
+# Institute for Geology and Mineralogy, University of Cologne
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from qtpy import QtCore, QtWidgets
 import pyqtgraph as pq
 import pyqtgraph.exporters
@@ -11,7 +28,7 @@ from ...widgets.MapWidgets import Map2DWidget, ManualMapPositionsDialog, OpenBGI
 from ...widgets.UtilityWidgets import save_file_dialog, open_files_dialog
 from ...widgets.MainWidget import IntegrationWidget
 from ...model.MapModel import MapModel
-from ...model.DioptasModel import DioptasModel
+from ...model.DioptasModel import DioptasModel, Pattern
 
 
 class MapController(object):
@@ -34,6 +51,9 @@ class MapController(object):
         self.open_bg_image_dialog = OpenBGImageDialog(self.map_widget, gsecars_photo)
         self.map_model = self.model.map_model  # type: MapModel
 
+        self.interactive_mode = True
+        self.roi_range = 0.5
+
         self.bg_image = None
         self.setup_connections()
         self.toggle_map_widgets_enable(toggle=False)
@@ -44,15 +64,17 @@ class MapController(object):
         self.model.map_model.map_cleared.connect(self.clear_map)
         self.model.map_model.map_problem.connect(self.map_positions_problem)
         self.model.map_model.roi_problem.connect(self.roi_problem)
-        self.model.map_model.map_images_loaded.connect(self.map_images_loaded)
 
         # General Signals
         self.widget.map_2D_btn.clicked.connect(self.map_2d_btn_clicked)
         self.map_widget.load_map_files_btn.clicked.connect(self.load_map_files_btn_clicked)
-        self.map_widget.update_map_btn.clicked.connect(self.btn_update_map_clicked)
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
         self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
         self.map_widget.snapshot_btn.clicked.connect(self.snapshot_btn_clicked)
+
+        # Pattern widget signals
+        self.widget.pattern_widget.mouse_left_clicked.connect(self.interactive_roi_pos_changed)
+        self.widget.pattern_widget.map_interactive_roi.sigRegionChanged.connect(self.interactive_roi_range_changed)
 
         # ROI
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
@@ -85,48 +107,14 @@ class MapController(object):
             self.load_map_files_btn_clicked()
 
     def toggle_map_widgets_enable(self, toggle=True):
-        self.map_widget.update_map_btn.setEnabled(toggle)
-        self.map_widget.manual_map_positions_setup_btn.setEnabled(toggle)
-        self.map_widget.roi_del_btn.setEnabled(toggle)
-        self.map_widget.roi_clear_btn.setEnabled(toggle)
-        self.map_widget.roi_select_all_btn.setEnabled(toggle)
-        self.map_widget.snapshot_btn.setEnabled(toggle)
-        self.map_widget.add_bg_btn.setEnabled(toggle)
-        self.map_widget.bg_opacity_slider.setEnabled(toggle)
-        if toggle:
-            self.set_map_widget_style('color: white')
-        else:
-            self.set_map_widget_style('color: black')
-
-    def set_map_widget_style(self, new_style):
-        self.map_widget.update_map_btn.setStyleSheet(new_style)
-        self.map_widget.manual_map_positions_setup_btn.setStyleSheet(new_style)
-        self.map_widget.roi_del_btn.setStyleSheet(new_style)
-        self.map_widget.roi_clear_btn.setStyleSheet(new_style)
-        self.map_widget.roi_select_all_btn.setStyleSheet(new_style)
-        self.map_widget.snapshot_btn.setStyleSheet(new_style)
-        self.map_widget.add_bg_btn.setStyleSheet(new_style)
-        self.map_widget.bg_opacity_slider.setStyleSheet(new_style)
-
-    def map_images_loaded(self):
-        self.update_map_status_files_lbl()
-        self.update_map_status_positions_lbl()
-        if self.map_model.all_positions_defined_in_files:
-            self.map_model.organize_map_files()
-        else:
-            MapErrorDialog(cannot_read_positions_from_image_files)
-        self.update_map_status_size_and_step_lbl()
+        self.map_widget.enable_control_widgets(toggle)
 
     def update_map_status_files_lbl(self):
-        num_files = self.map_model.num_map_files
+        num_files = len(self.map_model.map)
         if not num_files:
             self.map_widget.map_status_files_lbl.setText('No Files')
             self.map_widget.map_status_files_lbl.setStyleSheet('color: red')
         status_lbl = str(num_files)
-        if self.map_model.map_uses_patterns:
-            status_lbl = status_lbl + ' patterns'
-        else:
-            status_lbl = status_lbl + ' images'
         self.map_widget.map_status_files_lbl.setText(status_lbl)
         self.map_widget.map_status_files_lbl.setStyleSheet('color: green')
 
@@ -135,14 +123,11 @@ class MapController(object):
 
         if self.map_model.all_positions_defined_in_files and not self.map_model.positions_set_manually:
             status_pos_lbl = "Positions Found"
-
         elif self.map_model.positions_set_manually:
             status_pos_lbl = "Manual Positions"
-
         else:
             status_pos_lbl = "No Positions"
             self.map_widget.map_status_positions_lbl.setStyleSheet('color: red')
-
         self.map_widget.map_status_positions_lbl.setText(status_pos_lbl)
 
     def update_map_status_size_and_step_lbl(self):
@@ -166,18 +151,11 @@ class MapController(object):
         filenames = open_files_dialog(self.map_widget, "Load Map files.",
                                       self.model.working_directories['image'])
         if len(filenames):
-            self.map_model.reset_map_data()
+            self.map_model.reset()
 
-            if os.path.basename(filenames[0]).split('.')[-1] in \
-                    ['xy', 'chi', 'txt', 'dat']:
-                self.map_model.map_uses_patterns = True
-                working_directory = os.path.dirname(filenames[0])
+            if os.path.basename(filenames[0]).split('.')[-1] in ['xy', 'chi', 'txt', 'dat']:
                 for filename in filenames:
-                    filename = str(filename)
-                    self.map_model.add_img_file_to_map_data(filename, working_directory, None)
-                self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
-                self.update_map_status_files_lbl()
-                MapErrorDialog(cannot_read_positions_from_image_files)
+                    self.map_model.add_map_point(filename, Pattern.from_file(filename))
 
             else:  # assuming the files are image files
                 if not self.model.calibration_model.is_calibrated:
@@ -204,21 +182,25 @@ class MapController(object):
                     self.model.img_model.blockSignals(False)
 
                     self._integrate_and_save_pattern(working_directory, base_filename)
-                    self.map_model.add_img_file_to_map_data(filename,
-                                                            working_directory,
-                                                            [self.model.img_model.motors_info['Horizontal'],
-                                                             self.model.img_model.motors_info['Vertical']])
+                    self.map_model.add_map_point(self.model.pattern.filename,
+                                                 self.model.pattern,
+                                                 (self.model.img_model.motors_info['Horizontal'],
+                                                  self.model.img_model.motors_info['Vertical']),
+                                                 img_filename=filename)
 
                     QtWidgets.QApplication.processEvents()
                     if progress_dialog.wasCanceled():
-                        self.map_model.reset_map_data()
+                        self.map_model.reset()
                         break
 
                 progress_dialog.close()
                 self.model.blockSignals(False)
                 self.model.img_changed.emit()
                 self.model.pattern_changed.emit()
-                self.model.map_model.map_images_loaded.emit()
+
+            # now do the necessary steps to update the map
+            self.interactive_roi_pos_changed(self.widget.pattern_widget.get_pos_line())
+            self.update_map_status_files_lbl()
 
     def _integrate_and_save_pattern(self, directory, base_filename):
         self.model.current_configuration.integrate_image_1d()
@@ -232,19 +214,35 @@ class MapController(object):
             self.model.working_directories['pattern']))
         return working_directory
 
-    def btn_update_map_clicked(self):
-        self.map_model.map_roi_list = []
-        roi_math = str(self.map_widget.roi_math_txt.text())
-        if not roi_math == '':
-            self.map_widget.roi_list.selectAll()
-        for item in self.map_widget.roi_list.selectedItems():
-            roi_full_name = item.text().split('_')
-            roi_name = roi_full_name[1].split('-')
-            self.map_model.add_roi_to_roi_list({'roi_letter': roi_full_name[0], 'roi_start': roi_name[0],
-                                                'roi_end': roi_name[1]})
-        self.map_model.roi_math = roi_math
-        self.map_model.update_map()
-        self.map_widget.map_loaded = True
+    def interactive_roi_pos_changed(self, line_pos):
+        start = line_pos - self.roi_range / 2
+        end = line_pos + self.roi_range / 2
+        self.update_interactive_roi(start, end)
+
+    def interactive_roi_range_changed(self):
+        start = self.widget.pattern_widget.map_interactive_roi.lines[0].value()
+        end = self.widget.pattern_widget.map_interactive_roi.lines[1].value()
+        self.update_interactive_roi(start, end)
+
+    def update_interactive_roi(self, start, end):
+        self.roi_range = end - start
+        self.map_model.reset_rois()
+        self.map_model.add_roi(start, end, "interactive")
+        self.map_model.calculate_map_data()
+
+        if self.widget.pattern_widget.map_interactive_roi not in \
+                self.widget.pattern_widget.pattern_plot.items:
+            self.widget.pattern_widget.show_map_interactive_roi()
+        self.widget.pattern_widget.set_map_interactive_roi(start, end)
+        self.update_map_image()
+
+    def update_map_image(self):
+        if self.bg_image is not None:
+            map_opacity = self.map_widget.bg_opacity_slider.value()
+        else:
+            map_opacity = 1.0
+        self.map_widget.map_image.setOpacity(map_opacity)
+        self.map_widget.map_image.setImage(self.map_model.map.new_image, True)
 
     # Controls for ROI
     def btn_roi_add_clicked(self, params):
@@ -413,17 +411,6 @@ class MapController(object):
                                              'PNG (*.png);;JPG (*.jpg);;TIF (*.tif)')
         exporter = pq.exporters.ImageExporter(self.map_widget.map_view_box)
         exporter.export(snapshot_filename)
-
-    def update_map_image(self):
-        if self.bg_image is not None:
-            map_opacity = self.map_widget.bg_opacity_slider.value()
-        else:
-            map_opacity = 1.0
-        self.map_widget.map_image.setOpacity(map_opacity)
-        self.map_widget.map_image.setImage(self.map_model.new_image, True)
-        self.auto_range()
-        self.map_widget.map_loaded = True
-        self.update_map_status_size_and_step_lbl()
 
     # Auto-range for map image
     def auto_range(self):

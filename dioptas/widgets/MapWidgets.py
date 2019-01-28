@@ -34,6 +34,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.auto_update_map_cb.setChecked(True)
         self.update_map_btn = QtWidgets.QPushButton("Update Map")
         self.lbl_map_pos = QtWidgets.QLabel()
+
         # Map Image and Histogram
         self.map_image = pq.ImageItem()
         self.map_histogram_LUT = HistogramLUTItem(self.map_image, orientation='vertical')
@@ -165,6 +166,32 @@ class Map2DWidget(QtWidgets.QWidget):
         self.activateWindow()
         self.raise_()
         self.map_window_raised.emit()
+
+    def set_control_widgets_style(self, new_style):
+        self.update_map_btn.setStyleSheet(new_style)
+        self.manual_map_positions_setup_btn.setStyleSheet(new_style)
+        self.roi_del_btn.setStyleSheet(new_style)
+        self.roi_clear_btn.setStyleSheet(new_style)
+        self.roi_select_all_btn.setStyleSheet(new_style)
+        self.snapshot_btn.setStyleSheet(new_style)
+        self.add_bg_btn.setStyleSheet(new_style)
+        self.bg_opacity_slider.setStyleSheet(new_style)
+
+    def enable_control_widgets(self, toggle):
+        self.update_map_btn.setEnabled(toggle)
+        self.manual_map_positions_setup_btn.setEnabled(toggle)
+        self.roi_del_btn.setEnabled(toggle)
+        self.roi_clear_btn.setEnabled(toggle)
+        self.roi_select_all_btn.setEnabled(toggle)
+        self.snapshot_btn.setEnabled(toggle)
+        self.add_bg_btn.setEnabled(toggle)
+        self.bg_opacity_slider.setEnabled(toggle)
+
+        if toggle:
+            self.set_control_widgets_style('color: white')
+        else:
+            self.set_control_widgets_style('color: black')
+
 
 
 class ManualMapPositionsDialog(QtWidgets.QDialog):

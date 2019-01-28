@@ -71,8 +71,10 @@ class PatternWidget(QtCore.QObject):
         self.phases_legend.setParentItem(self.pattern_plot.vb)
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
 
-        self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
-        # self.linear_region_item.mouseDragEvent = empty_function
+        self.bkg_roi = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
+        self.map_interactive_roi = SymmetricModifiedLinearRegionItem([5, 20],
+                                                                     pg.LinearRegionItem.Vertical,
+                                                                     movable=False)
 
     @property
     def auto_range(self):
@@ -267,18 +269,30 @@ class PatternWidget(QtCore.QObject):
             self.phases_vlines.append(PhaseLinesPlot(self.pattern_plot, positions,
                                                      pen=pg.mkPen(color=(200, 50, 50), style=QtCore.Qt.SolidLine)))
 
-    def show_linear_region(self):
-        self.pattern_plot.addItem(self.linear_region_item)
+    # bkg_linear region functions
+    def show_bkg_roi(self):
+        self.pattern_plot.addItem(self.bkg_roi)
 
-    def set_linear_region(self, x_min, x_max):
-        self.linear_region_item.setRegion((x_min, x_max))
+    def set_bkg_roi(self, x_min, x_max):
+        self.bkg_roi.setRegion((x_min, x_max))
 
-    def get_linear_region(self):
-        return self.linear_region_item.getRegion()
+    def get_bkg_roi(self):
+        return self.bkg_roi.getRegion()
 
-    def hide_linear_region(self):
-        self.pattern_plot.removeItem(self.linear_region_item)
+    def hide_bkg_roi(self):
+        self.pattern_plot.removeItem(self.bkg_roi)
 
+    # map interactive linear region functions
+    def show_map_interactive_roi(self):
+        self.pattern_plot.addItem(self.map_interactive_roi)
+
+    def set_map_interactive_roi(self, x_min, x_max):
+        self.map_interactive_roi.setRegion((x_min, x_max))
+
+    def hide_map_interactive_roi(self):
+        self.pattern_plot.removeItem(self.map_interactive_roi)
+
+    # saving the plot
     def save_png(self, filename):
         exporter = ImageExporter(self.pattern_plot)
         exporter.export(filename)
@@ -334,7 +348,7 @@ class PatternWidget(QtCore.QObject):
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and
-                         ev.modifiers() & QtCore.Qt.ControlModifier):
+                 ev.modifiers() & QtCore.Qt.ControlModifier):
             view_range = np.array(self.view_box.viewRange()) * 2
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
@@ -353,7 +367,7 @@ class PatternWidget(QtCore.QObject):
 
     def myMouseDoubleClickEvent(self, ev):
         if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and
-                                                              ev.modifiers() & QtCore.Qt.ControlModifier):
+                                                      ev.modifiers() & QtCore.Qt.ControlModifier):
             self.auto_range = True
             self.emit_sig_range_changed()
 
@@ -367,7 +381,7 @@ class PatternWidget(QtCore.QObject):
 
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and
-                         ev.modifiers() & QtCore.Qt.ControlModifier):
+                 ev.modifiers() & QtCore.Qt.ControlModifier):
             # determine the amount of translation
             tr = dif
             tr = self.view_box.mapToView(tr) - self.view_box.mapToView(pg.Point(0, 0))
@@ -414,7 +428,7 @@ class PatternWidget(QtCore.QObject):
                 x_range = np.max(curve_data[0]) - np.min(curve_data[0])
                 y_range = np.max(curve_data[1]) - np.min(curve_data[1])
                 if (view_range[0][1] - view_range[0][0]) >= x_range and \
-                                (view_range[1][1] - view_range[1][0]) >= y_range:
+                        (view_range[1][1] - view_range[1][0]) >= y_range:
                     self.auto_range = True
                 else:
                     self.auto_range = False
@@ -562,3 +576,56 @@ class ModifiedLinearRegionItem(pg.LinearRegionItem):
 
     def hoverEvent(self, ev):
         return
+
+
+class SymmetricModifiedLinearRegionItem(ModifiedLinearRegionItem):
+    def __init__(self, *args, **kwargs):
+        super(SymmetricModifiedLinearRegionItem, self).__init__()
+        self.center = (self.lines[1].getXPos() - self.lines[0].getXPos()) / 2 + self.lines[0].getXPos()
+
+    def setRegion(self, rgn):
+        """Set the values for the edges of the region.
+
+        ==============   ==============================================
+        **Arguments:**
+        rgn              A list or tuple of the lower and upper values.
+        ==============   ==============================================
+        """
+        if self.lines[0].value() == rgn[0] and self.lines[1].value() == rgn[1]:
+            return
+        self.blockLineSignal = True
+        self.lines[0].setValue(rgn[0])
+        self.lines[1].setValue(rgn[1])
+        self.blockLineSignal = False
+
+        self.center = np.mean((self.lines[0].value(), self.lines[1].value()))
+        # self.blockLineSignal = False
+        # self.lineMoved(0)
+        # self.lineMoved(1)
+        # self.lineMoveFinished()
+
+    def lineMoved(self, i):
+        if self.blockLineSignal:
+            return
+        self.blockLineSignal = True
+        # symmetric part
+        if i == 0:
+            left_diff = self.center - self.lines[0].value()
+            self.lines[1].setValue(self.center + left_diff)
+        if i == 1:
+            right_diff = self.lines[1].value() - self.center
+            self.lines[0].setValue(self.center - right_diff)
+        self.center = np.mean((self.lines[0].value(), self.lines[1].value()))
+        # lines swapped
+        if self.lines[0].value() > self.lines[1].value():
+            val_0, val_1 = self.lines[0].value(), self.lines[1].value()
+            self.lines[1].setValue(val_0)
+            self.lines[0].setValue(val_1)
+            # if self.swapMode == 'block':
+            #     self.lines[i].setValue(self.lines[1 - i].value())
+            # elif self.swapMode == 'push':
+            #     self.lines[1 - i].setValue(self.lines[i].value())
+
+        self.blockLineSignal = False
+        self.prepareGeometryChange()
+        self.sigRegionChanged.emit(self)

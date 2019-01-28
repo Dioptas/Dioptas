@@ -259,18 +259,3 @@ class MapModelTest(unittest.TestCase):
         self.map_model.add_roi(7, 9, 'A')
         self.map_model.calculate_map_data()
 
-
-    @unittest.skip
-    def test_prepare_map_data_updates_map_image(self):
-        map_path = os.path.join(unittest_data_path, 'map')
-        self.helper_prepare_good_map(map_path)
-        self.map_model.organize_map_files()
-
-        self.helper_add_roi_to_roi_list()
-
-        empty_map_image = self.map_model.new_image.copy()
-        self.assertTrue(not np.any(empty_map_image))
-
-        self.map_model.check_roi_math()
-        self.map_model.calculate_map_data()
-        self.assertFalse(np.array_equal(empty_map_image, self.map_model.new_image))
