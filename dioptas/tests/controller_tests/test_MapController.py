@@ -4,6 +4,7 @@ import os
 import gc
 from ..utility import QtTest, click_button, unittest_data_path
 
+import numpy as np
 from mock import MagicMock
 from qtpy import QtWidgets
 
@@ -12,18 +13,23 @@ from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
-map_path = os.path.join(unittest_data_path, 'map')
-map_img_file_names = [f for f in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, f))]
-map_img_file_paths = [os.path.join(map_path, filename) for filename in map_img_file_names]
+map_img_path = os.path.join(unittest_data_path, 'map')
+map_pattern_path = os.path.join(unittest_data_path, 'map', 'xy')
+map_img_file_names = [f for f in os.listdir(map_img_path) if os.path.isfile(os.path.join(map_img_path, f))]
+map_img_file_paths = [os.path.join(map_img_path, filename) for filename in map_img_file_names]
+map_pattern_file_paths = [os.path.join(map_pattern_path, os.path.splitext(filename)[0] + '.xy') for filename in
+                          map_img_file_names]
 
 
 class MapControllerTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
+        self.map_model = self.model.map_model
         self.model.working_directories['image'] = unittest_data_path
         self.model.working_directories['pattern'] = unittest_data_path
         self.model.working_directories['phase'] = unittest_data_path
         self.widget = IntegrationWidget()
+        self.map_widget = self.widget.map_2D_widget
 
         self.widget.map_2D_widget.show = MagicMock()
 
@@ -37,45 +43,44 @@ class MapControllerTest(QtTest):
         del self.model
         del self.widget
         gc.collect()
+        pattern_path = os.path.join(map_img_path, "pattern")
+        if os.path.exists(pattern_path):
+            for filename in os.listdir(pattern_path):
+                os.remove(os.path.join(pattern_path, filename))
+            os.rmdir(pattern_path)
 
-    def _setup_map_batch_integration(self):
-        # setting up filenames and working directories
-        working_dir = os.path.join(map_path, 'patterns')
-        if not os.path.exists(working_dir):
-            os.mkdir(working_dir)
-        self.model.working_directories['pattern'] = os.path.join(working_dir)
-        self.widget.pattern_autocreate_cb.setChecked(True)
-        return map_img_file_paths, map_img_file_names, working_dir
-
-    @staticmethod
-    def helper_delete_integrated_map_files_and_working_directory(file_names, working_dir):
-        for file_name in file_names:
-            os.remove(os.path.join(working_dir, os.path.splitext(file_name)[0] + '.xy'))
-        os.rmdir(working_dir)
-
-    def test_opening_map_2d_dialog(self):
+    def load_map_images_and_open_map_dialog(self):
+        # Test that opening the map 2d dialog will automatically ask for map files to be loaded
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_img_file_paths)
-        working_dir = os.path.join(map_path, 'patterns')
+        working_dir = os.path.join(map_img_path, 'patterns')
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
         QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=working_dir)
         click_button(self.widget.map_2D_btn)
-        self.assertFalse(self.model.map_model.is_empty())
-        self.helper_delete_integrated_map_files_and_working_directory(map_img_file_names, working_dir)
 
-    def test_map_batch_integration_of_multiple_files(self, delete_upon_finish=True):
-        map_file_paths, map_file_names, working_dir = self._setup_map_batch_integration()
-        click_button(self.widget.map_2D_btn)
-        self.assertTrue(self.widget.img_batch_mode_map_rb.isChecked())
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_file_paths)
-        click_button(self.widget.load_img_btn)
+    def test_load_map_files_btn_with_images(self):
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_img_file_paths)
+        working_dir = os.path.join(map_img_path, 'patterns')
+        if not os.path.exists(working_dir):
+            os.mkdir(working_dir)
+        QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=working_dir)
+        click_button(self.map_widget.load_map_files_btn)
+        self.assertFalse(self.map_model.is_empty())
 
-        for filename in map_file_names:
-            filename = filename.split('.')[0] + '.xy'
-            file_path = os.path.join(working_dir, filename)
-            self.assertTrue(os.path.exists(file_path))
-        if delete_upon_finish:
-            self.helper_delete_integrated_map_files_and_working_directory(map_file_names, working_dir)
+    def test_load_map_files_btn_with_patterns(self):
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_pattern_file_paths)
+        click_button(self.map_widget.load_map_files_btn)
+        self.assertFalse(self.map_model.is_empty())
+
+    def test_click_2d_map_button_will_result_in_map(self):
+        self.widget.pattern_widget.set_pos_line(10)
+        self.load_map_images_and_open_map_dialog()
+        self.assertFalse(self.map_model.is_empty())
+        self.assertNotAlmostEqual(np.sum(self.map_model.map.new_image), 0)
+        self.assertNotAlmostEqual(np.sum(self.map_widget.map_image.image), 0)
+
+        self.assertTrue(self.widget.pattern_widget.map_interactive_roi in
+                        self.widget.pattern_widget.pattern_plot.items)
 
     def test_adding_map_and_range_enables_map_functionality(self):
         self.assertFalse(self.widget.map_2D_widget.update_map_btn.isEnabled())
@@ -95,7 +100,7 @@ class MapControllerTest(QtTest):
         click_position_x = 10.2
         self.helper_add_range_at_pos(click_position_x)
         roi_range = self.widget.map_2D_widget.roi_list.item(0).text().rsplit('_', 1)[-1]
-        roi_center = (float(roi_range.split('-')[0]) + float(roi_range.split('-')[1]))/2.0
+        roi_center = (float(roi_range.split('-')[0]) + float(roi_range.split('-')[1])) / 2.0
         self.assertAlmostEqual(roi_center, click_position_x, 5)
 
     def test_remove_roi_range_btn(self):
@@ -163,7 +168,6 @@ class MapControllerTest(QtTest):
                                                               self.model.map_model.wavelength))
 
         for roi_item, xcen in zip(self.widget.map_2D_widget.roi_list.selectedItems(), xcenter):
-
             roi_range = roi_item.text().rsplit('_', 1)[-1]
             roi_center = (float(roi_range.split('-')[0]) + float(roi_range.split('-')[1])) / 2.0
             self.assertAlmostEqual(roi_center, xcen, 3)

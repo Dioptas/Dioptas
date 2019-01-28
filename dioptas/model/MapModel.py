@@ -39,15 +39,15 @@ class MapModel(QtCore.QObject):
         self.theta_center = 5.9
         self.theta_range = 0.
 
-        self.roi_manager = []
+        self.rois = []
         self.roi_math = ''
 
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
 
-    def reset_map_data(self):
+    def reset(self):
         self.map.reset()
-        self.roi_manager = []
+        self.reset_rois()
         self.map_cleared.emit()
 
     def add_map_point(self, pattern_filename, pattern, position=None, img_filename=None):
@@ -62,7 +62,11 @@ class MapModel(QtCore.QObject):
         self.map.add_point(pattern_filename, pattern, position, img_filename)
 
     def add_roi(self, start, end, name=''):
-        self.roi_manager.append(Roi(start, end, name))
+        self.rois.append(Roi(start, end, name))
+
+    def reset_rois(self):
+        self.rois = []
+        self.roi_math = ''
 
     def calculate_map_data(self):
         """
@@ -72,7 +76,7 @@ class MapModel(QtCore.QObject):
 
         for point in self.map:
             sum_roi = {}
-            for roi in self.roi_manager:
+            for roi in self.rois:
                 indices_in_roi = roi.ind_in_roi(point.x_data)
                 sum_roi[roi.name] = np.sum(point.y_data[indices_in_roi])
 
@@ -82,12 +86,13 @@ class MapModel(QtCore.QObject):
                 return
 
             self.map.set_image_intensity(point.position, current_math)
+        self.map_changed.emit()
 
     def create_simple_summing_roi_math(self):
         """
         Sets the roi_math to be summing of all ROIs.
         """
-        self.roi_math = '+'.join([roi.name for roi in self.roi_manager])
+        self.roi_math = '+'.join([roi.name for roi in self.rois])
 
     def check_roi_math(self):
         """
@@ -95,7 +100,7 @@ class MapModel(QtCore.QObject):
         """
         names_in_roi_math = re.findall('([a-zA-Z]+)', self.roi_math)
         for name in names_in_roi_math:
-            if name not in [roi.name for roi in self.roi_manager]:
+            if name not in [roi.name for roi in self.rois]:
                 return False
         return True
 
@@ -111,6 +116,9 @@ class MapModel(QtCore.QObject):
         for roi_letter in sum_int:
             current_roi_math = current_roi_math.replace(roi_letter, str(sum_int[roi_letter]))
         return eval(current_roi_math)
+
+    def is_empty(self):
+        return len(self.map) == 0
 
 
 class Map:
