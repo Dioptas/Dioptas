@@ -99,8 +99,33 @@ class MapControllerTest(QtTest):
                          map_img_file_paths[-1])
         self.map_widget.mouse_clicked.emit(50, 50)
         self.assertNotEqual(self.model.img_model.filename,
-                         map_img_file_paths[-1])
+                            map_img_file_paths[-1])
 
+    def test_moving_mouse_shows_position(self):
+        self.load_map_images_and_open_map_dialog()
+        self.map_widget.mouse_moved.emit(101, 101)
+        self.assertEqual("{} {}".format(-0.326, -0.558),
+                         self.map_widget.map_pos_lbl.text())
+        self.map_widget.mouse_moved.emit(101, 201)
+        self.assertEqual("{} {}".format(-0.326, -0.556),
+                         self.map_widget.map_pos_lbl.text())
+
+    def test_moving_mouse_shows_filename(self):
+        self.load_map_images_and_open_map_dialog()
+        self.map_widget.mouse_moved.emit(5, 5)
+        self.assertEqual(
+            os.path.basename(self.map_model.map.points[self.map_model.map.sorted_points[0][0]].pattern_filename),
+            self.map_widget.map_filename_lbl.text())
+
+        self.map_widget.mouse_moved.emit(5, 105)
+        self.assertEqual(
+            os.path.basename(self.map_model.map.points[self.map_model.map.sorted_points[1][0]].pattern_filename),
+            self.map_widget.map_filename_lbl.text())
+
+        self.map_widget.mouse_moved.emit(250, 205)
+        self.assertEqual(
+            os.path.basename(self.map_model.map.points[self.map_model.map.sorted_points[-1][0]].pattern_filename),
+            self.map_widget.map_filename_lbl.text())
 
     #################### below is not tested yet
     def test_adding_map_and_range_enables_map_functionality(self):

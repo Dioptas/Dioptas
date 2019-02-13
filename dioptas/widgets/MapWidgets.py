@@ -18,32 +18,73 @@ class Map2DWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super(Map2DWidget, self).__init__(parent)
-
         # setup MAP window
         self.setWindowTitle("2D Map")
         self.setGeometry(200, 100, 800, 600)
 
-        # setup initial data structures and default parameters
-        self.map_roi = {}
-        self.roi_num = 0  # number of existing ROIs
-        self.roi_count = 0  # number of created ROIs, including deleted ones
-        self.map_loaded = False
-        self.old_roi_math_txt = ''
+        self.create_main_control_widgets()
+        self.create_main_control_layout()
 
-        # WIDGETS
-        self.load_map_files_btn = QtWidgets.QPushButton("Load Map Files")
-        self.load_map_files_btn.setToolTip("Load the image or pattern files for your map")
-        self.manual_map_positions_setup_btn = QtWidgets.QPushButton("Setup Map")
+        self.create_map_widgets()
+        self.create_map_layout()
+
+        self.create_background_control_widgets()
+        self.create_background_control_layout()
+
+        self.create_roi_widgets()
+        self.create_roi_layout()
+        self.hide_roi_controls()
+
+        self.create_status_bar()
+        self.create_status_layout()
+
+        self.create_layout()
+        self.create_tooltips()
+        self.style_widgets()
+
+        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
+                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
+                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
+
+        # Map mouse events
+        self.map_image.mouseClickEvent = self.mouse_click_event
+        self.map_view_box.mouseClickEvent = self.do_nothing
+        self.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
+
+    def create_main_control_widgets(self):
+        self.load_map_files_btn = FlatButton("Load Map Files")
+        self.setup_map_btn = FlatButton("Setup Map")
+
         self.auto_update_map_cb = QtWidgets.QCheckBox('Auto Update?')
         self.auto_update_map_cb.setChecked(True)
         self.update_map_btn = QtWidgets.QPushButton("Update Map")
-        self.lbl_map_pos = QtWidgets.QLabel()
 
-        # Map Image and Histogram
+        self.mode_gb = QtWidgets.QGroupBox("Mode")
+        self.interactive_mode_rb = QtWidgets.QRadioButton('Interactive')
+        self.interactive_mode_rb.setChecked(True)
+        self.roi_mode_rb = QtWidgets.QRadioButton('ROI')
+
+    def create_main_control_layout(self):
+        self.main_control_layout = QtWidgets.QVBoxLayout()
+        self.main_control_layout.addWidget(self.load_map_files_btn)
+        self.main_control_layout.addWidget(self.setup_map_btn)
+
+        self.update_layout = QtWidgets.QHBoxLayout()
+        self.update_layout.addWidget(self.auto_update_map_cb)
+        self.update_layout.addWidget(self.update_map_btn)
+        self.main_control_layout.addLayout(self.update_layout)
+
+        self.mode_gb_layout = QtWidgets.QHBoxLayout()
+        self.mode_gb_layout.addWidget(self.interactive_mode_rb)
+        self.mode_gb_layout.addWidget(self.roi_mode_rb)
+        self.mode_gb.setLayout(self.mode_gb_layout)
+        self.main_control_layout.addWidget(self.mode_gb)
+
+    def create_map_widgets(self):
         self.map_image = pq.ImageItem()
         self.map_histogram_LUT = HistogramLUTItem(self.map_image, orientation='vertical')
 
-        # Background for image
         self.bg_image = np.zeros([1920, 1200])
         self.map_bg_image = pq.ImageItem()
         bg_rect = QtCore.QRectF(0, 0, 1920, 1200)
@@ -51,93 +92,7 @@ class Map2DWidget(QtWidgets.QWidget):
         self.map_bg_image.setRect(bg_rect)
         self.snapshot_btn = QtWidgets.QPushButton("Snapshot")
 
-        # ROI Widgets
-        self.roi_list = QtWidgets.QListWidget()
-        self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        self.roi_math_lbl = QtWidgets.QLabel('Math:')
-        self.roi_math_txt = QtWidgets.QLineEdit()
-        self.roi_add_btn = QtWidgets.QPushButton("Add Range")
-        self.roi_add_phase_btn = QtWidgets.QPushButton("Add Phase")
-        self.roi_del_btn = QtWidgets.QPushButton("Remove Range(s)")
-        self.roi_clear_btn = QtWidgets.QPushButton("Clear Ranges")
-        self.roi_toggle_btn = QtWidgets.QPushButton("Toggle Show")
-        self.roi_select_all_btn = QtWidgets.QPushButton("Select All")
-
-        # Background control
-        self.add_bg_btn = QtWidgets.QPushButton("Add BG Image")
-        self.bg_opacity_lbl = QtWidgets.QLabel("Opacity: BG")
-        self.bg_opacity_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.map_opacity_lbl = QtWidgets.QLabel("Map")
-
-        # Status Line
-        self.map_status_lbl = QtWidgets.QLabel("Map:")
-        self.map_status_files_lbl = QtWidgets.QLabel("No Files")
-        self.map_status_positions_lbl = QtWidgets.QLabel("No Positions")
-        self.map_status_size_and_step_lbl = QtWidgets.QLabel("No Info")
-
-        # positions
-
-        # ROI positions
-        self.roi_grid = QtWidgets.QGridLayout()
-        self.roi_grid.addWidget(self.roi_add_btn, 0, 0)
-        self.roi_grid.addWidget(self.roi_add_phase_btn, 0, 1)
-        self.roi_grid.addWidget(self.roi_del_btn, 1, 0)
-        self.roi_grid.addWidget(self.roi_clear_btn, 1, 1)
-        self.roi_grid.addWidget(self.roi_toggle_btn, 2, 1)
-        self.roi_grid.addWidget(self.roi_select_all_btn, 2, 0)
-
-        # Widget Properties
-        self.roi_toggle_btn.setCheckable(True)
-        self.roi_toggle_btn.setChecked(True)
-        self.bg_opacity_slider.setMinimum(0)
-        self.bg_opacity_slider.setMaximum(100)
-        self.bg_opacity_slider.setValue(50)
-        self.bg_opacity_slider.setSingleStep(5)
-        self.bg_opacity_slider.setPageStep(20)
-        self.map_status_files_lbl.setStyleSheet('color: red')
-        self.map_status_positions_lbl.setStyleSheet('color: red')
-        self.map_status_size_and_step_lbl.setStyleSheet('color: red')
-        self.manual_map_positions_setup_btn.setToolTip('Load files and add range first')
-
-        # Layout
-        self.main_vbox = QtWidgets.QVBoxLayout()
-        self.hbox = QtWidgets.QHBoxLayout()
-        self.lbl_hbox = QtWidgets.QHBoxLayout()
-        self.bg_hbox = QtWidgets.QHBoxLayout()
-        self.math_hbox = QtWidgets.QHBoxLayout()
-        self.roi_vbox = QtWidgets.QVBoxLayout()
-        self.update_hbox = QtWidgets.QHBoxLayout()
-        self.status_hbox = QtWidgets.QHBoxLayout()
-
-        self.roi_vbox.addWidget(self.load_map_files_btn)
-        self.roi_vbox.addWidget(self.manual_map_positions_setup_btn)
-        self.update_hbox.addWidget(self.auto_update_map_cb)
-        self.update_hbox.addWidget(self.update_map_btn)
-        self.roi_vbox.addLayout(self.update_hbox)
-        self.roi_vbox.addWidget(self.roi_list)
-
-        self.math_hbox.addWidget(self.roi_math_lbl)
-        self.math_hbox.addWidget(self.roi_math_txt)
-        self.roi_vbox.addLayout(self.math_hbox)
-        self.roi_vbox.addLayout(self.roi_grid)
-        self.hbox.addLayout(self.roi_vbox)
-        self.hbox.addStretch(1)
-
-        self.bg_hbox.addWidget(self.add_bg_btn)
-        self.bg_hbox.addWidget(self.bg_opacity_lbl)
-        self.bg_hbox.addWidget(self.bg_opacity_slider)
-        self.bg_hbox.addWidget(self.map_opacity_lbl)
-        self.bg_hbox.addStretch(1)
-
-        self.lbl_hbox.addWidget(self.snapshot_btn)
-        self.lbl_hbox.addStretch(1)
-        self.lbl_hbox.addWidget(self.lbl_map_pos)
-
-        self.status_hbox.addWidget(self.map_status_lbl)
-        self.status_hbox.addWidget(self.map_status_files_lbl)
-        self.status_hbox.addWidget(self.map_status_positions_lbl)
-        self.status_hbox.addWidget(self.map_status_size_and_step_lbl)
-
+    def create_map_layout(self):
         self.hist_layout = GraphicsLayoutWidget()
         self.map_view_box = self.hist_layout.addViewBox(0, 0, lockAspect=1.0)
 
@@ -150,24 +105,92 @@ class Map2DWidget(QtWidgets.QWidget):
         self.map_histogram_LUT = HistogramLUTItem(self.map_image, orientation='vertical')
         self.hist_layout.addItem(self.map_histogram_LUT, 0, 1)
 
-        self.hbox.addWidget(self.hist_layout)
+    def create_background_control_widgets(self):
+        self.add_bg_btn = QtWidgets.QPushButton("Add BG Image")
+        self.bg_opacity_lbl = QtWidgets.QLabel("Opacity: BG")
+        self.bg_opacity_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.map_opacity_lbl = QtWidgets.QLabel("Map")
 
-        self.main_vbox.addLayout(self.hbox)
-        self.main_vbox.addLayout(self.lbl_hbox)
-        self.main_vbox.addLayout(self.bg_hbox)
-        self.main_vbox.addStretch(1)
-        self.main_vbox.addLayout(self.status_hbox)
-        self.setLayout(self.main_vbox)
+    def create_background_control_layout(self):
+        self.background_layout = QtWidgets.QHBoxLayout()
+        self.background_layout.addWidget(self.add_bg_btn)
+        self.background_layout.addWidget(self.bg_opacity_lbl)
+        self.background_layout.addWidget(self.bg_opacity_slider)
+        self.background_layout.addWidget(self.map_opacity_lbl)
+        self.background_layout.addStretch(1)
 
-        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
-                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
-                            QtCore.Qt.X11BypassWindowManagerHint)
-        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
+    def create_status_bar(self):
+        self.map_filename_lbl = QtWidgets.QLabel()
+        self.map_pos_lbl = QtWidgets.QLabel()
 
-        # Map mouse events
-        self.map_image.mouseClickEvent = self.mouse_click_event
-        self.map_view_box.mouseClickEvent = self.do_nothing
-        self.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
+    def create_status_layout(self):
+        self.status_layout = QtWidgets.QHBoxLayout()
+        self.status_layout.addStretch(1)
+        self.status_layout.addWidget(self.map_filename_lbl)
+        self.status_layout.addWidget(self.map_pos_lbl)
+
+    def create_roi_widgets(self):
+        self.roi_widget = QtWidgets.QWidget()
+        self.roi_list = QtWidgets.QListWidget()
+        self.roi_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.roi_math_lbl = QtWidgets.QLabel('Math:')
+        self.roi_math_txt = QtWidgets.QLineEdit()
+        self.roi_add_btn = QtWidgets.QPushButton("Add Range")
+        self.roi_add_phase_btn = QtWidgets.QPushButton("Add Phase")
+        self.roi_del_btn = QtWidgets.QPushButton("Remove Range(s)")
+        self.roi_clear_btn = QtWidgets.QPushButton("Clear Ranges")
+        self.roi_toggle_btn = QtWidgets.QPushButton("Toggle Show")
+        self.roi_select_all_btn = QtWidgets.QPushButton("Select All")
+
+    def create_roi_layout(self):
+        self.roi_vbox_layout = QtWidgets.QVBoxLayout()
+        self.roi_vbox_layout.addWidget(self.roi_list)
+        self.roi_grid_layout = QtWidgets.QGridLayout()
+        self.roi_grid_layout.addWidget(self.roi_add_btn, 0, 0)
+        self.roi_grid_layout.addWidget(self.roi_add_phase_btn, 0, 1)
+        self.roi_grid_layout.addWidget(self.roi_del_btn, 1, 0)
+        self.roi_grid_layout.addWidget(self.roi_clear_btn, 1, 1)
+        self.roi_grid_layout.addWidget(self.roi_toggle_btn, 2, 1)
+        self.roi_grid_layout.addWidget(self.roi_select_all_btn, 2, 0)
+
+        self.math_layout = QtWidgets.QHBoxLayout()
+        self.math_layout.addWidget(self.roi_math_lbl)
+        self.math_layout.addWidget(self.roi_math_txt)
+        self.roi_vbox_layout.addLayout(self.math_layout)
+        self.roi_vbox_layout.addLayout(self.roi_grid_layout)
+
+        self.roi_widget.setLayout(self.roi_vbox_layout)
+
+        self.main_control_layout.addWidget(self.roi_widget)
+        self.main_control_layout.addStretch(1)
+
+    def create_layout(self):
+        self.main_vertical_layout = QtWidgets.QVBoxLayout()
+        self.main_horizontal_layout = QtWidgets.QHBoxLayout()
+        self.main_horizontal_layout.addLayout(self.main_control_layout)
+        self.main_horizontal_layout.addWidget(self.hist_layout)
+
+        self.main_vertical_layout.addLayout(self.main_horizontal_layout)
+        self.main_vertical_layout.addLayout(self.status_layout)
+
+
+        # self.main_vbox.addStretch(1)
+        # self.main_vbox.addLayout(self.status_hbox)
+        self.setLayout(self.main_vertical_layout)
+
+    def create_tooltips(self):
+        self.load_map_files_btn.setToolTip("Load the image or pattern files for your map")
+        self.setup_map_btn.setToolTip('Setup the Coordinates of the Map manually')
+
+    def style_widgets(self):
+        # Widget Properties
+        self.roi_toggle_btn.setCheckable(True)
+        self.roi_toggle_btn.setChecked(True)
+        self.bg_opacity_slider.setMinimum(0)
+        self.bg_opacity_slider.setMaximum(100)
+        self.bg_opacity_slider.setValue(50)
+        self.bg_opacity_slider.setSingleStep(5)
+        self.bg_opacity_slider.setPageStep(20)
 
     def raise_widget(self):
         self.show()
@@ -176,34 +199,15 @@ class Map2DWidget(QtWidgets.QWidget):
         self.raise_()
         self.widget_raised.emit()
 
+    def show_roi_controls(self):
+        self.roi_widget.show()
+
+    def hide_roi_controls(self):
+        self.roi_widget.hide()
+
     def closeEvent(self, a0: QtGui.QCloseEvent):
         self.widget_closed.emit()
         super(Map2DWidget, self).closeEvent(a0)
-
-    def set_control_widgets_style(self, new_style):
-        self.update_map_btn.setStyleSheet(new_style)
-        self.manual_map_positions_setup_btn.setStyleSheet(new_style)
-        self.roi_del_btn.setStyleSheet(new_style)
-        self.roi_clear_btn.setStyleSheet(new_style)
-        self.roi_select_all_btn.setStyleSheet(new_style)
-        self.snapshot_btn.setStyleSheet(new_style)
-        self.add_bg_btn.setStyleSheet(new_style)
-        self.bg_opacity_slider.setStyleSheet(new_style)
-
-    def enable_control_widgets(self, toggle):
-        self.update_map_btn.setEnabled(toggle)
-        self.manual_map_positions_setup_btn.setEnabled(toggle)
-        self.roi_del_btn.setEnabled(toggle)
-        self.roi_clear_btn.setEnabled(toggle)
-        self.roi_select_all_btn.setEnabled(toggle)
-        self.snapshot_btn.setEnabled(toggle)
-        self.add_bg_btn.setEnabled(toggle)
-        self.bg_opacity_slider.setEnabled(toggle)
-
-        if toggle:
-            self.set_control_widgets_style('color: white')
-        else:
-            self.set_control_widgets_style('color: black')
 
     def mouse_click_event(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \

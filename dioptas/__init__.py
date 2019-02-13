@@ -104,6 +104,7 @@ def main():
         app.setStyle('plastique')
 
     controller = MainController()
-    controller.show_window()
+    # controller.show_window()
+    controller.widget.integration_widget.map_2D_widget.raise_widget()
     app.exec_()
     del app
