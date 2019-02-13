@@ -67,8 +67,8 @@ class MapController(object):
 
         # General Signals
         self.widget.map_btn.clicked.connect(self.map_btn_clicked)
-        self.map_widget.map_window_raised.connect(self.activate_map)
-        self.map_widget.map_window_closed.connect(self.deactivate_map)
+        self.map_widget.widget_raised.connect(self.activate_map)
+        self.map_widget.widget_closed.connect(self.deactivate_map)
 
         self.map_widget.load_map_files_btn.clicked.connect(self.load_map_files_btn_clicked)
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
@@ -77,6 +77,9 @@ class MapController(object):
 
         # Pattern widget signals
         self.widget.pattern_widget.map_interactive_roi.sigRegionChanged.connect(self.interactive_roi_range_changed)
+
+        # Map Signals
+        self.map_widget.mouse_clicked.connect(self.map_mouse_clicked)
 
         # ROI
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
@@ -87,11 +90,6 @@ class MapController(object):
         self.map_widget.roi_select_all_btn.clicked.connect(self.btn_roi_select_all_clicked)
         self.map_widget.roi_math_txt.textEdited.connect(self.roi_math_txt_changed)
         self.map_widget.roi_list.itemSelectionChanged.connect(self.roi_list_selection_changed)
-
-        # Map mouse events
-        self.map_widget.map_image.mouseClickEvent = self.myMouseClickEvent
-        self.map_widget.map_view_box.mouseClickEvent = self.do_nothing
-        self.map_widget.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
 
         # map setup
         self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
@@ -197,8 +195,8 @@ class MapController(object):
                     self.model.img_model.load(filename)
                     self.model.img_model.blockSignals(False)
 
-                    self._integrate_and_save_pattern(working_directory, base_filename)
-                    self.map_model.add_map_point(self.model.pattern.filename,
+                    pattern_path = self._integrate_and_save_pattern(working_directory, base_filename)
+                    self.map_model.add_map_point(pattern_path,
                                                  self.model.pattern,
                                                  (self.model.img_model.motors_info['Horizontal'],
                                                   self.model.img_model.motors_info['Vertical']),
@@ -222,6 +220,7 @@ class MapController(object):
         self.model.current_configuration.integrate_image_1d()
         path = os.path.join(directory, os.path.splitext(base_filename)[0] + '.xy')
         self.model.current_configuration.save_pattern(path)
+        return path
 
     def _get_map_working_directory(self):
         # if there is no working directory selected A file dialog opens up to choose a directory...
@@ -251,6 +250,18 @@ class MapController(object):
             self.widget.pattern_widget.show_map_interactive_roi()
         self.widget.pattern_widget.set_map_interactive_roi(start, end)
         self.update_map_image()
+
+    def map_mouse_clicked(self, x, y):
+        position = self.map_model.map.position_from_xy(x, y)
+        pattern_filename, img_filename = self.map_model.map.filenames_from_position(position)
+
+        if pattern_filename:
+            self.model.pattern_model.load_pattern(pattern_filename)
+
+        if img_filename:
+            self.model.current_configuration.auto_integrate_pattern = False
+            self.model.img_model.load(img_filename)
+            self.model.current_configuration.auto_integrate_pattern = True
 
     def update_map_image(self):
         if self.bg_image is not None:
@@ -449,54 +460,6 @@ class MapController(object):
                 if self.map_widget.map_roi[key]['List_Obj'] == item:
                     self.map_widget.map_roi[key]['Obj'].setRegion((roi_start, roi_end))
                     break
-
-    # replaces the LMB click event for loading the pattern according to map pos, complete unzoom on right-click
-    def myMouseClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton or \
-                (ev.button() == QtCore.Qt.LeftButton and ev.modifiers() & QtCore.Qt.ControlModifier):
-            self.map_widget.map_view_box.autoRange()
-
-        elif ev.button() == QtCore.Qt.LeftButton:
-            pos = ev.pos()
-            x = pos.x()
-            y = pos.y()
-            hor, ver = self.xy_to_horver(x, y)
-            file_name = self.horver_to_file_name(hor, ver)
-            if self.map_model.map_uses_patterns:
-                self.model.pattern_model.load_pattern(str(file_name))
-            else:
-                self.model.img_model.load(str(file_name))
-
-    def xy_to_horver(self, x, y):
-        hor = self.map_model.min_hor + x // self.map_model.pix_per_hor * self.map_model.diff_hor
-        ver = self.map_model.min_ver + y // self.map_model.pix_per_ver * self.map_model.diff_ver
-        return hor, ver
-
-    def horver_to_file_name(self, hor, ver):
-        for filename, filedata in self.map_model.map_data.items():
-            if abs(float(filedata['pos_hor']) - hor) < 2E-4 and abs(float(filedata['pos_ver']) - ver) < 2E-4:
-                return filename
-        dist_sqr = {}
-        for filename, filedata in self.map_model.map_data.items():
-            dist_sqr[filename] = abs(float(filedata['pos_hor']) - hor) ** 2 + abs(float(filedata['pos_ver']) - ver) ** 2
-
-        return min(dist_sqr, key=dist_sqr.get)
-
-    def map_mouse_move_event(self, pos):
-        pos = self.map_widget.map_image.mapFromScene(pos)
-        x = pos.x()
-        y = pos.y()
-        try:
-            hor, ver = self.xy_to_horver(x, y)
-            file_name = self.horver_to_file_name(hor, ver)
-            self.map_widget.lbl_map_pos.setText(str(file_name) + ":\t hor=" + str(round(hor, 3)) + '\tver:=' +
-                                                str(round(ver, 3)))
-        except Exception:
-            pass
-
-    # prevents right-click from opening menu
-    def do_nothing(self, ev):
-        pass
 
     def btn_add_bg_image_clicked(self):
         if not self.map_widget.map_loaded:

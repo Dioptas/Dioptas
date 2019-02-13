@@ -10,8 +10,11 @@ from .. import style_path
 
 
 class Map2DWidget(QtWidgets.QWidget):
-    map_window_raised = QtCore.Signal()
-    map_window_closed = QtCore.Signal()
+    widget_raised = QtCore.Signal()
+    widget_closed = QtCore.Signal()
+
+    mouse_clicked = QtCore.Signal(float, float)
+    mouse_moved = QtCore.Signal(float, float)
 
     def __init__(self, parent=None):
         super(Map2DWidget, self).__init__(parent)
@@ -161,15 +164,20 @@ class Map2DWidget(QtWidgets.QWidget):
                             QtCore.Qt.X11BypassWindowManagerHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
+        # Map mouse events
+        self.map_image.mouseClickEvent = self.mouse_click_event
+        self.map_view_box.mouseClickEvent = self.do_nothing
+        self.hist_layout.scene().sigMouseMoved.connect(self.map_mouse_move_event)
+
     def raise_widget(self):
         self.show()
         self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.activateWindow()
         self.raise_()
-        self.map_window_raised.emit()
+        self.widget_raised.emit()
 
     def closeEvent(self, a0: QtGui.QCloseEvent):
-        self.map_window_closed.emit()
+        self.widget_closed.emit()
         super(Map2DWidget, self).closeEvent(a0)
 
     def set_control_widgets_style(self, new_style):
@@ -197,6 +205,26 @@ class Map2DWidget(QtWidgets.QWidget):
         else:
             self.set_control_widgets_style('color: black')
 
+    def mouse_click_event(self, ev):
+        if ev.button() == QtCore.Qt.RightButton or \
+                (ev.button() == QtCore.Qt.LeftButton and ev.modifiers() & QtCore.Qt.ControlModifier):
+            self.map_view_box.autoRange()
+
+        elif ev.button() == QtCore.Qt.LeftButton:
+            pos = ev.pos()
+            x = pos.x()
+            y = pos.y()
+            self.mouse_clicked.emit(x, y)
+
+    def map_mouse_move_event(self, pos):
+        pos = self.map_image.mapFromScene(pos)
+        x = pos.x()
+        y = pos.y()
+        self.mouse_moved.emit(x, y)
+
+    # prevents right-click from opening menu
+    def do_nothing(self, ev):
+        pass
 
 
 class ManualMapPositionsDialog(QtWidgets.QDialog):

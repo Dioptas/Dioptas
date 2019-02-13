@@ -93,6 +93,15 @@ class MapControllerTest(QtTest):
         self.assertFalse(self.widget.pattern_widget.map_interactive_roi in
                          self.widget.pattern_widget.pattern_plot.items)
 
+    def test_click_map_tile_loads_correct_image_and_pattern(self):
+        self.load_map_images_and_open_map_dialog()
+        self.assertEqual(self.model.img_model.filename,
+                         map_img_file_paths[-1])
+        self.map_widget.mouse_clicked.emit(50, 50)
+        self.assertNotEqual(self.model.img_model.filename,
+                         map_img_file_paths[-1])
+
+
     #################### below is not tested yet
     def test_adding_map_and_range_enables_map_functionality(self):
         self.assertFalse(self.widget.map_2D_widget.update_map_btn.isEnabled())

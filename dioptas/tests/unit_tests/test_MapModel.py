@@ -182,6 +182,26 @@ class MapTest(unittest.TestCase):
         self.assertAlmostEqual(range1.start, 3 * pix_per_hor, 7)
         self.assertAlmostEqual(range1.stop, 4 * pix_per_hor, 7)
 
+    def test_map_coordinates_from_xy(self):
+        self.create_organized_grid()
+        self.map.prepare()
+        self.assertEqual(self.map.position_from_xy(0, 0), (-0.005, -0.004))
+        self.assertEqual(self.map.position_from_xy(101, 0), (0.000, -0.004))
+        self.assertNotEqual(self.map.position_from_xy(99, 0), (0.000, -0.004))
+
+        self.assertEqual(self.map.position_from_xy(0, 101), (-0.005, 0))
+        self.assertEqual(self.map.position_from_xy(101, 101), (0, 0))
+
+    def test_filename_from_map_coordinates(self):
+        self.create_organized_grid()
+        self.map.prepare()
+        self.assertEqual(self.map.filenames_from_position((0, 0)),
+                         (map_pattern_file_paths[4], None))
+        self.assertEqual(self.map.filenames_from_position((0.005, 0.004)),
+                         (map_pattern_file_paths[-1], None))
+        self.assertEqual(self.map.filenames_from_position((0, -0.004)),
+                         (map_pattern_file_paths[1], None))
+
 
 class RoiTest(unittest.TestCase):
     def setUp(self):
