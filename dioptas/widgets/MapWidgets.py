@@ -11,6 +11,7 @@ from .. import style_path
 
 class Map2DWidget(QtWidgets.QWidget):
     map_window_raised = QtCore.Signal()
+    map_window_closed = QtCore.Signal()
 
     def __init__(self, parent=None):
         super(Map2DWidget, self).__init__(parent)
@@ -166,6 +167,10 @@ class Map2DWidget(QtWidgets.QWidget):
         self.activateWindow()
         self.raise_()
         self.map_window_raised.emit()
+
+    def closeEvent(self, a0: QtGui.QCloseEvent):
+        self.map_window_closed.emit()
+        super(Map2DWidget, self).closeEvent(a0)
 
     def set_control_widgets_style(self, new_style):
         self.update_map_btn.setStyleSheet(new_style)

@@ -56,7 +56,7 @@ class MapControllerTest(QtTest):
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
         QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=working_dir)
-        click_button(self.widget.map_2D_btn)
+        click_button(self.widget.map_btn)
 
     def test_load_map_files_btn_with_images(self):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=map_img_file_paths)
@@ -82,6 +82,18 @@ class MapControllerTest(QtTest):
         self.assertTrue(self.widget.pattern_widget.map_interactive_roi in
                         self.widget.pattern_widget.pattern_plot.items)
 
+    def test_opening_and_closing_map_dialog_will_change_visibility(self):
+        self.assertFalse(self.widget.pattern_widget.map_interactive_roi in
+                         self.widget.pattern_widget.pattern_plot.items)
+        self.widget.pattern_widget.set_pos_line(10)
+        self.load_map_images_and_open_map_dialog()
+        self.assertTrue(self.widget.pattern_widget.map_interactive_roi in
+                        self.widget.pattern_widget.pattern_plot.items)
+        self.map_widget.close()
+        self.assertFalse(self.widget.pattern_widget.map_interactive_roi in
+                         self.widget.pattern_widget.pattern_plot.items)
+
+    #################### below is not tested yet
     def test_adding_map_and_range_enables_map_functionality(self):
         self.assertFalse(self.widget.map_2D_widget.update_map_btn.isEnabled())
         self.test_map_batch_integration_of_multiple_files(delete_upon_finish=False)
@@ -96,7 +108,7 @@ class MapControllerTest(QtTest):
         self.assertEqual(self.widget.map_2D_widget.roi_list.count(), current_count + 1)
 
     def test_add_range_btn_adds_roi_in_correct_place(self):
-        click_button(self.widget.map_2D_btn)
+        click_button(self.widget.map_btn)
         click_position_x = 10.2
         self.helper_add_range_at_pos(click_position_x)
         roi_range = self.widget.map_2D_widget.roi_list.item(0).text().rsplit('_', 1)[-1]
@@ -104,14 +116,14 @@ class MapControllerTest(QtTest):
         self.assertAlmostEqual(roi_center, click_position_x, 5)
 
     def test_remove_roi_range_btn(self):
-        click_button(self.widget.map_2D_btn)
+        click_button(self.widget.map_btn)
         click_position_x = 10.2
         self.helper_add_range_at_pos(click_position_x)
         click_button(self.widget.map_2D_widget.roi_del_btn)
         self.assertEqual(self.widget.map_2D_widget.roi_list.count(), 0)
 
     def test_clear_roi_ranges_btn(self):
-        click_button(self.widget.map_2D_btn)
+        click_button(self.widget.map_btn)
         click_position_x = 10.2
         self.helper_add_range_at_pos(click_position_x)
         click_position_x = 11.8
@@ -120,7 +132,7 @@ class MapControllerTest(QtTest):
         self.assertEqual(self.widget.map_2D_widget.roi_list.count(), 0)
 
     def test_select_all_btn(self):
-        click_button(self.widget.map_2D_btn)
+        click_button(self.widget.map_btn)
         click_position_x = 10.2
         self.helper_add_range_at_pos(click_position_x)
         click_position_x = 11.8
@@ -136,7 +148,7 @@ class MapControllerTest(QtTest):
         self.assertEqual(len(self.widget.map_2D_widget.roi_list.selectedItems()), 0)
 
     def test_deleting_roi_renames_other_rois(self):
-        click_button(self.widget.map_2D_btn)
+        click_button(self.widget.map_btn)
         click_position_x = 10.2
         self.helper_add_range_at_pos(click_position_x)
         click_position_x = 11.8
@@ -154,7 +166,7 @@ class MapControllerTest(QtTest):
         self.assertAlmostEqual(roi_center, click_position_x, 5)
 
     def test_roi_add_phase_btn(self):
-        click_button(self.widget.map_2D_btn)
+        click_button(self.widget.map_btn)
         self.helper_load_phase('ar.jcpds')
         self.assertEqual(self.widget.phase_tw.rowCount(), 1)
         click_button(self.widget.map_2D_widget.roi_add_phase_btn)
