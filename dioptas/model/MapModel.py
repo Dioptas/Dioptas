@@ -258,6 +258,29 @@ class Map:
         pos_range = slice(int(range_start), int(range_end))
         return pos_range
 
+    def position_from_xy(self, x, y):
+        """gives the position in units for a point clicked in the x, y space"""
+        hor = self.min_x + x // self.px_per_point_x * self.diff_x
+        ver = self.min_y + y // self.px_per_point_y * self.diff_y
+        return hor, ver
+
+    def filenames_from_position(self, pos):
+        """
+        Gives the filenames for a certain position in the map
+        :param pos: tuple horizontal and vertical position
+        :return: (pattern_filename, image_filename)
+        """
+        for point in self.points:
+            if abs(float(point.position[0]) - pos[0]) < 2E-4 and \
+                    abs(point.position[1] - pos[1]) < 2E-4:
+                return point.pattern_filename, point.img_filename
+        return None, None
+        # dist_sqr = {}
+        # for filename, filedata in self.map_model.map_data.items():
+        #     dist_sqr[filename] = abs(float(filedata['pos_hor']) - hor) ** 2 + abs(float(filedata['pos_ver']) - ver) ** 2
+        #
+        # return min(dist_sqr, key=dist_sqr.get)
+
     def is_empty(self):
         return len(self.points) == 0
 
