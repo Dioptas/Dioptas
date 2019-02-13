@@ -66,14 +66,16 @@ class MapController(object):
         self.model.map_model.roi_problem.connect(self.roi_problem)
 
         # General Signals
-        self.widget.map_2D_btn.clicked.connect(self.map_2d_btn_clicked)
+        self.widget.map_btn.clicked.connect(self.map_btn_clicked)
+        self.map_widget.map_window_raised.connect(self.activate_map)
+        self.map_widget.map_window_closed.connect(self.deactivate_map)
+
         self.map_widget.load_map_files_btn.clicked.connect(self.load_map_files_btn_clicked)
         self.map_widget.add_bg_btn.clicked.connect(self.btn_add_bg_image_clicked)
         self.map_widget.bg_opacity_slider.valueChanged.connect(self.modify_map_opacity)
         self.map_widget.snapshot_btn.clicked.connect(self.snapshot_btn_clicked)
 
         # Pattern widget signals
-        self.widget.pattern_widget.mouse_left_clicked.connect(self.interactive_roi_pos_changed)
         self.widget.pattern_widget.map_interactive_roi.sigRegionChanged.connect(self.interactive_roi_range_changed)
 
         # ROI
@@ -101,10 +103,24 @@ class MapController(object):
         self.manual_map_positions_dialog.add_empty_btn.clicked.connect(self.add_empty_btn_clicked)
         self.manual_map_positions_dialog.delete_btn.clicked.connect(self.delete_btn_clicked)
 
-    def map_2d_btn_clicked(self):
-        self.widget.map_2D_widget.raise_widget()
+    def map_btn_clicked(self):
+        if not self.map_widget.isVisible():
+            self.map_widget.raise_widget()
+        else:
+            self.map_widget.close()
+
+    def activate_map(self):
+        self.widget.pattern_widget.mouse_left_clicked.connect(self.interactive_roi_pos_changed)
         if self.map_model.is_empty():
             self.load_map_files_btn_clicked()
+        else:
+            self.widget.pattern_widget.show_map_interactive_roi()
+            self.interactive_roi_pos_changed(self.widget.pattern_widget.get_pos_line())
+
+    def deactivate_map(self):
+        self.widget.pattern_widget.mouse_left_clicked.disconnect(self.interactive_roi_pos_changed)
+        self.widget.pattern_widget.hide_map_interactive_roi()
+        print('alsjfalsghasg')
 
     def toggle_map_widgets_enable(self, toggle=True):
         self.map_widget.enable_control_widgets(toggle)
