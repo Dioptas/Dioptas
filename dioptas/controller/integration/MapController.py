@@ -56,7 +56,6 @@ class MapController(object):
 
         self.bg_image = None
         self.setup_connections()
-        self.toggle_map_widgets_enable(toggle=False)
 
     def setup_connections(self):
         # Map model Signals
@@ -80,6 +79,7 @@ class MapController(object):
 
         # Map Signals
         self.map_widget.mouse_clicked.connect(self.map_mouse_clicked)
+        self.map_widget.mouse_moved.connect(self.map_mouse_moved)
 
         # ROI
         self.map_widget.roi_add_btn.clicked.connect(self.btn_roi_add_clicked)
@@ -92,7 +92,7 @@ class MapController(object):
         self.map_widget.roi_list.itemSelectionChanged.connect(self.roi_list_selection_changed)
 
         # map setup
-        self.map_widget.manual_map_positions_setup_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
+        self.map_widget.setup_map_btn.clicked.connect(self.manual_map_positions_setup_btn_clicked)
         self.manual_map_positions_dialog.read_list_btn.clicked.connect(self.read_list_btn_clicked)
         self.manual_map_positions_dialog.hor_num_txt.textChanged.connect(self.manual_map_num_points_changed)
         self.manual_map_positions_dialog.ver_num_txt.textChanged.connect(self.manual_map_num_points_changed)
@@ -118,48 +118,6 @@ class MapController(object):
     def deactivate_map(self):
         self.widget.pattern_widget.mouse_left_clicked.disconnect(self.interactive_roi_pos_changed)
         self.widget.pattern_widget.hide_map_interactive_roi()
-        print('alsjfalsghasg')
-
-    def toggle_map_widgets_enable(self, toggle=True):
-        self.map_widget.enable_control_widgets(toggle)
-
-    def update_map_status_files_lbl(self):
-        num_files = len(self.map_model.map)
-        if not num_files:
-            self.map_widget.map_status_files_lbl.setText('No Files')
-            self.map_widget.map_status_files_lbl.setStyleSheet('color: red')
-        status_lbl = str(num_files)
-        self.map_widget.map_status_files_lbl.setText(status_lbl)
-        self.map_widget.map_status_files_lbl.setStyleSheet('color: green')
-
-    def update_map_status_positions_lbl(self):
-        self.map_widget.map_status_positions_lbl.setStyleSheet('color: green')
-
-        if self.map_model.all_positions_defined_in_files and not self.map_model.positions_set_manually:
-            status_pos_lbl = "Positions Found"
-        elif self.map_model.positions_set_manually:
-            status_pos_lbl = "Manual Positions"
-        else:
-            status_pos_lbl = "No Positions"
-            self.map_widget.map_status_positions_lbl.setStyleSheet('color: red')
-        self.map_widget.map_status_positions_lbl.setText(status_pos_lbl)
-
-    def update_map_status_size_and_step_lbl(self):
-        if self.map_model.all_positions_defined_in_files or self.map_model.positions_set_manually:
-            map_size = str(self.map_model.num_hor) + 'x' + str(self.map_model.num_ver)
-            map_range = '\tX:\tRange: ' + "{:.4f}".format(self.map_model.min_hor) + ',' + \
-                        "{:.4f}".format(
-                            self.map_model.min_hor + (self.map_model.num_hor - 1) * self.map_model.diff_hor) + \
-                        '\tStep: ' + "{:.4f}".format(self.map_model.diff_hor) + '\n' + '\tY:\tRange: ' + \
-                        "{:.4f}".format(self.map_model.min_ver) + ',' + \
-                        "{:.4f}".format(
-                            self.map_model.min_ver + (self.map_model.num_ver - 1) * self.map_model.diff_ver) + \
-                        '\tStep: ' + "{:.4f}".format(self.map_model.diff_ver)
-            self.map_widget.map_status_size_and_step_lbl.setText(map_size + map_range)
-            self.map_widget.map_status_size_and_step_lbl.setStyleSheet('color: green')
-        else:
-            self.map_widget.map_status_size_and_step_lbl.setStyleSheet('color: red')
-            self.map_widget.map_status_size_and_step_lbl.setText("No Info")
 
     def load_map_files_btn_clicked(self):
         filenames = open_files_dialog(self.map_widget, "Load Map files.",
@@ -214,7 +172,7 @@ class MapController(object):
 
             # now do the necessary steps to update the map
             self.interactive_roi_pos_changed(self.widget.pattern_widget.get_pos_line())
-            self.update_map_status_files_lbl()
+            # self.update_map_status_files_lbl()
 
     def _integrate_and_save_pattern(self, directory, base_filename):
         self.model.current_configuration.integrate_image_1d()
@@ -262,6 +220,16 @@ class MapController(object):
             self.model.current_configuration.auto_integrate_pattern = False
             self.model.img_model.load(img_filename)
             self.model.current_configuration.auto_integrate_pattern = True
+
+    def map_mouse_moved(self, x, y):
+        try:
+            position = self.map_model.map.position_from_xy(x, y)
+            self.map_widget.map_pos_lbl.setText("{} {}".format(*position))
+            filename, _ = self.map_model.map.filenames_from_position(position)
+            if filename:
+                self.map_widget.map_filename_lbl.setText("{}".format(os.path.basename(filename)))
+        except AttributeError:
+            pass
 
     def update_map_image(self):
         if self.bg_image is not None:
