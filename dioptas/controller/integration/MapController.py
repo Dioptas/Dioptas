@@ -24,7 +24,7 @@ import re
 import os
 
 from .PhotoConfig import gsecars_photo
-from ...widgets.MapWidgets import Map2DWidget, ManualMapPositionsDialog, OpenBGImageDialog, MapErrorDialog
+from ...widgets.MapWidgets import Map2DWidget, SetupMapDialog, OpenBGImageDialog, MapErrorDialog
 from ...widgets.UtilityWidgets import save_file_dialog, open_files_dialog
 from ...widgets.MainWidget import IntegrationWidget
 from ...model.MapModel import MapModel
@@ -47,7 +47,7 @@ class MapController(object):
         self.model = dioptas_model  # type: DioptasModel
         self.map_widget = widget.map_2D_widget  # type: Map2DWidget
 
-        self.manual_map_positions_dialog = ManualMapPositionsDialog(self.map_widget)
+        self.manual_map_positions_dialog = SetupMapDialog(self.map_widget)
         self.open_bg_image_dialog = OpenBGImageDialog(self.map_widget, gsecars_photo)
         self.map_model = self.model.map_model  # type: MapModel
 
@@ -183,7 +183,7 @@ class MapController(object):
     def _get_map_working_directory(self):
         # if there is no working directory selected A file dialog opens up to choose a directory...
         working_directory = str(QtWidgets.QFileDialog.getExistingDirectory(
-            self.widget, "Please choose the output directory for the integrated Patterns.",
+            self.map_widget, "Please choose the output directory for the integrated Patterns.",
             self.model.working_directories['pattern']))
         return working_directory
 
@@ -238,6 +238,7 @@ class MapController(object):
             map_opacity = 1.0
         self.map_widget.map_image.setOpacity(map_opacity)
         self.map_widget.map_image.setImage(self.map_model.map.new_image, True)
+        self.auto_range()
 
     # Controls for ROI
     def btn_roi_add_clicked(self, params):
