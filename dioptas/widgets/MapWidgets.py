@@ -20,7 +20,7 @@ class Map2DWidget(QtWidgets.QWidget):
         super(Map2DWidget, self).__init__(parent)
         # setup MAP window
         self.setWindowTitle("2D Map")
-        self.setGeometry(200, 100, 800, 600)
+        # self.setGeometry(200, 100, 800, 600)
 
         self.create_main_control_widgets()
         self.create_main_control_layout()
@@ -42,9 +42,10 @@ class Map2DWidget(QtWidgets.QWidget):
         self.create_tooltips()
         self.style_widgets()
 
-        self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint |
-                            QtCore.Qt.CustomizeWindowHint | QtCore.Qt.MSWindowsFixedSizeDialogHint |
-                            QtCore.Qt.X11BypassWindowManagerHint)
+        self.setWindowFlags(QtCore.Qt.Dialog | QtCore.Qt.WindowCloseButtonHint |
+                            QtCore.Qt.WindowMaximizeButtonHint)
+
+        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.MaximizeUsingFullscreenGeometryHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
         # Map mouse events
@@ -173,7 +174,6 @@ class Map2DWidget(QtWidgets.QWidget):
         self.main_vertical_layout.addLayout(self.main_horizontal_layout)
         self.main_vertical_layout.addLayout(self.status_layout)
 
-
         # self.main_vbox.addStretch(1)
         # self.main_vbox.addLayout(self.status_hbox)
         self.setLayout(self.main_vertical_layout)
@@ -231,18 +231,23 @@ class Map2DWidget(QtWidgets.QWidget):
         pass
 
 
-class ManualMapPositionsDialog(QtWidgets.QDialog):
+class SetupMapDialog(QtWidgets.QDialog):
     """
     Dialog for inputting map positions manually
     """
 
     def __init__(self, parent):
-        super(ManualMapPositionsDialog, self).__init__()
+        super(SetupMapDialog, self).__init__(parent)
+
+        self.setWindowTitle("Setup Map")
 
         self._parent = parent
         self._create_widgets()
         self._layout_widgets()
         self._style_widgets()
+
+        self.setWindowFlags(QtCore.Qt.Tool)
+        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
 
         self._connect_widgets()
         self.approved = False
@@ -352,13 +357,6 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
 
         self.ok_btn.setEnabled(False)
 
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-
-        file = open(os.path.join(style_path, "stylesheet.qss"))
-        stylesheet = file.read()
-        self.setStyleSheet(stylesheet)
-        file.close()
-
     def _connect_widgets(self):
         """
         Connecting actions to slots.
@@ -411,7 +409,7 @@ class ManualMapPositionsDialog(QtWidgets.QDialog):
         """
         parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
         self.move(parent_center.x() - 101, parent_center.y() - 48)
-        super(ManualMapPositionsDialog, self).exec_()
+        super(SetupMapDialog, self).exec_()
 
 
 class OpenBGImageDialog(QtWidgets.QDialog):
