@@ -164,8 +164,7 @@ class Pattern(QtCore.QObject):
                                        self.auto_background_subtraction_parameters[0],
                                        self.auto_background_subtraction_parameters[1],
                                        self.auto_background_subtraction_parameters[2])
-            self._auto_background_pattern = Pattern(x, y_bkg)
-
+            self._auto_background_pattern = Pattern(x, y_bkg, name='auto_bg_' + self.name)
             y -= y_bkg
 
         if self._smoothing > 0:

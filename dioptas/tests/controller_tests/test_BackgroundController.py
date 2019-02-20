@@ -18,12 +18,17 @@
 
 import os
 import numpy as np
+from mock import MagicMock
 
-from ..utility import QtTest, unittest_data_path, click_button
+from qtpy import QtWidgets
+
+from ..utility import QtTest, unittest_data_path, click_button, delete_if_exists
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BackgroundController import BackgroundController
 from ...controller.integration.PatternController import PatternController
 from ...model.DioptasModel import DioptasModel
+
+data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 
 class BackgroundControllerTest(QtTest):
@@ -39,6 +44,9 @@ class BackgroundControllerTest(QtTest):
             widget=self.widget,
             dioptas_model=self.model
         )
+
+    def tearDown(self):
+        delete_if_exists(os.path.join(data_path, "test.xy"))
 
     def test_configuration_selected_changes_background_image_widgets(self):
         self.model.img_model.load(os.path.join(unittest_data_path, 'image_001.tif'))
@@ -75,7 +83,6 @@ class BackgroundControllerTest(QtTest):
         self.model.select_configuration(1)
         self.assertFalse(self.widget.qa_bkg_pattern_inspect_btn.isChecked())
 
-
     def test_changing_unit(self):
         # load calibration and image
         self.model.calibration_model.load(os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni'))
@@ -95,3 +102,10 @@ class BackgroundControllerTest(QtTest):
         self.assertEqual(x_q[0], x_q_bkg[0])
         self.assertEqual(x_q[-1], x_q_bkg[-1])
 
+    def test_save_fit_background_pattern(self):
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, "test_bg.xy"))
+        self.model.calibration_model.create_file_header = MagicMock(return_value="None")
+        click_button(self.widget.qa_bkg_pattern_btn)
+        click_button(self.widget.bkg_pattern_save_btn)
+
+        self.assertTrue(os.path.exists(os.path.join(data_path, "test_bg.xy")))
