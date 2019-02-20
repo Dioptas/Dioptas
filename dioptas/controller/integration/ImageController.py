@@ -685,10 +685,7 @@ class ImageController(object):
         self.update_cake_x_axis()
 
     def show_img_mouse_position(self, x, y):
-        if self.widget.img_mode == "Image":
-            img_shape = self.model.img_data.shape
-        elif self.widget.img_mode == "Cake":
-            img_shape = self.model.cake_data.shape
+        img_shape = self.widget.img_widget.img_data.shape
 
         if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
