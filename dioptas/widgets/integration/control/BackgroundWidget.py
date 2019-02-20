@@ -72,6 +72,8 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.x_range_min_txt = NumberTextField('0')
         self.x_range_max_txt = NumberTextField('50')
         self.inspect_btn = CheckableFlatButton('Inspect')
+        self.save_btn = FlatButton('Save')
+        self.as_overlay = FlatButton('As Overlay')
 
         self._pattern_bkg_layout.addWidget(LabelAlignRight('Smooth Width:'), 0, 0)
         self._pattern_bkg_layout.addWidget(self.smooth_with_sb, 0, 1)
@@ -89,6 +91,8 @@ class BackgroundWidget(QtWidgets.QWidget):
         self._range_layout.addWidget(self.inspect_btn)
         self._range_layout.addItem(HorizontalSpacerItem())
         self._pattern_bkg_layout.addLayout(self._range_layout, 2, 1, 1, 3)
+        self._pattern_bkg_layout.addWidget(self.save_btn, 3, 0)
+        self._pattern_bkg_layout.addWidget(self.as_overlay, 3, 1)
 
         self.pattern_background_gb.setLayout(self._pattern_bkg_layout)
 

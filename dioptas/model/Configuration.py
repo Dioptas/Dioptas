@@ -139,6 +139,21 @@ class Configuration(QtCore.QObject):
         else:
             self.pattern_model.save_pattern(filename, subtract_background=subtract_background)
 
+    def save_background_pattern(self, filename=None):
+        """
+        Saves the current fit background as a pattern. The format depends on the file ending. Possible file formats:
+            [*.xy, *.chi, *.dat, *.fxye]
+        """
+        if filename is None:
+            filename = self.img_model.filename
+
+        if filename.endswith('.xy'):
+            self.pattern_model.save_background_as_pattern(filename, header=self._create_xy_header())
+        elif filename.endswith('.fxye'):
+            self.pattern_model.save_background_as_pattern(filename, header=self._create_fxye_header(filename))
+        else:
+            self.pattern_model.save_pattern(filename)
+
     def _create_xy_header(self):
         """
         Creates the header for the xy file format (contains information about calibration parameters).

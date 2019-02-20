@@ -180,6 +180,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_pattern_x_min_txt = background_control_widget.x_range_min_txt
         self.bkg_pattern_x_max_txt = background_control_widget.x_range_max_txt
         self.bkg_pattern_inspect_btn = background_control_widget.inspect_btn
+        self.bkg_pattern_save_btn = background_control_widget.save_btn
+        self.bkg_pattern_as_overlay_btn = background_control_widget.as_overlay
 
         options_control_widget = self.integration_control_widget.integration_options_widget
         self.bin_count_txt = options_control_widget.bin_count_txt
