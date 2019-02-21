@@ -11,7 +11,7 @@ Clemens Prescher (clemens.prescher@gmail.com)
 
 Requirements
 ------------
-    * python 2.7/3.5
+    * python 3.4-3.7
     * qtpy with PyQt5/PyQt4/PySide
     * numpy
     * scipy
