@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -186,8 +188,8 @@ class MainController(object):
         calibration_name = self.model.calibration_model.calibration_name
         str = 'Dioptas ' + __version__
         if img_filename is '' and pattern_filename is '':
-            self.widget.setWindowTitle(str + u' - © 2017 C. Prescher')
-            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2017 C. Prescher')
+            self.widget.setWindowTitle(str + u' - © 2019 C. Prescher')
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2019 C. Prescher')
             return
 
         if img_filename is not '' or pattern_filename is not '':
@@ -201,7 +203,7 @@ class MainController(object):
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += u' - © 2017 C. Prescher'
+        str += u' - © 2019 C. Prescher'
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 
