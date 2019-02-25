@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +31,6 @@ from ..utility import QtTest, unittest_data_path, click_button
 from ...model.DioptasModel import DioptasModel
 from ...controller.CalibrationController import CalibrationController
 from ...widgets.CalibrationWidget import CalibrationWidget
-from ... import calibrants_path
 
 # mocking the functions which will block the unittest for some reason...
 QtWidgets.QApplication.processEvents = MagicMock()
@@ -39,7 +40,6 @@ QtWidgets.QProgressDialog.setValue = MagicMock()
 class TestCalibrationController(QtTest):
     def setUp(self):
         self.model = DioptasModel()
-        self.model.calibration_model._calibrants_working_dir = os.path.join(unittest_data_path, 'calibrants')
         self.model.calibration_model.integrate_1d = MagicMock(return_value=([np.linspace(0, 100), np.linspace(0, 100)]))
         self.model.calibration_model.integrate_2d = MagicMock()
 
@@ -148,4 +148,16 @@ class TestCalibrationController(QtTest):
         del current_displayed_calibration['polarization_factor']
         self.assertEqual(model_calibration, current_displayed_calibration)
 
-        current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
+        self.calibration_widget.get_pyFAI_parameter()
+
+    def test_calibrant_with_small_set_of_d_spacings(self):
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
+        QTest.mouseClick(self.calibration_widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.calibration_controller.search_peaks(1179.6, 1129.4)
+        self.calibration_controller.search_peaks(1268.5, 1119.8)
+        calibrant_index = self.calibration_widget.calibrant_cb.findText('CuO')
+        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
+        QtWidgets.QMessageBox.critical = MagicMock()
+        QTest.mouseClick(self.calibration_widget.calibrate_btn, QtCore.Qt.LeftButton)
+        QtWidgets.QMessageBox.critical.assert_called_once()

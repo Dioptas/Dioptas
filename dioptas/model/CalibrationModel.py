@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -205,6 +207,8 @@ class CalibrationModel(QtCore.QObject):
 
         # get appropriate two theta value for the ring number
         tth_calibrant_list = self.calibrant.get_2th()
+        if ring_index >= len(tth_calibrant_list):
+            raise NotEnoughSpacingsInCalibrant()
         tth_calibrant = np.float(tth_calibrant_list[ring_index])
 
         # get the calculated two theta values for the whole image
@@ -612,6 +616,10 @@ class CalibrationModel(QtCore.QObject):
     @property
     def wavelength(self):
         return self.pattern_geometry.wavelength
+
+
+class NotEnoughSpacingsInCalibrant(Exception):
+    pass
 
 
 class DummyStdOut(object):

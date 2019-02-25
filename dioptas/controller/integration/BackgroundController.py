@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +23,7 @@ import os
 import numpy as np
 from qtpy import QtWidgets, QtCore
 
-from ...widgets.UtilityWidgets import open_file_dialog
+from ...widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -75,6 +77,8 @@ class BackgroundController(object):
         self.widget.bkg_pattern_x_max_txt.editingFinished.connect(self.bkg_pattern_parameters_changed)
 
         self.widget.bkg_pattern_inspect_btn.toggled.connect(self.bkg_pattern_inspect_btn_toggled_callback)
+        self.widget.bkg_pattern_save_btn.clicked.connect(self.bkg_pattern_save_btn_callback)
+        self.widget.bkg_pattern_as_overlay_btn.clicked.connect(self.bkg_pattern_as_overlay_btn_callback)
         self.widget.qa_bkg_pattern_inspect_btn.toggled.connect(self.bkg_pattern_inspect_btn_toggled_callback)
 
         self.model.pattern_changed.connect(self.update_bkg_gui_parameters)
@@ -187,6 +191,19 @@ class BackgroundController(object):
             self.widget.bkg_pattern_x_min_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
             self.widget.bkg_pattern_x_max_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
         self.model.pattern_changed.emit()
+
+    def bkg_pattern_save_btn_callback(self):
+        img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
+        filename = save_file_dialog(
+            self.widget, "Save Fit Background as Pattern Data.",
+            os.path.join(self.model.working_directories['pattern'],
+                         img_filename + '.xy'), ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye)'))
+
+        if filename is not '':
+            self.model.current_configuration.save_background_pattern(filename)
+
+    def bkg_pattern_as_overlay_btn_callback(self):
+        self.model.overlay_model.add_overlay_pattern(self.model.pattern.auto_background_pattern)
 
     def bkg_pattern_linear_region_callback(self):
         x_min, x_max = self.widget.pattern_widget.get_linear_region()

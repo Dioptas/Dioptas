@@ -260,7 +260,7 @@ class jcpds(object):
             self.params['comments'].append(line)  # Read above
             line = fp.readline()
             # Replace any commas with blanks, split at blanks
-            temp = string.split(line.replace(',', ' '))
+            temp = line.replace(',', ' ').split()
             temp = list(map(float, temp[0:5]))
             # The symmetry codes are as follows:
             #   1 -- cubic

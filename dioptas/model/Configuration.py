@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -138,6 +140,21 @@ class Configuration(QtCore.QObject):
                                             subtract_background=subtract_background)
         else:
             self.pattern_model.save_pattern(filename, subtract_background=subtract_background)
+
+    def save_background_pattern(self, filename=None):
+        """
+        Saves the current fit background as a pattern. The format depends on the file ending. Possible file formats:
+            [*.xy, *.chi, *.dat, *.fxye]
+        """
+        if filename is None:
+            filename = self.img_model.filename
+
+        if filename.endswith('.xy'):
+            self.pattern_model.save_background_as_pattern(filename, header=self._create_xy_header())
+        elif filename.endswith('.fxye'):
+            self.pattern_model.save_background_as_pattern(filename, header=self._create_fxye_header(filename))
+        else:
+            self.pattern_model.save_pattern(filename)
 
     def _create_xy_header(self):
         """
