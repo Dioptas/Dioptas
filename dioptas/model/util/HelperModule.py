@@ -90,11 +90,9 @@ class FileNameIterator(QtCore.QObject):
 
         for ind, match in enumerate(reversed(list(match_iterator))):
             number_span = match.span()
-            print(number_span)
             left_ind = number_span[0]
             right_ind = number_span[1]
             number = int(file_str[left_ind:right_ind]) + step
-            print(number)
             new_file_str = "{left_str}{number:0{len}}{right_str}".format(
                 left_str=file_str[:left_ind],
                 number=number,
