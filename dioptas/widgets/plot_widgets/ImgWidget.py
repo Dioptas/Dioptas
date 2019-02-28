@@ -21,6 +21,7 @@
 from __future__ import absolute_import
 
 import pyqtgraph as pg
+from pyqtgraph import ViewBox
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from skimage.measure import find_contours
@@ -49,11 +50,10 @@ class ImgWidget(QtCore.QObject):
 
         self._max_range = True
 
-
     def create_graphics(self):
         # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
 
-        self.img_view_box = self.pg_layout.addViewBox(1, 1)
+        self.img_view_box = self.pg_layout.addViewBox(1, 1)  # type: ViewBox
 
         self.data_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.data_img_item)
@@ -349,7 +349,7 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.create_mouse_click_item()
         self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
-        self.phases = []
+        self.phases = []  # type: list[CakePhasePlot]
         self.deactivate_vertical_line()
 
     def create_circle_plot_items(self):
@@ -429,15 +429,48 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
             self.roi_shade.deactivate_rects()
             self.roi.blockSignals(True)
 
-    def add_cake_phase(self, positions, intensities, baseline):
-        self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, baseline))
+    def add_cake_phase(self, name, positions, intensities, baseline):
+        self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, name, baseline))
         return self.phases[-1].color
+
+    def del_cake_phase(self, ind):
+        self.phases[ind].remove()
+        del self.phases[ind]
+
+    def set_cake_phase_color(self, ind, color):
+        self.phases[ind].set_color(color)
+
+    def hide_cake_phase(self, ind):
+        self.phases[ind].hide()
+
+    def hide_all_cake_phases(self):
+        for phase in self.phases:
+            phase.hide()
+
+    def show_cake_phase(self, ind):
+        self.phases[ind].show()
+
+    def show_all_visible_cake_phases(self, phase_show_cbs):
+        for ind, phase in enumerate(self.phases):
+            if phase_show_cbs[ind].isChecked():
+                phase.show()
+
+    def update_phase_line_visibilities(self, x_range):
+        for phase in self.phases:
+            phase.update_visibilities(x_range)
+
+    def update_phase_line_visibility(self, ind, x_range):
+        self.phases[ind].update_visibilities(x_range)
+
+    def update_phase_intensities(self, ind, positions, intensities, baseline=0):
+        if len(self.phases):
+            self.phases[ind].update_intensities(positions, intensities, baseline)
 
 
 class CakePhasePlot(object):
     num_phases = 0
 
-    def __init__(self, plot_item, positions, intensities, baseline=0):
+    def __init__(self, plot_item, positions, intensities, name=None, baseline=0):
         self.plot_item = plot_item
         self.visible = True
         self.line_items = []
@@ -446,17 +479,18 @@ class CakePhasePlot(object):
         self.index = CakePhasePlot.num_phases
         self.color = calculate_color(self.index + 9)
         self.pen = pg.mkPen(color=self.color, width=0.9, style=QtCore.Qt.SolidLine)
+        self.ref_legend_line = pg.PlotDataItem(pen=self.pen)
         self.name = ''
         CakePhasePlot.num_phases += 1
-        self.create_items(positions, intensities, baseline)
+        self.create_items(positions, intensities, name, baseline)
 
-    def create_items(self, positions, intensities, baseline=0):
+    def create_items(self, positions, intensities, name=None, baseline=0):
         # create new ones on each Position:
         self.line_items = []
 
         for ind, position in enumerate(positions):
             self.line_items.append(pg.PlotDataItem(x=[position, position],
-                                                   y=[baseline, intensities[ind]],
+                                                   y=[0, 360],
                                                    pen=self.pen,
                                                    antialias=False))
             self.line_visible.append(True)
@@ -483,7 +517,7 @@ class CakePhasePlot(object):
     def update_intensities(self, positions, intensities, baseline=0):
         if self.visible:
             for ind, intensity in enumerate(intensities):
-                self.line_items[ind].setData(y=[baseline, intensity],
+                self.line_items[ind].setData(y=[0, 360],
                                              x=[positions[ind], positions[ind]])
 
     def update_visibilities(self, pattern_range):
@@ -504,6 +538,7 @@ class CakePhasePlot(object):
         self.pen = pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine)
         for line_item in self.line_items:
             line_item.setPen(self.pen)
+        self.ref_legend_line.setPen(self.pen)
 
     def hide(self):
         if self.visible:
