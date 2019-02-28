@@ -157,6 +157,7 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_roi_btn, self.click_roi_btn)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
+        self.connect_click_function(self.widget.img_phases_btn, self.toggle_show_phases)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
@@ -498,6 +499,15 @@ class ImageController(object):
         elif str(self.widget.img_mode_btn.text()) == 'Image':
             self.activate_image_mode()
 
+    def toggle_show_phases(self):
+        if str(self.widget.img_phases_btn.text()) == 'Show Phases':
+            self.widget.integration_image_widget.img_view.show_all_visible_cake_phases(
+                self.widget.phase_widget.phase_show_cbs)
+            self.widget.img_phases_btn.setText('Hide Phases')
+        elif str(self.widget.img_phases_btn.text()) == 'Hide Phases':
+            self.widget.integration_image_widget.img_view.hide_all_cake_phases()
+            self.widget.img_phases_btn.setText('Show Phases')
+
     def activate_cake_mode(self):
         if not self.model.current_configuration.auto_integrate_cake:
             self.model.current_configuration.auto_integrate_cake = True
@@ -531,15 +541,23 @@ class ImageController(object):
         self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi) / 2)
         self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi) / 2)
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
+        self.widget.img_phases_btn.setVisible(True)
+        if self.widget.img_phases_btn.isChecked():
+            self.widget.integration_image_widget.img_view.show_all_visible_cake_phases(
+                self.widget.phase_widget.phase_show_cbs)
+        else:
+            self.widget.integration_image_widget.img_view.hide_all_cake_phases()
 
     def activate_image_mode(self):
         if self.model.current_configuration.auto_integrate_cake:
             self.model.current_configuration.auto_integrate_cake = False
 
         self.widget.cake_shift_azimuth_sl.setVisible(False)
+        self.widget.img_phases_btn.setVisible(False)
 
         self._update_image_line_pos()
         self._update_image_mouse_click_pos()
+        self.widget.integration_image_widget.img_view.hide_all_cake_phases()
         self.widget.img_widget.deactivate_vertical_line()
         self.widget.img_widget.activate_circle_scatter()
         self.widget.img_widget.activate_mask()
