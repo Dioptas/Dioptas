@@ -1,22 +1,75 @@
-0.3.2 (under development 06/13/2017)
-------------------------------------
-    - added the possibility to work with multiple detector configurations at the same time
-    - there is now a Dioptas Icon instead of the generic python icon
+0.5.0 (under development)
+-------------------------
+
+New features:
+    - Added the capability of using detector distortion correction defined by spline files generated from Fit2D (please
+      see the calibration parameters)
+    - PONI and rotation parameters can now be fixed during the calibration
+    - redesigned parts of the GUI: (1) the top controls in the Integration view no adapt to the used width, and split
+      into two groups to make use of the space. (2) Overlay and Phase Control Widgets now are mainly controlled by
+      buttons and the important parameter can be changed for each item individually in the table. (3) There is now a
+      a different view mode for the integration view, where image and integrated pattern are shown on the left, and all
+      control panels are on the right. This can be activated by using the change view button on the lower left.
+    - the cBN Seat Correction and Detector Incidence Absoprtion Correction Controls have been redesigned
+    - Added the option to use a transfer correction for image intensities. Please see the Cor tab in the integration
+      view
+    - azimuthal bins and azimuthal range for the cake integration can now be adjusted manually in the X tab
+    - the cake image can now be exported (press the save button below the image)
+    - auto-extracted Pattern background can now be saved as file or later reused as overlay
+    - the background subtraction algorithm is now also rewritten in cython, which should make deployment easier
+
+Bug fixes:
+    - cosmic removal in the mask panel is now working again
+    - changing the radial bins in the X tab in the integration view works now correctly again
+    - phases with trigonal symmetry should now work correctly
+    - saved background range should now correctly restore after restarting Dioptas
+
+
+0.4.1 (stable 12/22/2017)
+-------------------------
+
+New features:
+
+    - easier step selection for pressure, temperature in the phases widget and scaling and offset in the overlay widget,
+      the steps are now selected by a spinbox which behaves more or less logarithmically (0.1, 1, 5, 10, 50, 100 etc.)
+    - the solid angle correction can now be switched off and on (please see the X-tab in the Integration View)
+
+Bugfixes:
+
+    - Overlays overlays are now recovered in order when opening a previously saved project with more than 10 overlays
+    - cif and jcpds now als can handle trigonal symmetry (not only hexagonal)
+    - auto zoom for cakes works now correctly when browsing through several files
+    - entering numbers with a "," as a decimal separator work now correctly
+    - loading new files with automatic background subtraction enabled will now correctly keep the x limits constant
+
+
+0.4.0 (stable 07/26/2017)
+-------------------------
+
+New Features:
+
+    - added the possibility to work with multiple detector configurations at the same time (enabled by the C button on  the upper left)
+    - all your work (including mutliple configurations) can be saved into project files
+    - Dioptas can restore the previous working session on start
+    - there is now a Dioptas icon instead of the generic python icon
     - unmasking geometric shapes are now green instead of red, to clarify which mode is selected
-    - it is now possible to use arcs for masking
+    - added the option to use arcs for masking
     - Dioptas is now completely Python 3.5/3.6 compatible
     - Dioptas can now save pattern files as "FXYE" files (GSAS-II format)
     - background subtracted or other modified (absorption correction etc.) Images can now be saved in batch mode
-    - lists of phases including there pressure and temperature values can now be saved and loaded
+    - lists of phases including their pressure and temperature values can now be saved and loaded
+    - the cake mode in the integration window now shows azimuth and tth/q axes
+    - the cake image can now be shifted in azimuth, to have a better possibility to view features which where before only at the edges
 
 Bugfixes:
+
     - fixed issues with changing units when having automatic background subtraction enabled
     - strong zooming into pattern view will not cause an error due to rescaling of the phase lines anymore
     - fixed issue with compromised Dioptas settings files, Dioptas will now start even if the settings can't be loaded
     - fixed strange masking artifacts at the edges when using the polygon masking tool
-    - fixed undock/dock process, which was not working propoerly (only image was shown without pattern after docking the
-      img widget
+    - fixed undock/dock process, which was not working propoerly (only image was shown without pattern after docking the img widget
     - fixed image view scaling when loading differently sized images or switching between cake and image mode
+    - fixed the CeO2 calibration file (there was a (9,0,0) reflection, which does not exist, instead at close position here should be a (8, 4, 0) reflection)
 
 
 0.3.1 (stable 4/21/2016)

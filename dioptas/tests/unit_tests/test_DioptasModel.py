@@ -1,10 +1,28 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import numpy as np
 from mock import MagicMock
 
-from ..utility import QtTest
+from ..utility import QtTest, delete_if_exists
 from ...model.DioptasModel import DioptasModel
 from ...model.util import Pattern
 
@@ -15,6 +33,9 @@ data_path = os.path.join(unittest_path, '../data')
 class DioptasModelTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
+
+    def tearDown(self):
+        delete_if_exists(os.path.join(data_path, 'empty.dio'))
 
     def test_add_configuration(self):
         self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
@@ -96,6 +117,38 @@ class DioptasModelTest(QtTest):
         cake_img2 = self.model.current_configuration.cake_img
         self.assertFalse(np.array_equal(cake_img1, cake_img2))
 
+    def test_integrate_cake_with_different_azimuth_points(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.auto_integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.assertEqual(self.model.current_configuration.cake_img.shape[0], 360)
+        self.model.current_configuration.cake_azimuth_points = 720
+        self.assertEqual(self.model.current_configuration.cake_img.shape[0], 720)
+
+    def test_integrate_cake_with_different_rad_points(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.auto_integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.assertGreater(self.model.current_configuration.cake_img.shape[1], 360)
+        self.model.current_configuration.integration_rad_points = 720
+        self.assertEqual(self.model.current_configuration.cake_img.shape[1], 720)
+
+    def test_change_cake_azimuth_range(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.current_configuration.auto_integrate_cake = True
+        self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+        self.model.current_configuration.cake_azimuth_range = [-180, 180]
+
+        self.assertAlmostEqual(self.model.current_configuration.calibration_model.cake_azi[0], -179.5, places=4)
+        self.assertAlmostEqual(self.model.current_configuration.calibration_model.cake_azi[-1], 179.5, places=4)
+
+        self.model.current_configuration.cake_azimuth_range = [-100, 100]
+        self.assertGreater(self.model.current_configuration.calibration_model.cake_azi[0], -100)
+        self.assertLess(self.model.current_configuration.calibration_model.cake_azi[-1], 100)
+
     def test_combine_patterns(self):
         x1 = np.linspace(0, 10)
         y1 = np.ones(x1.shape)
@@ -168,10 +221,10 @@ class DioptasModelTest(QtTest):
         # check that background subtraction works
         x, y = self.model.pattern_model.pattern.data
         x_max_2th = np.max(x)
-        roi = (0, np.max(x)+1)
+        roi = (0, np.max(x) + 1)
         self.model.pattern_model.set_auto_background_subtraction((0.1, 50, 50), roi)
         new_y = self.model.pattern_model.pattern.y
-        self.assertNotEqual(np.sum(y-new_y), 0)
+        self.assertNotEqual(np.sum(y - new_y), 0)
 
         x_bkg, y_bkg = self.model.pattern_model.pattern.auto_background_pattern.data
 
@@ -192,3 +245,15 @@ class DioptasModelTest(QtTest):
         # check that the background pattern has changed:
         x_bkg_2, y_bkg_2 = self.model.pattern_model.pattern.auto_background_pattern.data
         self.assertNotEqual(np.max(x_bkg), np.max(x_bkg_2))
+
+    def test_save_empty_configuration(self):
+        self.model.save(os.path.join(data_path, 'empty.dio'))
+
+    def test_clear_model(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+
+        self.model.add_configuration()
+        self.model.add_configuration()
+
+        self.model.reset()

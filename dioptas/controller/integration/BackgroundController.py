@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +23,7 @@ import os
 import numpy as np
 from qtpy import QtWidgets, QtCore
 
-from ...widgets.UtilityWidgets import open_file_dialog
+from ...widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -35,20 +37,21 @@ class BackgroundController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, widget, dioptas_model):
         """
-        :param working_dir: dictionary with working directories (uses the 'image' key) for the background image
         :param widget: IntegrationWidget
         :param dioptas_model: DioptasModel reference
 
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
         self.widget = widget
+        self.background_widget = widget.integration_control_widget.background_control_widget
         self.model = dioptas_model
 
-        self.model.configuration_selected.connect(self.update_gui)
+        self.model.configuration_selected.connect(self.update_bkg_image_widgets)
+        self.model.configuration_selected.connect(self.update_auto_pattern_bkg_widgets)
+
         self.create_image_background_signals()
         self.create_pattern_background_signals()
 
@@ -56,8 +59,8 @@ class BackgroundController(object):
         self.connect_click_function(self.widget.bkg_image_load_btn, self.load_background_image)
         self.connect_click_function(self.widget.bkg_image_delete_btn, self.remove_background_image)
 
-        self.widget.bkg_image_scale_step_txt.editingFinished.connect(self.update_bkg_image_scale_step)
-        self.widget.bkg_image_offset_step_txt.editingFinished.connect(self.update_bkg_image_offset_step)
+        self.widget.bkg_image_scale_step_msb.editingFinished.connect(self.update_bkg_image_scale_step)
+        self.widget.bkg_image_offset_step_msb.editingFinished.connect(self.update_bkg_image_offset_step)
         self.widget.bkg_image_scale_sb.valueChanged.connect(self.background_img_scale_changed)
         self.widget.bkg_image_offset_sb.valueChanged.connect(self.background_img_offset_changed)
 
@@ -74,6 +77,8 @@ class BackgroundController(object):
         self.widget.bkg_pattern_x_max_txt.editingFinished.connect(self.bkg_pattern_parameters_changed)
 
         self.widget.bkg_pattern_inspect_btn.toggled.connect(self.bkg_pattern_inspect_btn_toggled_callback)
+        self.widget.bkg_pattern_save_btn.clicked.connect(self.bkg_pattern_save_btn_callback)
+        self.widget.bkg_pattern_as_overlay_btn.clicked.connect(self.bkg_pattern_as_overlay_btn_callback)
         self.widget.qa_bkg_pattern_inspect_btn.toggled.connect(self.bkg_pattern_inspect_btn_toggled_callback)
 
         self.model.pattern_changed.connect(self.update_bkg_gui_parameters)
@@ -87,7 +92,7 @@ class BackgroundController(object):
     def load_background_image(self):
         filename = open_file_dialog(
             self.widget, "Load an image background file",
-            self.working_dir['image'])
+            self.model.working_directories['image'])
 
         if filename is not None and filename is not '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
@@ -107,12 +112,10 @@ class BackgroundController(object):
         self.model.img_model.reset_background()
 
     def update_bkg_image_scale_step(self):
-        value = np.float(self.widget.bkg_image_scale_step_txt.text())
-        self.widget.bkg_image_scale_sb.setSingleStep(value)
+        self.widget.bkg_image_scale_sb.setSingleStep(self.widget.bkg_image_scale_step_msb.value())
 
     def update_bkg_image_offset_step(self):
-        value = np.float(self.widget.bkg_image_offset_step_txt.text())
-        self.widget.bkg_image_offset_sb.setSingleStep(value)
+        self.widget.bkg_image_offset_sb.setSingleStep(self.widget.bkg_image_offset_step_msb.value())
 
     def update_background_image_filename(self):
         if self.model.img_model.has_background():
@@ -139,8 +142,8 @@ class BackgroundController(object):
         self.widget.qa_bkg_pattern_inspect_btn.setVisible(is_checked)
 
         if is_checked:
-            bkg_pattern_parameters = self.widget.get_bkg_pattern_parameters()
-            bkg_pattern_roi = self.widget.get_bkg_pattern_roi()
+            bkg_pattern_parameters = self.background_widget.get_bkg_pattern_parameters()
+            bkg_pattern_roi = self.background_widget.get_bkg_pattern_roi()
             self.model.pattern_model.set_auto_background_subtraction(bkg_pattern_parameters, bkg_pattern_roi)
         else:
             self.widget.bkg_pattern_inspect_btn.setChecked(False)
@@ -149,15 +152,15 @@ class BackgroundController(object):
             self.model.pattern_model.unset_auto_background_subtraction()
 
     def bkg_pattern_parameters_changed(self):
-        bkg_pattern_parameters = self.widget.get_bkg_pattern_parameters()
-        bkg_pattern_roi = self.widget.get_bkg_pattern_roi()
+        bkg_pattern_parameters = self.background_widget.get_bkg_pattern_parameters()
+        bkg_pattern_roi = self.background_widget.get_bkg_pattern_roi()
         if self.model.pattern_model.pattern.auto_background_subtraction:
             self.model.pattern_model.set_auto_background_subtraction(bkg_pattern_parameters, bkg_pattern_roi)
 
     def update_bkg_gui_parameters(self):
         if self.model.pattern_model.pattern.auto_background_subtraction:
-            self.widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
-            self.widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
+            self.background_widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
+            self.background_widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
 
             self.widget.pattern_widget.linear_region_item.blockSignals(True)
             self.widget.pattern_widget.set_linear_region(
@@ -189,6 +192,19 @@ class BackgroundController(object):
             self.widget.bkg_pattern_x_max_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
         self.model.pattern_changed.emit()
 
+    def bkg_pattern_save_btn_callback(self):
+        img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
+        filename = save_file_dialog(
+            self.widget, "Save Fit Background as Pattern Data.",
+            os.path.join(self.model.working_directories['pattern'],
+                         img_filename + '.xy'), ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye)'))
+
+        if filename is not '':
+            self.model.current_configuration.save_background_pattern(filename)
+
+    def bkg_pattern_as_overlay_btn_callback(self):
+        self.model.overlay_model.add_overlay_pattern(self.model.pattern.auto_background_pattern)
+
     def bkg_pattern_linear_region_callback(self):
         x_min, x_max = self.widget.pattern_widget.get_linear_region()
         self.widget.bkg_pattern_x_min_txt.setText('{:.3f}'.format(x_min))
@@ -200,6 +216,21 @@ class BackgroundController(object):
         self.widget.pattern_widget.set_linear_region(*self.widget.get_bkg_pattern_roi())
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
-    def update_gui(self):
+    def update_bkg_image_widgets(self):
+        self.update_background_image_filename()
         self.widget.bkg_image_offset_sb.setValue(self.model.img_model.background_offset)
         self.widget.bkg_image_scale_sb.setValue(self.model.img_model.background_scaling)
+        self.widget.img_show_background_subtracted_btn.setVisible(self.model.img_model.has_background())
+
+    def update_auto_pattern_bkg_widgets(self):
+        # set the state of the toggles:
+        self.widget.bkg_pattern_gb.blockSignals(True)
+        self.widget.qa_bkg_pattern_btn.blockSignals(True)
+        self.widget.bkg_pattern_gb.setChecked(self.model.pattern.auto_background_subtraction)
+        self.widget.qa_bkg_pattern_btn.setChecked(self.model.pattern.auto_background_subtraction)
+        self.widget.bkg_pattern_gb.blockSignals(False)
+        self.widget.qa_bkg_pattern_btn.blockSignals(False)
+
+        self.update_bkg_gui_parameters()
+        self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)
+        self.widget.bkg_pattern_inspect_btn.setChecked(False)

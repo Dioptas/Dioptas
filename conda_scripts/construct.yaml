@@ -1,0 +1,47 @@
+name:  dioptas
+version: 0.4.1.post1
+
+channels:
+    - http://repo.continuum.io/pkgs/main
+    - http://repo.continuum.io/pkgs/free
+    - http://repo.continuum.io/pkgs/msys2 [win]
+    - https://conda.anaconda.org/cprescher/
+
+specs:
+    - python
+    - conda
+    - anaconda
+    - setuptools
+    - pip
+    - console_shortcut # [win]
+    - python.app # [osx]
+    - numpy
+    - scipy
+    - pyqt
+    - pyqtgraph
+    - qtpy
+    - future
+    - libgfortran # [linux64 or osx]
+    - h5py
+    - matplotlib
+    - six
+    - pillow
+    - pywin32 # [win64 or win32]
+    - yaml
+    - pyyaml
+    - requests
+    - scikit-image
+    - pycifrw
+    - fabio>=0.6.0
+    - pyfai>=0.15.0
+    - lmfit
+    - dioptas
+
+## someday, hopefully!
+## installer_type: pkg # [osx]
+
+post_install: post_install_unix.sh  # [linux64 or osx]
+post_install: post_install_windows.bat # [win]
+
+license_file: ../license.txt
+welcome_image: ../dioptas/resources/icons/icon.png    #  [win]

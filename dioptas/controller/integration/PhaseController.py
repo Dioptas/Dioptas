@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,48 +41,49 @@ class PhaseController(object):
     the pattern plot and it needs the calibration data to have access to the currently used wavelength.
     """
 
-    def __init__(self, working_dir, widget, dioptas_model):
+    def __init__(self, integration_widget, dioptas_model):
         """
-        :param working_dir: dictionary with working directories
-        :param widget: Reference to an IntegrationWidget
+        :param integration_widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
 
-        :type widget: IntegrationWidget
+        :type integration_widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-        self.working_dir = working_dir
-        self.widget = widget
-        self.cif_conversion_dialog = CifConversionParametersDialog(self.widget)
+
+        self.integration_widget = integration_widget
+        self.phase_widget = self.integration_widget.phase_widget
+        self.pattern_widget = self.integration_widget.pattern_widget
+        self.cif_conversion_dialog = CifConversionParametersDialog(self.integration_widget)
         self.model = dioptas_model
-        self.jcpds_editor_controller = JcpdsEditorController(self.working_dir, self.widget, self.model)
+        self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
         self.phase_lw_items = []
         self.create_signals()
-        self.update_phase_temperature_step()
-        self.update_phase_pressure_step()
+        self.update_temperature_step()
+        self.update_pressure_step()
 
     def create_signals(self):
-        self.connect_click_function(self.widget.phase_add_btn, self.add_btn_click_callback)
-        self.connect_click_function(self.widget.phase_del_btn, self.remove_btn_click_callback)
-        self.connect_click_function(self.widget.phase_clear_btn, self.clear_phases)
-        self.connect_click_function(self.widget.phase_edit_btn, self.edit_btn_click_callback)
-        self.connect_click_function(self.widget.phase_save_list_btn, self.save_btn_clicked_callback)
-        self.connect_click_function(self.widget.phase_load_list_btn, self.load_btn_clicked_callback)
+        self.connect_click_function(self.phase_widget.add_btn, self.add_btn_click_callback)
+        self.connect_click_function(self.phase_widget.delete_btn, self.delete_btn_click_callback)
+        self.connect_click_function(self.phase_widget.clear_btn, self.clear_phases)
+        self.connect_click_function(self.phase_widget.edit_btn, self.edit_btn_click_callback)
+        self.connect_click_function(self.phase_widget.save_list_btn, self.save_btn_clicked_callback)
+        self.connect_click_function(self.phase_widget.load_list_btn, self.load_list_btn_clicked_callback)
 
-        self.widget.phase_pressure_step_txt.editingFinished.connect(self.update_phase_pressure_step)
-        self.widget.phase_temperature_step_txt.editingFinished.connect(self.update_phase_temperature_step)
+        self.phase_widget.pressure_step_msb.valueChanged.connect(self.update_pressure_step)
+        self.phase_widget.temperature_step_msb.valueChanged.connect(self.update_temperature_step)
 
-        self.widget.phase_pressure_sb.valueChanged.connect(self.phase_pressure_sb_changed)
-        self.widget.phase_temperature_sb.valueChanged.connect(self.phase_temperature_sb_changed)
+        self.phase_widget.pressure_sb_value_changed.connect(self.pressure_sb_changed)
+        self.phase_widget.temperature_sb_value_changed.connect(self.temperature_sb_changed)
 
-        self.widget.phase_show_parameter_in_pattern_cb.stateChanged.connect(self.phase_show_parameter_cb_state_changed)
+        self.phase_widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
+        self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
+        self.phase_widget.show_cb_state_changed.connect(self.show_cb_state_changed)
 
-        self.widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
-        self.widget.phase_color_btn_clicked.connect(self.phase_color_btn_clicked)
-        self.widget.phase_show_cb_state_changed.connect(self.phase_show_cb_state_changed)
+        self.phase_widget.phase_tw.horizontalHeader().sectionClicked.connect(self.phase_tw_header_section_clicked)
 
-        self.widget.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
+        self.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
         # self.widget.pattern_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
-        self.widget.pattern_widget.pattern_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
+        self.pattern_widget.pattern_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
         self.model.pattern_changed.connect(self.pattern_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
@@ -93,7 +96,11 @@ class PhaseController(object):
         self.jcpds_editor_controller.reflection_line_edited.connect(self.update_cur_phase_parameters)
         self.jcpds_editor_controller.reflection_line_cleared.connect(self.jcpds_editor_reflection_cleared)
 
-        self.jcpds_editor_controller.phase_modified.connect(self.update_cur_phase_name)
+        self.jcpds_editor_controller.phase_modified.connect(self.update_phase_legend)
+
+        # Signals from phase model
+        self.model.phase_model.phase_added.connect(self.phase_added)
+        self.model.phase_model.phase_removed.connect(self.phase_removed)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
@@ -101,21 +108,21 @@ class PhaseController(object):
     def add_btn_click_callback(self, *args, **kwargs):
         """
         Loads a new phase from jcpds file.
-        :param filename: *.jcpds filename. I not set or None it a FileDialog will open.
         :return:
         """
         if not self.model.calibration_model.is_calibrated:
-            self.widget.show_error_msg("Can not load phase without calibration.")
+            self.integration_widget.show_error_msg("Can not load phase without calibration.")
 
         filenames = [kwargs.get('filenames', None)]
 
         if filenames[0] is None:
-            filenames = open_files_dialog(self.widget, "Load Phase(s).", self.working_dir['phase'])
+            filenames = open_files_dialog(self.integration_widget, "Load Phase(s).",
+                                          self.model.working_directories['phase'])
 
         if len(filenames):
-            self.working_dir['phase'] = os.path.dirname(str(filenames[0]))
+            self.model.working_directories['phase'] = os.path.dirname(str(filenames[0]))
             progress_dialog = QtWidgets.QProgressDialog("Loading multiple phases.", "Abort Loading", 0, len(filenames),
-                                                        self.widget)
+                                                        self.integration_widget)
             progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
             progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
             progress_dialog.show()
@@ -132,7 +139,6 @@ class PhaseController(object):
                     break
             progress_dialog.close()
             QtWidgets.QApplication.processEvents()
-            self.update_temperature_control_visibility()
 
     def _add_phase(self, filename):
         try:
@@ -144,35 +150,53 @@ class PhaseController(object):
                                                self.cif_conversion_dialog.int_cutoff,
                                                self.cif_conversion_dialog.min_d_spacing)
 
-            if self.widget.phase_apply_to_all_cb.isChecked():
-                pressure = np.float(self.widget.phase_pressure_sb.value())
-                temperature = np.float(self.widget.phase_temperature_sb.value())
+            if self.phase_widget.apply_to_all_cb.isChecked() and len(self.model.phase_model.phases)>1 :
+                pressure = float(self.phase_widget.pressure_sbs[0].value())
+                temperature = float(self.phase_widget.temperature_sbs[0].value())
                 self.model.phase_model.phases[-1].compute_d(pressure=pressure,
                                                             temperature=temperature)
+                assert(True)
             else:
                 pressure = 0
                 temperature = 298
 
             self.model.phase_model.get_lines_d(-1)
             color = self.add_phase_plot()
-            self.widget.add_phase(get_base_name(filename), '#%02x%02x%02x' % (int(color[0]), int(color[1]),
-                                                                              int(color[2])))
+            self.phase_widget.add_phase(get_base_name(filename), '#%02x%02x%02x' % (int(color[0]), int(color[1]),
+                                                                                    int(color[2])))
 
-            self.widget.set_phase_pressure(len(self.model.phase_model.phases) - 1, pressure)
-            self.update_phase_temperature(len(self.model.phase_model.phases) - 1, temperature)
+            self.phase_widget.set_phase_pressure(len(self.model.phase_model.phases) - 1, pressure)
+            self.update_phase_legend()
+            self.update_temperature(len(self.model.phase_model.phases) - 1, temperature)
             if self.jcpds_editor_controller.active:
                 self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
         except PhaseLoadError as e:
-            self.widget.show_error_msg(
+            self.integration_widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
                     format(e.filename))
+
+    def phase_added(self):
+        self.model.phase_model.get_lines_d(-1)
+        color = self.add_phase_plot()
+
+        self.phase_widget.add_phase(self.model.phase_model.phases[-1].name, '#%02x%02x%02x' %
+                                    (int(color[0]), int(color[1]), int(color[2])))
+
+        self.phase_widget.set_phase_pressure(len(self.model.phase_model.phases) - 1,
+                                             self.model.phase_model.phases[-1].params['pressure'])
+        self.update_temperature(len(self.model.phase_model.phases) - 1,
+                                self.model.phase_model.phases[-1].params['temperature'])
+        self.update_phase_legend()
+
+        if self.jcpds_editor_controller.active:
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
 
     def add_phase_plot(self):
         """
         Adds a phase to the Pattern view.
         :return:
         """
-        axis_range = self.widget.pattern_widget.pattern_plot.viewRange()
+        axis_range = self.pattern_widget.pattern_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
         positions, intensities, baseline = \
@@ -181,37 +205,41 @@ class PhaseController(object):
                 x_range, y_range,
                 self.model.calibration_model.wavelength * 1e10,
                 self.get_unit())
-        color = self.widget.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
-                                                     positions,
-                                                     intensities,
-                                                     baseline)
+
+        color = self.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
+                                              positions,
+                                              intensities,
+                                              baseline)
         self.widget.img_widget.add_cake_phase(positions, intensities, baseline)
         return color
 
     def edit_btn_click_callback(self):
-        cur_ind = self.widget.get_selected_phase_row()
-        self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
-        self.jcpds_editor_controller.show_view()
+        cur_ind = self.phase_widget.get_selected_phase_row()
+        if cur_ind >= 0:
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
+            self.jcpds_editor_controller.show_view()
 
-    def remove_btn_click_callback(self):
+    def delete_btn_click_callback(self):
         """
         Deletes the currently selected Phase
         """
-        cur_ind = self.widget.get_selected_phase_row()
+        cur_ind = self.phase_widget.get_selected_phase_row()
         if cur_ind >= 0:
-            self.widget.del_phase(cur_ind)
             self.model.phase_model.del_phase(cur_ind)
-            self.widget.pattern_widget.del_phase(cur_ind)
-            self.update_temperature_control_visibility()
-            if self.jcpds_editor_controller.active:
-                cur_ind = self.widget.get_selected_phase_row()
-                if cur_ind >= 0:
-                    self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
-                else:
-                    self.jcpds_editor_controller.widget.close()
 
-    def load_btn_clicked_callback(self):
-        filename = open_file_dialog(self.widget, caption="Load Phase List", directory=self.working_dir['phase'],
+    def phase_removed(self, ind):
+        self.phase_widget.del_phase(ind)
+        self.pattern_widget.del_phase(ind)
+        if self.jcpds_editor_controller.active:
+            ind = self.phase_widget.get_selected_phase_row()
+            if ind >= 0:
+                self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[ind])
+            else:
+                self.jcpds_editor_controller.widget.close()
+
+    def load_list_btn_clicked_callback(self):
+        filename = open_file_dialog(self.integration_widget, caption="Load Phase List",
+                                    directory=self.model.working_directories['phase'],
                                     filter="*.txt")
         if filename == '':
             return
@@ -222,163 +250,158 @@ class PhaseController(object):
                 line = line.replace('\n', '')
                 phase, use_flag, color, name, pressure, temperature = line.split(',')
                 self.add_btn_click_callback(filenames=phase)
-                row = self.widget.phase_tw.rowCount() - 1
-                self.widget.phase_show_cbs[row].setChecked(bool(use_flag))
-                self.widget.phase_color_btns[row].setStyleSheet('background-color:' + color)
-                self.widget.pattern_widget.set_phase_color(row, color)
-                self.widget.phase_tw.item(row, 2).setText(name)
-                self.widget.set_phase_pressure(row, pressure.replace(' GPa', ''))
-                self.model.phase_model.set_pressure(row, float(pressure.replace(' GPa', '')))
-                temperature = temperature.replace(' K', '').replace('-', '')
+                row = self.phase_widget.phase_tw.rowCount() - 1
+                self.phase_widget.phase_show_cbs[row].setChecked(bool(use_flag))
+                self.phase_widget.phase_color_btns[row].setStyleSheet('background-color:' + color)
+                self.pattern_widget.set_phase_color(row, color)
+                self.phase_widget.phase_tw.item(row, 2).setText(name)
+                self.phase_widget.set_phase_pressure(row, float(pressure))
+                self.model.phase_model.set_pressure(row, float(pressure))
+                temperature = float(temperature)
 
                 if temperature is not '':
-                    self.widget.set_phase_temperature(row, temperature)
-                    self.model.phase_model.set_temperature(row, float(temperature))
+                    self.phase_widget.set_phase_temperature(row, temperature)
+                    self.model.phase_model.set_temperature(row, temperature)
                     self.update_phase_intensities(row)
+                self.update_phase_legend()
 
     def save_btn_clicked_callback(self):
         if len(self.model.phase_model.phase_files) < 1:
             return
-        filename = save_file_dialog(self.widget, "Save Phase List.",
-                                    os.path.join(self.working_dir['phase'], 'phase_list.txt'), 'Text (*.txt)')
+        filename = save_file_dialog(self.integration_widget, "Save Phase List.",
+                                    os.path.join(self.model.working_directories['phase'], 'phase_list.txt'),
+                                    'Text (*.txt)')
 
         if filename == '':
             return
 
         with open(filename, 'w') as phase_file:
             for file_name, phase_cb, color_btn, row in zip(self.model.phase_model.phase_files,
-                                                           self.widget.phase_show_cbs,
-                                                           self.widget.phase_color_btns,
-                                                           range(self.widget.phase_tw.rowCount())):
+                                                           self.phase_widget.phase_show_cbs,
+                                                           self.phase_widget.phase_color_btns,
+                                                           range(self.phase_widget.phase_tw.rowCount())):
                 phase_file.write(file_name + ',' + str(phase_cb.isChecked()) + ',' +
                                  color_btn.styleSheet().replace('background-color:', '').replace(' ', '') + ',' +
-                                 self.widget.phase_tw.item(row, 2).text() + ',' +
-                                 self.widget.phase_tw.item(row, 3).text() + ',' +
-                                 self.widget.phase_tw.item(row, 4).text() + '\n')
+                                 self.phase_widget.phase_tw.item(row, 2).text() + ',' +
+                                 self.phase_widget.pressure_sbs[row].text() + ',' +
+                                 self.phase_widget.temperature_sbs[row].text() + '\n')
 
     def clear_phases(self):
         """
         Deletes all phases from the GUI and phase data
         """
-        while self.widget.phase_tw.rowCount() > 0:
-            self.remove_btn_click_callback()
+        while self.phase_widget.phase_tw.rowCount() > 0:
+            self.delete_btn_click_callback()
             self.jcpds_editor_controller.close_view()
 
-    def update_phase_pressure_step(self):
-        value = np.float(self.widget.phase_pressure_step_txt.text())
-        self.widget.phase_pressure_sb.setSingleStep(value)
+    def update_pressure_step(self):
+        for pressure_sb in self.phase_widget.pressure_sbs:
+            pressure_sb.setSingleStep(self.phase_widget.pressure_step_msb.value())
 
-    def update_phase_temperature_step(self):
-        value = np.float(self.widget.phase_temperature_step_txt.text())
-        self.widget.phase_temperature_sb.setSingleStep(value)
+    def update_temperature_step(self):
+        for temperature_sb in self.phase_widget.temperature_sbs:
+            temperature_sb.setSingleStep(self.phase_widget.temperature_step_msb.value())
 
-    def phase_pressure_sb_changed(self, val):
+    def pressure_sb_changed(self, ind, val):
         """
         Called when pressure spinbox emits a new value. Calculates the appropriate EOS values and updates line
         positions and intensities.
         """
-        if self.widget.phase_apply_to_all_cb.isChecked():
+        if self.phase_widget.apply_to_all_cb.isChecked():
             for ind in range(len(self.model.phase_model.phases)):
                 self.model.phase_model.set_pressure(ind, np.float(val))
-                self.widget.set_phase_pressure(ind, val)
+                self.phase_widget.set_phase_pressure(ind, val)
             self.update_all_phase_intensities()
 
         else:
-            cur_ind = self.widget.get_selected_phase_row()
-            self.model.phase_model.set_pressure(cur_ind, np.float(val))
-            self.widget.set_phase_pressure(cur_ind, val)
-            self.update_phase_intensities(cur_ind)
+            self.model.phase_model.set_pressure(ind, np.float(val))
+            self.phase_widget.set_phase_pressure(ind, val)
+            self.update_phase_intensities(ind)
 
+        self.update_phase_legend()
         self.update_jcpds_editor()
 
-    def phase_temperature_sb_changed(self, val):
+    def temperature_sb_changed(self, ind, val):
         """
         Called when temperature spinbox emits a new value. Calculates the appropriate EOS values and updates line
         positions and intensities.
         """
-        if self.widget.phase_apply_to_all_cb.isChecked():
+        if self.phase_widget.apply_to_all_cb.isChecked():
             for ind in range(len(self.model.phase_model.phases)):
-                self.update_phase_temperature(ind, val)
+                self.update_temperature(ind, val)
             self.update_all_phase_intensities()
-
         else:
-            cur_ind = self.widget.get_selected_phase_row()
-            self.update_phase_temperature(cur_ind, val)
-            self.update_phase_intensities(cur_ind)
-
+            self.update_temperature(ind, val)
+            self.update_phase_intensities(ind)
+        self.update_phase_legend()
         self.update_jcpds_editor()
 
-    def update_phase_temperature(self, ind, val):
+    def update_temperature(self, ind, val):
         if self.model.phase_model.phases[ind].has_thermal_expansion():
             self.model.phase_model.set_temperature(ind, np.float(val))
-            self.widget.set_phase_temperature(ind, val)
+            self.phase_widget.set_phase_temperature(ind, val)
+            self.phase_widget.temperature_sbs[ind].setEnabled(True)
         else:
             self.model.phase_model.set_temperature(ind, 298)
-            self.widget.set_phase_temperature(ind, '-')
+            self.phase_widget.set_phase_temperature(ind, 298)
+            self.phase_widget.temperature_sbs[ind].setEnabled(False)
+        self.update_phase_legend()
 
-    def phase_show_parameter_cb_state_changed(self):
-        value = self.widget.phase_show_parameter_in_pattern_cb.isChecked()
-        self.widget.show_parameter_in_pattern = value
+    def update_phase_legend(self):
         for ind in range(len(self.model.phase_model.phases)):
-            self.widget.update_phase_parameters_in_legend(ind)
+            name = self.model.phase_model.phases[ind].name
+            parameter_str = ''
+            pressure = self.model.phase_model.phases[ind].params['pressure']
+            temperature = self.model.phase_model.phases[ind].params['temperature']
+            if pressure != 0:
+                parameter_str += '{:0.2f} GPa '.format(pressure)
+            if temperature != 0 and temperature != 298 and temperature is not None:
+                parameter_str += '{:0.2f} K '.format(temperature)
+            self.pattern_widget.rename_phase(ind, parameter_str + name)
 
     def phase_selection_changed(self, row, col, prev_row, prev_col):
-        cur_ind = row
-        pressure = self.model.phase_model.phases[cur_ind].pressure
-        temperature = self.model.phase_model.phases[cur_ind].temperature
-
-        self.widget.phase_pressure_sb.blockSignals(True)
-        self.widget.phase_pressure_sb.setValue(pressure)
-        self.widget.phase_pressure_sb.blockSignals(False)
-
-        self.widget.phase_temperature_sb.blockSignals(True)
-        self.widget.phase_temperature_sb.setValue(temperature)
-        self.widget.phase_temperature_sb.blockSignals(False)
-        self.update_temperature_control_visibility(row)
-
         if self.jcpds_editor_controller.active:
-            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[row])
 
-    def update_temperature_control_visibility(self, row_ind=None):
-        if row_ind is None:
-            row_ind = self.widget.get_selected_phase_row()
-
-        if row_ind == -1:
-            return
-
-        if self.model.phase_model.phases[row_ind].has_thermal_expansion():
-            self.widget.phase_temperature_sb.setEnabled(True)
-            self.widget.phase_temperature_step_txt.setEnabled(True)
-        else:
-            self.widget.phase_temperature_sb.setDisabled(True)
-            self.widget.phase_temperature_step_txt.setDisabled(True)
-
-    def phase_color_btn_clicked(self, ind, button):
+    def color_btn_clicked(self, ind, button):
         previous_color = button.palette().color(1)
-        new_color = QtWidgets.QColorDialog.getColor(previous_color, self.widget)
+        new_color = QtWidgets.QColorDialog.getColor(previous_color, self.integration_widget)
         if new_color.isValid():
             color = str(new_color.name())
         else:
             color = str(previous_color.name())
-        self.widget.pattern_widget.set_phase_color(ind, color)
+        self.pattern_widget.set_phase_color(ind, color)
         button.setStyleSheet('background-color:' + color)
 
-    def phase_show_cb_state_changed(self, ind, state):
+    def show_cb_state_changed(self, ind, state):
         if state:
-            self.widget.pattern_widget.show_phase(ind)
+            self.pattern_widget.show_phase(ind)
         else:
-            self.widget.pattern_widget.hide_phase(ind)
+            self.pattern_widget.hide_phase(ind)
+
+    def phase_tw_header_section_clicked(self, ind):
+        if ind != 0:
+            return
+
+        current_checkbox_state = False
+        # check whether any checkbox is checked, if one is true current_checkbox_state will be True too
+        for cb in self.phase_widget.phase_show_cbs:
+            current_checkbox_state = current_checkbox_state or cb.isChecked()
+
+        # assign the the opposite to all checkboxes
+        for cb in self.phase_widget.phase_show_cbs:
+            cb.setChecked(not current_checkbox_state)
 
     def get_unit(self):
         """
         returns the unit currently selected in the GUI
                 possible values: 'tth', 'q', 'd'
         """
-        if self.widget.pattern_tth_btn.isChecked():
+        if self.integration_widget.pattern_tth_btn.isChecked():
             return 'tth'
-        elif self.widget.pattern_q_btn.isChecked():
+        elif self.integration_widget.pattern_q_btn.isChecked():
             return 'q'
-        elif self.widget.pattern_d_btn.isChecked():
+        elif self.integration_widget.pattern_d_btn.isChecked():
             return 'd'
 
     def pattern_data_changed(self):
@@ -387,15 +410,14 @@ class PhaseController(object):
         """
         # QtWidgets.QApplication.processEvents()
         # self.update_phase_lines_slot()
-        self.widget.pattern_widget.update_phase_line_visibilities()
+        self.pattern_widget.update_phase_line_visibilities()
 
     def update_all_phase_intensities(self):
         """
         Updates all intensities of all phases in the pattern view. Also checks if phase lines are still visible.
         (within range of pattern and/or overlays
-        :param axis_range: list/tuple of x_range and y_range -- ((x_min, x_max), (y_min, y_max)
         """
-        axis_range = self.widget.pattern_widget.view_box.viewRange()
+        axis_range = self.pattern_widget.view_box.viewRange()
 
         for ind in range(len(self.model.phase_model.phases)):
             self.update_phase_intensities(ind, axis_range)
@@ -407,7 +429,7 @@ class PhaseController(object):
         :param axis_range: list/tuple of visible x_range and y_range -- ((x_min, x_max), (y_min, y_max))
         """
         if axis_range is None:
-            axis_range = self.widget.pattern_widget.view_box.viewRange()
+            axis_range = self.pattern_widget.view_box.viewRange()
 
         x_range = axis_range[0]
         y_range = axis_range[1]
@@ -418,46 +440,41 @@ class PhaseController(object):
             self.get_unit()
         )
 
-        self.widget.pattern_widget.update_phase_intensities(
+        self.pattern_widget.update_phase_intensities(
             ind, positions, intensities, y_range[0])
-
-    def update_cur_phase_name(self):
-        cur_ind = self.widget.get_selected_phase_row()
-        self.widget.rename_phase(cur_ind, self.model.phase_model.phases[cur_ind].name)
 
     ###JCPDS editor callbacks:
     def update_jcpds_editor(self, cur_ind=None):
         if cur_ind is None:
-            cur_ind = self.widget.get_selected_phase_row()
+            cur_ind = self.phase_widget.get_selected_phase_row()
         if self.jcpds_editor_controller.widget.isVisible():
             self.jcpds_editor_controller.update_phase_view(self.model.phase_model.phases[cur_ind])
 
     def jcpds_editor_reload_phase(self, jcpds):
-        cur_ind = self.widget.get_selected_phase_row()
+        cur_ind = self.phase_widget.get_selected_phase_row()
         self.model.phase_model.phases[cur_ind] = jcpds
-        self.widget.pattern_widget.phases[cur_ind].clear_lines()
+        self.pattern_widget.phases[cur_ind].clear_lines()
         for dummy_line_ind in self.model.phase_model.phases[cur_ind].reflections:
-            self.widget.pattern_widget.phases[cur_ind].add_line()
+            self.pattern_widget.phases[cur_ind].add_line()
         self.update_cur_phase_parameters()
 
     def update_cur_phase_parameters(self):
-        cur_ind = self.widget.get_selected_phase_row()
+        cur_ind = self.phase_widget.get_selected_phase_row()
         self.model.phase_model.get_lines_d(cur_ind)
         self.update_phase_intensities(cur_ind)
-        self.update_temperature_control_visibility(cur_ind)
-        self.widget.pattern_widget.update_phase_line_visibility(cur_ind)
+        self.pattern_widget.update_phase_line_visibility(cur_ind)
 
     def jcpds_editor_reflection_removed(self, reflection_ind):
-        cur_phase_ind = self.widget.get_selected_phase_row()
-        self.widget.pattern_widget.phases[cur_phase_ind].remove_line(reflection_ind)
+        cur_phase_ind = self.phase_widget.get_selected_phase_row()
+        self.pattern_widget.phases[cur_phase_ind].remove_line(reflection_ind)
         self.model.phase_model.get_lines_d(cur_phase_ind)
         self.update_phase_intensities(cur_phase_ind)
 
     def jcpds_editor_reflection_added(self):
-        cur_ind = self.widget.get_selected_phase_row()
-        self.widget.pattern_widget.phases[cur_ind].add_line()
+        cur_ind = self.phase_widget.get_selected_phase_row()
+        self.pattern_widget.phases[cur_ind].add_line()
         self.model.phase_model.get_lines_d(cur_ind)
 
     def jcpds_editor_reflection_cleared(self):
-        cur_phase_ind = self.widget.get_selected_phase_row()
-        self.widget.pattern_widget.phases[cur_phase_ind].clear_lines()
+        cur_phase_ind = self.phase_widget.get_selected_phase_row()
+        self.pattern_widget.phases[cur_phase_ind].clear_lines()

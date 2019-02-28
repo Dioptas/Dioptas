@@ -1,21 +1,22 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#     You should have received a copy of the GNU General Public License
-#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import unittest
 import gc
 import os
@@ -64,17 +65,16 @@ class JcpdsUnitTest(unittest.TestCase):
         self.assertEqual(self.jcpds.reflections[6].intensity, 10)
 
     def test_modified_flag(self):
-        self.assertFalse(self.jcpds.modified)
-
-        self.jcpds.a0 = 3
-        self.assertTrue(self.jcpds.modified)
-        self.assertEqual(self.jcpds.a0, 3)
+        self.assertFalse(self.jcpds.params['modified'])
+        self.jcpds.params['a0'] = 3
+        self.assertTrue(self.jcpds.params['modified'])
+        self.assertEqual(self.jcpds.params['a0'], 3)
         self.jcpds.modified = False
 
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
-        self.assertFalse(self.jcpds.modified)
-        self.jcpds.k0 = 200
-        self.assertTrue(self.jcpds.modified)
+        self.assertFalse(self.jcpds.params['modified'])
+        self.jcpds.params['k0'] = 200
+        self.assertTrue(self.jcpds.params['modified'])
         self.assertEqual(os.path.join(jcpds_path, 'au_Anderson.jcpds*'), self.jcpds.filename)
         self.assertEqual('au_Anderson*', self.jcpds.name)
 
@@ -90,7 +90,7 @@ class JcpdsUnitTest(unittest.TestCase):
         d1_mon = self.get_reflection_d_spacing(self.jcpds.reflections, 2, 2, 1)
         d2_mon = self.get_reflection_d_spacing(self.jcpds.reflections, -2, 2, 1)
 
-        self.jcpds.symmetry = 'TRICLINIC'
+        self.jcpds.params['symmetry'] = 'TRICLINIC'
         self.jcpds.compute_d0()
 
         d1_tri = self.get_reflection_d_spacing(self.jcpds.reflections, 2, 2, 1)
@@ -104,8 +104,7 @@ class JcpdsUnitTest(unittest.TestCase):
         self.jcpds.pressure = -1.
 
         self.jcpds.compute_d(-1, 298)
-        self.assertGreater(self.jcpds.v, self.jcpds.v0)
-
+        self.assertGreater(self.jcpds.params['v'], self.jcpds.params['v0'])
 
 
 if __name__ == '__main__':

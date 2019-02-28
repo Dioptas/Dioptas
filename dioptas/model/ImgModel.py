@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +31,7 @@ import fabio
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
-from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface
+from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,9 @@ class ImgModel(QtCore.QObject):
     The Signal will be called every time the img_data has changed.
     """
     img_changed = QtCore.Signal()
+    autoprocess_changed = QtCore.Signal()
+    transformations_changed = QtCore.Signal()
+    corrections_removed = QtCore.Signal()
 
     def __init__(self):
         super(ImgModel, self).__init__()
@@ -75,13 +80,15 @@ class ImgModel(QtCore.QObject):
 
         self._factor = 1
 
+        self.transfer_correction = TransferFunctionCorrection()
+
         self.file_info = ''
         self.motors_info = {}
         self._img_corrections = ImgCorrectionManager()
 
         self._img_data = np.zeros((2048, 2048))
 
-        ### setting up autoprocess
+        # setting up autoprocess
         self._autoprocess = False
         self._directory_watcher = NewFileInDirectoryWatcher(
             file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
@@ -105,6 +112,7 @@ class ImgModel(QtCore.QObject):
             self._img_data = np.array(im)[::-1]
             self.file_info = self._get_file_info(im)
             self.motors_info = self._get_motors_info(im)
+            im.close()
         except IOError:
             if os.path.splitext(filename)[1].lower() == '.spe':
                 spe = SpeFile(filename)
@@ -183,6 +191,11 @@ class ImgModel(QtCore.QObject):
             img_data = transformation(img_data)
 
         logger.info("Adding {0}.".format(filename))
+
+        if self._img_data.dtype == np.uint16:  # if dtype is only uint16 we will convert to 32 bit, so that more
+            # additions are possible
+            self._img_data = self._img_data.astype(np.uint32)
+
         self._img_data += img_data
 
         self._calculate_img_data()
@@ -203,7 +216,7 @@ class ImgModel(QtCore.QObject):
         """
         Resets the background data to None
         """
-        self.background_filename = None
+        self.background_filename = ''
         self._background_data = None
         self._background_data_fabio = None
         self._calculate_img_data()
@@ -214,6 +227,16 @@ class ImgModel(QtCore.QObject):
 
     def has_background(self):
         return self._background_data is not None
+
+    @property
+    def background_data(self):
+        return self._background_data
+
+    @background_data.setter
+    def background_data(self, new_data):
+        self._background_data = new_data
+        self._calculate_img_data()
+        self.img_changed.emit()
 
     @property
     def background_scaling(self):
@@ -238,6 +261,7 @@ class ImgModel(QtCore.QObject):
     def load_next_file(self, step=1, pos=None):
         """
         Loads the next file based on the current iteration mode and the step you specify.
+        :param pos:
         :param step: Defining how much you want to increment the file number. (default=1)
         """
         next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step, pos=pos)
@@ -247,6 +271,7 @@ class ImgModel(QtCore.QObject):
     def load_previous_file(self, step=1, pos=None):
         """
         Loads the previous file based on the current iteration mode and the step specified
+        :param pos:
         :param step: Defining how much you want to decrement the file number. (default=1)
         """
         previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode,
@@ -302,7 +327,10 @@ class ImgModel(QtCore.QObject):
             if self._img_data.shape != self._background_data.shape:
                 self._background_data = None
         if self._img_corrections.has_items():
-            self._img_corrections.set_shape(self._img_data.shape)
+            if self._img_data.shape != self._img_corrections.shape:
+                self._img_corrections.clear()
+                self.transfer_correction.reset()
+                self.corrections_removed.emit()
 
         # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():
@@ -314,7 +342,7 @@ class ImgModel(QtCore.QObject):
 
         elif self._background_data is not None and self._img_corrections.has_items():
             self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
-                self._background_scaling * self._background_data + self._background_offset)) / \
+                    self._background_scaling * self._background_data + self._background_offset)) / \
                                                                         self._img_corrections.get_data()
 
         # supersample the current image data
@@ -370,7 +398,6 @@ class ImgModel(QtCore.QObject):
                 return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
         return self._img_data * self.factor
 
-
     @property
     def raw_img_data(self):
         return self._img_data
@@ -388,6 +415,7 @@ class ImgModel(QtCore.QObject):
 
         self.img_transformations.append(rotate_matrix_p90)
 
+        self.transformations_changed.emit()
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -401,6 +429,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = rotate_matrix_m90(self._background_data)
         self.img_transformations.append(rotate_matrix_m90)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -415,6 +444,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = np.fliplr(self._background_data)
         self.img_transformations.append(np.fliplr)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -429,6 +459,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
         self.img_transformations.append(np.flipud)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -452,6 +483,8 @@ class ImgModel(QtCore.QObject):
                 if self._background_data is not None:
                     self._background_data = transformation(self._background_data)
         self.img_transformations = []
+        self.transformations_changed.emit()
+
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -462,6 +495,14 @@ class ImgModel(QtCore.QObject):
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
 
+    def _revert_img_transformations(self):
+        """
+        Reverts all saved image transformations on the image. (Does not delete the transformations list, any new loaded
+        image will be transformed again)
+        """
+        for transformation in reversed(self.img_transformations):
+            self._img_data = transformation(self._img_data)
+
     def _perform_background_transformations(self):
         """
         Performs all saved image transformation on background image.
@@ -469,6 +510,36 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             for transformation in self.img_transformations:
                 self._background_data = transformation(self._background_data)
+
+    def _revert_background_transformations(self):
+        """
+        Performs all saved image transformation on background image.
+        """
+        if self._background_data is not None:
+            for transformation in reversed(self.img_transformations):
+                self._background_data = transformation(self._background_data)
+
+    def get_transformations_string_list(self):
+        transformation_list = []
+        for transformation in self.img_transformations:
+            transformation_list.append(transformation.__name__)
+        return transformation_list
+
+    def load_transformations_string_list(self, transformations):
+        self._revert_img_transformations()
+        self._revert_background_transformations()
+        self.img_transformations = []
+        for transformation in transformations:
+            if transformation == "flipud":
+                self.img_transformations.append(np.flipud)
+            elif transformation == "fliplr":
+                self.img_transformations.append(np.fliplr)
+            elif transformation == "rotate_matrix_m90":
+                self.img_transformations.append(rotate_matrix_m90)
+            elif transformation == "rotate_matrix_p90":
+                self.img_transformations.append(rotate_matrix_p90)
+        self._perform_img_transformations()
+        self._perform_background_transformations()
 
     def set_supersampling(self, factor=None):
         """
@@ -503,6 +574,7 @@ class ImgModel(QtCore.QObject):
         """
         Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
         each other, depending on the order of addition.
+        :param external:
         :param correction: An Object inheriting the ImgCorrectionInterface.
         :type correction: ImgCorrectionInterface
         :param name: correction can be given a name, to selectively delete or obtain later.
@@ -515,7 +587,6 @@ class ImgModel(QtCore.QObject):
     def get_img_correction(self, name):
         """
         :param name: correction name which was specified during the addition of the image correction.
-        :type basestring:
         :return: the specified correction
         """
         return self._img_corrections.get_correction(name)
@@ -528,6 +599,22 @@ class ImgModel(QtCore.QObject):
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()
+
+    def enable_transfer_function(self):
+        if self.transfer_correction.get_data() is not None and \
+                self.get_img_correction('transfer') is None:
+            self.add_img_correction(self.transfer_correction, 'transfer')
+        if self.get_img_correction('transfer') is not None:
+            self._calculate_img_data()
+            self.img_changed.emit()
+
+    def disable_transfer_function(self):
+        if self.get_img_correction('transfer') is not None:
+            self.delete_img_correction('transfer')
+
+    @property
+    def img_corrections(self):
+        return self._img_corrections
 
     def has_corrections(self):
         """

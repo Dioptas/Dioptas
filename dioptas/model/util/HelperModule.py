@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -173,6 +175,8 @@ class FileNameIterator(QtCore.QObject):
         """
         Tries to get the previous filename.
 
+        :param step:
+        :param pos:
         :param mode:
             can have two values either number or mode. Number will decrement the last digits of the file name \
             and time will get the next file by creation time.
@@ -224,7 +228,7 @@ class FileNameIterator(QtCore.QObject):
         except AttributeError:
             pass
         if self.directory != new_directory:
-            if self.directory is not None:
+            if self.directory is not None and self.directory !='':
                 self.directory_watcher.removePath(self.directory)
             self.directory_watcher.addPath(new_directory)
             self.directory = new_directory

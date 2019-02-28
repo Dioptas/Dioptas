@@ -28,6 +28,8 @@ _build/
 _version.py
 install.sh
 analysis
+.pytest_cache
+libsmooth_b*
 
 # Build results
 
@@ -177,3 +179,5 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+
+.vscode/

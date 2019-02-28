@@ -1,20 +1,23 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-#     Copyright (C) 2014  Clemens Prescher (clemens.prescher@gmail.com)
-#     GSECARS, University of Chicago
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#     You should have received a copy of the GNU General Public License
-#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from __future__ import absolute_import
 
 from ._version import get_versions
@@ -23,7 +26,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 if __version__ == "0+unknown":
-    __version__ = "0.3.2.beta"
+    __version__ = "0.4.1"
 
 import sys
 import os
@@ -36,9 +39,17 @@ except ImportError:
 import traceback
 from qtpy import QtWidgets
 
-from .widgets.UtilityWidgets import ErrorMessageBox
-
 dioptas_version = __version__[:5]
+
+resources_path = os.path.join(os.path.dirname(__file__), 'resources')
+calibrants_path = os.path.join(resources_path, 'calibrants')
+icons_path = os.path.join(resources_path, 'icons')
+data_path = os.path.join(resources_path, 'data')
+style_path = os.path.join(resources_path, 'style')
+
+from ._desktop_shortcuts import make_shortcut
+
+from .widgets.UtilityWidgets import ErrorMessageBox
 
 
 def excepthook(exc_type, exc_value, traceback_obj):
@@ -85,7 +96,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
 
 def main():
     app = QtWidgets.QApplication([])
-    sys.excepthook = excepthook
+   # sys.excepthook = excepthook
     from sys import platform as _platform
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))
