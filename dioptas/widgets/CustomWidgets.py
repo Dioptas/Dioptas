@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray diffraction data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2013-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from qtpy import QtCore, QtWidgets, QtGui
+from math import floor, log10
 
 
 class NumberTextField(QtWidgets.QLineEdit):
@@ -24,6 +27,12 @@ class NumberTextField(QtWidgets.QLineEdit):
         super(NumberTextField, self).__init__(*args, **kwargs)
         self.setValidator(QtGui.QDoubleValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+
+    def text(self):
+        return super(NumberTextField, self).text().replace(",", ".")
+
+    def value(self):
+        return float(self.text())
 
 
 class IntegerTextField(QtWidgets.QLineEdit):
@@ -57,6 +66,77 @@ class DoubleSpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
         super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
+
+
+class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
+    def __init__(self, *args, **kwargs):
+        super(DoubleMultiplySpinBoxAlignRight, self).__init__(*args, **kwargs)
+        self.setAlignment(QtCore.Qt.AlignRight)
+
+    def stepBy(self, p_int):
+        self.setValue(self.calc_new_step(self.value(), p_int))
+
+    def calc_new_step(self, value, p_int):
+        pow10floor = 10**floor(log10(value))
+        if p_int > 0:
+            if value / pow10floor < 1.9:
+                return pow10floor * 2.0
+            elif value / pow10floor < 4.9:
+                return pow10floor * 5.0
+            else:
+                return pow10floor * 10.0
+        else:
+            if value / pow10floor < 1.1:
+                return pow10floor / 2.0
+            elif value / pow10floor < 2.1:
+                return pow10floor
+            elif value / pow10floor < 5.1:
+                return pow10floor * 2.0
+            else:
+                return pow10floor * 5.0
+
+
+class ConservativeSpinBox(QtWidgets.QSpinBox):
+    """
+    This is a modification of the QSpinBox class. The ConservativeSpinbox does not emit the valueChanged signal for
+    every keypress in the lineedit. The signal is only emitted for the following occasions:
+      - pressing enter
+      - the spinbox loses focus
+      - pressing the up or down arrows
+    Also the wheel events are disabled.
+
+    This Spinbox is intended for usage with applications were the change in the spinbox value causes long calculations
+    and does a valueChanged signal on every keypress results in a strange behavior.
+    """
+    valueChanged = QtCore.Signal()
+
+    def __init__(self):
+        super(QtWidgets.QSpinBox, self).__init__()
+
+        self.lineEdit().editingFinished.connect(self.valueChanged)
+        self.lineEdit().setAlignment(QtCore.Qt.AlignRight)
+
+    def mousePressEvent(self, e: QtGui.QMouseEvent):
+        opt = QtWidgets.QStyleOptionSpinBox()
+        self.initStyleOption(opt)
+
+        if self.style().subControlRect(QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxUp).contains(
+                e.pos()):
+            self.setValue(self.value() + 1)
+            self.valueChanged.emit()
+        elif self.style().subControlRect(QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxDown).contains(
+                e.pos()):
+            self.setValue(self.value() - 1)
+            self.valueChanged.emit()
+
+    def wheelEvent(self, e: QtGui.QWheelEvent):
+        pass
+
+    def keyPressEvent(self, e: QtGui.QKeyEvent):
+        self.lineEdit().keyPressEvent(e)
+
+    def keyReleaseEvent(self, e: QtGui.QKeyEvent):
+        self.lineEdit().keyReleaseEvent(e)
 
 
 class FlatButton(QtWidgets.QPushButton):
@@ -160,4 +240,4 @@ def HorizontalSpacerItem(minimum_width=0):
 
 
 def VerticalSpacerItem():
-    return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+    return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)

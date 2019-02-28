@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +20,7 @@
 
 import numpy as np
 
+from qtpy import QtCore
 from .util import jcpds
 from .util.cif import CifConverter
 
@@ -31,12 +34,18 @@ class PhaseLoadError(Exception):
         return "Could not load {0} as jcpds file".format(self.filename)
 
 
-class PhaseModel(object):
+class PhaseModel(QtCore.QObject):
+    phase_added = QtCore.Signal()
+    phase_removed = QtCore.Signal(int)
+
     def __init__(self):
         super(PhaseModel, self).__init__()
         self.phases = []
         self.reflections = []
         self.phase_files = []
+
+    def send_added_signal(self):
+        self.phase_added.emit()
 
     def add_jcpds(self, filename):
         try:
@@ -53,6 +62,7 @@ class PhaseModel(object):
             cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
             jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
             self.phases.append(jcpds_object)
+            self.phase_files.append(filename)
             self.reflections.append([])
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             print(e)
@@ -62,6 +72,7 @@ class PhaseModel(object):
         del self.phases[ind]
         del self.reflections[ind]
         del self.phase_files[ind]
+        self.phase_removed.emit(ind)
 
     def set_pressure(self, ind, pressure):
         self.phases[ind].compute_d(pressure=pressure)
@@ -142,3 +153,7 @@ class PhaseModel(object):
 
         intensities, baseline = self.get_phase_line_intensities(ind, positions, pattern, x_range, y_range)
         return positions, intensities, baseline
+
+    def reset(self):
+        for ind in range(len(self.phases)):
+            self.del_phase(0)

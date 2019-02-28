@@ -1,21 +1,22 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#     You should have received a copy of the GNU General Public License
-#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import unittest
 from mock import MagicMock
 import os
@@ -52,7 +53,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds = jcpds()
 
     def tearDown(self):
-        self.model.clear()
+        self.model.delete_configurations()
         del self.model
         del self.jcpds
         gc.collect()
@@ -99,7 +100,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         self.model.calibration_model.pattern_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(None, self.model, self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
 
         # Erwin immediately sees the filename in the explorer
@@ -245,12 +246,12 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.jcpds_widget.eos_dKdT_txt, 0.003)
         self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 0.1e-5)
 
-        self.assertAlmostEqual(self.jcpds.k0, 200)
-        self.assertAlmostEqual(self.jcpds.k0p0, 5)
-        self.assertAlmostEqual(self.jcpds.alpha_t0, .23e-5)
-        self.assertAlmostEqual(self.jcpds.d_alpha_dt, .1e-6)
-        self.assertAlmostEqual(self.jcpds.dk0dt, 0.003)
-        self.assertAlmostEqual(self.jcpds.dk0pdt, .1e-5)
+        self.assertAlmostEqual(self.jcpds.params['k0'], 200)
+        self.assertAlmostEqual(self.jcpds.params['k0p0'], 5)
+        self.assertAlmostEqual(self.jcpds.params['alpha_t0'], .23e-5)
+        self.assertAlmostEqual(self.jcpds.params['d_alpha_dt'], .1e-6)
+        self.assertAlmostEqual(self.jcpds.params['dk0dt'], 0.003)
+        self.assertAlmostEqual(self.jcpds.params['dk0pdt'], .1e-5)
 
     def test_reflection_editing_and_saving_of_files(self):
         # Erwin has selected a gold jcpds in the Dioptas interface with cubic symmetry
@@ -260,7 +261,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         self.model.configurations[0].calibration_model.pattern_geometry.wavelength = 0.3344
 
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(None, self.model, jcpds_phase=self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
 
         # he sees that there are 13 reflections predefined in the table
@@ -327,7 +328,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # he finds this phase much more promising and wants to give it a new name
         self.enter_value_into_text_field(self.jcpds_widget.comments_txt,
                                          'HAHA this is a phase you will never see in your pattern')
-        self.assertEqual(self.jcpds.comments[0], 'HAHA this is a phase you will never see in your pattern')
+        self.assertEqual(self.jcpds.params['comments'][0], 'HAHA this is a phase you will never see in your pattern')
 
         # then he sees the save_as button and is happy to save his non-sense for later users
         filename = os.path.join(jcpds_path, 'au_mal_anders.jcpds')
@@ -338,7 +339,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 10)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, dioptas_model=self.model,
+        self.jcpds_controller = JcpdsEditorController(None, dioptas_model=self.model,
                                                       jcpds_phase=self.jcpds)
         self.jcpds_widget = self.jcpds_controller.widget
         self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 4.0786)
@@ -363,19 +364,19 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds_controller.save_as_btn_clicked(filename)
 
         self.jcpds.load_file(filename)
-        self.jcpds_controller = JcpdsEditorController(jcpds_path, None, self.model, jcpds_phase=self.jcpds)
+        self.jcpds_controller = JcpdsEditorController(None, self.model, jcpds_phase=self.jcpds)
 
     def test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter(self):
         # Erwin opens up the program, loads image and calibration and some phases
 
-        self.main_controller = MainController()
+        self.main_controller = MainController(use_settings=False)
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
 
         self.main_controller.model.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
+        # self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(jcpds_path, 'au_Anderson.jcpds'),
@@ -384,33 +385,33 @@ class JcpdsEditorFunctionalTest(QtTest):
                                                             os.path.join(jcpds_path, 're.jcpds')])
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
-        click_button(self.phase_controller.widget.phase_add_btn)
+        click_button(self.phase_controller.phase_widget.add_btn)
 
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
 
-        self.phase_controller.widget.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.phase_widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
         # He changes some parameter but then realizes that he screwed it up and presses cancel to revert all his changes
 
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 10.4)
 
-        self.assertAlmostEqual(self.phase_controller.model.phase_model.phases[0].a0, 10.4)
+        self.assertAlmostEqual(self.phase_controller.model.phase_model.phases[0].params['a0'], 10.4)
         QTest.mouseClick(self.jcpds_widget.cancel_btn, QtCore.Qt.LeftButton)
 
-        self.assertNotAlmostEqual(self.phase_controller.model.phase_model.phases[0].a0, 10.4)
+        self.assertNotAlmostEqual(self.phase_controller.model.phase_model.phases[0].params['a0'], 10.4)
 
         # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click another
         # phase --  so he just selects it without closing and reopening the editor
         # and magically the new parameters show up
 
-        self.phase_controller.widget.phase_tw.selectRow(1)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.phase_widget.phase_tw.selectRow(1)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
-        self.phase_controller.widget.phase_tw.selectRow(2)
+        self.phase_controller.phase_widget.phase_tw.selectRow(2)
         self.assertTrue(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')),
                         5.51280)  # Argon lattice parameter
 
@@ -451,7 +452,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # then he increases the pressure and sees the line moving, but he realizes that the equation of state may 
         # be wrong so he decides to change the parameters in the jcpds-editor
-        self.main_controller.integration_controller.widget.phase_pressure_sb.setValue(10)
+        self.main_controller.integration_controller.widget.phase_widget.pressure_sbs[0].setValue(10)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 120)
@@ -462,9 +463,9 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # he decides to change temperature value and play with all equation of state parameters
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 6.234e-5)
-        self.assertEqual(self.phase_controller.model.phase_model.phases[2].alpha_t0, 6.234e-5)
+        self.assertEqual(self.phase_controller.model.phase_model.phases[2].params['alpha_t0'], 6.234e-5)
 
-        self.main_controller.integration_controller.widget.phase_temperature_sb.setValue(1300)
+        self.main_controller.integration_controller.widget.phase_widget.temperature_sbs[0].setValue(1300)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 10.234e-5)
@@ -483,14 +484,13 @@ class JcpdsEditorFunctionalTest(QtTest):
         # Erwin loads Dioptas with a previous calibration and image file then he adds several phases and looks into the
         # jcpds editor for the first phase. He sees that everything seems to be correct
 
-        self.main_controller = MainController()
+        self.main_controller = MainController(use_settings=False)
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
 
         self.main_controller.model.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(jcpds_path, 'au_Anderson.jcpds'),
@@ -499,15 +499,15 @@ class JcpdsEditorFunctionalTest(QtTest):
                                                             os.path.join(jcpds_path, 're.jcpds')])
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
-        click_button(self.phase_controller.widget.phase_add_btn)
+        click_button(self.phase_controller.phase_widget.add_btn)
 
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
         self.jcpds_widget = self.jcpds_editor_controller.widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
-        self.phase_controller.widget.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.phase_widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
@@ -572,12 +572,11 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
         self.phase_controller = self.main_controller.integration_controller.phase_controller
-        click_button(self.phase_controller.widget.phase_add_btn)
+        click_button(self.phase_controller.phase_widget.add_btn)
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
         # change anything the names every are the same...
@@ -589,12 +588,12 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
-        self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
-        self.phase_controller.widget.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.assertEqual('au_Anderson', str(self.phase_controller.phase_widget.phase_tw.item(0, 2).text()))
+        self.phase_controller.phase_widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
         self.assertEqual('au_Anderson', self.jcpds_phase.name)
-        self.assertEqual('au_Anderson', str(self.phase_controller.widget.phase_tw.item(0, 2).text()))
+        self.assertEqual('au_Anderson', str(self.phase_controller.phase_widget.phase_tw.item(0, 2).text()))
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
         self.main_controller = MainController(use_settings=False)
@@ -603,12 +602,11 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
         self.phase_controller = self.main_controller.integration_controller.phase_controller
-        click_button(self.phase_controller.widget.phase_add_btn)
+        click_button(self.phase_controller.phase_widget.add_btn)
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
@@ -617,8 +615,8 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
-        self.phase_controller.widget.phase_tw.selectRow(0)
-        QTest.mouseClick(self.phase_controller.widget.phase_edit_btn, QtCore.Qt.LeftButton)
+        self.phase_controller.phase_widget.phase_tw.selectRow(0)
+        QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
         # he looks at the jcpds_editor and sees that there are not only hkl and intensity values for each reflection but
@@ -645,7 +643,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
         # values
 
-        self.phase_controller.widget.phase_pressure_sb.setValue(30)
+        self.phase_controller.phase_widget.pressure_sbs[0].setValue(30)
         for row_ind in range(13):
             self.assertNotEqual(self.get_reflection_table_value(row_ind, 4),
                                 self.get_reflection_table_value(row_ind, 5))

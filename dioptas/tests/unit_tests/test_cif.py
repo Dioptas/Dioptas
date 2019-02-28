@@ -1,6 +1,9 @@
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,7 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import os
 import unittest
 try:
@@ -85,7 +87,7 @@ class TestCifModule(unittest.TestCase):
     def test_reading_american_mineralogist_db_cif(self):
         cif_converter = CifConverter(0.31)
         jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'amcsd.cif'))
-        self.assertEqual(jcpds_phase.a0, 5.4631)
+        self.assertEqual(jcpds_phase.params['a0'], 5.4631)
         self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 73.48, delta=0.6)
         self.assertAlmostEqual(jcpds_phase.reflections[1].intensity, 100)
         self.assertAlmostEqual(jcpds_phase.reflections[2].intensity, 33.6, delta=0.4)
@@ -94,13 +96,18 @@ class TestCifModule(unittest.TestCase):
     def test_read_cif_with_errors_in_atomic_positions(self):
         cif_converter = CifConverter(0.31, min_d_spacing=1.5, min_intensity=10)
         jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'apatite.cif'))
-        self.assertEqual(jcpds_phase.a0, 9.628)
+        self.assertEqual(jcpds_phase.params['a0'], 9.628)
 
     def test_read_cif_from_shelx(self):
         cif_converter = CifConverter(0.31)
         jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'Fe2O3_shelx.cif'))
-        self.assertEqual(jcpds_phase.a0, 6.524)
-        self.assertEqual(jcpds_phase.b0, 4.702)
-        self.assertEqual(jcpds_phase.c0, 4.603)
+        self.assertEqual(jcpds_phase.params['a0'], 6.524)
+        self.assertEqual(jcpds_phase.params['b0'], 4.702)
+        self.assertEqual(jcpds_phase.params['c0'], 4.603)
+
+    def test_read_cif_with_triclinic_geometry(self):
+        cif_converter = CifConverter(0.31, min_d_spacing=1, min_intensity=5)
+        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'ICSD_triclinic.cif'))
+
 
 

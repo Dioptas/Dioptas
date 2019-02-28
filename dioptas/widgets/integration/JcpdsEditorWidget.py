@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +30,8 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(JcpdsEditorWidget, self).__init__(parent)
 
+        self.setWindowTitle('Dioptas - JCPDS Editor')
+
         self._layout = QtWidgets.QVBoxLayout()
 
         self._file_layout = QtWidgets.QGridLayout()
@@ -46,7 +50,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self._symmetry_layout = QtWidgets.QHBoxLayout()
         self._symmetry_layout.addWidget(LabelAlignRight('Symmetry'))
         self.symmetry_cb = CleanLooksComboBox()
-        self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'rhombohedral',
+        self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'trigonal', 'rhombohedral',
                            'orthorhombic', 'monoclinic', 'triclinic']
         self.symmetry_cb.addItems(self.symmetries)
         self._symmetry_layout.addWidget(self.symmetry_cb)
@@ -223,57 +227,57 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.blockAllSignals(True)
 
         self.filename_txt.setText(jcpds_phase.filename)
-        self.comments_txt.setText("/n".join(jcpds_phase.comments))
+        self.comments_txt.setText("/n".join(jcpds_phase.params['comments']))
 
-        self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.symmetry.lower()))
-        self.update_spinbox_enable(jcpds_phase.symmetry)
+        self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.params['symmetry'].lower()))
+        self.update_spinbox_enable(jcpds_phase.params['symmetry'])
 
         if not self.lattice_a_sb.hasFocus():
-            self.lattice_a_sb.setValue(jcpds_phase.a0)
+            self.lattice_a_sb.setValue(jcpds_phase.params['a0'])
         if not self.lattice_b_sb.hasFocus():
-            self.lattice_b_sb.setValue(jcpds_phase.b0)
+            self.lattice_b_sb.setValue(jcpds_phase.params['b0'])
         if not self.lattice_c_sb.hasFocus():
-            self.lattice_c_sb.setValue(jcpds_phase.c0)
+            self.lattice_c_sb.setValue(jcpds_phase.params['c0'])
 
-        self.lattice_eos_a_txt.setText('{0:.4f}'.format(jcpds_phase.a))
-        self.lattice_eos_b_txt.setText('{0:.4f}'.format(jcpds_phase.b))
-        self.lattice_eos_c_txt.setText('{0:.4f}'.format(jcpds_phase.c))
+        self.lattice_eos_a_txt.setText('{0:.4f}'.format(jcpds_phase.params['a']))
+        self.lattice_eos_b_txt.setText('{0:.4f}'.format(jcpds_phase.params['b']))
+        self.lattice_eos_c_txt.setText('{0:.4f}'.format(jcpds_phase.params['c']))
 
-        self.lattice_eos_volume_txt.setText('{0:.4f}'.format(jcpds_phase.v))
+        self.lattice_eos_volume_txt.setText('{0:.4f}'.format(jcpds_phase.params['v']))
 
         try:
             if not self.lattice_ab_sb.hasFocus():
-                self.lattice_ab_sb.setValue(jcpds_phase.a0 / float(jcpds_phase.b0))
+                self.lattice_ab_sb.setValue(jcpds_phase.params['a0'] / float(jcpds_phase.params['b0']))
         except ZeroDivisionError:
             self.lattice_ab_sb.setSpecialValueText('Inf')
 
         try:
             if not self.lattice_ca_sb.hasFocus():
-                self.lattice_ca_sb.setValue(jcpds_phase.c0 / float(jcpds_phase.a0))
+                self.lattice_ca_sb.setValue(jcpds_phase.params['c0'] / float(jcpds_phase.params['a0']))
         except ZeroDivisionError:
             self.lattice_ca_sb.setSpecialValueText('Inf')
 
         try:
             if not self.lattice_cb_sb.hasFocus():
-                self.lattice_cb_sb.setValue(jcpds_phase.c0 / float(jcpds_phase.b0))
+                self.lattice_cb_sb.setValue(jcpds_phase.params['c0'] / float(jcpds_phase.params['b0']))
         except ZeroDivisionError:
             self.lattice_cb_sb.setSpecialValueText('Inf')
 
-        self.lattice_volume_txt.setText(str('{0:g}'.format(jcpds_phase.v0)))
+        self.lattice_volume_txt.setText(str('{0:g}'.format(jcpds_phase.params['v0'])))
 
         if not self.lattice_alpha_sb.hasFocus():
-            self.lattice_alpha_sb.setValue(jcpds_phase.alpha0)
+            self.lattice_alpha_sb.setValue(jcpds_phase.params['alpha0'])
         if not self.lattice_beta_sb.hasFocus():
-            self.lattice_beta_sb.setValue(jcpds_phase.beta0)
+            self.lattice_beta_sb.setValue(jcpds_phase.params['beta0'])
         if not self.lattice_gamma_sb.hasFocus():
-            self.lattice_gamma_sb.setValue(jcpds_phase.gamma0)
+            self.lattice_gamma_sb.setValue(jcpds_phase.params['gamma0'])
 
-        self.eos_K_txt.setText(str(jcpds_phase.k0))
-        self.eos_Kp_txt.setText(str(jcpds_phase.k0p))
-        self.eos_alphaT_txt.setText(str(jcpds_phase.alpha_t0))
-        self.eos_dalphadT_txt.setText(str(jcpds_phase.d_alpha_dt))
-        self.eos_dKdT_txt.setText(str(jcpds_phase.dk0dt))
-        self.eos_dKpdT_txt.setText(str(jcpds_phase.dk0pdt))
+        self.eos_K_txt.setText(str(jcpds_phase.params['k0']))
+        self.eos_Kp_txt.setText(str(jcpds_phase.params['k0p']))
+        self.eos_alphaT_txt.setText(str(jcpds_phase.params['alpha_t0']))
+        self.eos_dalphadT_txt.setText(str(jcpds_phase.params['d_alpha_dt']))
+        self.eos_dKdT_txt.setText(str(jcpds_phase.params['dk0dt']))
+        self.eos_dKpdT_txt.setText(str(jcpds_phase.params['dk0pdt']))
 
         # update reflections:
         self.reflection_table.clearContents()
@@ -350,7 +354,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             self.lattice_ca_sb.setEnabled(True)
             self.lattice_cb_sb.setEnabled(True)
 
-        elif symmetry == 'HEXAGONAL':
+        elif symmetry == 'HEXAGONAL' or symmetry == 'TRIGONAL':
             self.lattice_a_sb.setEnabled(True)
             self.lattice_b_sb.setEnabled(False)
             self.lattice_c_sb.setEnabled(True)

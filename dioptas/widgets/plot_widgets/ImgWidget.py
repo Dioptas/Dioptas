@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2015  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,9 +38,9 @@ class ImgWidget(QtCore.QObject):
     def __init__(self, pg_layout, orientation='vertical'):
         super(ImgWidget, self).__init__()
         self.pg_layout = pg_layout
-        self.orientation = orientation
 
         self.create_graphics()
+        self.set_orientation(orientation)
         self.create_scatter_plot()
         self.modify_mouse_behavior()
 
@@ -47,27 +49,49 @@ class ImgWidget(QtCore.QObject):
 
         self._max_range = True
 
+
     def create_graphics(self):
         # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
-        if self.orientation == 'horizontal':
 
-            self.img_view_box = self.pg_layout.addViewBox(1, 0)
-            # create the item handling the Data img
-            self.data_img_item = pg.ImageItem()
-            self.img_view_box.addItem(self.data_img_item)
-            self.img_histogram_LUT = HistogramLUTItem(self.data_img_item)
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 0)
+        self.img_view_box = self.pg_layout.addViewBox(1, 1)
 
-        elif self.orientation == 'vertical':
-            self.img_view_box = self.pg_layout.addViewBox(0, 0)
-            # create the item handling the Data img
-            self.data_img_item = pg.ImageItem()
-            self.img_view_box.addItem(self.data_img_item)
-            self.img_histogram_LUT = HistogramLUTItem(self.data_img_item, orientation='vertical')
-            # self.img_histogram_LUT.axis.hide()
-            self.pg_layout.addItem(self.img_histogram_LUT, 0, 1)
+        self.data_img_item = pg.ImageItem()
+        self.img_view_box.addItem(self.data_img_item)
 
-        self.img_view_box.setAspectLocked()
+        self.img_histogram_LUT_horizontal = HistogramLUTItem(self.data_img_item)
+        self.pg_layout.addItem(self.img_histogram_LUT_horizontal, 0, 1)
+        self.img_histogram_LUT_vertical = HistogramLUTItem(self.data_img_item, orientation='vertical')
+        self.pg_layout.addItem(self.img_histogram_LUT_vertical, 1, 2)
+
+        self.left_axis_cake = pg.AxisItem('left')
+        self.bottom_axis_cake = pg.AxisItem('bottom')
+        self.bottom_axis_cake.setLabel(u'2θ', u'°')
+        self.left_axis_cake.setLabel(u'Azimuth', u'°')
+
+        self.left_axis_cake.hide()
+        self.bottom_axis_cake.hide()
+
+    def set_orientation(self, orientation):
+        if orientation == 'horizontal':
+            self.img_histogram_LUT_vertical.hide()
+            self.img_histogram_LUT_horizontal.show()
+        elif orientation == 'vertical':
+            self.img_histogram_LUT_horizontal.hide()
+            self.img_histogram_LUT_vertical.show()
+        self.orientation = orientation
+
+    def replace_image_and_cake_axes(self, mode='image'):
+        if mode == 'image':
+            self.pg_layout.removeItem(self.bottom_axis_cake)
+            self.pg_layout.removeItem(self.left_axis_cake)
+            self.bottom_axis_cake.hide()
+            self.left_axis_cake.hide()
+
+        elif mode == 'cake':
+            self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
+            self.pg_layout.addItem(self.left_axis_cake, 1, 0)
+            self.bottom_axis_cake.show()
+            self.left_axis_cake.show()
 
     def create_scatter_plot(self):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
@@ -92,7 +116,7 @@ class ImgWidget(QtCore.QObject):
                         y_range[0] <= img_bounds.bottom() and \
                         y_range[1] >= img_bounds.top():
             self.img_view_box.autoRange()
-            self._max_range=True
+            self._max_range = True
             return
         self.img_view_box.setRange(xRange=x_range, yRange=y_range)
         self._max_range = False
@@ -103,12 +127,12 @@ class ImgWidget(QtCore.QObject):
             return
 
         view_x_range, view_y_range = self.img_view_box.viewRange()
-        if view_x_range[1]>self.img_data.shape[0] or \
-            view_y_range[1]>self.img_data.shape[1]:
+        if view_x_range[1] > self.img_data.shape[0] and \
+                        view_y_range[1] > self.img_data.shape[1]:
             self.auto_range()
 
     def auto_level(self):
-        hist_x, hist_y = self.img_histogram_LUT.hist_x, self.img_histogram_LUT.hist_y
+        hist_x, hist_y = self.img_histogram_LUT_horizontal.hist_x, self.img_histogram_LUT_horizontal.hist_y
 
         hist_y_cumsum = np.cumsum(hist_y)
         hist_y_sum = np.sum(hist_y)
@@ -123,7 +147,8 @@ class ImgWidget(QtCore.QObject):
         else:
             max_level = 0.5 * np.max(hist_x)
 
-        self.img_histogram_LUT.setLevels(min_level, max_level)
+        self.img_histogram_LUT_vertical.setLevels(min_level, max_level)
+        self.img_histogram_LUT_horizontal.setLevels(min_level, max_level)
 
     def add_scatter_data(self, x, y):
         self.img_scatter_plot_item.addPoints(x=y, y=x)
@@ -239,7 +264,6 @@ class CalibrationCakeWidget(ImgWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(CalibrationCakeWidget, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
-        self._vertical_line_activated = False
         self.create_vertical_line()
         self.mouse_left_clicked.connect(self.set_vertical_line_pos)
 
@@ -248,14 +272,13 @@ class CalibrationCakeWidget(ImgWidget):
         self.activate_vertical_line()
 
     def activate_vertical_line(self):
-        if not self._vertical_line_activated:
+        if not self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.addItem(self.vertical_line)
-            self._vertical_line_activated = True
+            self.vertical_line.setVisible(True) #oddly this is needed for the line to be displayed correctly
 
     def deactivate_vertical_line(self):
-        if self._vertical_line_activated:
+        if self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.removeItem(self.vertical_line)
-            self._vertical_line_activated = False
 
     def set_vertical_line_pos(self, x, y):
         self.vertical_line.setValue(x)
@@ -266,14 +289,17 @@ class MaskImgWidget(ImgWidget):
         super(MaskImgWidget, self).__init__(pg_layout, orientation)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
+        self.img_view_box.setAspectLocked(True)
         self.set_color()
         self.mask_preview_fill_color = QtGui.QColor(255, 0, 0, 150)
 
     def activate_mask(self):
-        self.img_view_box.addItem(self.mask_img_item)
+        if not self.mask_img_item in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.mask_img_item)
 
     def deactivate_mask(self):
-        self.img_view_box.removeItem(self.mask_img_item)
+        if self.mask_img_item in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.mask_img_item)
 
     def plot_mask(self, mask_data):
         self.mask_data = np.int16(mask_data)
@@ -319,12 +345,12 @@ class MaskImgWidget(ImgWidget):
 class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
-        self.deactivate_vertical_line()
         self.create_circle_plot_items()
         self.create_mouse_click_item()
         self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
         self.phases = []
+        self.deactivate_vertical_line()
 
     def create_circle_plot_items(self):
         # creates several PlotDataItems as line items, to be filled with the current clicked position
@@ -369,11 +395,13 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
 
     def activate_circle_scatter(self):
         for plot_item in self.circle_plot_items:
-            self.img_view_box.addItem(plot_item)
+            if not plot_item in self.img_view_box.addedItems:
+                self.img_view_box.addItem(plot_item)
 
     def deactivate_circle_scatter(self):
         for plot_item in self.circle_plot_items:
-            self.img_view_box.removeItem(plot_item)
+            if plot_item in self.img_view_box.addedItems:
+                self.img_view_box.removeItem(plot_item)
 
     def create_roi_item(self):
         self.roi = MyROI([20, 20], [500, 500], pen=pg.mkPen(color=(0, 255, 0), size=2))
@@ -386,14 +414,20 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.roi_shade = RoiShade(self.img_view_box, self.roi)
 
     def activate_roi(self):
-        self.img_view_box.addItem(self.roi)
-        self.roi_shade.activate_rects()
-        self.roi.blockSignals(False)
+        if not self.roi in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.roi)
+            self.roi_shade.activate_rects()
+            self.roi.blockSignals(False)
+
+    def update_roi_shade_limits(self, img_shape):
+        self.roi_shade.img_shape = img_shape
+        self.roi_shade.update_rects()
 
     def deactivate_roi(self):
-        self.img_view_box.removeItem(self.roi)
-        self.roi_shade.deactivate_rects()
-        self.roi.blockSignals(True)
+        if self.roi in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.roi)
+            self.roi_shade.deactivate_rects()
+            self.roi.blockSignals(True)
 
     def add_cake_phase(self, positions, intensities, baseline):
         self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, baseline))
@@ -621,6 +655,10 @@ class MyROI(pg.ROI):
         y1 = np.round(rect.left())
         y2 = np.round(rect.left() + rect.width())
         return x1, x2, y1, y2
+
+    def setRoiLimits(self, pos, size):
+        self.setPos(pos)
+        self.setSize(size)
 
 
 class RoiShade(object):
