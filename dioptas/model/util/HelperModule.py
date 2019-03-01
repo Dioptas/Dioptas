@@ -99,16 +99,31 @@ class FileNameIterator(QtCore.QObject):
                 len=right_ind - left_ind,
                 right_str=file_str[right_ind:]
             )
+            new_file_str_no_leading_zeros = "{left_str}{number}{right_str}".format(
+                left_str=file_str[:left_ind],
+                number=number,
+                right_str=file_str[right_ind:]
+            )
             if pos is None:
                 new_complete_path = os.path.join(directory, new_file_str)
                 if os.path.exists(new_complete_path):
                     self.complete_path = new_complete_path
                     return new_complete_path
+                else:
+                    new_complete_path = os.path.join(directory, new_file_str_no_leading_zeros)
+                    if os.path.exists(new_complete_path):
+                        self.complete_path = new_complete_path
+                        return new_complete_path
             elif ind == pos:
                 new_complete_path = os.path.join(directory, new_file_str)
                 if os.path.exists(new_complete_path):
                     self.complete_path = new_complete_path
                     return new_complete_path
+                else:
+                    new_complete_path = os.path.join(directory, new_file_str_no_leading_zeros)
+                    if os.path.exists(new_complete_path):
+                        self.complete_path = new_complete_path
+                        return new_complete_path
         return None
 
     def _iterate_folder_number(self, path, step, mec_mode=False):
