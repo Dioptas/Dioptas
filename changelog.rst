@@ -17,12 +17,16 @@ New features:
     - the cake image can now be exported (press the save button below the image)
     - auto-extracted Pattern background can now be saved as file or later reused as overlay
     - the background subtraction algorithm is now also rewritten in cython, which should make deployment easier
+    - a button was added to undo the last peak selection in the calibration tab
+    - the jcpds editor now also shows q-values for each line
 
 Bug fixes:
     - cosmic removal in the mask panel is now working again
     - changing the radial bins in the X tab in the integration view works now correctly again
     - phases with trigonal symmetry should now work correctly
     - saved background range should now correctly restore after restarting Dioptas
+    - browsing files works now correctly from 10 to 9 without leading zeros
+    - loading a *.poni file prior to an image will not result in an error message anymore
 
 
 0.4.1 (stable 12/22/2017)

@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from qtpy import QtWidgets, QtCore
+import numpy as np
 
 from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
     VerticalSpacerItem, FlatButton, CleanLooksComboBox
@@ -145,7 +146,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.reflections_gb = QtWidgets.QGroupBox('Reflections')
         self._reflection_layout = QtWidgets.QGridLayout()
         self.reflection_table = QtWidgets.QTableWidget()
-        self.reflection_table.setColumnCount(8)
+        self.reflection_table.setColumnCount(10)
         self.reflections_add_btn = FlatButton('Add')
         self.reflections_delete_btn = FlatButton('Delete')
         self.reflections_clear_btn = FlatButton('Clear')
@@ -187,7 +188,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.lattice_ratio_step_txt.setMaximumWidth(60)
 
         self.reflection_table.setHorizontalHeaderLabels(
-            ['h', 'k', 'l', 'Intensity', 'd0', u"2θ_0", 'd', u"2θ"]
+            ['h', 'k', 'l', 'Intensity', 'd0', u"2θ_0", 'd', u"2θ", 'Q0', 'Q']
         )
         self.reflection_table.setItemDelegate(TextDoubleDelegate(self))
         self.reflection_table.setShowGrid(False)
@@ -289,13 +290,15 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             else:
                 two_theta0 = convert_d_to_two_theta(reflection.d0, wavelength)
                 two_theta = convert_d_to_two_theta(reflection.d, wavelength)
+                q0 = 2.0*np.pi/reflection.d0
+                q = 2.0*np.pi/reflection.d
                 self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
                                              reflection.intensity, reflection.d0, reflection.d,
-                                             two_theta0, two_theta)
+                                             two_theta0, two_theta, q0, q)
         if wavelength is None:
             self.reflection_table.setColumnCount(6)
         else:
-            self.reflection_table.setColumnCount(8)
+            self.reflection_table.setColumnCount(10)
 
         self.blockAllSignals(False)
 
@@ -420,7 +423,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         return row
 
     def add_reflection_to_table(self, h=0., k=0., l=0., intensity=0., d0=0., d=0., two_theta_0=None,
-                                two_theta=None):
+                                two_theta=None, q0=None, q=None):
         self.reflection_table.blockSignals(True)
         new_row_ind = int(self.reflection_table.rowCount())
         self.reflection_table.setRowCount(new_row_ind + 1)
@@ -441,6 +444,14 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             self.reflection_table.setItem(new_row_ind, 6, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d))))
             self.reflection_table.setItem(new_row_ind, 7,
                                           CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(two_theta))))
+
+        if q0 is None or q is None:
+            pass
+        else:
+            self.reflection_table.setItem(new_row_ind, 8,
+                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(q0))))
+            self.reflection_table.setItem(new_row_ind, 9,
+                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(q))))
 
         self.reflection_table.resizeColumnsToContents()
         self.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
