@@ -535,7 +535,8 @@ class CalibrationController(object):
         if filename is not '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
-            self.update_all()
+            if self.model.img_model.filename:
+                self.update_all()
 
     def plot_mask(self):
         """
