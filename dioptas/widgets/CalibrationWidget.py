@@ -467,10 +467,13 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
 
-        self.undo_peaks_btn = FlatButton("Undo peak(s)")
+        self.undo_peaks_btn = FlatButton("Undo")
         self.clear_peaks_btn = FlatButton("Clear All Peaks")
-        self._layout.addWidget(self.undo_peaks_btn, 5, 0, 1, 1)
-        self._layout.addWidget(self.clear_peaks_btn, 5, 1, 1, 3)
+
+        self._peak_btn_layout = QtWidgets.QHBoxLayout()
+        self._peak_btn_layout.addWidget(self.undo_peaks_btn)
+        self._peak_btn_layout.addWidget(self.clear_peaks_btn)
+        self._layout.addLayout(self._peak_btn_layout, 5, 0, 1, 4)
 
         self.setLayout(self._layout)
 
