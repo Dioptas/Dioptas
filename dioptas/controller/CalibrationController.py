@@ -80,6 +80,7 @@ class CalibrationController(object):
         self.widget.refine_btn.clicked.connect(self.refine)
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks_btn_click)
+        self.widget.undo_peaks_btn.clicked.connect(self.undo_peaks_btn_clicked)
 
         self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
         self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
@@ -251,12 +252,13 @@ class CalibrationController(object):
             np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg', integration_unit,
             wavelength)
         # filter them to only show the ones visible with the current pattern
-        pattern_min = np.min(self.model.pattern.x)
-        pattern_max = np.max(self.model.pattern.x)
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions > pattern_min]
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions < pattern_max]
-        self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
-                                                       name=self._calibrants_file_names_list[current_index])
+        if len(self.model.pattern.x) > 0:
+            pattern_min = np.min(self.model.pattern.x)
+            pattern_max = np.max(self.model.pattern.x)
+            calibrant_line_positions = calibrant_line_positions[calibrant_line_positions > pattern_min]
+            calibrant_line_positions = calibrant_line_positions[calibrant_line_positions < pattern_max]
+            self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
+                                                           name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -330,6 +332,15 @@ class CalibrationController(object):
         self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
+
+    def undo_peaks_btn_clicked(self):
+        """
+        undoes clicked peaks
+        """
+        num_points = self.model.calibration_model.remove_last_peak()
+        self.widget.img_widget.remove_last_scatter_points(num_points)
+        if self.widget.automatic_peak_num_inc_cb.isChecked():
+            self.widget.peak_num_sb.setValue(self.widget.peak_num_sb.value() - 1)
 
     def load_spline_btn_click(self):
         filename = open_file_dialog(self.widget, caption="Load Distortion Spline File",
@@ -525,7 +536,8 @@ class CalibrationController(object):
         if filename is not '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
-            self.update_all()
+            if self.model.img_model.filename != '':
+                self.update_all()
 
     def plot_mask(self):
         """
