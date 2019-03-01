@@ -43,6 +43,10 @@ def calculate_cubic_d_spacing(h, k, l, a):
     return np.sqrt(1. / d_squared_inv)
 
 
+def calculate_cubic_q_value(h, k, l, a):
+    return 2.0 * np.pi/calculate_cubic_d_spacing(h, k, l, a)
+
+
 class JcpdsEditorFunctionalTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
@@ -316,6 +320,11 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.insert_reflection_table_value(12, 2, 3)
         self.assertAlmostEqual(self.get_reflection_table_value(12, 4),
                                calculate_cubic_d_spacing(1, 1, 3, 4.0786),
+                               delta=0.0001)
+
+        # he also sees that there are awesome Q values calculated as well!
+        self.assertAlmostEqual(self.get_reflection_table_value(12, 8),
+                               calculate_cubic_q_value(1, 1, 3, 4.0786),
                                delta=0.0001)
 
         # then she decides that everybody should screw with the table and clears it:
