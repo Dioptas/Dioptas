@@ -44,7 +44,7 @@ def calculate_cubic_d_spacing(h, k, l, a):
 
 
 def calculate_cubic_q_value(h, k, l, a):
-    return 2.0 * np.pi/calculate_cubic_d_spacing(h, k, l, a)
+    return 2.0 * np.pi / calculate_cubic_d_spacing(h, k, l, a)
 
 
 class JcpdsEditorFunctionalTest(QtTest):
@@ -412,9 +412,9 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         self.assertNotAlmostEqual(self.phase_controller.model.phase_model.phases[0].params['a0'], 10.4)
 
-        # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click another
-        # phase --  so he just selects it without closing and reopening the editor
-        # and magically the new parameters show up
+        # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click
+        # another phase --  so he just selects it without closing and reopening the editor and magically the new
+        # parameters show up
 
         self.phase_controller.phase_widget.phase_tw.selectRow(1)
         QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
@@ -629,10 +629,10 @@ class JcpdsEditorFunctionalTest(QtTest):
         QtWidgets.QApplication.processEvents()
 
         # he looks at the jcpds_editor and sees that there are not only hkl and intensity values for each reflection but
-        # also d0, d, two_theta0 and two_theta
+        # also d0, d, two_theta0, two_theta, q0 and q
         # however, the zero values and non-zero values are all the same
 
-        self.assertEqual(8, self.jcpds_widget.reflection_table.columnCount())
+        self.assertEqual(10, self.jcpds_widget.reflection_table.columnCount())
         for row_ind in range(13):
             self.assertEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 6))
             self.assertAlmostEqual(self.get_reflection_table_value(row_ind, 5),
@@ -649,8 +649,8 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.assertEqual(float(self.jcpds_widget.lattice_eos_volume_txt.text()),
                          float(self.jcpds_widget.lattice_volume_txt.text()))
 
-        # then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
-        # values
+        # then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high
+        # pressure values
 
         self.phase_controller.phase_widget.pressure_sbs[0].setValue(30)
         for row_ind in range(13):
