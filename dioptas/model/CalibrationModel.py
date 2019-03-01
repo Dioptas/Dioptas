@@ -142,6 +142,13 @@ class CalibrationModel(QtCore.QObject):
         self.points = []
         self.points_index = []
 
+    def remove_last_peak(self):
+        if self.points:
+            num_points = int(self.points[-1].size/2)  # each peak is x, y so length is twice as number of peaks
+            self.points.pop(-1)
+            self.points_index.pop(-1)
+            return num_points
+
     def create_cake_geometry(self):
         self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename)
 

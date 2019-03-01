@@ -155,6 +155,13 @@ class ImgWidget(QtCore.QObject):
     def clear_scatter_plot(self):
         self.img_scatter_plot_item.setData(x=None, y=None)
 
+    def remove_last_scatter_points(self, num_points):
+        data_x, data_y = self.img_scatter_plot_item.getData()
+        if not data_x.size == 0:
+            data_x = data_x[:-num_points]
+            data_y = data_y[:-num_points]
+            self.img_scatter_plot_item.setData(data_x, data_y)
+
     def hide_scatter_plot(self):
         self.img_scatter_plot_item.hide()
 
