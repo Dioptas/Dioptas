@@ -252,12 +252,13 @@ class CalibrationController(object):
             np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg', integration_unit,
             wavelength)
         # filter them to only show the ones visible with the current pattern
-        pattern_min = np.min(self.model.pattern.x)
-        pattern_max = np.max(self.model.pattern.x)
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions > pattern_min]
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions < pattern_max]
-        self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
-                                                       name=self._calibrants_file_names_list[current_index])
+        if len(self.model.pattern.x) > 0:
+            pattern_min = np.min(self.model.pattern.x)
+            pattern_max = np.max(self.model.pattern.x)
+            calibrant_line_positions = calibrant_line_positions[calibrant_line_positions > pattern_min]
+            calibrant_line_positions = calibrant_line_positions[calibrant_line_positions < pattern_max]
+            self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
+                                                           name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -535,7 +536,7 @@ class CalibrationController(object):
         if filename is not '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
-            if self.model.img_model.filename:
+            if self.model.img_model.filename != '':
                 self.update_all()
 
     def plot_mask(self):
