@@ -80,6 +80,7 @@ class CalibrationController(object):
         self.widget.refine_btn.clicked.connect(self.refine)
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks_btn_click)
+        self.widget.undo_peaks_btn.clicked.connect(self.undo_peaks_btn_clicked)
 
         self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
         self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
@@ -330,6 +331,15 @@ class CalibrationController(object):
         self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
+
+    def undo_peaks_btn_clicked(self):
+        """
+        undoes clicked peaks
+        """
+        num_points = self.model.calibration_model.remove_last_peak()
+        self.widget.img_widget.remove_last_scatter_points(num_points)
+        if self.widget.automatic_peak_num_inc_cb.isChecked():
+            self.widget.peak_num_sb.setValue(self.widget.peak_num_sb.value() - 1)
 
     def load_spline_btn_click(self):
         filename = open_file_dialog(self.widget, caption="Load Distortion Spline File",
