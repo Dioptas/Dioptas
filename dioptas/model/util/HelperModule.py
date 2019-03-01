@@ -19,7 +19,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
 import os
 import re
 import time
@@ -89,41 +88,30 @@ class FileNameIterator(QtCore.QObject):
         match_iterator = pattern.finditer(file_str)
 
         for ind, match in enumerate(reversed(list(match_iterator))):
-            number_span = match.span()
-            left_ind = number_span[0]
-            right_ind = number_span[1]
-            number = int(file_str[left_ind:right_ind]) + step
-            new_file_str = "{left_str}{number:0{len}}{right_str}".format(
-                left_str=file_str[:left_ind],
-                number=number,
-                len=right_ind - left_ind,
-                right_str=file_str[right_ind:]
-            )
-            new_file_str_no_leading_zeros = "{left_str}{number}{right_str}".format(
-                left_str=file_str[:left_ind],
-                number=number,
-                right_str=file_str[right_ind:]
-            )
-            if pos is None:
+            if (pos is None) or (ind == pos):
+                number_span = match.span()
+                left_ind = number_span[0]
+                right_ind = number_span[1]
+                number = int(file_str[left_ind:right_ind]) + step
+                new_file_str = "{left_str}{number:0{len}}{right_str}".format(
+                    left_str=file_str[:left_ind],
+                    number=number,
+                    len=right_ind - left_ind,
+                    right_str=file_str[right_ind:]
+                )
+                new_file_str_no_leading_zeros = "{left_str}{number}{right_str}".format(
+                    left_str=file_str[:left_ind],
+                    number=number,
+                    right_str=file_str[right_ind:]
+                )
                 new_complete_path = os.path.join(directory, new_file_str)
                 if os.path.exists(new_complete_path):
                     self.complete_path = new_complete_path
                     return new_complete_path
-                else:
-                    new_complete_path = os.path.join(directory, new_file_str_no_leading_zeros)
-                    if os.path.exists(new_complete_path):
-                        self.complete_path = new_complete_path
-                        return new_complete_path
-            elif ind == pos:
-                new_complete_path = os.path.join(directory, new_file_str)
+                new_complete_path = os.path.join(directory, new_file_str_no_leading_zeros)
                 if os.path.exists(new_complete_path):
                     self.complete_path = new_complete_path
                     return new_complete_path
-                else:
-                    new_complete_path = os.path.join(directory, new_file_str_no_leading_zeros)
-                    if os.path.exists(new_complete_path):
-                        self.complete_path = new_complete_path
-                        return new_complete_path
         return None
 
     def _iterate_folder_number(self, path, step, mec_mode=False):
@@ -243,7 +231,7 @@ class FileNameIterator(QtCore.QObject):
         except AttributeError:
             pass
         if self.directory != new_directory:
-            if self.directory is not None and self.directory !='':
+            if self.directory is not None and self.directory != '':
                 self.directory_watcher.removePath(self.directory)
             self.directory_watcher.addPath(new_directory)
             self.directory = new_directory
