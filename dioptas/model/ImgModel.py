@@ -184,11 +184,11 @@ class ImgModel(QtCore.QObject):
                 img_data_fabio = fabio.open(filename)
                 img_data = img_data_fabio.data[::-1]
 
-        if not self._img_data.shape == img_data.shape:
-            return
-
         for transformation in self.img_transformations:
             img_data = transformation(img_data)
+
+        if not self._img_data.shape == img_data.shape:
+            return
 
         logger.info("Adding {0}.".format(filename))
 
