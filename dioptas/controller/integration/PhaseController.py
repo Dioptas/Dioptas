@@ -227,7 +227,7 @@ class PhaseController(object):
             cake_positions,
             intensities,
             baseline)
-        if self.integration_widget.img_mode == 'Cake':
+        if self.integration_widget.img_mode == 'Cake' and self.integration_widget.img_phases_btn.isChecked():
             self.img_view_widget.phases[-1].show()
         else:
             self.img_view_widget.phases[-1].hide()
