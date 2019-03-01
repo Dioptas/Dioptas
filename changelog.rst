@@ -26,6 +26,7 @@ Bug fixes:
     - phases with trigonal symmetry should now work correctly
     - saved background range should now correctly restore after restarting Dioptas
     - browsing files works now correctly from 10 to 9 without leading zeros
+    - loading a *.poni file prior to an image will not result in an error message anymore
 
 
 0.4.1 (stable 12/22/2017)
