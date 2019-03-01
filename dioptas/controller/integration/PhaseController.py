@@ -28,6 +28,7 @@ from ...model.util.HelperModule import get_base_name
 from .JcpdsEditorController import JcpdsEditorController
 from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_files_dialog
 from ...model.util.HelperModule import get_partial_index, get_partial_value
+from ...model.util.calc import convert_units
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -214,8 +215,10 @@ class PhaseController(object):
                                               baseline)
 
         cake_positions = []
+        cake_x_data = convert_units(self.model.cake_tth, self.model.calibration_model.wavelength, '2th_deg',
+                                    self.model.integration_unit)
         for pos in positions:
-            pos_ind = get_partial_index(self.model.cake_tth, pos)
+            pos_ind = get_partial_index(cake_x_data, pos)
             if pos_ind is None:
                 pos_ind = len(self.model.cake_tth) + 1
             cake_positions.append(pos_ind)
@@ -471,8 +474,10 @@ class PhaseController(object):
         self.pattern_widget.update_phase_intensities(
             ind, positions, intensities, y_range[0])
         cake_positions = []
+        cake_x_data = convert_units(self.model.cake_tth, self.model.calibration_model.wavelength, '2th_deg',
+                                    self.model.integration_unit)
         for pos in positions:
-            pos_ind = get_partial_index(self.model.cake_tth, pos)
+            pos_ind = get_partial_index(cake_x_data, pos)
             if pos_ind is None:
                 pos_ind = len(self.model.cake_tth) + 1
             cake_positions.append(pos_ind)
