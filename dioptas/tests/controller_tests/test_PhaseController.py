@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ..utility import QtTest, click_button
+from ..utility import QtTest, click_button, click_checkbox
 import os
 import gc
 
@@ -29,6 +31,8 @@ from ...controller.integration import PatternController
 from ...controller.integration import PhaseController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
+
+from ..utility import click_button
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -61,42 +65,41 @@ class PhaseControllerTest(QtTest):
 
     def test_manual_deleting_phases(self):
         self.load_phases()
-        QtWidgets.QApplication.processEvents()
 
         self.assertEqual(self.phase_tw.rowCount(), 6)
         self.assertEqual(len(self.model.phase_model.phases), 6)
         self.assertEqual(len(self.widget.pattern_widget.phases), 6)
         self.assertEqual(self.phase_tw.currentRow(), 5)
 
-        self.controller.remove_btn_click_callback()
+        click_button(self.phase_widget.delete_btn)
         self.assertEqual(self.phase_tw.rowCount(), 5)
         self.assertEqual(len(self.model.phase_model.phases), 5)
         self.assertEqual(len(self.widget.pattern_widget.phases), 5)
         self.assertEqual(self.phase_tw.currentRow(), 4)
 
         self.phase_widget.select_phase(1)
-        self.controller.remove_btn_click_callback()
+        click_button(self.phase_widget.delete_btn)
         self.assertEqual(self.phase_tw.rowCount(), 4)
         self.assertEqual(len(self.model.phase_model.phases), 4)
         self.assertEqual(len(self.widget.pattern_widget.phases), 4)
         self.assertEqual(self.phase_tw.currentRow(), 1)
 
         self.phase_widget.select_phase(0)
-        self.controller.remove_btn_click_callback()
+        click_button(self.phase_widget.delete_btn)
         self.assertEqual(self.phase_tw.rowCount(), 3)
         self.assertEqual(len(self.model.phase_model.phases), 3)
         self.assertEqual(len(self.widget.pattern_widget.phases), 3)
         self.assertEqual(self.phase_tw.currentRow(), 0)
 
-        self.controller.remove_btn_click_callback()
-        self.controller.remove_btn_click_callback()
-        self.controller.remove_btn_click_callback()
+        click_button(self.phase_widget.delete_btn)
+        click_button(self.phase_widget.delete_btn)
+        click_button(self.phase_widget.delete_btn)
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.model.phase_model.phases), 0)
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
-        self.controller.remove_btn_click_callback()
+        click_button(self.phase_widget.delete_btn)
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.model.phase_model.phases), 0)
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
@@ -105,10 +108,12 @@ class PhaseControllerTest(QtTest):
     def test_automatic_deleting_phases(self):
         self.load_phases()
         self.load_phases()
+
         self.assertEqual(self.phase_tw.rowCount(), 12)
         self.assertEqual(len(self.model.phase_model.phases), 12)
         self.assertEqual(len(self.widget.pattern_widget.phases), 12)
-        self.controller.clear_phases()
+
+        click_button(self.phase_widget.clear_btn)
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.model.phase_model.phases), 0)
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
@@ -119,45 +124,65 @@ class PhaseControllerTest(QtTest):
             self.load_phases()
 
         self.assertEqual(self.phase_tw.rowCount(), multiplier * 6)
-        self.controller.clear_phases()
+
+        click_button(self.phase_widget.clear_btn)
         self.assertEqual(self.phase_tw.rowCount(), 0)
         self.assertEqual(len(self.model.phase_model.phases), 0)
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
-    def test_pressure_step_change(self):
+    def test_pressurestep_spinbox_changes_pressure_spinboxes(self):
         self.load_phases()
-        old_pressure = self.widget.phase_pressure_sb.value()
-        self.widget.phase_pressure_sb.stepUp()
-        step = self.widget.phase_pressure_step_msb.value()
-        self.assertAlmostEqual(self.widget.phase_pressure_sb.value(), old_pressure + step, places=5)
+        for ind in range(6):
+            self.assertEqual(self.phase_widget.pressure_sbs[ind].singleStep(), 1)
 
-    def test_temperature_step_change(self):
+        new_step = 5
+        self.phase_widget.pressure_step_msb.setValue(new_step)
+        for ind in range(6):
+            self.assertEqual(self.phase_widget.pressure_sbs[ind].singleStep(), new_step)
+
+    def test_temperaturestep_spinbox_changes_temperature_spinboxes(self):
         self.load_phases()
-        old_temperature = self.widget.phase_temperature_sb.value()
-        self.widget.phase_temperature_sb.stepUp()
-        step = self.widget.phase_temperature_step_msb.value()
-        self.assertAlmostEqual(self.widget.phase_temperature_sb.value(), old_temperature + step, places=5)
+        for ind in range(6):
+            self.assertEqual(self.phase_widget.temperature_sbs[ind].singleStep(), 100)
+
+        new_step = 5
+        self.phase_widget.temperature_step_msb.setValue(new_step)
+        for ind in range(6):
+            self.assertEqual(self.phase_widget.temperature_sbs[ind].singleStep(), new_step)
 
     def test_pressure_change(self):
         self.load_phases()
+        click_checkbox(self.phase_widget.apply_to_all_cb)
+
         pressure = 200
-        self.widget.phase_pressure_sb.setValue(200)
-        for ind, phase in enumerate(self.model.phase_model.phases):
-            self.assertEqual(phase.params['pressure'], pressure)
-            self.assertEqual(self.phase_widget.get_phase_pressure(ind), pressure)
+        for ind in [0, 1, 3]:
+            self.phase_widget.pressure_sbs[ind].setValue(pressure)
+            self.assertEqual(self.model.phase_model.phases[ind].params['pressure'], pressure)
+        self.assertEqual(self.model.phase_model.phases[2].params['pressure'], 0)
 
     def test_temperature_change(self):
         self.load_phases()
+        click_checkbox(self.phase_widget.apply_to_all_cb)
+
         temperature = 1500
-        self.widget.phase_temperature_sb.setValue(temperature)
-        for ind, phase in enumerate(self.model.phase_model.phases):
+
+        for ind in range(len(self.model.phase_model.phases)):
+            phase = self.model.phase_model.phases[ind]
+            temperature += ind
+
+            self.assertEqual(self.phase_widget.temperature_sbs[ind].isEnabled(),
+                             phase.has_thermal_expansion())
+
+            if self.phase_widget.temperature_sbs[ind].isEnabled():
+                self.phase_widget.temperature_sbs[ind].setValue(temperature)
+
             if phase.has_thermal_expansion():
                 self.assertEqual(phase.params['temperature'], temperature)
                 self.assertEqual(self.phase_widget.get_phase_temperature(ind), temperature)
             else:
                 self.assertEqual(phase.params['temperature'], 298)
-                self.assertEqual(self.phase_widget.get_phase_temperature(ind), None)
+                self.assertEqual(self.phase_widget.get_phase_temperature(ind), 298)
 
     def test_pressure_auto_step_change(self):
         self.load_phases()
@@ -188,23 +213,21 @@ class PhaseControllerTest(QtTest):
     def test_apply_to_all_for_new_added_phase_in_table_widget(self):
         temperature = 1500
         pressure = 200
-        self.phase_widget.temperature_sb.setValue(temperature)
-        self.phase_widget.pressure_sb.setValue(pressure)
         self.load_phases()
+        self.phase_widget.temperature_sbs[0].setValue(temperature)
+        self.phase_widget.pressure_sbs[0].setValue(pressure)
+        self.load_phases()
+
         for ind, phase in enumerate(self.model.phase_model.phases):
+
             self.assertEqual(phase.params['pressure'], pressure)
             self.assertEqual(self.phase_widget.get_phase_pressure(ind), pressure)
-            if phase.has_thermal_expansion():
-                self.assertEqual(phase.params['temperature'], temperature)
-                self.assertEqual(self.phase_widget.get_phase_temperature(ind), temperature)
-            else:
-                self.assertEqual(phase.params['temperature'], 298)
-                self.assertEqual(self.phase_widget.get_phase_temperature(ind), None)
+
 
     def test_apply_to_all_for_new_added_phase_d_positions(self):
         pressure = 50
         self.load_phase('au_Anderson.jcpds')
-        self.widget.phase_pressure_sb.setValue(pressure)
+        self.phase_widget.pressure_sbs[0].setValue(pressure)
         self.load_phase('au_Anderson.jcpds')
 
         reflections1 = self.model.phase_model.get_lines_d(0)
@@ -276,8 +299,8 @@ class PhaseControllerTest(QtTest):
         old_phase_list_data = [[0 for x in range(5)] for y in range(old_phase_list_length)]
         for row in range(self.widget.phase_tw.rowCount()):
             old_phase_list_data[row][2] = self.phase_tw.item(row, 2).text()
-            old_phase_list_data[row][3] = self.phase_tw.item(row, 3).text()
-            old_phase_list_data[row][4] = self.phase_tw.item(row, 4).text()
+            old_phase_list_data[row][3] = self.phase_widget.pressure_sbs[row].text()
+            old_phase_list_data[row][4] = self.phase_widget.temperature_sbs[row].text()
 
         # clear and load the saved list to make sure all phases have been loaded
         click_button(self.widget.phase_clear_btn)
@@ -288,11 +311,29 @@ class PhaseControllerTest(QtTest):
 
         for row in range(self.widget.phase_tw.rowCount()):
             self.assertEqual(self.phase_tw.item(row, 2).text(), old_phase_list_data[row][2])
-            self.assertEqual(self.phase_tw.item(row, 3).text(), old_phase_list_data[row][3])
-            self.assertEqual(self.phase_tw.item(row, 4).text(), old_phase_list_data[row][4])
+            self.assertEqual(self.phase_widget.pressure_sbs[row].text(), old_phase_list_data[row][3])
+            self.assertEqual(self.phase_widget.temperature_sbs[row].text(), old_phase_list_data[row][4])
 
         # delete phase list file
         os.remove(os.path.join(data_path, phase_list_file_name))
+
+    def test_bulk_change_visibility_of_phases(self):
+        self.load_phases()
+        for cb in self.phase_widget.phase_show_cbs:
+            self.assertTrue(cb.isChecked())
+
+        self.controller.phase_tw_header_section_clicked(0)
+        for cb in self.phase_widget.phase_show_cbs:
+            self.assertFalse(cb.isChecked())
+
+        click_checkbox(self.phase_widget.phase_show_cbs[1])
+        self.controller.phase_tw_header_section_clicked(0)
+        for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
+                self.assertFalse(cb.isChecked())
+
+        self.controller.phase_tw_header_section_clicked(0)
+        for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
+            self.assertTrue(cb.isChecked())
 
     def load_phases(self):
         self.load_phase('ar.jcpds')

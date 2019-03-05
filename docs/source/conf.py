@@ -47,7 +47,11 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Dioptas'
-copyright = '2017, Clemens Prescher'
+copyright = """Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+Copyright (C) 2019 DESY, Hamburg, Germany"""
 author = 'Clemens Prescher'
 
 # The version info for the project you're documenting, acts as replacement for

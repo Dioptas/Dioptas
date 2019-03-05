@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +30,7 @@ from .. import calibrants_path
 from ..widgets.CalibrationWidget import CalibrationWidget
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
+from ..model.CalibrationModel import NotEnoughSpacingsInCalibrant
 
 
 class CalibrationController(object):
@@ -77,6 +80,10 @@ class CalibrationController(object):
         self.widget.refine_btn.clicked.connect(self.refine)
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks_btn_click)
+        self.widget.undo_peaks_btn.clicked.connect(self.undo_peaks_btn_clicked)
+
+        self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
+        self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
 
         self.widget.f2_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
         self.widget.pf_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
@@ -85,6 +92,12 @@ class CalibrationController(object):
         self.widget.f2_distance_cb.stateChanged.connect(self.distance_cb_changed)
         self.widget.pf_distance_cb.stateChanged.connect(self.distance_cb_changed)
         self.widget.sv_distance_cb.stateChanged.connect(self.distance_cb_changed)
+
+        self.widget.pf_poni1_cb.stateChanged.connect(self.poni1_cb_changed)
+        self.widget.pf_poni2_cb.stateChanged.connect(self.poni2_cb_changed)
+        self.widget.pf_rot1_cb.stateChanged.connect(self.rot1_cb_changed)
+        self.widget.pf_rot2_cb.stateChanged.connect(self.rot2_cb_changed)
+        self.widget.pf_rot3_cb.stateChanged.connect(self.rot3_cb_changed)
 
         self.widget.use_mask_cb.stateChanged.connect(self.plot_mask)
         self.widget.mask_transparent_cb.stateChanged.connect(self.mask_transparent_status_changed)
@@ -156,7 +169,8 @@ class CalibrationController(object):
         Loads an image file.
         """
         filename = open_file_dialog(self.widget, caption="Load Calibration Image",
-                                    directory=self.model.working_directories['image'])
+                                    directory=self.model.working_directories['image'],
+                                    )
 
         if filename is not '':
             self.model.working_directories['image'] = os.path.dirname(filename)
@@ -238,12 +252,13 @@ class CalibrationController(object):
             np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg', integration_unit,
             wavelength)
         # filter them to only show the ones visible with the current pattern
-        pattern_min = np.min(self.model.pattern.x)
-        pattern_max = np.max(self.model.pattern.x)
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions>pattern_min]
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions<pattern_max]
-        self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
-                                                       name=self._calibrants_file_names_list[current_index])
+        if len(self.model.pattern.x) > 0:
+            pattern_min = np.min(self.model.pattern.x)
+            pattern_max = np.max(self.model.pattern.x)
+            calibrant_line_positions = calibrant_line_positions[calibrant_line_positions > pattern_min]
+            calibrant_line_positions = calibrant_line_positions[calibrant_line_positions < pattern_max]
+            self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
+                                                           name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -318,6 +333,28 @@ class CalibrationController(object):
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
 
+    def undo_peaks_btn_clicked(self):
+        """
+        undoes clicked peaks
+        """
+        num_points = self.model.calibration_model.remove_last_peak()
+        self.widget.img_widget.remove_last_scatter_points(num_points)
+        if self.widget.automatic_peak_num_inc_cb.isChecked():
+            self.widget.peak_num_sb.setValue(self.widget.peak_num_sb.value() - 1)
+
+    def load_spline_btn_click(self):
+        filename = open_file_dialog(self.widget, caption="Load Distortion Spline File",
+                                    directory=self.model.working_directories['image'],
+                                    filter='*.spline')
+
+        if filename is not '':
+            self.model.calibration_model.load_distortion(filename)
+            self.widget.spline_filename_txt.setText(os.path.basename(filename))
+
+    def reset_spline_btn_click(self):
+        self.model.calibration_model.reset_distortion_correction()
+        self.widget.spline_filename_txt.setText('None')
+
     def wavelength_cb_changed(self, value):
         """
         Sets the fit_wavelength parameter in the calibration data according to the GUI state.
@@ -354,6 +391,21 @@ class CalibrationController(object):
 
         self.model.calibration_model.fit_distance = value
 
+    def poni1_cb_changed(self, value):
+        self.model.calibration_model.fit_poni1 = value
+
+    def poni2_cb_changed(self, value):
+        self.model.calibration_model.fit_poni2 = value
+
+    def rot1_cb_changed(self, value):
+        self.model.calibration_model.fit_rot1 = value
+
+    def rot2_cb_changed(self, value):
+        self.model.calibration_model.fit_rot2 = value
+
+    def rot3_cb_changed(self, value):
+        self.model.calibration_model.fit_rot3 = value
+
     def calibrate(self):
         """
         Performs calibration based on the previously inputted/searched peaks and start values.
@@ -384,9 +436,9 @@ class CalibrationController(object):
                                                     self.widget)
 
         progress_dialog.move(int(self.widget.tab_widget.x() + self.widget.tab_widget.size().width() / 2.0 - \
-                             progress_dialog.size().width() / 2.0),
+                                 progress_dialog.size().width() / 2.0),
                              int(self.widget.tab_widget.y() + self.widget.tab_widget.size().height() / 2.0 -
-                             progress_dialog.size().height() / 2.0))
+                                 progress_dialog.size().height() / 2.0))
 
         progress_dialog.setWindowTitle('   ')
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -444,8 +496,15 @@ class CalibrationController(object):
 
         refinement_canceled = False
         for i in range(num_rings - 2):
-            points = self.model.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
-                                                                       intensity_max, mask)
+            try:
+                points = self.model.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
+                                                                           intensity_max, mask)
+            except NotEnoughSpacingsInCalibrant:
+                QtWidgets.QMessageBox.critical(self.widget,
+                                               'Not enough d-spacings!.',
+                                               'The calibrant file does not contain enough d-spacings.',
+                                               QtWidgets.QMessageBox.Ok)
+                break
             self.widget.peak_num_sb.setValue(i + 4)
             if len(self.model.calibration_model.points):
                 self.plot_points(points)
@@ -477,7 +536,8 @@ class CalibrationController(object):
         if filename is not '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
-            self.update_all()
+            if self.model.img_model.filename != '':
+                self.update_all()
 
     def plot_mask(self):
         """
@@ -535,7 +595,7 @@ class CalibrationController(object):
             self.widget.tab_widget.setCurrentIndex(1)
 
         if self.widget.ToolBox.currentIndex() is not 2 or \
-                        self.widget.ToolBox.currentIndex() is not 3:
+                self.widget.ToolBox.currentIndex() is not 3:
             self.widget.ToolBox.setCurrentIndex(2)
         self.update_calibration_parameter_in_view()
         self.load_calibrant('pyFAI')
@@ -547,6 +607,12 @@ class CalibrationController(object):
         """
         pyFAI_parameter, fit2d_parameter = self.model.calibration_model.get_calibration_parameter()
         self.widget.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
+
+        if self.model.calibration_model.distortion_spline_filename:
+            self.widget.spline_filename_txt.setText(
+                os.path.basename(self.model.calibration_model.distortion_spline_filename))
+        else:
+            self.widget.spline_filename_txt.setText('None')
 
     def save_calibration(self):
         """

@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +31,7 @@ import fabio
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
-from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface
+from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +51,8 @@ class ImgModel(QtCore.QObject):
     """
     img_changed = QtCore.Signal()
     autoprocess_changed = QtCore.Signal()
-    cbn_correction_changed = QtCore.Signal()
-    oiadac_correction_changed = QtCore.Signal()
+    transformations_changed = QtCore.Signal()
+    corrections_removed = QtCore.Signal()
 
     def __init__(self):
         super(ImgModel, self).__init__()
@@ -78,13 +80,15 @@ class ImgModel(QtCore.QObject):
 
         self._factor = 1
 
+        self.transfer_correction = TransferFunctionCorrection()
+
         self.file_info = ''
         self.motors_info = {}
         self._img_corrections = ImgCorrectionManager()
 
         self._img_data = np.zeros((2048, 2048))
 
-        ### setting up autoprocess
+        # setting up autoprocess
         self._autoprocess = False
         self._directory_watcher = NewFileInDirectoryWatcher(
             file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
@@ -180,16 +184,16 @@ class ImgModel(QtCore.QObject):
                 img_data_fabio = fabio.open(filename)
                 img_data = img_data_fabio.data[::-1]
 
-        if not self._img_data.shape == img_data.shape:
-            return
-
         for transformation in self.img_transformations:
             img_data = transformation(img_data)
 
+        if not self._img_data.shape == img_data.shape:
+            return
+
         logger.info("Adding {0}.".format(filename))
 
-        if self._img_data.dtype == np.uint16: # if dtype is only uint16 we will convert to 32 bit, so that more
-                                              # additions are possible
+        if self._img_data.dtype == np.uint16:  # if dtype is only uint16 we will convert to 32 bit, so that more
+            # additions are possible
             self._img_data = self._img_data.astype(np.uint32)
 
         self._img_data += img_data
@@ -323,7 +327,10 @@ class ImgModel(QtCore.QObject):
             if self._img_data.shape != self._background_data.shape:
                 self._background_data = None
         if self._img_corrections.has_items():
-            self._img_corrections.set_shape(self._img_data.shape)
+            if self._img_data.shape != self._img_corrections.shape:
+                self._img_corrections.clear()
+                self.transfer_correction.reset()
+                self.corrections_removed.emit()
 
         # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():
@@ -335,7 +342,7 @@ class ImgModel(QtCore.QObject):
 
         elif self._background_data is not None and self._img_corrections.has_items():
             self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
-                self._background_scaling * self._background_data + self._background_offset)) / \
+                    self._background_scaling * self._background_data + self._background_offset)) / \
                                                                         self._img_corrections.get_data()
 
         # supersample the current image data
@@ -391,7 +398,6 @@ class ImgModel(QtCore.QObject):
                 return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
         return self._img_data * self.factor
 
-
     @property
     def raw_img_data(self):
         return self._img_data
@@ -409,6 +415,7 @@ class ImgModel(QtCore.QObject):
 
         self.img_transformations.append(rotate_matrix_p90)
 
+        self.transformations_changed.emit()
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -422,6 +429,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = rotate_matrix_m90(self._background_data)
         self.img_transformations.append(rotate_matrix_m90)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -436,6 +444,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = np.fliplr(self._background_data)
         self.img_transformations.append(np.fliplr)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -450,6 +459,7 @@ class ImgModel(QtCore.QObject):
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
         self.img_transformations.append(np.flipud)
+        self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
@@ -473,6 +483,8 @@ class ImgModel(QtCore.QObject):
                 if self._background_data is not None:
                     self._background_data = transformation(self._background_data)
         self.img_transformations = []
+        self.transformations_changed.emit()
+
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -529,7 +541,6 @@ class ImgModel(QtCore.QObject):
         self._perform_img_transformations()
         self._perform_background_transformations()
 
-
     def set_supersampling(self, factor=None):
         """
         Stores the supersampling factor and calculates supersampled original and background image arrays.
@@ -559,7 +570,7 @@ class ImgModel(QtCore.QObject):
         else:
             return img_data
 
-    def add_img_correction(self, correction, name=None, external=None):
+    def add_img_correction(self, correction, name=None):
         """
         Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
         each other, depending on the order of addition.
@@ -572,10 +583,6 @@ class ImgModel(QtCore.QObject):
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
         self.img_changed.emit()
-        if external == 'cbn':
-            self.cbn_correction_changed.emit()
-        if external  == 'oiadac':
-            self.oiadac_correction_changed.emit()
 
     def get_img_correction(self, name):
         """
@@ -592,6 +599,18 @@ class ImgModel(QtCore.QObject):
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()
+
+    def enable_transfer_function(self):
+        if self.transfer_correction.get_data() is not None and \
+                self.get_img_correction('transfer') is None:
+            self.add_img_correction(self.transfer_correction, 'transfer')
+        if self.get_img_correction('transfer') is not None:
+            self._calculate_img_data()
+            self.img_changed.emit()
+
+    def disable_transfer_function(self):
+        if self.get_img_correction('transfer') is not None:
+            self.delete_img_correction('transfer')
 
     @property
     def img_corrections(self):

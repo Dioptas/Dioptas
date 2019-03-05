@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -57,9 +59,11 @@ class Configuration(QtCore.QObject):
 
         self.transparent_mask = False
 
-        self._integration_num_points = None
-        self._integration_azimuth_points = 2048
+        self._integration_rad_points = None
         self._integration_unit = '2th_deg'
+
+        self._cake_azimuth_points = 360
+        self._cake_azimuth_range = None
 
         self._auto_integrate_pattern = True
         self._auto_integrate_cake = False
@@ -92,7 +96,7 @@ class Configuration(QtCore.QObject):
                 mask = None
 
             x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
-                                                       num_points=self.integration_num_points)
+                                                       num_points=self.integration_rad_points)
 
             self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
 
@@ -113,7 +117,10 @@ class Configuration(QtCore.QObject):
             mask = None
 
         self.calibration_model.integrate_2d(mask=mask,
-                                            dimensions=(2048, 2048))
+                                            rad_points=self._integration_rad_points,
+                                            azimuth_points=self._cake_azimuth_points,
+                                            azimuth_range=self._cake_azimuth_range)
+
         self.cake_changed.emit()
 
     def save_pattern(self, filename=None, subtract_background=False):
@@ -133,6 +140,21 @@ class Configuration(QtCore.QObject):
                                             subtract_background=subtract_background)
         else:
             self.pattern_model.save_pattern(filename, subtract_background=subtract_background)
+
+    def save_background_pattern(self, filename=None):
+        """
+        Saves the current fit background as a pattern. The format depends on the file ending. Possible file formats:
+            [*.xy, *.chi, *.dat, *.fxye]
+        """
+        if filename is None:
+            filename = self.img_model.filename
+
+        if filename.endswith('.xy'):
+            self.pattern_model.save_background_as_pattern(filename, header=self._create_xy_header())
+        elif filename.endswith('.fxye'):
+            self.pattern_model.save_background_as_pattern(filename, header=self._create_fxye_header(filename))
+        else:
+            self.pattern_model.save_pattern(filename)
 
     def _create_xy_header(self):
         """
@@ -191,13 +213,35 @@ class Configuration(QtCore.QObject):
         self.mask_model.set_dimension(self.img_model._img_data.shape)
 
     @property
-    def integration_num_points(self):
-        return self._integration_num_points
+    def integration_rad_points(self):
+        return self._integration_rad_points
 
-    @integration_num_points.setter
-    def integration_num_points(self, new_value):
-        self._integration_num_points = new_value
+    @integration_rad_points.setter
+    def integration_rad_points(self, new_value):
+        self._integration_rad_points = new_value
         self.integrate_image_1d()
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
+
+    @property
+    def cake_azimuth_points(self):
+        return self._cake_azimuth_points
+
+    @cake_azimuth_points.setter
+    def cake_azimuth_points(self, new_value):
+        self._cake_azimuth_points = new_value
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
+
+    @property
+    def cake_azimuth_range(self):
+        return self._cake_azimuth_range
+
+    @cake_azimuth_range.setter
+    def cake_azimuth_range(self, new_value):
+        self._cake_azimuth_range = new_value
+        if self.auto_integrate_cake:
+            self.integrate_image_2d()
 
     @property
     def integration_unit(self):
@@ -326,14 +370,26 @@ class Configuration(QtCore.QObject):
         f = hdf5_group
         # save general information
         general_information = f.create_group('general_information')
+        # integration parameters:
         general_information.attrs['integration_unit'] = self.integration_unit
-        if self.integration_num_points:
-            general_information.attrs['integration_num_points'] = self.integration_num_points
+        if self.integration_rad_points:
+            general_information.attrs['integration_num_points'] = self.integration_rad_points
         else:
             general_information.attrs['integration_num_points'] = 0
+
+        # cake parameters:
         general_information.attrs['auto_integrate_cake'] = self.auto_integrate_cake
+        general_information.attrs['cake_azimuth_points'] = self.cake_azimuth_points
+        if self.cake_azimuth_range is None:
+            general_information.attrs['cake_azimuth_range'] = "None"
+        else:
+            general_information.attrs['cake_azimuth_range'] = self.cake_azimuth_range
+
+        # mask parameters
         general_information.attrs['use_mask'] = self.use_mask
         general_information.attrs['transparent_mask'] = self.transparent_mask
+
+        # auto save parameters
         general_information.attrs['auto_save_integrated_pattern'] = self.auto_save_integrated_pattern
         formats = [n.encode('ascii', 'ignore') for n in self.integrated_patterns_file_formats]
         general_information.create_dataset('integrated_patterns_file_formats', (len(formats), 1), 'S10', formats)
@@ -368,14 +424,20 @@ class Configuration(QtCore.QObject):
         corrections_group = image_group.create_group('corrections')
         corrections_group.attrs['has_corrections'] = self.img_model.has_corrections()
         for correction, correction_object in self.img_model.img_corrections.corrections.items():
-            correction_data = correction_object.get_data()
-            imcd = corrections_group.create_dataset(correction, correction_data.shape, 'f', correction_data)
-            if correction == 'cbn':
+            if correction in ['cbn', 'oiadac']:
+                correction_data = correction_object.get_data()
+                imcd = corrections_group.create_dataset(correction, correction_data.shape, 'f', correction_data)
                 for param, value in correction_object.get_params().items():
                     imcd.attrs[param] = value
-            elif correction == 'oiadac':
-                for param, value in correction_object.get_params().items():
-                    imcd.attrs[param] = value
+            elif correction == 'transfer':
+                params = correction_object.get_params()
+                transfer_group = corrections_group.create_group('transfer')
+                original_data = params['original_data']
+                response_data = params['response_data']
+                original_ds = transfer_group.create_dataset('original_data', original_data.shape, 'f', original_data)
+                original_ds.attrs['filename'] = params['original_filename']
+                response_ds = transfer_group.create_dataset('response_data', response_data.shape, 'f', response_data)
+                response_ds.attrs['filename'] = params['response_filename']
 
         # the actual image
         image_group.attrs['filename'] = self.img_model.filename
@@ -422,6 +484,8 @@ class Configuration(QtCore.QObject):
             except TypeError:
                 pfp.attrs[key] = ''
         calibration_group.attrs['correct_solid_angle'] = self.correct_solid_angle
+        if self.calibration_model.distortion_spline_filename is not None:
+            calibration_group.attrs['distortion_spline_filename'] = self.calibration_model.distortion_spline_filename
 
         # save background pattern and pattern model
         background_pattern_group = f.create_group('background_pattern')
@@ -508,10 +572,15 @@ class Configuration(QtCore.QObject):
             pass
 
         try:
-            self.correct_solid_angle =  f.get('calibration_model').attrs['correct_solid_angle']
+            self.correct_solid_angle = f.get('calibration_model').attrs['correct_solid_angle']
         except KeyError:
             pass
 
+        try:
+            distortion_spline_filename = f.get('calibration_model').attrs['distortion_spline_filename']
+            self.calibration_model.load_distortion(distortion_spline_filename)
+        except KeyError:
+            pass
 
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
@@ -555,6 +624,7 @@ class Configuration(QtCore.QObject):
                                            f.get('pattern').attrs['pattern_filename'],
                                            f.get('pattern').attrs['unit'])
             self.pattern_model.file_iteration_mode = f.get('pattern').attrs['file_iteration_mode']
+        self.integration_unit = f.get('general_information').attrs['integration_unit']
 
         if f.get('background_pattern').attrs['has_background_pattern']:
             self.pattern_model.background_pattern = Pattern(f.get('background_pattern').get('x')[...],
@@ -573,40 +643,67 @@ class Configuration(QtCore.QObject):
                                                                        recalc_pattern=False)
 
         # load general configuration
-        self.integration_unit = f.get('general_information').attrs['integration_unit']
         if f.get('general_information').attrs['integration_num_points']:
-            self.integration_num_points = f.get('general_information').attrs['integration_num_points']
+            self.integration_rad_points = f.get('general_information').attrs['integration_num_points']
 
+        # cake parameters:
         self.auto_integrate_cake = f.get('general_information').attrs['auto_integrate_cake']
+        try:
+            self.cake_azimuth_points = f.get('general_information').attrs['cake_azimuth_points']
+        except KeyError as e:
+            pass
+        try:
+            if f.get('general_information').attrs['cake_azimuth_range'] == "None":
+                self.cake_azimuth_range = None
+            else:
+                self.cake_azimuth_range = f.get('general_information').attrs['cake_azimuth_range']
+        except KeyError as e:
+            pass
+
+        # mask parameters
         self.use_mask = f.get('general_information').attrs['use_mask']
         self.transparent_mask = f.get('general_information').attrs['transparent_mask']
 
+        # corrections
+        if f.get('image_model').get('corrections').attrs['has_corrections']:
+            for name, correction_group in f.get('image_model').get('corrections').items():
+                params = {}
+                for param, val in correction_group.attrs.items():
+                    params[param] = val
+                if name == 'cbn':
+                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
+                    cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
+
+                    cbn_correction.set_params(params)
+                    cbn_correction.update()
+                    self.img_model.add_img_correction(cbn_correction, name)
+                elif name == 'oiadac':
+                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
+                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
+                    oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
+
+                    oiadac.set_params(params)
+                    oiadac.update()
+                    self.img_model.add_img_correction(oiadac, name)
+                elif name == 'transfer':
+                    params = {
+                        'original_data': correction_group.get('original_data')[...],
+                        'original_filename': correction_group.get('original_data').attrs['filename'],
+                        'response_data': correction_group.get('response_data')[...],
+                        'response_filename': correction_group.get('response_data').attrs['filename']
+                    }
+
+                    self.img_model.transfer_correction.set_params(params)
+                    self.img_model.enable_transfer_function()
+
+        # autosave parameters
         self.auto_save_integrated_pattern = f.get('general_information').attrs['auto_save_integrated_pattern']
         self.integrated_patterns_file_formats = []
         for file_format in f.get('general_information').get('integrated_patterns_file_formats'):
             self.integrated_patterns_file_formats.append(file_format[0].decode('utf-8'))
 
-        self.integrate_image_1d()
-
-        if f.get('image_model').get('corrections').attrs['has_corrections']:
-            for name, correction_group in f.get('image_model').get('corrections').items():
-                if name == 'cbn':
-                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
-                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
-                    cbn_correction = CbnCorrection(tth_array=tth_array, azi_array=azi_array)
-                    params = {}
-                    for param, val in correction_group.attrs.items():
-                        params[param] = val
-                    cbn_correction.set_params(params)
-                    cbn_correction.update()
-                    self.img_model.add_img_correction(cbn_correction, name, name)
-                elif name == 'oiadac':
-                    tth_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
-                    azi_array = 180.0 / np.pi * self.calibration_model.pattern_geometry.chia
-                    oiadac = ObliqueAngleDetectorAbsorptionCorrection(tth_array=tth_array, azi_array=azi_array)
-                    params = {}
-                    for param, val in correction_group.attrs.items():
-                        params[param] = val
-                    oiadac.set_params(params)
-                    oiadac.update()
-                    self.img_model.add_img_correction(oiadac, name, name)
+        if self.calibration_model.is_calibrated:
+            self.integrate_image_1d()
+        else:
+            self.pattern_model.pattern.recalculate_pattern()
