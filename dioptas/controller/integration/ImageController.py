@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,9 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import os
-import time
 from functools import partial
 
 import numpy as np
@@ -26,7 +26,6 @@ from PIL import Image
 from qtpy import QtWidgets, QtCore
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
-from ...model.util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
@@ -49,18 +48,22 @@ class ImageController(object):
         :type widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-
         self.widget = widget
         self.model = dioptas_model
 
         self.epics_controller = EpicsController(self.widget, self.model)
 
-        self.img_mode = 'Image'
         self.img_docked = True
+        self.view_mode = 'normal'  # modes available: normal, alternative
         self.roi_active = False
 
         self.clicked_tth = None
         self.clicked_azi = None
+
+        self.vertical_splitter_alternative_state = None
+        self.vertical_splitter_normal_state = None
+        self.horizontal_splitter_alternative_state = None
+        self.horizontal_splitter_normal_state = None
 
         self.initialize()
         self.create_signals()
@@ -102,6 +105,7 @@ class ImageController(object):
 
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         self.widget.img_widget.plot_image(np.roll(self.model.cake_data, shift_amount, axis=0))
+        self.update_cake_axes_range()
         if auto_scale:
             self.widget.img_widget.auto_level()
 
@@ -109,7 +113,7 @@ class ImageController(object):
         """
         Plots the mask data.
         """
-        if self.model.use_mask and self.img_mode == 'Image':
+        if self.model.use_mask and self.widget.img_mode == 'Image':
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
             self.widget.img_mask_btn.setChecked(True)
         else:
@@ -169,25 +173,8 @@ class ImageController(object):
         self.connect_click_function(self.widget.qa_save_img_btn, self.save_img)
         self.connect_click_function(self.widget.load_calibration_btn, self.load_calibration)
 
-        self.connect_click_function(self.widget.cbn_groupbox, self.cbn_groupbox_changed)
-        self.widget.cbn_diamond_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_seat_thickness_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_inner_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_outer_seat_radius_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_cell_tilt_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_tilt_rotation_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_center_offset_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_center_offset_angle_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_anvil_al_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.widget.cbn_seat_al_txt.editingFinished.connect(self.cbn_groupbox_changed)
-        self.connect_click_function(self.widget.cbn_plot_correction_btn, self.cbn_plot_correction_btn_clicked)
-
-        self.connect_click_function(self.widget.oiadac_groupbox, self.oiadac_groupbox_changed)
-        self.widget.oiadac_thickness_txt.editingFinished.connect(self.oiadac_groupbox_changed)
-        self.widget.oiadac_abs_length_txt.editingFinished.connect(self.oiadac_groupbox_changed)
-        self.connect_click_function(self.widget.oiadac_plot_btn, self.oiadac_plot_btn_clicked)
-
         # signals
+        self.connect_click_function(self.widget.change_view_btn, self.change_view_btn_clicked)
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
     def connect_click_function(self, emitter, function):
@@ -227,7 +214,6 @@ class ImageController(object):
                     self._load_multiple_files(filenames)
                 elif self.widget.img_batch_mode_image_save_rb.isChecked():
                     self._save_multiple_image_files(filenames)
-            self._check_absorption_correction_shape()
 
     def _load_multiple_files(self, filenames):
         if not self.model.calibration_model.is_calibrated:
@@ -461,7 +447,7 @@ class ImageController(object):
         self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.model.img_model.file_info)
 
-        self.widget.cbn_plot_correction_btn.setText('Plot')
+        self.widget.cbn_plot_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
 
         # update the window due to some errors on mac when using macports
@@ -529,7 +515,7 @@ class ImageController(object):
         if self.roi_active:
             self.widget.img_widget.deactivate_roi()
         self.widget.img_mode_btn.setText('Image')
-        self.img_mode = str("Cake")
+        self.widget.img_mode = str("Cake")
 
         self.model.img_changed.disconnect(self.plot_img)
         self.model.img_changed.disconnect(self.plot_mask)
@@ -542,8 +528,8 @@ class ImageController(object):
         self.update_cake_axes_range()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
-        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi)/2)
-        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi)/2)
+        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi) / 2)
+        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi) / 2)
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
 
     def activate_image_mode(self):
@@ -561,7 +547,7 @@ class ImageController(object):
             self.widget.img_widget.activate_roi()
         self.widget.img_widget.img_view_box.setAspectLocked(True)
         self.widget.img_mode_btn.setText('Cake')
-        self.img_mode = str("Image")
+        self.widget.img_mode = str("Image")
 
         self.model.img_changed.connect(self.plot_img)
         self.model.img_changed.connect(self.plot_mask)
@@ -656,11 +642,10 @@ class ImageController(object):
             self.update_cake_azimuth_axis()
             self.update_cake_x_axis()
 
-
     def update_cake_azimuth_axis(self):
         data_img_item = self.widget.integration_image_widget.img_view.data_img_item
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
-        cake_azi = self.model.cake_azi-shift_amount*np.mean(np.diff(self.model.cake_azi))
+        cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
 
         height = data_img_item.viewRect().height()
         bottom = data_img_item.viewRect().top()
@@ -692,7 +677,6 @@ class ImageController(object):
                 self.convert_x_value(min_tth, '2th_deg', 'q_A^-1'),
                 self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
 
-
     def set_cake_axis_unit(self, unit='2th_deg'):
         if unit == '2th_deg':
             self.widget.integration_image_widget.img_view.bottom_axis_cake.setLabel(u'2θ', u'°')
@@ -701,10 +685,7 @@ class ImageController(object):
         self.update_cake_x_axis()
 
     def show_img_mouse_position(self, x, y):
-        if self.img_mode == "Image":
-            img_shape = self.model.img_data.shape
-        elif self.img_mode == "Cake":
-            img_shape = (len(self.model.cake_tth), len(self.model.cake_azi))
+        img_shape = self.widget.img_widget.img_data.shape
 
         if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
@@ -725,7 +706,7 @@ class ImageController(object):
                 x_temp = x
                 x = np.array([y])
                 y = np.array([x_temp])
-                if self.img_mode == 'Cake':
+                if self.widget.img_mode == 'Cake':
                     tth = get_partial_value(self.model.cake_tth, y - 0.5)
                     shift_amount = self.widget.cake_shift_azimuth_sl.value()
                     cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
@@ -778,21 +759,23 @@ class ImageController(object):
 
         if self.model.calibration_model.is_calibrated:
             x, y = y, x  # the indices are reversed for the img_array
-            if self.img_mode == 'Cake':  # cake mode
-                cake_shape = (len(self.model.cake_tth), len(self.model.cake_azi))
-                if x < 0 or y < 0 or x > (cake_shape[0] - 1) or y > (cake_shape[1] - 1):
+            if self.widget.img_mode == 'Cake':  # cake mode
+                cake_shape = self.model.cake_data.shape
+                if x < 0 or y < 0 or x > cake_shape[0] - 1 or y > cake_shape[1] - 1:
                     return
-                y = np.array([y])
                 x = np.array([x])
+                y = np.array([y])
                 tth = get_partial_value(self.model.cake_tth, y - 0.5) / 180 * np.pi
                 shift_amount = self.widget.cake_shift_azimuth_sl.value()
                 azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
-            elif self.img_mode == 'Image':  # image mode
+            elif self.widget.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
                     return
+                x = np.array([x])
+                y = np.array([y])
                 tth = self.model.calibration_model.get_two_theta_img(x, y)
-                azi = self.model.calibration_model.get_azi_img(np.array([x]), np.array([y])) / np.pi * 180
+                azi = self.model.calibration_model.get_azi_img(x, y) / np.pi * 180
                 self.widget.img_widget.set_circle_line(
                     self.model.calibration_model.get_two_theta_array(), tth)
             else:  # in the case of whatever
@@ -875,180 +858,44 @@ class ImageController(object):
             filename = save_file_dialog(self.widget, "Save Image.",
                                         os.path.join(self.model.working_directories['image'],
                                                      img_filename + '.png'),
-                                        ('Image (*.png);;Data (*.tiff)'))
+                                        ('Image (*.png);;Data (*.tiff);;Text (*.txt)'))
 
         if filename is not '':
             if filename.endswith('.png'):
-                if self.img_mode == 'Cake':
+                if self.widget.img_mode == 'Cake':
                     self.widget.img_widget.deactivate_vertical_line()
-                elif self.img_mode == 'Image':
+                elif self.widget.img_mode == 'Image':
                     self.widget.img_widget.deactivate_circle_scatter()
                     self.widget.img_widget.deactivate_roi()
 
                 QtWidgets.QApplication.processEvents()
                 self.widget.img_widget.save_img(filename)
 
-                if self.img_mode == 'Cake':
+                if self.widget.img_mode == 'Cake':
                     self.widget.img_widget.activate_vertical_line()
-                elif self.img_mode == 'Image':
+                elif self.widget.img_mode == 'Image':
                     self.widget.img_widget.activate_circle_scatter()
                     if self.roi_active:
                         self.widget.img_widget.activate_roi()
             elif filename.endswith('.tiff') or filename.endswith('.tif'):
-                if self.img_mode == 'Image':
+                if self.widget.img_mode == 'Image':
                     im_array = np.int32(self.model.img_data)
-                elif self.img_mode == 'Cake':
+                elif self.widget.img_mode == 'Cake':
                     im_array = np.int32(self.model.cake_data)
                 im_array = np.flipud(im_array)
                 im = Image.fromarray(im_array)
                 im.save(filename)
-
-    def cbn_groupbox_changed(self):
-        if not self.model.calibration_model.is_calibrated:
-            self.widget.cbn_groupbox.setChecked(False)
-            QtWidgets.QMessageBox.critical(self.widget,
-                                           'ERROR',
-                                           'Please calibrate the geometry first or load an existent calibration file. ' + \
-                                           'The cBN seat correction needs a calibrated geometry.')
-            return
-
-        if self.widget.cbn_groupbox.isChecked():
-            diamond_thickness = float(str(self.widget.cbn_diamond_thickness_txt.text()))
-            seat_thickness = float(str(self.widget.cbn_seat_thickness_txt.text()))
-            inner_seat_radius = float(str(self.widget.cbn_inner_seat_radius_txt.text()))
-            outer_seat_radius = float(str(self.widget.cbn_outer_seat_radius_txt.text()))
-            tilt = float(str(self.widget.cbn_cell_tilt_txt.text()))
-            tilt_rotation = float(str(self.widget.cbn_tilt_rotation_txt.text()))
-            center_offset = float(str(self.widget.cbn_center_offset_txt.text()))
-            center_offset_angle = float(str(self.widget.cbn_center_offset_angle_txt.text()))
-            seat_absorption_length = float(str(self.widget.cbn_seat_al_txt.text()))
-            anvil_absorption_length = float(str(self.widget.cbn_anvil_al_txt.text()))
-
-            tth_array = 180.0 / np.pi * self.model.calibration_model.pattern_geometry.ttha
-            azi_array = 180.0 / np.pi * self.model.calibration_model.pattern_geometry.chia
-
-            new_cbn_correction = CbnCorrection(
-                tth_array=tth_array,
-                azi_array=azi_array,
-                diamond_thickness=diamond_thickness,
-                seat_thickness=seat_thickness,
-                small_cbn_seat_radius=inner_seat_radius,
-                large_cbn_seat_radius=outer_seat_radius,
-                tilt=tilt,
-                tilt_rotation=tilt_rotation,
-                center_offset=center_offset,
-                center_offset_angle=center_offset_angle,
-                cbn_abs_length=seat_absorption_length,
-                diamond_abs_length=anvil_absorption_length
-            )
-            if not new_cbn_correction == self.model.img_model.get_img_correction("cbn"):
-                t1 = time.time()
-                new_cbn_correction.update()
-                print("Time needed for correction calculation: {0}".format(time.time() - t1))
-                try:
-                    self.model.img_model.delete_img_correction("cbn")
-                except KeyError:
-                    pass
-                self.model.img_model.add_img_correction(new_cbn_correction, "cbn")
-        else:
-            self.model.img_model.delete_img_correction("cbn")
-
-    def cbn_plot_correction_btn_clicked(self):
-        if str(self.widget.cbn_plot_correction_btn.text()) == 'Plot':
-            self.widget.img_widget.plot_image(self.model.img_model.img_corrections.get_correction("cbn").get_data(),
-                                              True)
-            self.widget.cbn_plot_correction_btn.setText('Back')
-            self.widget.oiadac_plot_btn.setText('Plot')
-        else:
-            self.widget.cbn_plot_correction_btn.setText('Plot')
-            if self.img_mode == 'Cake':
-                self.plot_cake(True)
-            elif self.img_mode == 'Image':
-                self.plot_img(True)
-
-    def update_cbn_widgets(self):
-        params = self.model.img_model.img_corrections.get_correction("cbn").get_params()
-        self.widget.cbn_diamond_thickness_txt.setText(str(params['diamond_thickness']))
-        self.widget.cbn_seat_thickness_txt.setText(str(params['seat_thickness']))
-        self.widget.cbn_inner_seat_radius_txt.setText(str(params['small_cbn_seat_radius']))
-        self.widget.cbn_outer_seat_radius_txt.setText(str(params['large_cbn_seat_radius']))
-        self.widget.cbn_cell_tilt_txt.setText(str(params['tilt']))
-        self.widget.cbn_tilt_rotation_txt.setText(str(params['tilt_rotation']))
-        self.widget.cbn_anvil_al_txt.setText(str(params['diamond_abs_length']))
-        self.widget.cbn_seat_al_txt.setText(str(params['seat_abs_length']))
-        self.widget.cbn_center_offset_txt.setText(str(params['center_offset']))
-        self.widget.cbn_center_offset_angle_txt.setText(str(params['center_offset_angle']))
-        self.widget.cbn_groupbox.setChecked(True)
-
-    def oiadac_groupbox_changed(self):
-        if not self.model.calibration_model.is_calibrated:
-            self.widget.oiadac_groupbox.setChecked(False)
-            QtWidgets.QMessageBox.critical(
-                self.widget,
-                'ERROR',
-                'Please calibrate the geometry first or load an existent calibration file. ' + \
-                'The oblique incidence angle detector absorption correction needs a calibrated' + \
-                'geometry.'
-            )
-            return
-
-        if self.widget.oiadac_groupbox.isChecked():
-            detector_thickness = float(str(self.widget.oiadac_thickness_txt.text()))
-            absorption_length = float(str(self.widget.oiadac_abs_length_txt.text()))
-
-            _, fit2d_parameter = self.model.calibration_model.get_calibration_parameter()
-            detector_tilt = fit2d_parameter['tilt']
-            detector_tilt_rotation = fit2d_parameter['tiltPlanRotation']
-
-            tth_array = self.model.calibration_model.pattern_geometry.ttha
-            azi_array = self.model.calibration_model.pattern_geometry.chia
-            import time
-
-            t1 = time.time()
-
-            oiadac_correction = ObliqueAngleDetectorAbsorptionCorrection(
-                tth_array, azi_array,
-                detector_thickness=detector_thickness,
-                absorption_length=absorption_length,
-                tilt=detector_tilt,
-                rotation=detector_tilt_rotation,
-            )
-            print("Time needed for correction calculation: {0}".format(time.time() - t1))
-            try:
-                self.model.img_model.delete_img_correction("oiadac")
-            except KeyError:
-                pass
-            self.model.img_model.add_img_correction(oiadac_correction, "oiadac")
-        else:
-            self.model.img_model.delete_img_correction("oiadac")
-
-    def oiadac_plot_btn_clicked(self):
-        if str(self.widget.oiadac_plot_btn.text()) == 'Plot':
-            self.widget.img_widget.plot_image(self.model.img_model._img_corrections.get_correction("oiadac").get_data(),
-                                              True)
-            self.widget.oiadac_plot_btn.setText('Back')
-            self.widget.cbn_plot_correction_btn.setText('Plot')
-        else:
-            self.widget.oiadac_plot_btn.setText('Plot')
-            if self.img_mode == 'Cake':
-                self.plot_cake(True)
-            elif self.img_mode == 'Image':
-                self.plot_img(True)
-
-    def update_oiadac_widgets(self):
-        params = self.model.img_model.img_corrections.get_correction("oiadac").get_params()
-        self.widget.oiadac_thickness_txt.setText(str(params['detector_thickness']))
-        self.widget.oiadac_abs_length_txt.setText(str(params['absorption_length']))
-        self.widget.oiadac_groupbox.setChecked(True)
-
-    def _check_absorption_correction_shape(self):
-        if self.model.img_model.has_corrections() is None and self.widget.cbn_groupbox.isChecked():
-            self.widget.cbn_groupbox.setChecked(False)
-            self.widget.oiadac_groupbox.setChecked(False)
-            QtWidgets.QMessageBox.critical(self.widget,
-                                           'ERROR',
-                                           'Due to a change in image dimensions the absorption ' +
-                                           'corrections have been removed')
+            elif filename.endswith('.txt') or filename.endswith('.csv'):
+                if self.widget.img_mode == 'Image':
+                    return
+                elif self.widget.img_mode == 'Cake':  # saving cake data as a text file for export.
+                    with open(filename, 'w') as out_file:  # this is done in an odd and slow way because the headers
+                        # should be floats and the data itself int.
+                        cake_tth = np.insert(self.model.cake_tth, 0, 0)
+                        np.savetxt(out_file, cake_tth[None], fmt='%6.3f')
+                        for azi, row in zip(self.model.cake_azi, self.model.cake_data):
+                            row_str = " ".join(["{:6.0f}".format(el) for el in row])
+                            out_file.write("{:6.2f}".format(azi) + row_str + '\n')
 
     def update_gui_from_configuration(self):
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
@@ -1059,15 +906,55 @@ class ImageController(object):
         self.update_mask_mode()
         self.update_roi_in_gui()
 
-        if self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
+        if self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Image':
             self.activate_cake_mode()
-        elif not self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Cake':
+        elif not self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Cake':
             self.activate_image_mode()
-        elif self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Cake':
+        elif self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Cake':
             self._update_cake_line_pos()
             self._update_cake_mouse_click_pos()
-        elif not self.model.current_configuration.auto_integrate_cake and self.img_mode == 'Image':
+        elif not self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Image':
             self._update_image_line_pos()
             self._update_image_mouse_click_pos()
 
+    def change_view_btn_clicked(self):
+        if self.view_mode == 'alternative':
+            self.change_view_to_normal()
+        elif self.view_mode == 'normal':
+            self.change_view_to_alternative()
 
+    def change_view_to_normal(self):
+        if self.view_mode == 'normal':
+            return
+        self.vertical_splitter_alternative_state = self.widget.vertical_splitter.saveState()
+        self.horizontal_splitter_alternative_state = self.widget.horizontal_splitter.saveState()
+        self.widget.vertical_splitter.addWidget(self.widget.integration_pattern_widget)
+
+        self.widget.integration_control_widget.setOrientation(QtCore.Qt.Horizontal)
+
+        if self.vertical_splitter_normal_state:
+            self.widget.vertical_splitter.restoreState(self.vertical_splitter_normal_state)
+        if self.horizontal_splitter_normal_state:
+            self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_normal_state)
+
+        self.widget.img_widget.set_orientation("horizontal")
+        self.view_mode = 'normal'
+
+    def change_view_to_alternative(self):
+        if self.view_mode == 'alternative':
+            return
+
+        self.vertical_splitter_normal_state = self.widget.vertical_splitter.saveState()
+        self.horizontal_splitter_normal_state = self.widget.horizontal_splitter.saveState()
+
+        self.widget.vertical_splitter_left.insertWidget(0, self.widget.integration_pattern_widget)
+
+        self.widget.integration_control_widget.setOrientation(QtCore.Qt.Vertical)
+
+        if self.vertical_splitter_alternative_state:
+            self.widget.vertical_splitter.restoreState(self.vertical_splitter_alternative_state)
+        if self.horizontal_splitter_alternative_state:
+            self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_alternative_state)
+
+        self.widget.img_widget.set_orientation("vertical")
+        self.view_mode = 'alternative'

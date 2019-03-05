@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,12 +20,13 @@
 
 import os
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets.ImgWidget import IntegrationImgWidget
 from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem
 from ..CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
+from .... import icons_path
 
 from .. import CLICKED_COLOR
 
@@ -64,6 +67,9 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self._control_layout.setContentsMargins(6, 6, 6, 6)
         self._control_layout.setSpacing(6)
 
+        self.save_image_btn = FlatButton()
+        self.save_image_btn.setToolTip("Save Image")
+
         self.roi_btn = CheckableFlatButton('ROI')
         self.mode_btn = FlatButton('Cake')
         self.cake_shift_azimuth_sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -73,6 +79,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.autoscale_btn = CheckableFlatButton('AutoScale')
         self.undock_btn = FlatButton('Undock')
 
+        self._control_layout.addWidget(self.save_image_btn)
         self._control_layout.addWidget(self.roi_btn)
         self._control_layout.addWidget(self.mode_btn)
         self._control_layout.addWidget(self.cake_shift_azimuth_sl)
@@ -106,3 +113,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
             """)
         self.autoscale_btn.setChecked(True)
         self.position_and_unit_widget.hide()
+
+        self.save_image_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
+        self.save_image_btn.setIconSize(QtCore.QSize(13, 13))
+        self.save_image_btn.setMaximumWidth(25)

@@ -260,7 +260,7 @@ class jcpds(object):
             self.params['comments'].append(line)  # Read above
             line = fp.readline()
             # Replace any commas with blanks, split at blanks
-            temp = string.split(line.replace(',', ' '))
+            temp = line.replace(',', ' ').split()
             temp = list(map(float, temp[0:5]))
             # The symmetry codes are as follows:
             #   1 -- cubic
@@ -435,7 +435,7 @@ class jcpds(object):
             self.params['beta0'] = 90.
             self.params['gamma0'] = 90.
 
-        elif self.params['symmetry'] == 'HEXAGONAL':
+        elif self.params['symmetry'] == 'HEXAGONAL' or self.params['symmetry'] == "TRIGONAL":
             self.params['b0'] = self.params['a0']
             self.params['alpha0'] = 90.
             self.params['beta0'] = 90.
@@ -689,7 +689,7 @@ class jcpds(object):
             d2inv = (h ** 2 + k ** 2) / a ** 2 + l ** 2 / c ** 2
         elif self.params['symmetry'] == 'ORTHORHOMBIC':
             d2inv = h ** 2 / a ** 2 + k ** 2 / b ** 2 + l ** 2 / c ** 2
-        elif self.params['symmetry'] == 'HEXAGONAL':
+        elif self.params['symmetry'] == 'HEXAGONAL' or self.params['symmetry'] == 'TRIGONAL':
             d2inv = (h ** 2 + h * k + k ** 2) * 4. / 3. / a ** 2 + l ** 2 / c ** 2
         elif self.params['symmetry'] == 'RHOMBOHEDRAL':
             d2inv = (((1. + np.cos(alpha)) * ((h ** 2 + k ** 2 + l ** 2) -

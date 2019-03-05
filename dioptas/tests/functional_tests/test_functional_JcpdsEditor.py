@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +41,10 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 def calculate_cubic_d_spacing(h, k, l, a):
     d_squared_inv = (h ** 2 + k ** 2 + l ** 2) / a ** 2
     return np.sqrt(1. / d_squared_inv)
+
+
+def calculate_cubic_q_value(h, k, l, a):
+    return 2.0 * np.pi / calculate_cubic_d_spacing(h, k, l, a)
 
 
 class JcpdsEditorFunctionalTest(QtTest):
@@ -316,6 +322,11 @@ class JcpdsEditorFunctionalTest(QtTest):
                                calculate_cubic_d_spacing(1, 1, 3, 4.0786),
                                delta=0.0001)
 
+        # he also sees that there are awesome Q values calculated as well!
+        self.assertAlmostEqual(self.get_reflection_table_value(12, 8),
+                               calculate_cubic_q_value(1, 1, 3, 4.0786),
+                               delta=0.0001)
+
         # then she decides that everybody should screw with the table and clears it:
 
         QTest.mouseClick(self.jcpds_widget.reflections_clear_btn, QtCore.Qt.LeftButton)
@@ -374,7 +385,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
+        # self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(jcpds_path, 'au_Anderson.jcpds'),
@@ -401,9 +412,9 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         self.assertNotAlmostEqual(self.phase_controller.model.phase_model.phases[0].params['a0'], 10.4)
 
-        # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click another
-        # phase --  so he just selects it without closing and reopening the editor
-        # and magically the new parameters show up
+        # Now he selects one phase in the phase table and starts the JCPDS editor and realizes he wanted to click
+        # another phase --  so he just selects it without closing and reopening the editor and magically the new
+        # parameters show up
 
         self.phase_controller.phase_widget.phase_tw.selectRow(1)
         QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
@@ -450,7 +461,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # then he increases the pressure and sees the line moving, but he realizes that the equation of state may 
         # be wrong so he decides to change the parameters in the jcpds-editor
-        self.main_controller.integration_controller.widget.phase_pressure_sb.setValue(10)
+        self.main_controller.integration_controller.widget.phase_widget.pressure_sbs[0].setValue(10)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 120)
@@ -463,7 +474,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 6.234e-5)
         self.assertEqual(self.phase_controller.model.phase_model.phases[2].params['alpha_t0'], 6.234e-5)
 
-        self.main_controller.integration_controller.widget.phase_temperature_sb.setValue(1300)
+        self.main_controller.integration_controller.widget.phase_widget.temperature_sbs[0].setValue(1300)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 10.234e-5)
@@ -489,7 +500,6 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(jcpds_path, 'au_Anderson.jcpds'),
@@ -571,7 +581,6 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
@@ -602,7 +611,6 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.calibration_controller.set_calibrant(7)
         self.main_controller.model.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.main_controller.widget.tabWidget.setCurrentIndex(2)
-        self.main_controller.widget.integration_widget.tabWidget.setCurrentIndex(3)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(jcpds_path, 'au_Anderson.jcpds')])
@@ -621,10 +629,10 @@ class JcpdsEditorFunctionalTest(QtTest):
         QtWidgets.QApplication.processEvents()
 
         # he looks at the jcpds_editor and sees that there are not only hkl and intensity values for each reflection but
-        # also d0, d, two_theta0 and two_theta
+        # also d0, d, two_theta0, two_theta, q0 and q
         # however, the zero values and non-zero values are all the same
 
-        self.assertEqual(8, self.jcpds_widget.reflection_table.columnCount())
+        self.assertEqual(10, self.jcpds_widget.reflection_table.columnCount())
         for row_ind in range(13):
             self.assertEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 6))
             self.assertAlmostEqual(self.get_reflection_table_value(row_ind, 5),
@@ -641,10 +649,10 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.assertEqual(float(self.jcpds_widget.lattice_eos_volume_txt.text()),
                          float(self.jcpds_widget.lattice_volume_txt.text()))
 
-        # then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high pressure
-        # values
+        # then he decides to increase pressure in the main_view and sees that the non "0" values resemble the high
+        # pressure values
 
-        self.phase_controller.phase_widget.pressure_sb.setValue(30)
+        self.phase_controller.phase_widget.pressure_sbs[0].setValue(30)
         for row_ind in range(13):
             self.assertNotEqual(self.get_reflection_table_value(row_ind, 4),
                                 self.get_reflection_table_value(row_ind, 5))

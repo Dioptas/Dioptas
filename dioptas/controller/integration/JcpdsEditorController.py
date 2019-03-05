@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -283,7 +285,7 @@ class JcpdsEditorController(QtCore.QObject):
 
     def reflections_add_btn_click(self):
         self.jcpds_phase.add_reflection()
-        self.widget.add_reflection_to_table(0., 0., 0., 0., 0., 0., 0., 0.)
+        self.widget.add_reflection_to_table(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
         self.widget.reflection_table.selectRow(self.widget.reflection_table.rowCount() - 1)
         self.reflection_line_added.emit()
         self.phase_modified.emit()
@@ -368,13 +370,29 @@ class JcpdsEditorController(QtCore.QObject):
         if filename is False:
             filename = save_file_dialog(self.widget, "Save JCPDS phase.",
                                         self.model.working_directories['phase'],
-                                        ('JCPDS Phase (*.jcpds)'))
+                                        ('JCPDS Phase (*.jcpds);;Export Table (*.txt)'))
 
             if filename != '':
-                self.jcpds_phase.save_file(filename)
+                if filename.endswith('.jcpds'):
+                    self.jcpds_phase.save_file(filename)
+                elif filename.endswith('.txt'):
+                    self.export_table_data(filename)
             self.show_phase(self.jcpds_phase)
             self.lattice_param_changed.emit()
             self.phase_modified.emit()
+
+    def export_table_data(self, filename):
+        fp = open(filename, 'w', encoding='utf-8')
+        for col in range(self.widget.reflection_table.columnCount()):
+            fp.write(self.widget.reflection_table.horizontalHeaderItem(col).text() + '\t')
+        fp.write('\n')
+        for row in range(self.widget.reflection_table.rowCount()):
+            line = ''
+            for col in range(self.widget.reflection_table.columnCount()):
+                line = line + self.widget.reflection_table.item(row, col).text() + '\t'
+            line = line + '\n'
+            fp.write(line)
+        fp.close()
 
     def reload_file_btn_clicked(self):
         self.jcpds_phase.reload_file()

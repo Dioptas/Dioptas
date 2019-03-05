@@ -1,3 +1,34 @@
+0.5.0 (stable 03/05/2019)
+-------------------------
+
+New features:
+    - Added the capability of using detector distortion correction defined by spline files generated from Fit2D (please
+      see the calibration parameters)
+    - PONI and rotation parameters can now be fixed during the calibration
+    - redesigned parts of the GUI: (1) the top controls in the Integration view no adapt to the used width, and split
+      into two groups to make use of the space. (2) Overlay and Phase Control Widgets now are mainly controlled by
+      buttons and the important parameter can be changed for each item individually in the table. (3) There is now a
+      a different view mode for the integration view, where image and integrated pattern are shown on the left, and all
+      control panels are on the right. This can be activated by using the change view button on the lower left.
+    - the cBN Seat Correction and Detector Incidence Absoprtion Correction Controls have been redesigned
+    - Added the option to use a transfer correction for image intensities. Please see the Cor tab in the integration
+      view
+    - azimuthal bins and azimuthal range for the cake integration can now be adjusted manually in the X tab
+    - the cake image can now be exported (press the save button below the image)
+    - auto-extracted Pattern background can now be saved as file or later reused as overlay
+    - the background subtraction algorithm is now also rewritten in cython, which should make deployment easier
+    - a button was added to undo the last peak selection in the calibration tab
+    - the jcpds editor now also shows q-values for each line
+
+Bug fixes:
+    - cosmic removal in the mask panel is now working again
+    - changing the radial bins in the X tab in the integration view works now correctly again
+    - phases with trigonal symmetry should now work correctly
+    - saved background range should now correctly restore after restarting Dioptas
+    - browsing files works now correctly from 10 to 9 without leading zeros
+    - loading a *.poni file prior to an image will not result in an error message anymore
+
+
 0.4.1 (stable 12/22/2017)
 -------------------------
 

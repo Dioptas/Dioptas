@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +20,7 @@
 
 import os
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
 from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
@@ -26,6 +28,8 @@ from ..widgets.plot_widgets import PatternWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, FlatButton
+
+from .. import icons_path
 
 
 class CalibrationWidget(QtWidgets.QWidget):
@@ -101,6 +105,7 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.search_size_sb = peak_selection_gb.search_size_sb
         self.automatic_peak_num_inc_cb = peak_selection_gb.automatic_peak_num_inc_cb
         self.clear_peaks_btn = peak_selection_gb.clear_peaks_btn
+        self.undo_peaks_btn = peak_selection_gb.undo_peaks_btn
 
         self.f2_update_btn = self.calibration_control_widget.fit2d_parameters_widget.update_btn
         self.pf_update_btn = self.calibration_control_widget.pyfai_parameters_widget.update_btn
@@ -110,6 +115,17 @@ class CalibrationWidget(QtWidgets.QWidget):
 
         self.f2_distance_cb = self.calibration_control_widget.fit2d_parameters_widget.distance_cb
         self.pf_distance_cb = self.calibration_control_widget.pyfai_parameters_widget.distance_cb
+
+        self.pf_poni1_cb = self.calibration_control_widget.pyfai_parameters_widget.poni1_cb
+        self.pf_poni2_cb = self.calibration_control_widget.pyfai_parameters_widget.poni2_cb
+        self.pf_rot1_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation1_cb
+        self.pf_rot2_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation2_cb
+        self.pf_rot3_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation3_cb
+
+        distortion_gb = self.calibration_control_widget.calibration_parameters_widget.distortion_correction_gb
+        self.load_spline_btn = distortion_gb.spline_load_btn
+        self.spline_filename_txt = distortion_gb.spline_filename_txt
+        self.spline_reset_btn = distortion_gb.spline_reset_btn
 
         self.img_widget = self.calibration_display_widget.img_widget
         self.cake_widget = self.calibration_display_widget.cake_widget
@@ -343,10 +359,12 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self.start_values_gb = StartValuesGroupBox(self)
         self.peak_selection_gb = PeakSelectionGroupBox()
         self.refinement_options_gb = RefinementOptionsGroupBox()
+        self.distortion_correction_gb = DistortionCorrectionGroupBox()
 
         self._layout.addWidget(self.start_values_gb)
         self._layout.addWidget(self.peak_selection_gb)
         self._layout.addWidget(self.refinement_options_gb)
+        self._layout.addWidget(self.distortion_correction_gb)
         self._layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                      QtWidgets.QSizePolicy.Expanding))
 
@@ -449,8 +467,13 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
 
+        self.undo_peaks_btn = FlatButton("Undo")
         self.clear_peaks_btn = FlatButton("Clear All Peaks")
-        self._layout.addWidget(self.clear_peaks_btn, 5, 0, 1, 4)
+
+        self._peak_btn_layout = QtWidgets.QHBoxLayout()
+        self._peak_btn_layout.addWidget(self.undo_peaks_btn)
+        self._peak_btn_layout.addWidget(self.clear_peaks_btn)
+        self._layout.addLayout(self._peak_btn_layout, 5, 0, 1, 4)
 
         self.setLayout(self._layout)
 
@@ -498,6 +521,26 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self.setLayout(self._layout)
 
 
+class DistortionCorrectionGroupBox(QtWidgets.QGroupBox):
+    def __init__(self):
+        super(DistortionCorrectionGroupBox, self).__init__('Distortion Correction')
+
+        self._layout = QtWidgets.QGridLayout()
+        self.spline_load_btn = FlatButton('Load Splinefile')
+        self.spline_filename_txt = QtWidgets.QLabel('None')
+        self.spline_reset_btn = FlatButton()
+        self.spline_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.spline_reset_btn.setIconSize(QtCore.QSize(13, 13))
+        self.spline_reset_btn.setMaximumWidth(21)
+        self.spline_reset_btn.setToolTip('Reset distortion correction')
+
+        self._layout.addWidget(self.spline_load_btn, 0, 0)
+        self._layout.addWidget(self.spline_filename_txt, 1, 0, 1, 2)
+        self._layout.addWidget(self.spline_reset_btn, 0, 1)
+
+        self.setLayout(self._layout)
+
+
 class PyfaiParametersWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(PyfaiParametersWidget, self).__init__(*args, **kwargs)
@@ -525,23 +568,38 @@ class PyfaiParametersWidget(QtWidgets.QWidget):
 
         self._layout.addWidget(LabelAlignRight('PONI:'), 3, 0)
         self.poni1_txt = NumberTextField()
+        self.poni1_cb = QtWidgets.QCheckBox()
+        self.poni1_cb.setChecked(True)
         self._layout.addWidget(self.poni1_txt, 3, 1)
         self._layout.addWidget(QtWidgets.QLabel('m'), 3, 2)
+        self._layout.addWidget(self.poni1_cb, 3, 3)
 
         self.poni2_txt = NumberTextField()
+        self.poni2_cb = QtWidgets.QCheckBox()
+        self.poni2_cb.setChecked(True)
         self._layout.addWidget(self.poni2_txt, 4, 1)
         self._layout.addWidget(QtWidgets.QLabel('m'), 4, 2)
+        self._layout.addWidget(self.poni2_cb, 4, 3)
 
         self._layout.addWidget(LabelAlignRight('Rotations'), 5, 0)
         self.rotation1_txt = NumberTextField()
         self.rotation2_txt = NumberTextField()
         self.rotation3_txt = NumberTextField()
+        self.rotation1_cb = QtWidgets.QCheckBox()
+        self.rotation2_cb = QtWidgets.QCheckBox()
+        self.rotation3_cb = QtWidgets.QCheckBox()
+        self.rotation1_cb.setChecked(True)
+        self.rotation2_cb.setChecked(True)
+        self.rotation3_cb.setChecked(True)
         self._layout.addWidget(self.rotation1_txt, 5, 1)
         self._layout.addWidget(self.rotation2_txt, 6, 1)
         self._layout.addWidget(self.rotation3_txt, 7, 1)
         self._layout.addWidget(QtWidgets.QLabel('rad'), 5, 2)
         self._layout.addWidget(QtWidgets.QLabel('rad'), 6, 2)
         self._layout.addWidget(QtWidgets.QLabel('rad'), 7, 2)
+        self._layout.addWidget(self.rotation1_cb, 5, 3)
+        self._layout.addWidget(self.rotation2_cb, 6, 3)
+        self._layout.addWidget(self.rotation3_cb, 7, 3)
 
         self._layout.addWidget(LabelAlignRight('Pixel width:'), 8, 0)
         self.pixel_width_txt = NumberTextField()

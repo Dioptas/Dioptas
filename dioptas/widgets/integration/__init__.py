@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -57,10 +59,17 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
+
+        self.vertical_splitter_left = QtWidgets.QSplitter(self)
+        self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
+        self.vertical_splitter_left.addWidget(self.integration_image_widget)
+
         self.horizontal_splitter = QtWidgets.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
-        self.horizontal_splitter.addWidget(self.integration_image_widget)
+        self.horizontal_splitter.addWidget(self.vertical_splitter_left)
         self.horizontal_splitter.addWidget(self.vertical_splitter)
+        self.horizontal_splitter.addWidget(self.vertical_splitter)
+
         self._layout.addWidget(self.horizontal_splitter, 10)
         self._layout.addWidget(self.integration_status_widget, 0)
         self.setLayout(self._layout)
@@ -79,6 +88,8 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
+
+        self.img_mode = 'Image'
 
     def create_shortcuts(self):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
@@ -123,12 +134,9 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.phase_save_list_btn = phase_control_widget.save_list_btn
         self.phase_load_list_btn = phase_control_widget.load_list_btn
         self.phase_tw = phase_control_widget.phase_tw
-        self.phase_pressure_sb = phase_control_widget.pressure_sb
         self.phase_pressure_step_msb = phase_control_widget.pressure_step_msb
-        self.phase_temperature_sb = phase_control_widget.temperature_sb
         self.phase_temperature_step_msb = phase_control_widget.temperature_step_msb
         self.phase_apply_to_all_cb = phase_control_widget.apply_to_all_cb
-        self.phase_show_parameter_in_pattern_cb = phase_control_widget.show_in_pattern_cb
 
         overlay_control_widget = self.integration_control_widget.overlay_control_widget
         self.overlay_widget = overlay_control_widget
@@ -138,9 +146,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.overlay_move_up_btn = overlay_control_widget.move_up_btn
         self.overlay_move_down_btn = overlay_control_widget.move_down_btn
         self.overlay_tw = overlay_control_widget.overlay_tw
-        self.overlay_scale_sb = overlay_control_widget.scale_sb
         self.overlay_scale_step_msb = overlay_control_widget.scale_step_msb
-        self.overlay_offset_sb = overlay_control_widget.offset_sb
         self.overlay_offset_step_msb = overlay_control_widget.offset_step_msb
         self.waterfall_separation_msb = overlay_control_widget.waterfall_separation_msb
         self.waterfall_btn = overlay_control_widget.waterfall_btn
@@ -149,21 +155,17 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         corrections_control_widget = self.integration_control_widget.corrections_control_widget
         self.cbn_groupbox = corrections_control_widget.cbn_seat_gb
-        self.cbn_diamond_thickness_txt = corrections_control_widget.anvil_thickness_txt
-        self.cbn_seat_thickness_txt = corrections_control_widget.seat_thickness_txt
-        self.cbn_inner_seat_radius_txt = corrections_control_widget.seat_inner_radius_txt
-        self.cbn_outer_seat_radius_txt = corrections_control_widget.seat_outer_radius_txt
-        self.cbn_cell_tilt_txt = corrections_control_widget.cell_tilt_txt
-        self.cbn_tilt_rotation_txt = corrections_control_widget.cell_tilt_rotation_txt
-        self.cbn_center_offset_txt = corrections_control_widget.center_offset_txt
-        self.cbn_center_offset_angle_txt = corrections_control_widget.center_offset_angle_txt
-        self.cbn_anvil_al_txt = corrections_control_widget.anvil_absorption_length_txt
-        self.cbn_seat_al_txt = corrections_control_widget.seat_absorption_length_txt
-        self.cbn_plot_correction_btn = corrections_control_widget.cbn_seat_plot_btn
+        self.cbn_param_tw = corrections_control_widget.cbn_param_tw
+        self.cbn_plot_btn = corrections_control_widget.cbn_seat_plot_btn
         self.oiadac_groupbox = corrections_control_widget.oiadac_gb
-        self.oiadac_thickness_txt = corrections_control_widget.detector_thickness_txt
-        self.oiadac_abs_length_txt = corrections_control_widget.detector_absorption_length_txt
+        self.oiadac_param_tw = corrections_control_widget.oiadac_param_tw
         self.oiadac_plot_btn = corrections_control_widget.oiadac_plot_btn
+        self.transfer_gb = corrections_control_widget.transfer_gb
+        self.transfer_load_original_btn = corrections_control_widget.transfer_load_original_btn
+        self.transfer_load_response_btn = corrections_control_widget.transfer_load_response_btn
+        self.transfer_plot_btn = corrections_control_widget.transfer_plot_btn
+        self.transfer_original_filename_lbl = corrections_control_widget.transfer_original_filename_lbl
+        self.transfer_response_filename_lbl = corrections_control_widget.transfer_response_filename_lbl
 
         background_control_widget = self.integration_control_widget.background_control_widget
         self.bkg_image_load_btn = background_control_widget.load_image_btn
@@ -180,6 +182,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_pattern_x_min_txt = background_control_widget.x_range_min_txt
         self.bkg_pattern_x_max_txt = background_control_widget.x_range_max_txt
         self.bkg_pattern_inspect_btn = background_control_widget.inspect_btn
+        self.bkg_pattern_save_btn = background_control_widget.save_btn
+        self.bkg_pattern_as_overlay_btn = background_control_widget.as_overlay
 
         options_control_widget = self.integration_control_widget.integration_options_widget
         self.bin_count_txt = options_control_widget.bin_count_txt
@@ -204,7 +208,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_name_lbl = self.integration_status_widget.bkg_name_lbl
 
         pattern_widget = self.integration_pattern_widget
-        self.qa_save_img_btn = pattern_widget.save_image_btn
         self.qa_save_pattern_btn = pattern_widget.save_pattern_btn
         self.qa_set_as_overlay_btn = pattern_widget.as_overlay_btn
         self.qa_set_as_background_btn = pattern_widget.as_bkg_btn
@@ -220,6 +223,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.pattern_widget = pattern_widget.pattern_view
 
         image_widget = self.integration_image_widget
+        self.qa_save_img_btn = image_widget.save_image_btn
         self.img_frame = image_widget
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn
@@ -249,6 +253,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_widget_click_azi_lbl = self.integration_image_widget.mouse_unit_widget.clicked_unit_widget.azi_lbl
 
         self.footer_img_mouse_position_widget = self.integration_status_widget.mouse_pos_widget
+        self.change_view_btn = self.integration_status_widget.change_view_btn
 
     def switch_to_cake(self):
         self.img_widget.img_view_box.setAspectLocked(False)
@@ -264,6 +269,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
             # save current splitter state
             self.horizontal_splitter_state = self.horizontal_splitter.saveState()
+            self.vertical_splitter_left_state = self.vertical_splitter_left.saveState()
 
             # splitter_handle = self.horizontal_splitter.handle(1)
             # splitter_handle.setEnabled(False)
@@ -288,13 +294,14 @@ class IntegrationWidget(QtWidgets.QWidget):
             self.frame_img_positions_widget.hide()
 
             # remove all widgets/frames from horizontal splitter to be able to arrange them in the correct order
-            self.img_frame.setParent(self.horizontal_splitter)
+            self.img_frame.setParent(self.vertical_splitter_left)
 
-            self.horizontal_splitter.addWidget(self.img_frame)
-            self.horizontal_splitter.addWidget(self.vertical_splitter)
+            self.vertical_splitter_left.insertWidget(1, self.img_frame)
+            # self.horizontal_splitter.addWidget(self.vertical_splitter)
 
             # restore the previously used size when image was undocked
             self.horizontal_splitter.restoreState(self.horizontal_splitter_state)
+            self.vertical_splitter_left.restoreState(self.vertical_splitter_left_state)
 
     def get_progress_dialog(self, message, abort_text, num_points):
         progress_dialog = QtWidgets.QProgressDialog(message, abort_text, 0,
@@ -318,40 +325,3 @@ class IntegrationWidget(QtWidgets.QWidget):
         msg_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg_box.setDefaultButton(QtWidgets.QMessageBox.Ok)
         msg_box.exec_()
-
-    ############################################
-    ## background parameter stuff
-
-    def get_bkg_pattern_parameters(self):
-        smooth_width = float(self.bkg_pattern_smooth_width_sb.value())
-        iterations = int(self.bkg_pattern_iterations_sb.value())
-        polynomial_order = int(self.bkg_pattern_poly_order_sb.value())
-        return smooth_width, iterations, polynomial_order
-
-    def set_bkg_pattern_parameters(self, bkg_pattern_parameters):
-        self.bkg_pattern_smooth_width_sb.blockSignals(True)
-        self.bkg_pattern_iterations_sb.blockSignals(True)
-        self.bkg_pattern_poly_order_sb.blockSignals(True)
-
-        self.bkg_pattern_smooth_width_sb.setValue(bkg_pattern_parameters[0])
-        self.bkg_pattern_iterations_sb.setValue(bkg_pattern_parameters[1])
-        self.bkg_pattern_poly_order_sb.setValue(bkg_pattern_parameters[2])
-
-        self.bkg_pattern_smooth_width_sb.blockSignals(False)
-        self.bkg_pattern_iterations_sb.blockSignals(False)
-        self.bkg_pattern_poly_order_sb.blockSignals(False)
-
-    def get_bkg_pattern_roi(self):
-        x_min = float(str(self.bkg_pattern_x_min_txt.text()))
-        x_max = float(str(self.bkg_pattern_x_max_txt.text()))
-        return x_min, x_max
-
-    def set_bkg_pattern_roi(self, roi):
-        self.bkg_pattern_x_max_txt.blockSignals(True)
-        self.bkg_pattern_x_min_txt.blockSignals(True)
-
-        self.bkg_pattern_x_min_txt.setText('{:.3f}'.format(roi[0]))
-        self.bkg_pattern_x_max_txt.setText('{:.3f}'.format(roi[1]))
-
-        self.bkg_pattern_x_max_txt.blockSignals(False)
-        self.bkg_pattern_x_min_txt.blockSignals(False)

@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,8 +60,8 @@ class OverlayModel(QtCore.QObject):
         Adds a pattern as overlay to the list of overlays, does not use its original scaling parameters
         """
         overlay_pattern = Pattern(np.copy(pattern.x),
-                                   np.copy(pattern.y),
-                                   copy(pattern.name))
+                                  np.copy(pattern.y),
+                                  copy(pattern.name))
         self.overlays.append(overlay_pattern)
         self.overlay_added.emit()
 
@@ -90,7 +92,6 @@ class OverlayModel(QtCore.QObject):
             return self.overlays[ind]
         except IndexError:
             return None
-
 
     def set_overlay_scaling(self, ind, scaling):
         """
@@ -126,14 +127,12 @@ class OverlayModel(QtCore.QObject):
         """
         return self.overlays[ind].offset
 
-
     def overlay_waterfall(self, separation):
         offset = 0
         for ind in range(len(self.overlays)):
             offset -= separation
             self.overlays[-(ind + 1)].offset = offset
             self.overlay_changed.emit(len(self.overlays) - (ind + 1))
-
 
     def reset_overlay_offsets(self):
         for ind, overlay in enumerate(self.overlays):

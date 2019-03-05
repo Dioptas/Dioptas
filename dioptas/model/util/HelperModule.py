@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 
 
 import os
@@ -87,23 +88,27 @@ class FileNameIterator(QtCore.QObject):
         match_iterator = pattern.finditer(file_str)
 
         for ind, match in enumerate(reversed(list(match_iterator))):
-            number_span = match.span()
-            left_ind = number_span[0]
-            right_ind = number_span[1]
-            number = int(file_str[left_ind:right_ind]) + step
-            new_file_str = "{left_str}{number:0{len}}{right_str}".format(
-                left_str=file_str[:left_ind],
-                number=number,
-                len=right_ind - left_ind,
-                right_str=file_str[right_ind:]
-            )
-            if pos is None:
+            if (pos is None) or (ind == pos):
+                number_span = match.span()
+                left_ind = number_span[0]
+                right_ind = number_span[1]
+                number = int(file_str[left_ind:right_ind]) + step
+                new_file_str = "{left_str}{number:0{len}}{right_str}".format(
+                    left_str=file_str[:left_ind],
+                    number=number,
+                    len=right_ind - left_ind,
+                    right_str=file_str[right_ind:]
+                )
+                new_file_str_no_leading_zeros = "{left_str}{number}{right_str}".format(
+                    left_str=file_str[:left_ind],
+                    number=number,
+                    right_str=file_str[right_ind:]
+                )
                 new_complete_path = os.path.join(directory, new_file_str)
                 if os.path.exists(new_complete_path):
                     self.complete_path = new_complete_path
                     return new_complete_path
-            elif ind == pos:
-                new_complete_path = os.path.join(directory, new_file_str)
+                new_complete_path = os.path.join(directory, new_file_str_no_leading_zeros)
                 if os.path.exists(new_complete_path):
                     self.complete_path = new_complete_path
                     return new_complete_path
@@ -226,7 +231,7 @@ class FileNameIterator(QtCore.QObject):
         except AttributeError:
             pass
         if self.directory != new_directory:
-            if self.directory is not None and self.directory !='':
+            if self.directory is not None and self.directory != '':
                 self.directory_watcher.removePath(self.directory)
             self.directory_watcher.addPath(new_directory)
             self.directory = new_directory

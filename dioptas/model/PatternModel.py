@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -114,6 +116,46 @@ class PatternModel(QtCore.QObject):
             file_handle.write('\n')
             for ind in range(num_points):
                 file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor*x[ind], y[ind], sqrt(abs(y[ind]))))
+        else:
+            if header is not None:
+                file_handle.write(header)
+                file_handle.write('\n')
+            for ind in range(num_points):
+                file_handle.write('{0:.9E}  {1:.9E}\n'.format(x[ind], y[ind]))
+        file_handle.close()
+
+    def save_background_as_pattern(self, filename, header=None):
+        """
+                Saves the current data pattern.
+                :param filename: where to save
+                :param header: you can specify any specific header
+        """
+        x, y = self.pattern.auto_background_pattern.data
+
+        file_handle = open(filename, 'w')
+        num_points = len(x)
+
+        if filename.endswith('.chi'):
+            if header is None or header == '':
+                file_handle.write(filename + '\n')
+                file_handle.write(self.unit + '\n\n')
+                file_handle.write("       {0}\n".format(num_points))
+            else:
+                file_handle.write(header)
+            for ind in range(num_points):
+                file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
+        elif filename.endswith('.fxye'):
+            factor = 100
+            if 'CONQ' in header:
+                factor = 1
+            header = header.replace('NUM_POINTS', '{0:.6g}'.format(num_points))
+            header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor * x[0]))
+            header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor * (x[1] - x[0])))
+
+            file_handle.write(header)
+            file_handle.write('\n')
+            for ind in range(num_points):
+                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor * x[ind], y[ind], sqrt(abs(y[ind]))))
         else:
             if header is not None:
                 file_handle.write(header)

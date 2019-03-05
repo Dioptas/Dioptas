@@ -1,7 +1,9 @@
-# -*- coding: utf8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -304,15 +306,15 @@ class IntegrationFunctionalTest(QtTest):
 
     def test_configuration_selected_changes_img_mode(self):
         click_button(self.integration_widget.img_mode_btn)
-        self.assertEqual(self.integration_image_controller.img_mode, "Cake")
+        self.assertEqual(self.integration_widget.img_mode, "Cake")
         self.assertTrue(self.model.current_configuration.auto_integrate_cake)
 
         self.model.add_configuration()
         self.model.select_configuration(0)
-        self.assertEqual(self.integration_image_controller.img_mode, "Cake")
+        self.assertEqual(self.integration_widget.img_mode, "Cake")
         self.model.select_configuration(1)
         self.assertFalse(self.model.current_configuration.auto_integrate_cake)
-        self.assertEqual(self.integration_image_controller.img_mode, "Image")
+        self.assertEqual(self.integration_widget.img_mode, "Image")
 
     def test_configuration_selected_changes_green_line_position_in_image_mode(self):
         self.integration_image_controller.img_mouse_click(0, 500)
