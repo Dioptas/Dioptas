@@ -504,6 +504,7 @@ class ImageController(object):
             self.widget.integration_image_widget.img_view.show_all_visible_cake_phases(
                 self.widget.phase_widget.phase_show_cbs)
             self.widget.img_phases_btn.setText('Hide Phases')
+            self.model.enabled_phases_in_cake.emit()
         elif str(self.widget.img_phases_btn.text()) == 'Hide Phases':
             self.widget.integration_image_widget.img_view.hide_all_cake_phases()
             self.widget.img_phases_btn.setText('Show Phases')

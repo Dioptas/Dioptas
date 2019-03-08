@@ -44,6 +44,7 @@ class DioptasModel(QtCore.QObject):
     img_changed = QtCore.Signal()
     pattern_changed = QtCore.Signal()
     cake_changed = QtCore.Signal()
+    enabled_phases_in_cake = QtCore.Signal()
 
     def __init__(self):
         super(DioptasModel, self).__init__()
