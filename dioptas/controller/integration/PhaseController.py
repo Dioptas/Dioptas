@@ -104,6 +104,7 @@ class PhaseController(object):
         # Signals from phase model
         self.model.phase_model.phase_added.connect(self.phase_added)
         self.model.phase_model.phase_removed.connect(self.phase_removed)
+        self.model.enabled_phases_in_cake.connect(self.update_all_phase_intensities)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
@@ -217,10 +218,15 @@ class PhaseController(object):
         cake_positions = []
         cake_x_data = convert_units(self.model.cake_tth, self.model.calibration_model.wavelength, '2th_deg',
                                     self.model.integration_unit)
+        if self.model.cake_tth is None:
+            cake_tth_len = 1000
         for pos in positions:
             pos_ind = get_partial_index(cake_x_data, pos)
             if pos_ind is None:
-                pos_ind = len(self.model.cake_tth) + 1
+                try:
+                    pos_ind = len(self.model.cake_tth) + 1
+                except TypeError:
+                    pos_ind = cake_tth_len
             cake_positions.append(pos_ind)
         self.img_view_widget.add_cake_phase(
             self.model.phase_model.phases[-1].name,
@@ -231,7 +237,10 @@ class PhaseController(object):
             self.img_view_widget.phases[-1].show()
         else:
             self.img_view_widget.phases[-1].hide()
-        cake_x_range = (0, len(self.model.cake_tth))
+        try:
+            cake_x_range = (0, len(self.model.cake_tth))
+        except TypeError:
+            cake_x_range = (0, cake_tth_len)
         self.img_view_widget.update_phase_line_visibilities(cake_x_range)
         return color
 
@@ -476,10 +485,15 @@ class PhaseController(object):
         cake_positions = []
         cake_x_data = convert_units(self.model.cake_tth, self.model.calibration_model.wavelength, '2th_deg',
                                     self.model.integration_unit)
+        if self.model.cake_tth is None:
+            cake_tth_len = 1000
         for pos in positions:
             pos_ind = get_partial_index(cake_x_data, pos)
             if pos_ind is None:
-                pos_ind = len(self.model.cake_tth) + 1
+                try:
+                    pos_ind = len(self.model.cake_tth) + 1
+                except TypeError:
+                    pos_ind = cake_tth_len + 1
             cake_positions.append(pos_ind)
         self.img_view_widget.update_phase_intensities(
             ind, cake_positions, intensities, y_range[0])

@@ -297,8 +297,11 @@ def get_partial_index(array, value):
     :param value: value for which to get the index
     :return: partial index
     """
-    upper_ind = np.where(array > value)
-    lower_ind = np.where(array < value)
+    try:
+        upper_ind = np.where(array > value)
+        lower_ind = np.where(array < value)
+    except TypeError:
+        return None
 
     try:
         spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
