@@ -52,7 +52,6 @@ class PhaseController(object):
         :type integration_widget: IntegrationWidget
         :type dioptas_model: DioptasModel
         """
-
         self.integration_widget = integration_widget
         self.phase_widget = self.integration_widget.phase_widget
         self.pattern_widget = self.integration_widget.pattern_widget
@@ -217,18 +216,21 @@ class PhaseController(object):
                                               baseline)
 
         cake_positions = []
-        cake_x_data = convert_units(self.model.cake_tth, self.model.calibration_model.wavelength, '2th_deg',
-                                    self.model.integration_unit)
+
         if self.model.cake_tth is None:
-            cake_tth_len = 1000
+            tth_values = self.model.calibration_model.tth
+        else:
+            tth_values = self.model.cake_tth
+
+        cake_x_data = convert_units(tth_values, self.model.calibration_model.wavelength, '2th_deg',
+                                    self.model.integration_unit)
+
         for pos in positions:
             pos_ind = get_partial_index(cake_x_data, pos)
             if pos_ind is None:
-                try:
-                    pos_ind = len(self.model.cake_tth) + 1
-                except TypeError:
-                    pos_ind = cake_tth_len
+                pos_ind = len(tth_values) + 1
             cake_positions.append(pos_ind)
+
         self.img_view_widget.add_cake_phase(
             self.model.phase_model.phases[-1].name,
             cake_positions,
@@ -238,10 +240,8 @@ class PhaseController(object):
             self.img_view_widget.phases[-1].show()
         else:
             self.img_view_widget.phases[-1].hide()
-        try:
-            cake_x_range = (0, len(self.model.cake_tth))
-        except TypeError:
-            cake_x_range = (0, cake_tth_len)
+
+        cake_x_range = (0, len(tth_values))
         self.img_view_widget.update_phase_line_visibilities(cake_x_range)
         return color
 
@@ -485,17 +485,20 @@ class PhaseController(object):
         self.pattern_widget.update_phase_intensities(
             ind, positions, intensities, y_range[0])
         cake_positions = []
-        cake_x_data = convert_units(self.model.cake_tth, self.model.calibration_model.wavelength, '2th_deg',
-                                    self.model.integration_unit)
+
         if self.model.cake_tth is None:
-            cake_tth_len = 1000
+            tth_values = self.model.calibration_model.tth
+        else:
+            tth_values = self.model.cake_tth
+
+        cake_x_data = convert_units(tth_values, self.model.calibration_model.wavelength, '2th_deg',
+                                    self.model.integration_unit)
+
         for pos in positions:
             pos_ind = get_partial_index(cake_x_data, pos)
             if pos_ind is None:
-                try:
-                    pos_ind = len(self.model.cake_tth) + 1
-                except TypeError:
-                    pos_ind = cake_tth_len + 1
+                pos_ind = len(tth_values) + 1
+
             cake_positions.append(pos_ind)
         self.img_view_widget.update_phase_intensities(
             ind, cake_positions, intensities, y_range[0])
