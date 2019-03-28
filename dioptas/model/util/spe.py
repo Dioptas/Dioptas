@@ -185,10 +185,13 @@ class SpeFile(object):
         it in the x_calibration field"""
         spe_format = self.dom.childNodes[0]
         calibrations = spe_format.getElementsByTagName('Calibrations')[0]
-        wavelengthmapping = calibrations.getElementsByTagName('WavelengthMapping')[0]
-        wavelengths = wavelengthmapping.getElementsByTagName('Wavelength')[0]
-        wavelength_values = wavelengths.childNodes[0]
-        self.x_calibration = np.array([float(i) for i in wavelength_values.toxml().split(',')])
+        try:
+            wavelengthmapping = calibrations.getElementsByTagName('WavelengthMapping')[0]
+            wavelengths = wavelengthmapping.getElementsByTagName('Wavelength')[0]
+            wavelength_values = wavelengths.childNodes[0]
+            self.x_calibration = np.array([float(i) for i in wavelength_values.toxml().split(',')])
+        except IndexError:
+            print("No element WaveLengthMapping in SPE File. Not calibrating x units")
 
     def _read_exposure_from_dom(self):
         """Reads th exposure time of the experiment into the exposure_time field"""
@@ -315,6 +318,8 @@ class SpeFile(object):
             for n in range(self.num_frames - 1):
                 img_temp.append(self._read_frame())
             self.img = img_temp
+        if type(self.img) == list:
+            self.img = self.img[0]
 
     def _read_frame(self, pos=None):
         """Reads in a frame at a specific binary position. The following parameters have to
