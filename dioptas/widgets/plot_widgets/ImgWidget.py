@@ -490,7 +490,7 @@ class CakePhasePlot(object):
 
         for ind, position in enumerate(positions):
             self.line_items.append(pg.PlotDataItem(x=[position, position],
-                                                   y=[0, 360],
+                                                   y=[0, 45],
                                                    pen=self.pen,
                                                    antialias=False))
             self.line_visible.append(True)
@@ -517,7 +517,7 @@ class CakePhasePlot(object):
     def update_intensities(self, positions, intensities, baseline=0):
         if self.visible:
             for ind, intensity in enumerate(intensities):
-                self.line_items[ind].setData(y=[0, 360],
+                self.line_items[ind].setData(y=[0, 45],
                                              x=[positions[ind], positions[ind]])
 
     def update_visibilities(self, pattern_range):
