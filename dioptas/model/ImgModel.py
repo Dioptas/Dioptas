@@ -33,6 +33,7 @@ from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
+from .util.LambdaLoader import LambdaImage
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +132,7 @@ class ImgModel(QtCore.QObject):
         :param filename: string containing a path to an image file
         :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names. Present key names depend on applied image loader
         """
-        img_loaders = [self.load_PIL, self.load_spe, self.load_fabio]
+        img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda]
 
         for loader in img_loaders:
             data = loader(filename)
@@ -162,6 +163,9 @@ class ImgModel(QtCore.QObject):
         data = {}
         try:
             im = Image.open(filename)
+            if np.prod(im.size) <= 1:
+                im.close()
+                return False
             data["img_data"] = np.array(im)[::-1]
             try:
                 data["file_info"] = self._get_file_info(im)
@@ -196,8 +200,21 @@ class ImgModel(QtCore.QObject):
             img_data_fabio = fabio.open(filename)
             img_data = img_data_fabio.data[::-1]
             return {"img_data_fabio": img_data_fabio, "img_data": img_data}
+        except (IOError, fabio.fabioutils.NotGoodReader):
+            return None
+
+    def load_lambda(self, filename):
+        """
+        loads an image made by a lambda detector using the builtin lambda library.
+        :param filename: path to the image file to be loaded
+        :return: dictionary with img_data, series_max and series_get_image, None if unsuccessful
+        """
+        try:
+            lambda_im = LambdaImage(filename)
         except IOError:
             return None
+
+        return {"img_data": lambda_im.get_image(0)}
 
     def save(self, filename):
         """
