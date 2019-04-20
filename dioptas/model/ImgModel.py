@@ -85,10 +85,18 @@ class ImgModel(QtCore.QObject):
         self.transfer_correction = TransferFunctionCorrection()
 
         # anything that gets loaded from an image file and needs to be reset if a file without these attributes is loaded
+                               # 2D array containing the current image
         self.loadable_data = [{"name": "img_data", "default": np.zeros((2048, 2048)), "attribute": "_img_data"},
                               {"name": "file_info", "default": "", "attribute": "file_info"},
                               {"name": "motors_info", "default": {}, "attribute": "motors_info"},
-                              {"name": "img_data_fabio", "default": None, "attribute": "_img_data_fabio"}]
+                              {"name": "img_data_fabio", "default": None, "attribute": "_img_data_fabio"},
+                              # current position in the loaded series of images, starting at 1
+                              {"name": "series_pos", "default": 1, "attribute": "series_pos"},
+                              # maximum position/number of images in the loaded series, starting at 1
+                              {"name": "series_max", "default": 1, "attribute": "series_max"},
+                              # function to get an image in the current series. A function assigned to this attribute should take
+                              # a single parameter pos (position in the series starting at 0) and return a 2d array with the image data
+                              {"name": "series_get_image", "default": None, "attribute": "series_get_image"}]
 
         # set the loadable attributes to their defaults
         self.set_loadable_attributes({})
@@ -214,7 +222,9 @@ class ImgModel(QtCore.QObject):
         except IOError:
             return None
 
-        return {"img_data": lambda_im.get_image(0)}
+        return {"img_data": lambda_im.get_image(0),
+                "series_max": lambda_im.series_max,
+                "series_get_image": lambda_im.get_image}
 
     def save(self, filename):
         """
@@ -333,6 +343,24 @@ class ImgModel(QtCore.QObject):
     def background_offset(self, new_value):
         self._background_offset = new_value
         self._calculate_img_data()
+        self.img_changed.emit()
+
+    def load_series_img(self, pos):
+        """
+        Takes a position in  the series to load, sanitizes it and puts the result from the function assigned to series_get_image into _img_data.
+        series_get_image gets called with a position starting from 0, all other series pos values start at one as shown to the user.
+        :param pos: Image position in the series to load, starting at 1
+        """
+        pos = min(max(pos, 1), self.series_max)
+        if self.series_pos == pos:
+            return
+
+        self.series_pos = pos
+        self._img_data = self.series_get_image(pos - 1)
+
+        self._perform_img_transformations()
+        self._calculate_img_data()
+
         self.img_changed.emit()
 
     def load_next_file(self, step=1, pos=None):
