@@ -351,6 +351,11 @@ class ProjectSaveLoadTest(QtTest):
     def test_with_fit_bg(self):
         self.save_and_load_configuration(self.fit_bg_settings)
         self.assertEqual(self.widget.integration_widget.bkg_pattern_poly_order_sb.value(), poly_order)
+        self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_btn.isChecked())
+        click_button(self.widget.integration_mode_btn)
+        self.widget.show()
+        self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_inspect_btn.isVisible())
+        self.widget.close()
 
     def test_with_q_and_fit_bg(self):
         self.save_and_load_configuration(self.q_and_fit_bg_settings)
@@ -368,7 +373,7 @@ class ProjectSaveLoadTest(QtTest):
         click_button(self.widget.configuration_widget.add_configuration_btn)
 
     def fit_bg_settings(self):
-        self.controller.integration_controller.widget.qa_bkg_pattern_btn.click()
+        click_button(self.controller.integration_controller.widget.qa_bkg_pattern_btn)
         self.controller.integration_controller.widget.bkg_pattern_poly_order_sb.setValue(poly_order)
 
     def q_and_fit_bg_settings(self):
@@ -397,6 +402,12 @@ class ProjectSaveLoadTest(QtTest):
         self.assertGreater(self.model.pattern.auto_background_subtraction_roi[0], 9.)
         self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_btn.isChecked())
         self.assertGreater(float(self.widget.integration_widget.bkg_pattern_x_min_txt.text()), 9)
+        self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_btn.isChecked())
+
+        click_button(self.widget.integration_mode_btn)
+        self.widget.show()
+        self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_inspect_btn.isVisible())
+        self.widget.close()
 
     def activate_automatic_background_subtraction(self):
         self.model.pattern.load(os.path.join(data_path, 'pattern_001.xy'))
