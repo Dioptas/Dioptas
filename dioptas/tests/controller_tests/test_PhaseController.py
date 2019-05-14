@@ -163,7 +163,7 @@ class PhaseControllerTest(QtTest):
 
     def test_temperature_change(self):
         self.load_phases()
-        click_checkbox(self.phase_widget.apply_to_all_cb)
+        # click_checkbox(self.phase_widget.apply_to_all_cb)
 
         temperature = 1500
 

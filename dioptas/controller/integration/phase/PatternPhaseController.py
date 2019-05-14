@@ -49,6 +49,7 @@ class PatternPhaseController(object):
 
     def connect(self):
         self.model.phase_model.phase_changed.connect(self.update_phase_lines)
+        self.model.phase_model.phase_changed.connect(self.update_phase_legend)
 
         # pattern signals
         self.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_lines)
@@ -112,6 +113,17 @@ class PatternPhaseController(object):
         #     self.img_view_widget.update_phase_line_visibilities(cake_range)
         # except TypeError:
         #     pass
+
+    def update_phase_legend(self, ind):
+        name = self.model.phase_model.phases[ind].name
+        parameter_str = ''
+        pressure = self.model.phase_model.phases[ind].params['pressure']
+        temperature = self.model.phase_model.phases[ind].params['temperature']
+        if pressure != 0:
+            parameter_str += '{:0.2f} GPa '.format(pressure)
+        if temperature != 0 and temperature != 298 and temperature is not None:
+            parameter_str += '{:0.2f} K '.format(temperature)
+        self.pattern_widget.rename_phase(ind, parameter_str + name)
 
     def get_unit(self):
         """
