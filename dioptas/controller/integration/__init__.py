@@ -24,5 +24,6 @@ from .IntegrationController import IntegrationController
 from dioptas.controller.integration.phase.JcpdsEditorController import JcpdsEditorController
 from .OverlayController import OverlayController
 from dioptas.controller.integration.phase.PhaseController import PhaseController
+from dioptas.controller.integration.phase.PhaseController import PatternPhaseController
 from .PatternController import PatternController
 from .OptionsController import OptionsController
