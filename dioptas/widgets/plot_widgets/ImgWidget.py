@@ -375,11 +375,20 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.mouse_click_item.setSymbol('+')
         self.mouse_click_item.setSize(15)
         self.mouse_click_item.addPoints([1024], [1024])
-        self.img_view_box.addItem(self.mouse_click_item)
         self.mouse_left_clicked.connect(self.set_mouse_click_position)
+        self.activate_mouse_click_item()
 
     def set_mouse_click_position(self, x, y):
         self.mouse_click_item.setData([x], [y])
+
+    def activate_mouse_click_item(self):
+        if not self.mouse_click_item in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.mouse_click_item)
+            self.mouse_click_item.setVisible(True) #oddly this is needed for the line to be displayed correctly
+
+    def deactivate_mouse_click_item(self):
+        if self.mouse_click_item in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.mouse_click_item)
 
     def set_circle_line(self, tth, cur_tth):
         """
