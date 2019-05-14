@@ -23,11 +23,11 @@ from copy import deepcopy
 import numpy as np
 from qtpy import QtWidgets, QtCore, QtGui
 
-from ...widgets.UtilityWidgets import save_file_dialog
-from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
+from ....widgets.UtilityWidgets import save_file_dialog
+from ....widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from ...model.util.jcpds import jcpds
-from ...model.DioptasModel import DioptasModel
+from ....model.util.jcpds import jcpds
+from ....model.DioptasModel import DioptasModel
 
 
 class JcpdsEditorController(QtCore.QObject):

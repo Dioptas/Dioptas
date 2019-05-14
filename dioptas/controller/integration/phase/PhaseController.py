@@ -23,25 +23,26 @@ import os
 import numpy as np
 from qtpy import QtWidgets, QtCore
 
-from ...model.PhaseModel import PhaseLoadError
-from ...model.util.HelperModule import get_base_name
-from .JcpdsEditorController import JcpdsEditorController
-from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_files_dialog
-from ...model.util.HelperModule import get_partial_index, get_partial_value
-from ...model.util.calc import convert_units
+from ....model.PhaseModel import PhaseLoadError
+from ....model.util.HelperModule import get_base_name
+from ....controller.integration.phase.JcpdsEditorController import JcpdsEditorController
+from ....widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_files_dialog
+from ....model.util.HelperModule import get_partial_index
+from ....model.util.calc import convert_units
+
+from .PatternPhaseController import PatternPhaseController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from ...model.DioptasModel import DioptasModel
-from ...widgets.integration import IntegrationWidget
-from ...widgets.UtilityWidgets import CifConversionParametersDialog
-from ...widgets.plot_widgets.ImgWidget import IntegrationImgWidget
+from ....model.DioptasModel import DioptasModel
+from ....widgets.integration import IntegrationWidget
+from ....widgets.UtilityWidgets import CifConversionParametersDialog
+from ....widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 
 class PhaseController(object):
     """
-    IntegrationPhaseController handles all the interaction between the phase controls in the IntegrationView and the
-    PhaseData object. It needs the PatternData object to properly handle the rescaling of the phase intensities in
-    the pattern plot and it needs the calibration data to have access to the currently used wavelength.
+    PhaseController handles all the interaction between the phase controls in the Integration View and the
+    PhaseModel object.
     """
 
     def __init__(self, integration_widget, dioptas_model):
@@ -55,10 +56,15 @@ class PhaseController(object):
         self.integration_widget = integration_widget
         self.phase_widget = self.integration_widget.phase_widget
         self.pattern_widget = self.integration_widget.pattern_widget
-        self.img_view_widget = self.integration_widget.integration_image_widget.img_view  # type: IntegrationImgWidget
-        self.cif_conversion_dialog = CifConversionParametersDialog(self.integration_widget)
         self.model = dioptas_model
+
+        self.img_view_widget = self.integration_widget.integration_image_widget.img_view  # type: IntegrationImgWidget
+
+        self.cif_conversion_dialog = CifConversionParametersDialog(self.integration_widget)
+
+        self.pattern_phase_controller = PatternPhaseController(self.integration_widget, dioptas_model)
         self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
+
         self.phase_lw_items = []
         self.create_signals()
         self.update_temperature_step()
@@ -75,6 +81,7 @@ class PhaseController(object):
         self.phase_widget.pressure_step_msb.valueChanged.connect(self.update_pressure_step)
         self.phase_widget.temperature_step_msb.valueChanged.connect(self.update_temperature_step)
 
+        # this is for the phases in the plot item
         self.phase_widget.pressure_sb_value_changed.connect(self.pressure_sb_changed)
         self.phase_widget.temperature_sb_value_changed.connect(self.temperature_sb_changed)
 
@@ -83,11 +90,6 @@ class PhaseController(object):
         self.phase_widget.show_cb_state_changed.connect(self.show_cb_state_changed)
 
         self.phase_widget.phase_tw.horizontalHeader().sectionClicked.connect(self.phase_tw_header_section_clicked)
-
-        self.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_intensities)
-        # self.widget.pattern_view.view_box.sigRangeChanged.connect(self.update_all_phase_intensities)
-        self.pattern_widget.pattern_plot.autoBtn.clicked.connect(self.update_all_phase_intensities)
-        self.model.pattern_changed.connect(self.pattern_data_changed)
 
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
 
@@ -104,7 +106,7 @@ class PhaseController(object):
         # Signals from phase model
         self.model.phase_model.phase_added.connect(self.phase_added)
         self.model.phase_model.phase_removed.connect(self.phase_removed)
-        self.model.enabled_phases_in_cake.connect(self.update_all_phase_intensities)
+        # self.model.enabled_phases_in_cake.connect(self.update_all_phase_intensities)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
@@ -112,7 +114,6 @@ class PhaseController(object):
     def add_btn_click_callback(self, *args, **kwargs):
         """
         Loads a new phase from jcpds file.
-        :return:
         """
         if not self.model.calibration_model.is_calibrated:
             self.integration_widget.show_error_msg("Can not load phase without calibration.")
@@ -154,12 +155,12 @@ class PhaseController(object):
                                                self.cif_conversion_dialog.int_cutoff,
                                                self.cif_conversion_dialog.min_d_spacing)
 
-            if self.phase_widget.apply_to_all_cb.isChecked() and len(self.model.phase_model.phases)>1 :
+            if self.phase_widget.apply_to_all_cb.isChecked() and len(self.model.phase_model.phases) > 1:
                 pressure = float(self.phase_widget.pressure_sbs[0].value())
                 temperature = float(self.phase_widget.temperature_sbs[0].value())
                 self.model.phase_model.phases[-1].compute_d(pressure=pressure,
                                                             temperature=temperature)
-                assert(True)
+                assert (True)
             else:
                 pressure = 0
                 temperature = 298
@@ -344,14 +345,10 @@ class PhaseController(object):
             for ind in range(len(self.model.phase_model.phases)):
                 self.model.phase_model.set_pressure(ind, np.float(val))
                 self.phase_widget.set_phase_pressure(ind, val)
-            self.update_all_phase_intensities()
-
         else:
             self.model.phase_model.set_pressure(ind, np.float(val))
             self.phase_widget.set_phase_pressure(ind, val)
-            self.update_phase_intensities(ind)
 
-        self.update_phase_legend()
         self.update_jcpds_editor()
 
     def temperature_sb_changed(self, ind, val):
@@ -391,10 +388,6 @@ class PhaseController(object):
             if temperature != 0 and temperature != 298 and temperature is not None:
                 parameter_str += '{:0.2f} K '.format(temperature)
             self.pattern_widget.rename_phase(ind, parameter_str + name)
-
-    def phase_selection_changed(self, row, col, prev_row, prev_col):
-        if self.jcpds_editor_controller.active:
-            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[row])
 
     def color_btn_clicked(self, ind, button):
         previous_color = button.palette().color(1)
@@ -441,69 +434,11 @@ class PhaseController(object):
         elif self.integration_widget.pattern_d_btn.isChecked():
             return 'd'
 
-    def pattern_data_changed(self):
-        """
-        Function is called after the pattern data has changed.
-        """
-        # QtWidgets.QApplication.processEvents()
-        # self.update_phase_lines_slot()
-        self.pattern_widget.update_phase_line_visibilities()
-        try:
-            cake_range = (0, len(self.model.cake_tth))
-            self.img_view_widget.update_phase_line_visibilities(cake_range)
-        except TypeError:
-            pass
-
-    def update_all_phase_intensities(self):
-        """
-        Updates all intensities of all phases in the pattern view. Also checks if phase lines are still visible.
-        (within range of pattern and/or overlays
-        """
-        axis_range = self.pattern_widget.view_box.viewRange()
-
-        for ind in range(len(self.model.phase_model.phases)):
-            self.update_phase_intensities(ind, axis_range)
-
-    def update_phase_intensities(self, ind, axis_range=None):
-        """
-        Updates the intensities of a specific phase with index ind.
-        :param ind: Index of the phase
-        :param axis_range: list/tuple of visible x_range and y_range -- ((x_min, x_max), (y_min, y_max))
-        """
-        if axis_range is None:
-            axis_range = self.pattern_widget.view_box.viewRange()
-
-        x_range = axis_range[0]
-        y_range = axis_range[1]
-        positions, intensities, baseline = self.model.phase_model.get_rescaled_reflections(
-            ind, self.model.pattern,
-            x_range, y_range,
-            self.model.calibration_model.wavelength * 1e10,
-            self.get_unit()
-        )
-
-        self.pattern_widget.update_phase_intensities(
-            ind, positions, intensities, y_range[0])
-        cake_positions = []
-
-        if self.model.cake_tth is None:
-            tth_values = self.model.calibration_model.tth
-        else:
-            tth_values = self.model.cake_tth
-
-        cake_x_data = convert_units(tth_values, self.model.calibration_model.wavelength, '2th_deg',
-                                    self.model.integration_unit)
-
-        for pos in positions:
-            pos_ind = get_partial_index(cake_x_data, pos)
-            if pos_ind is None:
-                pos_ind = len(tth_values) + 1
-
-            cake_positions.append(pos_ind)
-        self.img_view_widget.update_phase_intensities(
-            ind, cake_positions, intensities, y_range[0])
-
     ###JCPDS editor callbacks:
+    def phase_selection_changed(self, row, col, prev_row, prev_col):
+        if self.jcpds_editor_controller.active:
+            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[row])
+
     def update_jcpds_editor(self, cur_ind=None):
         if cur_ind is None:
             cur_ind = self.phase_widget.get_selected_phase_row()
@@ -523,10 +458,7 @@ class PhaseController(object):
     def update_cur_phase_parameters(self):
         cur_ind = self.phase_widget.get_selected_phase_row()
         self.model.phase_model.get_lines_d(cur_ind)
-        self.update_phase_intensities(cur_ind)
-        self.pattern_widget.update_phase_line_visibility(cur_ind)
-        cake_range = (0, len(self.model.cake_tth))
-        self.img_view_widget.update_phase_line_visibility(cur_ind, cake_range)
+        self.model.phase_model.phase_changed.emit(cur_ind)
 
     def jcpds_editor_reflection_removed(self, reflection_ind):
         cur_phase_ind = self.phase_widget.get_selected_phase_row()

@@ -37,6 +37,7 @@ class PhaseLoadError(Exception):
 class PhaseModel(QtCore.QObject):
     phase_added = QtCore.Signal()
     phase_removed = QtCore.Signal(int)
+    phase_changed = QtCore.Signal(int)
 
     def __init__(self):
         super(PhaseModel, self).__init__()
@@ -77,18 +78,17 @@ class PhaseModel(QtCore.QObject):
     def set_pressure(self, ind, pressure):
         self.phases[ind].compute_d(pressure=pressure)
         self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
 
     def set_temperature(self, ind, temperature):
         self.phases[ind].compute_d(temperature=temperature)
         self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
 
     def set_pressure_temperature(self, ind, pressure, temperature):
         self.phases[ind].compute_d(temperature=temperature, pressure=pressure)
         self.get_lines_d(ind)
-
-    def set_pressure_all(self, P):
-        for phase in self.phases:
-            phase.compute_d(pressure=P)
+        self.phase_changed.emit(ind)
 
     def get_lines_d(self, ind):
         reflections = self.phases[ind].get_reflections()
@@ -101,14 +101,6 @@ class PhaseModel(QtCore.QObject):
             res[i, 4] = reflection.l
         self.reflections[ind] = res
         return res
-
-    def set_temperature_all(self, T):
-        for phase in self.phases:
-            phase.compute_d(temperature=T)
-
-    def update_all_phases(self):
-        for ind in range(len(self.phases)):
-            self.get_lines_d(ind)
 
     def get_phase_line_positions(self, ind, unit, wavelength):
         positions = self.reflections[ind][:, 0]
