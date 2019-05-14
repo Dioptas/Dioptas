@@ -59,7 +59,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
-
         self.vertical_splitter_left = QtWidgets.QSplitter(self)
         self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter_left.addWidget(self.integration_image_widget)

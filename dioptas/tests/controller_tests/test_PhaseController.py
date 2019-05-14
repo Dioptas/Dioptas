@@ -45,7 +45,7 @@ class PhaseControllerTest(QtTest):
         self.model.calibration_model.is_calibrated = True
         self.model.calibration_model.pattern_geometry.wavelength = 0.31E-10
         self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
-                                                                      self.model.calibration_model.int))
+                                                                            self.model.calibration_model.int))
         self.widget = IntegrationWidget()
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
@@ -219,10 +219,8 @@ class PhaseControllerTest(QtTest):
         self.load_phases()
 
         for ind, phase in enumerate(self.model.phase_model.phases):
-
             self.assertEqual(phase.params['pressure'], pressure)
             self.assertEqual(self.phase_widget.get_phase_pressure(ind), pressure)
-
 
     def test_apply_to_all_for_new_added_phase_d_positions(self):
         pressure = 50
@@ -281,7 +279,7 @@ class PhaseControllerTest(QtTest):
         pattern_view_range = pattern_view.view_box.viewRange()
         pattern_x, pattern_y = pattern_view.plot_item.getData()
         pattern_y_max_in_range = np.max(pattern_y[(pattern_x > pattern_view_range[0][0]) & \
-                                                    (pattern_x < pattern_view_range[0][1])])
+                                                  (pattern_x < pattern_view_range[0][1])])
         expected_maximum_height = pattern_y_max_in_range - pattern_view_range[1][0]
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
@@ -329,7 +327,7 @@ class PhaseControllerTest(QtTest):
         click_checkbox(self.phase_widget.phase_show_cbs[1])
         self.controller.phase_tw_header_section_clicked(0)
         for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
-                self.assertFalse(cb.isChecked())
+            self.assertFalse(cb.isChecked())
 
         self.controller.phase_tw_header_section_clicked(0)
         for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
