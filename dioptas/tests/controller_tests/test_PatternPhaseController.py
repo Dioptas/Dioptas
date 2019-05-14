@@ -1,0 +1,87 @@
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from ..utility import QtTest, click_button, click_checkbox
+import os
+import gc
+
+import numpy as np
+from qtpy import QtWidgets, QtCore
+from qtpy.QtTest import QTest
+from mock import MagicMock
+
+from ...controller.integration import PatternPhaseController
+from ...model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
+
+from ..utility import click_button
+
+unittest_path = os.path.dirname(__file__)
+data_path = os.path.join(unittest_path, '../data')
+jcpds_path = os.path.join(data_path, 'jcpds')
+
+
+class PatternPhaseControllerTest(QtTest):
+
+    ## SETUP
+    #######################
+    def setUp(self) -> None:
+        self.model = DioptasModel()
+        self.model.calibration_model.is_calibrated = True
+        self.model.calibration_model.pattern_geometry.wavelength = 0.31E-10
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
+                                                                            self.model.calibration_model.int))
+        self.widget = IntegrationWidget()
+        self.widget.pattern_widget._auto_range = True
+        self.phase_tw = self.widget.phase_tw
+        self.phase_widget = self.widget.phase_widget
+
+        self.controller = PatternPhaseController(self.widget, self.model)
+        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+
+    def tearDown(self) -> None:
+        del self.controller
+        del self.widget
+        self.model.delete_configurations()
+        del self.model
+        gc.collect()
+
+    ## Utility Functions
+    #######################
+    def load_phase(self, filename):
+        self.model.phase_model.add_jcpds(os.path.join(jcpds_path, filename))
+
+    def load_phases(self):
+        self.load_phase('ar.jcpds')
+        self.load_phase('ag.jcpds')
+        self.load_phase('au_Anderson.jcpds')
+        self.load_phase('mo.jcpds')
+        self.load_phase('pt.jcpds')
+        self.load_phase('re.jcpds')
+
+    ## Tests
+    #######################
+    def test_loading_a_phase(self):
+        self.assertEqual(len(self.widget.pattern_widget.phases), 0)
+        self.load_phase('ar.jcpds')
+
+        self.assertEqual(len(self.widget.pattern_widget.phases), 1)
+
+

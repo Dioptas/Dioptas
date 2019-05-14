@@ -160,12 +160,10 @@ class PhaseController(object):
                 temperature = float(self.phase_widget.temperature_sbs[0].value())
                 self.model.phase_model.phases[-1].compute_d(pressure=pressure,
                                                             temperature=temperature)
-                assert (True)
             else:
                 pressure = 0
                 temperature = 298
 
-            self.model.phase_model.get_lines_d(-1)
             color = self.add_phase_plot()
             self.phase_widget.add_phase(get_base_name(filename), '#%02x%02x%02x' % (int(color[0]), int(color[1]),
                                                                                     int(color[2])))
@@ -193,56 +191,6 @@ class PhaseController(object):
 
         if self.jcpds_editor_controller.active:
             self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
-
-    def add_phase_plot(self):
-        """
-        Adds a phase to the Pattern view.
-        :return:
-        """
-        axis_range = self.pattern_widget.pattern_plot.viewRange()
-        x_range = axis_range[0]
-        y_range = axis_range[1]
-        positions, intensities, baseline = \
-            self.model.phase_model.get_rescaled_reflections(
-                -1, self.model.pattern,
-                x_range, y_range,
-                self.model.calibration_model.wavelength * 1e10,
-                self.get_unit())
-
-        color = self.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
-                                              positions,
-                                              intensities,
-                                              baseline)
-
-        cake_positions = []
-
-        if self.model.cake_tth is None:
-            tth_values = self.model.calibration_model.tth
-        else:
-            tth_values = self.model.cake_tth
-
-        cake_x_data = convert_units(tth_values, self.model.calibration_model.wavelength, '2th_deg',
-                                    self.model.integration_unit)
-
-        for pos in positions:
-            pos_ind = get_partial_index(cake_x_data, pos)
-            if pos_ind is None:
-                pos_ind = len(tth_values) + 1
-            cake_positions.append(pos_ind)
-
-        self.img_view_widget.add_cake_phase(
-            self.model.phase_model.phases[-1].name,
-            cake_positions,
-            intensities,
-            baseline)
-        if self.integration_widget.img_mode == 'Cake' and self.integration_widget.img_phases_btn.isChecked():
-            self.img_view_widget.phases[-1].show()
-        else:
-            self.img_view_widget.phases[-1].hide()
-
-        cake_x_range = (0, len(tth_values))
-        self.img_view_widget.update_phase_line_visibilities(cake_x_range)
-        return color
 
     def edit_btn_click_callback(self):
         cur_ind = self.phase_widget.get_selected_phase_row()

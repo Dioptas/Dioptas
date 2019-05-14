@@ -55,6 +55,8 @@ class PhaseModel(QtCore.QObject):
             self.phases.append(jcpds_object)
             self.phase_files.append(filename)
             self.reflections.append([])
+            self.get_lines_d(-1)
+            self.phase_added.emit()
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
 
@@ -65,6 +67,7 @@ class PhaseModel(QtCore.QObject):
             self.phases.append(jcpds_object)
             self.phase_files.append(filename)
             self.reflections.append([])
+            self.phase_added.emit()
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             print(e)
             raise PhaseLoadError(filename)

@@ -48,6 +48,7 @@ class PatternPhaseController(object):
         self.connect()
 
     def connect(self):
+        self.model.phase_model.phase_added.connect(self.add_phase_plot)
         self.model.phase_model.phase_changed.connect(self.update_phase_lines)
         self.model.phase_model.phase_changed.connect(self.update_phase_legend)
 
@@ -55,6 +56,55 @@ class PatternPhaseController(object):
         self.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_lines)
         self.pattern_widget.pattern_plot.autoBtn.clicked.connect(self.update_all_phase_lines)
         self.model.pattern_changed.connect(self.pattern_data_changed)
+
+    def add_phase_plot(self):
+        """
+        Adds a phase to the Pattern Plot
+        """
+        axis_range = self.pattern_widget.pattern_plot.viewRange()
+        x_range = axis_range[0]
+        y_range = axis_range[1]
+        positions, intensities, baseline = \
+            self.model.phase_model.get_rescaled_reflections(
+                -1, self.model.pattern,
+                x_range, y_range,
+                self.model.calibration_model.wavelength * 1e10,
+                self.get_unit())
+
+        color = self.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
+                                              positions,
+                                              intensities,
+                                              baseline)
+
+        # cake_positions = []
+        #
+        # if self.model.cake_tth is None:
+        #     tth_values = self.model.calibration_model.tth
+        # else:
+        #     tth_values = self.model.cake_tth
+        #
+        # cake_x_data = convert_units(tth_values, self.model.calibration_model.wavelength, '2th_deg',
+        #                             self.model.integration_unit)
+        #
+        # for pos in positions:
+        #     pos_ind = get_partial_index(cake_x_data, pos)
+        #     if pos_ind is None:
+        #         pos_ind = len(tth_values) + 1
+        #     cake_positions.append(pos_ind)
+        #
+        # self.img_view_widget.add_cake_phase(
+        #     self.model.phase_model.phases[-1].name,
+        #     cake_positions,
+        #     intensities,
+        #     baseline)
+        # if self.integration_widget.img_mode == 'Cake' and self.integration_widget.img_phases_btn.isChecked():
+        #     self.img_view_widget.phases[-1].show()
+        # else:
+        #     self.img_view_widget.phases[-1].hide()
+        #
+        # cake_x_range = (0, len(tth_values))
+        # self.img_view_widget.update_phase_line_visibilities(cake_x_range)
+        # return color
 
     def update_phase_lines(self, ind, axis_range=None):
         """
