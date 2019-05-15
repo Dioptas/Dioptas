@@ -18,20 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ..utility import QtTest, click_button, click_checkbox
+from ..utility import QtTest
 import os
 import gc
 
-import numpy as np
-from qtpy import QtWidgets, QtCore
-from qtpy.QtTest import QTest
 from mock import MagicMock
 
 from ...controller.integration import PatternPhaseController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
-from ..utility import click_button
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -40,7 +36,7 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 class PatternPhaseControllerTest(QtTest):
 
-    ## SETUP
+    # SETUP
     #######################
     def setUp(self) -> None:
         self.model = DioptasModel()
@@ -63,7 +59,7 @@ class PatternPhaseControllerTest(QtTest):
         del self.model
         gc.collect()
 
-    ## Utility Functions
+    # Utility Functions
     #######################
     def load_phase(self, filename):
         self.model.phase_model.add_jcpds(os.path.join(jcpds_path, filename))
@@ -76,7 +72,7 @@ class PatternPhaseControllerTest(QtTest):
         self.load_phase('pt.jcpds')
         self.load_phase('re.jcpds')
 
-    ## Tests
+    # Tests
     #######################
     def test_loading_a_phase(self):
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
@@ -84,4 +80,24 @@ class PatternPhaseControllerTest(QtTest):
 
         self.assertEqual(len(self.widget.pattern_widget.phases), 1)
 
+    def test_changing_pressure(self):
+        self.load_phase('ar.jcpds')
+        first_line_position = self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0]
+        self.model.phase_model.set_pressure(0, 4)
+        self.assertNotEqual(first_line_position,
+                            self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0])
 
+    def test_changing_temperature_and_pressure(self):
+        self.load_phase('pt.jcpds')
+        self.model.phase_model.set_pressure(0, 100)
+        first_line_position = self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0]
+        self.model.phase_model.set_temperature(0, 3000)
+        self.assertNotEqual(first_line_position,
+                            self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0])
+
+    def test_changing_color(self):
+        self.load_phase('pt.jcpds')
+        green_value = self.widget.pattern_widget.phases[0].line_items[0].opts['pen'].color().green()
+        self.model.phase_model.set_color(0, (230, 22, 0))
+        self.assertNotEqual(green_value,
+                            self.widget.pattern_widget.phases[0].line_items[0].opts['pen'].color().green())

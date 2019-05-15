@@ -43,12 +43,17 @@ class PatternWidget(QtCore.QObject):
         self.create_main_plot()
         self.create_pos_line()
         self.modify_mouse_behavior()
+
         self._auto_range = True
-        self.phases = []
+
+        self.phases = []  # type: list[PhasePlot]
         self.phases_vlines = []
+
         self.overlays = []
         self.overlay_names = []
         self.overlay_show = []
+
+        self.plot_name = ''
 
     def create_graphics(self):
         self.pattern_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
@@ -67,7 +72,6 @@ class PatternWidget(QtCore.QObject):
                                         pen=pg.mkPen(color=(255, 0, 0), width=2, style=QtCore.Qt.DashLine))
         self.pattern_plot.addItem(self.bkg_item)
         self.legend.addItem(self.plot_item, '')
-        self.plot_name = ''
         self.legend.setParentItem(self.pattern_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
         self.phases_legend.setParentItem(self.pattern_plot.vb)
@@ -457,7 +461,7 @@ class PhasePlot(object):
         self.plot_item = plot_item
         self.legend_item = legend_item
         self.visible = True
-        self.line_items = []
+        self.line_items = []  # type: list[pg.PlotDataItem]
         self.line_visible = []
         self.pattern_x_range = []
         self.index = PhasePlot.num_phases
