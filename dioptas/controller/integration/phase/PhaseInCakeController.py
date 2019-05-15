@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ....model.util.calc import convert_units
 from ....model.util.HelperModule import get_partial_index
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -55,14 +54,14 @@ class PhaseInCakeController(object):
         self.phase_model.phase_changed.connect(self.update_phase_color)
         self.phase_model.phase_changed.connect(self.update_phase_visible)
 
-    def add_phase_plot(self):
+    def get_phase_position_and_intensities(self, ind):
         if self.model.cake_tth is None:
             cake_tth = self.model.calibration_model.tth
         else:
             cake_tth = self.model.cake_tth
-        reflections_tth = self.phase_model.get_phase_line_positions(-1, 'tth',
-                                                                    self.model.calibration_model.wavelength*1e10)
-        reflections_intensities = [reflex[1] for reflex in self.phase_model.reflections[-1]]
+        reflections_tth = self.phase_model.get_phase_line_positions(ind, 'tth',
+                                                                    self.model.calibration_model.wavelength * 1e10)
+        reflections_intensities = [reflex[1] for reflex in self.phase_model.reflections[ind]]
 
         cake_line_positions = []
         cake_line_intensities = []
@@ -72,17 +71,20 @@ class PhaseInCakeController(object):
             if pos_ind is not None:
                 cake_line_positions.append(pos_ind)
                 cake_line_intensities.append(reflections_intensities[ind])
+        return cake_line_positions, cake_line_intensities
 
-        self.img_view_widget.add_cake_phase(
-            cake_line_positions,
-            cake_line_intensities,
-            self.phase_model.phase_colors[-1])
+    def add_phase_plot(self):
+        cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(-1)
+
+        self.img_view_widget.add_cake_phase(cake_line_positions, cake_line_intensities,
+                                            self.phase_model.phase_colors[-1])
 
         if self.integration_widget.img_mode != 'Cake' and not self.integration_widget.img_phases_btn.isChecked():
             self.img_view_widget.phases[-1].hide()
 
-    def update_phase_lines(self):
-        pass
+    def update_phase_lines(self, ind):
+        cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(ind)
+        self.img_view_widget.update_phase_intensities(ind, cake_line_positions, cake_line_intensities)
 
     def update_phase_color(self):
         pass
