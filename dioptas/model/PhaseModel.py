@@ -23,6 +23,7 @@ import numpy as np
 from qtpy import QtCore
 from .util import jcpds
 from .util.cif import CifConverter
+from .util.HelperModule import calculate_color
 
 
 class PhaseLoadError(Exception):
@@ -39,11 +40,14 @@ class PhaseModel(QtCore.QObject):
     phase_removed = QtCore.Signal(int)
     phase_changed = QtCore.Signal(int)
 
+    num_phases = 0
+
     def __init__(self):
         super(PhaseModel, self).__init__()
         self.phases = []
         self.reflections = []
         self.phase_files = []
+        self.phase_colors = []
 
     def send_added_signal(self):
         self.phase_added.emit()
@@ -52,11 +56,8 @@ class PhaseModel(QtCore.QObject):
         try:
             jcpds_object = jcpds()
             jcpds_object.load_file(filename)
-            self.phases.append(jcpds_object)
             self.phase_files.append(filename)
-            self.reflections.append([])
-            self.get_lines_d(-1)
-            self.phase_added.emit()
+            self._add_jcpds_object(jcpds_object)
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
 
@@ -64,13 +65,20 @@ class PhaseModel(QtCore.QObject):
         try:
             cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
             jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
-            self.phases.append(jcpds_object)
             self.phase_files.append(filename)
-            self.reflections.append([])
-            self.phase_added.emit()
+            self._add_jcpds_object(jcpds_object)
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             print(e)
             raise PhaseLoadError(filename)
+
+    def _add_jcpds_object(self, jcpds_object):
+        self.phases.append(jcpds_object)
+        self.reflections.append([])
+        self.phase_colors.append(calculate_color(PhaseModel.num_phases + 9))
+        PhaseModel.num_phases += 1
+        self.get_lines_d(-1)
+        self.phase_added.emit()
+
 
     def del_phase(self, ind):
         del self.phases[ind]

@@ -71,10 +71,11 @@ class PatternPhaseController(object):
                 self.model.calibration_model.wavelength * 1e10,
                 self.get_unit())
 
-        color = self.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
-                                              positions,
-                                              intensities,
-                                              baseline)
+        self.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
+                                      positions,
+                                      intensities,
+                                      baseline,
+                                      self.model.phase_model.phase_colors[-1])
 
         # cake_positions = []
         #
