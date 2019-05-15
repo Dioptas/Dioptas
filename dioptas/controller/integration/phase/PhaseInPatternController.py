@@ -28,9 +28,7 @@ from ....widgets.integration import IntegrationWidget
 
 class PhaseInPatternController(object):
     """
-    IntegrationPhaseController handles all the interaction between the phase controls in the IntegrationView and the
-    PhaseData object. It needs the PatternData object to properly handle the rescaling of the phase intensities in
-    the pattern plot and it needs the calibration data to have access to the currently used wavelength.
+    PhaseInPatternController handles all the interaction between the phases and the pattern view.
     """
 
     def __init__(self, integration_widget, dioptas_model):
@@ -80,36 +78,6 @@ class PhaseInPatternController(object):
                                       intensities,
                                       baseline,
                                       self.model.phase_model.phase_colors[-1])
-
-        # cake_positions = []
-        #
-        # if self.model.cake_tth is None:
-        #     tth_values = self.model.calibration_model.tth
-        # else:
-        #     tth_values = self.model.cake_tth
-        #
-        # cake_x_data = convert_units(tth_values, self.model.calibration_model.wavelength, '2th_deg',
-        #                             self.model.integration_unit)
-        #
-        # for pos in positions:
-        #     pos_ind = get_partial_index(cake_x_data, pos)
-        #     if pos_ind is None:
-        #         pos_ind = len(tth_values) + 1
-        #     cake_positions.append(pos_ind)
-        #
-        # self.img_view_widget.add_cake_phase(
-        #     self.model.phase_model.phases[-1].name,
-        #     cake_positions,
-        #     intensities,
-        #     baseline)
-        # if self.integration_widget.img_mode == 'Cake' and self.integration_widget.img_phases_btn.isChecked():
-        #     self.img_view_widget.phases[-1].show()
-        # else:
-        #     self.img_view_widget.phases[-1].hide()
-        #
-        # cake_x_range = (0, len(tth_values))
-        # self.img_view_widget.update_phase_line_visibilities(cake_x_range)
-        # return color
 
     def update_phase_lines(self, ind, axis_range=None):
         """

@@ -24,7 +24,7 @@ import gc
 
 from mock import MagicMock
 
-from ...controller.integration import PhaseInPatternController
+from ...controller.integration import PhaseInCakeController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
@@ -34,7 +34,7 @@ data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
-class PatternPhaseControllerTest(QtTest):
+class PhaseInCakeControllerTest(QtTest):
 
     # SETUP
     #######################
@@ -45,12 +45,7 @@ class PatternPhaseControllerTest(QtTest):
         self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
                                                                             self.model.calibration_model.int))
         self.widget = IntegrationWidget()
-        self.widget.pattern_widget._auto_range = True
-        self.phase_tw = self.widget.phase_tw
-        self.phase_widget = self.widget.phase_widget
-
-        self.controller = PhaseInPatternController(self.widget, self.model)
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.controller = PhaseInCakeController(self.widget, self.model)
 
     def tearDown(self) -> None:
         del self.controller
@@ -75,39 +70,7 @@ class PatternPhaseControllerTest(QtTest):
     # Tests
     #######################
     def test_loading_a_phase(self):
-        self.assertEqual(len(self.widget.pattern_widget.phases), 0)
+        self.assertEqual(len(self.widget.img_widget.phases), 0)
         self.load_phase('ar.jcpds')
 
-        self.assertEqual(len(self.widget.pattern_widget.phases), 1)
-
-    def test_loading_many_phases(self):
-        self.load_phases()
-        self.assertEqual(len(self.widget.pattern_widget.phases), 6)
-
-    def test_remove_phase(self):
-        self.load_phases()
-        self.assertEqual(len(self.widget.pattern_widget.phases), 6)
-        self.model.phase_model.del_phase(3)
-        self.assertEqual(len(self.widget.pattern_widget.phases), 5)
-
-    def test_changing_pressure(self):
-        self.load_phase('ar.jcpds')
-        first_line_position = self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0]
-        self.model.phase_model.set_pressure(0, 4)
-        self.assertNotEqual(first_line_position,
-                            self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0])
-
-    def test_changing_temperature_and_pressure(self):
-        self.load_phase('pt.jcpds')
-        self.model.phase_model.set_pressure(0, 100)
-        first_line_position = self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0]
-        self.model.phase_model.set_temperature(0, 3000)
-        self.assertNotEqual(first_line_position,
-                            self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0])
-
-    def test_changing_color(self):
-        self.load_phase('pt.jcpds')
-        green_value = self.widget.pattern_widget.phases[0].line_items[0].opts['pen'].color().green()
-        self.model.phase_model.set_color(0, (230, 22, 0))
-        self.assertNotEqual(green_value,
-                            self.widget.pattern_widget.phases[0].line_items[0].opts['pen'].color().green())
+        self.assertEqual(len(self.widget.img_widget.phases), 1)

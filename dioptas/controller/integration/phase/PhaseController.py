@@ -27,10 +27,9 @@ from ....model.PhaseModel import PhaseLoadError
 from ....model.util.HelperModule import get_base_name
 from ....controller.integration.phase.JcpdsEditorController import JcpdsEditorController
 from ....widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_files_dialog
-from ....model.util.HelperModule import get_partial_index
-from ....model.util.calc import convert_units
 
 from .PhaseInPatternController import PhaseInPatternController
+from .PhaseInCakeController import PhaseInCakeController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.DioptasModel import DioptasModel
@@ -58,11 +57,10 @@ class PhaseController(object):
         self.pattern_widget = self.integration_widget.pattern_widget
         self.model = dioptas_model
 
-        self.img_view_widget = self.integration_widget.integration_image_widget.img_view  # type: IntegrationImgWidget
-
         self.cif_conversion_dialog = CifConversionParametersDialog(self.integration_widget)
 
-        self.pattern_phase_controller = PhaseInPatternController(self.integration_widget, dioptas_model)
+        self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget, dioptas_model)
+        self.phase_in_cake_controller = PhaseInCakeController(self.integration_widget, dioptas_model)
         self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
 
         self.phase_lw_items = []
