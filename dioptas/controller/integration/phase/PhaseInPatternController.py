@@ -99,26 +99,6 @@ class PhaseInPatternController(object):
 
         self.pattern_widget.update_phase_intensities(ind, positions, intensities, y_range[0])
 
-        # This is cake stuff
-        # cake_positions = []
-        # if self.model.cake_tth is None:
-        #     tth_values = self.model.calibration_model.tth
-        # else:
-        #     tth_values = self.model.cake_tth
-        #
-        # cake_x_data = convert_units(tth_values, self.model.calibration_model.wavelength, '2th_deg',
-        #                             self.model.integration_unit)
-        #
-        # for pos in positions:
-        #     pos_ind = get_partial_index(cake_x_data, pos)
-        #     if pos_ind is None:
-        #         pos_ind = len(tth_values) + 1
-        #
-        #     cake_positions.append(pos_ind)
-        #
-        # self.img_view_widget.update_phase_intensities(
-        #     ind, cake_positions, intensities, y_range[0])
-
     def update_all_phase_lines(self):
         for ind in range(len(self.model.phase_model.phases)):
             self.update_phase_lines(ind)

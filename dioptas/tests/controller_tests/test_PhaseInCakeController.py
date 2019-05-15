@@ -84,3 +84,10 @@ class PhaseInCakeControllerTest(QtTest):
         self.assertEqual(len(self.widget.img_widget.phases), 6)
         self.model.phase_model.del_phase(3)
         self.assertEqual(len(self.widget.img_widget.phases), 5)
+
+    def test_changing_pressure(self):
+        self.load_phase('ar.jcpds')
+        first_line_position = self.widget.img_widget.phases[0].line_items[0].getPos()
+        self.model.phase_model.set_pressure(0, 4)
+        self.assertNotEqual(first_line_position,
+                            self.widget.img_widget.phases[0].line_items[0].getPos())

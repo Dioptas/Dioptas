@@ -112,9 +112,9 @@ class ImgWidget(QtCore.QObject):
     def set_range(self, x_range, y_range):
         img_bounds = self.img_view_box.childrenBoundingRect()
         if x_range[0] <= img_bounds.left() and \
-                        x_range[1] >= img_bounds.right() and \
-                        y_range[0] <= img_bounds.bottom() and \
-                        y_range[1] >= img_bounds.top():
+                x_range[1] >= img_bounds.right() and \
+                y_range[0] <= img_bounds.bottom() and \
+                y_range[1] >= img_bounds.top():
             self.img_view_box.autoRange()
             self._max_range = True
             return
@@ -128,7 +128,7 @@ class ImgWidget(QtCore.QObject):
 
         view_x_range, view_y_range = self.img_view_box.viewRange()
         if view_x_range[1] > self.img_data.shape[0] and \
-                        view_y_range[1] > self.img_data.shape[1]:
+                view_y_range[1] > self.img_data.shape[1]:
             self.auto_range()
 
     def auto_level(self):
@@ -186,11 +186,11 @@ class ImgWidget(QtCore.QObject):
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and
-                         ev.modifiers() & QtCore.Qt.ControlModifier):
+                 ev.modifiers() & QtCore.Qt.ControlModifier):
             view_range = np.array(self.img_view_box.viewRange()) * 2
             if self.img_data is not None:
                 if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
-                                (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
+                        (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
                     self.auto_range()
                 else:
                     self.img_view_box.scaleBy(2)
@@ -223,7 +223,7 @@ class ImgWidget(QtCore.QObject):
 
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and \
-                             ev.modifiers() & QtCore.Qt.ControlModifier):
+                 ev.modifiers() & QtCore.Qt.ControlModifier):
             # determine the amount of translation
             tr = dif * mask
             tr = self.img_view_box.mapToView(tr) - self.img_view_box.mapToView(pg.Point(0, 0))
@@ -255,7 +255,7 @@ class ImgWidget(QtCore.QObject):
             view_range = np.array(self.img_view_box.viewRange())
             if self.img_data is not None:
                 if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
-                                (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
+                        (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
                     self.auto_range()
                 else:
                     pg.ViewBox.wheelEvent(self.img_view_box, ev)
@@ -281,7 +281,7 @@ class CalibrationCakeWidget(ImgWidget):
     def activate_vertical_line(self):
         if not self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.addItem(self.vertical_line)
-            self.vertical_line.setVisible(True) #oddly this is needed for the line to be displayed correctly
+            self.vertical_line.setVisible(True)  # oddly this is needed for the line to be displayed correctly
 
     def deactivate_vertical_line(self):
         if self.vertical_line in self.img_view_box.addedItems:
@@ -386,7 +386,7 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
     def activate_mouse_click_item(self):
         if not self.mouse_click_item in self.img_view_box.addedItems:
             self.img_view_box.addItem(self.mouse_click_item)
-            self.mouse_click_item.setVisible(True) #oddly this is needed for the line to be displayed correctly
+            self.mouse_click_item.setVisible(True)  # oddly this is needed for the line to be displayed correctly
 
     def deactivate_mouse_click_item(self):
         if self.mouse_click_item in self.img_view_box.addedItems:
@@ -486,7 +486,7 @@ class CakePhasePlot(object):
     def __init__(self, plot_item, positions, intensities, color):
         self.plot_item = plot_item
         self.visible = True
-        self.line_items = []
+        self.line_items = []  # type: list[pg.InfiniteLine]
         self.line_visible = []
         self.pattern_x_range = []
 
@@ -498,7 +498,7 @@ class CakePhasePlot(object):
     def create_items(self, positions, intensities):
         self.line_items = []
         intensities = np.array(intensities)
-        line_scaling = intensities/np.max(intensities)
+        line_scaling = intensities / np.max(intensities)
         line_alphas = (line_scaling * 0.6 + 0.3) * 255
         line_widths = self.line_width + 0.4 * line_scaling
 
@@ -506,17 +506,12 @@ class CakePhasePlot(object):
             color = list(self.color) + [line_alphas[ind]]
             pen = pg.mkPen(color=color, width=line_widths[ind], style=QtCore.Qt.SolidLine)
 
-            self.line_items.append(pg.PlotDataItem(x=[position, position],
-                                                   y=[0, 360],
-                                                   pen=pen,
-                                                   antialias=False))
+            self.line_items.append(pg.InfiniteLine(pos=position, angle=90, pen=pen))
             self.line_visible.append(True)
             self.plot_item.addItem(self.line_items[ind])
 
     def add_line(self):
-        self.line_items.append(pg.PlotDataItem(x=[0, 0],
-                                               y=[0, 0],
-                                               pen=self.pen, antialias=False))
+        self.line_items.append(pg.InfiniteLine(angle=90, pen=self.pen))
         self.line_visible.append(True)
         self.plot_item.blockSignals(True)
         self.plot_item.addItem(self.line_items[-1])
@@ -528,14 +523,12 @@ class CakePhasePlot(object):
         del self.line_visible[ind]
 
     def clear_lines(self):
-        for dummy_ind in range(len(self.line_items)):
+        for _ in range(len(self.line_items)):
             self.remove_line()
 
     def update_intensities(self, positions, intensities):
-        if self.visible:
-            for ind, intensity in enumerate(intensities):
-                self.line_items[ind].setData(y=[0, 360],
-                                             x=[positions[ind], positions[ind]])
+        for ind, intensity in enumerate(intensities):
+            self.line_items[ind].setValue(positions[ind])
 
     def update_visibilities(self, pattern_range):
         if self.visible:
