@@ -74,3 +74,13 @@ class PhaseInCakeControllerTest(QtTest):
         self.load_phase('ar.jcpds')
 
         self.assertEqual(len(self.widget.img_widget.phases), 1)
+
+    def test_loading_many_phases(self):
+        self.load_phases()
+        self.assertEqual(len(self.widget.img_widget.phases), 6)
+
+    def test_remove_phase(self):
+        self.load_phases()
+        self.assertEqual(len(self.widget.img_widget.phases), 6)
+        self.model.phase_model.del_phase(3)
+        self.assertEqual(len(self.widget.img_widget.phases), 5)

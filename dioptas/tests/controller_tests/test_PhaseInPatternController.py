@@ -77,10 +77,6 @@ class PhaseInPatternControllerTest(QtTest):
 
         self.assertEqual(len(self.widget.pattern_widget.phases), 1)
 
-    def test_loading_many_phases(self):
-        self.load_phases()
-        self.assertEqual(len(self.widget.pattern_widget.phases), 6)
-
     def test_remove_phase(self):
         self.load_phases()
         self.assertEqual(len(self.widget.pattern_widget.phases), 6)

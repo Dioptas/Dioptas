@@ -43,14 +43,13 @@ class PhaseInCakeController(object):
         self.model = dioptas_model
         self.phase_model = self.model.phase_model
         self.integration_widget = integration_widget
-        self.pattern_widget = integration_widget.pattern_widget
         self.img_view_widget = integration_widget.integration_image_widget.img_view  # type: IntegrationImgWidget
 
         self.connect()
 
     def connect(self):
         self.phase_model.phase_added.connect(self.add_phase_plot)
-        # self.model.phase_model.phase_removed.connect(self.pattern_widget.del_phase)
+        self.model.phase_model.phase_removed.connect(self.img_view_widget.del_cake_phase)
 
         self.phase_model.phase_changed.connect(self.update_phase_lines)
         self.phase_model.phase_changed.connect(self.update_phase_color)
@@ -79,10 +78,8 @@ class PhaseInCakeController(object):
             cake_line_intensities,
             self.phase_model.phase_colors[-1])
 
-        # if self.integration_widget.img_mode == 'Cake' and self.integration_widget.img_phases_btn.isChecked():
-        # self.img_view_widget.phases[-1].show()
-        # else:
-        #     self.img_view_widget.phases[-1].hide()
+        if self.integration_widget.img_mode != 'Cake' and not self.integration_widget.img_phases_btn.isChecked():
+            self.img_view_widget.phases[-1].hide()
 
     def update_phase_lines(self):
         pass
