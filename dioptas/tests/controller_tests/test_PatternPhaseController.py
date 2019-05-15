@@ -80,6 +80,16 @@ class PatternPhaseControllerTest(QtTest):
 
         self.assertEqual(len(self.widget.pattern_widget.phases), 1)
 
+    def test_loading_many_phases(self):
+        self.load_phases()
+        self.assertEqual(len(self.widget.pattern_widget.phases), 6)
+
+    def test_remove_phase(self):
+        self.load_phases()
+        self.assertEqual(len(self.widget.pattern_widget.phases), 6)
+        self.model.phase_model.del_phase(3)
+        self.assertEqual(len(self.widget.pattern_widget.phases), 5)
+
     def test_changing_pressure(self):
         self.load_phase('ar.jcpds')
         first_line_position = self.widget.pattern_widget.phases[0].line_items[0].getData()[0][0]
