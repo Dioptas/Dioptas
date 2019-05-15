@@ -49,8 +49,12 @@ class PatternPhaseController(object):
 
     def connect(self):
         self.model.phase_model.phase_added.connect(self.add_phase_plot)
+        self.model.phase_model.phase_removed.connect(self.pattern_widget.del_phase)
+
         self.model.phase_model.phase_changed.connect(self.update_phase_lines)
         self.model.phase_model.phase_changed.connect(self.update_phase_legend)
+        self.model.phase_model.phase_changed.connect(self.update_phase_color)
+        self.model.phase_model.phase_changed.connect(self.update_phase_visible)
 
         # pattern signals
         self.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_lines)
@@ -175,6 +179,15 @@ class PatternPhaseController(object):
         if temperature != 0 and temperature != 298 and temperature is not None:
             parameter_str += '{:0.2f} K '.format(temperature)
         self.pattern_widget.rename_phase(ind, parameter_str + name)
+
+    def update_phase_color(self, ind):
+        self.pattern_widget.set_phase_color(ind, self.model.phase_model.phase_colors[ind])
+
+    def update_phase_visible(self, ind):
+        if self.model.phase_model.phase_visible[ind]:
+            self.pattern_widget.show_phase(ind)
+        else:
+            self.pattern_widget.hide_phase(ind)
 
     def get_unit(self):
         """
