@@ -479,7 +479,7 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
 
     def update_phase_intensities(self, ind, positions, intensities):
         if len(self.phases):
-            self.phases[ind].update_intensities(positions, intensities)
+            self.phases[ind].update_lines(positions, intensities)
 
 
 class CakePhasePlot(object):
@@ -493,25 +493,20 @@ class CakePhasePlot(object):
         self.color = color
         self.line_width = 0.9
 
-        self.create_items(positions, intensities)
+        self.positions = positions
+        self.intensities = intensities
 
-    def create_items(self, positions, intensities):
-        self.line_items = []
-        intensities = np.array(intensities)
-        line_scaling = intensities / np.max(intensities)
-        line_alphas = (line_scaling * 0.6 + 0.3) * 255
-        line_widths = self.line_width + 0.4 * line_scaling
+        self._create_items()
+        self.set_color()
 
-        for ind, position in enumerate(positions):
-            color = list(self.color) + [line_alphas[ind]]
-            pen = pg.mkPen(color=color, width=line_widths[ind], style=QtCore.Qt.SolidLine)
-
-            self.line_items.append(pg.InfiniteLine(pos=position, angle=90, pen=pen))
+    def _create_items(self):
+        for ind, position in enumerate(self.positions):
+            self.line_items.append(pg.InfiniteLine(pos=position, angle=90))
             self.line_visible.append(True)
             self.plot_item.addItem(self.line_items[ind])
 
     def add_line(self):
-        self.line_items.append(pg.InfiniteLine(angle=90, pen=self.pen))
+        self.line_items.append(pg.InfiniteLine(angle=90))
         self.line_visible.append(True)
         self.plot_item.blockSignals(True)
         self.plot_item.addItem(self.line_items[-1])
@@ -526,28 +521,39 @@ class CakePhasePlot(object):
         for _ in range(len(self.line_items)):
             self.remove_line()
 
-    def update_intensities(self, positions, intensities):
+    def update_lines(self, positions, intensities):
+        self.positions = positions
+        self.intensities = intensities
+
+        self.line_visible[:len(self.intensities)] = [True] * len(self.intensities)
+        self.line_visible[len(self.intensities):] = [False] * (len(self.line_items) - len(self.intensities))
+        self.update_visibilities()
+
         for ind, intensity in enumerate(intensities):
             self.line_items[ind].setValue(positions[ind])
 
-    def update_visibilities(self, pattern_range):
+        self.set_color()
+
+    def update_visibilities(self):
         if self.visible:
             for ind, line_item in enumerate(self.line_items):
-                data = line_item.getData()
-                position = data[0][0]
-                if position >= pattern_range[0] and position <= pattern_range[1]:
-                    if not self.line_visible[ind]:
-                        self.plot_item.addItem(line_item)
-                        self.line_visible[ind] = True
-                else:
-                    if self.line_visible[ind]:
-                        self.plot_item.removeItem(line_item)
-                        self.line_visible[ind] = False
+                if not self.line_visible[ind] and line_item in self.plot_item.scene().items():
+                    self.plot_item.removeItem(line_item)
+                if self.line_visible[ind] and line_item not in self.plot_item.scene().items():
+                    self.plot_item.addItem(line_item)
 
-    def set_color(self, color):
-        self.pen = pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine)
-        for line_item in self.line_items:
-            line_item.setPen(self.pen)
+    def set_color(self, color=None):
+        if color is not None:
+            self.color = color
+        intensities = np.array(self.intensities)
+        line_scaling = intensities / np.max(intensities)
+        line_alphas = (line_scaling * 0.6 + 0.3) * 255
+        line_widths = self.line_width + 0.4 * line_scaling
+
+        for ind, line_item in enumerate(intensities):
+            color = list(self.color) + [line_alphas[ind]]
+            pen = pg.mkPen(color=color, width=line_widths[ind], style=QtCore.Qt.SolidLine)
+            self.line_items[ind].setPen(pen)
 
     def hide(self):
         if self.visible:

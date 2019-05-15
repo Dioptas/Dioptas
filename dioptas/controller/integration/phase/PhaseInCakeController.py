@@ -54,7 +54,17 @@ class PhaseInCakeController(object):
         self.phase_model.phase_changed.connect(self.update_phase_color)
         self.phase_model.phase_changed.connect(self.update_phase_visible)
 
-    def get_phase_position_and_intensities(self, ind):
+    def get_phase_position_and_intensities(self, ind, clip=True):
+        """
+        Obtains the positions and intensities for lines of a phase with an index ind within the cake view.
+
+        No clipping is used for the first call to add the phase plot. Subsequent calls are used with clipping.
+        The visibility of each line is then estimated in the Imagewidget based on the length of the resulting lists.
+
+        :param ind: the index of the phase
+        :param clip: whether or not the lists should be clipped based on the actual x value of the
+        :return: line_positions, line_intensities
+        """
         if self.model.cake_tth is None:
             cake_tth = self.model.calibration_model.tth
         else:
@@ -69,12 +79,16 @@ class PhaseInCakeController(object):
         for ind, tth in enumerate(reflections_tth):
             pos_ind = get_partial_index(cake_tth, tth)
             if pos_ind is not None:
-                cake_line_positions.append(pos_ind)
+                cake_line_positions.append(pos_ind + 0.5)
                 cake_line_intensities.append(reflections_intensities[ind])
+            elif clip is False:
+                cake_line_positions.append(0)
+                cake_line_intensities.append(reflections_intensities[ind])
+
         return cake_line_positions, cake_line_intensities
 
     def add_phase_plot(self):
-        cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(-1)
+        cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(-1, False)
 
         self.img_view_widget.add_cake_phase(cake_line_positions, cake_line_intensities,
                                             self.phase_model.phase_colors[-1])
@@ -88,7 +102,6 @@ class PhaseInCakeController(object):
 
     def update_phase_color(self, ind):
         self.img_view_widget.set_cake_phase_color(ind, self.model.phase_model.phase_colors[ind])
-
 
     def update_phase_visible(self):
         pass

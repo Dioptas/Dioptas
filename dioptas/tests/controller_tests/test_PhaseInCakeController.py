@@ -35,7 +35,6 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class PhaseInCakeControllerTest(QtTest):
-
     # SETUP
     #######################
     def setUp(self) -> None:
