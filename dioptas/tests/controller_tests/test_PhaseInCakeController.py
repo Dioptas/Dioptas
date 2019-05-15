@@ -91,3 +91,11 @@ class PhaseInCakeControllerTest(QtTest):
         self.model.phase_model.set_pressure(0, 4)
         self.assertNotEqual(first_line_position,
                             self.widget.img_widget.phases[0].line_items[0].getPos())
+
+    def test_changing_temperature_and_pressure(self):
+        self.load_phase('pt.jcpds')
+        self.model.phase_model.set_pressure(0, 100)
+        first_line_position = self.widget.img_widget.phases[0].line_items[0].getPos()
+        self.model.phase_model.set_temperature(0, 3000)
+        self.assertNotEqual(first_line_position,
+                            self.widget.img_widget.phases[0].line_items[0].getPos())
