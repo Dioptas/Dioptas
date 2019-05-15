@@ -30,7 +30,7 @@ from ....widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_
 from ....model.util.HelperModule import get_partial_index
 from ....model.util.calc import convert_units
 
-from .PatternPhaseController import PatternPhaseController
+from .PhaseInPatternController import PhaseInPatternController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.DioptasModel import DioptasModel
@@ -62,7 +62,7 @@ class PhaseController(object):
 
         self.cif_conversion_dialog = CifConversionParametersDialog(self.integration_widget)
 
-        self.pattern_phase_controller = PatternPhaseController(self.integration_widget, dioptas_model)
+        self.pattern_phase_controller = PhaseInPatternController(self.integration_widget, dioptas_model)
         self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
 
         self.phase_lw_items = []

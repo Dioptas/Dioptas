@@ -26,7 +26,7 @@ from ....model.DioptasModel import DioptasModel
 from ....widgets.integration import IntegrationWidget
 
 
-class PatternPhaseController(object):
+class PhaseInPatternController(object):
     """
     IntegrationPhaseController handles all the interaction between the phase controls in the IntegrationView and the
     PhaseData object. It needs the PatternData object to properly handle the rescaling of the phase intensities in

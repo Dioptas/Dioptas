@@ -24,7 +24,7 @@ import gc
 
 from mock import MagicMock
 
-from ...controller.integration import PatternPhaseController
+from ...controller.integration import PhaseInPatternController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
@@ -49,7 +49,7 @@ class PatternPhaseControllerTest(QtTest):
         self.phase_tw = self.widget.phase_tw
         self.phase_widget = self.widget.phase_widget
 
-        self.controller = PatternPhaseController(self.widget, self.model)
+        self.controller = PhaseInPatternController(self.widget, self.model)
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
 
     def tearDown(self) -> None:
