@@ -99,3 +99,10 @@ class PhaseInCakeControllerTest(QtTest):
         self.model.phase_model.set_temperature(0, 3000)
         self.assertNotEqual(first_line_position,
                             self.widget.img_widget.phases[0].line_items[0].getPos())
+
+    def test_changing_color(self):
+        self.load_phase('pt.jcpds')
+        green_value = self.widget.img_widget.phases[0].line_items[0].pen.color().green()
+        self.model.phase_model.set_color(0, (230, 22, 0))
+        self.assertNotEqual(green_value,
+                            self.widget.img_widget.phases[0].line_items[0].pen.color().green())

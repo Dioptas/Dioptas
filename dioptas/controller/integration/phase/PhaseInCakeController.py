@@ -86,8 +86,9 @@ class PhaseInCakeController(object):
         cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(ind)
         self.img_view_widget.update_phase_intensities(ind, cake_line_positions, cake_line_intensities)
 
-    def update_phase_color(self):
-        pass
+    def update_phase_color(self, ind):
+        self.img_view_widget.set_cake_phase_color(ind, self.model.phase_model.phase_colors[ind])
+
 
     def update_phase_visible(self):
         pass
