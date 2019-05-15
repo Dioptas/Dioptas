@@ -87,7 +87,7 @@ class PhaseController(object):
 
         self.phase_widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
         self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
-        self.phase_widget.show_cb_state_changed.connect(self.show_cb_state_changed)
+        self.phase_widget.show_cb_state_changed.connect(self.model.phase_model.set_phase_visible)
 
         self.phase_widget.phase_tw.horizontalHeader().sectionClicked.connect(self.phase_tw_header_section_clicked)
 
@@ -155,40 +155,16 @@ class PhaseController(object):
                                                self.cif_conversion_dialog.int_cutoff,
                                                self.cif_conversion_dialog.min_d_spacing)
 
-            if self.phase_widget.apply_to_all_cb.isChecked() and len(self.model.phase_model.phases) > 1:
-                pressure = float(self.phase_widget.pressure_sbs[0].value())
-                temperature = float(self.phase_widget.temperature_sbs[0].value())
-                self.model.phase_model.phases[-1].compute_d(pressure=pressure,
-                                                            temperature=temperature)
-            else:
-                pressure = 0
-                temperature = 298
 
-            self.phase_widget.add_phase(get_base_name(filename), '#%02x%02x%02x' % (int(color[0]), int(color[1]),
-                                                                                    int(color[2])))
-
-            self.phase_widget.set_phase_pressure(len(self.model.phase_model.phases) - 1, pressure)
-            self.update_temperature(len(self.model.phase_model.phases) - 1, temperature)
-            if self.jcpds_editor_controller.active:
-                self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
         except PhaseLoadError as e:
             self.integration_widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
                     format(e.filename))
 
     def phase_added(self):
-        self.model.phase_model.get_lines_d(-1)
-
-        self.phase_widget.add_phase(self.model.phase_model.phases[-1].name, '#%02x%02x%02x' %
-                                    (int(color[0]), int(color[1]), int(color[2])))
-
-        self.phase_widget.set_phase_pressure(len(self.model.phase_model.phases) - 1,
-                                             self.model.phase_model.phases[-1].params['pressure'])
-        self.update_temperature(len(self.model.phase_model.phases) - 1,
-                                self.model.phase_model.phases[-1].params['temperature'])
-
-        if self.jcpds_editor_controller.active:
-            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[-1])
+        color = self.model.phase_model.phase_colors[-1]
+        self.phase_widget.add_phase(get_base_name(self.model.phase_model.phase_files[-1]),
+                                    '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
 
     def edit_btn_click_callback(self):
         cur_ind = self.phase_widget.get_selected_phase_row()
@@ -206,8 +182,8 @@ class PhaseController(object):
 
     def phase_removed(self, ind):
         self.phase_widget.del_phase(ind)
-        self.pattern_widget.del_phase(ind)
-        self.img_view_widget.del_cake_phase(ind)
+        # self.img_view_widget.del_cake_phase(ind)
+
         if self.jcpds_editor_controller.active:
             ind = self.phase_widget.get_selected_phase_row()
             if ind >= 0:
@@ -320,18 +296,8 @@ class PhaseController(object):
             color = str(new_color.name())
         else:
             color = str(previous_color.name())
-        self.pattern_widget.set_phase_color(ind, color)
-        self.img_view_widget.set_cake_phase_color(ind, color)
+        self.model.phase_model.set_color(ind, color)
         button.setStyleSheet('background-color:' + color)
-
-    def show_cb_state_changed(self, ind, state):
-        if state:
-            self.pattern_widget.show_phase(ind)
-            if self.integration_widget.img_mode == 'Cake' and self.integration_widget.img_phases_btn.isChecked():
-                self.img_view_widget.show_cake_phase(ind)
-        else:
-            self.pattern_widget.hide_phase(ind)
-            self.img_view_widget.hide_cake_phase(ind)
 
     def phase_tw_header_section_clicked(self, ind):
         if ind != 0:

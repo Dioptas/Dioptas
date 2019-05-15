@@ -44,10 +44,13 @@ class PhaseModel(QtCore.QObject):
 
     def __init__(self):
         super(PhaseModel, self).__init__()
-        self.phases = []
+        self.phases = []  # type: list[jcpds]
         self.reflections = []
         self.phase_files = []
         self.phase_colors = []
+        self.phase_visible = []
+
+        self.same_conditions = True
 
     def send_added_signal(self):
         self.phase_added.emit()
@@ -75,15 +78,21 @@ class PhaseModel(QtCore.QObject):
         self.phases.append(jcpds_object)
         self.reflections.append([])
         self.phase_colors.append(calculate_color(PhaseModel.num_phases + 9))
+        self.phase_visible.append(True)
         PhaseModel.num_phases += 1
+        if self.same_conditions and len(self.phases) > 2:
+            self.phases[-1].compute_d(self.phases[-2].params['pressure'], self.phases[-2].params['temperature'])
+        else:
+            self.phases[-1].compute_d()
         self.get_lines_d(-1)
         self.phase_added.emit()
-
 
     def del_phase(self, ind):
         del self.phases[ind]
         del self.reflections[ind]
         del self.phase_files[ind]
+        del self.phase_colors[ind]
+        del self.phase_visible[ind]
         self.phase_removed.emit(ind)
 
     def set_pressure(self, ind, pressure):
@@ -99,6 +108,14 @@ class PhaseModel(QtCore.QObject):
     def set_pressure_temperature(self, ind, pressure, temperature):
         self.phases[ind].compute_d(temperature=temperature, pressure=pressure)
         self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
+
+    def set_color(self, ind, color):
+        self.phase_colors[ind] = color
+        self.phase_changed.emit(ind)
+
+    def set_phase_visible(self, ind, bool):
+        self.phase_visible[ind] = bool
         self.phase_changed.emit(ind)
 
     def get_lines_d(self, ind):
