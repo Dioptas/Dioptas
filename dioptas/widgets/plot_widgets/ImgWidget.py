@@ -297,7 +297,7 @@ class MaskImgWidget(ImgWidget):
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
         self.img_view_box.setAspectLocked(True)
-        self.set_color()
+        self.set_mask_color()
         self.mask_preview_fill_color = QtGui.QColor(255, 0, 0, 150)
 
     def activate_mask(self):
@@ -319,7 +319,7 @@ class MaskImgWidget(ImgWidget):
         color_map = pg.ColorMap(steps, colors)
         return color_map.getLookupTable(0.0, 1.0, 256, True)
 
-    def set_color(self, color=None):
+    def set_mask_color(self, color=None):
         if not color: color = [255, 0, 0, 255]
         self.mask_img_item.setLookupTable(self.create_color_map(color))
 
