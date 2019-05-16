@@ -453,7 +453,7 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         del self.phases[ind]
 
     def set_cake_phase_color(self, ind, color):
-        self.phases[ind].set_color(color)
+        self.phases[ind].update_pen(color)
 
     def hide_cake_phase(self, ind):
         self.phases[ind].hide()
@@ -497,7 +497,7 @@ class CakePhasePlot(object):
         self.intensities = intensities
 
         self._create_items()
-        self.set_color()
+        self.update_pen()
 
     def _create_items(self):
         for ind, position in enumerate(self.positions):
@@ -522,19 +522,29 @@ class CakePhasePlot(object):
             self.remove_line()
 
     def update_lines(self, positions, intensities):
+        """
+        Updates the line positions and intensities (alpha and thickness, using set_color).
+        It also determines which lines are actually visibile in the cake (using update_visibilties).
+        :param positions: line positions
+        :param intensities: line intensiteis
+        """
         self.positions = positions
         self.intensities = intensities
-
-        self.line_visible[:len(self.intensities)] = [True] * len(self.intensities)
-        self.line_visible[len(self.intensities):] = [False] * (len(self.line_items) - len(self.intensities))
         self.update_visibilities()
 
         for ind, intensity in enumerate(intensities):
             self.line_items[ind].setValue(positions[ind])
 
-        self.set_color()
+        self.update_pen()
 
     def update_visibilities(self):
+        """
+        Checks the number of lines visible (length of intensities and positions) in comparison to the number of lines
+        from the jcpds (line_items). Then determines only shows the lines actually visible.
+        """
+        self.line_visible[:len(self.intensities)] = [True] * len(self.intensities)
+        self.line_visible[len(self.intensities):] = [False] * (len(self.line_items) - len(self.intensities))
+
         if self.visible:
             for ind, line_item in enumerate(self.line_items):
                 if not self.line_visible[ind] and line_item in self.plot_item.scene().items():
@@ -542,7 +552,14 @@ class CakePhasePlot(object):
                 if self.line_visible[ind] and line_item not in self.plot_item.scene().items():
                     self.plot_item.addItem(line_item)
 
-    def set_color(self, color=None):
+    def update_pen(self, color=None):
+        """
+        Updates the pen of all lines based on the intensity for each line. The higher the intensity the thicker and the
+        more opaque is the line.
+        :param color: A tuple with (r,g,b), where the values should from 0 to 255. If None, the current object color is
+                      used.
+        :type color: tuple
+        """
         if color is not None:
             self.color = color
         intensities = np.array(self.intensities)

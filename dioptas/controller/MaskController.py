@@ -439,13 +439,13 @@ class MaskController(object):
 
     def fill_rb_click(self):
         self.model.transparent_mask = False
-        self.widget.img_widget.set_color([255, 0, 0, 255])
+        self.widget.img_widget.update_pen([255, 0, 0, 255])
         self.plot_mask()
 
     #
     def transparent_rb_click(self):
         self.model.transparent_mask = True
-        self.widget.img_widget.set_color([255, 0, 0, 100])
+        self.widget.img_widget.update_pen([255, 0, 0, 100])
         self.plot_mask()
 
     def show_img_mouse_position(self, x, y):
