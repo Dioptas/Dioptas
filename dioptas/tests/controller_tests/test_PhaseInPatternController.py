@@ -23,8 +23,9 @@ import os
 import gc
 
 from mock import MagicMock
+import numpy as np
 
-from ...controller.integration import PhaseInPatternController
+from ...controller.integration import PhaseInPatternController, PatternController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
@@ -35,7 +36,6 @@ jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class PhaseInPatternControllerTest(QtTest):
-
     # SETUP
     #######################
     def setUp(self) -> None:
@@ -47,6 +47,7 @@ class PhaseInPatternControllerTest(QtTest):
         self.widget = IntegrationWidget()
 
         self.controller = PhaseInPatternController(self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
 
     def tearDown(self) -> None:
@@ -104,3 +105,49 @@ class PhaseInPatternControllerTest(QtTest):
         self.model.phase_model.set_color(0, (230, 22, 0))
         self.assertNotEqual(green_value,
                             self.widget.pattern_widget.phases[0].line_items[0].opts['pen'].color().green())
+
+    def test_auto_scaling_of_lines_in_pattern_view(self):
+        pattern_view = self.widget.pattern_widget
+
+        pattern_view_range = pattern_view.view_box.viewRange()
+        pattern_y = pattern_view.plot_item.getData()[1]
+        expected_maximum_height = np.max(pattern_y) - pattern_view_range[1][0]
+
+        self.load_phase('au_Anderson.jcpds')
+        phase_plot = pattern_view.phases[0]
+        line_heights = []
+        for line in phase_plot.line_items:
+            line_data = line.getData()
+            height = line_data[1][1] - line_data[1][0]
+            line_heights.append(height)
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
+
+        pattern_view_range = pattern_view.view_box.viewRange()
+        pattern_y = pattern_view.plot_item.getData()[1]
+        expected_maximum_height = np.max(pattern_y) - pattern_view_range[1][0]
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
+
+    def test_line_height_in_pattern_view_after_zooming(self):
+        pattern_view = self.widget.pattern_widget
+        self.load_phase('au_Anderson.jcpds')
+
+        pattern_view.view_box.setRange(xRange=[17, 30])
+        pattern_view.emit_sig_range_changed()
+
+        phase_plot = pattern_view.phases[0]
+        line_heights = []
+        for line in phase_plot.line_items:
+            line_data = line.getData()
+            if (line_data[0][0] > 17) and (line_data[0][1] < 30):
+                height = line_data[1][1] - line_data[1][0]
+                line_heights.append(height)
+
+        pattern_view_range = pattern_view.view_box.viewRange()
+        pattern_x, pattern_y = pattern_view.plot_item.getData()
+        pattern_y_max_in_range = np.max(pattern_y[(pattern_x > pattern_view_range[0][0]) &
+                                                  (pattern_x < pattern_view_range[0][1])])
+        expected_maximum_height = pattern_y_max_in_range - pattern_view_range[1][0]
+
+        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
