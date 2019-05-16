@@ -105,5 +105,9 @@ class PhaseInCakeController(object):
     def update_phase_color(self, ind):
         self.img_view_widget.set_cake_phase_color(ind, self.model.phase_model.phase_colors[ind])
 
-    def update_phase_visible(self):
-        pass
+    def update_phase_visible(self, ind):
+        if self.phase_model.phase_visible[ind]:
+            self.img_view_widget.show_cake_phase(ind)
+        else:
+            self.img_view_widget.hide_cake_phase(ind)
+
