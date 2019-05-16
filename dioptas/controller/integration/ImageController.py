@@ -127,9 +127,9 @@ class ImageController(object):
         """
         self.model.transparent_mask = self.widget.mask_transparent_cb.isChecked()
         if self.model.transparent_mask:
-            self.widget.img_widget.set_color([255, 0, 0, 100])
+            self.widget.img_widget.update_pen([255, 0, 0, 100])
         else:
-            self.widget.img_widget.set_color([255, 0, 0, 255])
+            self.widget.img_widget.update_pen([255, 0, 0, 255])
 
     def create_signals(self):
         self.model.configuration_selected.connect(self.update_gui_from_configuration)
