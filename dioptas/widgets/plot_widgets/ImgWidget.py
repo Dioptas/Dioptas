@@ -491,7 +491,7 @@ class CakePhasePlot(object):
         self.pattern_x_range = []
 
         self.color = color
-        self.line_width = 0.9
+        self.line_width = 1
 
         self.positions = positions
         self.intensities = intensities
@@ -526,7 +526,7 @@ class CakePhasePlot(object):
         Updates the line positions and intensities (alpha and thickness, using set_color).
         It also determines which lines are actually visibile in the cake (using update_visibilties).
         :param positions: line positions
-        :param intensities: line intensiteis
+        :param intensities: line intensities
         """
         self.positions = positions
         self.intensities = intensities
@@ -564,8 +564,8 @@ class CakePhasePlot(object):
             self.color = color
         intensities = np.array(self.intensities)
         line_scaling = intensities / np.max(intensities)
-        line_alphas = (line_scaling * 0.6 + 0.3) * 255
-        line_widths = self.line_width + 0.4 * line_scaling
+        line_alphas = (line_scaling * 0.4 + 0.3) * 255
+        line_widths = self.line_width + 3 * line_scaling
 
         for ind, line_item in enumerate(intensities):
             color = list(self.color) + [line_alphas[ind]]

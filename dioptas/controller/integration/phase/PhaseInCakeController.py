@@ -58,11 +58,13 @@ class PhaseInCakeController(object):
         """
         Obtains the positions and intensities for lines of a phase with an index ind within the cake view.
 
-        No clipping is used for the first call to add the phase plot. Subsequent calls are used with clipping.
-        The visibility of each line is then estimated in the Imagewidget based on the length of the resulting lists.
+        No clipping is used for the first call to add the CakePhasePlot to the ImgWidget. Subsequent calls are used with
+        clipping. Thus, only lines within the cake_tth are returned. The visibility of each line is then estimated in
+        the ImgWidget based on the length of the clipped and not clipped lists.
 
         :param ind: the index of the phase
-        :param clip: whether or not the lists should be clipped based on the actual x value of the
+        :param clip: whether or not the lists should be clipped. Clipped means that lines which have positions larger
+                     than the
         :return: line_positions, line_intensities
         """
         if self.model.cake_tth is None:
