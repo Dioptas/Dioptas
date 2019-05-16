@@ -69,26 +69,36 @@ class PhaseController(object):
         self.update_pressure_step()
 
     def create_signals(self):
-        self.connect_click_function(self.phase_widget.add_btn, self.add_btn_click_callback)
-        self.connect_click_function(self.phase_widget.delete_btn, self.delete_btn_click_callback)
-        self.connect_click_function(self.phase_widget.clear_btn, self.clear_phases)
-        self.connect_click_function(self.phase_widget.edit_btn, self.edit_btn_click_callback)
-        self.connect_click_function(self.phase_widget.save_list_btn, self.save_btn_clicked_callback)
-        self.connect_click_function(self.phase_widget.load_list_btn, self.load_list_btn_clicked_callback)
+        # Button Callbacks
+        self.phase_widget.add_btn.clicked.connect(self.add_btn_click_callback)
+        self.phase_widget.delete_btn.clicked.connect(self.delete_btn_click_callback)
+        self.phase_widget.clear_btn.clicked.connect(self.clear_phases)
+        self.phase_widget.edit_btn.clicked.connect(self.edit_btn_click_callback)
+        self.phase_widget.save_list_btn.clicked.connect(self.save_btn_clicked_callback)
+        self.phase_widget.load_list_btn.clicked.connect(self.load_list_btn_clicked_callback)
 
+        # Spinbox Callbacks
         self.phase_widget.pressure_step_msb.valueChanged.connect(self.update_pressure_step)
         self.phase_widget.temperature_step_msb.valueChanged.connect(self.update_temperature_step)
 
-        # this is for the phases in the plot item
-        self.phase_widget.pressure_sb_value_changed.connect(self.pressure_sb_changed)
-        self.phase_widget.temperature_sb_value_changed.connect(self.temperature_sb_changed)
+        self.phase_widget.pressure_sb_value_changed.connect(self.model.phase_model.set_pressure)
+        self.phase_widget.temperature_sb_value_changed.connect(self.model.phase_model.set_temperature)
 
-        self.phase_widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
+        # Color and State
         self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
         self.phase_widget.show_cb_state_changed.connect(self.model.phase_model.set_phase_visible)
+        self.phase_widget.apply_to_all_cb.stateChanged.connect(self.apply_to_all_callback)
 
+        # TableWidget
+        self.phase_widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
         self.phase_widget.phase_tw.horizontalHeader().sectionClicked.connect(self.phase_tw_header_section_clicked)
 
+        # PhaseModel Signals
+        self.model.phase_model.phase_added.connect(self.phase_added)
+        self.model.phase_model.phase_changed.connect(self.phase_changed)
+        self.model.phase_model.phase_removed.connect(self.phase_removed)
+
+        # JCPDS Editor
         self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
 
         self.jcpds_editor_controller.lattice_param_changed.connect(self.update_cur_phase_parameters)
@@ -98,13 +108,6 @@ class PhaseController(object):
         self.jcpds_editor_controller.reflection_line_removed.connect(self.jcpds_editor_reflection_removed)
         self.jcpds_editor_controller.reflection_line_edited.connect(self.update_cur_phase_parameters)
         self.jcpds_editor_controller.reflection_line_cleared.connect(self.jcpds_editor_reflection_cleared)
-
-        # self.jcpds_editor_controller.phase_modified.connect(self.update_phase_legend)
-
-        # Signals from phase model
-        self.model.phase_model.phase_added.connect(self.phase_added)
-        self.model.phase_model.phase_removed.connect(self.phase_removed)
-        # self.model.enabled_phases_in_cake.connect(self.update_all_phase_intensities)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
@@ -152,8 +155,6 @@ class PhaseController(object):
                 self.model.phase_model.add_cif(filename,
                                                self.cif_conversion_dialog.int_cutoff,
                                                self.cif_conversion_dialog.min_d_spacing)
-
-
         except PhaseLoadError as e:
             self.integration_widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
@@ -163,6 +164,11 @@ class PhaseController(object):
         color = self.model.phase_model.phase_colors[-1]
         self.phase_widget.add_phase(get_base_name(self.model.phase_model.phase_files[-1]),
                                     '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
+
+    def phase_changed(self, ind):
+        self.phase_widget.set_phase_pressure(ind, self.model.phase_model.phases[ind].params['pressure'])
+        self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
+        self.phase_widget.temperature_sbs[ind].setEnabled(self.model.phase_model.phases[ind].has_thermal_expansion())
 
     def edit_btn_click_callback(self):
         cur_ind = self.phase_widget.get_selected_phase_row()
@@ -252,41 +258,6 @@ class PhaseController(object):
         for temperature_sb in self.phase_widget.temperature_sbs:
             temperature_sb.setSingleStep(self.phase_widget.temperature_step_msb.value())
 
-    def pressure_sb_changed(self, ind, val):
-        """
-        Called when pressure spinbox emits a new value.
-        """
-        if self.phase_widget.apply_to_all_cb.isChecked():
-            for ind in range(len(self.model.phase_model.phases)):
-                self.model.phase_model.set_pressure(ind, np.float(val))
-                self.phase_widget.set_phase_pressure(ind, val)
-        else:
-            self.model.phase_model.set_pressure(ind, np.float(val))
-            self.phase_widget.set_phase_pressure(ind, val)
-
-        self.update_jcpds_editor()
-
-    def temperature_sb_changed(self, ind, val):
-        """
-        Called when temperature spinbox emits a new value.
-        """
-        if self.phase_widget.apply_to_all_cb.isChecked():
-            for ind in range(len(self.model.phase_model.phases)):
-                self.update_temperature(ind, val)
-        else:
-            self.update_temperature(ind, val)
-        self.update_jcpds_editor()
-
-    def update_temperature(self, ind, val):
-        if self.model.phase_model.phases[ind].has_thermal_expansion():
-            self.model.phase_model.set_temperature(ind, np.float(val))
-            self.phase_widget.set_phase_temperature(ind, val)
-            self.phase_widget.temperature_sbs[ind].setEnabled(True)
-        else:
-            self.model.phase_model.set_temperature(ind, 298)
-            self.phase_widget.set_phase_temperature(ind, 298)
-            self.phase_widget.temperature_sbs[ind].setEnabled(False)
-
     def color_btn_clicked(self, ind, button):
         previous_color = button.palette().color(1)
         new_color = QtWidgets.QColorDialog.getColor(previous_color, self.integration_widget)
@@ -296,6 +267,9 @@ class PhaseController(object):
             color = previous_color.toRgb()
         self.model.phase_model.set_color(ind, (color.red(), color.green(), color.blue()))
         button.setStyleSheet('background-color:' + str(color.name()))
+
+    def apply_to_all_callback(self):
+        self.model.phase_model.same_conditions = self.phase_widget.apply_to_all_cb.isChecked()
 
     def phase_tw_header_section_clicked(self, ind):
         if ind != 0:
