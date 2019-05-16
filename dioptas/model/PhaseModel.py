@@ -60,7 +60,7 @@ class PhaseModel(QtCore.QObject):
             jcpds_object = jcpds()
             jcpds_object.load_file(filename)
             self.phase_files.append(filename)
-            self._add_jcpds_object(jcpds_object)
+            self.add_jcpds_object(jcpds_object)
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
 
@@ -69,12 +69,12 @@ class PhaseModel(QtCore.QObject):
             cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
             jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
             self.phase_files.append(filename)
-            self._add_jcpds_object(jcpds_object)
+            self.add_jcpds_object(jcpds_object)
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             print(e)
             raise PhaseLoadError(filename)
 
-    def _add_jcpds_object(self, jcpds_object):
+    def add_jcpds_object(self, jcpds_object):
         self.phases.append(jcpds_object)
         self.reflections.append([])
         self.phase_colors.append(calculate_color(PhaseModel.num_phases + 9))
