@@ -71,7 +71,7 @@ class PhaseModelTest(unittest.TestCase):
         self.assertEqual(self.phase_model.phases[0].params['temperature'], 2000)
         self.assertEqual(self.phase_model.phases[1].params['temperature'], 1500)
 
-    def test_set_temperature_with_no_thermal_expanstion(self):
+    def test_set_temperature_with_no_thermal_expansion(self):
         self.load_phase('ar.jcpds')
 
         self.assertEqual(self.phase_model.phases[0].params['temperature'], 298)

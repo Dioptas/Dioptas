@@ -107,15 +107,7 @@ class PhaseInPatternController(object):
         """
         Function is called after the pattern data has changed.
         """
-        # QtWidgets.QApplication.processEvents()
-        # self.update_phase_lines_slot()
         self.pattern_widget.update_phase_line_visibilities()
-
-        # try:
-        #     cake_range = (0, len(self.model.cake_tth))
-        #     self.img_view_widget.update_phase_line_visibilities(cake_range)
-        # except TypeError:
-        #     pass
 
     def update_phase_legend(self, ind):
         name = self.model.phase_model.phases[ind].name
