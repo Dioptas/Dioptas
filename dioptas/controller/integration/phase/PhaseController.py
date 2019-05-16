@@ -291,11 +291,11 @@ class PhaseController(object):
         previous_color = button.palette().color(1)
         new_color = QtWidgets.QColorDialog.getColor(previous_color, self.integration_widget)
         if new_color.isValid():
-            color = str(new_color.name())
+            color = new_color.toRgb()
         else:
-            color = str(previous_color.name())
-        self.model.phase_model.set_color(ind, color)
-        button.setStyleSheet('background-color:' + color)
+            color = previous_color.toRgb()
+        self.model.phase_model.set_color(ind, (color.red(), color.green(), color.blue()))
+        button.setStyleSheet('background-color:' + str(color.name()))
 
     def phase_tw_header_section_clicked(self, ind):
         if ind != 0:
