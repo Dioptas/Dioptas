@@ -128,6 +128,18 @@ class PhaseModel(QtCore.QObject):
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
+    def set_param(self, ind, param, value):
+        """
+        Sets one of the jcpds parameters for phase with index ind to a certain value. Automatically emits the
+        phase_changed signal.
+        """
+        self.phases[ind].params[param] = value
+        self.phases[ind].compute_v0()
+        self.phases[ind].compute_d0()
+        self.phases[ind].compute_d()
+        self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
+
     def set_color(self, ind, color):
         self.phase_colors[ind] = color
         self.phase_changed.emit(ind)
