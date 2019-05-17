@@ -25,7 +25,7 @@ import gc
 from mock import MagicMock
 import numpy as np
 
-from ..utility import click_button
+from ..utility import click_button, enter_value_into_text_field
 from ...controller.integration import JcpdsEditorController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
@@ -58,6 +58,9 @@ class JcpdsEditorControllerTest(QtTest):
         self.load_phases()
         self.controller.active = True
 
+        self.setup_selected_row(5)
+        click_button(self.phase_widget.edit_btn)
+
     def tearDown(self) -> None:
         del self.controller
         del self.widget
@@ -87,12 +90,43 @@ class JcpdsEditorControllerTest(QtTest):
     # Tests
     #######################
     def test_edit_button_shows_correct_phase(self):
-        self.setup_selected_row(5)
-        click_button(self.phase_widget.edit_btn)
         self.assertEqual(self.jcpds_widget.filename_txt.text(), self.phase_model.phases[5].filename)
 
     def test_selection_changed_shows_correct_phase(self):
-        self.setup_selected_row(5)
-        click_button(self.phase_widget.edit_btn)
         self.send_phase_tw_select_signal(3)
         self.assertEqual(self.jcpds_widget.filename_txt.text(), self.phase_model.phases[3].filename)
+
+    def test_updating_the_gui_after_external_change(self):
+        previous_a = self.jcpds_widget.lattice_eos_a_txt.text()
+        self.phase_model.set_pressure(5, 20)
+        self.assertNotEqual(previous_a, self.jcpds_widget.lattice_eos_a_txt.text())
+
+    def test_updating_volume_after_changing_a(self):
+        previous_volume = self.jcpds_widget.lattice_volume_txt.text()
+        self.jcpds_widget.lattice_a_sb.setValue(3)
+        self.assertNotEqual(previous_volume, self.jcpds_widget.lattice_volume_txt.text())
+
+    def test_updating_volume_after_changing_c(self):
+        previous_volume = self.jcpds_widget.lattice_volume_txt.text()
+        self.jcpds_widget.lattice_c_sb.setValue(3)
+        self.assertNotEqual(previous_volume, self.jcpds_widget.lattice_volume_txt.text())
+
+    def test_updating_volume_after_changing_ca_ratio(self):
+        previous_volume = self.jcpds_widget.lattice_volume_txt.text()
+        self.jcpds_widget.lattice_c_sb.setValue(3)
+        self.assertNotEqual(previous_volume, self.jcpds_widget.lattice_volume_txt.text())
+
+    def test_updating_k0_parameter(self):
+        self.phase_model.set_pressure(5, 30)
+        previous_volume = self.jcpds_widget.lattice_eos_volume_txt.text()
+        enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 300)
+        self.assertNotEqual(previous_volume, self.jcpds_widget.lattice_eos_volume_txt.text())
+
+    def test_updating_kp_parameter(self):
+        self.phase_model.set_pressure(5, 30)
+        previous_volume = self.jcpds_widget.lattice_eos_volume_txt.text()
+        enter_value_into_text_field(self.jcpds_widget.eos_Kp_txt, 5)
+        self.assertNotEqual(previous_volume, self.jcpds_widget.lattice_eos_volume_txt.text())
+
+
+
