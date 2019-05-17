@@ -105,7 +105,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.model.calibration_model.pattern_geometry.wavelength = 0.31
 
         self.jcpds_controller = JcpdsEditorController(None, self.model, self.jcpds)
-        self.jcpds_widget = self.jcpds_controller.widget
+        self.jcpds_widget = self.jcpds_controller.jcpds_widget
 
         # Erwin immediately sees the filename in the explorer
         self.assertEqual(str(self.jcpds_widget.filename_txt.text()),
@@ -266,7 +266,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.model.configurations[0].calibration_model.pattern_geometry.wavelength = 0.3344
 
         self.jcpds_controller = JcpdsEditorController(None, self.model, jcpds_phase=self.jcpds)
-        self.jcpds_widget = self.jcpds_controller.widget
+        self.jcpds_widget = self.jcpds_controller.jcpds_widget
 
         # he sees that there are 13 reflections predefined in the table
 
@@ -350,7 +350,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds.load_file(filename)
         self.jcpds_controller = JcpdsEditorController(None, dioptas_model=self.model,
                                                       jcpds_phase=self.jcpds)
-        self.jcpds_widget = self.jcpds_controller.widget
+        self.jcpds_widget = self.jcpds_controller.jcpds_widget
         self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 4.0786)
         self.assertEqual(float(str(self.jcpds_widget.lattice_b_sb.text()).replace(',', '.')), 4.0786)
         self.assertEqual(float(str(self.jcpds_widget.lattice_c_sb.text()).replace(',', '.')), 4.0786)
