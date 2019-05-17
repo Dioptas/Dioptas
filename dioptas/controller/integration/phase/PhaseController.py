@@ -101,7 +101,6 @@ class PhaseController(object):
         # self.jcpds_editor_controller.lattice_param_changed.connect(self.update_cur_phase_parameters)
         # self.jcpds_editor_controller.eos_param_changed.connect(self.update_cur_phase_parameters)
         #
-        # self.jcpds_editor_controller.reflection_line_added.connect(self.jcpds_editor_reflection_added)
         # self.jcpds_editor_controller.reflection_line_removed.connect(self.jcpds_editor_reflection_removed)
         # self.jcpds_editor_controller.reflection_line_edited.connect(self.update_cur_phase_parameters)
         # self.jcpds_editor_controller.reflection_line_cleared.connect(self.jcpds_editor_reflection_cleared)

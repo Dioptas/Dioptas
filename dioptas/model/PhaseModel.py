@@ -37,8 +37,11 @@ class PhaseLoadError(Exception):
 
 class PhaseModel(QtCore.QObject):
     phase_added = QtCore.Signal()
-    phase_removed = QtCore.Signal(int)
-    phase_changed = QtCore.Signal(int)
+    phase_removed = QtCore.Signal(int)  # phase_ind
+    phase_changed = QtCore.Signal(int)  # phase ind
+
+    reflection_added = QtCore.Signal(int)
+    reflection_removed = QtCore.Signal(int)
 
     num_phases = 0
 
@@ -86,7 +89,7 @@ class PhaseModel(QtCore.QObject):
             self.phases[-1].compute_d()
         self.get_lines_d(-1)
         self.phase_added.emit()
-        self.phase_changed.emit(len(self.phases)-1)
+        self.phase_changed.emit(len(self.phases) - 1)
 
     def del_phase(self, ind):
         del self.phases[ind]
@@ -203,6 +206,10 @@ class PhaseModel(QtCore.QObject):
 
         intensities, baseline = self.get_phase_line_intensities(ind, positions, pattern, x_range, y_range)
         return positions, intensities, baseline
+
+    def add_reflection(self, ind):
+        self.phases[ind].add_reflection()
+        self.reflection_added.emit(ind)
 
     def reset(self):
         for ind in range(len(self.phases)):

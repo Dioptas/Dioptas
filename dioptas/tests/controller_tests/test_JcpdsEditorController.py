@@ -128,5 +128,17 @@ class JcpdsEditorControllerTest(QtTest):
         enter_value_into_text_field(self.jcpds_widget.eos_Kp_txt, 5)
         self.assertNotEqual(previous_volume, self.jcpds_widget.lattice_eos_volume_txt.text())
 
+    def test_adding_a_reflection(self):
+        num_phase_reflections = len(self.phase_model.phases[5].reflections)
+        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+
+        click_button(self.jcpds_widget.reflections_add_btn)
+
+        self.assertEqual(len(self.phase_model.phases[5].reflections),
+                         num_phase_reflections+1)
+        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+                         num_table_reflections + 1)
+
+
 
 

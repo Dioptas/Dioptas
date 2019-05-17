@@ -149,8 +149,8 @@ class JcpdsEditorController(QtCore.QObject):
                                                                         param='dk0pdt'))
         #
         # # Reflections fields
+        self.jcpds_widget.reflections_add_btn.clicked.connect(self.reflections_add_btn_click)
         # self.jcpds_widget.reflections_delete_btn.clicked.connect(self.reflections_delete_btn_click)
-        # self.jcpds_widget.reflections_add_btn.clicked.connect(self.reflections_add_btn_click)
         # self.jcpds_widget.reflections_clear_btn.clicked.connect(self.reflections_clear_btn_click)
         #
         # self.jcpds_widget.reflection_table.cellChanged.connect(self.reflection_table_changed)
@@ -230,6 +230,11 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.lattice_ca_sb.setSingleStep(value)
         self.jcpds_widget.lattice_cb_sb.setSingleStep(value)
 
+    def reflections_add_btn_click(self):
+        self.phase_model.add_reflection(self.phase_ind)
+        self.jcpds_widget.add_reflection_to_table(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
+        self.jcpds_widget.reflection_table.selectRow(self.jcpds_widget.reflection_table.rowCount() - 1)
+
     def reflections_delete_btn_click(self):
         rows = self.jcpds_widget.get_selected_reflections()
         if rows is None:
@@ -245,13 +250,6 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.reflection_table.resizeColumnsToContents()
         self.jcpds_widget.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
         self.update_filename()
-
-    def reflections_add_btn_click(self):
-        self.jcpds_phase.add_reflection()
-        self.jcpds_widget.add_reflection_to_table(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
-        self.jcpds_widget.reflection_table.selectRow(self.jcpds_widget.reflection_table.rowCount() - 1)
-        self.reflection_line_added.emit()
-        self.phase_modified.emit()
 
     def reflection_table_changed(self, row, col):
         label_item = self.jcpds_widget.reflection_table.item(row, col)
@@ -301,7 +299,6 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.reflection_table.resizeColumnsToContents()
 
     def horizontal_header_clicked(self, ind):
-
         if self.previous_header_item_index_sorted == ind:
             reversed_toggle = True
         else:
