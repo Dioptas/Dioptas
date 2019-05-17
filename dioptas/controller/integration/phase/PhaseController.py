@@ -35,7 +35,6 @@ from .PhaseInCakeController import PhaseInCakeController
 from ....model.DioptasModel import DioptasModel
 from ....widgets.integration import IntegrationWidget
 from ....widgets.UtilityWidgets import CifConversionParametersDialog
-from ....widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 
 class PhaseController(object):
@@ -73,7 +72,6 @@ class PhaseController(object):
         self.phase_widget.add_btn.clicked.connect(self.add_btn_click_callback)
         self.phase_widget.delete_btn.clicked.connect(self.delete_btn_click_callback)
         self.phase_widget.clear_btn.clicked.connect(self.clear_phases)
-        self.phase_widget.edit_btn.clicked.connect(self.edit_btn_click_callback)
         self.phase_widget.save_list_btn.clicked.connect(self.save_btn_clicked_callback)
         self.phase_widget.load_list_btn.clicked.connect(self.load_list_btn_clicked_callback)
 
@@ -90,7 +88,6 @@ class PhaseController(object):
         self.phase_widget.apply_to_all_cb.stateChanged.connect(self.apply_to_all_callback)
 
         # TableWidget
-        self.phase_widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
         self.phase_widget.phase_tw.horizontalHeader().sectionClicked.connect(self.phase_tw_header_section_clicked)
 
         # PhaseModel Signals
@@ -170,11 +167,6 @@ class PhaseController(object):
         self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
         self.phase_widget.temperature_sbs[ind].setEnabled(self.model.phase_model.phases[ind].has_thermal_expansion())
 
-    def edit_btn_click_callback(self):
-        cur_ind = self.phase_widget.get_selected_phase_row()
-        if cur_ind >= 0:
-            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[cur_ind])
-            self.jcpds_editor_controller.show_view()
 
     def delete_btn_click_callback(self):
         """
@@ -193,7 +185,7 @@ class PhaseController(object):
             if ind >= 0:
                 self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[ind])
             else:
-                self.jcpds_editor_controller.widget.close()
+                self.jcpds_editor_controller.jcpds_widget.close()
 
     def load_list_btn_clicked_callback(self):
         filename = open_file_dialog(self.integration_widget, caption="Load Phase List",
@@ -297,24 +289,13 @@ class PhaseController(object):
             return 'd'
 
     ###JCPDS editor callbacks:
-    def phase_selection_changed(self, row, col, prev_row, prev_col):
-        if self.jcpds_editor_controller.active:
-            self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[row])
-
-    def update_jcpds_editor(self, cur_ind=None):
-        if cur_ind is None:
-            cur_ind = self.phase_widget.get_selected_phase_row()
-        if self.jcpds_editor_controller.widget.isVisible():
-            self.jcpds_editor_controller.update_phase_view(self.model.phase_model.phases[cur_ind])
 
     def jcpds_editor_reload_phase(self, jcpds):
         cur_ind = self.phase_widget.get_selected_phase_row()
         self.model.phase_model.phases[cur_ind] = jcpds
         self.pattern_widget.phases[cur_ind].clear_lines()
-        self.img_view_widget.phases[cur_ind].clear_lines()
         for dummy_line_ind in self.model.phase_model.phases[cur_ind].reflections:
             self.pattern_widget.phases[cur_ind].add_line()
-            self.img_view_widget.phases[cur_ind].add_line()
         self.update_cur_phase_parameters()
 
     def update_cur_phase_parameters(self):
