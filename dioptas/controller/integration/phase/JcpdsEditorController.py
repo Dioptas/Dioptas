@@ -152,7 +152,7 @@ class JcpdsEditorController(QtCore.QObject):
         # # Reflections fields
         self.jcpds_widget.reflections_add_btn.clicked.connect(self.reflections_add_btn_click)
         self.jcpds_widget.reflections_delete_btn.clicked.connect(self.reflections_delete_btn_click)
-        # self.jcpds_widget.reflections_clear_btn.clicked.connect(self.reflections_clear_btn_click)
+        self.jcpds_widget.reflections_clear_btn.clicked.connect(self.reflections_clear_btn_click)
         #
         # self.jcpds_widget.reflection_table.cellChanged.connect(self.reflection_table_changed)
         # self.jcpds_widget.reflection_table.keyPressEvent = self.reflection_table_key_pressed
@@ -231,8 +231,17 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.lattice_ca_sb.setSingleStep(value)
         self.jcpds_widget.lattice_cb_sb.setSingleStep(value)
 
+
+
+    def reflections_delete_btn_click(self):
+        rows = self.jcpds_widget.get_selected_reflections()
+        self.phase_model.delete_multiple_reflections(self.phase_ind, rows)
+
     def reflections_add_btn_click(self):
         self.phase_model.add_reflection(self.phase_ind)
+
+    def reflections_clear_btn_click(self):
+        self.phase_model.clear_reflections(self.phase_ind)
 
     def reflection_added(self, phase_ind):
         if phase_ind != self.phase_ind:
@@ -240,17 +249,12 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.add_reflection_to_table(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
         self.jcpds_widget.reflection_table.selectRow(self.jcpds_widget.reflection_table.rowCount() - 1)
 
-    def reflections_delete_btn_click(self):
-        rows = self.jcpds_widget.get_selected_reflections()
-        self.phase_model.delete_multiple_reflections(self.phase_ind, rows)
-
     def reflection_deleted(self, phase_ind, reflection_ind):
         if phase_ind != self.phase_ind:
             return
         self.jcpds_widget.remove_reflection_from_table(reflection_ind)
         self.jcpds_widget.reflection_table.resizeColumnsToContents()
         self.jcpds_widget.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
-
 
     def reflection_table_changed(self, row, col):
         label_item = self.jcpds_widget.reflection_table.item(row, col)
@@ -287,14 +291,6 @@ class JcpdsEditorController(QtCore.QObject):
             QtWidgets.QApplication.clipboard().setText(res)
         elif key_press_event == QtGui.QKeySequence.SelectAll:
             self.jcpds_widget.reflection_table.selectAll()
-
-    def reflections_clear_btn_click(self):
-        self.jcpds_widget.reflection_table.clearContents()
-        self.jcpds_widget.reflection_table.setRowCount(0)
-        self.jcpds_widget.reflection_table.resizeColumnsToContents()
-        self.jcpds_phase.reflections = []
-        self.reflection_line_cleared.emit()
-        self.phase_modified.emit()
 
     def reflection_table_scrolled(self):
         self.jcpds_widget.reflection_table.resizeColumnsToContents()

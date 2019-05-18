@@ -221,6 +221,10 @@ class PhaseModel(QtCore.QObject):
             self.delete_reflection(phase_ind, reflection_ind)
             indices -= 1
 
+    def clear_reflections(self, phase_ind):
+        for ind in range(len(self.phases[phase_ind].reflections)):
+            self.delete_reflection(phase_ind, 0)
+
     def reset(self):
         for ind in range(len(self.phases)):
             self.del_phase(0)

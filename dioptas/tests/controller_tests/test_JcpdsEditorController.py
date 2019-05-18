@@ -167,3 +167,8 @@ class JcpdsEditorControllerTest(QtTest):
                          num_phase_reflections - 4)
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
                          num_table_reflections - 4)
+
+    def test_clear_reflections(self):
+        click_button(self.jcpds_widget.reflections_clear_btn)
+        self.assertEqual(len(self.phase_model.phases[5].reflections), 0)
+        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 0)
