@@ -21,7 +21,7 @@
 import numpy as np
 
 from qtpy import QtCore
-from .util import jcpds
+from .util.jcpds import jcpds, jcpds_reflection
 from .util.cif import CifConverter
 from .util.HelperModule import calculate_color
 
@@ -224,6 +224,19 @@ class PhaseModel(QtCore.QObject):
     def clear_reflections(self, phase_ind):
         for ind in range(len(self.phases[phase_ind].reflections)):
             self.delete_reflection(phase_ind, 0)
+
+    def update_reflection(self, phase_ind, reflection_ind, reflection):
+        """
+        Updates the reflection of a phase with a new jcpds_reflection
+        :param phase_ind: index of the phase
+        :param reflection_ind: index of the refection
+        :param reflection: updated reflection
+        :type reflection: jcpds_reflection
+        """
+        self.phases[phase_ind].reflections[reflection_ind] = reflection
+        self.phases[phase_ind].compute_d()
+        self.get_lines_d(phase_ind)
+        self.phase_changed.emit(phase_ind)
 
     def reset(self):
         for ind in range(len(self.phases)):

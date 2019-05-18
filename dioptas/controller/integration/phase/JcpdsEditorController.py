@@ -28,7 +28,7 @@ from ....widgets.UtilityWidgets import save_file_dialog
 from ....widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from ....model.util.jcpds import jcpds
+from ....model.util.jcpds import jcpds, jcpds_reflection
 from ....model.DioptasModel import DioptasModel
 from ....widgets.integration import IntegrationWidget
 
@@ -38,6 +38,7 @@ class JcpdsEditorController(QtCore.QObject):
     JcpdsEditorController handles all the signals and changes associated with Jcpds editor widget
     """
     canceled_editor = QtCore.Signal(jcpds)
+
     # lattice_param_changed = QtCore.Signal()
     # eos_param_changed = QtCore.Signal()
     #
@@ -148,20 +149,21 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.eos_dKpdT_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                         widget=self.jcpds_widget.eos_dKpdT_txt,
                                                                         param='dk0pdt'))
-        #
-        # # Reflections fields
+
+        # Reflections Controls
         self.jcpds_widget.reflections_add_btn.clicked.connect(self.reflections_add_btn_click)
         self.jcpds_widget.reflections_delete_btn.clicked.connect(self.reflections_delete_btn_click)
         self.jcpds_widget.reflections_clear_btn.clicked.connect(self.reflections_clear_btn_click)
+        self.jcpds_widget.reflection_table.cellChanged.connect(self.reflection_table_changed)
+
+        # Table Widgets events
+        self.jcpds_widget.reflection_table.keyPressEvent = self.reflection_table_key_pressed
+        self.jcpds_widget.reflection_table.verticalScrollBar().valueChanged.connect(self.reflection_table_scrolled)
+        self.jcpds_widget.reflection_table.horizontalHeader().sectionClicked.connect(self.horizontal_header_clicked)
         #
-        # self.jcpds_widget.reflection_table.cellChanged.connect(self.reflection_table_changed)
-        # self.jcpds_widget.reflection_table.keyPressEvent = self.reflection_table_key_pressed
-        # self.jcpds_widget.reflection_table.verticalScrollBar().valueChanged.connect(self.reflection_table_scrolled)
-        # self.jcpds_widget.reflection_table.horizontalHeader().sectionClicked.connect(self.horizontal_header_clicked)
-        #
-        # # Button fields
-        # self.jcpds_widget.save_as_btn.clicked.connect(self.save_as_btn_clicked)
+        # Button fields
         # self.jcpds_widget.reload_file_btn.clicked.connect(self.reload_file_btn_clicked)
+        # self.jcpds_widget.save_as_btn.clicked.connect(self.save_as_btn_clicked)
         # self.jcpds_widget.ok_btn.clicked.connect(self.ok_btn_clicked)
         # self.jcpds_widget.cancel_btn.clicked.connect(self.cancel_btn_clicked)
         #
@@ -231,8 +233,6 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.lattice_ca_sb.setSingleStep(value)
         self.jcpds_widget.lattice_cb_sb.setSingleStep(value)
 
-
-
     def reflections_delete_btn_click(self):
         rows = self.jcpds_widget.get_selected_reflections()
         self.phase_model.delete_multiple_reflections(self.phase_ind, rows)
@@ -256,21 +256,15 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.reflection_table.resizeColumnsToContents()
         self.jcpds_widget.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
 
-    def reflection_table_changed(self, row, col):
-        label_item = self.jcpds_widget.reflection_table.item(row, col)
-        if label_item.text() != '':
-            value = float(str(label_item.text()))
-            if col == 0:  # h
-                self.jcpds_phase.reflections[row].h = value
-            elif col == 1:  # k
-                self.jcpds_phase.reflections[row].k = value
-            elif col == 2:  # l
-                self.jcpds_phase.reflections[row].l = value
-            elif col == 3:  # intensity
-                self.jcpds_phase.reflections[row].intensity = value
-
-        self.jcpds_widget.reflection_table.resizeColumnsToContents()
-        self.reflection_line_edited.emit()
+    def reflection_table_changed(self, row, _):
+        reflection = jcpds_reflection(
+            h=float(self.jcpds_widget.reflection_table.item(row, 0).text()),
+            k=float(self.jcpds_widget.reflection_table.item(row, 1).text()),
+            l=float(self.jcpds_widget.reflection_table.item(row, 2).text()),
+            intensity=float(self.jcpds_widget.reflection_table.item(row, 3).text()),
+            d=float(self.jcpds_widget.reflection_table.item(row, 4).text()),
+        )
+        self.phase_model.update_reflection(self.phase_ind, row, reflection)
 
     def reflection_table_key_pressed(self, key_press_event):
         if key_press_event == QtGui.QKeySequence.Copy:

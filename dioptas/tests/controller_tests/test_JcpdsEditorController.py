@@ -172,3 +172,12 @@ class JcpdsEditorControllerTest(QtTest):
         click_button(self.jcpds_widget.reflections_clear_btn)
         self.assertEqual(len(self.phase_model.phases[5].reflections), 0)
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 0)
+
+    def test_edit_reflection(self):
+        col = 0
+        row = 1
+
+        self.jcpds_widget.reflection_table.item(row, col).setText("3")
+        self.jcpds_widget.reflection_table.cellChanged.emit(row, col)
+
+        self.assertEqual(self.phase_model.phases[5].reflections[1].h, 3)
