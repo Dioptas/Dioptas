@@ -131,14 +131,39 @@ class JcpdsEditorControllerTest(QtTest):
     def test_adding_a_reflection(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
         num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        self.assertEqual(num_phase_reflections, num_table_reflections)
 
         click_button(self.jcpds_widget.reflections_add_btn)
 
         self.assertEqual(len(self.phase_model.phases[5].reflections),
-                         num_phase_reflections+1)
+                         num_phase_reflections + 1)
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
                          num_table_reflections + 1)
 
+    def test_removing_one_reflection(self):
+        num_phase_reflections = len(self.phase_model.phases[5].reflections)
+        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        self.assertEqual(num_phase_reflections, num_table_reflections)
 
+        self.jcpds_widget.get_selected_reflections = MagicMock(return_value=[3])
 
+        click_button(self.jcpds_widget.reflections_delete_btn)
 
+        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+                         num_table_reflections - 1)
+        self.assertEqual(len(self.phase_model.phases[5].reflections),
+                         num_phase_reflections - 1)
+
+    def test_removing_multiple_reflections(self):
+        num_phase_reflections = len(self.phase_model.phases[5].reflections)
+        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        self.assertEqual(num_phase_reflections, num_table_reflections)
+
+        self.jcpds_widget.get_selected_reflections = MagicMock(return_value=[3, 1, 5, 11])
+
+        click_button(self.jcpds_widget.reflections_delete_btn)
+
+        self.assertEqual(len(self.phase_model.phases[5].reflections),
+                         num_phase_reflections - 4)
+        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+                         num_table_reflections - 4)

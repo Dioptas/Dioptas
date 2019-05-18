@@ -38,13 +38,12 @@ class JcpdsEditorController(QtCore.QObject):
     JcpdsEditorController handles all the signals and changes associated with Jcpds editor widget
     """
     canceled_editor = QtCore.Signal(jcpds)
-    lattice_param_changed = QtCore.Signal()
-    eos_param_changed = QtCore.Signal()
-
-    reflection_line_edited = QtCore.Signal()
-    reflection_line_added = QtCore.Signal()
-    reflection_line_removed = QtCore.Signal(int)
-    reflection_line_cleared = QtCore.Signal()
+    # lattice_param_changed = QtCore.Signal()
+    # eos_param_changed = QtCore.Signal()
+    #
+    # reflection_line_edited = QtCore.Signal()
+    # reflection_line_removed = QtCore.Signal(int)
+    # reflection_line_cleared = QtCore.Signal()
 
     def __init__(self, integration_widget, dioptas_model=None, jcpds_phase=None):
         """
@@ -94,6 +93,8 @@ class JcpdsEditorController(QtCore.QObject):
 
         # Phase Model signals
         self.phase_model.phase_changed.connect(self.phase_changed)
+        self.phase_model.reflection_added.connect(self.reflection_added)
+        self.phase_model.reflection_deleted.connect(self.reflection_deleted)
 
         # Information fields
         self.jcpds_widget.comments_txt.editingFinished.connect(self.comments_changed)
@@ -150,7 +151,7 @@ class JcpdsEditorController(QtCore.QObject):
         #
         # # Reflections fields
         self.jcpds_widget.reflections_add_btn.clicked.connect(self.reflections_add_btn_click)
-        # self.jcpds_widget.reflections_delete_btn.clicked.connect(self.reflections_delete_btn_click)
+        self.jcpds_widget.reflections_delete_btn.clicked.connect(self.reflections_delete_btn_click)
         # self.jcpds_widget.reflections_clear_btn.clicked.connect(self.reflections_clear_btn_click)
         #
         # self.jcpds_widget.reflection_table.cellChanged.connect(self.reflection_table_changed)
@@ -232,24 +233,24 @@ class JcpdsEditorController(QtCore.QObject):
 
     def reflections_add_btn_click(self):
         self.phase_model.add_reflection(self.phase_ind)
+
+    def reflection_added(self, phase_ind):
+        if phase_ind != self.phase_ind:
+            return
         self.jcpds_widget.add_reflection_to_table(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
         self.jcpds_widget.reflection_table.selectRow(self.jcpds_widget.reflection_table.rowCount() - 1)
 
     def reflections_delete_btn_click(self):
         rows = self.jcpds_widget.get_selected_reflections()
-        if rows is None:
-            return
+        self.phase_model.delete_multiple_reflections(self.phase_ind, rows)
 
-        rows.sort()
-        rows = np.array(rows)
-        for ind in range(len(rows)):
-            self.jcpds_widget.remove_reflection_from_table(rows[ind])
-            self.jcpds_phase.remove_reflection(rows[ind])
-            self.reflection_line_removed.emit(rows[ind])
-            rows = rows - 1
+    def reflection_deleted(self, phase_ind, reflection_ind):
+        if phase_ind != self.phase_ind:
+            return
+        self.jcpds_widget.remove_reflection_from_table(reflection_ind)
         self.jcpds_widget.reflection_table.resizeColumnsToContents()
         self.jcpds_widget.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
-        self.update_filename()
+
 
     def reflection_table_changed(self, row, col):
         label_item = self.jcpds_widget.reflection_table.item(row, col)
