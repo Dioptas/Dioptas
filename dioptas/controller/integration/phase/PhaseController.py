@@ -301,13 +301,6 @@ class PhaseController(object):
         self.model.phase_model.get_lines_d(cur_ind)
         self.model.phase_model.phase_changed.emit(cur_ind)
 
-    def jcpds_editor_reflection_removed(self, reflection_ind):
-        cur_phase_ind = self.phase_widget.get_selected_phase_row()
-        self.pattern_widget.phases[cur_phase_ind].remove_line(reflection_ind)
-        self.img_view_widget.phases[cur_phase_ind].remove_line(reflection_ind)
-        self.model.phase_model.get_lines_d(cur_phase_ind)
-        self.update_phase_intensities(cur_phase_ind)
-
     def jcpds_editor_reflection_added(self):
         cur_ind = self.phase_widget.get_selected_phase_row()
         self.pattern_widget.phases[cur_ind].add_line()

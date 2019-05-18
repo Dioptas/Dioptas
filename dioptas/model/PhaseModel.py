@@ -37,11 +37,11 @@ class PhaseLoadError(Exception):
 
 class PhaseModel(QtCore.QObject):
     phase_added = QtCore.Signal()
-    phase_removed = QtCore.Signal(int)  # phase_ind
+    phase_removed = QtCore.Signal(int)  # phase ind
     phase_changed = QtCore.Signal(int)  # phase ind
 
     reflection_added = QtCore.Signal(int)
-    reflection_removed = QtCore.Signal(int)
+    reflection_deleted = QtCore.Signal(int, int)  # phase index, reflection index
 
     num_phases = 0
 
@@ -210,6 +210,16 @@ class PhaseModel(QtCore.QObject):
     def add_reflection(self, ind):
         self.phases[ind].add_reflection()
         self.reflection_added.emit(ind)
+
+    def delete_reflection(self, phase_ind, reflection_ind):
+        self.phases[phase_ind].delete_reflection(reflection_ind)
+        self.reflection_deleted.emit(phase_ind, reflection_ind)
+
+    def delete_multiple_reflections(self, phase_ind, indices):
+        indices = np.array(sorted(indices))
+        for reflection_ind in range(len(indices)):
+            self.delete_reflection(phase_ind, reflection_ind)
+            indices -= 1
 
     def reset(self):
         for ind in range(len(self.phases)):
