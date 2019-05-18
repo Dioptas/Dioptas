@@ -290,8 +290,8 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             else:
                 two_theta0 = convert_d_to_two_theta(reflection.d0, wavelength)
                 two_theta = convert_d_to_two_theta(reflection.d, wavelength)
-                q0 = 2.0*np.pi/reflection.d0
-                q = 2.0*np.pi/reflection.d
+                q0 = 2.0 * np.pi / reflection.d0
+                q = 2.0 * np.pi / reflection.d
                 self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
                                              reflection.intensity, reflection.d0, reflection.d,
                                              two_theta0, two_theta, q0, q)
@@ -461,28 +461,6 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.reflection_table.blockSignals(True)
         self.reflection_table.removeRow(ind)
         self.reflection_table.blockSignals(False)
-
-
-        # def get_jcpds(self):
-        # self.jcpds_phase.filename = str(self.filename_txt.text())
-        #     self.jcpds_phase.comments_txt = [str(self.comments_text())]
-        #
-        #     self.jcpds_phase.symmetry = str(self.symmetry_cb.text()).upper()
-        #
-        #     self.jcpds_phase.a0 = float(str(self.lattice_a_txt.text()))
-        #     self.jcpds_phase.b0 = float(str(self.lattice_b_txt.text()))
-        #     self.jcpds_phase.c0 = float(str(self.lattice_c_txt.text()))
-        #
-        #     self.jcpds_phase.alpha0 = float(str(self.lattice_alpha_txt.text()))
-        #     self.jcpds_phase.beta0 = float(str(self.lattice_beta_txt.text()))
-        #     self.jcpds_phase.gamma0 = float(str(self.lattice_gamma_txt.text()))
-        #
-        #     self.jcpds_phase.k0 = float(str(self.eos_K_txt.text()))
-        #     self.jcpds_phase.k0p = float(str(self.eos_Kp_txt.text()))
-        #     self.jcpds_phase.alpha_t0 = float(str(self.eos_alphaT_txt.text()))
-        #     self.jcpds_phase.d_alpha_dt = float(str(self.eos_dalphadT_txt.text()))
-        #     self.jcpds_phase.dk0dt = float(str(self.eos_dKdT_txt.text()))
-        #     self.jcpds_phase.dk0pdt = float(str(self.eos_dKpdT_txt.text()))
 
 
 class NoRectDelegate(QtWidgets.QItemDelegate):

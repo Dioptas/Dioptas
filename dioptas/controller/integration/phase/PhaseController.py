@@ -296,11 +296,6 @@ class PhaseController(object):
             self.pattern_widget.phases[cur_ind].add_line()
         self.update_cur_phase_parameters()
 
-    def update_cur_phase_parameters(self):
-        cur_ind = self.phase_widget.get_selected_phase_row()
-        self.model.phase_model.get_lines_d(cur_ind)
-        self.model.phase_model.phase_changed.emit(cur_ind)
-
     def jcpds_editor_reflection_added(self):
         cur_ind = self.phase_widget.get_selected_phase_row()
         self.pattern_widget.phases[cur_ind].add_line()
