@@ -62,7 +62,6 @@ def excepthook(exc_type, exc_value, traceback_obj):
     :param traceback_obj: traceback object
     :return:
     """
-
     separator = '-' * 80
     log_file = "error.log"
     notice = \

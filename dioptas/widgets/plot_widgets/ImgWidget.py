@@ -21,12 +21,14 @@
 from __future__ import absolute_import
 
 import pyqtgraph as pg
+from pyqtgraph import ViewBox
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 import numpy as np
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
+from ...model.util.HelperModule import calculate_color
 
 
 class ImgWidget(QtCore.QObject):
@@ -48,11 +50,10 @@ class ImgWidget(QtCore.QObject):
 
         self._max_range = True
 
-
     def create_graphics(self):
         # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
 
-        self.img_view_box = self.pg_layout.addViewBox(1, 1)
+        self.img_view_box = self.pg_layout.addViewBox(1, 1)  # type: ViewBox
 
         self.data_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.data_img_item)
@@ -355,6 +356,7 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.create_mouse_click_item()
         self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
+        self.phases = []  # type: list[CakePhasePlot]
         self.deactivate_vertical_line()
 
     def create_circle_plot_items(self):
@@ -375,11 +377,20 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.mouse_click_item.setSymbol('+')
         self.mouse_click_item.setSize(15)
         self.mouse_click_item.addPoints([1024], [1024])
-        self.img_view_box.addItem(self.mouse_click_item)
         self.mouse_left_clicked.connect(self.set_mouse_click_position)
+        self.activate_mouse_click_item()
 
     def set_mouse_click_position(self, x, y):
         self.mouse_click_item.setData([x], [y])
+
+    def activate_mouse_click_item(self):
+        if not self.mouse_click_item in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.mouse_click_item)
+            self.mouse_click_item.setVisible(True) #oddly this is needed for the line to be displayed correctly
+
+    def deactivate_mouse_click_item(self):
+        if self.mouse_click_item in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.mouse_click_item)
 
     def set_circle_line(self, tth, cur_tth):
         """
@@ -433,6 +444,136 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
             self.img_view_box.removeItem(self.roi)
             self.roi_shade.deactivate_rects()
             self.roi.blockSignals(True)
+
+    def add_cake_phase(self, name, positions, intensities, baseline):
+        self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, name, baseline))
+        return self.phases[-1].color
+
+    def del_cake_phase(self, ind):
+        self.phases[ind].remove()
+        del self.phases[ind]
+
+    def set_cake_phase_color(self, ind, color):
+        self.phases[ind].set_color(color)
+
+    def hide_cake_phase(self, ind):
+        self.phases[ind].hide()
+
+    def hide_all_cake_phases(self):
+        for phase in self.phases:
+            phase.hide()
+
+    def show_cake_phase(self, ind):
+        self.phases[ind].show()
+
+    def show_all_visible_cake_phases(self, phase_show_cbs):
+        for ind, phase in enumerate(self.phases):
+            if phase_show_cbs[ind].isChecked():
+                phase.show()
+
+    def update_phase_line_visibilities(self, x_range):
+        for phase in self.phases:
+            phase.update_visibilities(x_range)
+
+    def update_phase_line_visibility(self, ind, x_range):
+        self.phases[ind].update_visibilities(x_range)
+
+    def update_phase_intensities(self, ind, positions, intensities, baseline=0):
+        if len(self.phases):
+            self.phases[ind].update_intensities(positions, intensities, baseline)
+
+
+class CakePhasePlot(object):
+    num_phases = 0
+
+    def __init__(self, plot_item, positions, intensities, name=None, baseline=0):
+        self.plot_item = plot_item
+        self.visible = True
+        self.line_items = []
+        self.line_visible = []
+        self.pattern_x_range = []
+        self.index = CakePhasePlot.num_phases
+        self.color = calculate_color(self.index + 9)
+        self.pen = pg.mkPen(color=self.color, width=0.9, style=QtCore.Qt.SolidLine)
+        self.ref_legend_line = pg.PlotDataItem(pen=self.pen)
+        self.name = ''
+        CakePhasePlot.num_phases += 1
+        self.create_items(positions, intensities, name, baseline)
+
+    def create_items(self, positions, intensities, name=None, baseline=0):
+        # create new ones on each Position:
+        self.line_items = []
+
+        for ind, position in enumerate(positions):
+            self.line_items.append(pg.PlotDataItem(x=[position, position],
+                                                   y=[0, 360],
+                                                   pen=self.pen,
+                                                   antialias=False))
+            self.line_visible.append(True)
+            self.plot_item.addItem(self.line_items[ind])
+
+    def add_line(self):
+        self.line_items.append(pg.PlotDataItem(x=[0, 0],
+                                               y=[0, 0],
+                                               pen=self.pen, antialias=False))
+        self.line_visible.append(True)
+        self.plot_item.blockSignals(True)
+        self.plot_item.addItem(self.line_items[-1])
+        self.plot_item.blockSignals(False)
+
+    def remove_line(self, ind=-1):
+        self.plot_item.removeItem(self.line_items[ind])
+        del self.line_items[ind]
+        del self.line_visible[ind]
+
+    def clear_lines(self):
+        for dummy_ind in range(len(self.line_items)):
+            self.remove_line()
+
+    def update_intensities(self, positions, intensities, baseline=0):
+        if self.visible:
+            for ind, intensity in enumerate(intensities):
+                self.line_items[ind].setData(y=[0, 360],
+                                             x=[positions[ind], positions[ind]])
+
+    def update_visibilities(self, pattern_range):
+        if self.visible:
+            for ind, line_item in enumerate(self.line_items):
+                data = line_item.getData()
+                position = data[0][0]
+                if position >= pattern_range[0] and position <= pattern_range[1]:
+                    if not self.line_visible[ind]:
+                        self.plot_item.addItem(line_item)
+                        self.line_visible[ind] = True
+                else:
+                    if self.line_visible[ind]:
+                        self.plot_item.removeItem(line_item)
+                        self.line_visible[ind] = False
+
+    def set_color(self, color):
+        self.pen = pg.mkPen(color=color, width=1.3, style=QtCore.Qt.SolidLine)
+        for line_item in self.line_items:
+            line_item.setPen(self.pen)
+        self.ref_legend_line.setPen(self.pen)
+
+    def hide(self):
+        if self.visible:
+            self.visible = False
+            for ind, line_item in enumerate(self.line_items):
+                if self.line_visible[ind]:
+                    self.plot_item.removeItem(line_item)
+
+    def show(self):
+        if not self.visible:
+            self.visible = True
+            for ind, line_item in enumerate(self.line_items):
+                if self.line_visible[ind]:
+                    self.plot_item.addItem(line_item)
+
+    def remove(self):
+        for ind, item in enumerate(self.line_items):
+            if self.line_visible[ind]:
+                self.plot_item.removeItem(item)
 
 
 mask_pen = QtGui.QPen(QtGui.QColor(255, 255, 255), 0.5)

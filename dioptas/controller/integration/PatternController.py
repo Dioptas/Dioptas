@@ -28,6 +28,7 @@ from ...model.util.calc import convert_units
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
+from ...widgets.integration import IntegrationWidget
 
 
 class PatternController(object):
@@ -286,7 +287,7 @@ class PatternController(object):
             self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
 
     def pattern_auto_range_btn_click_callback(self):
-        self.widget.pattern_widget.auto_level = self.widget.pattern_auto_range_btn.isChecked()
+        self.widget.integration_pattern_widget.pattern_view.auto_range = self.widget.pattern_auto_range_btn.isChecked()
 
     def update_line_position(self, previous_unit, new_unit):
         cur_line_pos = self.widget.pattern_widget.pos_line.getPos()[0]
