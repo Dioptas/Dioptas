@@ -429,7 +429,7 @@ class ProjectSaveLoadTest(QtTest):
         self.save_and_load_configuration(self.prepare_file_browsing)
         with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                           np.ones((1001,)))):
-            click_button(self.widget.integration_widget.next_img_btn)
+            click_button(self.widget.integration_widget.img_step_file.next_btn)
             self.assertEqual(str(self.widget.integration_widget.img_filename_txt.text()),
                              'image_002.tif')
 
