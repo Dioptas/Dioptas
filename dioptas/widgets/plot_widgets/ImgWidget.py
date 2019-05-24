@@ -512,14 +512,14 @@ class CakePhasePlot(object):
         self.plot_item.addItem(self.line_items[-1])
         self.plot_item.blockSignals(False)
 
-    def remove_line(self, ind=-1):
+    def delete_line(self, ind=-1):
         self.plot_item.removeItem(self.line_items[ind])
         del self.line_items[ind]
         del self.line_visible[ind]
 
     def clear_lines(self):
         for _ in range(len(self.line_items)):
-            self.remove_line()
+            self.delete_line()
 
     def update_lines(self, positions, intensities):
         """
@@ -535,7 +535,8 @@ class CakePhasePlot(object):
         for ind, intensity in enumerate(intensities):
             self.line_items[ind].setValue(positions[ind])
 
-        self.update_pen()
+        if len(self.intensities):
+            self.update_pen()
 
     def update_visibilities(self):
         """
@@ -562,6 +563,10 @@ class CakePhasePlot(object):
         """
         if color is not None:
             self.color = color
+
+        if not len(self.intensities):
+            return
+
         intensities = np.array(self.intensities)
         line_scaling = intensities / np.max(intensities)
         line_alphas = (line_scaling * 0.4 + 0.3) * 255

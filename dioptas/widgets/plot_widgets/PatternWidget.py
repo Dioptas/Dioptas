@@ -500,14 +500,14 @@ class PhasePlot(object):
         self.plot_item.addItem(self.line_items[-1])
         self.plot_item.blockSignals(False)
 
-    def remove_line(self, ind=-1):
+    def delete_line(self, ind=-1):
         self.plot_item.removeItem(self.line_items[ind])
         del self.line_items[ind]
         del self.line_visible[ind]
 
     def clear_lines(self):
         for dummy_ind in range(len(self.line_items)):
-            self.remove_line()
+            self.delete_line()
 
     def update_intensities(self, positions, intensities, baseline=0):
         if self.visible:

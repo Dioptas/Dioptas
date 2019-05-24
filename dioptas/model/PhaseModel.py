@@ -107,9 +107,9 @@ class PhaseModel(QtCore.QObject):
     def reload(self, ind):
         self.clear_reflections(ind)
         self.phases[ind].reload_file()
-        self.get_lines_d(ind)
-        for _ in range(len(self.reflections[ind])):
+        for _ in range(len(self.phases[ind].reflections)):
             self.reflection_added.emit(ind)
+        self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
     def set_pressure(self, ind, pressure):
@@ -229,10 +229,11 @@ class PhaseModel(QtCore.QObject):
         self.phases[phase_ind].delete_reflection(reflection_ind)
         self.get_lines_d(phase_ind)
         self.reflection_deleted.emit(phase_ind, reflection_ind)
+        self.phase_changed.emit(phase_ind)
 
     def delete_multiple_reflections(self, phase_ind, indices):
         indices = np.array(sorted(indices))
-        for reflection_ind in range(len(indices)):
+        for reflection_ind in indices:
             self.delete_reflection(phase_ind, reflection_ind)
             indices -= 1
 
@@ -249,6 +250,8 @@ class PhaseModel(QtCore.QObject):
         :type reflection: jcpds_reflection
         """
         self.phases[phase_ind].reflections[reflection_ind] = reflection
+        self.phases[phase_ind].params['modified'] = True
+        self.phases[phase_ind].compute_d0()
         self.phases[phase_ind].compute_d()
         self.get_lines_d(phase_ind)
         self.phase_changed.emit(phase_ind)

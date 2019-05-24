@@ -172,7 +172,7 @@ class JcpdsEditorController(QtCore.QObject):
 
     def phase_changed(self, ind):
         self.jcpds_widget.show_jcpds(self.phase_model.phases[ind],
-                                     wavelength=self.model.calibration_model.wavelength)
+                                     wavelength=self.model.calibration_model.wavelength*1e10)
 
     def update_filename(self):
         self.jcpds_widget.filename_txt.setText(self.jcpds_phase.filename)

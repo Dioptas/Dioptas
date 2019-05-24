@@ -151,3 +151,29 @@ class PhaseInPatternControllerTest(QtTest):
         expected_maximum_height = pattern_y_max_in_range - pattern_view_range[1][0]
 
         self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
+
+    def test_add_reflection(self):
+        pattern_view = self.widget.pattern_widget
+        self.load_phase('au_Anderson.jcpds')
+        num_line_items = len(pattern_view.phases[0].line_items)
+        self.model.phase_model.add_reflection(0)
+        self.assertEqual(len(pattern_view.phases[0].line_items),
+                         num_line_items+1)
+
+    def test_delete_reflection(self):
+        pattern_view = self.widget.pattern_widget
+        self.load_phase('au_Anderson.jcpds')
+        num_line_items = len(pattern_view.phases[0].line_items)
+        self.model.phase_model.delete_reflection(0, 0)
+        self.assertEqual(len(pattern_view.phases[0].line_items),
+                         num_line_items-1)
+
+    def test_reload_phase(self):
+        self.load_phase('au_Anderson.jcpds')
+        self.model.phase_model.reload(0)
+
+    def test_reload_phase_after_deleting_a_reflection(self):
+        self.load_phase('au_Anderson.jcpds')
+        self.model.phase_model.delete_reflection(0, 0)
+        self.model.phase_model.reload(0)
+

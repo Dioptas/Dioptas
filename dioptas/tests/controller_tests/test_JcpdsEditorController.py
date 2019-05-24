@@ -179,10 +179,16 @@ class JcpdsEditorControllerTest(QtTest):
         col = 0
         row = 1
 
+        previous_d0 = self.phase_model.phases[5].reflections[1].d
+        print(previous_d0)
+
         self.jcpds_widget.reflection_table.item(row, col).setText("3")
         self.jcpds_widget.reflection_table.cellChanged.emit(row, col)
 
         self.assertEqual(self.phase_model.phases[5].reflections[1].h, 3)
+        print(self.phase_model.phases[5].reflections[1].d)
+        self.assertNotEqual(self.phase_model.phases[5].reflections[1].d,
+                            previous_d0)
 
     def test_reload_phase(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)

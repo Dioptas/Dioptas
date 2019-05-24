@@ -54,6 +54,9 @@ class PhaseInCakeController(object):
         self.phase_model.phase_changed.connect(self.update_phase_color)
         self.phase_model.phase_changed.connect(self.update_phase_visible)
 
+        self.phase_model.reflection_added.connect(self.reflection_added)
+        self.phase_model.reflection_deleted.connect(self.reflection_deleted)
+
     def get_phase_position_and_intensities(self, ind, clip=True):
         """
         Obtains the positions and intensities for lines of a phase with an index ind within the cake view.
@@ -110,4 +113,10 @@ class PhaseInCakeController(object):
             self.img_view_widget.show_cake_phase(ind)
         else:
             self.img_view_widget.hide_cake_phase(ind)
+
+    def reflection_added(self, ind):
+        self.img_view_widget.phases[ind].add_line()
+
+    def reflection_deleted(self, phase_ind, reflection_ind):
+        self.img_view_widget.phases[phase_ind].delete_line(reflection_ind)
 
