@@ -181,3 +181,17 @@ class JcpdsEditorControllerTest(QtTest):
         self.jcpds_widget.reflection_table.cellChanged.emit(row, col)
 
         self.assertEqual(self.phase_model.phases[5].reflections[1].h, 3)
+
+    def test_reload_phase(self):
+        num_phase_reflections = len(self.phase_model.phases[5].reflections)
+        self.phase_model.delete_reflection(5, 0)
+        self.phase_model.delete_reflection(5, 0)
+        self.assertEqual(len(self.phase_model.reflections[5]), num_phase_reflections-2)
+
+        previous_a = self.jcpds_widget.lattice_a_sb.value()
+        self.jcpds_widget.lattice_a_sb.setValue(3)
+
+        click_button(self.jcpds_widget.reload_file_btn)
+
+        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), num_phase_reflections)
+        self.assertEqual(self.jcpds_widget.lattice_a_sb.value(), previous_a)

@@ -39,6 +39,7 @@ class PhaseModel(QtCore.QObject):
     phase_added = QtCore.Signal()
     phase_removed = QtCore.Signal(int)  # phase ind
     phase_changed = QtCore.Signal(int)  # phase ind
+    phase_reloaded = QtCore.Signal(int) # phase ind
 
     reflection_added = QtCore.Signal(int)
     reflection_deleted = QtCore.Signal(int, int)  # phase index, reflection index
@@ -98,6 +99,14 @@ class PhaseModel(QtCore.QObject):
         del self.phase_colors[ind]
         del self.phase_visible[ind]
         self.phase_removed.emit(ind)
+
+    def reload(self, ind):
+        self.clear_reflections(ind)
+        self.phases[ind].reload_file()
+        self.get_lines_d(ind)
+        for _ in range(len(self.reflections[ind])):
+            self.reflection_added.emit(ind)
+        self.phase_changed.emit(ind)
 
     def set_pressure(self, ind, pressure):
         if self.same_conditions:
@@ -209,10 +218,12 @@ class PhaseModel(QtCore.QObject):
 
     def add_reflection(self, ind):
         self.phases[ind].add_reflection()
+        self.get_lines_d(ind)
         self.reflection_added.emit(ind)
 
     def delete_reflection(self, phase_ind, reflection_ind):
         self.phases[phase_ind].delete_reflection(reflection_ind)
+        self.get_lines_d(phase_ind)
         self.reflection_deleted.emit(phase_ind, reflection_ind)
 
     def delete_multiple_reflections(self, phase_ind, indices):

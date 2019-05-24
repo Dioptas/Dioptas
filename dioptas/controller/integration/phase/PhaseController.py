@@ -95,16 +95,6 @@ class PhaseController(object):
         self.model.phase_model.phase_changed.connect(self.phase_changed)
         self.model.phase_model.phase_removed.connect(self.phase_removed)
 
-        # JCPDS Editor
-        # self.jcpds_editor_controller.canceled_editor.connect(self.jcpds_editor_reload_phase)
-        #
-        # self.jcpds_editor_controller.lattice_param_changed.connect(self.update_cur_phase_parameters)
-        # self.jcpds_editor_controller.eos_param_changed.connect(self.update_cur_phase_parameters)
-        #
-        # self.jcpds_editor_controller.reflection_line_removed.connect(self.jcpds_editor_reflection_removed)
-        # self.jcpds_editor_controller.reflection_line_edited.connect(self.update_cur_phase_parameters)
-        # self.jcpds_editor_controller.reflection_line_cleared.connect(self.jcpds_editor_reflection_cleared)
-
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
 
@@ -285,24 +275,3 @@ class PhaseController(object):
             return 'q'
         elif self.integration_widget.pattern_d_btn.isChecked():
             return 'd'
-
-    ###JCPDS editor callbacks:
-
-    def jcpds_editor_reload_phase(self, jcpds):
-        cur_ind = self.phase_widget.get_selected_phase_row()
-        self.model.phase_model.phases[cur_ind] = jcpds
-        self.pattern_widget.phases[cur_ind].clear_lines()
-        for dummy_line_ind in self.model.phase_model.phases[cur_ind].reflections:
-            self.pattern_widget.phases[cur_ind].add_line()
-        self.update_cur_phase_parameters()
-
-    def jcpds_editor_reflection_added(self):
-        cur_ind = self.phase_widget.get_selected_phase_row()
-        self.pattern_widget.phases[cur_ind].add_line()
-        self.img_view_widget.phases[cur_ind].add_line()
-        self.model.phase_model.get_lines_d(cur_ind)
-
-    def jcpds_editor_reflection_cleared(self):
-        cur_phase_ind = self.phase_widget.get_selected_phase_row()
-        self.pattern_widget.phases[cur_phase_ind].clear_lines()
-        self.img_view_widget.phases[cur_phase_ind].clear_lines()
