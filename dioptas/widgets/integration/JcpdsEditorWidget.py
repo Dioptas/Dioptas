@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
 
 from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
@@ -286,8 +286,12 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             else:
                 two_theta0 = convert_d_to_two_theta(reflection.d0, wavelength)
                 two_theta = convert_d_to_two_theta(reflection.d, wavelength)
-                q0 = 2.0 * np.pi / reflection.d0
-                q = 2.0 * np.pi / reflection.d
+                if reflection.d0 > 0:
+                    q0 = 2.0 * np.pi / reflection.d0
+                    q = 2.0 * np.pi / reflection.d
+                else:
+                    q = 0
+                    q0 = 0
                 self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
                                              reflection.intensity, reflection.d0, reflection.d,
                                              two_theta0, two_theta, q0, q)
@@ -481,8 +485,8 @@ class TextDoubleDelegate(QtWidgets.QStyledItemDelegate):
 
     def setEditorData(self, parent, index):
         value = index.model().data(index, QtCore.Qt.EditRole)
-        if value.toString() != '':
-            self.editor.setText("{0:g}".format(float(str(value.toString()))))
+        if value != '':
+            self.editor.setText("{0:g}".format(float(str(value))))
 
     def setModelData(self, parent, model, index):
         value = self.editor.text()

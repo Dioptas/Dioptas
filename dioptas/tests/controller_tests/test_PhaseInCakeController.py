@@ -28,7 +28,6 @@ from ...controller.integration import PhaseInCakeController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
-
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
@@ -105,3 +104,22 @@ class PhaseInCakeControllerTest(QtTest):
         self.model.phase_model.set_color(0, (230, 22, 0))
         self.assertNotEqual(green_value,
                             self.widget.img_widget.phases[0].line_items[0].pen.color().green())
+
+    def test_reflection_added(self):
+        self.load_phase("pt.jcpds")
+        num_line_items = len(self.widget.img_widget.phases[0].line_items)
+
+        self.model.phase_model.add_reflection(0)
+        self.assertEqual(len(self.widget.img_widget.phases[0].line_items),
+                         num_line_items + 1)
+
+    def test_delete_reflection(self):
+        self.load_phase("pt.jcpds")
+        num_line_items = len(self.widget.img_widget.phases[0].line_items)
+        self.model.phase_model.delete_reflection(0, 0)
+        self.assertEqual(len(self.widget.img_widget.phases[0].line_items),
+                         num_line_items - 1)
+
+    def test_reload_phase(self):
+        self.load_phase('au_Anderson.jcpds')
+        self.model.phase_model.reload(0)

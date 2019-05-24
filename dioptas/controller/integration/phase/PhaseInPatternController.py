@@ -54,6 +54,9 @@ class PhaseInPatternController(object):
         self.model.phase_model.phase_changed.connect(self.update_phase_color)
         self.model.phase_model.phase_changed.connect(self.update_phase_visible)
 
+        self.model.phase_model.reflection_added.connect(self.reflection_added)
+        self.model.phase_model.reflection_deleted.connect(self.reflection_deleted)
+
         # pattern signals
         self.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_lines)
         self.pattern_widget.pattern_plot.autoBtn.clicked.connect(self.update_all_phase_lines)
@@ -128,6 +131,13 @@ class PhaseInPatternController(object):
             self.pattern_widget.show_phase(ind)
         else:
             self.pattern_widget.hide_phase(ind)
+
+    def reflection_added(self, ind):
+        self.pattern_widget.phases[ind].add_line()
+        self.update_phase_lines(ind)
+
+    def reflection_deleted(self, phase_ind, reflection_ind):
+        self.pattern_widget.phases[phase_ind].delete_line(reflection_ind)
 
     def get_unit(self):
         """
