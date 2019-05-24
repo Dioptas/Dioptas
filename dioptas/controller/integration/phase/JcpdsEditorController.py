@@ -162,7 +162,7 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.reflection_table.horizontalHeader().sectionClicked.connect(self.horizontal_header_clicked)
         #
         # Button fields
-        # self.jcpds_widget.reload_file_btn.clicked.connect(self.reload_file_btn_clicked)
+        self.jcpds_widget.reload_file_btn.clicked.connect(self.reload_file_btn_clicked)
         # self.jcpds_widget.save_as_btn.clicked.connect(self.save_as_btn_clicked)
         # self.jcpds_widget.ok_btn.clicked.connect(self.ok_btn_clicked)
         # self.jcpds_widget.cancel_btn.clicked.connect(self.cancel_btn_clicked)
@@ -345,10 +345,7 @@ class JcpdsEditorController(QtCore.QObject):
         fp.close()
 
     def reload_file_btn_clicked(self):
-        self.jcpds_phase.reload_file()
-        self.canceled_editor.emit(self.jcpds_phase)
-        self.phase_modified.emit()
-        self.show_phase(self.jcpds_phase)
+        self.phase_model.reload(self.phase_ind)
 
     def ok_btn_clicked(self):
         self.close_view()

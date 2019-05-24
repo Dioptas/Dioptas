@@ -82,3 +82,18 @@ class PhaseModelTest(unittest.TestCase):
         # since there is no thermal expansion defined the temperature should stay at ambient
         self.assertEqual(self.phase_model.phases[0].params['temperature'], 298)
 
+    def test_reload_phase(self):
+        self.load_phase('ar.jcpds')
+        num_refl = len(self.phase_model.reflections[0])
+        self.phase_model.delete_reflection(0, 0)
+        self.phase_model.delete_reflection(0, 0)
+        self.phase_model.set_pressure(0, 5)
+        old_a0 = self.phase_model.phases[0].params['a0']
+        self.phase_model.set_param(0, 'a0', 5)
+
+        self.phase_model.reload(0)
+
+        self.assertEqual(len(self.phase_model.reflections[0]), num_refl)
+        self.assertEqual(self.phase_model.phases[0].params['a0'], old_a0)
+        self.assertEqual(self.phase_model.phases[0].params['pressure'], 5)
+
