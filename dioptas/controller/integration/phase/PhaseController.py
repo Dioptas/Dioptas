@@ -152,6 +152,10 @@ class PhaseController(object):
                                     '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
 
     def phase_changed(self, ind):
+        phase_name = get_base_name(self.model.phase_model.phases[ind].filename)
+        if self.model.phase_model.phases[ind].params['modified']:
+            phase_name += '*'
+        self.phase_widget.rename_phase(ind, phase_name)
         self.phase_widget.set_phase_pressure(ind, self.model.phase_model.phases[ind].params['pressure'])
         self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
         self.phase_widget.temperature_sbs[ind].setEnabled(self.model.phase_model.phases[ind].has_thermal_expansion())

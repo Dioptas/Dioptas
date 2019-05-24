@@ -39,7 +39,7 @@ class PhaseModel(QtCore.QObject):
     phase_added = QtCore.Signal()
     phase_removed = QtCore.Signal(int)  # phase ind
     phase_changed = QtCore.Signal(int)  # phase ind
-    phase_reloaded = QtCore.Signal(int) # phase ind
+    phase_reloaded = QtCore.Signal(int)  # phase ind
 
     reflection_added = QtCore.Signal(int)
     reflection_deleted = QtCore.Signal(int, int)  # phase index, reflection index
@@ -91,6 +91,10 @@ class PhaseModel(QtCore.QObject):
         self.get_lines_d(-1)
         self.phase_added.emit()
         self.phase_changed.emit(len(self.phases) - 1)
+
+    def save_phase_as(self, ind, filename):
+        self.phases[ind].save_file(filename)
+        self.phase_changed.emit(ind)
 
     def del_phase(self, ind):
         del self.phases[ind]

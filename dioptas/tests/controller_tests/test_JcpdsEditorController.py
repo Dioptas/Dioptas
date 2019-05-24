@@ -21,11 +21,12 @@
 from ..utility import QtTest
 import os
 import gc
+from qtpy import QtWidgets
 
 from mock import MagicMock
 import numpy as np
 
-from ..utility import click_button, enter_value_into_text_field
+from ..utility import click_button, enter_value_into_text_field, delete_if_exists
 from ...controller.integration import JcpdsEditorController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
@@ -66,6 +67,7 @@ class JcpdsEditorControllerTest(QtTest):
         del self.widget
         self.model.delete_configurations()
         del self.model
+        delete_if_exists(os.path.join(jcpds_path, 'dummy.jcpds'))
         gc.collect()
 
     # Utility Functions
@@ -195,3 +197,9 @@ class JcpdsEditorControllerTest(QtTest):
 
         self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), num_phase_reflections)
         self.assertEqual(self.jcpds_widget.lattice_a_sb.value(), previous_a)
+
+    def test_save_as(self):
+        filename = os.path.join(jcpds_path, 'dummy.jcpds')
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
+        click_button(self.jcpds_widget.save_as_btn)
+        self.assertEqual(self.jcpds_widget.filename_txt.text(),  filename)
