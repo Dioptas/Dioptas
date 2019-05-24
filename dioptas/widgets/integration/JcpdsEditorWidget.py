@@ -166,8 +166,6 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self._button_layout = QtWidgets.QHBoxLayout()
         self.save_as_btn = FlatButton('Save As')
         self.reload_file_btn = FlatButton('Reload File')
-        self.ok_btn = FlatButton('Ok')
-        self.cancel_btn = FlatButton('Cancel')
 
         self._button_layout.addWidget(self.save_as_btn)
         self._button_layout.addWidget(self.reload_file_btn)

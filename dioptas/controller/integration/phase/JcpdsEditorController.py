@@ -79,13 +79,6 @@ class JcpdsEditorController(QtCore.QObject):
                 wavelength = self.model.calibration_model.wavelength * 1e10
         self.jcpds_widget.show_jcpds(jcpds_phase, wavelength)
 
-    def show_view(self):
-        self.active = True
-        self.jcpds_widget.raise_widget()
-
-    def close_view(self):
-        self.active = False
-        self.jcpds_widget.close()
 
     def create_connections(self):
         # Phase Widget Signals
@@ -164,11 +157,9 @@ class JcpdsEditorController(QtCore.QObject):
         # Button fields
         self.jcpds_widget.reload_file_btn.clicked.connect(self.reload_file_btn_clicked)
         # self.jcpds_widget.save_as_btn.clicked.connect(self.save_as_btn_clicked)
-        # self.jcpds_widget.ok_btn.clicked.connect(self.ok_btn_clicked)
-        # self.jcpds_widget.cancel_btn.clicked.connect(self.cancel_btn_clicked)
         #
         # # Closing and opening
-        # self.jcpds_widget.closeEvent = self.view_closed
+        self.jcpds_widget.closeEvent = self.view_closed
 
     def edit_btn_callback(self):
         self.phase_ind = self.phase_widget.get_selected_phase_row()
@@ -347,13 +338,13 @@ class JcpdsEditorController(QtCore.QObject):
     def reload_file_btn_clicked(self):
         self.phase_model.reload(self.phase_ind)
 
-    def ok_btn_clicked(self):
-        self.close_view()
+    def show_view(self):
+        self.active = True
+        self.jcpds_widget.raise_widget()
 
-    def cancel_btn_clicked(self):
+    def close_view(self):
+        self.active = False
         self.jcpds_widget.close()
-        self.phase_model.phases[self.phase_ind] = deepcopy(self.start_jcpds_phase)
-        self.phase_model.phase_changed.emit(self.phase_ind)
 
     def view_closed(self, _):
         self.close_view()
