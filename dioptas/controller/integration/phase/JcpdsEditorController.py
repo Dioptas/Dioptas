@@ -79,7 +79,6 @@ class JcpdsEditorController(QtCore.QObject):
                 wavelength = self.model.calibration_model.wavelength * 1e10
         self.jcpds_widget.show_jcpds(jcpds_phase, wavelength)
 
-
     def create_connections(self):
         # Phase Widget Signals
         self.phase_widget.edit_btn.clicked.connect(self.edit_btn_callback)
@@ -156,7 +155,7 @@ class JcpdsEditorController(QtCore.QObject):
         #
         # Button fields
         self.jcpds_widget.reload_file_btn.clicked.connect(self.reload_file_btn_clicked)
-        # self.jcpds_widget.save_as_btn.clicked.connect(self.save_as_btn_clicked)
+        self.jcpds_widget.save_as_btn.clicked.connect(self.save_as_btn_clicked)
         #
         # # Closing and opening
         self.jcpds_widget.closeEvent = self.view_closed
@@ -315,12 +314,10 @@ class JcpdsEditorController(QtCore.QObject):
 
             if filename != '':
                 if filename.endswith('.jcpds'):
-                    self.jcpds_phase.save_file(filename)
+                    self.phase_model.save_phase_as(self.phase_ind, filename)
                 elif filename.endswith('.txt'):
                     self.export_table_data(filename)
             self.show_phase(self.jcpds_phase)
-            self.lattice_param_changed.emit()
-            self.phase_modified.emit()
 
     def export_table_data(self, filename):
         fp = open(filename, 'w', encoding='utf-8')
