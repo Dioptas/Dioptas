@@ -170,8 +170,6 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self._button_layout.addWidget(self.save_as_btn)
         self._button_layout.addWidget(self.reload_file_btn)
         self._button_layout.addSpacerItem(HorizontalSpacerItem())
-        self._button_layout.addWidget(self.ok_btn)
-        self._button_layout.addWidget(self.cancel_btn)
 
         self._layout.addWidget(self.lattice_parameters_gb)
         self._layout.addLayout(self._body_layout)
