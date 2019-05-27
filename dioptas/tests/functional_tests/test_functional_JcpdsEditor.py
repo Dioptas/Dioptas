@@ -425,6 +425,8 @@ class JcpdsEditorFunctionalTest(QtTest):
         prev_line_pos = self.get_phase_line_position(2, 0)
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 3.4)
         QtWidgets.QApplication.processEvents()
+
+        self.assertEqual(self.jcpds_editor_controller.jcpds_phase.params['a0'], 3.4)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         # now he decides to have full control, changes the structure to TRICLINIC and plays with all parameters:
@@ -507,7 +509,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         click_button(self.phase_controller.phase_widget.add_btn)
 
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_widget = self.jcpds_editor_controller.widget
+        self.jcpds_widget = self.jcpds_editor_controller.jcpds_widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
@@ -588,7 +590,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         self.phase_controller = self.main_controller.integration_controller.phase_controller
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_widget = self.jcpds_editor_controller.widget
+        self.jcpds_widget = self.jcpds_editor_controller.jcpds_widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 
@@ -616,7 +618,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
         self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_widget = self.jcpds_editor_controller.widget
+        self.jcpds_widget = self.jcpds_editor_controller.jcpds_widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
 

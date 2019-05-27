@@ -74,6 +74,7 @@ class JcpdsEditorController(QtCore.QObject):
     def show_phase(self, jcpds_phase=None, wavelength=None):
         self.start_jcpds_phase = deepcopy(jcpds_phase)
         self.jcpds_phase = jcpds_phase
+        self.phase_ind = self.phase_model.phases.index(jcpds_phase)
         if wavelength is None:
             if self.model.calibration_model is not None:
                 wavelength = self.model.calibration_model.wavelength * 1e10
@@ -161,9 +162,9 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.closeEvent = self.view_closed
 
     def edit_btn_callback(self):
-        self.phase_ind = self.phase_widget.get_selected_phase_row()
-        if self.phase_ind >= 0:
-            self.show_phase(self.model.phase_model.phases[self.phase_ind])
+        selected_row = self.phase_widget.get_selected_phase_row()
+        if selected_row >= 0:
+            self.show_phase(self.model.phase_model.phases[selected_row])
             self.show_view()
 
     def phase_selection_changed(self, row, *_):
