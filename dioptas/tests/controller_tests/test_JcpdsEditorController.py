@@ -89,6 +89,10 @@ class JcpdsEditorControllerTest(QtTest):
     def send_phase_tw_select_signal(self, ind):
         self.phase_widget.phase_tw.currentCellChanged.emit(ind, 0, 0, 0)
 
+    def set_symmetry(self, symmetry):
+        self.jcpds_widget.symmetry_cb.setCurrentIndex(self.jcpds_widget.symmetries.index(symmetry))
+        QtWidgets.QApplication.processEvents()
+
     # Tests
     #######################
     def test_edit_button_shows_correct_phase(self):
@@ -209,3 +213,15 @@ class JcpdsEditorControllerTest(QtTest):
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
         click_button(self.jcpds_widget.save_as_btn)
         self.assertEqual(self.jcpds_widget.filename_txt.text(),  filename)
+
+    def test_changing_symmetry(self):
+        print(self.controller.jcpds_phase.params['symmetry'])
+        self.assertTrue(self.jcpds_widget.lattice_a_sb.isEnabled())
+        self.assertFalse(self.jcpds_widget.lattice_b_sb.isEnabled())
+        self.assertTrue(self.jcpds_widget.lattice_c_sb.isEnabled())
+
+        self.set_symmetry('orthorhombic')
+        self.assertEqual(self.controller.jcpds_phase.params['symmetry'], 'ORTHORHOMBIC')
+        self.assertTrue(self.jcpds_widget.lattice_a_sb.isEnabled())
+        self.assertTrue(self.jcpds_widget.lattice_b_sb.isEnabled())
+        self.assertTrue(self.jcpds_widget.lattice_c_sb.isEnabled())
