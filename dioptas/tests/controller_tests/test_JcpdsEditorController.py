@@ -225,3 +225,9 @@ class JcpdsEditorControllerTest(QtTest):
         self.assertTrue(self.jcpds_widget.lattice_a_sb.isEnabled())
         self.assertTrue(self.jcpds_widget.lattice_b_sb.isEnabled())
         self.assertTrue(self.jcpds_widget.lattice_c_sb.isEnabled())
+
+    def test_select_row_in_phase_widget(self):
+        self.controller.phase_widget.phase_tw.setRowCount(6)
+        self.controller.phase_widget.phase_tw.selectRow(2)
+        QtWidgets.QApplication.processEvents()
+        self.assertEqual(self.controller.phase_ind, 2)
