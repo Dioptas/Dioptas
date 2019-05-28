@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +26,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 if __version__ == "0+unknown":
-    __version__ = "0.4.1"
+    __version__ = "0.5.0"
 
 import sys
 import os
@@ -60,7 +62,6 @@ def excepthook(exc_type, exc_value, traceback_obj):
     :param traceback_obj: traceback object
     :return:
     """
-
     separator = '-' * 80
     log_file = "error.log"
     notice = \
@@ -95,7 +96,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
 
 def main():
     app = QtWidgets.QApplication([])
-   # sys.excepthook = excepthook
+    # sys.excepthook = excepthook
     from sys import platform as _platform
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))

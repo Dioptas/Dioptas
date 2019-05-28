@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -126,9 +128,9 @@ class ImageController(object):
         """
         self.model.transparent_mask = self.widget.mask_transparent_cb.isChecked()
         if self.model.transparent_mask:
-            self.widget.img_widget.set_color([255, 0, 0, 100])
+            self.widget.img_widget.set_mask_color([255, 0, 0, 100])
         else:
-            self.widget.img_widget.set_color([255, 0, 0, 255])
+            self.widget.img_widget.set_mask_color([255, 0, 0, 255])
 
     def create_signals(self):
         self.model.configuration_selected.connect(self.update_gui_from_configuration)
@@ -156,6 +158,7 @@ class ImageController(object):
         self.connect_click_function(self.widget.img_roi_btn, self.click_roi_btn)
         self.connect_click_function(self.widget.img_mask_btn, self.change_mask_mode)
         self.connect_click_function(self.widget.img_mode_btn, self.change_view_mode)
+        self.connect_click_function(self.widget.img_phases_btn, self.toggle_show_phases)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
@@ -499,6 +502,16 @@ class ImageController(object):
         elif str(self.widget.img_mode_btn.text()) == 'Image':
             self.activate_image_mode()
 
+    def toggle_show_phases(self):
+        if str(self.widget.img_phases_btn.text()) == 'Show Phases':
+            self.widget.integration_image_widget.img_view.show_all_visible_cake_phases(
+                self.widget.phase_widget.phase_show_cbs)
+            self.widget.img_phases_btn.setText('Hide Phases')
+            self.model.enabled_phases_in_cake.emit()
+        elif str(self.widget.img_phases_btn.text()) == 'Hide Phases':
+            self.widget.integration_image_widget.img_view.hide_all_cake_phases()
+            self.widget.img_phases_btn.setText('Show Phases')
+
     def activate_cake_mode(self):
         if not self.model.current_configuration.auto_integrate_cake:
             self.model.current_configuration.auto_integrate_cake = True
@@ -532,15 +545,23 @@ class ImageController(object):
         self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi) / 2)
         self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi) / 2)
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
+        self.widget.img_phases_btn.setVisible(True)
+        if self.widget.img_phases_btn.isChecked():
+            self.widget.integration_image_widget.img_view.show_all_visible_cake_phases(
+                self.widget.phase_widget.phase_show_cbs)
+        else:
+            self.widget.integration_image_widget.img_view.hide_all_cake_phases()
 
     def activate_image_mode(self):
         if self.model.current_configuration.auto_integrate_cake:
             self.model.current_configuration.auto_integrate_cake = False
 
         self.widget.cake_shift_azimuth_sl.setVisible(False)
+        self.widget.img_phases_btn.setVisible(False)
 
         self._update_image_line_pos()
         self._update_image_mouse_click_pos()
+        self.widget.integration_image_widget.img_view.hide_all_cake_phases()
         self.widget.img_widget.deactivate_vertical_line()
         self.widget.img_widget.activate_circle_scatter()
         self.widget.img_widget.activate_mask()
@@ -686,10 +707,7 @@ class ImageController(object):
         self.update_cake_x_axis()
 
     def show_img_mouse_position(self, x, y):
-        if self.widget.img_mode == "Image":
-            img_shape = self.model.img_data.shape
-        elif self.widget.img_mode == "Cake":
-            img_shape = self.model.cake_data.shape
+        img_shape = self.widget.img_widget.img_data.shape
 
         if x > 0 and y > 0 and x < img_shape[1] - 1 and y < img_shape[0] - 1:
             x_pos_string = 'X:  %4d' % x
@@ -876,6 +894,7 @@ class ImageController(object):
             if filename.endswith('.png'):
                 if self.widget.img_mode == 'Cake':
                     self.widget.img_widget.deactivate_vertical_line()
+                    self.widget.img_widget.deactivate_mouse_click_item()
                 elif self.widget.img_mode == 'Image':
                     self.widget.img_widget.deactivate_circle_scatter()
                     self.widget.img_widget.deactivate_roi()
@@ -885,6 +904,7 @@ class ImageController(object):
 
                 if self.widget.img_mode == 'Cake':
                     self.widget.img_widget.activate_vertical_line()
+                    self.widget.img_widget.activate_mouse_click_item()
                 elif self.widget.img_mode == 'Image':
                     self.widget.img_widget.activate_circle_scatter()
                     if self.roi_active:

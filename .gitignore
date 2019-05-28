@@ -18,6 +18,7 @@ cloc-1.62.pl
 *.so.dSYM
 *.ui.autosave
 *.coverage
+smooth_bruckner_cython.c
 
 log.txt
 .idea

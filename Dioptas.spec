@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -47,12 +49,46 @@ extra_datas = [
 
 binaries = []
 
+fabio_hiddenimports = [
+   "fabio.edfimage",
+   "fabio.adscimage",
+   "fabio.tifimage",
+   "fabio.marccdimage",
+   "fabio.mar345image",
+   "fabio.fit2dmaskimage",
+   "fabio.brukerimage",
+   "fabio.bruker100image",
+   "fabio.pnmimage",
+   "fabio.GEimage",
+   "fabio.OXDimage",
+   "fabio.dm3image",
+   "fabio.HiPiCimage",
+   "fabio.pilatusimage",
+   "fabio.fit2dspreadsheetimage",
+   "fabio.kcdimage",
+   "fabio.cbfimage",
+   "fabio.xsdimage",
+   "fabio.binaryimage",
+   "fabio.pixiimage",
+   "fabio.raxisimage",
+   "fabio.numpyimage",
+   "fabio.eigerimage",
+   "fabio.hdf5image",
+   "fabio.fit2dimage",
+   "fabio.speimage",
+   "fabio.jpegimage",
+   "fabio.jpeg2kimage",
+   "fabio.mpaimage",
+   "fabio.mrcimage"
+]
+
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
              binaries=binaries,
              datas=extra_datas,
              hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'skimage._shared.geometry',
-                            'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy'],
+                            'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy', 'pywt._extensions._cwt'] +
+                            fabio_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=['PyQt4', 'PySide', 'pyepics'],
