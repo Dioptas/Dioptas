@@ -98,9 +98,6 @@ class PhaseInCakeController(object):
         self.img_view_widget.add_cake_phase(cake_line_positions, cake_line_intensities,
                                             self.phase_model.phase_colors[-1])
 
-        if self.integration_widget.img_mode != 'Cake' and not self.integration_widget.img_phases_btn.isChecked():
-            self.img_view_widget.phases[-1].hide()
-
     def update_phase_lines(self, ind):
         cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(ind)
         self.img_view_widget.update_phase_intensities(ind, cake_line_positions, cake_line_intensities)
@@ -109,7 +106,8 @@ class PhaseInCakeController(object):
         self.img_view_widget.set_cake_phase_color(ind, self.model.phase_model.phase_colors[ind])
 
     def update_phase_visible(self, ind):
-        if self.phase_model.phase_visible[ind]:
+        if self.phase_model.phase_visible[ind] and self.integration_widget.img_mode == 'Cake' and \
+                self.integration_widget.img_phases_btn.isChecked():
             self.img_view_widget.show_cake_phase(ind)
         else:
             self.img_view_widget.hide_cake_phase(ind)
@@ -119,4 +117,3 @@ class PhaseInCakeController(object):
 
     def reflection_deleted(self, phase_ind, reflection_ind):
         self.img_view_widget.phases[phase_ind].delete_line(reflection_ind)
-
