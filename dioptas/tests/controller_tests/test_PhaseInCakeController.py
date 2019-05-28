@@ -123,3 +123,8 @@ class PhaseInCakeControllerTest(QtTest):
     def test_reload_phase(self):
         self.load_phase('au_Anderson.jcpds')
         self.model.phase_model.reload(0)
+
+    def test_phases_are_not_shown_in_img_mode(self):
+        self.load_phase('au_Anderson.jcpds')
+        cake_phase = self.widget.img_widget.phases[0]
+        self.assertFalse(cake_phase.visible)
