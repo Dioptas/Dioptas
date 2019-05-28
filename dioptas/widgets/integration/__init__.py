@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,7 +60,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.integration_control_widget)
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
-
 
         self.vertical_splitter_left = QtWidgets.QSplitter(self)
         self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
@@ -189,6 +190,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.bkg_pattern_x_min_txt = background_control_widget.x_range_min_txt
         self.bkg_pattern_x_max_txt = background_control_widget.x_range_max_txt
         self.bkg_pattern_inspect_btn = background_control_widget.inspect_btn
+        self.bkg_pattern_save_btn = background_control_widget.save_btn
+        self.bkg_pattern_as_overlay_btn = background_control_widget.as_overlay
 
         options_control_widget = self.integration_control_widget.integration_options_widget
         self.bin_count_txt = options_control_widget.bin_count_txt
@@ -237,6 +240,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn
         self.img_mask_btn = image_widget.mask_btn
+        self.img_phases_btn = image_widget.phases_btn
         self.cake_shift_azimuth_sl = image_widget.cake_shift_azimuth_sl
         self.mask_transparent_cb = image_widget.transparent_cb
         self.img_autoscale_btn = image_widget.autoscale_btn

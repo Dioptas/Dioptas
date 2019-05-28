@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +30,7 @@ from .. import calibrants_path
 from ..widgets.CalibrationWidget import CalibrationWidget
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
+from ..model.CalibrationModel import NotEnoughSpacingsInCalibrant
 
 
 class CalibrationController(object):
@@ -77,6 +80,7 @@ class CalibrationController(object):
         self.widget.refine_btn.clicked.connect(self.refine)
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks_btn_click)
+        self.widget.undo_peaks_btn.clicked.connect(self.undo_peaks_btn_clicked)
 
         self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
         self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
@@ -248,12 +252,13 @@ class CalibrationController(object):
             np.array(self.model.calibration_model.calibrant.get_2th()) / np.pi * 180, '2th_deg', integration_unit,
             wavelength)
         # filter them to only show the ones visible with the current pattern
-        pattern_min = np.min(self.model.pattern.x)
-        pattern_max = np.max(self.model.pattern.x)
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions > pattern_min]
-        calibrant_line_positions = calibrant_line_positions[calibrant_line_positions < pattern_max]
-        self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
-                                                       name=self._calibrants_file_names_list[current_index])
+        if len(self.model.pattern.x) > 0:
+            pattern_min = np.min(self.model.pattern.x)
+            pattern_max = np.max(self.model.pattern.x)
+            calibrant_line_positions = calibrant_line_positions[calibrant_line_positions > pattern_min]
+            calibrant_line_positions = calibrant_line_positions[calibrant_line_positions < pattern_max]
+            self.widget.pattern_widget.plot_vertical_lines(positions=calibrant_line_positions,
+                                                           name=self._calibrants_file_names_list[current_index])
 
     def set_calibrant(self, index):
         """
@@ -327,6 +332,15 @@ class CalibrationController(object):
         self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
+
+    def undo_peaks_btn_clicked(self):
+        """
+        undoes clicked peaks
+        """
+        num_points = self.model.calibration_model.remove_last_peak()
+        self.widget.img_widget.remove_last_scatter_points(num_points)
+        if self.widget.automatic_peak_num_inc_cb.isChecked():
+            self.widget.peak_num_sb.setValue(self.widget.peak_num_sb.value() - 1)
 
     def load_spline_btn_click(self):
         filename = open_file_dialog(self.widget, caption="Load Distortion Spline File",
@@ -482,8 +496,15 @@ class CalibrationController(object):
 
         refinement_canceled = False
         for i in range(num_rings - 2):
-            points = self.model.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
-                                                                       intensity_max, mask)
+            try:
+                points = self.model.calibration_model.search_peaks_on_ring(i + 2, delta_tth, intensity_min_factor,
+                                                                           intensity_max, mask)
+            except NotEnoughSpacingsInCalibrant:
+                QtWidgets.QMessageBox.critical(self.widget,
+                                               'Not enough d-spacings!.',
+                                               'The calibrant file does not contain enough d-spacings.',
+                                               QtWidgets.QMessageBox.Ok)
+                break
             self.widget.peak_num_sb.setValue(i + 4)
             if len(self.model.calibration_model.points):
                 self.plot_points(points)
@@ -515,7 +536,8 @@ class CalibrationController(object):
         if filename is not '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
-            self.update_all()
+            if self.model.img_model.filename != '':
+                self.update_all()
 
     def plot_mask(self):
         """
@@ -533,9 +555,9 @@ class CalibrationController(object):
         :type state: bool
         """
         if state:
-            self.widget.img_widget.set_color([255, 0, 0, 100])
+            self.widget.img_widget.update_pen([255, 0, 0, 100])
         else:
-            self.widget.img_widget.set_color([255, 0, 0, 255])
+            self.widget.img_widget.update_pen([255, 0, 0, 255])
 
     def update_all(self, integrate=True):
         """

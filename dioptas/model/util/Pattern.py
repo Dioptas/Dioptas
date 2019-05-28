@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -182,8 +184,7 @@ class Pattern(QtCore.QObject):
                                        self.auto_background_subtraction_parameters[0],
                                        self.auto_background_subtraction_parameters[1],
                                        self.auto_background_subtraction_parameters[2])
-            self._auto_background_pattern = Pattern(x, y_bkg)
-
+            self._auto_background_pattern = Pattern(x, y_bkg, name='auto_bg_' + self.name)
             y -= y_bkg
 
         if self._smoothing > 0:

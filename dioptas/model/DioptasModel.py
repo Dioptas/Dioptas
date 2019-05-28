@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,6 +44,7 @@ class DioptasModel(QtCore.QObject):
     img_changed = QtCore.Signal()
     pattern_changed = QtCore.Signal()
     cake_changed = QtCore.Signal()
+    enabled_phases_in_cake = QtCore.Signal()
 
     def __init__(self):
         super(DioptasModel, self).__init__()
@@ -181,10 +184,8 @@ class DioptasModel(QtCore.QObject):
                 new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
                                          reflection.attrs['intensity'], reflection.attrs['d'])
             new_jcpds.params['modified'] = bool(phase_group.get('params').attrs['modified'])
-            self.phase_model.phases.append(new_jcpds)
             self.phase_model.phase_files.append(new_jcpds.filename)
-            self.phase_model.reflections.append([])
-            self.phase_model.send_added_signal()
+            self.phase_model.add_jcpds_object(new_jcpds)
 
         # load overlay model
         for ind, overlay_group in f.get('overlays').items():

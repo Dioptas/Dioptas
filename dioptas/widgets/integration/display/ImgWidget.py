@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +29,6 @@ from ..CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndCli
 from .... import icons_path
 
 from .. import CLICKED_COLOR
-
 
 
 class IntegrationImgDisplayWidget(QtWidgets.QWidget):
@@ -72,6 +73,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.mode_btn = FlatButton('Cake')
         self.cake_shift_azimuth_sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.mask_btn = CheckableFlatButton('Mask')
+        self.phases_btn = CheckableFlatButton('Show Phases')
         self.show_background_subtracted_img_btn = CheckableFlatButton('bg')
         self.transparent_cb = QtWidgets.QCheckBox('trans')
         self.autoscale_btn = CheckableFlatButton('AutoScale')
@@ -84,6 +86,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self._control_layout.addWidget(self.mask_btn)
         self._control_layout.addWidget(self.transparent_cb)
         self._control_layout.addWidget(self.show_background_subtracted_img_btn)
+        self._control_layout.addWidget(self.phases_btn)
         self._control_layout.addSpacerItem(HorizontalSpacerItem())
         self._control_layout.addWidget(self.autoscale_btn)
         self._control_layout.addWidget(self.undock_btn)
@@ -102,7 +105,6 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.cake_shift_azimuth_sl.setVisible(False)
         self.show_background_subtracted_img_btn.setVisible(False)
 
-
     def style_widgets(self):
         self.setStyleSheet("""
             #img_frame, #img_position_and_unit_widget, QLabel, QCheckBox {
@@ -110,6 +112,8 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
             }
             """)
         self.autoscale_btn.setChecked(True)
+        self.phases_btn.setChecked(False)
+        self.phases_btn.setVisible(False)
         self.position_and_unit_widget.hide()
 
         self.save_image_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))

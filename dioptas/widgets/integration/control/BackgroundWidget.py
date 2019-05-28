@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-# Dioptas - GUI program for fast processing of 2D X-ray data
-# Copyright (C) 2017  Clemens Prescher (clemens.prescher@gmail.com)
-# Institute for Geology and Mineralogy, University of Cologne
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,11 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets
+import os
+from qtpy import QtWidgets, QtCore, QtGui
 
 from ...CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
-    CheckableFlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, HorizontalSpacerItem, \
+    CheckableFlatButton, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
     DoubleMultiplySpinBoxAlignRight
+from .... import icons_path
 
 
 class BackgroundWidget(QtWidgets.QWidget):
@@ -72,23 +76,30 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.x_range_min_txt = NumberTextField('0')
         self.x_range_max_txt = NumberTextField('50')
         self.inspect_btn = CheckableFlatButton('Inspect')
+        self.save_btn = FlatButton()
+        self.as_overlay = FlatButton('As Overlay')
 
         self._pattern_bkg_layout.addWidget(LabelAlignRight('Smooth Width:'), 0, 0)
         self._pattern_bkg_layout.addWidget(self.smooth_with_sb, 0, 1)
         self._pattern_bkg_layout.addWidget(LabelAlignRight('Iterations:'), 0, 2)
         self._pattern_bkg_layout.addWidget(self.iterations_sb, 0, 3)
         self._pattern_bkg_layout.addItem(HorizontalSpacerItem(), 0, 4)
-        self._pattern_bkg_layout.addWidget(LabelAlignRight('Poly Order:'), 1, 0)
-        self._pattern_bkg_layout.addWidget(self.poly_order_sb, 1, 1)
+        self._pattern_bkg_layout.addWidget(LabelAlignRight('Order:'), 0, 5)
+        self._pattern_bkg_layout.addWidget(self.poly_order_sb, 0, 6)
 
-        self._pattern_bkg_layout.addWidget(LabelAlignRight('X-Range:'), 2, 0)
+        self._pattern_bkg_layout.addWidget(LabelAlignRight('X-Range:'), 1, 0)
         self._range_layout = QtWidgets.QHBoxLayout()
         self._range_layout.addWidget(self.x_range_min_txt)
         self._range_layout.addWidget(QtWidgets.QLabel('-'))
         self._range_layout.addWidget(self.x_range_max_txt)
-        self._range_layout.addWidget(self.inspect_btn)
         self._range_layout.addItem(HorizontalSpacerItem())
-        self._pattern_bkg_layout.addLayout(self._range_layout, 2, 1, 1, 3)
+        self._pattern_bkg_layout.addLayout(self._range_layout, 1, 1, 1, 3)
+        self._button_layout = QtWidgets.QHBoxLayout()
+        self._button_layout.addStretch(1)
+        self._button_layout.addWidget(self.inspect_btn)
+        self._button_layout.addWidget(self.as_overlay)
+        self._button_layout.addWidget(self.save_btn)
+        self._pattern_bkg_layout.addLayout(self._button_layout, 2, 0, 1, 7)
 
         self.pattern_background_gb.setLayout(self._pattern_bkg_layout)
 
@@ -147,11 +158,17 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.poly_order_sb.setMaximum(999999)
         self.poly_order_sb.setMinimum(1)
         self.poly_order_sb.setValue(50)
+        self.poly_order_sb.setToolTip('Set the Polynomial order')
 
         self.x_range_min_txt.setMaximumWidth(70)
         self.x_range_max_txt.setMaximumWidth(70)
 
         self.inspect_btn.setMaximumHeight(150)
+
+        self.save_btn.setToolTip("Save generated background pattern")
+        self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
+        self.save_btn.setIconSize(QtCore.QSize(13, 13))
+        self.save_btn.setMaximumWidth(25)
 
     def get_bkg_pattern_parameters(self):
         smooth_width = float(self.smooth_with_sb.value())
