@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
 
 from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
@@ -166,14 +166,10 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self._button_layout = QtWidgets.QHBoxLayout()
         self.save_as_btn = FlatButton('Save As')
         self.reload_file_btn = FlatButton('Reload File')
-        self.ok_btn = FlatButton('Ok')
-        self.cancel_btn = FlatButton('Cancel')
 
         self._button_layout.addWidget(self.save_as_btn)
         self._button_layout.addWidget(self.reload_file_btn)
         self._button_layout.addSpacerItem(HorizontalSpacerItem())
-        self._button_layout.addWidget(self.ok_btn)
-        self._button_layout.addWidget(self.cancel_btn)
 
         self._layout.addWidget(self.lattice_parameters_gb)
         self._layout.addLayout(self._body_layout)
@@ -290,8 +286,12 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             else:
                 two_theta0 = convert_d_to_two_theta(reflection.d0, wavelength)
                 two_theta = convert_d_to_two_theta(reflection.d, wavelength)
-                q0 = 2.0*np.pi/reflection.d0
-                q = 2.0*np.pi/reflection.d
+                if reflection.d0 > 0:
+                    q0 = 2.0 * np.pi / reflection.d0
+                    q = 2.0 * np.pi / reflection.d
+                else:
+                    q = 0
+                    q0 = 0
                 self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
                                              reflection.intensity, reflection.d0, reflection.d,
                                              two_theta0, two_theta, q0, q)
@@ -463,28 +463,6 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.reflection_table.blockSignals(False)
 
 
-        # def get_jcpds(self):
-        # self.jcpds_phase.filename = str(self.filename_txt.text())
-        #     self.jcpds_phase.comments_txt = [str(self.comments_text())]
-        #
-        #     self.jcpds_phase.symmetry = str(self.symmetry_cb.text()).upper()
-        #
-        #     self.jcpds_phase.a0 = float(str(self.lattice_a_txt.text()))
-        #     self.jcpds_phase.b0 = float(str(self.lattice_b_txt.text()))
-        #     self.jcpds_phase.c0 = float(str(self.lattice_c_txt.text()))
-        #
-        #     self.jcpds_phase.alpha0 = float(str(self.lattice_alpha_txt.text()))
-        #     self.jcpds_phase.beta0 = float(str(self.lattice_beta_txt.text()))
-        #     self.jcpds_phase.gamma0 = float(str(self.lattice_gamma_txt.text()))
-        #
-        #     self.jcpds_phase.k0 = float(str(self.eos_K_txt.text()))
-        #     self.jcpds_phase.k0p = float(str(self.eos_Kp_txt.text()))
-        #     self.jcpds_phase.alpha_t0 = float(str(self.eos_alphaT_txt.text()))
-        #     self.jcpds_phase.d_alpha_dt = float(str(self.eos_dalphadT_txt.text()))
-        #     self.jcpds_phase.dk0dt = float(str(self.eos_dKdT_txt.text()))
-        #     self.jcpds_phase.dk0pdt = float(str(self.eos_dKpdT_txt.text()))
-
-
 class NoRectDelegate(QtWidgets.QItemDelegate):
     def __init__(self, parent):
         super(NoRectDelegate, self).__init__(parent)
@@ -507,8 +485,8 @@ class TextDoubleDelegate(QtWidgets.QStyledItemDelegate):
 
     def setEditorData(self, parent, index):
         value = index.model().data(index, QtCore.Qt.EditRole)
-        if value.toString() != '':
-            self.editor.setText("{0:g}".format(float(str(value.toString()))))
+        if value != '':
+            self.editor.setText("{0:g}".format(float(str(value))))
 
     def setModelData(self, parent, model, index):
         value = self.editor.text()
