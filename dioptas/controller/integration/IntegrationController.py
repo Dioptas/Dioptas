@@ -25,7 +25,7 @@ from .CorrectionController import CorrectionController
 from .ImageController import ImageController
 from .OverlayController import OverlayController
 from .PatternController import PatternController
-from .PhaseController import PhaseController
+from dioptas.controller.integration.phase.PhaseController import PhaseController
 from .OptionsController import OptionsController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE

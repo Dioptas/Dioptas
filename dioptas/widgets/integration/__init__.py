@@ -59,7 +59,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
-
         self.vertical_splitter_left = QtWidgets.QSplitter(self)
         self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter_left.addWidget(self.integration_image_widget)
@@ -228,6 +227,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn
         self.img_mask_btn = image_widget.mask_btn
+        self.img_phases_btn = image_widget.phases_btn
         self.cake_shift_azimuth_sl = image_widget.cake_shift_azimuth_sl
         self.mask_transparent_cb = image_widget.transparent_cb
         self.img_autoscale_btn = image_widget.autoscale_btn

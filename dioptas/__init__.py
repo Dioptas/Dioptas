@@ -62,7 +62,6 @@ def excepthook(exc_type, exc_value, traceback_obj):
     :param traceback_obj: traceback object
     :return:
     """
-
     separator = '-' * 80
     log_file = "error.log"
     notice = \
@@ -96,7 +95,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
 
 def main():
     app = QtWidgets.QApplication([])
-    sys.excepthook = excepthook
+    # sys.excepthook = excepthook
     from sys import platform as _platform
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))
