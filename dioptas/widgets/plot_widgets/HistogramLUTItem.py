@@ -93,6 +93,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.vb.setMouseEnabled(x=False, y=True)
             self.vb.setMaximumWidth(30)
             self.vb.setMinimumWidth(45)
+            self.vb.invertX(True)
             self.gradient.setOrientation('right')
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
@@ -113,11 +114,6 @@ class HistogramLUTItem(GraphicsWidget):
 
         self.vb.sigRangeChanged.connect(self.viewRangeChanged)
         self.plot = PlotDataItem()
-        if self.orientation == 'horizontal':
-            self.plot.setLogMode(yMode=True, xMode=False)
-        elif self.orientation == 'vertical':
-            self.plot.setLogMode(yMode=False, xMode=True)
-            self.vb.invertX(True)
         self.vb.autoRange()
         self.fillHistogram(fillHistogram)
         self.plot.setPen(pg.mkPen(color=(50, 150, 50), size=3))
@@ -257,6 +253,11 @@ class HistogramLUTItem(GraphicsWidget):
         hist_x_log = np.log(hist_x[1:])
 
         plot_range = [0, 0.12 * np.max(hist_y_log)]
+
+        # pyqtgraph crashes if an array only contains elements that are not finite, so in this case we just empty the arrays
+        if not (np.any(np.isfinite(hist_y_log)) and np.any(np.isfinite(hist_x_log))):
+            hist_y_log = []
+            hist_x_log = []
 
         if self.orientation == 'horizontal':
             self.plot.setData(hist_x_log, hist_y_log)
