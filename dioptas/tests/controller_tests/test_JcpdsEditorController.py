@@ -136,48 +136,51 @@ class JcpdsEditorControllerTest(QtTest):
 
     def test_adding_a_reflection(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
-        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        num_table_reflections = self.jcpds_widget.reflection_table_model.rowCount()
         self.assertEqual(num_phase_reflections, num_table_reflections)
 
         click_button(self.jcpds_widget.reflections_add_btn)
 
         self.assertEqual(len(self.phase_model.phases[5].reflections),
                          num_phase_reflections + 1)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(),
                          num_table_reflections + 1)
 
     def test_removing_one_reflection(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
-        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        num_table_reflections = self.jcpds_widget.reflection_table_model.rowCount()
         self.assertEqual(num_phase_reflections, num_table_reflections)
 
         self.jcpds_widget.get_selected_reflections = MagicMock(return_value=[3])
 
         click_button(self.jcpds_widget.reflections_delete_btn)
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(),
                          num_table_reflections - 1)
         self.assertEqual(len(self.phase_model.phases[5].reflections),
                          num_phase_reflections - 1)
 
     def test_removing_multiple_reflections(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
-        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        num_table_reflections = self.jcpds_widget.reflection_table_model.rowCount()
         self.assertEqual(num_phase_reflections, num_table_reflections)
 
-        self.jcpds_widget.get_selected_reflections = MagicMock(return_value=[3, 1, 5, 11])
+        self.jcpds_widget.reflection_table_view.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
+        for ind in [3, 1, 5, 11]:
+            self.jcpds_widget.reflection_table_view.selectRow(ind)
 
         click_button(self.jcpds_widget.reflections_delete_btn)
 
         self.assertEqual(len(self.phase_model.phases[5].reflections),
                          num_phase_reflections - 4)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(),
                          num_table_reflections - 4)
 
     def test_clear_reflections(self):
+        self.assertGreater(self.jcpds_widget.reflection_table_model.rowCount(), 0)
         click_button(self.jcpds_widget.reflections_clear_btn)
         self.assertEqual(len(self.phase_model.phases[5].reflections), 0)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 0)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 0)
 
     def test_edit_reflection(self):
         col = 0
@@ -186,8 +189,8 @@ class JcpdsEditorControllerTest(QtTest):
         previous_d0 = self.phase_model.phases[5].reflections[1].d
         print(previous_d0)
 
-        self.jcpds_widget.reflection_table.item(row, col).setText("3")
-        self.jcpds_widget.reflection_table.cellChanged.emit(row, col)
+        self.jcpds_widget.reflection_table_view.item(row, col).setText("3")
+        self.jcpds_widget.reflection_table_view.cellChanged.emit(row, col)
 
         self.assertEqual(self.phase_model.phases[5].reflections[1].h, 3)
         print(self.phase_model.phases[5].reflections[1].d)
@@ -205,7 +208,7 @@ class JcpdsEditorControllerTest(QtTest):
 
         click_button(self.jcpds_widget.reload_file_btn)
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), num_phase_reflections)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), num_phase_reflections)
         self.assertEqual(self.jcpds_widget.lattice_a_sb.value(), previous_a)
 
     def test_save_as(self):
