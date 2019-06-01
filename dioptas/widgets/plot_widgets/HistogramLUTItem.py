@@ -253,16 +253,13 @@ class HistogramLUTItem(GraphicsWidget):
         if hist_x is None:
             return
 
-        hist_y_log = np.log(hist_y[1:])
-        hist_x_log = np.log(hist_x[1:])
-
-        plot_range = [0, 0.12 * np.max(hist_y_log)]
+        plot_range = [0, 0.12 * np.max(hist_y)]
 
         if self.orientation == 'horizontal':
-            self.plot.setData(hist_x_log, hist_y_log)
+            self.plot.setData(hist_x, hist_y)
             self.vb.setRange(yRange=plot_range)
         elif self.orientation == 'vertical':
-            self.plot.setData(hist_y_log, hist_x_log)
+            self.plot.setData(hist_y, hist_x)
             self.vb.setRange(xRange=plot_range)
 
     def getLevels(self):
