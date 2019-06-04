@@ -179,6 +179,7 @@ class PhaseModel(QtCore.QObject):
         Sets one of the jcpds parameters for the phase with index ind to a certain value. Automatically emits the
         phase_changed signal.
         """
+
         self.phases[ind].params[param] = value
         self.phases[ind].compute_v0()
         self.phases[ind].compute_d0()
