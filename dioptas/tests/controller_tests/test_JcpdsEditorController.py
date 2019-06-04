@@ -60,6 +60,7 @@ class JcpdsEditorControllerTest(QtTest):
 
         self.load_phases()
         self.controller.active = True
+        self.controller.show_view()
 
         self.setup_selected_row(5)
         click_button(self.phase_widget.edit_btn)
