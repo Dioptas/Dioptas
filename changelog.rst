@@ -1,3 +1,13 @@
+0.5.1 (development)
+-------------------
+
+New features:
+    - Phase lines can now be shown in the Cake Widget. Intensity is shown as thickness and opacity of the lines.
+
+Bug Fixes:
+    - reading trigonal rhombic cif files works now correctly
+
+
 0.5.0 (stable 03/05/2019)
 -------------------------
 
