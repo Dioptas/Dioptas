@@ -19,6 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from ..utility import QtTest
+from qtpy.QtTest import QTest
+from qtpy import QtCore
 import os
 import gc
 from qtpy import QtWidgets
@@ -136,48 +138,51 @@ class JcpdsEditorControllerTest(QtTest):
 
     def test_adding_a_reflection(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
-        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        num_table_reflections = self.jcpds_widget.reflection_table_model.rowCount()
         self.assertEqual(num_phase_reflections, num_table_reflections)
 
         click_button(self.jcpds_widget.reflections_add_btn)
 
         self.assertEqual(len(self.phase_model.phases[5].reflections),
                          num_phase_reflections + 1)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(),
                          num_table_reflections + 1)
 
     def test_removing_one_reflection(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
-        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        num_table_reflections = self.jcpds_widget.reflection_table_model.rowCount()
         self.assertEqual(num_phase_reflections, num_table_reflections)
 
         self.jcpds_widget.get_selected_reflections = MagicMock(return_value=[3])
 
         click_button(self.jcpds_widget.reflections_delete_btn)
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(),
                          num_table_reflections - 1)
         self.assertEqual(len(self.phase_model.phases[5].reflections),
                          num_phase_reflections - 1)
 
     def test_removing_multiple_reflections(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
-        num_table_reflections = self.jcpds_widget.reflection_table.rowCount()
+        num_table_reflections = self.jcpds_widget.reflection_table_model.rowCount()
         self.assertEqual(num_phase_reflections, num_table_reflections)
 
-        self.jcpds_widget.get_selected_reflections = MagicMock(return_value=[3, 1, 5, 11])
+        self.jcpds_widget.reflection_table_view.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
+        for ind in [3, 1, 5, 11]:
+            self.jcpds_widget.reflection_table_view.selectRow(ind)
 
         click_button(self.jcpds_widget.reflections_delete_btn)
 
         self.assertEqual(len(self.phase_model.phases[5].reflections),
                          num_phase_reflections - 4)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(),
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(),
                          num_table_reflections - 4)
 
     def test_clear_reflections(self):
+        self.assertGreater(self.jcpds_widget.reflection_table_model.rowCount(), 0)
         click_button(self.jcpds_widget.reflections_clear_btn)
         self.assertEqual(len(self.phase_model.phases[5].reflections), 0)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 0)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 0)
 
     def test_edit_reflection(self):
         col = 0
@@ -186,8 +191,19 @@ class JcpdsEditorControllerTest(QtTest):
         previous_d0 = self.phase_model.phases[5].reflections[1].d
         print(previous_d0)
 
-        self.jcpds_widget.reflection_table.item(row, col).setText("3")
-        self.jcpds_widget.reflection_table.cellChanged.emit(row, col)
+        # get x,y position for the cell
+        x_pos = self.jcpds_widget.reflection_table_view.columnViewportPosition(col) + 3
+        y_pos = self.jcpds_widget.reflection_table_view.rowViewportPosition(row) + 10
+
+        # click then doubleclick  the cell
+        viewport = self.jcpds_widget.reflection_table_view.viewport()
+        QTest.mouseClick(viewport, QtCore.Qt.LeftButton, pos=QtCore.QPoint(x_pos, y_pos))
+        QTest.mouseDClick(viewport, QtCore.Qt.LeftButton, pos=QtCore.QPoint(x_pos, y_pos))
+
+        # type in the new number
+        QTest.keyClicks(viewport.focusWidget(), "3")
+        QTest.keyPress(viewport.focusWidget(), QtCore.Qt.Key_Enter)
+        QtWidgets.QApplication.processEvents()
 
         self.assertEqual(self.phase_model.phases[5].reflections[1].h, 3)
         print(self.phase_model.phases[5].reflections[1].d)
@@ -198,21 +214,21 @@ class JcpdsEditorControllerTest(QtTest):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
         self.phase_model.delete_reflection(5, 0)
         self.phase_model.delete_reflection(5, 0)
-        self.assertEqual(len(self.phase_model.reflections[5]), num_phase_reflections-2)
+        self.assertEqual(len(self.phase_model.reflections[5]), num_phase_reflections - 2)
 
         previous_a = self.jcpds_widget.lattice_a_sb.value()
         self.jcpds_widget.lattice_a_sb.setValue(3)
 
         click_button(self.jcpds_widget.reload_file_btn)
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), num_phase_reflections)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), num_phase_reflections)
         self.assertEqual(self.jcpds_widget.lattice_a_sb.value(), previous_a)
 
     def test_save_as(self):
         filename = os.path.join(jcpds_path, 'dummy.jcpds')
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
         click_button(self.jcpds_widget.save_as_btn)
-        self.assertEqual(self.jcpds_widget.filename_txt.text(),  filename)
+        self.assertEqual(self.jcpds_widget.filename_txt.text(), filename)
 
     def test_changing_symmetry(self):
         print(self.controller.jcpds_phase.params['symmetry'])
