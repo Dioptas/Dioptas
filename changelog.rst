@@ -6,6 +6,7 @@ New features:
 
 Bug Fixes:
     - reading trigonal rhombic cif files works now correctly
+    - entering the range for the automatic background subtraction works now correctly
 
 
 0.5.0 (stable 03/05/2019)
