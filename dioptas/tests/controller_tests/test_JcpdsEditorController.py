@@ -148,6 +148,19 @@ class JcpdsEditorControllerTest(QtTest):
         self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(),
                          num_table_reflections + 1)
 
+    def test_adding_two_reflections(self):
+        num_phase_reflections = len(self.phase_model.phases[5].reflections)
+        num_table_reflections = self.jcpds_widget.reflection_table_model.rowCount()
+        self.assertEqual(num_phase_reflections, num_table_reflections)
+
+        click_button(self.jcpds_widget.reflections_add_btn)
+        click_button(self.jcpds_widget.reflections_add_btn)
+
+        self.assertEqual(len(self.phase_model.phases[5].reflections),
+                         num_phase_reflections + 2)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(),
+                         num_table_reflections + 2)
+
     def test_removing_one_reflection(self):
         num_phase_reflections = len(self.phase_model.phases[5].reflections)
         num_table_reflections = self.jcpds_widget.reflection_table_model.rowCount()
@@ -189,7 +202,6 @@ class JcpdsEditorControllerTest(QtTest):
         row = 1
 
         previous_d0 = self.phase_model.phases[5].reflections[1].d
-        print(previous_d0)
 
         # get x,y position for the cell
         x_pos = self.jcpds_widget.reflection_table_view.columnViewportPosition(col) + 3
@@ -247,3 +259,9 @@ class JcpdsEditorControllerTest(QtTest):
         self.controller.phase_widget.phase_tw.selectRow(2)
         QtWidgets.QApplication.processEvents()
         self.assertEqual(self.controller.phase_ind, 2)
+
+    def test_editing_the_comments(self):
+        enter_value_into_text_field(self.jcpds_widget.comments_txt,
+                                    'HAHA this is a phase you will never see in your pattern')
+        self.assertEqual(self.controller.jcpds_phase.params['comments'][0],
+                         'HAHA this is a phase you will never see in your pattern')
