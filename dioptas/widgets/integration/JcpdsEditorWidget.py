@@ -428,7 +428,7 @@ class ReflectionTableModel(QtCore.QAbstractTableModel):
             self.update_reflection_data(reflections)
         else:
             self.reflections = []
-        self.header_labels = ['h', 'k', 'l', 'Intensity', 'd0', u"2θ_0", 'd', u"2θ", 'Q0', 'Q']
+        self.header_labels = ['h', 'k', 'l', 'Intensity', 'd0', 'd', u"2θ_0", u"2θ", 'Q0', 'Q']
 
     def rowCount(self, *_):
         return len(self.reflections)
@@ -436,7 +436,7 @@ class ReflectionTableModel(QtCore.QAbstractTableModel):
     def columnCount(self, *_):
         return 10
 
-    def data(self, index, role):
+    def data(self, index, role=QtCore.Qt.DisplayRole):
         col = index.column()
         if role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
@@ -462,9 +462,9 @@ class ReflectionTableModel(QtCore.QAbstractTableModel):
         cur_row_num = self.rowCount()
         row_diff = len(reflections) - cur_row_num
         if row_diff < 0:
-            self.beginRemoveColumns(QtCore.QModelIndex(), cur_row_num + row_diff, cur_row_num)
+            self.beginRemoveRows(QtCore.QModelIndex(), cur_row_num + row_diff, cur_row_num - 1)
         elif row_diff > 0:
-            self.beginInsertRows(QtCore.QModelIndex(), cur_row_num, cur_row_num + row_diff)
+            self.beginInsertRows(QtCore.QModelIndex(), cur_row_num, cur_row_num + row_diff - 1)
 
         self.reflections = reflections
         self.reflection_data = np.zeros((len(reflections), self.columnCount()))
@@ -488,7 +488,7 @@ class ReflectionTableModel(QtCore.QAbstractTableModel):
         elif row_diff > 0:
             self.endInsertRows()
 
-        self.dataChanged.emit(self.index(0, 0), self.index(len(self.reflections) - 1, self.columnCount() - 1))
+        self.modelReset.emit()
 
     def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int = ...):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
