@@ -213,7 +213,8 @@ class BackgroundController(object):
 
     def update_bkg_pattern_linear_region(self):
         self.widget.pattern_widget.linear_region_item.blockSignals(True)
-        self.widget.pattern_widget.set_linear_region(*self.widget.get_bkg_pattern_roi())
+        self.widget.pattern_widget.set_linear_region(
+            *self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_roi())
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
     def update_bkg_image_widgets(self):
