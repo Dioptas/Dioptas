@@ -147,7 +147,7 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.reflections_add_btn.clicked.connect(self.reflections_add_btn_click)
         self.jcpds_widget.reflections_delete_btn.clicked.connect(self.reflections_delete_btn_click)
         self.jcpds_widget.reflections_clear_btn.clicked.connect(self.reflections_clear_btn_click)
-        # self.jcpds_widget.reflection_table.cellChanged.connect(self.reflection_table_changed)
+        self.jcpds_widget.reflection_table_model.reflection_edited.connect(self.reflection_table_changed)
 
         # Table Widgets events
         self.jcpds_widget.reflection_table_view.keyPressEvent = self.reflection_table_key_pressed
@@ -235,6 +235,22 @@ class JcpdsEditorController(QtCore.QObject):
 
     def reflections_clear_btn_click(self):
         self.phase_model.clear_reflections(self.phase_ind)
+
+    def reflection_table_changed(self, row, column, value):
+        if value != '':
+            value = float(value)
+            reflection = self.phase_model.phases[self.phase_ind].reflections[row]
+            if column == 0:  # h
+                reflection.h = value
+            elif column == 1:  # k
+                reflection.k = value
+            elif column == 2:  # l
+                reflection.l = value
+            elif column == 3:  # intensity
+                reflection.intensity = value
+            self.phase_model.update_reflection(self.phase_ind, row, reflection)
+            self.jcpds_widget.reflection_table_model.update_reflection_data(
+                self.phase_model.phases[self.phase_ind].reflections)
 
     def update_reflection_table(self, phase_ind, *_):
         if phase_ind != self.phase_ind:

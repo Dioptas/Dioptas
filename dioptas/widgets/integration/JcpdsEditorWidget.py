@@ -418,6 +418,8 @@ class TextDoubleDelegate(NoRectDelegate):
 
 
 class ReflectionTableModel(QtCore.QAbstractTableModel):
+    reflection_edited = QtCore.Signal(int, int, str)  # row, column, value
+
     def __init__(self, reflections=None, wavelength=None):
         super(ReflectionTableModel, self).__init__()
         self.wavelength = wavelength
@@ -446,6 +448,10 @@ class ReflectionTableModel(QtCore.QAbstractTableModel):
             return format_str.format(self.reflection_data[index.row(), index.column()])
         else:
             return QtCore.QVariant()
+
+    def setData(self, index, value, role):
+        self.reflection_edited.emit(index.row(), index.column(), value)
+        return True
 
     def update_reflection_data(self, reflections, wavelength=None):
         if wavelength is None:
