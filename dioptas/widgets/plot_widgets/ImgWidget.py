@@ -51,8 +51,6 @@ class ImgWidget(QtCore.QObject):
         self._max_range = True
 
     def create_graphics(self):
-        # self.img_histogram_LUT = pg.HistogramLUTItem(self.data_img_item)
-
         self.img_view_box = self.pg_layout.addViewBox(1, 1)  # type: ViewBox
 
         self.data_img_item = pg.ImageItem()
@@ -63,13 +61,25 @@ class ImgWidget(QtCore.QObject):
         self.img_histogram_LUT_vertical = HistogramLUTItem(self.data_img_item, orientation='vertical')
         self.pg_layout.addItem(self.img_histogram_LUT_vertical, 1, 2)
 
-        self.left_axis_cake = pg.AxisItem('left')
-        self.bottom_axis_cake = pg.AxisItem('bottom')
-        self.bottom_axis_cake.setLabel(u'2θ', u'°')
-        self.left_axis_cake.setLabel(u'Azimuth', u'°')
+    def create_mouse_click_item(self):
+        self.mouse_click_item = pg.ScatterPlotItem()
+        self.mouse_click_item.setSymbol('+')
+        self.mouse_click_item.setSize(15)
+        self.mouse_click_item.addPoints([1024], [1024])
+        self.mouse_left_clicked.connect(self.set_mouse_click_position)
+        self.activate_mouse_click_item()
 
-        self.left_axis_cake.hide()
-        self.bottom_axis_cake.hide()
+    def set_mouse_click_position(self, x, y):
+        self.mouse_click_item.setData([x], [y])
+
+    def activate_mouse_click_item(self):
+        if not self.mouse_click_item in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.mouse_click_item)
+            self.mouse_click_item.setVisible(True)  # oddly this is needed for the line to be displayed correctly
+
+    def deactivate_mouse_click_item(self):
+        if self.mouse_click_item in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.mouse_click_item)
 
     def set_orientation(self, orientation):
         if orientation == 'horizontal':
@@ -79,19 +89,6 @@ class ImgWidget(QtCore.QObject):
             self.img_histogram_LUT_horizontal.hide()
             self.img_histogram_LUT_vertical.show()
         self.orientation = orientation
-
-    def replace_image_and_cake_axes(self, mode='image'):
-        if mode == 'image':
-            self.pg_layout.removeItem(self.bottom_axis_cake)
-            self.pg_layout.removeItem(self.left_axis_cake)
-            self.bottom_axis_cake.hide()
-            self.left_axis_cake.hide()
-
-        elif mode == 'cake':
-            self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
-            self.pg_layout.addItem(self.left_axis_cake, 1, 0)
-            self.bottom_axis_cake.show()
-            self.left_axis_cake.show()
 
     def create_scatter_plot(self):
         self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
@@ -349,15 +346,13 @@ class MaskImgWidget(ImgWidget):
         return arc
 
 
-class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
+class IntegrationImgWidget(MaskImgWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
         self.create_circle_plot_items()
         self.create_mouse_click_item()
         self.create_roi_item()
         self.img_view_box.setAspectLocked(True)
-        self.phases = []  # type: list[CakePhasePlot]
-        self.deactivate_vertical_line()
 
     def create_circle_plot_items(self):
         # creates several PlotDataItems as line items, to be filled with the current clicked position
@@ -371,26 +366,6 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
         self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
         for plot_item in self.circle_plot_items:
             self.img_view_box.addItem(plot_item)
-
-    def create_mouse_click_item(self):
-        self.mouse_click_item = pg.ScatterPlotItem()
-        self.mouse_click_item.setSymbol('+')
-        self.mouse_click_item.setSize(15)
-        self.mouse_click_item.addPoints([1024], [1024])
-        self.mouse_left_clicked.connect(self.set_mouse_click_position)
-        self.activate_mouse_click_item()
-
-    def set_mouse_click_position(self, x, y):
-        self.mouse_click_item.setData([x], [y])
-
-    def activate_mouse_click_item(self):
-        if not self.mouse_click_item in self.img_view_box.addedItems:
-            self.img_view_box.addItem(self.mouse_click_item)
-            self.mouse_click_item.setVisible(True)  # oddly this is needed for the line to be displayed correctly
-
-    def deactivate_mouse_click_item(self):
-        if self.mouse_click_item in self.img_view_box.addedItems:
-            self.img_view_box.removeItem(self.mouse_click_item)
 
     def set_circle_line(self, tth, cur_tth):
         """
@@ -444,6 +419,24 @@ class IntegrationImgWidget(MaskImgWidget, CalibrationCakeWidget):
             self.img_view_box.removeItem(self.roi)
             self.roi_shade.deactivate_rects()
             self.roi.blockSignals(True)
+
+
+class IntegrationCakeWidget(CalibrationCakeWidget):
+    def __init__(self, pg_layout, orientation='vertical'):
+        super(IntegrationCakeWidget, self).__init__(pg_layout, orientation)
+        self.img_view_box.setAspectLocked(False)
+        self.create_mouse_click_item()
+        self.add_cake_axes()
+        self.phases = []  # type: list[CakePhasePlot]
+
+    def add_cake_axes(self):
+        self.left_axis_cake = pg.AxisItem('left')
+        self.bottom_axis_cake = pg.AxisItem('bottom')
+        self.bottom_axis_cake.setLabel(u'2θ', u'°')
+        self.left_axis_cake.setLabel(u'Azimuth', u'°')
+
+        self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
+        self.pg_layout.addItem(self.left_axis_cake, 1, 0)
 
     def add_cake_phase(self, positions, intensities, color):
         self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, color))

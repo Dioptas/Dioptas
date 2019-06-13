@@ -23,7 +23,7 @@ import os
 from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
-from ...plot_widgets.ImgWidget import IntegrationImgWidget
+from ...plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationCakeWidget
 from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem
 from ..CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .... import icons_path
@@ -44,7 +44,11 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_view = IntegrationImgWidget(self.img_pg_layout, orientation='horizontal')
+        self.cake_pg_layout = GraphicsLayoutWidget()
+        self.cake_view = IntegrationCakeWidget(self.cake_pg_layout, orientation='horizontal')
         self._frame_layout.addWidget(self.img_pg_layout)
+        self._frame_layout.addWidget(self.cake_pg_layout)
+        self.cake_pg_layout.hide()
 
         self.position_and_unit_widget = QtWidgets.QWidget()
         self.position_and_unit_widget.setObjectName('img_position_and_unit_widget')
