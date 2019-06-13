@@ -427,6 +427,7 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
         self.add_cake_axes()
+        self.add_azimuthal_histogram()
         self.phases = []  # type: list[CakePhasePlot]
 
     def add_cake_axes(self):
@@ -437,6 +438,15 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
 
         self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
         self.pg_layout.addItem(self.left_axis_cake, 1, 0)
+
+    def add_azimuthal_histogram(self):
+        self.azimuth_histogram_item = pg.PlotDataItem([], [], pen=pg.mkPen(color='#FFF', width=1.5))
+        self.azimuth_histogram_plot = self.pg_layout.addPlot(1, 3, 2, 1, labels={'bottom': 'Intensity'})
+        self.azimuth_histogram_plot.addItem(self.azimuth_histogram_item)
+
+    def plot_azimuth_histogram(self, x, y):
+        y[np.where(y <= 0)] = np.nan
+        self.azimuth_histogram_item.setData(y, x)
 
     def add_cake_phase(self, positions, intensities, color):
         self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, color))
