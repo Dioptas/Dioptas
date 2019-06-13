@@ -105,9 +105,18 @@ class ImageController(object):
 
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         self.widget.cake_widget.plot_image(np.roll(self.model.cake_data, shift_amount, axis=0))
+        self.plot_cake_azimuth_histogram()
         self.update_cake_axes_range()
         if auto_scale:
             self.widget.cake_widget.auto_level()
+
+    def plot_cake_azimuth_histogram(self):
+        if not self.widget.cake_widget.azimuth_histogram_plot.isVisible() or self.clicked_tth is None:
+            return
+        # plot an azimuthal histogram
+        tth_index = (np.abs(self.model.cake_tth - self.clicked_tth)).argmin()
+        self.widget.cake_widget.plot_azimuth_histogram(self.model.cake_azi,
+                                                       self.model.cake_data[:, tth_index])
 
     def plot_mask(self):
         """
@@ -751,6 +760,7 @@ class ImageController(object):
         if self.model.calibration_model.is_calibrated:
             x, y = y, x  # the indices are reversed for the img_array
             if self.widget.img_mode == 'Cake':  # cake mode
+                # get clicked tth and azimuth
                 cake_shape = self.model.cake_data.shape
                 if x < 0 or y < 0 or x > cake_shape[0] - 1 or y > cake_shape[1] - 1:
                     return
@@ -759,6 +769,7 @@ class ImageController(object):
                 tth = get_partial_value(self.model.cake_tth, y - 0.5) / 180 * np.pi
                 shift_amount = self.widget.cake_shift_azimuth_sl.value()
                 azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
+
             elif self.widget.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
@@ -775,6 +786,8 @@ class ImageController(object):
 
             self.clicked_tth = tth
             self.clicked_azi = azi
+
+            self.plot_cake_azimuth_histogram()
 
             # calculate right unit for the position line the pattern widget
             if self.widget.pattern_q_btn.isChecked():
