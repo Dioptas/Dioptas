@@ -424,8 +424,9 @@ class IntegrationImgWidget(MaskImgWidget):
 class IntegrationCakeWidget(CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationCakeWidget, self).__init__(pg_layout, orientation)
-        self.img_view_box.setAspectLocked(True)
+        self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
+        self.add_cake_axes()
         self.phases = []  # type: list[CakePhasePlot]
 
     def add_cake_axes(self):
