@@ -51,15 +51,15 @@ class ImgWidget(QtCore.QObject):
         self._max_range = True
 
     def create_graphics(self):
-        self.img_view_box = self.pg_layout.addViewBox(1, 1)  # type: ViewBox
+        self.img_view_box = self.pg_layout.addViewBox(row=1, col=1)  # type: ViewBox
 
         self.data_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.data_img_item)
 
         self.img_histogram_LUT_horizontal = HistogramLUTItem(self.data_img_item)
-        self.pg_layout.addItem(self.img_histogram_LUT_horizontal, 0, 1)
+        self.pg_layout.addItem(self.img_histogram_LUT_horizontal, row=0, col=1)
         self.img_histogram_LUT_vertical = HistogramLUTItem(self.data_img_item, orientation='vertical')
-        self.pg_layout.addItem(self.img_histogram_LUT_vertical, 1, 2)
+        self.pg_layout.addItem(self.img_histogram_LUT_vertical, row=1, col=2)
 
     def create_mouse_click_item(self):
         self.mouse_click_item = pg.ScatterPlotItem()
@@ -436,15 +436,22 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.bottom_axis_cake.setLabel(u'2θ', u'°')
         self.left_axis_cake.setLabel(u'Azimuth', u'°')
 
-        self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
-        self.pg_layout.addItem(self.left_axis_cake, 1, 0)
+        self.pg_layout.addItem(self.bottom_axis_cake, row=2, col=1)
+        self.pg_layout.addItem(self.left_axis_cake, row=1, col=0)
 
     def add_azimuthal_histogram(self):
         self.azimuth_histogram_item = pg.PlotDataItem([], [], pen=pg.mkPen(color='#FFF', width=1.5))
-        self.azimuth_histogram_plot = self.pg_layout.addPlot(1, 3, 2, 1, labels={'bottom': 'Intensity'})
+        self.azimuth_histogram_plot = self.pg_layout.addPlot(row=1, col=2, rowspan=2, colspan=1,
+                                                             labels={'bottom': 'Intensity'})
+        self.azimuth_histogram_plot.hideAxis('left')
         self.azimuth_histogram_plot.addItem(self.azimuth_histogram_item)
 
         self.azimuth_histogram_plot.setYLink(self.img_view_box)
+
+        self.pg_layout.ci.layout.setColumnStretchFactor(0, 1)
+        self.pg_layout.ci.layout.setColumnStretchFactor(1, 14)
+        self.pg_layout.ci.layout.setColumnStretchFactor(2, 3)
+
 
     def plot_azimuth_histogram(self, x, y):
         y[np.where(y <= 0)] = np.nan  # remove 0 values to be able to plot
