@@ -444,8 +444,10 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.azimuth_histogram_plot = self.pg_layout.addPlot(1, 3, 2, 1, labels={'bottom': 'Intensity'})
         self.azimuth_histogram_plot.addItem(self.azimuth_histogram_item)
 
+        self.azimuth_histogram_plot.setYLink(self.img_view_box)
+
     def plot_azimuth_histogram(self, x, y):
-        y[np.where(y <= 0)] = np.nan
+        y[np.where(y <= 0)] = np.nan  # remove 0 values to be able to plot
         self.azimuth_histogram_item.setData(y, x)
 
     def add_cake_phase(self, positions, intensities, color):
