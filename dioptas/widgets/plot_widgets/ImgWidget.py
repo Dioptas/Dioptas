@@ -428,6 +428,8 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.create_mouse_click_item()
         self.add_cake_axes()
         self.add_azimuthal_histogram()
+        self.modify_cake_hist_mouse_behavior()
+        self.arange_layout()
         self.phases = []  # type: list[CakePhasePlot]
 
     def add_cake_axes(self):
@@ -445,13 +447,24 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
                                                              labels={'bottom': 'Intensity'})
         self.azimuth_histogram_plot.hideAxis('left')
         self.azimuth_histogram_plot.addItem(self.azimuth_histogram_item)
+        self.azimuth_histogram_plot.enableAutoRange(False)
+        self.azimuth_histogram_plot.buttonsHidden = True
 
         self.azimuth_histogram_plot.setYLink(self.img_view_box)
 
+    def arange_layout(self):
         self.pg_layout.ci.layout.setColumnStretchFactor(0, 1)
         self.pg_layout.ci.layout.setColumnStretchFactor(1, 14)
         self.pg_layout.ci.layout.setColumnStretchFactor(2, 3)
 
+    def modify_cake_hist_mouse_behavior(self):
+        self.azimuth_histogram_plot.vb.mouseClickEvent = self.empty_function
+        self.azimuth_histogram_plot.vb.mouseDragEvent = self.empty_function
+        self.azimuth_histogram_plot.vb.mouseDoubleClickEvent = self.empty_function
+        self.azimuth_histogram_plot.vb.wheelEvent = self.empty_function
+
+    def empty_function(self, *_, **__):
+        return
 
     def plot_azimuth_histogram(self, x, y):
         y[np.where(y <= 0)] = np.nan  # remove 0 values to be able to plot
