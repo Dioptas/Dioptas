@@ -113,9 +113,8 @@ class ImageController(object):
     def plot_cake_azimuth_histogram(self):
         if not self.widget.cake_widget.azimuth_histogram_plot.isVisible() or self.clicked_tth is None:
             return
-        # plot an azimuthal histogram
         tth_index = (np.abs(self.model.cake_tth - self.clicked_tth)).argmin()
-        self.widget.cake_widget.plot_azimuth_histogram(self.model.cake_azi,
+        self.widget.cake_widget.plot_azimuth_histogram(np.array(range(len(self.model.cake_azi))) + 0.5,
                                                        self.model.cake_data[:, tth_index])
 
     def plot_mask(self):
@@ -766,7 +765,7 @@ class ImageController(object):
                     return
                 x = np.array([x])
                 y = np.array([y])
-                tth = get_partial_value(self.model.cake_tth, y - 0.5) / 180 * np.pi
+                tth = get_partial_value(self.model.cake_tth, y - 0.5)
                 shift_amount = self.widget.cake_shift_azimuth_sl.value()
                 azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
 
@@ -776,29 +775,25 @@ class ImageController(object):
                     return
                 x = np.array([x])
                 y = np.array([y])
-                tth = self.model.calibration_model.get_two_theta_img(x, y)
-                azi = self.model.calibration_model.get_azi_img(x, y) / np.pi * 180
-                self.widget.img_widget.set_circle_line(
-                    self.model.calibration_model.get_two_theta_array(), tth)
+                tth = np.rad2deg(self.model.calibration_model.get_two_theta_img(x, y))
+                azi = np.rad2deg(self.model.calibration_model.get_azi_img(x, y))
+                self.widget.img_widget.set_circle_line(self.model.calibration_model.get_two_theta_array(), tth)
             else:  # in the case of whatever
                 tth = 0
                 azi = 0
 
-            self.clicked_tth = tth
-            self.clicked_azi = azi
+            self.clicked_tth = tth  # in degree
+            self.clicked_azi = azi  # in degree
 
             self.plot_cake_azimuth_histogram()
 
             # calculate right unit for the position line the pattern widget
             if self.widget.pattern_q_btn.isChecked():
-                pos = 4 * np.pi * \
-                      np.sin(tth / 2) / \
-                      self.model.calibration_model.wavelength / 1e10
+                pos = 4 * np.pi * np.sin(np.deg2rad(tth) / 2) / self.model.calibration_model.wavelength / 1e10
             elif self.widget.pattern_tth_btn.isChecked():
-                pos = tth / np.pi * 180
+                pos = tth
             elif self.widget.pattern_d_btn.isChecked():
-                pos = self.model.calibration_model.wavelength / \
-                      (2 * np.sin(tth / 2)) * 1e10
+                pos = self.model.calibration_model.wavelength / (2 * np.sin(np.deg2rad(tth) / 2)) * 1e10
             else:
                 pos = 0
             self.widget.pattern_widget.set_pos_line(pos)
