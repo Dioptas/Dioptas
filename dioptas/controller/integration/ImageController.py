@@ -587,7 +587,6 @@ class ImageController(object):
             self.widget.integration_image_widget.show_background_subtracted_img_btn.setChecked(False)
 
     def _update_cake_line_pos(self):
-        print('updating')
         cur_tth = self.get_current_pattern_tth()
         if self.model.cake_tth is None or cur_tth < np.min(self.model.cake_tth) or cur_tth > np.max(
                 self.model.cake_tth):
@@ -703,6 +702,7 @@ class ImageController(object):
 
         if 0 < x < img_shape[1] - 1 and 0 < y < img_shape[0] - 1:
             self.update_mouse_position_labels(x, y, img_data[int(np.floor(y)), int(np.floor(x))])
+
             if self.model.calibration_model.is_calibrated:
                 x_temp = x
                 x = np.array([y])
@@ -766,7 +766,7 @@ class ImageController(object):
                 shift_amount = self.widget.cake_shift_azimuth_sl.value()
                 azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
                 self.widget.cake_widget.activate_vertical_line()
-                
+
             elif self.widget.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
@@ -918,7 +918,6 @@ class ImageController(object):
                             out_file.write("{:6.2f}".format(azi) + row_str + '\n')
 
     def update_gui_from_configuration(self):
-        print('from config')
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
