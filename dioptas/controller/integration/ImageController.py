@@ -176,7 +176,7 @@ class ImageController(object):
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
-        self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
+        self.widget.integration_image_widget.cake_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
         self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
         self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
 
@@ -587,34 +587,31 @@ class ImageController(object):
             self.widget.integration_image_widget.show_background_subtracted_img_btn.setChecked(False)
 
     def _update_cake_line_pos(self):
+        print('updating')
         cur_tth = self.get_current_pattern_tth()
-        if cur_tth < np.min(self.model.cake_tth) or cur_tth > np.max(self.model.cake_tth):
-            self.widget.cake_widget.vertical_line.hide()
+        if self.model.cake_tth is None or cur_tth < np.min(self.model.cake_tth) or cur_tth > np.max(
+                self.model.cake_tth):
+            self.widget.cake_widget.deactivate_vertical_line()
         else:
             new_pos = get_partial_index(self.model.cake_tth, cur_tth) + 0.5
-            self.widget.cake_widget.vertical_line.setValue(new_pos)
-            self.widget.cake_widget.vertical_line.show()
+            self.widget.cake_widget.set_vertical_line_pos(new_pos, 0)
+            self.widget.cake_widget.activate_vertical_line()
+
 
     def _update_cake_mouse_click_pos(self):
         if self.clicked_tth is None or not self.model.calibration_model.is_calibrated:
             return
 
-        tth = self.clicked_tth / np.pi * 180
+
+        tth = self.clicked_tth
         azi = self.clicked_azi
 
         cake_tth = self.model.cake_tth
-        cake_azi = self.model.cake_azi
 
-        if tth < np.min(cake_tth) or tth > np.max(cake_tth):
-            self.widget.cake_widget.mouse_click_item.hide()
-        elif azi < np.min(cake_azi) or tth > np.max(cake_azi):
-            self.widget.cake_widget.mouse_click_item.hide()
-        else:
-            self.widget.cake_widget.mouse_click_item.show()
-            x_pos = get_partial_index(cake_tth, tth) + 0.5
-            shift_amount = self.widget.cake_shift_azimuth_sl.value()
-            y_pos = (get_partial_index(self.model.cake_azi, azi) + 0.5 + shift_amount) % len(self.model.cake_azi)
-            self.widget.cake_widget.set_mouse_click_position(x_pos, y_pos)
+        x_pos = get_partial_index(cake_tth, tth) + 0.5
+        shift_amount = self.widget.cake_shift_azimuth_sl.value()
+        y_pos = (get_partial_index(self.model.cake_azi, azi) + 0.5 + shift_amount) % len(self.model.cake_azi)
+        self.widget.cake_widget.set_mouse_click_position(x_pos, y_pos)
 
     def _update_image_line_pos(self):
         if not self.model.calibration_model.is_calibrated:
@@ -627,8 +624,8 @@ class ImageController(object):
         if self.clicked_tth is None or not self.model.calibration_model.is_calibrated:
             return
 
-        tth = self.clicked_tth
-        azi = self.clicked_azi / 180.0 * np.pi
+        tth = np.deg2rad(self.clicked_tth)
+        azi = np.deg2rad(self.clicked_azi)
 
         new_pos = self.model.calibration_model.get_pixel_ind(tth, azi)
         if len(new_pos) == 0:
@@ -768,7 +765,8 @@ class ImageController(object):
                 tth = get_partial_value(self.model.cake_tth, y - 0.5)
                 shift_amount = self.widget.cake_shift_azimuth_sl.value()
                 azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
-
+                self.widget.cake_widget.activate_vertical_line()
+                
             elif self.widget.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
@@ -777,7 +775,8 @@ class ImageController(object):
                 y = np.array([y])
                 tth = np.rad2deg(self.model.calibration_model.get_two_theta_img(x, y))
                 azi = np.rad2deg(self.model.calibration_model.get_azi_img(x, y))
-                self.widget.img_widget.set_circle_line(self.model.calibration_model.get_two_theta_array(), tth)
+                self.widget.img_widget.set_circle_line(self.model.calibration_model.get_two_theta_array(),
+                                                       np.deg2rad(tth))
             else:  # in the case of whatever
                 tth = 0
                 azi = 0
@@ -785,7 +784,8 @@ class ImageController(object):
             self.clicked_tth = tth  # in degree
             self.clicked_azi = azi  # in degree
 
-            self.plot_cake_azimuth_histogram()
+            if self.widget.img_mode == 'Cake':
+                self.plot_cake_azimuth_histogram()
 
             # calculate right unit for the position line the pattern widget
             if self.widget.pattern_q_btn.isChecked():
@@ -918,6 +918,7 @@ class ImageController(object):
                             out_file.write("{:6.2f}".format(azi) + row_str + '\n')
 
     def update_gui_from_configuration(self):
+        print('from config')
         self.widget.img_mask_btn.setChecked(self.model.use_mask)
         self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
