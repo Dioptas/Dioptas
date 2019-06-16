@@ -284,7 +284,7 @@ class CalibrationCakeWidget(ImgWidget):
         if self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.removeItem(self.vertical_line)
 
-    def set_vertical_line_pos(self, x, y):
+    def set_vertical_line_pos(self, x, _):
         self.vertical_line.setValue(x)
 
 
