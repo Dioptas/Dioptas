@@ -106,6 +106,13 @@ class JcpdsUnitTest(unittest.TestCase):
         self.jcpds.compute_d(-1, 298)
         self.assertGreater(self.jcpds.params['v'], self.jcpds.params['v0'])
 
+    def test_using_negative_pressures_with_zero_bulk_modulus(self):
+        self.jcpds.load_file(os.path.join(jcpds_path, 're_K0.jcpds'))
+        self.jcpds.pressure = -1.
+
+        self.jcpds.compute_d(-1, 298)
+        self.assertEqual(self.jcpds.params['v'], self.jcpds.params['v0'])
+
 
 if __name__ == '__main__':
     unittest.main()
