@@ -31,7 +31,7 @@ steps:
   displayName: 'Install Prerequesites'
 
 - script: |
-    conda activate myEnvironment
+    source activate myEnvironment
     conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph -c cprescher
     pip install pyepics
 
@@ -41,7 +41,7 @@ steps:
   displayName: 'Install Python Packages'
 
 - script: |
-    conda activate myEnvironment
+    source activate myEnvironment
     pip install pytest pytest-azurepipelines
     py.test dioptas/tests/unit_tests
     py.test dioptas/tests/controller_tests
