@@ -19,17 +19,19 @@ steps:
     versionSpec: '$(python.version)'
   displayName: 'Use Python $(python.version)'
 
-- script: |
-    wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-    chmod +x miniconda.sh
-    ./miniconda.sh -b
-    export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
-    Xvfb :99 -ac -screen 0 1600x900x24
-    sudo apt install -y gfortran libgfortran3
-    pwd
-  displayName: 'Install prerquesites'
+- bash: echo "##vso[task.prependpath]$CONDA/bin"
+  displayName: Add conda to path
+
+- bash: conda create --yes --quiet --name myEnvironment
+  displayName: Create Anaconda Environment
 
 - script: |
+    Xvfb :99 -ac -screen 0 1600x900x24
+    sudo apt install -y gfortran libgfortran3
+  displayName: 'Install Prerequesites'
+
+- script: |
+    conda activate myEnvironment
     conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph -c cprescher
     pip install pyepics
 
@@ -39,6 +41,7 @@ steps:
   displayName: 'Install Python Packages'
 
 - script: |
+    conda activate myEnvironment
     pip install pytest pytest-azurepipelines
     py.test dioptas/tests/unit_tests
     py.test dioptas/tests/controller_tests
