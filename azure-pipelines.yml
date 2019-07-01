@@ -26,7 +26,6 @@ steps:
   displayName: Create Anaconda Environment
 
 - script: |
-#    Xvfb :99 -ac -screen 0 1600x900x24
     sudo apt install -y gfortran libgfortran3
   displayName: 'Install Prerequesites'
 
