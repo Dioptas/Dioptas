@@ -1,0 +1,46 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+strategy:
+  matrix:
+    Python37:
+      python.version: '3.7'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(python.version)'
+  displayName: 'Use Python $(python.version)'
+
+- script: |
+    wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    chmod +x miniconda.sh
+    ./miniconda.sh -b
+    export PYTHONPATH=$PWD/dioptas:$PYTHONPATH
+    Xvfb :99 -ac -screen 0 1600x900x24
+    sudo apt install -y gfortran libgfortran3
+    pwd
+  displayName: 'Install prerquesites'
+
+- script: |
+    conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph -c cprescher
+    pip install pyepics
+
+    cd dioptas/model/util/
+    f2py -c -m smooth_bruckner smooth_bruckner.f95
+    cd ../../../
+  displayName: 'Install Python Packages'
+
+- script: |
+    pip install pytest pytest-azurepipelines
+    py.test dioptas/tests/unit_tests
+    py.test dioptas/tests/controller_tests
+    py.test dioptas/tests/functional_tests
+  displayName: 'pytest'
