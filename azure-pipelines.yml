@@ -42,7 +42,6 @@ steps:
 
 - script: |
     source activate myEnvironment
-    pip install pytest pytest-azurepipelines
     py.test dioptas/tests/unit_tests
     py.test dioptas/tests/controller_tests
     py.test dioptas/tests/functional_tests
