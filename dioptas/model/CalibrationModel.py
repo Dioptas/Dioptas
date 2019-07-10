@@ -33,7 +33,7 @@ from qtpy import QtCore
 from skimage.measure import find_contours
 
 from .. import calibrants_path
-from .util.HelperModule import get_base_name
+from .util.HelperModule import get_base_name, get_partial_index
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -144,7 +144,7 @@ class CalibrationModel(QtCore.QObject):
 
     def remove_last_peak(self):
         if self.points:
-            num_points = int(self.points[-1].size/2)  # each peak is x, y so length is twice as number of peaks
+            num_points = int(self.points[-1].size / 2)  # each peak is x, y so length is twice as number of peaks
             self.points.pop(-1)
             self.points_index.pop(-1)
             return num_points
@@ -406,6 +406,25 @@ class CalibrationModel(QtCore.QObject):
         self.cake_tth = res[1]
         self.cake_azi = res[2]
         return self.cake_img
+
+    def azimuth_histogram(self, tth, bins=1):
+        """
+        calculates a histogram of the cake in tth direction, thus the result will be pixel vs intensity
+        :param tth: tth value in A^-1
+        :param bins: number of bins for summing
+        :return: cake_azimuth_pixel, intensity
+        """
+        tth_partial_index = get_partial_index(self.cake_tth, tth)
+        tth_center = tth_partial_index + 0.5
+        left = tth_center - 0.5 * bins
+        right = tth_center + 0.5 * bins
+
+        y1 = abs(np.ceil(left) - left) * self.cake_img[:, int(np.floor(left))]
+        y2 = np.sum(self.cake_img[:, int(np.ceil(left)): int(np.floor(right))], axis=1)
+        y3 = (right - np.floor(right)) * self.cake_img[:, int(np.floor(right))]
+
+        x = np.array(range(len(self.cake_azi))) + 0.5
+        return x, (y1 + y2 + y3)/bins
 
     def create_point_array(self, points, points_ind):
         res = []
