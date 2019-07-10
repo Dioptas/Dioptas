@@ -33,6 +33,7 @@ class HelperModuleTest(QtTest):
         data = np.arange(0, 10, 1)
         value = 2.5
         self.assertEqual(get_partial_index(data, value), 2.5)
+        self.assertEqual(get_partial_index(data, data[4]), 4)
 
     def test_get_next_filename(self):
         filename = os.path.join(data_path, "dummy1_1.txt")
