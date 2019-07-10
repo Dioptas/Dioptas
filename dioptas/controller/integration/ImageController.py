@@ -113,9 +113,8 @@ class ImageController(object):
     def plot_cake_azimuth_histogram(self):
         if not self.widget.cake_widget.azimuth_histogram_plot.isVisible() or self.clicked_tth is None:
             return
-        tth_index = (np.abs(self.model.cake_tth - self.clicked_tth)).argmin()
-        self.widget.cake_widget.plot_azimuth_histogram(np.array(range(len(self.model.cake_azi))) + 0.5,
-                                                       self.model.cake_data[:, tth_index])
+        x, y = self.model.calibration_model.azimuth_histogram(self.clicked_tth)
+        self.widget.cake_widget.plot_azimuth_histogram(x, y)
 
     def plot_mask(self):
         """
