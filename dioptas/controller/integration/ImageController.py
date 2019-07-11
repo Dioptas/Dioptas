@@ -29,6 +29,7 @@ from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
+from ...model.util.Pattern import Pattern
 from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
@@ -119,6 +120,17 @@ class ImageController(object):
         )
         self.widget.cake_widget.plot_cake_integral(x, y)
 
+    def save_cake_integral(self):
+        img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
+        filename = save_file_dialog(
+            self.widget, "Save Cake Integral Data.",
+            os.path.join(self.model.working_directories['pattern'],
+                         img_filename + '.xy'))
+
+        if filename is not '':
+            integral_pattern = Pattern(*self.widget.cake_widget.cake_integral_item.getData())
+            integral_pattern.save(filename)
+
     def plot_mask(self):
         """
         Plots the mask data.
@@ -183,6 +195,8 @@ class ImageController(object):
         self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
         self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.valueChanged.\
             connect(self.plot_cake_integral)
+        self.widget.integration_control_widget.integration_options_widget.cake_save_integral_btn.clicked.\
+            connect(self.save_cake_integral)
 
         ###
         # General Image Widget controls
