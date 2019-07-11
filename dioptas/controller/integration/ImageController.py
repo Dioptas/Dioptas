@@ -105,16 +105,16 @@ class ImageController(object):
 
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         self.widget.cake_widget.plot_image(np.roll(self.model.cake_data, shift_amount, axis=0))
-        self.plot_cake_azimuth_histogram()
+        self.plot_cake_integral()
         self.update_cake_axes_range()
         if auto_scale:
             self.widget.cake_widget.auto_level()
 
-    def plot_cake_azimuth_histogram(self):
-        if not self.widget.cake_widget.azimuth_histogram_plot.isVisible() or self.clicked_tth is None:
+    def plot_cake_integral(self):
+        if not self.widget.cake_widget.cake_integral_plot.isVisible() or self.clicked_tth is None:
             return
-        x, y = self.model.calibration_model.azimuth_histogram(self.clicked_tth)
-        self.widget.cake_widget.plot_azimuth_histogram(x, y)
+        x, y = self.model.calibration_model.cake_integral(self.clicked_tth)
+        self.widget.cake_widget.plot_cake_integral(x, y)
 
     def plot_mask(self):
         """
@@ -784,7 +784,7 @@ class ImageController(object):
             self.clicked_azi = azi  # in degree
 
             if self.widget.img_mode == 'Cake':
-                self.plot_cake_azimuth_histogram()
+                self.plot_cake_integral()
 
             # calculate right unit for the position line the pattern widget
             if self.widget.pattern_q_btn.isChecked():

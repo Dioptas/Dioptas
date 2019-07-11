@@ -336,7 +336,7 @@ class PatternController(object):
         lower_ind = np.where(self.model.cake_tth < tth)[0]
 
         if len(upper_ind) == 0 or len(lower_ind) == 0:
-            self.widget.cake_widget.plot_azimuth_histogram(np.array([]), np.array([]))
+            self.widget.cake_widget.plot_cake_integral(np.array([]), np.array([]))
             self.widget.cake_widget.deactivate_vertical_line()
             return
 
@@ -345,7 +345,7 @@ class PatternController(object):
         self.widget.cake_widget.vertical_line.setValue(new_pos)
         self.widget.cake_widget.activate_vertical_line()
 
-        self.widget.cake_widget.plot_azimuth_histogram(np.array(range(len(self.model.cake_azi))) + 0.5,
+        self.widget.cake_widget.plot_cake_integral(np.array(range(len(self.model.cake_azi))) + 0.5,
                                                        self.model.cake_data[:, int(new_pos)])
 
     def set_image_line_position(self, tth):
