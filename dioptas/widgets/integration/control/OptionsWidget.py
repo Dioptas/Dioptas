@@ -18,10 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from qtpy import QtWidgets, QtGui, QtCore
+import os
+from qtpy import QtWidgets, QtCore, QtGui
 
-from ...CustomWidgets import IntegerTextField, NumberTextField, LabelAlignRight, SpinBoxAlignRight, VerticalSpacerItem, \
-    HorizontalSpacerItem, ConservativeSpinBox, CheckableFlatButton
+from .... import icons_path
+from ...CustomWidgets import IntegerTextField, NumberTextField, LabelAlignRight, SpinBoxAlignRight,\
+    ConservativeSpinBox, CheckableFlatButton, FlatButton
 
 
 class OptionsWidget(QtWidgets.QWidget):
@@ -33,6 +35,7 @@ class OptionsWidget(QtWidgets.QWidget):
 
         self.style_integration_widgets()
         self.style_cake_widgets()
+        self.set_tooltips()
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(5, 5, 5, 5)
@@ -77,7 +80,9 @@ class OptionsWidget(QtWidgets.QWidget):
         self.cake_azimuth_points_sb = ConservativeSpinBox()
         self.cake_azimuth_min_txt = NumberTextField('-180')
         self.cake_azimuth_max_txt = NumberTextField('180')
-        self.cake_full_toggle_btn = CheckableFlatButton('Full available range')
+        self.cake_full_toggle_btn = CheckableFlatButton('Full')
+        self.cake_integral_width = ConservativeSpinBox()
+        self.cake_save_histogram_btn = FlatButton()
 
         self._cake_gb_layout.addWidget(LabelAlignRight('Azimuth bins:'), 0, 0)
         self._cake_gb_layout.addWidget(self.cake_azimuth_points_sb, 0, 1)
@@ -88,7 +93,11 @@ class OptionsWidget(QtWidgets.QWidget):
         self._azi_range_layout.addWidget(self._azi_range_separater_lbl)
         self._azi_range_layout.addWidget(self.cake_azimuth_max_txt)
         self._cake_gb_layout.addLayout(self._azi_range_layout, 1, 1)
-        self._cake_gb_layout.addWidget(self.cake_full_toggle_btn, 2, 1)
+        self._cake_gb_layout.addWidget(self.cake_full_toggle_btn, 1, 2)
+        self._cake_gb_layout.addWidget(LabelAlignRight('Integral Width:'), 2, 0)
+        self._cake_gb_layout.addWidget(self.cake_integral_width, 2, 1)
+        self._cake_gb_layout.addWidget(self.cake_save_histogram_btn, 2, 2)
+
         self.cake_gb.setLayout(self._cake_gb_layout)
 
     def style_integration_widgets(self):
@@ -120,4 +129,23 @@ class OptionsWidget(QtWidgets.QWidget):
         self.cake_full_toggle_btn.setChecked(True)
         self.cake_azimuth_min_txt.setDisabled(True)
         self.cake_azimuth_max_txt.setDisabled(True)
+
+        self.cake_integral_width.setMinimum(1)
+        self.cake_integral_width.setSingleStep(1)
+        self.cake_integral_width.setMaximum(1000000)
+        button_width = 25
+        button_height = 25
+        self.cake_save_histogram_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
+        self.cake_save_histogram_btn.setIconSize(QtCore.QSize(15, 15))
+        self.cake_save_histogram_btn.setMinimumHeight(button_height)
+        self.cake_save_histogram_btn.setMaximumHeight(button_height)
+        self.cake_save_histogram_btn.setMinimumWidth(button_width)
+        self.cake_save_histogram_btn.setMaximumWidth(button_width)
+
+    def set_tooltips(self):
+        self.cake_full_toggle_btn.setToolTip("Set to full available range")
+        self.cake_save_histogram_btn.setToolTip("Save the tth integral next to the cake image")
+        self.cake_integral_width.setToolTip("Sets the width used for the integral plot\nnext to the cake image.")
+
+
 
