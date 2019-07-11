@@ -240,7 +240,7 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.integrate_2d(azimuth_points=200)
         self.assertEqual(len(self.calibration_model.cake_azi), 200)
 
-    def test_azimuth_histogram(self):
+    def test_cake_integral(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.calibration_model.integrate_2d(azimuth_points=360)
@@ -250,24 +250,24 @@ class CalibrationModelTest(QtTest):
         cake_step = cake_tth[31] - cake_tth[30]
 
         # directly selecting value in the tth array
-        _, y1 = self.calibration_model.azimuth_histogram(cake_tth[30])
+        _, y1 = self.calibration_model.cake_integral(cake_tth[30])
         self.assertTrue(np.array_equal(y1, self.calibration_model.cake_img[:, 30]))
 
         # selecting exactly in between two points
         cake_partial = 0.5 * cake_img[:, 30] + 0.5 * cake_img[:, 31]
-        _, y2 = self.calibration_model.azimuth_histogram(cake_tth[30] + 0.5 * cake_step)
+        _, y2 = self.calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step)
         self.assertTrue(np.array_equal(y2, cake_partial))
 
         # selecting points somewhere in between
         cake_partial = 0.3 * cake_img[:, 30] + 0.7 * cake_img[:, 31]
-        _, y3 = self.calibration_model.azimuth_histogram(cake_tth[30] + 0.7 * cake_step)
+        _, y3 = self.calibration_model.cake_integral(cake_tth[30] + 0.7 * cake_step)
         self.assertTrue(np.array_equal(y3, cake_partial))
 
         # test with larger binsize of 2
         cake_partial = 0.5 * cake_img[:, 30] + 0.5 * cake_img[:, 31]
-        _, y4 = self.calibration_model.azimuth_histogram(cake_tth[30] + 0.5 * cake_step, bins=2)
+        _, y4 = self.calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step, bins=2)
         self.assertTrue(np.array_equal(y4, cake_partial))
 
         cake_partial = (0.5 * cake_img[:, 29] + cake_img[:, 30] + 0.5 * cake_img[:, 31])/2
-        _, y5 = self.calibration_model.azimuth_histogram(cake_tth[30], bins=2)
+        _, y5 = self.calibration_model.cake_integral(cake_tth[30], bins=2)
         self.assertTrue(np.array_equal(y5, cake_partial))

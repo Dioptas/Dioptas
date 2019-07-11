@@ -407,7 +407,7 @@ class CalibrationModel(QtCore.QObject):
         self.cake_azi = res[2]
         return self.cake_img
 
-    def azimuth_histogram(self, tth, bins=1):
+    def cake_integral(self, tth, bins=1):
         """
         calculates a histogram of the cake in tth direction, thus the result will be pixel vs intensity
         :param tth: tth value in A^-1

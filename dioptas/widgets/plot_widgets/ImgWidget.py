@@ -427,8 +427,8 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
         self.add_cake_axes()
-        self.add_azimuthal_histogram()
-        self.modify_cake_hist_mouse_behavior()
+        self.add_cake_integral()
+        self.modify_cake_integral_plot_mouse_behavior()
         self.arange_layout()
         self.phases = []  # type: list[CakePhasePlot]
 
@@ -441,34 +441,34 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.pg_layout.addItem(self.bottom_axis_cake, row=2, col=1)
         self.pg_layout.addItem(self.left_axis_cake, row=1, col=0)
 
-    def add_azimuthal_histogram(self):
-        self.azimuth_histogram_item = pg.PlotDataItem([], [], pen=pg.mkPen(color='#FFF', width=1.5))
-        self.azimuth_histogram_plot = self.pg_layout.addPlot(row=1, col=2, rowspan=2, colspan=1,
-                                                             labels={'bottom': 'Intensity'})
-        self.azimuth_histogram_plot.hideAxis('left')
-        self.azimuth_histogram_plot.addItem(self.azimuth_histogram_item)
-        self.azimuth_histogram_plot.enableAutoRange(False)
-        self.azimuth_histogram_plot.buttonsHidden = True
+    def add_cake_integral(self):
+        self.cake_integral_item = pg.PlotDataItem([], [], pen=pg.mkPen(color='#FFF', width=1.5))
+        self.cake_integral_plot = self.pg_layout.addPlot(row=1, col=2, rowspan=2, colspan=1,
+                                                         labels={'bottom': 'Intensity'})
+        self.cake_integral_plot.hideAxis('left')
+        self.cake_integral_plot.addItem(self.cake_integral_item)
+        self.cake_integral_plot.enableAutoRange(False)
+        self.cake_integral_plot.buttonsHidden = True
 
-        self.azimuth_histogram_plot.setYLink(self.img_view_box)
+        self.cake_integral_plot.setYLink(self.img_view_box)
 
     def arange_layout(self):
         self.pg_layout.ci.layout.setColumnStretchFactor(0, 1)
         self.pg_layout.ci.layout.setColumnStretchFactor(1, 14)
         self.pg_layout.ci.layout.setColumnStretchFactor(2, 3)
 
-    def modify_cake_hist_mouse_behavior(self):
-        self.azimuth_histogram_plot.vb.mouseClickEvent = self.empty_function
-        self.azimuth_histogram_plot.vb.mouseDragEvent = self.empty_function
-        self.azimuth_histogram_plot.vb.mouseDoubleClickEvent = self.empty_function
-        self.azimuth_histogram_plot.vb.wheelEvent = self.empty_function
+    def modify_cake_integral_plot_mouse_behavior(self):
+        self.cake_integral_plot.vb.mouseClickEvent = self.empty_function
+        self.cake_integral_plot.vb.mouseDragEvent = self.empty_function
+        self.cake_integral_plot.vb.mouseDoubleClickEvent = self.empty_function
+        self.cake_integral_plot.vb.wheelEvent = self.empty_function
 
     def empty_function(self, *_, **__):
         return
 
-    def plot_azimuth_histogram(self, x, y):
+    def plot_cake_integral(self, x, y):
         y[np.where(y <= 0)] = np.nan  # remove 0 values to be able to plot
-        self.azimuth_histogram_item.setData(y, x)
+        self.cake_integral_item.setData(y, x)
 
     def add_cake_phase(self, positions, intensities, color):
         self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, color))
