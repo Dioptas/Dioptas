@@ -81,7 +81,7 @@ class OptionsWidget(QtWidgets.QWidget):
         self.cake_azimuth_min_txt = NumberTextField('-180')
         self.cake_azimuth_max_txt = NumberTextField('180')
         self.cake_full_toggle_btn = CheckableFlatButton('Full')
-        self.cake_integral_width = ConservativeSpinBox()
+        self.cake_integral_width_sb = ConservativeSpinBox()
         self.cake_save_integral_btn = FlatButton()
 
         self._cake_gb_layout.addWidget(LabelAlignRight('Azimuth bins:'), 0, 0)
@@ -95,7 +95,7 @@ class OptionsWidget(QtWidgets.QWidget):
         self._cake_gb_layout.addLayout(self._azi_range_layout, 1, 1)
         self._cake_gb_layout.addWidget(self.cake_full_toggle_btn, 1, 2)
         self._cake_gb_layout.addWidget(LabelAlignRight('Integral Width:'), 2, 0)
-        self._cake_gb_layout.addWidget(self.cake_integral_width, 2, 1)
+        self._cake_gb_layout.addWidget(self.cake_integral_width_sb, 2, 1)
         self._cake_gb_layout.addWidget(self.cake_save_integral_btn, 2, 2)
 
         self.cake_gb.setLayout(self._cake_gb_layout)
@@ -130,9 +130,9 @@ class OptionsWidget(QtWidgets.QWidget):
         self.cake_azimuth_min_txt.setDisabled(True)
         self.cake_azimuth_max_txt.setDisabled(True)
 
-        self.cake_integral_width.setMinimum(1)
-        self.cake_integral_width.setSingleStep(1)
-        self.cake_integral_width.setMaximum(1000000)
+        self.cake_integral_width_sb.setMinimum(1)
+        self.cake_integral_width_sb.setSingleStep(1)
+        self.cake_integral_width_sb.setMaximum(1000000)
         button_width = 25
         button_height = 25
         self.cake_save_integral_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
@@ -145,7 +145,7 @@ class OptionsWidget(QtWidgets.QWidget):
     def set_tooltips(self):
         self.cake_full_toggle_btn.setToolTip("Set to full available range")
         self.cake_save_integral_btn.setToolTip("Save the tth integral next to the cake image")
-        self.cake_integral_width.setToolTip("Sets the width used for the integral plot\nnext to the cake image.")
+        self.cake_integral_width_sb.setToolTip("Sets the width used for the integral plot\nnext to the cake image.")
 
 
 

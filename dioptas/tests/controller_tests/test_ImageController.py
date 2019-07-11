@@ -179,3 +179,19 @@ class ImageControllerTest(QtTest):
         self.controller.filename_txt_changed()
         new_data = self.model.img_data
         self.assertFalse(np.array_equal(old_data, new_data))
+
+    def test_changing_cake_integral_width(self):
+        file_name = os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif')
+        self.model.img_model.load(file_name)
+        calibration_file_name = os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni')
+        self.model.calibration_model.load(calibration_file_name)
+        click_button(self.widget.integration_image_widget.mode_btn)
+        self.controller.img_mouse_click(100, 300)
+
+        y = self.widget.cake_widget.cake_integral_item.yData
+        self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.setValue(3)
+        self.assertFalse(np.array_equal(y, self.widget.cake_widget.cake_integral_item.yData))
+
+
+
+
