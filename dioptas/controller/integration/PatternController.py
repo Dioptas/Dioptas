@@ -345,8 +345,11 @@ class PatternController(object):
         self.widget.cake_widget.vertical_line.setValue(new_pos)
         self.widget.cake_widget.activate_vertical_line()
 
-        self.widget.cake_widget.plot_cake_integral(np.array(range(len(self.model.cake_azi))) + 0.5,
-                                                       self.model.cake_data[:, int(new_pos)])
+        x, y = self.model.calibration_model.cake_integral(
+            tth,
+            self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.value()
+        )
+        self.widget.cake_widget.plot_cake_integral(x, y)
 
     def set_image_line_position(self, tth):
         if self.model.calibration_model.is_calibrated:

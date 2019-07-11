@@ -113,7 +113,10 @@ class ImageController(object):
     def plot_cake_integral(self):
         if not self.widget.cake_widget.cake_integral_plot.isVisible() or self.clicked_tth is None:
             return
-        x, y = self.model.calibration_model.cake_integral(self.clicked_tth)
+        x, y = self.model.calibration_model.cake_integral(
+            self.clicked_tth,
+            self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.value()
+        )
         self.widget.cake_widget.plot_cake_integral(x, y)
 
     def plot_mask(self):
@@ -178,6 +181,8 @@ class ImageController(object):
         self.widget.integration_image_widget.cake_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
         self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
         self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
+        self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.valueChanged.\
+            connect(self.plot_cake_integral)
 
         ###
         # General Image Widget controls
