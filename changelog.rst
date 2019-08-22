@@ -8,6 +8,7 @@ Bug Fixes:
     - reading trigonal rhombic cif files works now correctly
     - entering the range for the automatic background subtraction works now correctly
     - the motor setup widget is now not showing anymore after starting Dioptas on OS X
+    - fixed double logarithm for the intensity distribution display histogram
 
 
 0.5.0 (stable 03/05/2019)
