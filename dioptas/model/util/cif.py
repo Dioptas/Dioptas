@@ -471,7 +471,10 @@ class CifPhase(object):
     def get_symmetry_from_space_group_number(self, number):
         if number is not None:
             if number in [146, 148, 155, 160, 161, 166, 167]:
-                return "RHOMBOHEDRAL"
+                if number == 167 and not self.a == self.c:
+                    return "HEXAGONAL"
+                else:
+                    return "RHOMBOHEDRAL"
             if number_between(number, 1, 2):
                 return "TRICLINIC"
             if number_between(number, 3, 15):
