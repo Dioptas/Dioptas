@@ -113,11 +113,6 @@ class HistogramLUTItem(GraphicsWidget):
 
         self.vb.sigRangeChanged.connect(self.viewRangeChanged)
         self.plot = PlotDataItem()
-        if self.orientation == 'horizontal':
-            self.plot.setLogMode(yMode=True, xMode=False)
-        elif self.orientation == 'vertical':
-            self.plot.setLogMode(yMode=False, xMode=True)
-            self.vb.invertX(True)
         self.vb.autoRange()
         self.fillHistogram(fillHistogram)
         self.plot.setPen(pg.mkPen(color=(50, 150, 50), size=3))
@@ -256,14 +251,10 @@ class HistogramLUTItem(GraphicsWidget):
         hist_y_log = np.log(hist_y[1:])
         hist_x_log = np.log(hist_x[1:])
 
-        plot_range = [0, 0.12 * np.max(hist_y_log)]
-
         if self.orientation == 'horizontal':
             self.plot.setData(hist_x_log, hist_y_log)
-            self.vb.setRange(yRange=plot_range)
         elif self.orientation == 'vertical':
             self.plot.setData(hist_y_log, hist_x_log)
-            self.vb.setRange(xRange=plot_range)
 
     def getLevels(self):
         return self.region.getRegion()
@@ -313,7 +304,7 @@ class LogarithmRegionItem(LinearRegionItem):
         self.blockLineSignal = False
         self.lines[1].setValue(rgn[1])
         # self.blockLineSignal = False
-        try: # needed due to changes in the pyqtgraph API
+        try:  # needed due to changes in the pyqtgraph API
             self.lineMoved(0)
         except TypeError:
             self.lineMoved()

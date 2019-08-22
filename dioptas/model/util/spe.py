@@ -185,10 +185,13 @@ class SpeFile(object):
         it in the x_calibration field"""
         spe_format = self.dom.childNodes[0]
         calibrations = spe_format.getElementsByTagName('Calibrations')[0]
-        wavelengthmapping = calibrations.getElementsByTagName('WavelengthMapping')[0]
-        wavelengths = wavelengthmapping.getElementsByTagName('Wavelength')[0]
-        wavelength_values = wavelengths.childNodes[0]
-        self.x_calibration = np.array([float(i) for i in wavelength_values.toxml().split(',')])
+        try:
+            wavelengthmapping = calibrations.getElementsByTagName('WavelengthMapping')[0]
+            wavelengths = wavelengthmapping.getElementsByTagName('Wavelength')[0]
+            wavelength_values = wavelengths.childNodes[0]
+            self.x_calibration = np.array([float(i) for i in wavelength_values.toxml().split(',')])
+        except IndexError:
+            print("No element WaveLengthMapping in SPE File. Not calibrating x units")
 
     def _read_exposure_from_dom(self):
         """Reads th exposure time of the experiment into the exposure_time field"""
@@ -197,8 +200,12 @@ class SpeFile(object):
                 self._exposure_time = self.dom.getElementsByTagName('ExposureTime')[0].childNodes[0]
                 self.exposure_time = np.float(self._exposure_time.toxml()) / 1000.0
             else:
-                self._exposure_time = self.dom.getElementsByTagName('ReadoutControl')[0]. \
-                    getElementsByTagName('Time')[0].childNodes[0].nodeValue
+                # self._exposure_time = self.dom.getElementsByTagName('ReadoutControl')[0]. \
+                #     getElementsByTagName('Time')[0].childNodes[0].nodeValue
+                # self._exposure_time = np.float(self._exposure_time)/1000000000
+                self._exposure_time = self.dom.getElementsByTagName('Gating')[0]. \
+                    getElementsByTagName('RepetitiveGate')[0].getElementsByTagName('Pulse')[0].getAttribute('width')
+                self._exposure_time = np.float(self._exposure_time)/1000000000
                 self._accumulations = self.dom.getElementsByTagName('Accumulations')[0].childNodes[0].nodeValue
                 self.exposure_time = np.float(self._exposure_time) * np.float(self._accumulations)
         else:  # this is searching for legacy experiment:
@@ -256,9 +263,12 @@ class SpeFile(object):
                     getElementsByTagName('RegionsOfInterest')[0]. \
                     getElementsByTagName('CustomRegions')[0]. \
                     getElementsByTagName('RegionOfInterest')[0]
+                self.roi_dom_width = self.dom.getElementsByTagName('DataFormat')[0]. \
+                    getElementsByTagName('DataBlock')[0]. \
+                    getElementsByTagName('DataBlock')[0]
                 self.roi_x = int(self.roi_dom.attributes['x'].value)
                 self.roi_y = int(self.roi_dom.attributes['y'].value)
-                self.roi_width = int(self.roi_dom.attributes['width'].value)
+                self.roi_width = int(self.roi_dom_width.attributes['width'].value)
                 self.roi_height = int(self.roi_dom.attributes['height'].value)
                 self.roi_x_binning = int(self.roi_dom.attributes['xBinning'].value)
                 self.roi_y_binning = int(self.roi_dom.attributes['yBinning'].value)
@@ -286,12 +296,17 @@ class SpeFile(object):
             self._read_num_combined_frames_from_header()
 
     def _select_wavelength_from_roi(self):
-        self.x_calibration = self.x_calibration[self.roi_x: self.roi_x + self.roi_width]
+        try:
+            self.x_calibration = self.x_calibration[self.roi_x: self.roi_x + self.roi_width]
+        except AttributeError:
+            print("SPE File bad!")
 
     def _read_datatype(self):
         self._data_type = self._read_at(108, 1, np.uint16)[0]
 
     def _read_at(self, pos, size, ntype):
+        pos = int(pos)
+        size = int(size)
         self._fid.seek(pos)
         return np.fromfile(self._fid, ntype, size)
 
@@ -303,11 +318,14 @@ class SpeFile(object):
             for n in range(self.num_frames - 1):
                 img_temp.append(self._read_frame())
             self.img = img_temp
+        if type(self.img) == list:
+            self.img = self.img[0]
 
     def _read_frame(self, pos=None):
         """Reads in a frame at a specific binary position. The following parameters have to
         be predefined before calling this function:
-        datatype - either 0,1,2,3 for float32, int32, int16 or uint16
+        datatype - either 0,1,2,3,8 for float32, int32, int16, uint16 or uint32 (datatypes can be found on page 10 in
+        the SPE 3.0 File format manual)
         _xdim, _ydim - being the dimensions.
         """
         if pos == None:
@@ -320,6 +338,8 @@ class SpeFile(object):
             img = self._read_at(pos, self._xdim * self._ydim, np.int16)
         elif self._data_type == 3:
             img = self._read_at(pos, self._xdim * self._ydim, np.uint16)
+        elif self._data_type == 8:
+            img = self._read_at(pos, self._xdim * self._ydim, np.uint32)
         return img.reshape((self._ydim, self._xdim))
 
     def get_index_from(self, wavelength):
