@@ -443,7 +443,7 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
 
     def add_cake_integral(self):
         self.cake_integral_item = pg.PlotDataItem([], [], pen=pg.mkPen(color='#FFF', width=1.5))
-        self.cake_integral_plot = self.pg_layout.addPlot(row=1, col=2, rowspan=2, colspan=1,
+        self.cake_integral_plot = self.pg_layout.addPlot(row=1, col=3, rowspan=2, colspan=1,
                                                          labels={'bottom': 'Intensity'})
         self.cake_integral_plot.hideAxis('left')
         self.cake_integral_plot.addItem(self.cake_integral_item)
