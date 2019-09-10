@@ -129,19 +129,16 @@ class IntegrationControllerTest(QtTest):
 
         self.assertEqual(self.widget.cake_shift_azimuth_sl.value(), shift)
 
-        displayed_cake_data = self.widget.img_widget.img_data
+        displayed_cake_data = self.widget.cake_widget.img_data
         self.assertFalse(np.array_equal(displayed_cake_data, old_cake_data))
         self.assertFalse(np.array_equal(displayed_cake_data[0], old_cake_data[0]))
         self.assertTrue(np.array_equal(displayed_cake_data[shift], old_cake_data[0]))
 
     def test_cake_changes_axes(self):
-        # self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Cake')
-        # self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_image,
-        #                  self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
         self.widget.integration_image_widget.mode_btn.click()  # change to cake mode
         self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
-        self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_cake,
-                         self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+        self.assertEqual(self.widget.integration_image_widget.cake_view.left_axis_cake,
+                         self.widget.integration_image_widget.cake_view.pg_layout.getItem(1, 0))
 
     def test_disable_solid_angle_correction(self):
         click_checkbox(self.widget.integration_control_widget.integration_options_widget.correct_solid_angle_cb)

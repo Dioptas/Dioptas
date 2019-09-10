@@ -26,6 +26,7 @@ from ...plot_widgets import PatternWidget
 from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
 from .... import icons_path
 
+
 class IntegrationPatternWidget(QtWidgets.QWidget):
     def __init__(self):
         super(IntegrationPatternWidget, self).__init__()
