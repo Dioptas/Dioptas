@@ -84,19 +84,24 @@ class ImgModel(QtCore.QObject):
 
         self.transfer_correction = TransferFunctionCorrection()
 
-        # anything that gets loaded from an image file and needs to be reset if a file without these attributes is loaded
-                               # 2D array containing the current image
-        self.loadable_data = [{"name": "img_data", "default": np.zeros((2048, 2048)), "attribute": "_img_data"},
-                              {"name": "file_info", "default": "", "attribute": "file_info"},
-                              {"name": "motors_info", "default": {}, "attribute": "motors_info"},
-                              {"name": "img_data_fabio", "default": None, "attribute": "_img_data_fabio"},
-                              # current position in the loaded series of images, starting at 1
-                              {"name": "series_pos", "default": 1, "attribute": "series_pos"},
-                              # maximum position/number of images in the loaded series, starting at 1
-                              {"name": "series_max", "default": 1, "attribute": "series_max"},
-                              # function to get an image in the current series. A function assigned to this attribute should take
-                              # a single parameter pos (position in the series starting at 0) and return a 2d array with the image data
-                              {"name": "series_get_image", "default": None, "attribute": "series_get_image"}]
+        # anything that gets loaded from an image file and needs to be reset if a file without these attributes is
+        # loaded 2D array containing the current image
+        self.loadable_data = [
+            {"name": "img_data", "default": np.zeros((2048, 2048)), "attribute": "_img_data"},
+            {"name": "file_info", "default": "", "attribute": "file_info"},
+            {"name": "motors_info", "default": {}, "attribute": "motors_info"},
+            {"name": "img_data_fabio", "default": None, "attribute": "_img_data_fabio"},
+
+            # current position in the loaded series of images, starting at 1
+            {"name": "series_pos", "default": 1, "attribute": "series_pos"},
+
+            # maximum position/number of images in the loaded series, starting at 1
+            {"name": "series_max", "default": 1, "attribute": "series_max"},
+
+            # function to get an image in the current series. A function assigned to this attribute should take
+            # a single parameter pos (position in the series starting at 0) and return a 2d array with the image data
+            {"name": "series_get_image", "default": None, "attribute": "series_get_image"}
+        ]
 
         # set the loadable attributes to their defaults
         self.set_loadable_attributes({})
@@ -114,9 +119,9 @@ class ImgModel(QtCore.QObject):
 
     def load(self, filename):
         """
-        Loads an image file in any format known by fabIO. Automatically performs all previous img transformations,
-        performs supersampling and recalculates background subtracted and absorption corrected image data. The
-        img_changed signal will be emitted after the process.
+        Loads an image file in any format known by fabIO, PIL or HDF5. Automatically performs all previous img
+        transformations, performs supersampling and recalculates background subtracted and absorption corrected image
+        data. The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
         filename = str(filename)  # since it could also be QString
@@ -136,9 +141,11 @@ class ImgModel(QtCore.QObject):
 
     def get_image_data(self, filename):
         """
-        Tries to load the given file using different image loader libraries and returns a dictionary containing all retrieved file data
+        Tries to load the given file using different image loader libraries and returns a dictionary containing all
+        retrieved file data.
         :param filename: string containing a path to an image file
-        :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names. Present key names depend on applied image loader
+        :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names.
+                 Present key names depend on applied image loader
         """
         img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda]
 
@@ -154,7 +161,8 @@ class ImgModel(QtCore.QObject):
         Sets all attributes that change with the loading of an image to either their defaults or a given value.
         This assures that no leftover data will be kept when it is not overwritten by the new image.
         :param loaded_data: dictionary containing values to be loaded into the attributes corresponding to their keys.
-                                Possible key names and attribute names they will be loaded to are specified in "loadable_data"
+                            Possible key names and attribute names they will be loaded to are specified in
+                            "loadable_data"
         """
         for attribute in self.loadable_data:
             if attribute["name"] in loaded_data:
@@ -166,7 +174,7 @@ class ImgModel(QtCore.QObject):
         """
         Loads an image using the PIL library. Also returns file and motor info if present
         :param filename: path to the image file to be loaded
-        :return: dictionary with image_data and file_info aand motors_info if present. None if unsuccessful
+        :return: dictionary with image_data and file_info and motors_info if present. None if unsuccessful
         """
         data = {}
         try:
@@ -347,8 +355,9 @@ class ImgModel(QtCore.QObject):
 
     def load_series_img(self, pos):
         """
-        Takes a position in  the series to load, sanitizes it and puts the result from the function assigned to series_get_image into _img_data.
-        series_get_image gets called with a position starting from 0, all other series pos values start at one as shown to the user.
+        Takes a position in  the series to load, sanitizes it and puts the result from the function assigned to
+        series_get_image into _img_data. series_get_image gets called with a position starting from 0, all other series
+        pos values start at one as shown to the user.
         :param pos: Image position in the series to load, starting at 1
         """
         pos = min(max(pos, 1), self.series_max)
