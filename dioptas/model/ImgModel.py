@@ -21,6 +21,7 @@
 import logging
 import os
 from past.builtins import basestring
+import copy
 
 import numpy as np
 from PIL import Image
@@ -32,6 +33,7 @@ from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
+from .util.LambdaLoader import LambdaImage
 
 logger = logging.getLogger(__name__)
 
@@ -82,11 +84,24 @@ class ImgModel(QtCore.QObject):
 
         self.transfer_correction = TransferFunctionCorrection()
 
-        self.file_info = ''
-        self.motors_info = {}
-        self._img_corrections = ImgCorrectionManager()
+        # anything that gets loaded from an image file and needs to be reset if a file without these attributes is loaded
+                               # 2D array containing the current image
+        self.loadable_data = [{"name": "img_data", "default": np.zeros((2048, 2048)), "attribute": "_img_data"},
+                              {"name": "file_info", "default": "", "attribute": "file_info"},
+                              {"name": "motors_info", "default": {}, "attribute": "motors_info"},
+                              {"name": "img_data_fabio", "default": None, "attribute": "_img_data_fabio"},
+                              # current position in the loaded series of images, starting at 1
+                              {"name": "series_pos", "default": 1, "attribute": "series_pos"},
+                              # maximum position/number of images in the loaded series, starting at 1
+                              {"name": "series_max", "default": 1, "attribute": "series_max"},
+                              # function to get an image in the current series. A function assigned to this attribute should take
+                              # a single parameter pos (position in the series starting at 0) and return a 2d array with the image data
+                              {"name": "series_get_image", "default": None, "attribute": "series_get_image"}]
 
-        self._img_data = np.zeros((2048, 2048))
+        # set the loadable attributes to their defaults
+        self.set_loadable_attributes({})
+
+        self._img_corrections = ImgCorrectionManager()
 
         # setting up autoprocess
         self._autoprocess = False
@@ -107,19 +122,10 @@ class ImgModel(QtCore.QObject):
         filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
-        try:
-            im = Image.open(filename)
-            self._img_data = np.array(im)[::-1]
-            self.file_info = self._get_file_info(im)
-            self.motors_info = self._get_motors_info(im)
-            im.close()
-        except IOError:
-            if os.path.splitext(filename)[1].lower() == '.spe':
-                spe = SpeFile(filename)
-                self._img_data = spe.img
-            else:
-                self._img_data_fabio = fabio.open(filename)
-                self._img_data = self._img_data_fabio.data[::-1]
+
+        image_file_data = self.get_image_data(filename)
+        self.set_loadable_attributes(image_file_data)
+
         self.file_name_iterator.update_filename(filename)
         self._directory_watcher.path = os.path.dirname(str(filename))
 
@@ -127,6 +133,98 @@ class ImgModel(QtCore.QObject):
         self._calculate_img_data()
 
         self.img_changed.emit()
+
+    def get_image_data(self, filename):
+        """
+        Tries to load the given file using different image loader libraries and returns a dictionary containing all retrieved file data
+        :param filename: string containing a path to an image file
+        :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names. Present key names depend on applied image loader
+        """
+        img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda]
+
+        for loader in img_loaders:
+            data = loader(filename)
+            if data:
+                return data
+        else:
+            raise IOError("No handler found for given image")
+
+    def set_loadable_attributes(self, loaded_data):
+        """
+        Sets all attributes that change with the loading of an image to either their defaults or a given value.
+        This assures that no leftover data will be kept when it is not overwritten by the new image.
+        :param loaded_data: dictionary containing values to be loaded into the attributes corresponding to their keys.
+                                Possible key names and attribute names they will be loaded to are specified in "loadable_data"
+        """
+        for attribute in self.loadable_data:
+            if attribute["name"] in loaded_data:
+                self.__setattr__(attribute["attribute"], loaded_data[attribute["name"]])
+            else:
+                self.__setattr__(attribute["attribute"], copy.copy(attribute["default"]))
+
+    def load_PIL(self, filename):
+        """
+        Loads an image using the PIL library. Also returns file and motor info if present
+        :param filename: path to the image file to be loaded
+        :return: dictionary with image_data and file_info aand motors_info if present. None if unsuccessful
+        """
+        data = {}
+        try:
+            im = Image.open(filename)
+            if np.prod(im.size) <= 1:
+                im.close()
+                return False
+            data["img_data"] = np.array(im)[::-1]
+            try:
+                data["file_info"] = self._get_file_info(im)
+                data["motors_info"] = self._get_motors_info(im)
+            except AttributeError:
+                pass
+            im.close()
+            return data
+
+        except IOError:
+            return None
+
+    def load_spe(self, filename):
+        """
+        Loads an image using the builtin spe library.
+        :param filename: path to the image file to be loaded
+        :return: dictionary with image_data, None if unsuccessful
+        """
+        if os.path.splitext(filename)[1].lower() == '.spe':
+            spe = SpeFile(filename)
+            return {"img_data": spe.img}
+        else:
+            return None
+
+    def load_fabio(self, filename):
+        """
+        Loads an image using the fabio library.
+        :param filename: path to the image file to be loaded
+        :return: dictionary with image_data and image_data_fabio, None if unsuccessful
+        """
+        try:
+            img_data_fabio = fabio.open(filename)
+            img_data = img_data_fabio.data[::-1]
+            return {"img_data_fabio": img_data_fabio, "img_data": img_data}
+        except (IOError, fabio.fabioutils.NotGoodReader):
+            return None
+
+    def load_lambda(self, filename):
+        """
+        loads an image made by a lambda detector using the builtin lambda library.
+        :param filename: path to the image file to be loaded
+        :return: dictionary with img_data, series_max and series_get_image, None if unsuccessful
+        """
+        try:
+            lambda_im = LambdaImage(filename)
+        except IOError:
+            return None
+
+        return {"img_data": lambda_im.get_image(0),
+                "series_max": lambda_im.series_max,
+                "series_get_image": lambda_im.get_image}
 
     def save(self, filename):
         """
@@ -148,12 +246,9 @@ class ImgModel(QtCore.QObject):
         :param filename: path of the image file to be loaded
         """
         self.background_filename = filename
-        try:
-            im = Image.open(filename)
-            self._background_data = np.array(im)[::-1]
-        except IOError:
-            self._background_data_fabio = fabio.open(filename)
-            self._background_data = self._img_data_fabio.data[::-1]
+
+        self._background_data = self.get_image_data(filename)["img_data"]
+
         self._perform_background_transformations()
 
         if self._background_data.shape != self._img_data.shape:
@@ -173,16 +268,8 @@ class ImgModel(QtCore.QObject):
         :param filename: path of the image file to be loaded
         """
         filename = str(filename)  # since it could also be QString
-        try:
-            im = Image.open(filename)
-            img_data = np.array(im)[::-1]
-        except IOError:
-            if os.path.splitext(filename)[1].lower() == '.spe':
-                spe = SpeFile(filename)
-                img_data = spe.img
-            else:
-                img_data_fabio = fabio.open(filename)
-                img_data = img_data_fabio.data[::-1]
+
+        img_data = self.get_image_data(filename)["img_data"]
 
         for transformation in self.img_transformations:
             img_data = transformation(img_data)
@@ -256,6 +343,24 @@ class ImgModel(QtCore.QObject):
     def background_offset(self, new_value):
         self._background_offset = new_value
         self._calculate_img_data()
+        self.img_changed.emit()
+
+    def load_series_img(self, pos):
+        """
+        Takes a position in  the series to load, sanitizes it and puts the result from the function assigned to series_get_image into _img_data.
+        series_get_image gets called with a position starting from 0, all other series pos values start at one as shown to the user.
+        :param pos: Image position in the series to load, starting at 1
+        """
+        pos = min(max(pos, 1), self.series_max)
+        if self.series_pos == pos:
+            return
+
+        self.series_pos = pos
+        self._img_data = self.series_get_image(pos - 1)
+
+        self._perform_img_transformations()
+        self._calculate_img_data()
+
         self.img_changed.emit()
 
     def load_next_file(self, step=1, pos=None):
