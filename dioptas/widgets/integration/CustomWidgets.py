@@ -77,7 +77,7 @@ class MouseUnitCurrentAndClickedWidget(QtWidgets.QWidget):
     def __init__(self, clicked_color):
         super(MouseUnitCurrentAndClickedWidget, self).__init__()
         self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
         self.cur_unit_widget = MouseUnitWidget()
@@ -155,7 +155,7 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
         self._directory_layout.addWidget(self.directory_btn)
         self._layout.addLayout(self._directory_layout, 3, 0, 1, 5)
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum,
-                                 QtWidgets.QSizePolicy.Minimum), 1, 5)
+                                                   QtWidgets.QSizePolicy.Minimum), 1, 5)
 
         self.setLayout(self._layout)
 

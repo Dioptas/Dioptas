@@ -70,7 +70,7 @@ class ImageController(object):
         self.create_mouse_behavior()
 
     def initialize(self):
-        self.update_img_info()
+        self.update_img()
         self.plot_img()
         self.plot_mask()
         self.widget.img_widget.auto_level()
@@ -133,7 +133,7 @@ class ImageController(object):
 
     def create_signals(self):
         self.model.configuration_selected.connect(self.update_gui_from_configuration)
-        self.model.img_changed.connect(self.update_img_info)
+        self.model.img_changed.connect(self.update_img)
 
         self.model.img_changed.connect(self.plot_img)
         self.model.img_changed.connect(self.plot_mask)
@@ -141,22 +141,22 @@ class ImageController(object):
         """
         Creates all the connections of the GUI elements.
         """
-        self.connect_click_function(self.widget.img_step_file.next_btn, self.load_next_img)
-        self.connect_click_function(self.widget.img_step_file.previous_btn, self.load_previous_img)
-        self.connect_click_function(self.widget.load_img_btn, self.load_file)
+        self.widget.img_step_file.next_btn.clicked.connect(self.load_next_img)
+        self.widget.img_step_file.previous_btn.clicked.connect(self.load_previous_img)
+        self.widget.load_img_btn.clicked.connect(self.load_file)
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.widget.img_directory_btn.clicked.connect(self.img_directory_btn_click)
 
-        self.connect_click_function(self.widget.img_step_series.next_btn, self.load_next_series_img)
-        self.connect_click_function(self.widget.img_step_series.previous_btn, self.load_prev_series_img)
+        self.widget.img_step_series.next_btn.clicked.connect(self.load_next_series_img)
+        self.widget.img_step_series.previous_btn.clicked.connect(self.load_prev_series_img)
         self.widget.img_step_series.pos_txt.editingFinished.connect(self.load_series_img)
 
-        self.connect_click_function(self.widget.file_info_btn, self.show_file_info)
+        self.widget.file_info_btn.clicked.connect(self.show_file_info)
 
-        self.connect_click_function(self.widget.img_step_file.browse_by_name_rb, self.set_iteration_mode_number)
-        self.connect_click_function(self.widget.img_step_file.browse_by_time_rb, self.set_iteration_mode_time)
-        self.connect_click_function(self.widget.mask_transparent_cb, self.update_mask_transparency)
+        self.widget.img_step_file.browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
+        self.widget.img_step_file.browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
+        self.widget.mask_transparent_cb.clicked.connect(self.update_mask_transparency)
 
         ###
         # Image widget image specific controls
@@ -464,7 +464,7 @@ class ImageController(object):
             self.model.working_directories['image'] = directory
             self.widget.img_directory_txt.setText(directory)
 
-    def update_img(self, reset_img_levels=None):
+    def update_img(self):
         self.widget.img_step_series.setVisible(self.model.img_model.series_max > 1)
         self.widget.img_step_series.pos_validator.setTop(self.model.img_model.series_max)
         self.widget.img_step_series.pos_txt.setText(str(self.model.img_model.series_pos))
