@@ -59,7 +59,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
-
         self.vertical_splitter_left = QtWidgets.QSplitter(self)
         self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter_left.addWidget(self.integration_image_widget)
@@ -231,6 +230,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_autoscale_btn = image_widget.autoscale_btn
         self.img_dock_btn = image_widget.undock_btn
         self.img_widget = image_widget.img_view
+        self.cake_widget = image_widget.cake_view
         self.img_show_background_subtracted_btn = image_widget.show_background_subtracted_img_btn
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget

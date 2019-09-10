@@ -301,14 +301,14 @@ def get_partial_index(array, value):
     :return: partial index
     """
     try:
-        upper_ind = np.where(array > value)
-        lower_ind = np.where(array < value)
+        upper_ind = np.where(array >= value)[0]
+        lower_ind = np.where(array < value)[0]
     except TypeError:
         return None
 
     try:
-        spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
-        new_pos = lower_ind[-1][-1] + (value - array[lower_ind[-1][-1]]) / spacing
+        spacing = array[upper_ind[0]] - array[lower_ind[-1]]
+        new_pos = lower_ind[-1] + (value - array[lower_ind[-1]]) / spacing
     except IndexError:
         return None
 

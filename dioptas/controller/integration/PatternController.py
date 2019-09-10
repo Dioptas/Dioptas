@@ -337,7 +337,7 @@ class PatternController(object):
         spacing = self.model.cake_tth[upper_ind[0][0]] - self.model.cake_tth[
             lower_ind[-1][-1]]
         new_pos = lower_ind[-1][-1] + (tth - self.model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
-        self.widget.img_widget.vertical_line.setValue(new_pos)
+        self.widget.cake_widget.vertical_line.setValue(new_pos)
 
     def set_image_line_position(self, tth):
         if self.model.calibration_model.is_calibrated:

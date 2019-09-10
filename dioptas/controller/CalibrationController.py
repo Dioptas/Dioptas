@@ -555,9 +555,9 @@ class CalibrationController(object):
         :type state: bool
         """
         if state:
-            self.widget.img_widget.set_color([255, 0, 0, 100])
+            self.widget.img_widget.update_pen([255, 0, 0, 100])
         else:
-            self.widget.img_widget.set_color([255, 0, 0, 255])
+            self.widget.img_widget.update_pen([255, 0, 0, 255])
 
     def update_all(self, integrate=True):
         """

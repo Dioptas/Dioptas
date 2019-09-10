@@ -141,15 +141,15 @@ class MotorsSetup(QtWidgets.QWidget):
         grid.addWidget(self.reread_config_btn, 5, 0)
 
         self.setLayout(grid)
-
-
         self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
+
+    def raise_widget(self):
+        self.show()
         self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.activateWindow()
+        self.raise_()
 
     def return_motor_names(self):
         return str(self.hor_motor_txt.text()), str(self.ver_motor_txt.text()), str(self.focus_motor_txt.text()), str(
             self.omega_motor_txt.text())
-
-
