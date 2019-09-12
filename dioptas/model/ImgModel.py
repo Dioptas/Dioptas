@@ -247,7 +247,7 @@ class ImgModel(QtCore.QObject):
         except IOError:
             return None
 
-        return {"img_data": karabo_file.get_image(0),
+        return {"img_data": karabo_file.get_image(3),
                 "series_max": karabo_file.series_max,
                 "series_get_image": karabo_file.get_image}
 

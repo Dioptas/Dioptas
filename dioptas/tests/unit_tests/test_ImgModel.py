@@ -42,7 +42,7 @@ class ImgModelTest(QtTest):
         del self.img_model
 
     def test_load_karabo_nexus_file(self):
-        self.img_model.load(os.path.join(data_path, 'karabo_nexus.h5'))
+        self.img_model.load(os.path.join(data_path, 'karabo_epix.h5'))
 
     def perform_transformations_tests(self):
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)
