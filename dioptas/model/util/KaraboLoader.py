@@ -8,14 +8,8 @@ class KaraboFile:
         self.f = H5File(filename)
         self.series_max = len(self.f.train_ids)
         self.sources = [s for s in self.f.instrument_sources if "daqOutput" in s]
-        print(self.f.instrument_sources)
         self.current_source = self.sources[source_ind]
-        print(self.f.keys_for_source(self.current_source))
-
-        for tid, data in self.f.trains():
-            print("Processing train", tid)
-            print(data)
-            break
 
     def get_image(self, ind):
-        pass
+        tid, data = self.f.train_from_index(ind)
+        return data[self.current_source]['data.image.pixels']
