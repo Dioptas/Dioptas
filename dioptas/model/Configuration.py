@@ -420,6 +420,9 @@ class Configuration(QtCore.QObject):
                 background_data = transformation(background_data)
             image_group.create_dataset('background_data', background_data.shape, 'f', background_data)
 
+        image_group.attrs['series_max'] = self.img_model.series_max
+        image_group.attrs['series_pos'] = self.img_model.series_pos
+
         # image corrections
         corrections_group = image_group.create_group('corrections')
         corrections_group.attrs['has_corrections'] = self.img_model.has_corrections()
@@ -596,6 +599,12 @@ class Configuration(QtCore.QObject):
         self.img_model.autoprocess = f.get('image_model').attrs['auto_process']
         self.img_model.autoprocess_changed.emit()
         self.img_model.factor = f.get('image_model').attrs['factor']
+
+        try:
+            self.img_model.series_max = f.get('image_model').attrs['series_max']
+            self.img_model.series_pos = f.get('image_model').attrs['series_pos']
+        except KeyError:
+            pass
 
         if f.get('image_model').attrs['has_background']:
             self.img_model.background_data = np.copy(f.get('image_model').get('background_data')[...])
