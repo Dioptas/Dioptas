@@ -30,7 +30,7 @@ addons:
 
 install:
     - conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph -c cprescher
-    - pip install pyepics
+    - pip install pyepics, karabo_data
 
     - cd dioptas/model/util/
     - f2py -c -m smooth_bruckner smooth_bruckner.f95
