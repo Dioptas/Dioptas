@@ -141,21 +141,21 @@ class ImageController(object):
         """
         Creates all the connections of the GUI elements.
         """
-        self.widget.img_step_file.next_btn.clicked.connect(self.load_next_img)
-        self.widget.img_step_file.previous_btn.clicked.connect(self.load_previous_img)
+        self.widget.img_step_file_widget.next_btn.clicked.connect(self.load_next_img)
+        self.widget.img_step_file_widget.previous_btn.clicked.connect(self.load_previous_img)
         self.widget.load_img_btn.clicked.connect(self.load_file)
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.widget.img_directory_btn.clicked.connect(self.img_directory_btn_click)
 
-        self.widget.img_step_series.next_btn.clicked.connect(self.load_next_series_img)
-        self.widget.img_step_series.previous_btn.clicked.connect(self.load_prev_series_img)
-        self.widget.img_step_series.pos_txt.editingFinished.connect(self.load_series_img)
+        self.widget.img_step_series_widget.next_btn.clicked.connect(self.load_next_series_img)
+        self.widget.img_step_series_widget.previous_btn.clicked.connect(self.load_prev_series_img)
+        self.widget.img_step_series_widget.pos_txt.editingFinished.connect(self.load_series_img)
 
         self.widget.file_info_btn.clicked.connect(self.show_file_info)
 
-        self.widget.img_step_file.browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
-        self.widget.img_step_file.browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
+        self.widget.img_step_file_widget.browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
+        self.widget.img_step_file_widget.browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
         self.widget.mask_transparent_cb.clicked.connect(self.update_mask_transparency)
 
         ###
@@ -409,25 +409,25 @@ class ImageController(object):
         self.widget.img_mode_btn.click()
 
     def load_series_img(self):
-        pos = int(str(self.widget.img_step_series.pos_txt.text()))
+        pos = int(str(self.widget.img_step_series_widget.pos_txt.text()))
         self.model.img_model.load_series_img(pos)
 
     def load_prev_series_img(self):
-        step = int(str(self.widget.img_step_series.step_txt.text()))
-        pos = int(str(self.widget.img_step_series.pos_txt.text()))
+        step = int(str(self.widget.img_step_series_widget.step_txt.text()))
+        pos = int(str(self.widget.img_step_series_widget.pos_txt.text()))
         self.model.img_model.load_series_img(pos-step)
 
     def load_next_series_img(self):
-        step = int(str(self.widget.img_step_series.step_txt.text()))
-        pos = int(str(self.widget.img_step_series.pos_txt.text()))
+        step = int(str(self.widget.img_step_series_widget.step_txt.text()))
+        pos = int(str(self.widget.img_step_series_widget.pos_txt.text()))
         self.model.img_model.load_series_img(pos+step)
 
     def load_next_img(self):
-        step = int(str(self.widget.img_step_file.step_txt.text()))
+        step = int(str(self.widget.img_step_file_widget.step_txt.text()))
         self.model.img_model.load_next_file(step=step)
 
     def load_previous_img(self):
-        step = int(str(self.widget.img_step_file.step_txt.text()))
+        step = int(str(self.widget.img_step_file_widget.step_txt.text()))
         self.model.img_model.load_previous_file(step=step)
 
     def filename_txt_changed(self):
@@ -465,9 +465,9 @@ class ImageController(object):
             self.widget.img_directory_txt.setText(directory)
 
     def update_img(self):
-        self.widget.img_step_series.setVisible(self.model.img_model.series_max > 1)
-        self.widget.img_step_series.pos_validator.setTop(self.model.img_model.series_max)
-        self.widget.img_step_series.pos_txt.setText(str(self.model.img_model.series_pos))
+        self.widget.img_step_series_widget.setVisible(self.model.img_model.series_max > 1)
+        self.widget.img_step_series_widget.pos_validator.setTop(self.model.img_model.series_max)
+        self.widget.img_step_series_widget.pos_txt.setText(str(self.model.img_model.series_pos))
 
         self.widget.img_filename_txt.setText(os.path.basename(self.model.img_model.filename))
         self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
@@ -934,6 +934,7 @@ class ImageController(object):
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
 
+        self.update_img()
         self.update_mask_mode()
         self.update_roi_in_gui()
 

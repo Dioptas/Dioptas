@@ -186,7 +186,6 @@ class ProjectSaveLoadTest(QtTest):
             saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
             if 'splineFile' in saved_pyfai_params:
                 del saved_pyfai_params['splineFile']
-            print(saved_pyfai_params)
             self.assertDictEqual(saved_pyfai_params, pyfai_params)
 
     ####################################################################################################################
@@ -429,7 +428,7 @@ class ProjectSaveLoadTest(QtTest):
         self.save_and_load_configuration(self.prepare_file_browsing)
         with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                           np.ones((1001,)))):
-            click_button(self.widget.integration_widget.img_step_file.next_btn)
+            click_button(self.widget.integration_widget.img_step_file_widget.next_btn)
             self.assertEqual(str(self.widget.integration_widget.img_filename_txt.text()),
                              'image_002.tif')
 
@@ -459,3 +458,13 @@ class ProjectSaveLoadTest(QtTest):
         self.model.calibration_model.calibrate()
 
         _, y1 = self.model.calibration_model.integrate_1d()
+
+    ####################################################################################################################
+    def test_series_loading(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_series_file)
+        self.assertTrue(self.model.img_model.series_max > 1)
+
+    def prepare_series_file(self):
+        self.model.img_model.load(os.path.join(data_path, 'karabo_epix.h5'))
+        self.assertTrue(self.model.img_model.series_max > 1)

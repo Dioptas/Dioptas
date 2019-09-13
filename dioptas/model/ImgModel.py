@@ -34,6 +34,7 @@ from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
 from .util.LambdaLoader import LambdaImage
+from .util.KaraboLoader import KaraboFile
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,9 @@ class ImgModel(QtCore.QObject):
 
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
+
+        self.series_pos = 1
+        self.series_max = 1
 
         self._img_data = None
         self._img_data_background_subtracted = None
@@ -147,7 +151,7 @@ class ImgModel(QtCore.QObject):
         :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names.
                  Present key names depend on applied image loader
         """
-        img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda]
+        img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda, self.load_karabo]
 
         for loader in img_loaders:
             data = loader(filename)
@@ -233,6 +237,22 @@ class ImgModel(QtCore.QObject):
         return {"img_data": lambda_im.get_image(0),
                 "series_max": lambda_im.series_max,
                 "series_get_image": lambda_im.get_image}
+
+    def load_karabo(self, filename):
+        """
+        Loads an Imageseries created from within the karabo-framework at XFEL.
+        :param filename: path to the *.h5 karabo file
+        :return: dictionary with img_data of the first train_id, series_start, series_max and series_get_image,
+                 None if unsuccessful
+        """
+        try:
+            karabo_file = KaraboFile(filename)
+        except IOError:
+            return None
+
+        return {"img_data": karabo_file.get_image(3),
+                "series_max": karabo_file.series_max,
+                "series_get_image": karabo_file.get_image}
 
     def save(self, filename):
         """
