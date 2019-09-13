@@ -459,3 +459,13 @@ class ProjectSaveLoadTest(QtTest):
         self.model.calibration_model.calibrate()
 
         _, y1 = self.model.calibration_model.integrate_1d()
+
+    ####################################################################################################################
+    def test_series_loading(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_series_file())
+
+        self.assertTrue(self.model.img_model.series_max > 1)
+
+    def prepare_series_file(self):
+        self.model.img_model.load(os.path.join(data_path, 'karabo_epix.h5'))

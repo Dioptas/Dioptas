@@ -66,6 +66,9 @@ class ImgModel(QtCore.QObject):
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 
+        self.series_pos = 1
+        self.series_max = 1
+
         self._img_data = None
         self._img_data_background_subtracted = None
         self._img_data_absorption_corrected = None
