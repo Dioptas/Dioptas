@@ -18,13 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from karabo_data import H5File
+try:
+    from karabo_data import H5File
+except ImportError:
+    karabo_installed = False
+else:
+    karabo_installed = True
 
 __all__ = ['KaraboFile']
 
 
 class KaraboFile:
     def __init__(self, filename, source_ind=0):
+        if not karabo_installed:
+            raise IOError('karabo_data is required to load karabo h5 files')
         self.f = H5File(filename)
         self.series_max = len(self.f.train_ids)
         self.sources = [s for s in self.f.instrument_sources if "daqOutput" in s]
