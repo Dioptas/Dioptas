@@ -131,20 +131,25 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
 
         self._layout = QtWidgets.QGridLayout()
         self._layout.setContentsMargins(5, 8, 5, 7)
-        self._layout.setSpacing(5)
+        # self._layout.setSpacing(3)
 
         self.load_btn = FlatButton('Load {}(s)'.format(files))
         self.file_cb = QtWidgets.QCheckBox(checkbox_text)
+
+        self._load_layout = QtWidgets.QVBoxLayout()
+        self._load_layout.setContentsMargins(5, 0, 0, 5)
+        self._load_layout.addWidget(self.load_btn)
+        self._load_layout.addWidget(self.file_cb)
+
+        self._layout.addLayout(self._load_layout, 0, 0, 2, 1)
+
         self.directory_txt = QtWidgets.QLineEdit('')
         self.directory_btn = FlatButton('...')
         self.file_txt = QtWidgets.QLineEdit('')
 
-        self._layout.addWidget(self.load_btn, 0, 0)
-        self._layout.addWidget(self.file_cb, 1, 0)
-
         self.step_file_widget = StepFileWidget()
         self._layout.addWidget(self.step_file_widget, 0, 1, 2, 2)
-        self.step_series_widget = StepSeriesWidget()
+        self.step_series_widget = StepFrameWidget()
         self._layout.addWidget(self.step_series_widget, 0, 3, 2, 2)
 
         self.step_series_widget.setVisible(False)
@@ -164,39 +169,41 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
     def style_widgets(self):
         self.load_btn.setMaximumWidth(120)
         self.load_btn.setMinimumWidth(120)
+        self.load_btn.setMinimumHeight(22)
 
         small_btn_width = 35
         self.directory_btn.setMaximumWidth(small_btn_width)
         self.directory_btn.setMinimumWidth(small_btn_width)
 
         self.setStyleSheet("""
-        QPushButton {
-            min-height: 22 px;
-        }
-        """)
+               QPushButton {
+                   height: 22 px;
+               }
+               """)
 
 
-class StepWidget(QtWidgets.QGroupBox):
+class StepWidget(QtWidgets.QWidget):
     """Widget with buttons to step a number up and down and a Spinbox with the step size"""
-    title = ""
+    iteration_name = ''
 
     def __init__(self):
         super(StepWidget, self).__init__()
-        self.setTitle(self.title)
         self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
         self.small_btn_max_width = 50
         self.small_btn_min_width = 20
 
         self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(5, 0, 0, 5)
         self.init_navigator()
-        self.init_extra()
 
         self.setLayout(self._layout)
 
     def init_navigator(self):
         self.next_btn = FlatButton('>')
+        self.next_btn.setToolTip('Loads next {}'.format(self.iteration_name))
         self.previous_btn = FlatButton('<')
+        self.previous_btn.setToolTip(('Loads previous {}'.format(self.iteration_name)))
         self.step_txt = QtWidgets.QSpinBox()
         self.step_txt.setValue(1)
         self.step_txt.setRange(1, 10000)
@@ -218,9 +225,10 @@ class StepWidget(QtWidgets.QGroupBox):
 
 
 class StepFileWidget(StepWidget):
-    title = "Step Over Files"
+    iteration_name = 'file'
 
-    def init_extra(self):
+    def __init__(self):
+        super(StepFileWidget, self).__init__()
         self.browse_by_name_rb = QtWidgets.QRadioButton('By Name')
         self.browse_by_name_rb.setChecked(True)
         self.browse_by_time_rb = QtWidgets.QRadioButton('By Time')
@@ -231,14 +239,16 @@ class StepFileWidget(StepWidget):
         self._layout.addLayout(self._step_by_layout)
 
 
-class StepSeriesWidget(StepWidget):
-    title = "Step Over Series"
+class StepFrameWidget(StepWidget):
+    iteration_name = 'frame'
 
-    def init_extra(self):
+    def __init__(self):
+        super(StepFrameWidget, self).__init__()
         self.pos_txt = QtWidgets.QLineEdit()
         self.pos_validator = QtGui.QIntValidator(1, 1)
         self.pos_txt.setValidator(self.pos_validator)
-        self.pos_label = QtWidgets.QLabel('Series pos:')
+        self.pos_txt.setToolTip('Currently loaded frame')
+        self.pos_label = QtWidgets.QLabel('Frame:')
         self.pos_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom)
 
         self._pos_layout = QtWidgets.QVBoxLayout()
