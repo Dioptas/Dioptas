@@ -187,3 +187,15 @@ class ImageControllerTest(QtTest):
         self.assertFalse(file_widget.step_series_widget.isVisible())
         self.model.img_model.load(filename)
         self.assertTrue(file_widget.step_series_widget.isVisible())
+
+    def test_fileinfo_and_move_button_visibility(self):
+        filename = os.path.join(unittest_data_path, 'image_001.tif')
+        self.widget.show()
+        self.model.img_model.load(filename)
+        self.assertFalse(self.widget.file_info_btn.isVisible())
+        self.assertFalse(self.widget.file_info_btn.isVisible())
+
+        filename = os.path.join(unittest_data_path, 'TransferCorrection', 'original.tif')
+        self.model.img_model.load(filename)
+        self.assertTrue(self.widget.file_info_btn.isVisible())
+        self.assertTrue(self.widget.file_info_btn.isVisible())
