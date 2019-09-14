@@ -469,6 +469,9 @@ class ImageController(object):
         self.widget.img_step_series_widget.pos_validator.setTop(self.model.img_model.series_max)
         self.widget.img_step_series_widget.pos_txt.setText(str(self.model.img_model.series_pos))
 
+        self.widget.file_info_btn.setVisible(self.model.img_model.file_info != "")
+        self.widget.move_btn.setVisible(len(self.model.img_model.motors_info) > 0)
+
         self.widget.img_filename_txt.setText(os.path.basename(self.model.img_model.filename))
         self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.model.img_model.file_info)
