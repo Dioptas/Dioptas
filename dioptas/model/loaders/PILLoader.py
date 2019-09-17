@@ -55,7 +55,7 @@ class PILLoader(ImageLoader):
             return None
 
 
-def read_PIL_tiff_file_info(self, image):
+def read_PIL_tiff_file_info(image):
     """
     reads the file info from tif_tags and returns a file info
     """
@@ -76,7 +76,7 @@ def read_PIL_tiff_file_info(self, image):
     return result
 
 
-def read_PIL_tiff_motors_info(self, image):
+def read_PIL_tiff_motors_info(image):
     """
     reads the file info from tif_tags and returns positions of vertical, horizontal, focus and omega motors
     """

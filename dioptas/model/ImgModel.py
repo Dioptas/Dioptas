@@ -25,13 +25,11 @@ import numpy as np
 from PIL import Image
 from qtpy import QtCore
 
-from .loaders import PILLoader, SpeLoader, FabioLoader
+from .loaders import PILLoader, SpeLoader, FabioLoader, LambdaLoader, KaraboLoader, ImageLoader
 
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
-from dioptas.model.loaders.LambdaLoader import LambdaImage
-from dioptas.model.loaders.KaraboLoader import KaraboFile
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +64,8 @@ class ImgModel(QtCore.QObject):
         self.series_pos = 1
         self.series_max = 1
 
-        self._img_loader = None
-        self._img_data = None
+        self._img_loader = ImageLoader()
+        self._img_loader.img_data = np.zeros((2048, 2048))
         self._img_data_background_subtracted = None
         self._img_data_absorption_corrected = None
         self._img_data_background_subtracted_absorption_corrected = None
@@ -108,7 +106,7 @@ class ImgModel(QtCore.QObject):
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
 
-        self.get_image_data(filename)
+        self._img_loader = self.get_image_loader(filename)
 
         self.file_name_iterator.update_filename(filename)
         self._directory_watcher.path = os.path.dirname(str(filename))
@@ -118,7 +116,7 @@ class ImgModel(QtCore.QObject):
 
         self.img_changed.emit()
 
-    def get_image_data(self, filename):
+    def get_image_loader(self, filename):
         """
         Tries to load the given file using different image loader libraries and returns a dictionary containing all
         retrieved file data.
@@ -126,50 +124,18 @@ class ImgModel(QtCore.QObject):
         :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names.
                  Present key names depend on applied image loader
         """
-        img_loaders = [PILLoader, SpeLoader, FabioLoader, self.load_lambda, self.load_karabo]
+        img_loaders = [PILLoader, FabioLoader, LambdaLoader, KaraboLoader, SpeLoader]
 
-        for l in img_loaders:
-            loader = l()
-            loader.load(filename)
-            if loader.data:
-                return
+        for img_loader in img_loaders:
+            loader = img_loader()
+            try:
+                loader.load(filename)
+                if loader.img_data is not None:
+                    return loader
+            except (OSError, IOError):
+                pass
         else:
             raise IOError("No handler found for given image")
-
-    def load_lambda(self, filename):
-        """
-        loads an image made by a lambda detector using the builtin lambda library.
-        :param filename: path to the image file to be loaded
-        :return: dictionary with img_data, series_max and series_get_image, None if unsuccessful
-        """
-        try:
-            lambda_im = LambdaImage(filename)
-        except IOError:
-            return None
-
-        return {"img_data": lambda_im.get_image(0),
-                "series_max": lambda_im.series_max,
-                "series_get_image": lambda_im.get_image}
-
-    def load_karabo(self, filename):
-        """
-        Loads an Imageseries created from within the karabo-framework at XFEL.
-        :param filename: path to the *.h5 karabo file
-        :return: dictionary with img_data of the first train_id, series_start, series_max and series_get_image,
-                 None if unsuccessful
-        """
-        try:
-            karabo_file = KaraboFile(filename)
-        except IOError:
-            return None
-
-        return {"img_data": karabo_file.get_image(3),
-                "series_max": karabo_file.series_max,
-                "series_get_image": karabo_file.get_image}
-
-    def load_http(self, http_address):
-        try:
-            data =
 
     def save(self, filename):
         """
@@ -192,7 +158,7 @@ class ImgModel(QtCore.QObject):
         """
         self.background_filename = filename
 
-        self._background_data = self.get_image_data(filename)["img_data"]
+        self._background_data = self.get_image_loader(filename).img_data
 
         self._perform_background_transformations()
 
@@ -214,7 +180,7 @@ class ImgModel(QtCore.QObject):
         """
         filename = str(filename)  # since it could also be QString
 
-        img_data = self.get_image_data(filename)["img_data"]
+        img_data = self.get_image_loader(filename).img_data
 
         for transformation in self.img_transformations:
             img_data = transformation(img_data)
@@ -413,6 +379,22 @@ class ImgModel(QtCore.QObject):
                 self._img_data_supersampled_background_subtracted_absorption_corrected = \
                     self.supersample_data(self._img_data_background_subtracted_absorption_corrected,
                                           self.supersampling_factor)
+
+    @property
+    def _img_data(self):
+        return self._img_loader.img_data
+
+    @_img_data.setter
+    def _img_data(self, new_data):
+        self._img_loader.img_data = new_data
+
+    @property
+    def file_info(self):
+        return self._img_loader.file_info
+
+    @property
+    def motors_info(self):
+        return self._img_loader.motors_info
 
     @property
     def img_data(self):

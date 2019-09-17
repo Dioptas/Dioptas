@@ -99,7 +99,7 @@ class ImgModelTest(QtTest):
         original_img_background_subtracted = np.copy(self.img_model.img_data)
         self.assertTrue(np.array_equal(original_img_background_subtracted, original_img - original_background))
 
-        ### now comes the main process - flipping the image
+        # now comes the main process - flipping the image
         self.img_model.flip_img_vertically()
         flipped_img = np.copy(self.img_model._img_data)
         self.assertTrue(np.array_equal(np.flipud(original_img), flipped_img))

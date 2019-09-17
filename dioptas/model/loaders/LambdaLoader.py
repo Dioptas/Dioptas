@@ -22,15 +22,23 @@ import numpy as np
 import h5py
 import re
 
+from .ImgLoader import ImageLoader
 
-class LambdaImage:
-    def __init__(self, filename):
+
+class LambdaLoader(ImageLoader):
+
+    def __init__(self):
+        super(LambdaLoader, self).__init__()
+        self.full_img_data = None
+        self._module_pos = None
+
+    def load(self, filename):
         """
         Loads an image produced by a Lambda detector.
         :param filename: path to the image file to be loaded
-        :return: dictionary with image_data, img_data_lambda and series_max, None if unsuccessful
         """
-        detector_identifiers = [["/entry/instrument/detector/description", "Lambda"], ["/entry/instrument/detector/description", b"Lambda"]]
+        detector_identifiers = [["/entry/instrument/detector/description", "Lambda"],
+                                ["/entry/instrument/detector/description", b"Lambda"]]
         filenumber_list = [1, 2, 3]
         regex_in = r"(.+_m)\d(.nxs)"
         regex_out = r"\g<1>{}\g<2>"
@@ -51,7 +59,6 @@ class LambdaImage:
         else:
             raise IOError("not a lambda image")
 
-
         # the image data is spread over multiple files, so we compile a list of them here
         lambda_files = []
 
@@ -65,10 +72,13 @@ class LambdaImage:
 
         self._module_pos = np.array([np.ravel(nxim[module_positions_path]).astype(int) for nxim in lambda_files])
 
-        # remove any empty columns/rows to the left or top of the image data or shift any negative rows/columns into the positive
+        # remove any empty columns/rows to the left or top of the image data or shift any negative rows/columns into
+        # the positive
         np.subtract(self._module_pos, self._module_pos[:, 0].min(), self._module_pos, where=[1, 0, 0])
         np.subtract(self._module_pos, self._module_pos[0][1], self._module_pos, where=[0, 1, 0])
         self.series_max = lambda_files[0][data_path].shape[0]
+
+        self.img_data = self.get_image(1)
 
     def get_image(self, image_nr):
         """
@@ -79,19 +89,22 @@ class LambdaImage:
         # the empty array needs to have the width of the detector data for concatenate()
         image = np.empty((0, self.full_img_data[-1].shape[-1] + self._module_pos[:, 0].max()))
 
-        for modulenr, moduleImageData in enumerate(self.full_img_data):
+        for module_ind, moduleImageData in enumerate(self.full_img_data):
             # generate empty columns to the left and right of the data to match with the others
-            imagedata = np.concatenate([np.zeros((moduleImageData.shape[1], self._module_pos[modulenr, 0])),
-                                        moduleImageData[image_nr],
-                                        np.zeros((moduleImageData.shape[1], self._module_pos[:, 0].max() - self._module_pos[modulenr, 0]))], axis=1)
+            image_data = np.concatenate([np.zeros((moduleImageData.shape[1], self._module_pos[module_ind, 0])),
+                                         moduleImageData[image_nr],
+                                         np.zeros((moduleImageData.shape[1],
+                                                   self._module_pos[:, 0].max() - self._module_pos[module_ind, 0]))],
+                                        axis=1)
 
             image = np.concatenate(
                 [image,
                  np.zeros((
                      # generate as many empty rows as needed to get to the position where the module data wants to be
-                     int(self._module_pos[modulenr, 1]) -
+                     int(self._module_pos[module_ind, 1]) -
                      image.shape[0],
                      moduleImageData.shape[-1] + self._module_pos[:, 0].max())),
-                 imagedata])  # append the actual new image data
+                 image_data]
+            )  # append the actual new image data
 
         return image[::-1]

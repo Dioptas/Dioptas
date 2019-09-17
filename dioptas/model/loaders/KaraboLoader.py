@@ -20,15 +20,23 @@
 
 from karabo_data import H5File
 
-__all__ = ['KaraboFile']
+from .ImgLoader import ImageLoader
 
 
-class KaraboFile:
-    def __init__(self, filename, source_ind=0):
+class KaraboLoader(ImageLoader):
+    def __init__(self):
+        super(KaraboLoader, self).__init__()
+        self.f = None  # H5File handle
+        self.sources = []  # List of available sources
+        self.current_source = None  # currently selected sources
+
+    def load(self, filename, source_ind=0):
         self.f = H5File(filename)
         self.series_max = len(self.f.train_ids)
         self.sources = [s for s in self.f.instrument_sources if "daqOutput" in s]
         self.current_source = self.sources[source_ind]
+
+        self.img_data = self.get_image(0)
 
     def get_image(self, ind):
         tid, data = self.f.train_from_index(ind)
