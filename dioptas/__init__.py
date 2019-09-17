@@ -37,7 +37,7 @@ try:
 except ImportError:
     from io import StringIO
 import traceback
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 
 dioptas_version = __version__[:5]
 
@@ -46,6 +46,9 @@ calibrants_path = os.path.join(resources_path, 'calibrants')
 icons_path = os.path.join(resources_path, 'icons')
 data_path = os.path.join(resources_path, 'data')
 style_path = os.path.join(resources_path, 'style')
+
+# Enable scaling for high DPI displays
+QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
 from ._desktop_shortcuts import make_shortcut
 
