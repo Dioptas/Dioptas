@@ -23,7 +23,7 @@ import numpy as np
 
 class ImageLoader:
     def __init__(self):
-        self.file_name = ''
+        self.filename = ''
         self.img_data = None
         self.file_info = ""
         self.motors_info = {}

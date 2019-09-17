@@ -32,3 +32,4 @@ class SpeLoader(ImageLoader):
         """
         spe = SpeFile(filename)
         self.img_data = spe.img
+        self.filename = filename

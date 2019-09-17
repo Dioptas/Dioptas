@@ -37,6 +37,7 @@ class KaraboLoader(ImageLoader):
         self.current_source = self.sources[source_ind]
 
         self.img_data = self.get_image(0)
+        self.filename = filename
 
     def get_image(self, ind):
         tid, data = self.f.train_from_index(ind)

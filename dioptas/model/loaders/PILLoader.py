@@ -48,9 +48,8 @@ class PILLoader(ImageLoader):
                 pass
 
             im.close()
-
+            self.filename = filename
             return self.img_data
-
         except IOError:
             return None
 

@@ -79,6 +79,7 @@ class LambdaLoader(ImageLoader):
         self.series_max = lambda_files[0][data_path].shape[0]
 
         self.img_data = self.get_image(1)
+        self.filename = filename
 
     def get_image(self, image_nr):
         """

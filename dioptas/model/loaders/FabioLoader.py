@@ -34,5 +34,6 @@ class FabioLoader(ImageLoader):
         try:
             img_data_fabio = fabio.open(filename)
             self.img_data = img_data_fabio.data[::-1]
+            self.filename = filename
         except (IOError, fabio.fabioutils.NotGoodReader):
             return None

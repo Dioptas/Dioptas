@@ -54,7 +54,6 @@ class ImgModel(QtCore.QObject):
 
     def __init__(self):
         super(ImgModel, self).__init__()
-        self.filename = ''
         self.img_transformations = []
         self.supersampling_factor = 1
 
@@ -104,7 +103,6 @@ class ImgModel(QtCore.QObject):
         """
         filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
-        self.filename = filename
 
         self._img_loader = self.get_image_loader(filename)
 
@@ -381,12 +379,8 @@ class ImgModel(QtCore.QObject):
                                           self.supersampling_factor)
 
     @property
-    def _img_data(self):
-        return self._img_loader.img_data
-
-    @_img_data.setter
-    def _img_data(self, new_data):
-        self._img_loader.img_data = new_data
+    def filename(self):
+        return self._img_loader.filename
 
     @property
     def file_info(self):
@@ -395,6 +389,14 @@ class ImgModel(QtCore.QObject):
     @property
     def motors_info(self):
         return self._img_loader.motors_info
+
+    @property
+    def _img_data(self):
+        return self._img_loader.img_data
+
+    @_img_data.setter
+    def _img_data(self, new_data):
+        self._img_loader.img_data = new_data
 
     @property
     def img_data(self):
