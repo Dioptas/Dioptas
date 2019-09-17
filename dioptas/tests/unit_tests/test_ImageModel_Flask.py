@@ -25,26 +25,21 @@ import numpy as np
 
 from ..utility import QtTest, unittest_data_path
 from ...model.ImgModel import ImgModel
-
-from flask import Flask
-
-app = Flask(__name__)
+from ...model.loaders.PILLoader import PILLoader
 
 
-@app.route('/run_<run>/train_<train>')
 def get_image(run, train):
-    data = ImgModel.load_PIL(None, os.path.join(unittest_data_path, 'image_001.tif'))
+    loader = PILLoader()
+    loader.load(os.path.join(unittest_data_path, 'image_001.tif'))
     bytestream = io.BytesIO()
-    np.save(bytestream, data)
+    np.save(bytestream, loader.img_data)
     return bytestream.getvalue()
 
 
 class ImgModelRestTest(QtTest):
     def setUp(self):
         self.img_model = ImgModel()
-        self.client = app.test_client()
 
     def test_server_is_working(self):
-        response = self.client.get('/run_1/train_1')
-        img = response.data
+        response = get_image(0, 1)
         print('#######################')
