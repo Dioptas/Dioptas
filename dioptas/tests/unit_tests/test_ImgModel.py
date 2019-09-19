@@ -19,14 +19,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
+import requests
 from mock import MagicMock
 import os
+import io
 
 import numpy as np
 
 from ..utility import QtTest
 from ...model.ImgModel import ImgModel, BackgroundDimensionWrongException
 from ...model.util.ImgCorrection import DummyCorrection
+from ...model.loaders.HttpLoader import HttpLoader
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -43,6 +46,21 @@ class ImgModelTest(QtTest):
 
     def test_load_karabo_nexus_file(self):
         self.img_model.load(os.path.join(data_path, 'karabo_epix.h5'))
+
+    def test_load_http_data(self):
+        img_data = np.copy(self.img_model.img_data)
+        bytestream = io.BytesIO()
+        np.save(bytestream, img_data)
+
+        class SmallRequest:
+            content = bytestream.getvalue()
+
+        requests.get = MagicMock(return_value=SmallRequest())
+        self.img_model._img_data = np.ones_like(img_data)
+
+        self.img_model.load('http://123.345.567.123:5000/run_1/frame_1')
+
+        self.assertTrue(np.array_equal(img_data, self.img_model.img_data))
 
     def perform_transformations_tests(self):
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)

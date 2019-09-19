@@ -29,7 +29,7 @@ addons:
       - libgfortran3
 
 install:
-    - conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph -c cprescher
+    - conda install --yes pycifrw pandas python-dateutil requests h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph -c cprescher
     - pip install pyepics karabo_data
 
     - cd dioptas/model/util/

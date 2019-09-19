@@ -25,7 +25,7 @@ import numpy as np
 from PIL import Image
 from qtpy import QtCore
 
-from .loaders import PILLoader, SpeLoader, FabioLoader, LambdaLoader, KaraboLoader, ImageLoader
+from .loaders import PILLoader, SpeLoader, FabioLoader, LambdaLoader, KaraboLoader, ImageLoader, HttpLoader
 
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90
@@ -105,7 +105,8 @@ class ImgModel(QtCore.QObject):
         self._img_loader = self.get_image_loader(filename)
 
         self.file_name_iterator.update_filename(filename)
-        self._directory_watcher.path = os.path.dirname(str(filename))
+        if not filename.startswith('http://'):
+            self._directory_watcher.path = os.path.dirname(str(filename))
 
         self._perform_img_transformations()
         self._calculate_img_data()
@@ -120,7 +121,7 @@ class ImgModel(QtCore.QObject):
         :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names.
                  Present key names depend on applied image loader
         """
-        img_loaders = [PILLoader, FabioLoader, LambdaLoader, KaraboLoader, SpeLoader]
+        img_loaders = [PILLoader, FabioLoader, LambdaLoader, KaraboLoader, SpeLoader, HttpLoader]
 
         for img_loader in img_loaders:
             loader = img_loader()
