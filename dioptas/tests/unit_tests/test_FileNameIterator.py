@@ -26,10 +26,57 @@ from ...model.util.NameIterators import FileNameIterator
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
+file_iterator_path = os.path.join(unittest_path, '../data', 'FileIterator')
+
 
 class FileNameIteratorTest(QtTest):
     def setUp(self):
         self.filename_iterator = FileNameIterator()
+
+    def test_get_next_filename(self):
+        filename = os.path.join(file_iterator_path, "dummy1_1.txt")
+        self.file_iterator = FileNameIterator(filename)
+        new_filename = self.file_iterator.get_next_filename(1, filename)
+
+        self.assertEqual(new_filename, os.path.join(file_iterator_path, 'dummy1_2.txt'))
+
+    def test_get_next_filename_with_pos(self):
+        filename = os.path.join(file_iterator_path, "dummy1_1.txt")
+        self.file_iterator = FileNameIterator()
+        new_filename = self.file_iterator.get_next_filename(1, filename, pos=1)
+
+        self.assertEqual(new_filename, os.path.join(file_iterator_path, 'dummy2_1.txt'))
+
+    def test_get_previous_filename_with_pos(self):
+        filename = os.path.join(file_iterator_path, "dummy2_1.txt")
+        self.file_iterator = FileNameIterator()
+        new_filename = self.file_iterator.get_previous_filename(1, filename, pos=1)
+
+        self.assertEqual(new_filename, os.path.join(file_iterator_path, 'dummy1_1.txt'))
+
+    def test_get_next_folder(self):
+        filename = os.path.join(file_iterator_path, "run1", "dummy_1.txt")
+        self.file_iterator = FileNameIterator()
+        new_filename = self.file_iterator.get_next_folder(filename)
+        self.assertEqual(new_filename, os.path.join(file_iterator_path, 'run2', "dummy_1.txt"))
+
+    def test_get_previous_folder(self):
+        filename = os.path.join(file_iterator_path, "run2", "dummy_1.txt")
+        self.file_iterator = FileNameIterator()
+        new_filename = self.file_iterator.get_previous_folder(filename)
+        self.assertEqual(new_filename, os.path.join(file_iterator_path, 'run1', "dummy_1.txt"))
+
+    def test_get_next_folder_mec(self):
+        filename = os.path.join(file_iterator_path, "run1", "run_1_evt_2.0.txt")
+        self.file_iterator = FileNameIterator()
+        new_filename = self.file_iterator.get_next_folder(filename, mec_mode=True)
+        self.assertEqual(new_filename, os.path.join(file_iterator_path, 'run2', "run_2_evt_2.0.txt"))
+
+    def test_get_previous_folder_mec(self):
+        filename = os.path.join(file_iterator_path, "run2", "run_2_evt_2.0.txt")
+        self.file_iterator = FileNameIterator()
+        new_filename = self.file_iterator.get_previous_folder(filename, mec_mode=True)
+        self.assertEqual(new_filename, os.path.join(file_iterator_path, 'run1', "run_1_evt_2.0.txt"))
 
     def test_get_next_filename_with_existent_file(self):
         filename = 'image_001.tif'
