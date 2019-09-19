@@ -22,7 +22,7 @@ import os
 import numpy as np
 
 from ..utility import QtTest
-from ...model.util.HelperModule import get_partial_index, FileNameIterator
+from ...model.util.HelperModule import get_partial_index
 
 unittest_path = os.path.dirname(__file__)
 
