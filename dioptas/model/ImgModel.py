@@ -61,9 +61,6 @@ class ImgModel(QtCore.QObject):
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
 
-        self.series_pos = 1
-        self.series_max = 1
-
         self._img_loader = ImageLoader()
         self._img_loader.img_data = np.zeros((2048, 2048))
         self._img_data_background_subtracted = None
@@ -254,6 +251,22 @@ class ImgModel(QtCore.QObject):
         self._background_offset = new_value
         self._calculate_img_data()
         self.img_changed.emit()
+
+    @property
+    def series_max(self):
+        return self._img_loader.series_max
+
+    @series_max.setter
+    def series_max(self, new_value):
+        self._img_loader.series_max = new_value
+
+    @property
+    def series_pos(self):
+        return self._img_loader.series_pos
+
+    @series_pos.setter
+    def series_pos(self, new_value):
+        self._img_loader.series_pos = new_value
 
     def load_series_img(self, pos):
         """
