@@ -236,7 +236,7 @@ class FileNameIterator(QtCore.QObject):
             if self.create_timed_file_list:
                 self.update_file_list()
 
-        if (self.create_timed_file_list and self.ordered_file_list == []):
+        if self.create_timed_file_list and self.ordered_file_list == []:
             self.update_file_list()
 
     def add_new_files_to_list(self):
@@ -261,3 +261,58 @@ class FileNameIterator(QtCore.QObject):
                             break
             else:
                 self.ordered_file_list.append((creation_time, filename))
+
+
+class HttpAddressIterator:
+    def __init__(self):
+        self.http_address = ''
+
+    def update_address(self, new_address):
+        self.http_address = new_address
+
+    def get_next_address(self, step=1, pos=0):
+        """
+        Gets the next http address using the position of the number in the address.
+        :param step: increase in the number
+        :param pos: position of the number to be iterated, from left to right, starts with 0
+        :return: new http string with an iterated number
+        """
+
+        http_address = self.http_address
+        pattern = re.compile(r'\d+')
+        match_iterator = pattern.finditer(self.http_address)
+
+        for ind, match in enumerate(reversed(list(match_iterator))):
+            if (pos is None) or (ind == pos):
+                number_span = match.span()
+                left_ind = number_span[0]
+                right_ind = number_span[1]
+                number = int(http_address[left_ind:right_ind]) + step
+                new_address = "{left_str}{number}{right_str}".format(
+                    left_str=http_address[:left_ind],
+                    number=number,
+                    right_str=http_address[right_ind:]
+                )
+                return new_address
+
+    def get_previous_address(self, step=1, pos=0):
+        """
+        Gets the previous http address using the position of the number in the address.
+        :param step: step decrease in the number
+        :param pos: position of the number to be iterated, from left to right, starts with 0
+        :return: new http string with an iterated number
+        """
+        return self.get_next_address(-step, pos)
+
+    def get_next_frame(self, step=1):
+
+        return self.get_next_address(step)
+
+    def get_previous_frame(self, step=1):
+        return self.get_previous_address(step)
+
+    def get_next_run(self, step=1):
+        return self.get_next_address(step, pos=1)
+
+    def get_previous_run(self, step=1):
+        return self.get_previous_address(step, pos=1)
