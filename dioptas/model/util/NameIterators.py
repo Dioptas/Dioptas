@@ -129,7 +129,7 @@ class FileNameIterator(QtCore.QObject):
                 len=right_ind - left_ind,
                 right_str=directory_str[right_ind:]
             )
-            print(mec_mode)
+
             if mec_mode:
                 match_file_iterator = pattern.finditer(file_str)
                 for ind_file, match_file in enumerate(reversed(list(match_file_iterator))):
@@ -159,6 +159,9 @@ class FileNameIterator(QtCore.QObject):
 
         if self.complete_path is None:
             return None
+
+        if self.complete_path.startswith('http:'):
+            return get_next_http_address(self.complete_path)
 
         if mode == 'time':
             time_stat = os.path.getctime(self.complete_path)
@@ -192,6 +195,9 @@ class FileNameIterator(QtCore.QObject):
         if self.complete_path is None:
             return None
 
+        if self.complete_path.startswith('http:'):
+            return get_previous_http_address(self.complete_path)
+
         if mode == 'time':
             time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
@@ -211,6 +217,10 @@ class FileNameIterator(QtCore.QObject):
 
         if self.complete_path is None:
             return None
+
+        if self.complete_path.startswith('http:'):
+            return get_next_http_address(self.complete_path, pos=1)
+
         return self._iterate_folder_number(self.complete_path, 1, mec_mode)
 
     def get_previous_folder(self, filename=None, mec_mode=False):
@@ -219,9 +229,17 @@ class FileNameIterator(QtCore.QObject):
 
         if self.complete_path is None:
             return None
+
+        if self.complete_path.startswith('http:'):
+            return get_previous_http_address(self.complete_path, pos=1)
+
         return self._iterate_folder_number(self.complete_path, -1, mec_mode)
 
     def update_filename(self, new_filename):
+        if new_filename.startswith('http://'):
+            self.complete_path = new_filename
+            return
+
         self.complete_path = os.path.abspath(new_filename)
         new_directory, file_str = os.path.split(self.complete_path)
         try:
@@ -263,56 +281,39 @@ class FileNameIterator(QtCore.QObject):
                 self.ordered_file_list.append((creation_time, filename))
 
 
-class HttpAddressIterator:
-    def __init__(self):
-        self.http_address = ''
+def get_next_http_address(http_address, step=1, pos=0):
+    """
+    Gets the next http address using the position of the number in the address.
+    :param http_address: base http_address
+    :param step: increase in the number
+    :param pos: position of the number to be iterated, from left to right, starts with 0
+    :return: new http string with an iterated number or None if the base address cannot be iterated
+    """
 
-    def update_address(self, new_address):
-        self.http_address = new_address
+    pattern = re.compile(r'\d+')
+    match_iterator = pattern.finditer(http_address)
 
-    def get_next_address(self, step=1, pos=0):
-        """
-        Gets the next http address using the position of the number in the address.
-        :param step: increase in the number
-        :param pos: position of the number to be iterated, from left to right, starts with 0
-        :return: new http string with an iterated number
-        """
+    for ind, match in enumerate(reversed(list(match_iterator))):
+        if (pos is None) or (ind == pos):
+            number_span = match.span()
+            left_ind = number_span[0]
+            right_ind = number_span[1]
+            number = int(http_address[left_ind:right_ind]) + step
+            new_address = "{left_str}{number}{right_str}".format(
+                left_str=http_address[:left_ind],
+                number=number,
+                right_str=http_address[right_ind:]
+            )
+            return new_address
+    return None
 
-        http_address = self.http_address
-        pattern = re.compile(r'\d+')
-        match_iterator = pattern.finditer(self.http_address)
 
-        for ind, match in enumerate(reversed(list(match_iterator))):
-            if (pos is None) or (ind == pos):
-                number_span = match.span()
-                left_ind = number_span[0]
-                right_ind = number_span[1]
-                number = int(http_address[left_ind:right_ind]) + step
-                new_address = "{left_str}{number}{right_str}".format(
-                    left_str=http_address[:left_ind],
-                    number=number,
-                    right_str=http_address[right_ind:]
-                )
-                return new_address
-
-    def get_previous_address(self, step=1, pos=0):
-        """
-        Gets the previous http address using the position of the number in the address.
-        :param step: step decrease in the number
-        :param pos: position of the number to be iterated, from left to right, starts with 0
-        :return: new http string with an iterated number
-        """
-        return self.get_next_address(-step, pos)
-
-    def get_next_frame(self, step=1):
-
-        return self.get_next_address(step)
-
-    def get_previous_frame(self, step=1):
-        return self.get_previous_address(step)
-
-    def get_next_run(self, step=1):
-        return self.get_next_address(step, pos=1)
-
-    def get_previous_run(self, step=1):
-        return self.get_previous_address(step, pos=1)
+def get_previous_http_address(http_address, step=1, pos=0):
+    """
+    Gets the previous http address using the position of the number in the address.
+    :param http_address: base http_address
+    :param step: step decrease in the number
+    :param pos: position of the number to be iterated, from left to right, starts with 0
+    :return: new http string with an iterated number
+    """
+    return get_next_http_address(http_address, -step, pos)

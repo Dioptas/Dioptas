@@ -101,8 +101,8 @@ class FileNameIteratorTest(QtTest):
         file_path1 = os.path.join(data_path, filename1)
         file_path2 = os.path.join(data_path, filename2)
 
-        open(file_path1, "w")
-        open(file_path2, "w")
+        open(file_path1, "w").close()
+        open(file_path2, "w").close()
 
         self.filename_iterator.update_filename(file_path1)
         new_filename = self.filename_iterator.get_next_filename()
@@ -120,9 +120,9 @@ class FileNameIteratorTest(QtTest):
         file_path2 = os.path.join(data_path, filename2)
         file_path3 = os.path.join(data_path, filename3)
 
-        open(file_path1, "w")
-        open(file_path2, "w")
-        open(file_path3, "w")
+        open(file_path1, "w").close()
+        open(file_path2, "w").close()
+        open(file_path3, "w").close()
 
         self.filename_iterator.update_filename(file_path1)
         new_filename = self.filename_iterator.get_next_filename()
@@ -149,3 +149,27 @@ class FileNameIteratorTest(QtTest):
         self.filename_iterator.update_filename(os.path.join(data_path, filename))
         new_filename = os.path.basename(self.filename_iterator.get_previous_filename(step=2))
         self.assertEqual(new_filename, 'image_001.tif')
+
+    def test_http_get_next_file(self):
+        http_address = 'http://123.234.123.132:2315/run_1/frame_1'
+        self.filename_iterator.update_filename(http_address)
+        new_address = self.filename_iterator.get_next_filename()
+        self.assertEqual(new_address, 'http://123.234.123.132:2315/run_1/frame_2')
+
+    def test_http_get_previous_file(self):
+        http_address = 'http://123.234.123.132:2315/run_1/frame_2'
+        self.filename_iterator.update_filename(http_address)
+        new_address = self.filename_iterator.get_previous_filename()
+        self.assertEqual(new_address, 'http://123.234.123.132:2315/run_1/frame_1')
+
+    def test_http_get_next_folder(self):
+        http_address = 'http://123.234.123.132:2315/run_1/frame_1'
+        self.filename_iterator.update_filename(http_address)
+        new_address = self.filename_iterator.get_next_folder()
+        self.assertEqual(new_address, 'http://123.234.123.132:2315/run_2/frame_1')
+
+    def test_http_get_previous_run(self):
+        http_address = 'http://123.234.123.132:2315/run_2/frame_1'
+        self.filename_iterator.update_filename(http_address)
+        new_address = self.filename_iterator.get_previous_folder()
+        self.assertEqual(new_address, 'http://123.234.123.132:2315/run_1/frame_1')
