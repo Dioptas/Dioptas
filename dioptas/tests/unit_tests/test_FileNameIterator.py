@@ -21,7 +21,7 @@
 import os
 
 from ..utility import QtTest
-from ...model.util.HelperModule import FileNameIterator
+from ...model.util.NameIterators import FileNameIterator
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

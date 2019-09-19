@@ -28,7 +28,8 @@ from qtpy import QtCore
 from .loaders import PILLoader, SpeLoader, FabioLoader, LambdaLoader, KaraboLoader, ImageLoader
 
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
-from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
+from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90
+from .util.NameIterators import FileNameIterator
 from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
 
 logger = logging.getLogger(__name__)
@@ -381,6 +382,10 @@ class ImgModel(QtCore.QObject):
     @property
     def filename(self):
         return self._img_loader.filename
+
+    @filename.setter
+    def filename(self, new_filename):
+        self._img_loader.filename = new_filename
 
     @property
     def file_info(self):

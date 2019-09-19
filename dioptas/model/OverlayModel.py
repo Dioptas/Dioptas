@@ -25,7 +25,8 @@ from copy import copy
 from qtpy import QtCore
 import numpy as np
 
-from .util.HelperModule import FileNameIterator, get_base_name
+from .util.HelperModule import get_base_name
+from .util.NameIterators import FileNameIterator
 from .util import Pattern
 
 logger = logging.getLogger(__name__)
