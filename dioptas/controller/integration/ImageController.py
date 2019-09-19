@@ -415,12 +415,12 @@ class ImageController(object):
     def load_prev_series_img(self):
         step = int(str(self.widget.img_step_series_widget.step_txt.text()))
         pos = int(str(self.widget.img_step_series_widget.pos_txt.text()))
-        self.model.img_model.load_series_img(pos-step)
+        self.model.img_model.load_series_img(pos - step)
 
     def load_next_series_img(self):
         step = int(str(self.widget.img_step_series_widget.step_txt.text()))
         pos = int(str(self.widget.img_step_series_widget.pos_txt.text()))
-        self.model.img_model.load_series_img(pos+step)
+        self.model.img_model.load_series_img(pos + step)
 
     def load_next_img(self):
         step = int(str(self.widget.img_step_file_widget.step_txt.text()))
@@ -434,6 +434,10 @@ class ImageController(object):
         current_filename = os.path.basename(self.model.img_model.filename)
         current_directory = str(self.widget.img_directory_txt.text())
         new_filename = str(self.widget.img_filename_txt.text())
+
+        if new_filename.startswith('http://'):
+            self.model.img_model.load(new_filename)
+
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
                 self.load_file(filename=os.path.join(current_directory, new_filename))

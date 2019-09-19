@@ -19,12 +19,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import io
 import gc
 import shutil
-import numpy as np
 from mock import MagicMock
 
-from ..utility import QtTest, click_button, click_checkbox
+import requests
+import numpy as np
+
+from ..utility import QtTest, click_button, click_checkbox, enter_value_into_text_field
 
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
@@ -199,3 +202,21 @@ class ImageControllerTest(QtTest):
         self.model.img_model.load(filename)
         self.assertTrue(self.widget.file_info_btn.isVisible())
         self.assertTrue(self.widget.file_info_btn.isVisible())
+
+    def test_loading_http_data(self):
+        img_model = self.model.img_model
+        img_model.load(os.path.join(unittest_data_path, 'image_001.tif'))
+
+        img_data = np.copy(img_model.img_data)
+        bytestream = io.BytesIO()
+        np.save(bytestream, img_data)
+
+        class SmallRequest:
+            content = bytestream.getvalue()
+
+        requests.get = MagicMock(return_value=SmallRequest())
+        img_model._img_data = np.ones_like(img_data)
+
+        enter_value_into_text_field(self.widget.img_filename_txt, 'http://max-exfl001:5000/run_4/frame_1')
+
+        self.assertEqual(img_model.filename, 'http://max-exfl001:5000/run_4/frame_1')
