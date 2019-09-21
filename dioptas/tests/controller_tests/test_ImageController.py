@@ -136,9 +136,9 @@ class ImageControllerTest(QtTest):
         click_button(self.widget.img_mask_btn)
 
         self.model.select_configuration(0)
-        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image-first_mask), 0)
+        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image - first_mask), 0)
         self.model.select_configuration(1)
-        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image-second_mask), 0)
+        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image - second_mask), 0)
 
     def test_configuration_selected_updates_mask_transparency(self):
         self.model.mask_model.add_mask(os.path.join(unittest_data_path, 'test.mask'))
@@ -179,3 +179,23 @@ class ImageControllerTest(QtTest):
         self.controller.filename_txt_changed()
         new_data = self.model.img_data
         self.assertFalse(np.array_equal(old_data, new_data))
+
+    def test_loading_series_karabo_file_shows_correct_gui(self):
+        filename = os.path.join(unittest_data_path, 'karabo_epix.h5')
+        file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
+        self.widget.show()
+        self.assertFalse(file_widget.step_series_widget.isVisible())
+        self.model.img_model.load(filename)
+        self.assertTrue(file_widget.step_series_widget.isVisible())
+
+    def test_fileinfo_and_move_button_visibility(self):
+        filename = os.path.join(unittest_data_path, 'image_001.tif')
+        self.widget.show()
+        self.model.img_model.load(filename)
+        self.assertFalse(self.widget.file_info_btn.isVisible())
+        self.assertFalse(self.widget.file_info_btn.isVisible())
+
+        filename = os.path.join(unittest_data_path, 'TransferCorrection', 'original.tif')
+        self.model.img_model.load(filename)
+        self.assertTrue(self.widget.file_info_btn.isVisible())
+        self.assertTrue(self.widget.file_info_btn.isVisible())
