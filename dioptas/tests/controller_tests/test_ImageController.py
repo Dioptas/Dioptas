@@ -20,11 +20,14 @@
 
 import os
 import gc
+import io
 import shutil
-import numpy as np
 from mock import MagicMock
 
-from ..utility import QtTest, click_button, click_checkbox
+import requests
+import numpy as np
+
+from ..utility import QtTest, click_button, click_checkbox, enter_value_into_text_field
 
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
@@ -32,6 +35,7 @@ from qtpy.QtTest import QTest
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.ImageController import ImageController
 from ...model.DioptasModel import DioptasModel
+from ...model.loaders.PILLoader import PILLoader
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
@@ -199,3 +203,21 @@ class ImageControllerTest(QtTest):
         self.model.img_model.load(filename)
         self.assertTrue(self.widget.file_info_btn.isVisible())
         self.assertTrue(self.widget.file_info_btn.isVisible())
+
+    def prepare_http_mock(self):
+        img_loader  = PILLoader()
+        img_data = img_loader.load(os.path.join(unittest_data_path, 'image_001.tif'))
+        bytestream = io.BytesIO()
+        np.save(bytestream, img_data)
+        class SmallRequest:
+            content = bytestream.getvalue()
+        requests.get = MagicMock(return_value=SmallRequest())
+        return img_data
+
+    def test_load_existing_http_data(self):
+        img_data = self.prepare_http_mock()
+        enter_value_into_text_field(self.widget.img_filename_txt, 'http://123.345.567.123:5000/run_1/frame_1')
+        self.assertTrue(np.array_equal(self.model.img_model.img_data, img_data))
+        self.assertEqual(self.widget.img_filename_txt.text(),  'http://123.345.567.123:5000/run_1/frame_1')
+        self.assertEqual(self.widget.img_directory_txt.text(),  '')
+

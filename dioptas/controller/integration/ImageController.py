@@ -431,9 +431,19 @@ class ImageController(object):
         self.model.img_model.load_previous_file(step=step)
 
     def filename_txt_changed(self):
+        filename = self.widget.img_filename_txt.text()
+        if filename.startswith('http://'):
+            self.handle_filename_txt_load_http(filename)
+        else:
+            self.handle_filename_txt_load_file(filename)
+
+    def handle_filename_txt_load_http(self, address):
+        self.model.img_model.load(address)
+        self.widget.img_directory_txt.setText('')
+
+    def handle_filename_txt_load_file(self, new_filename):
         current_filename = os.path.basename(self.model.img_model.filename)
-        current_directory = str(self.widget.img_directory_txt.text())
-        new_filename = str(self.widget.img_filename_txt.text())
+        current_directory = self.widget.img_directory_txt.text()
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
                 self.load_file(filename=os.path.join(current_directory, new_filename))
@@ -472,8 +482,11 @@ class ImageController(object):
         self.widget.file_info_btn.setVisible(self.model.img_model.file_info != "")
         self.widget.move_btn.setVisible(len(self.model.img_model.motors_info) > 0)
 
-        self.widget.img_filename_txt.setText(os.path.basename(self.model.img_model.filename))
-        self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
+        if self.model.img_model.filename.startswith('http://'):
+            self.widget.img_filename_txt.setText(self.model.img_model.filename)
+        else:
+            self.widget.img_filename_txt.setText(os.path.basename(self.model.img_model.filename))
+            self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.model.img_model.file_info)
 
         self.widget.cbn_plot_btn.setText('Plot')

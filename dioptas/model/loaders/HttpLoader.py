@@ -18,8 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import requests
 import io
+import time
+
+try:
+    import requests
+
+    requests_available = True
+except ModuleNotFoundError:
+    requests_available = False
 
 import numpy as np
 
@@ -28,6 +35,14 @@ from .ImgLoader import ImageLoader
 
 class HttpLoader(ImageLoader):
     def load(self, http_address):
-        r = requests.get(http_address)
-        self.img_data = np.load(io.BytesIO(r.content))
-        self.filename = http_address
+        if not requests_available:
+            raise IOError('Please install requests Library in order to use http for images')
+
+        try:
+            r = requests.get(http_address)
+            t1 = time.time()
+            self.img_data = np.load(io.BytesIO(r.content))
+            print("Loading the data takes: {}".format(time.time() - t1))
+            self.filename = http_address
+        except ValueError:
+            raise IOError
