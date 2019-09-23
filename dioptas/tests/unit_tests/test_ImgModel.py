@@ -29,7 +29,7 @@ import numpy as np
 from ..utility import QtTest
 from ...model.ImgModel import ImgModel, BackgroundDimensionWrongException
 from ...model.util.ImgCorrection import DummyCorrection
-from ...model.loaders.HttpLoader import HttpLoader
+from ...model.loaders.PILLoader import PILLoader
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -61,6 +61,27 @@ class ImgModelTest(QtTest):
         self.img_model.load('http://123.345.567.123:5000/run_1/frame_1')
 
         self.assertTrue(np.array_equal(img_data, self.img_model.img_data))
+
+    def prepare_multi_img_http_mock(self):
+        img_loader = PILLoader()
+        img_data = img_loader.load(os.path.join(data_path, 'image_001.tif'))
+        multi_img_data = [img_data] * 10
+
+        bytestream = io.BytesIO()
+        np.save(bytestream, multi_img_data)
+
+        class SmallRequest:
+            content = bytestream.getvalue()
+
+        requests.get = MagicMock(return_value=SmallRequest())
+        return multi_img_data
+
+    def test_load_http_run(self):
+        run_data = self.prepare_multi_img_http_mock()
+        self.img_model.load('http://123.123.123.123:4000/run_13')
+
+        self.assertTrue(np.array_equal(self.img_model.img_data, run_data[0]))
+
 
     def perform_transformations_tests(self):
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)

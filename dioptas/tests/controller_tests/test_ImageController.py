@@ -21,6 +21,7 @@
 import os
 import io
 import gc
+import io
 import shutil
 from mock import MagicMock
 
@@ -35,6 +36,7 @@ from qtpy.QtTest import QTest
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.ImageController import ImageController
 from ...model.DioptasModel import DioptasModel
+from ...model.loaders.PILLoader import PILLoader
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
@@ -203,20 +205,20 @@ class ImageControllerTest(QtTest):
         self.assertTrue(self.widget.file_info_btn.isVisible())
         self.assertTrue(self.widget.file_info_btn.isVisible())
 
-    def test_loading_http_data(self):
-        img_model = self.model.img_model
-        img_model.load(os.path.join(unittest_data_path, 'image_001.tif'))
-
-        img_data = np.copy(img_model.img_data)
+    def prepare_http_mock(self):
+        img_loader  = PILLoader()
+        img_data = img_loader.load(os.path.join(unittest_data_path, 'image_001.tif'))
         bytestream = io.BytesIO()
         np.save(bytestream, img_data)
-
         class SmallRequest:
             content = bytestream.getvalue()
-
         requests.get = MagicMock(return_value=SmallRequest())
-        img_model._img_data = np.ones_like(img_data)
+        return img_data
 
-        enter_value_into_text_field(self.widget.img_filename_txt, 'http://max-exfl001:5000/run_4/frame_1')
+    def test_load_existing_http_data(self):
+        img_data = self.prepare_http_mock()
+        enter_value_into_text_field(self.widget.img_filename_txt, 'http://123.345.567.123:5000/run_1/frame_1')
+        self.assertTrue(np.array_equal(self.model.img_model.img_data, img_data))
+        self.assertEqual(self.widget.img_filename_txt.text(),  'http://123.345.567.123:5000/run_1/frame_1')
+        self.assertEqual(self.widget.img_directory_txt.text(),  '')
 
-        self.assertEqual(img_model.filename, 'http://max-exfl001:5000/run_4/frame_1')

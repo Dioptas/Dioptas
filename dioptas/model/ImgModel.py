@@ -281,7 +281,7 @@ class ImgModel(QtCore.QObject):
             return
 
         self.series_pos = pos
-        self._img_data = self.series_get_image(pos - 1)
+        self._img_data = self._img_loader.get_image(pos - 1)
 
         self._perform_img_transformations()
         self._calculate_img_data()
