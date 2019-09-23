@@ -161,7 +161,7 @@ class FileNameIterator(QtCore.QObject):
             return None
 
         if self.complete_path.startswith('http:'):
-            return get_next_http_address(self.complete_path)
+            return get_next_http_address(self.complete_path, step, pos)
 
         if mode == 'time':
             time_stat = os.path.getctime(self.complete_path)
@@ -196,7 +196,7 @@ class FileNameIterator(QtCore.QObject):
             return None
 
         if self.complete_path.startswith('http:'):
-            return get_previous_http_address(self.complete_path)
+            return get_previous_http_address(self.complete_path, step, pos)
 
         if mode == 'time':
             time_stat = os.path.getctime(self.complete_path)
