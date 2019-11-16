@@ -215,7 +215,7 @@ class ProjectSaveLoadTest(QtTest):
         self.model.mask_model.set_mask(self.mask_data)
 
     ####################################################################################################################
-    def test_with_image_transformations(self):
+    def test_image_rotation(self):
         img_filename = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
         with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                           np.ones((1001,)))):
@@ -224,6 +224,22 @@ class ProjectSaveLoadTest(QtTest):
 
         img_data = fabio.open(img_filename).data[::-1]
         img_data = rotate_matrix_m90(img_data)
+
+        self.assertNotEqual(img_data.shape, self.model.img_model.untransformed_raw_img_data.shape)
+        self.assertEqual(np.sum(img_data - self.model.img_model.img_data), 0)
+
+    def rotate_image_p90(self):
+        click_button(self.widget.calibration_widget.rotate_p90_btn)
+
+    ####################################################################################################################
+    def test_with_image_transformations(self):
+        img_filename = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
+        with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
+                                                                          np.ones((1001,)))):
+            self.load_image(img_filename)
+        self.save_and_load_configuration(self.image_transformations)
+
+        img_data = fabio.open(img_filename).data[::-1]
         img_data = rotate_matrix_m90(img_data)
         img_data = np.fliplr(img_data)
         img_data = rotate_matrix_p90(img_data)
@@ -237,7 +253,6 @@ class ProjectSaveLoadTest(QtTest):
         self.assertEqual(np.sum(img_data - self.model.img_data), 0)
 
     def image_transformations(self):
-        click_button(self.widget.calibration_widget.rotate_m90_btn)
         click_button(self.widget.calibration_widget.rotate_m90_btn)
         click_button(self.widget.calibration_widget.invert_horizontal_btn)
         click_button(self.widget.calibration_widget.rotate_p90_btn)
