@@ -54,7 +54,7 @@ class ImgModelTest(QtTest):
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)
         self.img_model.flip_img_vertically()
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)
 
     def test_load_emits_signal(self):
@@ -253,22 +253,22 @@ class ImgModelTest(QtTest):
     def test_reset_img_transformation(self):
         pre_transformed_data = self.img_model.img_data
         self.img_model.rotate_img_m90()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
         pre_transformed_data = self.img_model.img_data
         self.img_model.rotate_img_p90()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
         pre_transformed_data = self.img_model.img_data
         self.img_model.flip_img_horizontally()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
         pre_transformed_data = self.img_model.img_data
         self.img_model.flip_img_vertically()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
         pre_transformed_data = self.img_model.img_data
@@ -279,7 +279,7 @@ class ImgModelTest(QtTest):
         self.img_model.rotate_img_m90()
         self.img_model.rotate_img_m90()
         self.img_model.flip_img_horizontally()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
     def test_loading_a_tagged_tif_file_and_retrieving_info_string(self):

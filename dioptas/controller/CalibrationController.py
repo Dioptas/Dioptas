@@ -129,7 +129,7 @@ class CalibrationController(object):
         self.clear_peaks_btn_click()
 
     def reset_transformations_btn_clicked(self):
-        self.model.img_model.reset_img_transformations()
+        self.model.img_model.reset_transformations()
         self.clear_peaks_btn_click()
 
     def create_update_signals(self):
