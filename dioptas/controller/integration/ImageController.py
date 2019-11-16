@@ -897,20 +897,19 @@ class ImageController(object):
                 if self.widget.img_mode == 'Cake':
                     self.widget.cake_widget.deactivate_vertical_line()
                     self.widget.cake_widget.deactivate_mouse_click_item()
-                elif self.widget.img_mode == 'Image':
-                    self.widget.img_widget.deactivate_circle_scatter()
-                    self.widget.img_widget.deactivate_roi()
-
-                QtWidgets.QApplication.processEvents()
-                self.widget.img_widget.save_img(filename)
-
-                if self.widget.img_mode == 'Cake':
+                    QtWidgets.QApplication.processEvents()
+                    self.widget.cake_widget.save_img(filename)
                     self.widget.cake_widget.activate_vertical_line()
                     self.widget.cake_widget.activate_mouse_click_item()
                 elif self.widget.img_mode == 'Image':
+                    self.widget.img_widget.deactivate_circle_scatter()
+                    self.widget.img_widget.deactivate_roi()
+                    QtWidgets.QApplication.processEvents()
+                    self.widget.img_widget.save_img(filename)
                     self.widget.img_widget.activate_circle_scatter()
                     if self.roi_active:
                         self.widget.img_widget.activate_roi()
+
             elif filename.endswith('.tiff') or filename.endswith('.tif'):
                 if self.widget.img_mode == 'Image':
                     im_array = np.int32(self.model.img_data)
