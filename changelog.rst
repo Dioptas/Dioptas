@@ -9,6 +9,7 @@ Bug Fixes:
     - entering the range for the automatic background subtraction works now correctly
     - the motor setup widget is now not showing anymore after starting Dioptas on OS X
     - fixed double logarithm for the intensity distribution display histogram
+    - (re)loading of a project with image transformations should now work correctly
 
 
 0.5.0 (stable 03/05/2019)

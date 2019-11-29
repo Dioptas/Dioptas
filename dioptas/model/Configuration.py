@@ -414,10 +414,7 @@ class Configuration(QtCore.QObject):
         image_group.attrs['background_offset'] = self.img_model.background_offset
         image_group.attrs['background_scaling'] = self.img_model.background_scaling
         if self.img_model.has_background():
-            background_data = self.img_model.background_data
-            # remove image transformations
-            for transformation in reversed(self.img_model.img_transformations):
-                background_data = transformation(background_data)
+            background_data = self.img_model.untransformed_background_data
             image_group.create_dataset('background_data', background_data.shape, 'f', background_data)
 
         image_group.attrs['series_max'] = self.img_model.series_max
@@ -444,10 +441,7 @@ class Configuration(QtCore.QObject):
 
         # the actual image
         image_group.attrs['filename'] = self.img_model.filename
-        current_raw_image = np.copy(self.img_model.raw_img_data)
-        # remove image transformations
-        for transformation in reversed(self.img_model.img_transformations):
-            current_raw_image = transformation(current_raw_image)
+        current_raw_image = self.img_model.untransformed_raw_img_data
 
         raw_image_data = image_group.create_dataset('raw_image_data', current_raw_image.shape, dtype='f')
         raw_image_data[...] = current_raw_image
