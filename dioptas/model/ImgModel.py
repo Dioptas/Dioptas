@@ -250,7 +250,7 @@ class ImgModel(QtCore.QObject):
         except IOError:
             return None
 
-        return {"img_data": karabo_file.get_image(3),
+        return {"img_data": karabo_file.get_image(0),
                 "series_max": karabo_file.series_max,
                 "series_get_image": karabo_file.get_image}
 
@@ -346,6 +346,13 @@ class ImgModel(QtCore.QObject):
     @property
     def background_data(self):
         return self._background_data
+
+    @property
+    def untransformed_background_data(self):
+        self._reset_background_transformations()
+        background_data = np.copy(self.background_data)
+        self._perform_background_transformations()
+        return background_data
 
     @background_data.setter
     def background_data(self, new_data):
@@ -536,6 +543,13 @@ class ImgModel(QtCore.QObject):
     def raw_img_data(self):
         return self._img_data
 
+    @property
+    def untransformed_raw_img_data(self):
+        self._reset_img_transformations()
+        img_data = np.copy(self.raw_img_data)
+        self._perform_img_transformations()
+        return img_data
+
     def rotate_img_p90(self):
         """
         Rotates the image by 90 degree and updates the background accordingly (does not effect absorption correction).
@@ -598,29 +612,40 @@ class ImgModel(QtCore.QObject):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def reset_img_transformations(self):
+    def reset_transformations(self):
         """
         Reverts all image transformations and resets the transformation stack.
         The img_changed signal will be emitted after the process.
         """
-        for transformation in reversed(self.img_transformations):
-            if transformation == rotate_matrix_p90:
-                self._img_data = rotate_matrix_m90(self._img_data)
-                if self._background_data is not None:
-                    self._background_data = rotate_matrix_m90(self._background_data)
-            elif transformation == rotate_matrix_m90:
-                self._img_data = rotate_matrix_p90(self._img_data)
-                if self._background_data is not None:
-                    self._background_data = rotate_matrix_p90(self._background_data)
-            else:
-                self._img_data = transformation(self._img_data)
-                if self._background_data is not None:
-                    self._background_data = transformation(self._background_data)
+        self._reset_img_transformations()
+        self._reset_background_transformations()
+
         self.img_transformations = []
         self.transformations_changed.emit()
 
         self._calculate_img_data()
         self.img_changed.emit()
+
+    def _reset_img_transformations(self):
+        for transformation in reversed(self.img_transformations):
+            if transformation == rotate_matrix_p90:
+                self._img_data = rotate_matrix_m90(self._img_data)
+            elif transformation == rotate_matrix_m90:
+                self._img_data = rotate_matrix_p90(self._img_data)
+            else:
+                self._img_data = transformation(self._img_data)
+
+    def _reset_background_transformations(self):
+        if self._background_data is None:
+            return
+
+        for transformation in reversed(self.img_transformations):
+            if transformation == rotate_matrix_p90:
+                self._background_data = rotate_matrix_m90(self._background_data)
+            elif transformation == rotate_matrix_m90:
+                self._background_data = rotate_matrix_p90(self._background_data)
+            else:
+                self._background_data = transformation(self._background_data)
 
     def _perform_img_transformations(self):
         """
@@ -629,13 +654,6 @@ class ImgModel(QtCore.QObject):
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
 
-    def _revert_img_transformations(self):
-        """
-        Reverts all saved image transformations on the image. (Does not delete the transformations list, any new loaded
-        image will be transformed again)
-        """
-        for transformation in reversed(self.img_transformations):
-            self._img_data = transformation(self._img_data)
 
     def _perform_background_transformations(self):
         """
@@ -645,14 +663,6 @@ class ImgModel(QtCore.QObject):
             for transformation in self.img_transformations:
                 self._background_data = transformation(self._background_data)
 
-    def _revert_background_transformations(self):
-        """
-        Performs all saved image transformation on background image.
-        """
-        if self._background_data is not None:
-            for transformation in reversed(self.img_transformations):
-                self._background_data = transformation(self._background_data)
-
     def get_transformations_string_list(self):
         transformation_list = []
         for transformation in self.img_transformations:
@@ -660,8 +670,8 @@ class ImgModel(QtCore.QObject):
         return transformation_list
 
     def load_transformations_string_list(self, transformations):
-        self._revert_img_transformations()
-        self._revert_background_transformations()
+        self._reset_img_transformations()
+        self._reset_background_transformations()
         self.img_transformations = []
         for transformation in transformations:
             if transformation == "flipud":
