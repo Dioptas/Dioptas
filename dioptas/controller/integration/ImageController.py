@@ -169,7 +169,7 @@ class ImageController(object):
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
-        self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
+        self.widget.integration_image_widget.cake_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
         self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
         self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
 
