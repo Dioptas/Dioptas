@@ -355,9 +355,14 @@ class CifPhase(object):
         else:
             self.space_group = None
 
-        self.space_group_number = cif_dictionary.get('_symmetry_Int_Tables_number')
+        if '_symmetry_Int_Tables_number' in cif_dictionary.keys():
+            self.space_group_number = cif_dictionary.get('_symmetry_Int_Tables_number')
+        elif '_space_group_IT_number' in cif_dictionary.keys():
+            self.space_group_number = cif_dictionary.get('_space_group_IT_number')
+
         if self.space_group_number is not None:
             self.space_group_number = int(self.space_group_number)
+
         self.symmetry = self.get_symmetry_from_space_group_number(self.space_group_number)
 
         self.comments = ''
