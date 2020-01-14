@@ -51,6 +51,9 @@ class OptionsWidget(QtWidgets.QWidget):
         self._integration_gb_layout = QtWidgets.QGridLayout()
         self._integration_gb_layout.setContentsMargins(5, 8, 5, 7)
         self._integration_gb_layout.setSpacing(5)
+        self.oned_azimuth_min_txt = NumberTextField('-180')
+        self.oned_azimuth_max_txt = NumberTextField('180')
+        self.oned_full_toggle_btn = CheckableFlatButton('Full available range')
 
         self.bin_count_txt = IntegerTextField('0')
         self.bin_count_cb = QtWidgets.QCheckBox('auto')
@@ -65,6 +68,10 @@ class OptionsWidget(QtWidgets.QWidget):
         self._integration_gb_layout.addWidget(self.bin_count_cb, 0, 2)
         self._integration_gb_layout.addWidget(self.supersampling_sb, 1, 1)
         self._integration_gb_layout.addWidget(self.correct_solid_angle_cb, 2, 1, 1, 2)
+        self._integration_gb_layout.addWidget(LabelAlignRight('Azimuth range:'), 3, 0)
+        self._integration_gb_layout.addWidget(self.oned_azimuth_min_txt, 3, 1, 1, 1)
+        self._integration_gb_layout.addWidget(self.oned_azimuth_max_txt, 3, 2, 1, 1)
+        self._integration_gb_layout.addWidget(self.oned_full_toggle_btn, 4, 1, 1, 2)
 
         self.integration_gb.setLayout(self._integration_gb_layout)
 
@@ -103,6 +110,10 @@ class OptionsWidget(QtWidgets.QWidget):
         self.bin_count_txt.setEnabled(False)
         self.bin_count_cb.setChecked(True)
 
+        self.oned_full_toggle_btn.setChecked(True)
+        self.oned_azimuth_min_txt.setDisabled(True)
+        self.oned_azimuth_max_txt.setDisabled(True)
+
     def style_cake_widgets(self):
         self.cake_azimuth_points_sb.setMaximumWidth(115)
         self.cake_azimuth_points_sb.setMinimum(1)
@@ -120,4 +131,3 @@ class OptionsWidget(QtWidgets.QWidget):
         self.cake_full_toggle_btn.setChecked(True)
         self.cake_azimuth_min_txt.setDisabled(True)
         self.cake_azimuth_max_txt.setDisabled(True)
-

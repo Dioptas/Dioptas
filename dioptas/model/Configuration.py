@@ -61,6 +61,7 @@ class Configuration(QtCore.QObject):
 
         self._integration_rad_points = None
         self._integration_unit = '2th_deg'
+        self._oned_azimuth_range = None
 
         self._cake_azimuth_points = 360
         self._cake_azimuth_range = None
@@ -95,7 +96,7 @@ class Configuration(QtCore.QObject):
             else:
                 mask = None
 
-            x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
+            x, y = self.calibration_model.integrate_1d(azi_range=self.oned_azimuth_range, mask=mask, unit=self.integration_unit,
                                                        num_points=self.integration_rad_points)
 
             self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
@@ -242,6 +243,16 @@ class Configuration(QtCore.QObject):
         self._cake_azimuth_range = new_value
         if self.auto_integrate_cake:
             self.integrate_image_2d()
+
+    @property
+    def oned_azimuth_range(self):
+        return self._oned_azimuth_range
+
+    @oned_azimuth_range.setter
+    def oned_azimuth_range(self, new_value):
+        self._oned_azimuth_range = new_value
+        if self.auto_integrate_pattern:
+            self.integrate_image_1d()
 
     @property
     def integration_unit(self):
