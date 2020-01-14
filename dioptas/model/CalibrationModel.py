@@ -315,7 +315,7 @@ class CalibrationModel(QtCore.QObject):
         self.pattern_geometry.reset()
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='csr'):
+                     unit='2th_deg', method='csr', azi_range=None):
         if np.sum(mask) == self.img_model.img_data.shape[0] * self.img_model.img_data.shape[1]:
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
@@ -339,6 +339,7 @@ class CalibrationModel(QtCore.QObject):
                 self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                        method=method,
                                                                        unit='2th_deg',
+                                                                       azimuth_range=azi_range,
                                                                        mask=mask,
                                                                        polarization_factor=polarization_factor,
                                                                        correctSolidAngle=self.correct_solid_angle,
@@ -347,6 +348,7 @@ class CalibrationModel(QtCore.QObject):
                 self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                        method='csr',
                                                                        unit='2th_deg',
+                                                                       azimuth_range=azi_range,
                                                                        mask=mask,
                                                                        polarization_factor=polarization_factor,
                                                                        correctSolidAngle=self.correct_solid_angle,
@@ -358,6 +360,7 @@ class CalibrationModel(QtCore.QObject):
                 self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                        method=method,
                                                                        unit=unit,
+                                                                       azimuth_range=azi_range,
                                                                        mask=mask,
                                                                        polarization_factor=polarization_factor,
                                                                        correctSolidAngle=self.correct_solid_angle,
@@ -366,6 +369,7 @@ class CalibrationModel(QtCore.QObject):
                 self.tth, self.int = self.pattern_geometry.integrate1d(self.img_model.img_data, num_points,
                                                                        method='csr',
                                                                        unit=unit,
+                                                                       azimuth_range=azi_range,
                                                                        mask=mask,
                                                                        polarization_factor=polarization_factor,
                                                                        correctSolidAngle=self.correct_solid_angle,
