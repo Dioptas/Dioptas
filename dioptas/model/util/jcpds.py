@@ -527,7 +527,9 @@ class jcpds(object):
             else:
                 self.mod_pressure = pressure - \
                                     self.params['alpha_t'] * self.params['k0'] * (temperature - 298.)
-                res = minimize(self.bm3_inverse, 1.)
+                res = minimize(self.bm3_inverse, 1., method='Nelder-Mead')
+                if not res.success:
+                    raise ArithmeticError("minimize didn't find a minimum!\n"+str(res))
                 self.params['v'] = self.params['v0'] / np.float(res.x)
 
     def bm3_inverse(self, v0_v):
