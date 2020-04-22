@@ -198,6 +198,7 @@ class CalibrationWidget(QtWidgets.QWidget):
             polarization_factor, pixel1, pixel2
         """
         pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
+        sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
         try:
             pyfai_widget.distance_txt.setText('%.6f' % (pyfai_parameter['dist'] * 1000))
             pyfai_widget.poni1_txt.setText('%.6f' % (pyfai_parameter['poni1']))
@@ -209,6 +210,11 @@ class CalibrationWidget(QtWidgets.QWidget):
             pyfai_widget.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
             pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
             pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
+
+            sv_gb.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
+            sv_gb.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
+            sv_gb.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
+            sv_gb.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
         except (AttributeError, TypeError):
             pyfai_widget.distance_txt.setText('')
             pyfai_widget.poni1_txt.setText('')
