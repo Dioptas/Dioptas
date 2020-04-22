@@ -137,6 +137,27 @@ class CalibrationModelTest(QtTest):
         self.assertAlmostEqual(self.calibration_model.pattern_geometry.dist, 0.208, delta=0.005)
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
 
+    def test_calibration_with_fixed_parameters(self):
+        self.load_pilatus_1M_and_find_peaks()
+        self.calibration_model.start_values['wavelength'] = 0.406626e-10
+        self.calibration_model.start_values['pixel_height'] = 172e-6
+        self.calibration_model.start_values['pixel_width'] = 172e-6
+        self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
+
+        fixed_values_dicts = [{'rot1': 0.001},
+                              {'rot2': 0.03},
+                              {'rot1': 0.01, 'rot2': 0.003},
+                              {'poni1': 0.32},
+                              {'poni1': 0.2, 'poni2': 0.13},
+                              {'dist': 300},
+                              {'rot1': 0.001, 'rot2': 0.004, 'poni1': 0.22, 'poni2':0.34}]
+        for fixed_values in fixed_values_dicts:
+            self.calibration_model.set_fixed_values(fixed_values)
+            self.calibration_model.calibrate()
+            for key, value in fixed_values.items():
+                self.assertEqual(getattr(self.calibration_model.pattern_geometry, key), value)
+
+
     def test_get_pixel_ind(self):
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))
         self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
