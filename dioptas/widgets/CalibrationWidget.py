@@ -161,6 +161,32 @@ class CalibrationWidget(QtWidgets.QWidget):
                         'polarization_factor': float(sv_gb.polarization_txt.text())}
         return start_values
 
+    def get_fixed_values(self):
+        fixed_values = {}
+
+        pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
+        sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
+
+        if not sv_gb.distance_cb.isChecked():
+            fixed_values['dist'] = self.get_float_from_txt_field(sv_gb.distance_txt) * 1e-3
+        if not pyfai_widget.rotation1_cb.isChecked():
+            fixed_values['rot1'] = self.get_float_from_txt_field(pyfai_widget.rotation1_txt)
+        if not pyfai_widget.rotation2_cb.isChecked():
+            fixed_values['rot2'] = self.get_float_from_txt_field(pyfai_widget.rotation2_txt)
+        if not pyfai_widget.rotation3_cb.isChecked():
+            fixed_values['rot3'] = self.get_float_from_txt_field(pyfai_widget.rotation3_txt)
+        if not pyfai_widget.poni1_cb.isChecked():
+            fixed_values['poni1'] = self.get_float_from_txt_field(pyfai_widget.poni1_txt)
+        if not pyfai_widget.poni2_cb.isChecked():
+            fixed_values['poni2'] = self.get_float_from_txt_field(pyfai_widget.poni2_txt)
+        return fixed_values
+
+    def get_float_from_txt_field(self, txt_field):
+        if len(txt_field.text())>0:
+            return float(txt_field.text())
+        else:
+            return 0
+
     def set_calibration_parameters(self, pyFAI_parameter, fit2d_parameter):
         self.set_pyFAI_parameter(pyFAI_parameter)
         self.set_fit2d_parameter(fit2d_parameter)
