@@ -401,10 +401,24 @@ class CalibrationController(object):
         progress_dialog.close()
 
         if self.widget.options_automatic_refinement_cb.isChecked():
-            self.refine()
+            self.automatic_refinement()
         else:
             self.update_all()
         self.update_calibration_parameter_in_view()
+
+    def refine(self):
+        self.model.calibration_model.set_fixed_values(self.widget.get_fixed_values())
+
+        if self.widget.options_automatic_refinement_cb.isChecked():
+            self.automatic_refinement()
+        else:
+            progress_dialog = self.create_progress_dialog('Refining.', '', 0, show_cancel_btn=False)
+            self.model.calibration_model.refine()
+            progress_dialog.close()
+            self.update_all()
+
+        self.update_calibration_parameter_in_view()
+
 
     def create_progress_dialog(self, text_str, abort_str, end_value, show_cancel_btn=True):
         """ Creates a Progress Bar Dialog.
@@ -432,7 +446,7 @@ class CalibrationController(object):
         QtWidgets.QApplication.processEvents()
         return progress_dialog
 
-    def refine(self):
+    def automatic_refinement(self):
         """
         Refines the current calibration parameters by searching peaks in the approximate positions and subsequent
         refinement. Parameters for this search are set in the GUI.
