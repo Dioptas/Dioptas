@@ -49,12 +49,12 @@ class CalibrationModel(QtCore.QObject):
         self.img_model = img_model
         self.points = []
         self.points_index = []
-        self.pattern_geometry = AzimuthalIntegrator()
+        self.pattern_geometry = GeometryRefinement(pixel1=0.0002, pixel2=0.0002, wavelength=0.3344e-10,
+                                                   poni1=0, poni2=0) # default params are necessary, otherwise fails...
         self.pattern_geometry_img_shape = None
         self.cake_geometry = None
         self.cake_geometry_img_shape = None
         self.calibrant = Calibrant()
-        self.pattern_geometry.wavelength = 0.3344e-10
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
                              'pixel_width': 79e-6,
@@ -456,7 +456,8 @@ class CalibrationModel(QtCore.QObject):
         Loads a calibration file and and sets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
-        self.pattern_geometry = AzimuthalIntegrator()
+        self.pattern_geometry = GeometryRefinement(pixel1=0.0002, pixel2=0.0002, wavelength=0.3344e-10,
+                                                   poni1=0, poni2=0) # default params are necessary, otherwise fails...
         self.pattern_geometry.load(filename)
         self.orig_pixel1 = self.pattern_geometry.pixel1
         self.orig_pixel2 = self.pattern_geometry.pixel2
