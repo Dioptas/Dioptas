@@ -5,6 +5,8 @@ New features:
     - Phase lines can now be shown in the Cake Widget. Intensity is shown as thickness and opacity of the lines.
 
 Bug Fixes:
+    - having parameters fixed during calibration works now correctly
+    - the refine button now also works without automatic refinement and with just a calibration loaded from a file
     - reading trigonal rhombic cif files works now correctly
     - entering the range for the automatic background subtraction works now correctly
     - the motor setup widget is now not showing anymore after starting Dioptas on OS X
