@@ -63,12 +63,6 @@ class CalibrationModel(QtCore.QObject):
         self.orig_pixel1 = 79e-6
         self.orig_pixel2 = 79e-6
         self.fit_wavelength = False
-        self.fit_distance = True
-        self.fit_poni1 = True
-        self.fit_poni2 = True
-        self.fit_rot1 = True
-        self.fit_rot2 = True
-        self.fit_rot3 = True
         self.is_calibrated = False
         self.use_mask = False
         self.filename = ''
@@ -266,6 +260,15 @@ class CalibrationModel(QtCore.QObject):
         self.start_values = start_values
         self.polarization_factor = start_values['polarization_factor']
 
+    def set_fixed_values(self, fixed_values):
+        """
+        Sets the fixed and not fitted values for the geometry refinement
+        :param fixed_values: a dictionary with the fixed parameters as key and their corresponding fixed value, possible
+                             keys: 'dist', 'rot1', 'rot2', 'rot3', 'poni1', 'poni2'
+
+        """
+        self.fixed_values = fixed_values
+
     def calibrate(self):
         self.pattern_geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
                                                    dist=self.start_values['dist'],
@@ -293,20 +296,13 @@ class CalibrationModel(QtCore.QObject):
         fix = ['wavelength']
         if self.fit_wavelength:
             fix = []
-        if not self.fit_distance:
-            fix.append('dist')
-        if not self.fit_poni1:
-            fix.append('poni1')
-        if not self.fit_poni2:
-            fix.append('poni2')
-        if not self.fit_rot1:
-            fix.append('rot1')
-        if not self.fit_rot2:
-            fix.append('rot2')
-        if not self.fit_rot3:
-            fix.append('rot3')
+
+        for key, value in self.fixed_values.items():
+            fix.append(key)
+            setattr(self.pattern_geometry, key, value)
+
         if self.fit_wavelength:
-            self.pattern_geometry.refine2()
+            self.pattern_geometry.refine2(fix=fix)
         self.pattern_geometry.refine2_wavelength(fix=fix)
 
         self.create_cake_geometry()
