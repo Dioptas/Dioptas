@@ -63,6 +63,8 @@ class CalibrationModel(QtCore.QObject):
         self.orig_pixel1 = 79e-6
         self.orig_pixel2 = 79e-6
         self.fit_wavelength = False
+        self.fixed_values = {} # dictionary for fixed parameters during calibration (keys can be e.g. rot1, poni1 etc.
+                               # and values are the values to what the respective parameter will be set
         self.is_calibrated = False
         self.use_mask = False
         self.filename = ''
