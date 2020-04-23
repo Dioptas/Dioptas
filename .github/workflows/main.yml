@@ -30,4 +30,6 @@ jobs:
     - name: Run tests
       shell: bash -l {0}
       run: |
-        xvfb-run py.test dioptas/tests
+        xvfb-run py.test dioptas/tests/unit_tests
+        xvfb-run py.test dioptas/tests/controller_tests
+        xvfb-run py.test dioptas/tests/functional_tests
