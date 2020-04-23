@@ -106,7 +106,13 @@ def main():
     if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
 
-    controller = MainController()
-    controller.show_window()
-    app.exec_()
+
+    if len(sys.argv) == 1: # normal start
+        controller = MainController()
+        controller.show_window()
+        app.exec_()
+    else: # with command line arguments
+        if sys.argv[1] == 'test':
+            controller = MainController(use_settings=False)
+            controller.show_window()
     del app
