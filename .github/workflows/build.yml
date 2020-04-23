@@ -33,6 +33,7 @@ jobs:
       shell: bash -l {0}
       run: |
         bash create_executable.sh
+        cd dist/Dioptas*
         ls
-        ls dist
-        tree dist
+        pwd
+        timeout ./dioptas
