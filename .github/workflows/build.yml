@@ -36,6 +36,6 @@ jobs:
 
     - name: Run Dioptas
       shell: bash -l {0}
-      run:
+      run: |
         cd dist/Dioptas*
         ./dioptas test
