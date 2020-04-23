@@ -46,6 +46,7 @@ jobs:
       shell: bash -l {0}
       if: matrix.os == 'macos-latest'
       run: |
+        conda deactivate
         cd dist/Dioptas*
         cd Contents/MacOS
         ./run_dioptas test
