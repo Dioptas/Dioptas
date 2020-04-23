@@ -19,7 +19,7 @@ jobs:
     - uses: goanpeca/setup-miniconda@v1
       with:
         auto-update-conda: true
-        python-version: 3.7
+        python-version: 3.6
         channels: cprescher
     - run: git fetch --all --tags
 
