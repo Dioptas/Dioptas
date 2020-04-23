@@ -38,6 +38,4 @@ jobs:
       shell: bash -l {0}
       run: |
         cd dist/Dioptas*
-        pwd
-        ls
-        ./Dioptas test
+        xvfb-run ./Dioptas test
