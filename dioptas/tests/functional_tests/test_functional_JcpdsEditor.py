@@ -473,7 +473,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # then he increases the pressure and sees the line moving, but he realizes that the equation of state may 
         # be wrong so he decides to change the parameters in the jcpds-editor
-        self.main_controller.integration_controller.widget.phase_widget.pressure_sbs[0].setValue(10)
+        self.main_controller.integration_controller.widget.phase_widget.pressure_sbs[0].setValue(30)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 120)
@@ -492,13 +492,13 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 10.234e-5)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dalphadT_txt, 10.234e-6)
+        self.enter_value_into_text_field(self.jcpds_widget.eos_dalphadT_txt, 10.234e-8)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_dKdT_txt, 1.2e-4)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 1.3e-6)
+        self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 1.3e-5)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
     def test_connection_between_main_gui_and_jcpds_editor_reflections(self):

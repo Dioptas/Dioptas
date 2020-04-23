@@ -8,6 +8,7 @@ Bug Fixes:
     - having parameters fixed during calibration works now correctly
     - the refine button now also works without automatic refinement and with just a calibration loaded from a file
     - reading trigonal rhombic cif files works now correctly
+    - setting the dk/dT parameter now changes the Bulk Modulus of a phase. This parameter was previously ignored.
     - entering the range for the automatic background subtraction works now correctly
     - the motor setup widget is now not showing anymore after starting Dioptas on OS X
     - fixed double logarithm for the intensity distribution display histogram
