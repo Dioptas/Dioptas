@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 try:
-    from karabo_data import H5File
+    from extra_data import H5File
 except ImportError:
     karabo_installed = False
 else:
