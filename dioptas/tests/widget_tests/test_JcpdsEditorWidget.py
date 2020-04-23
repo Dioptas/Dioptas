@@ -23,7 +23,7 @@ import unittest
 
 from ..utility import QtTest, QtWidgets
 from ...model.util import jcpds
-from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget, TestTableModelWidget, ReflectionTableModel
+from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
