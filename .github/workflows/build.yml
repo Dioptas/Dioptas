@@ -21,7 +21,7 @@ jobs:
         auto-update-conda: true
         python-version: 3.7
         channels: cprescher
-    - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+    - run: git fetch --all --tags
 
     - name: Install Conda Dependencies
       shell: bash -l {0}
