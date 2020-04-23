@@ -8,10 +8,7 @@ on: [push, pull_request]
 jobs:
   build_unix:
     # The type of runner that the job will run on
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
+    runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -43,10 +40,3 @@ jobs:
       run: |
         cd dist/Dioptas*
         xvfb-run ./Dioptas test
-
-    - name: Run Dioptas
-      shell: bash -l {0}
-      if: matrix.os == 'macos-latest'
-      run: |
-        cd dist/Dioptas*
-        ./run_dioptas test
