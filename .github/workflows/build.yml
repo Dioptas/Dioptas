@@ -47,7 +47,5 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: |
         cd dist/Dioptas*
-        cd Contents
-        pwd
-        ls
+        cd Contents/MacOS
         ./run_dioptas test
