@@ -6,7 +6,7 @@ on: [push, pull_request]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build_macos:
+  build_windows:
     # The type of runner that the job will run on
     runs-on: windows-latest
 
@@ -29,22 +29,29 @@ jobs:
           ${{ runner.os }}-pip-
         
     - name: Install Pip Dependencies
-      run: pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyqtgraph pyepics extra_data pyinstaller
+      run: pip install pycifrw pandas python-dateutil h5py cython scikit-image pyqt5 future qtpy pyfai lmfit pyqtgraph pyepics extra_data pyinstaller
+
+    - name: Compile Smooth Bruckner
+      run: cythonize -a -i dioptas\model\util\smooth_bruckner_cython.pyx
 
     - name: Run Dioptas from source to test and create version file
       run: python Dioptas.py test
 
     - name: Run PyInstaller
-      run: create_executable.bat
+      shell: cmd
+      run: pyinstaller Dioptas.spec
 
     - name: Run Dioptas Executable
+      shell: cmd
       run: |
         cd dist\Dioptas*
-        Dioptas.exe
+        Dioptas.exe test
 
-#    - name: Compress App
-#      run: |
-#        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
-#        echo $DIOPTAS_FOLDER
-#        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
-#        du -sh $DIOPTAS_FOLDER.zip
+    - name: Compress App
+      run: |
+        cd Dioptas*
+        $folderName = pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
+        cd ..
+        $zipName = $folderName + '.zip'
+        Compress-Archive $folderName $zipName
+        Write-Host((Get-Item $zipName).length/1MB)
