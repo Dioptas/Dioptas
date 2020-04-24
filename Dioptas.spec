@@ -156,7 +156,12 @@ else:
     platform += "32"
 
 # getting the current version of Dioptas
-from dioptas import __version__
+try:
+    with open(os.path.join('dioptas', '__version__'), 'r') as fp:
+        __version__ = fp.readline()
+except FileNotFoundError:
+    from dioptas import __version__
+
 
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
