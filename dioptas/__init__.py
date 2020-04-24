@@ -20,17 +20,13 @@
 
 from __future__ import absolute_import
 
-from ._version import get_versions
-
-__version__ = get_versions()['version']
-del get_versions
-
-if __version__ == "0+unknown":
-    __version__ = "0.5.0"
-
 import sys
 import os
 import time
+
+from .version import get_version
+
+__version__ = get_version()
 
 try:
     from cStringIO import StringIO
