@@ -58,7 +58,6 @@ jobs:
       run: |
         cd dioptas/model/util/
         f2py -c -m smooth_bruckner smooth_bruckner.f95
-        cd ../../../
         
     - name: Run PyInstaller
       shell: bash -l {0}
@@ -69,3 +68,12 @@ jobs:
       run: |
         cd dist/Dioptas*
         xvfb-run ./Dioptas test
+
+    - name: Compress Executable
+      shell: bash -l {0}
+      run: |
+        cd dist
+        export DIOPTAS_FOLDER=$(ls -a)
+        tar -czvf $DIOPTAS_FOLDER.tar.gz $DIOPTAS_FOLDER
+        du -sh $DIOPTAS_FOLDER.tar.gz
+
