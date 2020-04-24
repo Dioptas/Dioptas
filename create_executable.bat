@@ -60,8 +60,3 @@ rmdir /s /q bokeh, ^
     share, ^
     PyQt5\Qt\bin, ^
     PyQt5\Qt\uic
-
-
-Dioptas.exe
-cd ..
-cd ..

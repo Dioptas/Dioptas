@@ -1,0 +1,50 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CD_WINDOWS
+
+on: [push, pull_request]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build_macos:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+    - name: Setup Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+
+    - name: Use Python Dependency Cache
+      id: pip-cache
+      uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+        
+    - name: Install Pip Dependencies
+      run: pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyqtgraph pyepics extra_data pyinstaller
+
+    - name: Run Dioptas from source to test and create version file
+      run: python Dioptas.py test
+
+    - name: Run PyInstaller
+      run: create_executable.bat
+
+    - name: Run Dioptas Executable
+      run: |
+        cd dist\Dioptas*
+        Dioptas.exe
+
+#    - name: Compress App
+#      run: |
+#        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
+#        echo $DIOPTAS_FOLDER
+#        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
+#        du -sh $DIOPTAS_FOLDER.zip
