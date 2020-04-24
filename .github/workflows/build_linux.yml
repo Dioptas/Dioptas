@@ -1,24 +1,49 @@
 # This is a basic workflow to help you get started with Actions
 
-name: BUILD
+name: CD_LINUX
 
 on: [push, pull_request]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build_unix:
+  build_linux:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
     - uses: goanpeca/setup-miniconda@v1
       with:
         auto-update-conda: true
         python-version: 3.6
         channels: cprescher
     - run: git fetch --all --tags
+
+    - name: Get Conda Information
+      run: conda info
+
+    - name: Use Pip Cache
+      id: pip-cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Use Conda Cache
+      id: conda-cache
+      uses: actions/cache@v1
+      with:
+        path: /usr/share/miniconda/pkgs
+        key: ${{ runner.os }}-conda-${{ hashFiles('Dioptas.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-conda-
+
+    - name: Install GFortran
+      run: sudo apt-get install gfortran libgfortran3
 
     - name: Install Conda Dependencies
       shell: bash -l {0}
@@ -27,6 +52,13 @@ jobs:
     - name: Install Pip Dependencies
       shell: bash -l {0}
       run: pip install pyepics extra_data pyinstaller
+
+    - name: Compile smooth_bruckner
+      shell: bash -l {0}
+      run: |
+        cd dioptas/model/util/
+        f2py -c -m smooth_bruckner smooth_bruckner.f95
+        cd ../../../
         
     - name: Run PyInstaller
       shell: bash -l {0}
@@ -34,7 +66,6 @@ jobs:
 
     - name: Run Dioptas
       shell: bash -l {0}
-      if: matrix.os == 'ubuntu-latest'
       run: |
         cd dist/Dioptas*
         xvfb-run ./Dioptas test
