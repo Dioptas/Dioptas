@@ -3,9 +3,9 @@ rmdir /s /q build
 
 pyinstaller Dioptas.spec
 
-cd dist/dioptas*
+cd dist/Dioptas*
 
-rm mkl_avx512.dll, ^
+del mkl_avx512.dll, ^
     mkl_avx2.dll, ^
     mkl_avx.dll, ^
     mkl_mc3.dll, ^
@@ -13,6 +13,8 @@ rm mkl_avx512.dll, ^
     mkl_pgi_thread.dll, ^
     mkl_tbb_thread.dll, ^
     mkl_sequential.dll, ^
+    mkl_vml_def.dll, ^
+    mkl_vml_cmpt.dll, ^
     mkl_vml_mc.dll, ^
     mkl_vml_mc2.dll, ^
     mkl_vml_mc3.dll, ^
@@ -22,7 +24,18 @@ rm mkl_avx512.dll, ^
     mkl_scalapack_ilp64.dll, ^
     mkl_scalapack_lp64.dll, ^
     Qt5Quick.dll, ^
-    Qt5Qml.dll
+    Qt5Qml.dll, ^
+    opengl32sw.dll, ^
+    mfc140u.dll, ^
+    tcl86t.dll, ^
+    tk86t.dll, ^
+    sqlite3.dll, ^
+    win32ui.pyd, ^
+    libxml2.dll, ^
+    Qt5Network.dll, ^
+    unicodedata.pyd, ^
+    ucrtbase.dll, ^
+    iconv.dll
 
 rmdir /s /q bokeh, ^
     bottleneck, ^
@@ -33,6 +46,7 @@ rmdir /s /q bokeh, ^
     etc, ^
     docutils, ^
     gevent, ^
+    imageio, ^
     jedi, ^
     lxml, ^
     nbconvert, ^
