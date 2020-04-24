@@ -36,6 +36,9 @@ jobs:
         cd dioptas/model/util/
         f2py -c -m smooth_bruckner smooth_bruckner.f95
 
+    - name: Run Dioptas from source to test and create version file
+      run: python Dioptas.py test
+
     - name: Run PyInstaller
       run: bash create_executable.sh
 
@@ -46,8 +49,11 @@ jobs:
         ./run_dioptas test
 
     - name: Compress App
-        run: |
-          cd dist
-          export DIOPTAS_FOLDER=$(ls -a)
-          zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
-          du -sh $DIOPTAS_FOLDER.zip
+      run: |
+        cd dist
+        pwd
+        ls
+        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
+        echo $DIOPTAS_FOLDER
+        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
+        du -sh $DIOPTAS_FOLDER.zip
