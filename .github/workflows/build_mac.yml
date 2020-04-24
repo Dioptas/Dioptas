@@ -35,7 +35,6 @@ jobs:
       run: |
         cd dioptas/model/util/
         f2py -c -m smooth_bruckner smooth_bruckner.f95
-        cd ../../../
 
     - name: Run PyInstaller
       run: bash create_executable.sh
@@ -45,3 +44,10 @@ jobs:
         cd dist/Dioptas*
         cd Contents/MacOS
         ./run_dioptas test
+
+    - name: Compress App
+        run: |
+          cd dist
+          export DIOPTAS_FOLDER=$(ls -a)
+          zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
+          du -sh $DIOPTAS_FOLDER.zip
