@@ -29,7 +29,7 @@ jobs:
           ${{ runner.os }}-pip-
         
     - name: Install Pip Dependencies
-      run: pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 tornado future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph cython pyepics extra_data pyinstaller versioneer
+      run: pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyqtgraph pyepics extra_data pyinstaller
 
     - name: Compile smooth_bruckner
       run: |
