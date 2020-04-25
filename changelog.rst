@@ -3,6 +3,8 @@
 
 New features:
     - Phase lines can now be shown in the Cake Widget. Intensity is shown as thickness and opacity of the lines.
+    - Added a Continuous Delivery Pipelines, which automatically create executables for all operating systems
+      (Thanks to Github Actions)
 
 Bug Fixes:
     - having parameters fixed during calibration works now correctly
