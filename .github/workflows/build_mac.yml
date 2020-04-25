@@ -42,6 +42,13 @@ jobs:
     - name: Run PyInstaller
       run: bash create_executable.sh
 
+    - name: Clean Up Executable Folder
+      run: |
+        cd dist/Dioptas*
+        cd Contents/MacOS
+        rm QtQuick QtQml QtQmlmodels QtNetwork QtWebSockets libcrypto.1.0.0.dylib
+        rm -r imageio matplotlib mpl-data
+
     - name: Run Dioptas Executable
       run: |
         cd dist/Dioptas*
@@ -51,9 +58,17 @@ jobs:
     - name: Compress App
       run: |
         cd dist
-        pwd
-        ls
         export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
         echo $DIOPTAS_FOLDER
         zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
         du -sh $DIOPTAS_FOLDER.zip
+
+    - name: Upload Compressed App to Dropbox
+      env:
+        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+      run: |
+        pip install dropbox
+        cd dist
+        export compressedFile=$(ls | grep .zip)
+        export targetFile='/develop/macos/'$compressedFile
+        python ../scripts/dropbox_upload.py $compressedFile $targetFile
