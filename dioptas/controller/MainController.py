@@ -151,7 +151,6 @@ class MainController(object):
 
             # update the GUI
         if ind == 2:  # integration tab
-            self.model.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False

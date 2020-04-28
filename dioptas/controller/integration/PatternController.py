@@ -158,7 +158,7 @@ class PatternController(object):
 
     def supersampling_changed(self, value):
         self.model.calibration_model.set_supersampling(value)
-        self.model.img_model.set_supersampling(value)
+        self.model.img_model.img_changed.emit()
 
     def save_pattern(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))

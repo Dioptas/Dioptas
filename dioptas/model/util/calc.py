@@ -51,3 +51,22 @@ def convert_units(value, wavelength, previous_unit, new_unit):
     else:
         res = None
     return res
+
+
+def supersample_image(img_data, factor):
+    """
+    Creates a supersampled array from img_data.
+    :param img_data: image array
+    :param factor: int - supersampling factor
+    :return: supersampled image
+    """
+    if factor > 1:
+        img_data_supersampled = np.zeros((img_data.shape[0] * factor,
+                                          img_data.shape[1] * factor))
+        for row in range(factor):
+            for col in range(factor):
+                img_data_supersampled[row::factor, col::factor] = img_data
+
+        return img_data_supersampled
+    else:
+        return img_data

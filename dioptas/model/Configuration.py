@@ -87,8 +87,6 @@ class Configuration(QtCore.QObject):
         """
         if self.calibration_model.is_calibrated:
             if self.use_mask:
-                if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
-                    self.mask_model.set_supersampling(self.img_model.supersampling_factor)
                 mask = self.mask_model.get_mask()
             elif self.mask_model.roi is not None:
                 mask = self.mask_model.roi_mask
@@ -108,8 +106,6 @@ class Configuration(QtCore.QObject):
         Integrates the image in the ImageModel to a Cake.
         """
         if self.use_mask:
-            if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
-                self.mask_model.set_supersampling(self.img_model.supersampling_factor)
             mask = self.mask_model.get_mask()
         elif self.mask_model.roi is not None:
             mask = self.mask_model.roi_mask
