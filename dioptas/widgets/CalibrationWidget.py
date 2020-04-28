@@ -134,7 +134,7 @@ class CalibrationWidget(QtWidgets.QWidget):
     def set_img_filename(self, filename):
         self.filename_txt.setText(os.path.basename(filename))
 
-    def set_start_values(self, start_values):
+    def set_start_values(self, start_values, detector):
         """
         Sets the Start value widgets with the correct numbers and appropriate formatting
         :param start_values: dictionary with calibration start values, expected fields are: dist, wavelength,
@@ -144,8 +144,8 @@ class CalibrationWidget(QtWidgets.QWidget):
         sv_gb.distance_txt.setText('%.3f' % (start_values['dist'] * 1000))
         sv_gb.wavelength_txt.setText('%.6f' % (start_values['wavelength'] * 1e10))
         sv_gb.polarization_txt.setText('%.3f' % (start_values['polarization_factor']))
-        sv_gb.pixel_height_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
-        sv_gb.pixel_width_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
+        sv_gb.pixel_height_txt.setText('%.0f' % (detector.pixel1 * 1e6))
+        sv_gb.pixel_width_txt.setText('%.0f' % (detector.pixel2 * 1e6))
 
     def get_start_values(self):
         """

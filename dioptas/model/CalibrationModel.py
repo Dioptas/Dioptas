@@ -27,6 +27,7 @@ import numpy as np
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
+from pyFAI.detectors import Detector
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.massif import Massif
 from qtpy import QtCore
@@ -55,13 +56,14 @@ class CalibrationModel(QtCore.QObject):
         self.cake_geometry = None
         self.cake_geometry_img_shape = None
         self.calibrant = Calibrant()
+        self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
+
+        self.orig_pixel1 = 79e-6 # needs to be extra stored for applying
+        self.orig_pixel2 = 79e-6
+
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
-                             'pixel_width': 79e-6,
-                             'pixel_height': 79e-6,
                              'polarization_factor': 0.99}
-        self.orig_pixel1 = 79e-6
-        self.orig_pixel2 = 79e-6
         self.fit_wavelength = False
         self.fixed_values = {} # dictionary for fixed parameters during calibration (keys can be e.g. rot1, poni1 etc.
                                # and values are the values to what the respective parameter will be set
@@ -149,7 +151,6 @@ class CalibrationModel(QtCore.QObject):
         self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename)
 
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
-        pyFAI_parameter['polarization_factor'] = self.polarization_factor
         pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
 
         self.cake_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
@@ -158,8 +159,7 @@ class CalibrationModel(QtCore.QObject):
                                     rot1=pyFAI_parameter['rot1'],
                                     rot2=pyFAI_parameter['rot2'],
                                     rot3=pyFAI_parameter['rot3'],
-                                    pixel1=pyFAI_parameter['pixel1'],
-                                    pixel2=pyFAI_parameter['pixel2'])
+                                    detector=self.detector)
 
         self.cake_geometry.wavelength = pyFAI_parameter['wavelength']
 
@@ -275,12 +275,9 @@ class CalibrationModel(QtCore.QObject):
         self.pattern_geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
                                                    dist=self.start_values['dist'],
                                                    wavelength=self.start_values['wavelength'],
-                                                   pixel1=self.start_values['pixel_width'],
-                                                   pixel2=self.start_values['pixel_height'],
+                                                   detector=self.detector,
                                                    calibrant=self.calibrant,
                                                    splineFile=self.distortion_spline_filename)
-        self.orig_pixel1 = self.start_values['pixel_width']
-        self.orig_pixel2 = self.start_values['pixel_height']
 
         self.refine()
         self.create_cake_geometry()
@@ -500,6 +497,10 @@ class CalibrationModel(QtCore.QObject):
                                        tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
                                        pixelX=fit2d_parameter['pixelX'],
                                        pixelY=fit2d_parameter['pixelY'])
+        # the detector pixel1 and pixel2 values are updated by setPyFAI
+        self.orig_pixel1 = self.detector.pixel1
+        self.orig_pixel2 = self.detector.pixel2
+
         self.pattern_geometry.wavelength = fit2d_parameter['wavelength']
         self.create_cake_geometry()
         self.polarization_factor = fit2d_parameter['polarization_factor']
@@ -522,11 +523,12 @@ class CalibrationModel(QtCore.QObject):
                                        rot3=pyFAI_parameter['rot3'],
                                        pixel1=pyFAI_parameter['pixel1'],
                                        pixel2=pyFAI_parameter['pixel2'])
+        # the detector pixel1 and pixel2 values are updated by setPyFAI
+        self.orig_pixel1 = self.detector.pixel1
+        self.orig_pixel2 = self.detector.pixel2
         self.pattern_geometry.wavelength = pyFAI_parameter['wavelength']
         self.create_cake_geometry()
         self.polarization_factor = pyFAI_parameter['polarization_factor']
-        self.orig_pixel1 = pyFAI_parameter['pixel1']
-        self.orig_pixel2 = pyFAI_parameter['pixel2']
         self.is_calibrated = True
         self.set_supersampling()
 
@@ -555,6 +557,9 @@ class CalibrationModel(QtCore.QObject):
         """
         if factor is None:
             factor = self.supersampling_factor
+
+        self.detector.pixel1 = self.orig_pixel1 / float(factor)
+        self.detector.pixel2 = self.orig_pixel2 / float(factor)
         self.pattern_geometry.pixel1 = self.orig_pixel1 / float(factor)
         self.pattern_geometry.pixel2 = self.orig_pixel2 / float(factor)
 
@@ -565,6 +570,8 @@ class CalibrationModel(QtCore.QObject):
     def reset_supersampling(self):
         self.pattern_geometry.pixel1 = self.orig_pixel1
         self.pattern_geometry.pixel2 = self.orig_pixel2
+        self.detector.pixel1 = self.orig_pixel1
+        self.detector.pixel2 = self.orig_pixel2
 
     def get_two_theta_img(self, x, y):
         """

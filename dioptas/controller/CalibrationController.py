@@ -51,7 +51,8 @@ class CalibrationController(object):
         self.widget = widget
         self.model = dioptas_model
 
-        self.widget.set_start_values(self.model.calibration_model.start_values)
+        self.widget.set_start_values(self.model.calibration_model.start_values,
+                                     self.model.calibration_model.detector)
         self._first_plot = True
         self.create_signals()
         self.plot_image()

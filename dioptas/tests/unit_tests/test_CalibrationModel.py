@@ -53,7 +53,8 @@ class CalibrationModelTest(QtTest):
         self.assertEqual(self.calibration_model.pattern_geometry.pixel1, 0.000079)
 
     def test_find_peaks_automatic(self):
-        self.load_pilatus_1M_and_find_peaks()
+        self.load_pilatus_1M()
+        self.find_pilatus_1M_peaks()
         self.assertEqual(len(self.calibration_model.points), 6)
         for points in self.calibration_model.points:
             self.assertGreater(len(points), 0)
@@ -81,24 +82,47 @@ class CalibrationModelTest(QtTest):
             self.assertEqual(peak_point[0][0], point[0])
             self.assertEqual(peak_point[0][1], point[1])
 
-    def load_pilatus_1M_and_find_peaks(self):
+    def load_pilatus_1M(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.calibration_model.find_peaks_automatic(517.664434674, 646, 0)
-        self.calibration_model.find_peaks_automatic(667.380513299, 525.252854758, 0)
-        self.calibration_model.find_peaks_automatic(671.110095329, 473.571503774, 0)
-        self.calibration_model.find_peaks_automatic(592.788872703, 350.495296791, 0)
-        self.calibration_model.find_peaks_automatic(387.395462348, 390.987901686, 0)
-        self.calibration_model.find_peaks_automatic(367.94835605, 554.290314848, 0)
+
+    def find_pilatus_1M_peaks(self, factor=1):
+        points = [(517.664434674, 646, 0), (667.380513299, 525.252854758, 0), (671.110095329, 473.571503774, 0), (592.788872703, 350.495296791, 0), (387.395462348, 390.987901686, 0), (367.94835605, 554.290314848, 0)]
+        for point in points:
+            self.calibration_model.find_peaks_automatic(point[0]*factor, point[1]*factor, 0)
 
     def test_calibration_with_supersampling(self):
-        self.load_pilatus_1M_and_find_peaks()
+        self.load_pilatus_1M()
+        self.find_pilatus_1M_peaks()
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
+        self.calibration_model.detector.pixel1 = 172e-6
+        self.calibration_model.detector.pixel2 = 172e-6
+
         self.calibration_model.calibrate()
         normal_poni1 = self.calibration_model.pattern_geometry.poni1
-        self.img_model.set_supersampling(2)
+        normal_poni2 = self.calibration_model.pattern_geometry.poni2
+
+        # self.img_model.set_supersampling(2)
         self.calibration_model.set_supersampling(2)
+        # self.find_pilatus_1M_peaks(2)
         self.calibration_model.calibrate()
-        self.assertAlmostEqual(normal_poni1, self.calibration_model.pattern_geometry.poni1, places=5)
+        self.assertAlmostEqual(normal_poni1 * 2, self.calibration_model.pattern_geometry.poni1, places=5)
+        self.assertAlmostEqual(normal_poni2 * 2, self.calibration_model.pattern_geometry.poni2, places=5)
+
+    def test_integration_with_supersampling(self):
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.load_pilatus_1M()
+
+        x1, y1 = self.calibration_model.integrate_1d()
+        self.calibration_model.set_supersampling(2)
+        self.img_model.set_supersampling(2)
+        x2, y2 = self.calibration_model.integrate_1d()
+
+        self.assertGreater(len(y2), len(y1))
+        y1_2_interp = np.interp(x2, x1, y1)
+
+        self.assertAlmostEqual(np.mean((y2-y1_2_interp)), 0, places=2)
+
+
 
     def test_calibration1(self):
         self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
@@ -116,8 +140,8 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.find_peaks_automatic(1245.2, 1919.3, 0)
         self.calibration_model.find_peaks_automatic(1334.0, 1823.7, 1)
         self.calibration_model.start_values['dist'] = 500e-3
-        self.calibration_model.start_values['pixel_height'] = 200e-6
-        self.calibration_model.start_values['pixel_width'] = 200e-6
+        self.calibration_model.detector.pixel1 = 200e-6
+        self.calibration_model.detector.pixel2 =  200e-6
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'LaB6.D'))
         self.calibration_model.calibrate()
 
@@ -126,10 +150,11 @@ class CalibrationModelTest(QtTest):
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
 
     def test_calibration3(self):
-        self.load_pilatus_1M_and_find_peaks()
+        self.load_pilatus_1M()
+        self.find_pilatus_1M_peaks()
         self.calibration_model.start_values['wavelength'] = 0.406626e-10
-        self.calibration_model.start_values['pixel_height'] = 172e-6
-        self.calibration_model.start_values['pixel_width'] = 172e-6
+        self.calibration_model.detector.pixel1 = 172e-6
+        self.calibration_model.detector.pixel2 = 172e-6
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
         self.calibration_model.calibrate()
 
@@ -138,10 +163,11 @@ class CalibrationModelTest(QtTest):
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
 
     def test_calibration_with_fixed_parameters(self):
-        self.load_pilatus_1M_and_find_peaks()
+        self.load_pilatus_1M()
+        self.find_pilatus_1M_peaks()
         self.calibration_model.start_values['wavelength'] = 0.406626e-10
-        self.calibration_model.start_values['pixel_height'] = 172e-6
-        self.calibration_model.start_values['pixel_width'] = 172e-6
+        self.calibration_model.detector.pixel1 = 172e-6
+        self.calibration_model.detector.pixel2 = 172e-6
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
 
         fixed_values_dicts = [{'rot1': 0.001},
@@ -205,8 +231,8 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
         self.calibration_model.start_values['dist'] = 300e-3
-        self.calibration_model.start_values['pixel_height'] = 50e-6
-        self.calibration_model.start_values['pixel_width'] = 50e-6
+        self.calibration_model.detector.pixel1 = 50e-6
+        self.calibration_model.detector.pixel2 = 50e-6
         self.calibration_model.start_values['wavelength'] = 0.1e-10
 
         self.calibration_model.calibrate()
@@ -225,8 +251,8 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
         self.calibration_model.start_values['dist'] = 300e-3
-        self.calibration_model.start_values['pixel_height'] = 50e-6
-        self.calibration_model.start_values['pixel_width'] = 50e-6
+        self.calibration_model.detector.pixel1 = 50e-6
+        self.calibration_model.detector.pixel2 = 50e-6
         self.calibration_model.start_values['wavelength'] = 0.1e-10
         self.calibration_model.calibrate()
 
