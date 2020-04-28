@@ -156,7 +156,7 @@ class ConfigurationControllerTest(unittest.TestCase):
         self.model.add_configuration()
         self.assertEqual(float(str(self.config_widget.factor_txt.text())), 1.0)
         enter_value_into_text_field(self.config_widget.factor_txt, 3.5)
-        self.assertEqual(self.model.img_model.factor, 3.5)
+        self.assertEqual(self.model.img_model. factor, 3.5)
 
         self.model.select_configuration(0)
         self.assertEqual(self.model.img_model.factor, 2.5)
