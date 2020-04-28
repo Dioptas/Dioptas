@@ -241,12 +241,18 @@ class HistogramLUTItem(GraphicsWidget):
         self.update()
 
     def imageChanged(self, autoRange=False):
-        hist_x, hist_y = list(self.imageItem.getHistogram(bins=1000))
-        self.hist_x = hist_x
-        self.hist_y = hist_y
+        hist_x, hist_y = list(self.imageItem.getHistogram(bins=300))
 
         if hist_x is None:
             return
+
+        hist_x, hist_y = np.array(hist_x), np.array(hist_y)
+
+        hist_x = hist_x[np.where(hist_y>0)]
+        hist_y = hist_y[np.where(hist_y>0)]
+
+        self.hist_x = hist_x
+        self.hist_y = hist_y
 
         hist_y_log = np.log(hist_y[1:])
         hist_x_log = np.log(hist_x[1:])
