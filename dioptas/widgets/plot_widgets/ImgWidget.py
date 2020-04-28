@@ -193,7 +193,7 @@ class ImgWidget(QtCore.QObject):
                         (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
                     self.auto_range()
                 else:
-                    self.img_view_box.scaleBy(2)
+                    self.img_view_box.scaleBy((2,2))
 
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
