@@ -30,7 +30,7 @@ from .. import calibrants_path
 from ..widgets.CalibrationWidget import CalibrationWidget
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
-from ..model.CalibrationModel import NotEnoughSpacingsInCalibrant
+from ..model.CalibrationModel import NotEnoughSpacingsInCalibrant, get_available_detectors
 
 
 class CalibrationController(object):
@@ -51,11 +51,11 @@ class CalibrationController(object):
         self.widget = widget
         self.model = dioptas_model
 
-        self.widget.set_start_values(self.model.calibration_model.start_values,
-                                     self.model.calibration_model.detector)
+        self.widget.set_start_values(self.model.calibration_model.start_values)
         self._first_plot = True
         self.create_signals()
         self.plot_image()
+        self.load_detectors_list()
         self.load_calibrants_list()
 
     def create_signals(self):
@@ -68,6 +68,8 @@ class CalibrationController(object):
         self.create_transformation_signals()
         self.create_update_signals()
         self.create_mouse_signals()
+
+        self.widget.detectors_cb.currentIndexChanged.connect(self.load_detector)
 
         self.widget.calibrant_cb.currentIndexChanged.connect(self.load_calibrant)
         self.widget.load_img_btn.clicked.connect(self.load_img)
@@ -193,6 +195,32 @@ class CalibrationController(object):
                 self.widget.filename_txt.setText(current_filename)
         else:
             self.widget.filename_txt.setText(current_filename)
+
+    def load_detectors_list(self):
+        self._detectors_list, _ = get_available_detectors()
+        self._detectors_list.insert(0, 'Custom')
+        self.widget.detectors_cb.blockSignals(True)
+        self.widget.detectors_cb.clear()
+        self.widget.detectors_cb.addItems(self._detectors_list)
+        self.widget.detectors_cb.insertSeparator(1)
+        self.widget.detectors_cb.insertSeparator(1)
+        self.widget.detectors_cb.blockSignals(False)
+
+    def load_detector(self, ind):
+        """
+        Loads the selected Detector from the Detector combobox into the calibration model. This blackout disable the
+        controls for pixel widths, unless "custom" (the first element) is selected.
+        """
+        if ind != 0:
+            self.model.calibration_model.load_detector(self.widget.detectors_cb.currentText())
+            self.widget.set_pixel_size(self.model.calibration_model.orig_pixel1,
+                                       self.model.calibration_model.orig_pixel2)
+            self.widget.enable_pixel_size(False)
+
+        else:
+            self.model.calibration_model.reset_detector()
+            self.widget.enable_pixel_size(True)
+
 
     def load_calibrants_list(self):
         """
@@ -395,6 +423,7 @@ class CalibrationController(object):
         """
         self.load_calibrant()  # load the right calibration file...
         self.model.calibration_model.set_start_values(self.widget.get_start_values())
+        self.model.calibration_model.set_pixel_size(self.widget.get_pixel_size())
         self.model.calibration_model.set_fixed_values(self.widget.get_fixed_values())
         progress_dialog = self.create_progress_dialog('Calibrating.', '', 0, show_cancel_btn=False)
         self.model.calibration_model.calibrate()

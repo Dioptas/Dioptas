@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import time
 
 from qtpy import QtCore, QtWidgets, QtGui
 from math import floor, log10
@@ -54,6 +55,41 @@ class CleanLooksComboBox(QtWidgets.QComboBox):
     def __init__(self, *args, **kwargs):
         super(CleanLooksComboBox, self).__init__(*args, **kwargs)
         self.setStyle(CleanLooksComboBox.cleanlooks)
+        self.setLineEdit(CleanLooksLineEdit())
+        self.lineEdit().clicked.connect(self.showPopup)
+        self.popup_closed_time = time.time()
+
+    def showPopup(self):
+        if time.time() - self.popup_closed_time > 0.01:
+            # prevents showing popup immediately after closing by clicking onto lineEdit.
+            super(CleanLooksComboBox, self).showPopup()
+
+    def hidePopup(self):
+        super(CleanLooksComboBox, self).hidePopup()
+        self.popup_closed_time = time.time()
+
+
+class CleanLooksLineEdit(QtWidgets.QLineEdit):
+    clicked = QtCore.Signal()
+
+    def __init__(self, *args, **kwargs):
+        super(CleanLooksLineEdit, self).__init__(*args, **kwargs)
+        self.installEventFilter(self)
+        self.setReadOnly(True)
+        self.setStyleSheet(
+            """
+                margin: 2px; 
+                background: #3C3C3C;
+            """
+        )
+
+    def eventFilter(self, obj, event):
+        if event.type() == QtCore.QEvent.MouseButtonPress:
+            self.clicked.emit()
+            return True
+        if event.type() == QtCore.QEvent.MouseMove:
+            return True
+        return super(CleanLooksLineEdit, self).eventFilter(obj, event)
 
 
 class SpinBoxAlignRight(QtWidgets.QSpinBox):
@@ -77,7 +113,7 @@ class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
         self.setValue(self.calc_new_step(self.value(), p_int))
 
     def calc_new_step(self, value, p_int):
-        pow10floor = 10**floor(log10(value))
+        pow10floor = 10 ** floor(log10(value))
         if p_int > 0:
             if value / pow10floor < 1.9:
                 return pow10floor * 2.0
@@ -158,7 +194,7 @@ class RotatedCheckableFlatButton(CheckableFlatButton):
     def paintEvent(self, event):
         painter = QtWidgets.QStylePainter(self)
         painter.rotate(270)
-        painter.translate(-1*self.height(), 0)
+        painter.translate(-1 * self.height(), 0)
         painter.drawControl(QtWidgets.QStyle.CE_PushButton, self.getSyleOptions())
 
     def minimumSizeHint(self):
