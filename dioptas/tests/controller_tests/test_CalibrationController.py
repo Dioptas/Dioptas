@@ -30,7 +30,7 @@ from qtpy.QtTest import QTest
 
 from ..utility import QtTest, unittest_data_path, click_button
 from ...model.DioptasModel import DioptasModel
-from ...controller.CalibrationController import CalibrationController
+from ...controller.CalibrationController import CalibrationController, get_available_detectors
 from ...widgets.CalibrationWidget import CalibrationWidget
 
 # mocking the functions which will block the unittest for some reason...
@@ -42,9 +42,9 @@ class TestCalibrationController(QtTest):
     def setUp(self):
         self.model = DioptasModel()
 
-        self.calibration_widget = CalibrationWidget()
-        self.calibration_controller = CalibrationController(widget=self.calibration_widget,
-                                                            dioptas_model=self.model)
+        self.widget = CalibrationWidget()
+        self.controller = CalibrationController(widget=self.widget,
+                                                dioptas_model=self.model)
 
     def tearDown(self):
         del self.model
@@ -54,21 +54,42 @@ class TestCalibrationController(QtTest):
         self.model.calibration_model.integrate_1d = MagicMock(return_value=([np.linspace(0, 100), np.linspace(0, 100)]))
         self.model.calibration_model.integrate_2d = MagicMock()
 
+    def test_load_detector(self):
+        detector_names, detector_classes = get_available_detectors()
+        det_ind = 9
+        self.widget.detectors_cb.setCurrentIndex(det_ind+1) # +1 since there is also the custom element at 0
+        self.assertIsInstance(self.model.calibration_model.detector, detector_classes[det_ind])
+
+        detector_gb = self.widget.calibration_control_widget.calibration_parameters_widget.detector_gb
+        self.assertAlmostEqual(float(detector_gb.pixel_width_txt.text())*1e-6, self.model.calibration_model.orig_pixel1)
+        self.assertAlmostEqual(float(detector_gb.pixel_height_txt.text())*1e-6, self.model.calibration_model.orig_pixel2)
+
+        self.assertFalse(detector_gb.pixel_width_txt.isEnabled())
+        self.assertFalse(detector_gb.pixel_width_txt.isEnabled())
+
+        self.widget.detectors_cb.setCurrentIndex(0)
+        self.assertNotIsInstance(self.model.calibration_model.detector, detector_classes[det_ind])
+        self.assertAlmostEqual(float(detector_gb.pixel_width_txt.text())*1e-6, self.model.calibration_model.orig_pixel1)
+        self.assertAlmostEqual(float(detector_gb.pixel_height_txt.text())*1e-6, self.model.calibration_model.orig_pixel2)
+        self.assertTrue(detector_gb.pixel_width_txt.isEnabled())
+        self.assertTrue(detector_gb.pixel_width_txt.isEnabled())
+
+
     def test_automatic_calibration(self):
         self.mock_integrate_functions()
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
-        QTest.mouseClick(self.calibration_widget.load_img_btn, QtCore.Qt.LeftButton)
-        self.calibration_controller.search_peaks(1179.6, 1129.4)
-        self.calibration_controller.search_peaks(1268.5, 1119.8)
-        self.calibration_controller.widget.sv_wavelength_txt.setText('0.31')
-        self.calibration_controller.widget.sv_distance_txt.setText('200')
-        self.calibration_controller.widget.sv_pixel_width_txt.setText('79')
-        self.calibration_controller.widget.sv_pixel_height_txt.setText('79')
-        calibrant_index = self.calibration_widget.calibrant_cb.findText('LaB6')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
+        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.search_peaks(1179.6, 1129.4)
+        self.controller.search_peaks(1268.5, 1119.8)
+        self.controller.widget.sv_wavelength_txt.setText('0.31')
+        self.controller.widget.sv_distance_txt.setText('200')
+        self.controller.widget.sv_pixel_width_txt.setText('79')
+        self.controller.widget.sv_pixel_height_txt.setText('79')
+        calibrant_index = self.widget.calibrant_cb.findText('LaB6')
+        self.controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
 
-        QTest.mouseClick(self.calibration_widget.calibrate_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.widget.calibrate_btn, QtCore.Qt.LeftButton)
         self.app.processEvents()
         self.model.calibration_model.integrate_1d.assert_called_once()
         self.model.calibration_model.integrate_2d.assert_called_once()
@@ -81,23 +102,23 @@ class TestCalibrationController(QtTest):
         self.mock_integrate_functions()
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, 'distortion', 'f4mnew.spline'))
-        click_button(self.calibration_widget.load_spline_btn)
+        click_button(self.widget.load_spline_btn)
 
         self.assertIsNotNone(self.model.calibration_model.distortion_spline_filename)
-        self.assertEqual(self.calibration_widget.spline_filename_txt.text(), 'f4mnew.spline')
+        self.assertEqual(self.widget.spline_filename_txt.text(), 'f4mnew.spline')
         #
-        click_button(self.calibration_widget.spline_reset_btn)
+        click_button(self.widget.spline_reset_btn)
         self.assertIsNone(self.model.calibration_model.distortion_spline_filename)
-        self.assertEqual(self.calibration_widget.spline_filename_txt.text(), 'None')
+        self.assertEqual(self.widget.spline_filename_txt.text(), 'None')
 
     def test_loading_and_saving_of_calibration_files(self):
         self.mock_integrate_functions()
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni'))
-        QTest.mouseClick(self.calibration_widget.load_calibration_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.widget.load_calibration_btn, QtCore.Qt.LeftButton)
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, 'calibration.poni'))
-        QTest.mouseClick(self.calibration_widget.save_calibration_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.widget.save_calibration_btn, QtCore.Qt.LeftButton)
         self.assertTrue(os.path.exists(os.path.join(unittest_data_path, 'calibration.poni')))
         os.remove(os.path.join(unittest_data_path, 'calibration.poni'))
 
@@ -140,7 +161,7 @@ class TestCalibrationController(QtTest):
             del model_calibration['splineFile']
         if 'max_shape' in model_calibration.keys():
             del model_calibration['max_shape']
-        current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
+        current_displayed_calibration = self.widget.get_pyFAI_parameter()
         del current_displayed_calibration['polarization_factor']
         self.assertEqual(model_calibration, current_displayed_calibration)
 
@@ -151,27 +172,27 @@ class TestCalibrationController(QtTest):
             del model_calibration['splineFile']
         if 'max_shape' in model_calibration.keys():
             del model_calibration['max_shape']
-        current_displayed_calibration = self.calibration_widget.get_pyFAI_parameter()
+        current_displayed_calibration = self.widget.get_pyFAI_parameter()
         del current_displayed_calibration['polarization_factor']
         self.assertEqual(model_calibration, current_displayed_calibration)
 
-        self.calibration_widget.get_pyFAI_parameter()
+        self.widget.get_pyFAI_parameter()
 
     @unittest.skip('Does not work for unknown reasons')
     def test_calibrant_with_small_set_of_d_spacings(self):
         self.mock_integrate_functions()
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
-        QTest.mouseClick(self.calibration_widget.load_img_btn, QtCore.Qt.LeftButton)
-        self.calibration_controller.search_peaks(1179.6, 1129.4)
-        self.calibration_controller.search_peaks(1268.5, 1119.8)
-        calibrant_index = self.calibration_widget.calibrant_cb.findText('CuO')
-        self.calibration_controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
+        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.search_peaks(1179.6, 1129.4)
+        self.controller.search_peaks(1268.5, 1119.8)
+        calibrant_index = self.widget.calibrant_cb.findText('CuO')
+        self.controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
         QtWidgets.QMessageBox.critical = MagicMock()
-        click_button(self.calibration_widget.calibrate_btn)
+        click_button(self.widget.calibrate_btn)
         QtWidgets.QMessageBox.critical.assert_called_once()
 
     def test_loading_calibration_without_an_image_before(self):
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni'))
-        QTest.mouseClick(self.calibration_widget.load_calibration_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.widget.load_calibration_btn, QtCore.Qt.LeftButton)

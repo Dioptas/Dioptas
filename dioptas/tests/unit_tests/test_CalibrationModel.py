@@ -23,7 +23,7 @@ import os
 import numpy as np
 
 from ..utility import QtTest
-from ...model.CalibrationModel import CalibrationModel
+from ...model.CalibrationModel import CalibrationModel, get_available_detectors
 from ...model.ImgModel import ImgModel
 from ... import calibrants_path
 import gc
@@ -160,8 +160,9 @@ class CalibrationModelTest(QtTest):
         self.img_model.load(os.path.join(data_path, 'LaB6_OffCenter_PE.tif'))
         self.calibration_model.find_peaks_automatic(1245.2, 1919.3, 0)
         self.calibration_model.find_peaks_automatic(1334.0, 1823.7, 1)
-        self.calibration_model.set_start_values( {'dist': 500e-3, 'pixel_width': 200e-6,  'pixel_height': 200e-6,
-                                                  'polarization_factor': 0.99, 'wavelength': 0.3344e-10})
+        self.calibration_model.set_start_values( {'dist': 500e-3, 'polarization_factor': 0.99,
+                                                  'wavelength': 0.3344e-10})
+        self.calibration_model.set_pixel_size((200e-6, 200e-6))
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'LaB6.D'))
         self.calibration_model.calibrate()
 
@@ -175,8 +176,9 @@ class CalibrationModelTest(QtTest):
         self.load_pilatus_1M()
         self.find_pilatus_1M_peaks()
         self.calibration_model.start_values['wavelength'] = 0.406626e-10
-        self.calibration_model.set_start_values( {'dist': 200e-3, 'pixel_width': 172e-6,  'pixel_height': 172e-6,
-                                                  'polarization_factor': 0.99, 'wavelength': 0.406626e-10})
+        self.calibration_model.set_start_values( {'dist': 200e-3, 'polarization_factor': 0.99,
+                                                  'wavelength': 0.406626e-10})
+        self.calibration_model.set_pixel_size((172e-6, 172e-6))
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
         self.calibration_model.calibrate()
 
@@ -309,6 +311,24 @@ class CalibrationModelTest(QtTest):
 
         self.calibration_model.integrate_2d(azimuth_points=200)
         self.assertEqual(len(self.calibration_model.cake_azi), 200)
+
+    def test_load_detector_list(self):
+        names, classes = get_available_detectors()
+        for name, cls in zip(names, classes):
+            if name.startswith('Quantum'):
+                self.assertIn('ADSC_', str(cls))
+            elif name.startswith('aca1300'):
+                self.assertIn('Basler', str(cls))
+            else:
+                self.assertIn(name[:2].lower(), str(cls).lower())
+
+        self.assertNotIn('Detector', names)
+
+    def test_load_predefined_detector(self):
+        self.calibration_model.load_detector('MAR 345')
+
+        self.assertEqual(self.calibration_model.orig_pixel1, 100e-6)
+        self.assertEqual(self.calibration_model.detector.pixel1, 100e-6)
 
 
 if __name__ == '__main__':

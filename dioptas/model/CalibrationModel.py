@@ -27,7 +27,7 @@ import numpy as np
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
-from pyFAI.detectors import Detector
+from pyFAI.detectors import Detector, ALL_DETECTORS
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.massif import Massif
 from qtpy import QtCore
@@ -52,23 +52,24 @@ class CalibrationModel(QtCore.QObject):
         self.img_model = img_model
         self.points = []
         self.points_index = []
-        self.pattern_geometry = GeometryRefinement(pixel1=0.0002, pixel2=0.0002, wavelength=0.3344e-10,
-                                                   poni1=0, poni2=0) # default params are necessary, otherwise fails...
+
+        self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
+        self.pattern_geometry = GeometryRefinement(detector=self.detector, wavelength=0.3344e-10,
+                                                   poni1=0, poni2=0)  # default params are necessary, otherwise fails...
         self.pattern_geometry_img_shape = None
         self.cake_geometry = None
         self.cake_geometry_img_shape = None
         self.calibrant = Calibrant()
-        self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
 
-        self.orig_pixel1 = 79e-6 # needs to be extra stored for applying
-        self.orig_pixel2 = 79e-6
+        self.orig_pixel1 = self.detector.pixel1  # needs to be extra stored for applying supersampling
+        self.orig_pixel2 = self.detector.pixel2
 
         self.start_values = {'dist': 200e-3,
                              'wavelength': 0.3344e-10,
                              'polarization_factor': 0.99}
         self.fit_wavelength = False
-        self.fixed_values = {} # dictionary for fixed parameters during calibration (keys can be e.g. rot1, poni1 etc.
-                               # and values are the values to what the respective parameter will be set
+        self.fixed_values = {}  # dictionary for fixed parameters during calibration (keys can be e.g. rot1, poni1 etc.
+        # and values are the values to what the respective parameter will be set
         self.is_calibrated = False
         self.use_mask = False
         self.filename = ''
@@ -144,13 +145,14 @@ class CalibrationModel(QtCore.QObject):
 
     def remove_last_peak(self):
         if self.points:
-            num_points = int(self.points[-1].size/2)  # each peak is x, y so length is twice as number of peaks
+            num_points = int(self.points[-1].size / 2)  # each peak is x, y so length is twice as number of peaks
             self.points.pop(-1)
             self.points_index.pop(-1)
             return num_points
 
     def create_cake_geometry(self):
-        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename)
+        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename,
+                                                 detector=self.detector)
 
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
         pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
@@ -264,11 +266,16 @@ class CalibrationModel(QtCore.QObject):
         self.start_values = start_values
         self.polarization_factor = start_values['polarization_factor']
 
-        self.orig_pixel1 = start_values['pixel_width']
-        self.orig_pixel2 = start_values['pixel_height']
+    def set_pixel_size(self, pixel_size):
+        """
+        :param pixel_size: tuple with pixel_width and pixel height as element
+        """
+        self.orig_pixel1 = pixel_size[0]
+        self.orig_pixel2 = pixel_size[1]
 
         self.detector.pixel1 = self.orig_pixel1
         self.detector.pixel2 = self.orig_pixel2
+        self.set_supersampling()
 
     def set_fixed_values(self, fixed_values):
         """
@@ -479,8 +486,8 @@ class CalibrationModel(QtCore.QObject):
         Loads a calibration file and and sets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
-        self.pattern_geometry = GeometryRefinement(pixel1=0.0002, pixel2=0.0002, wavelength=0.3344e-10,
-                                                   poni1=0, poni2=0) # default params are necessary, otherwise fails...
+        self.pattern_geometry = GeometryRefinement(wavelength=0.3344e-10, detector=self.detector,
+                                                   poni1=0, poni2=0)  # default params are necessary, otherwise fails...
         self.pattern_geometry.load(filename)
         self.orig_pixel1 = self.pattern_geometry.pixel1
         self.orig_pixel2 = self.pattern_geometry.pixel2
@@ -498,6 +505,28 @@ class CalibrationModel(QtCore.QObject):
         self.cake_geometry.save(filename)
         self.calibration_name = get_base_name(filename)
         self.filename = filename
+
+    def load_detector(self, name):
+        names, classes = get_available_detectors()
+        detector_ind = names.index(name)
+
+        self.detector = classes[detector_ind]()
+        print(name)
+        print(self.detector.__class__)
+        self.detector.calc_mask()
+        self.orig_pixel1 = self.detector.pixel1
+        self.orig_pixel2 = self.detector.pixel2
+
+        self.pattern_geometry.detector = self.detector
+
+        if self.cake_geometry:
+            self.cake_geometry.detector = self.detector
+
+        self.set_supersampling()
+
+    def reset_detector(self):
+        self.detector = Detector(pixel1=self.orig_pixel1, pixel2=self.orig_pixel2)
+        self.set_supersampling()
 
     def create_file_header(self):
         try:
@@ -663,3 +692,28 @@ class DummyStdOut(object):
     @classmethod
     def write(cls, *args, **kwargs):
         pass
+
+
+def get_available_detectors():
+    detector_classes = set()
+    detector_names = []
+
+    for key, item in ALL_DETECTORS.items():
+        detector_classes.add(item)
+
+    for detector in detector_classes:
+        if len(detector.aliases) > 0:
+            detector_names.append(detector.aliases[0])
+        else:
+            detector_names.append(detector().__class__.__name__)
+
+    sorted_indices = sorted(range(len(detector_names)), key=detector_names.__getitem__)
+
+    detector_names_sorted = [detector_names[i] for i in sorted_indices]
+    detector_classes_sorted = [list(detector_classes)[i] for i in sorted_indices]
+
+    base_class_index = detector_names_sorted.index('Detector')
+    del detector_names_sorted[base_class_index]
+    del detector_classes_sorted[base_class_index]
+
+    return detector_names_sorted, detector_classes_sorted

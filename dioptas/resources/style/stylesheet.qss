@@ -150,33 +150,28 @@ QSpinBox, QDoubleSpinBox {
     margin-right: -2px;*/
 }
 
+QComboBox {
+    selection-background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(177,80,0,255), stop:1 rgba(255,120,0,255));
+    height: 23px;
+    text-align: right;
+}
+
 QComboBox QAbstractItemView{
 	background: #2D2D30;
 	color: #F1F1F1;
-	selection-background-color: rgba(221, 124, 40, 120);
+	selection-background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(177,80,0,255), stop:1 rgba(255,120,0,255));
+	border: None;
 	border-radius: 5px;
 	min-height: 40px;
-
+	outline: 0px;
+    text-align: right;
 }
+
 
 QComboBox QAbstractItemView:QScrollbar::vertical {
     width:100px;
 }
 
-QComboBox:!editable {
-    margin-left: 1px;
-    padding: 0px 10px 0px 10px;
-    height: 23px;
-    background-color: #3C3C3C;
-}
-
-QComboBox::item{
-    background-color: #3C3C3C;
-}
-
-QComboBox::item::selected {
-    background-color: #505050;
-}
 QToolBox::tab:QToolButton{
     background: qlineargradient(spread:pad, x1:0, y1:1, x2:0, y2:0, stop:0 #3C3C3C, stop:1 #505050);
     border: 1px solid  #5B5B5B;
