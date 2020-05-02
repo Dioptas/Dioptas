@@ -22,7 +22,9 @@ import os
 
 import numpy as np
 
-from ..utility import QtTest
+from pyFAI.detectors import Detector
+
+from ..utility import QtTest, delete_if_exists
 from ...model.CalibrationModel import CalibrationModel, get_available_detectors
 from ...model.ImgModel import ImgModel
 from ... import calibrants_path
@@ -38,6 +40,7 @@ class CalibrationModelTest(QtTest):
         self.calibration_model = CalibrationModel(self.img_model)
 
     def tearDown(self):
+        delete_if_exists(os.path.join(data_path, 'detector_with_spline.h5'))
         del self.img_model
         if hasattr(self.calibration_model, 'cake_geometry'):
             del self.calibration_model.cake_geometry
@@ -394,3 +397,23 @@ class CalibrationModelTest(QtTest):
 
         self.calibration_model.rotate_detector_m90()
         self.img_model.rotate_img_m90()
+
+    def test_load_detector_from_file(self):
+        self.calibration_model.load_detector_from_file(os.path.join(data_path, 'detector.h5'))
+        self.assertAlmostEqual(self.calibration_model.orig_pixel1, 100e-6)
+        self.assertAlmostEqual(self.calibration_model.orig_pixel2, 100e-6)
+        self.assertAlmostEqual(self.calibration_model.detector.pixel1, 100e-6)
+        self.assertAlmostEqual(self.calibration_model.detector.pixel2, 100e-6)
+        self.assertEqual(self.calibration_model.detector.shape, (1048, 1032))
+
+    def test_load_detector_with_spline_file(self):
+        # create detector and save it
+        spline_detector = Detector()
+        spline_detector.set_splineFile(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
+        spline_detector.save(os.path.join(data_path, 'detector_with_spline.h5'))
+
+        # load and check if it is working
+        self.calibration_model.load_detector_from_file(os.path.join(data_path, 'detector_with_spline.h5'))
+        detector = self.calibration_model.detector
+        self.assertAlmostEqual(detector.pixel1, 50e-6)
+        self.assertFalse(detector.uniform_pixel)

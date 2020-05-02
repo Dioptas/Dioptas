@@ -28,7 +28,7 @@ import numpy as np
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
-from pyFAI.detectors import Detector, ALL_DETECTORS
+from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.massif import Massif
 from qtpy import QtCore
@@ -509,11 +509,19 @@ class CalibrationModel(QtCore.QObject):
         self.filename = filename
 
     def load_detector(self, name):
-
         names, classes = get_available_detectors()
         detector_ind = names.index(name)
 
-        self.detector = classes[detector_ind]()
+        self._load_detector(classes[detector_ind]())
+
+    def load_detector_from_file(self, filename):
+        self._load_detector(NexusDetector(filename))
+
+    def _load_detector(self, detector):
+        """ Loads a pyFAI detector
+        :param detector: an instance of pyFAI Detector
+        """
+        self.detector = detector
         self.detector.calc_mask()
         self.orig_pixel1 = self.detector.pixel1
         self.orig_pixel2 = self.detector.pixel2
@@ -598,6 +606,7 @@ class CalibrationModel(QtCore.QObject):
 
     def reset_distortion_correction(self):
         self.distortion_spline_filename = None
+        self.detector.set_splineFile(None)
         self.pattern_geometry.set_splineFile(None)
         if self.cake_geometry:
             self.cake_geometry.set_splineFile(None)
