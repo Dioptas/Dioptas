@@ -170,7 +170,7 @@ class CalibrationWidget(QtWidgets.QWidget):
         detector_gb.pixel_width_txt.setText('%.0f' % (pixel_width * 1e6))
         detector_gb.pixel_height_txt.setText('%.0f' % (pixel_height * 1e6))
 
-    def enable_pixel_size(self, bool):
+    def enable_pixel_size_txt(self, bool):
         detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
         detector_gb.pixel_width_txt.setEnabled(bool)
         detector_gb.pixel_height_txt.setEnabled(bool)

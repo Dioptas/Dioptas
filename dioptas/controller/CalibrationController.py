@@ -82,7 +82,7 @@ class CalibrationController(object):
         self.widget.calibrate_btn.clicked.connect(self.calibrate)
         self.widget.refine_btn.clicked.connect(self.refine)
 
-        self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks_btn_click)
+        self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
         self.widget.undo_peaks_btn.clicked.connect(self.undo_peaks_btn_clicked)
 
         self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
@@ -110,24 +110,29 @@ class CalibrationController(object):
         self.widget.reset_transformations_btn.clicked.connect(self.reset_transformations_btn_clicked)
 
     def rotate_m90_btn_clicked(self):
+        self.model.calibration_model.rotate_detector_m90()
         self.model.img_model.rotate_img_m90()
-        self.clear_peaks_btn_click()
+        self.clear_peaks()
 
     def rotate_p90_btn_clicked(self):
+        self.model.calibration_model.rotate_detector_p90()
         self.model.img_model.rotate_img_p90()
-        self.clear_peaks_btn_click()
+        self.clear_peaks()
 
     def invert_horizontal_btn_clicked(self):
+        self.model.calibration_model.flip_detector_horizontally()
         self.model.img_model.flip_img_horizontally()
-        self.clear_peaks_btn_click()
+        self.clear_peaks()
 
     def invert_vertical_btn_clicked(self):
+        self.model.calibration_model.flip_detector_vertically()
         self.model.img_model.flip_img_vertically()
-        self.clear_peaks_btn_click()
+        self.clear_peaks()
 
     def reset_transformations_btn_clicked(self):
+        self.model.calibration_model.reset_transformations()
         self.model.img_model.reset_transformations()
-        self.clear_peaks_btn_click()
+        self.clear_peaks()
 
     def create_update_signals(self):
         """
@@ -215,11 +220,17 @@ class CalibrationController(object):
             self.model.calibration_model.load_detector(self.widget.detectors_cb.currentText())
             self.widget.set_pixel_size(self.model.calibration_model.orig_pixel1,
                                        self.model.calibration_model.orig_pixel2)
-            self.widget.enable_pixel_size(False)
+            self.widget.enable_pixel_size_txt(False)
+
+            emit_img_changed = self.model.calibration_model.detector.shape == self.model.img_model.img_data.shape
+            # makes no sense to have transformations when loading a detector, however only emitting that the img changed
+            # if detector and image have same size, otherwise the user should have the possibility to load an image
+            # without error
+            self.model.img_model.reset_transformations(emit_img_changed)
 
         else:
             self.model.calibration_model.reset_detector()
-            self.widget.enable_pixel_size(True)
+            self.widget.enable_pixel_size_txt(True)
 
 
     def load_calibrants_list(self):
@@ -347,10 +358,9 @@ class CalibrationController(object):
         if len(points):
             self.widget.img_widget.add_scatter_data(points[:, 0] + 0.5, points[:, 1] + 0.5)
 
-    def clear_peaks_btn_click(self):
+    def clear_peaks(self):
         """
-        Deletes all points/peaks in the calibration_data and in the gui.
-        :return:
+        Deletes all points/peaks in the calibration_data and in the GUI.
         """
         self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
@@ -492,7 +502,7 @@ class CalibrationController(object):
         num_rings = self.widget.options_num_rings_sb.value()
 
         progress_dialog = self.create_progress_dialog("Refining Calibration.", 'Abort', num_rings)
-        self.clear_peaks_btn_click()
+        self.clear_peaks()
         self.load_calibrant(wavelength_from='pyFAI')  # load right calibration file
 
         # get options
