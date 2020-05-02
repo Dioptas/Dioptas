@@ -22,6 +22,7 @@ import unittest
 from mock import MagicMock
 import os
 import gc
+from pyFAI import detectors
 
 import numpy as np
 
@@ -73,6 +74,28 @@ class TestCalibrationController(QtTest):
         self.assertAlmostEqual(float(detector_gb.pixel_height_txt.text())*1e-6, self.model.calibration_model.orig_pixel2)
         self.assertTrue(detector_gb.pixel_width_txt.isEnabled())
         self.assertTrue(detector_gb.pixel_width_txt.isEnabled())
+
+    def test_load_detector_transform_and_reset(self):
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'CeO2_Pilatus1M.poni'))
+        QTest.mouseClick(self.widget.load_calibration_btn, QtCore.Qt.LeftButton)
+
+        detector_gb = self.widget.calibration_control_widget.calibration_parameters_widget.detector_gb
+        detector_gb.detector_cb.setCurrentIndex(detector_gb.detector_cb.findText('Pilatus CdTe 1M'))
+
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'CeO2_Pilatus1M.tif'))
+        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+
+        QTest.mouseClick(self.widget.rotate_m90_btn, QtCore.Qt.LeftButton)
+        QTest.mouseClick(self.widget.rotate_m90_btn, QtCore.Qt.LeftButton)
+
+        detector_gb.detector_cb.setCurrentIndex(detector_gb.detector_cb.findText('Custom'))
+
+        QTest.mouseClick(self.widget.rotate_m90_btn, QtCore.Qt.LeftButton)
+
+
+
 
 
     def test_automatic_calibration(self):

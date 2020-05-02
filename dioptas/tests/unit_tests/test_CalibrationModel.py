@@ -87,7 +87,7 @@ class CalibrationModelTest(QtTest):
 
     def find_pilatus_1M_peaks(self):
         points = [(517.664434674, 646, 0), (667.380513299, 525.252854758, 0),
-                  (671.110095329, 473.571503774, 0),  (592.788872703, 350.495296791, 0),
+                  (671.110095329, 473.571503774, 0), (592.788872703, 350.495296791, 0),
                   (387.395462348, 390.987901686, 0), (367.94835605, 554.290314848, 0)]
         for point in points:
             self.calibration_model.find_peaks_automatic(point[0], point[1], 0)
@@ -141,9 +141,7 @@ class CalibrationModelTest(QtTest):
         self.assertGreater(len(y2), len(y1))
         y1_2_interp = np.interp(x2, x1, y1)
 
-        self.assertAlmostEqual(np.mean((y2-y1_2_interp)), 0, places=2)
-
-
+        self.assertAlmostEqual(np.mean((y2 - y1_2_interp)), 0, places=2)
 
     def test_calibration1(self):
         self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
@@ -160,8 +158,8 @@ class CalibrationModelTest(QtTest):
         self.img_model.load(os.path.join(data_path, 'LaB6_OffCenter_PE.tif'))
         self.calibration_model.find_peaks_automatic(1245.2, 1919.3, 0)
         self.calibration_model.find_peaks_automatic(1334.0, 1823.7, 1)
-        self.calibration_model.set_start_values( {'dist': 500e-3, 'polarization_factor': 0.99,
-                                                  'wavelength': 0.3344e-10})
+        self.calibration_model.set_start_values({'dist': 500e-3, 'polarization_factor': 0.99,
+                                                 'wavelength': 0.3344e-10})
         self.calibration_model.set_pixel_size((200e-6, 200e-6))
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'LaB6.D'))
         self.calibration_model.calibrate()
@@ -176,8 +174,8 @@ class CalibrationModelTest(QtTest):
         self.load_pilatus_1M()
         self.find_pilatus_1M_peaks()
         self.calibration_model.start_values['wavelength'] = 0.406626e-10
-        self.calibration_model.set_start_values( {'dist': 200e-3, 'polarization_factor': 0.99,
-                                                  'wavelength': 0.406626e-10})
+        self.calibration_model.set_start_values({'dist': 200e-3, 'polarization_factor': 0.99,
+                                                 'wavelength': 0.406626e-10})
         self.calibration_model.set_pixel_size((172e-6, 172e-6))
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
         self.calibration_model.calibrate()
@@ -200,13 +198,12 @@ class CalibrationModelTest(QtTest):
                               {'poni1': 0.32},
                               {'poni1': 0.2, 'poni2': 0.13},
                               {'dist': 300},
-                              {'rot1': 0.001, 'rot2': 0.004, 'poni1': 0.22, 'poni2':0.34}]
+                              {'rot1': 0.001, 'rot2': 0.004, 'poni1': 0.22, 'poni2': 0.34}]
         for fixed_values in fixed_values_dicts:
             self.calibration_model.set_fixed_values(fixed_values)
             self.calibration_model.calibrate()
             for key, value in fixed_values.items():
                 self.assertEqual(getattr(self.calibration_model.pattern_geometry, key), value)
-
 
     def test_get_pixel_ind(self):
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))
@@ -285,7 +282,6 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.load_distortion(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
         self.calibration_model.get_two_theta_img(x, y)
 
-
     def test_cake_integration_with_small_azimuth_range(self):
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
@@ -330,7 +326,71 @@ class CalibrationModelTest(QtTest):
         self.assertEqual(self.calibration_model.orig_pixel1, 100e-6)
         self.assertEqual(self.calibration_model.detector.pixel1, 100e-6)
 
+    def test_integration_with_predefined_detector(self):
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.assertTrue(len(self.calibration_model.tth) > 0)
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_integration_with_rotated_predefined_detector(self):
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        x1, y1 = self.calibration_model.integrate_1d()
 
+        # rotate m90
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+        self.calibration_model.integrate_1d()
+
+        # rotate p90
+        self.calibration_model.rotate_detector_p90()
+        self.img_model.rotate_img_p90()
+        x2, y2 = self.calibration_model.integrate_1d()
+
+        self.assertEqual(len(x1), len(x2))
+        self.assertAlmostEqual(float(np.sum((y1 - y2) ** 2)), 0)
+
+    def test_integration_with_rotation(self):
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.calibration_model.integrate_1d()
+
+        # rotate m90
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+        self.calibration_model.integrate_1d()
+
+    def test_integration_with_rotation_and_reset(self):
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        x1, y1 = self.calibration_model.integrate_1d()
+
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+        self.calibration_model.rotate_detector_p90()
+        self.img_model.rotate_img_p90()
+
+        self.calibration_model.reset_transformations()
+        self.img_model.reset_transformations()
+
+        x2, y2 = self.calibration_model.integrate_1d()
+
+        self.assertEqual(len(x1), len(x2))
+        self.assertAlmostEqual(float(np.sum((y1 - y2) ** 2)), 0)
+
+        self.calibration_model.rotate_detector_p90()
+        self.img_model.rotate_img_p90()
+        self.calibration_model.integrate_1d()
+
+    def test_integration_with_transformation_and_change_detector_to_custom(self):
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        x1, y1 = self.calibration_model.integrate_1d()
+
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()

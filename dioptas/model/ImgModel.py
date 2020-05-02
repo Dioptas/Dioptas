@@ -572,10 +572,10 @@ class ImgModel(QtCore.QObject):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def reset_transformations(self):
+    def reset_transformations(self, img_changed=True):
         """
         Reverts all image transformations and resets the transformation stack.
-        The img_changed signal will be emitted after the process.
+        The img_changed signal will be emitted after the process, if set to true.
         """
         self._reset_img_transformations()
         self._reset_background_transformations()
@@ -584,7 +584,8 @@ class ImgModel(QtCore.QObject):
         self.transformations_changed.emit()
 
         self._calculate_img_data()
-        self.img_changed.emit()
+        if img_changed:
+            self.img_changed.emit()
 
     def _reset_img_transformations(self):
         for transformation in reversed(self.img_transformations):

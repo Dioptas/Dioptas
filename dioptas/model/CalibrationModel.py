@@ -22,6 +22,7 @@ import logging
 import os
 import sys
 import time
+from copy import deepcopy
 
 import numpy as np
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
@@ -35,7 +36,7 @@ from skimage.measure import find_contours
 
 from .. import calibrants_path
 from .ImgModel import ImgModel
-from .util.HelperModule import get_base_name
+from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90
 from .util.calc import supersample_image
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ class CalibrationModel(QtCore.QObject):
         self.points_index = []
 
         self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
+        self._original_detector = None # used for saving original state before rotating or flipping
         self.pattern_geometry = GeometryRefinement(detector=self.detector, wavelength=0.3344e-10,
                                                    poni1=0, poni2=0)  # default params are necessary, otherwise fails...
         self.pattern_geometry_img_shape = None
@@ -507,12 +509,11 @@ class CalibrationModel(QtCore.QObject):
         self.filename = filename
 
     def load_detector(self, name):
+
         names, classes = get_available_detectors()
         detector_ind = names.index(name)
 
         self.detector = classes[detector_ind]()
-        print(name)
-        print(self.detector.__class__)
         self.detector.calc_mask()
         self.orig_pixel1 = self.detector.pixel1
         self.orig_pixel2 = self.detector.pixel2
@@ -523,9 +524,13 @@ class CalibrationModel(QtCore.QObject):
             self.cake_geometry.detector = self.detector
 
         self.set_supersampling()
+        self._original_detector = None
 
     def reset_detector(self):
         self.detector = Detector(pixel1=self.orig_pixel1, pixel2=self.orig_pixel2)
+        self.pattern_geometry.detector = self.detector
+        if self.cake_geometry:
+            self.cake_geometry.detector = self.detector
         self.set_supersampling()
 
     def create_file_header(self):
@@ -682,6 +687,97 @@ class CalibrationModel(QtCore.QObject):
     @property
     def wavelength(self):
         return self.pattern_geometry.wavelength
+
+    ##########################
+    ## Detector rotation stuff
+    def swap_detector_shape(self):
+        self._swap_detector_shape()
+        self._swap_pixel_size()
+        self._swap_detector_module_size()
+
+    def rotate_detector_m90(self):
+        """
+        Rotates the detector stuff by m90 degree. This includes swapping of shape, pixel size and module sizes, as well
+        as dx and dy
+        """
+        self._save_original_detector_definition()
+
+        self.swap_detector_shape()
+        self._reset_detector_mask()
+        self._transform_pixel_corners(rotate_matrix_m90)
+
+    def rotate_detector_p90(self):
+        """
+        """
+        self._save_original_detector_definition()
+
+        self.swap_detector_shape()
+        self._reset_detector_mask()
+        self._transform_pixel_corners(rotate_matrix_p90)
+
+    def flip_detector_horizontally(self):
+        self._save_original_detector_definition()
+        self._transform_pixel_corners(np.fliplr)
+
+    def flip_detector_vertically(self):
+        self._save_original_detector_definition()
+        self._transform_pixel_corners(np.flipup)
+
+    def reset_transformations(self):
+        """Restores the detector to it's original state"""
+        self.detector = deepcopy(self._original_detector)
+        self.orig_pixel1, self.orig_pixel2 = self.detector.pixel1, self.detector.pixel2
+        self.pattern_geometry.detector = self.detector
+        if self.cake_geometry is not None:
+            self.cake_geometry.detector = self.detector
+        self.set_supersampling()
+        self._original_detector = None
+
+    def _save_original_detector_definition(self):
+        """
+        Saves the state of the detector to _original_detector if not done yet. Used for restoration upon resetting
+        the transfromations.
+        """
+        if self._original_detector is None:
+            self._original_detector = deepcopy(self.detector)
+            self._original_detector.pixel1 = self.orig_pixel1
+            self._original_detector.pixel2 = self.orig_pixel2
+            self._mask = False
+
+    def _transform_pixel_corners(self, transform_function):
+        """
+        :param transform_function: function pointer which will affect the dx, dy and pixel corners of the detector
+        """
+        if self.detector._dx is not None:
+            old_dx, old_dy = self.detector._dx, self.detector._dy
+            self.detector.set_dx(transform_function(old_dx))
+            self.detector.set_dy(transform_function(old_dy))
+
+        if self.detector._pixel_corners is not None:
+            self.detector._pixel_corners = transform_function(self.detector._pixel_corners)
+
+    def _swap_pixel_size(self):
+        """swaps the pixel sizes"""
+        self.orig_pixel1, self.orig_pixel2 = self.orig_pixel2, self.orig_pixel1
+        self.set_supersampling()
+
+    def _swap_detector_shape(self):
+        """Swaps the detector shape and max_shape values"""
+        if self.detector.shape is not None:
+            self.detector.shape = (self.detector.shape[1], self.detector.shape[0])
+        if self.detector.max_shape is not None:
+            self.detector.max_shape = (self.detector.max_shape[1], self.detector.max_shape[0])
+
+    def _swap_detector_module_size(self):
+        """swaps the module size and gap sizes for e.g. Pilatus Detectors"""
+        if hasattr(self.detector, 'module_size'):
+            self.detector.module_size = (self.detector.module_size[1], self.detector.module_size[0])
+        if hasattr(self.detector, 'MODULE_GAP'):
+            self.detector.MODULE_GAP = (self.detector.MODULE_GAP[1], self.detector.MODULE_GAP[0])
+
+    def _reset_detector_mask(self):
+        """resets and recalculates the mask. Transforamtions to shape and module size have to be performed before."""
+        self.detector._mask = False
 
 
 class NotEnoughSpacingsInCalibrant(Exception):
