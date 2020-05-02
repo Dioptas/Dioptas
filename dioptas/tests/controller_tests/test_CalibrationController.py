@@ -29,7 +29,7 @@ import numpy as np
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
 
-from ..utility import QtTest, unittest_data_path, click_button
+from ..utility import QtTest, unittest_data_path, click_button, delete_if_exists
 from ...model.DioptasModel import DioptasModel
 from ...controller.CalibrationController import CalibrationController, get_available_detectors
 from ...widgets.CalibrationWidget import CalibrationWidget
@@ -48,6 +48,7 @@ class TestCalibrationController(QtTest):
                                                 dioptas_model=self.model)
 
     def tearDown(self):
+        delete_if_exists(os.path.join(unittest_data_path, 'detector_with_spline.h5'))
         del self.model
         gc.collect()
 
@@ -58,7 +59,8 @@ class TestCalibrationController(QtTest):
     def test_load_detector(self):
         detector_names, detector_classes = get_available_detectors()
         det_ind = 9
-        self.widget.detectors_cb.setCurrentIndex(det_ind+1) # +1 since there is also the custom element at 0
+        self.widget.detectors_cb.setCurrentIndex(det_ind+3) # +3 since there is also the custom element at 0
+                                                            # and 2 separators
         self.assertIsInstance(self.model.calibration_model.detector, detector_classes[det_ind])
 
         detector_gb = self.widget.calibration_control_widget.calibration_parameters_widget.detector_gb
@@ -94,9 +96,40 @@ class TestCalibrationController(QtTest):
 
         QTest.mouseClick(self.widget.rotate_m90_btn, QtCore.Qt.LeftButton)
 
+    def test_load_detector_from_file(self):
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'detector.h5'))
+        click_button(self.widget.detector_load_btn)
 
+        self.assertAlmostEqual(self.model.calibration_model.orig_pixel1, 100e-6)
 
+        self.assertTrue(self.widget.detector_reset_btn.isEnabled())
+        self.widget.show() # to check visibility
+        self.assertFalse(self.widget.detectors_cb.isVisible())
+        self.assertTrue(self.widget.detector_name_lbl.isVisible())
+        self.assertEqual(self.widget.detector_name_lbl.text(), 'detector.h5')
+        detector_gb = self.widget.calibration_control_widget.calibration_parameters_widget.detector_gb
+        self.assertFalse(detector_gb.pixel_width_txt.isEnabled())
+        self.assertFalse(detector_gb.pixel_height_txt.isEnabled())
+        self.assertAlmostEqual(self.widget.get_pixel_size()[0], 100e-6)
 
+        click_button(self.widget.detector_reset_btn)
+        self.assertTrue(self.widget.detectors_cb.isVisible())
+        self.assertFalse(self.widget.detector_name_lbl.isVisible())
+        self.assertEqual(self.widget.detectors_cb.currentIndex(), 0)
+        self.assertTrue(detector_gb.pixel_width_txt.isEnabled())
+        self.assertTrue(detector_gb.pixel_height_txt.isEnabled())
+
+    def test_load_detector_with_distortion(self):
+        # create detector and save it
+        spline_detector = detectors.Detector()
+        spline_detector.set_splineFile(os.path.join(unittest_data_path, 'distortion', 'f4mnew.spline'))
+        spline_detector.save(os.path.join(unittest_data_path, 'detector_with_spline.h5'))
+
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'detector_with_spline.h5'))
+        click_button(self.widget.detector_load_btn)
+
+        self.assertEqual(self.widget.spline_filename_txt.text(), 'from Detector')
 
     def test_automatic_calibration(self):
         self.mock_integrate_functions()
@@ -107,11 +140,10 @@ class TestCalibrationController(QtTest):
         self.controller.search_peaks(1268.5, 1119.8)
         self.controller.widget.sv_wavelength_txt.setText('0.31')
         self.controller.widget.sv_distance_txt.setText('200')
-        self.controller.widget.sv_pixel_width_txt.setText('79')
-        self.controller.widget.sv_pixel_height_txt.setText('79')
+        self.controller.widget.set_pixel_size(79e-6, 79e-6)
         calibrant_index = self.widget.calibrant_cb.findText('LaB6')
         self.controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
-
+        #
         QTest.mouseClick(self.widget.calibrate_btn, QtCore.Qt.LeftButton)
         self.app.processEvents()
         self.model.calibration_model.integrate_1d.assert_called_once()
@@ -129,6 +161,7 @@ class TestCalibrationController(QtTest):
 
         self.assertIsNotNone(self.model.calibration_model.distortion_spline_filename)
         self.assertEqual(self.widget.spline_filename_txt.text(), 'f4mnew.spline')
+        self.assertTrue(self.widget.spline_reset_btn.isEnabled())
         #
         click_button(self.widget.spline_reset_btn)
         self.assertIsNone(self.model.calibration_model.distortion_spline_filename)

@@ -70,6 +70,8 @@ class CalibrationController(object):
         self.create_mouse_signals()
 
         self.widget.detectors_cb.currentIndexChanged.connect(self.load_detector)
+        self.widget.detector_load_btn.clicked.connect(self.load_detector_from_file)
+        self.widget.detector_reset_btn.clicked.connect(self.reset_detector_from_file)
 
         self.widget.calibrant_cb.currentIndexChanged.connect(self.load_calibrant)
         self.widget.load_img_btn.clicked.connect(self.load_img)
@@ -218,20 +220,59 @@ class CalibrationController(object):
         """
         if ind != 0:
             self.model.calibration_model.load_detector(self.widget.detectors_cb.currentText())
-            self.widget.set_pixel_size(self.model.calibration_model.orig_pixel1,
-                                       self.model.calibration_model.orig_pixel2)
             self.widget.enable_pixel_size_txt(False)
-
+            self._update_pixel_size_in_gui()
             emit_img_changed = self.model.calibration_model.detector.shape == self.model.img_model.img_data.shape
             # makes no sense to have transformations when loading a detector, however only emitting that the img changed
             # if detector and image have same size, otherwise the user should have the possibility to load an image
             # without error
             self.model.img_model.reset_transformations(emit_img_changed)
-
         else:
             self.model.calibration_model.reset_detector()
             self.widget.enable_pixel_size_txt(True)
+        self._update_spline_in_gui()
 
+    def load_detector_from_file(self):
+        filename = open_file_dialog(self.widget, caption="Load Nexus Detector",
+                                    directory=self.model.working_directories['image'],
+                                    filter='*.h5')
+
+        if filename is not '':
+            self.model.calibration_model.load_detector_from_file(filename)
+
+            self.widget.detectors_cb.setVisible(False)
+            self.widget.detector_name_lbl.setVisible(True)
+            self.widget.detector_name_lbl.setText(os.path.basename(filename))
+            self.widget.detector_reset_btn.setEnabled(True)
+
+            self.widget.enable_pixel_size_txt(False)
+            self._update_pixel_size_in_gui()
+            self._update_spline_in_gui()
+
+    def reset_detector_from_file(self):
+        self.widget.detector_reset_btn.setEnabled(False)
+        self.widget.detectors_cb.setVisible(True)
+        self.widget.detector_name_lbl.setVisible(False)
+        self.widget.enable_pixel_size_txt(True)
+
+        if self.widget.detectors_cb.currentIndex() != 0:
+            self.widget.detectors_cb.setCurrentIndex(0)
+        else:
+            self.model.calibration_model.reset_detector()
+        self._update_spline_in_gui()
+        self.model.img_model.reset_transformations()
+
+    def _update_pixel_size_in_gui(self):
+        self.widget.set_pixel_size(self.model.calibration_model.orig_pixel1,
+                                   self.model.calibration_model.orig_pixel2)
+
+    def _update_spline_in_gui(self):
+        if self.model.calibration_model.detector.splineFile is not None:
+            self.widget.spline_filename_txt.setText(os.path.basename(self.model.calibration_model.detector.splineFile))
+        elif not self.model.calibration_model.detector.uniform_pixel:
+            self.widget.spline_filename_txt.setText('from Detector')
+        else:
+            self.widget.spline_filename_txt.setText('None')
 
     def load_calibrants_list(self):
         """
@@ -382,11 +423,13 @@ class CalibrationController(object):
 
         if filename is not '':
             self.model.calibration_model.load_distortion(filename)
-            self.widget.spline_filename_txt.setText(os.path.basename(filename))
+            self._update_spline_in_gui()
+            self.widget.spline_reset_btn.setEnabled(True)
 
     def reset_spline_btn_click(self):
         self.model.calibration_model.reset_distortion_correction()
         self.widget.spline_filename_txt.setText('None')
+        self.widget.spline_reset_btn.setEnabled(False)
 
     def wavelength_cb_changed(self, value):
         """
@@ -458,7 +501,6 @@ class CalibrationController(object):
             self.update_all()
 
         self.update_calibration_parameter_in_view()
-
 
     def create_progress_dialog(self, text_str, abort_str, end_value, show_cancel_btn=True):
         """ Creates a Progress Bar Dialog.
