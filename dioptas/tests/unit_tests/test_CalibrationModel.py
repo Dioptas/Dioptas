@@ -109,8 +109,8 @@ class CalibrationModelTest(QtTest):
         self.calibration_model.set_supersampling(2)
 
         self.calibration_model.calibrate()
-        self.assertAlmostEqual(normal_poni1, self.calibration_model.pattern_geometry.poni1, places=4)
-        self.assertAlmostEqual(normal_poni2, self.calibration_model.pattern_geometry.poni2, places=4)
+        self.assertAlmostEqual(normal_poni1, self.calibration_model.pattern_geometry.poni1, places=3)
+        self.assertAlmostEqual(normal_poni2, self.calibration_model.pattern_geometry.poni2, places=3)
 
     def test_calibration_with_supersampling2(self):
         self.load_pilatus_1M()

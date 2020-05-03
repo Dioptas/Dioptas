@@ -3,6 +3,9 @@
 
 New features:
     - Phase lines can now be shown in the Cake Widget. Intensity is shown as thickness and opacity of the lines.
+    - Added a Detector Groupbox in the Calibration Widget. Predefined Detectors can now be loaded as well as Nexus
+      Detector files. This enables to load e.g. Nexus detector h5 files which include positions for each pixel.
+      (distortion correction and also usefule for combined detector modules not adjacent to each other).
     - Added a Continuous Delivery Pipelines, which automatically create executables for all operating systems
       (Thanks to Github Actions)
 
