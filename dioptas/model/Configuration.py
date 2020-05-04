@@ -31,6 +31,7 @@ from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCor
 from .util import Pattern
 from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel
+from .CalibrationModel import DetectorModes
 
 
 class Configuration(QtCore.QObject):
@@ -460,6 +461,15 @@ class Configuration(QtCore.QObject):
         mask_data = mask_group.create_dataset('data', current_mask.shape, dtype=bool)
         mask_data[...] = current_mask
 
+        # save detector information
+        detector_group = f.create_group('detector')
+        detector_mode = self.calibration_model.detector_mode
+        detector_group.attrs['detector_mode'] = detector_mode.value
+        if detector_mode == DetectorModes.PREDEFINED:
+            detector_group.attrs['detector_name'] = self.calibration_model.detector.name
+        elif detector_mode == DetectorModes.NEXUS:
+            detector_group.attrs['nexus_filename'] =self.calibration_model.detector.filename
+
         # save calibration model
         calibration_group = f.create_group('calibration_model')
         calibration_filename = self.calibration_model.filename
@@ -575,6 +585,16 @@ class Configuration(QtCore.QObject):
         except KeyError:
             pass
 
+        # load detector definition
+        detector_mode = f.get('detector').attrs['detector_mode']
+        if detector_mode == DetectorModes.PREDEFINED.value:
+            detector_name = f.get('detector').attrs['detector_name']
+            self.calibration_model.load_detector(detector_name)
+        elif detector_mode == DetectorModes.NEXUS.value:
+            nexus_filename = f.get('detector').attrs['nexus_filename']
+            self.calibration_model.load_detector_from_file(nexus_filename)
+
+
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
         filename = f.get('image_model').attrs['filename']
@@ -608,6 +628,7 @@ class Configuration(QtCore.QObject):
         for key, transformation in transformation_group.attrs.items():
             transformation_list.append(transformation)
         self.img_model.load_transformations_string_list(transformation_list)
+        self.calibration_model.load_transformations_string_list(transformation_list)
 
         # load roi data
         if f.get('image_model').attrs['has_roi']:

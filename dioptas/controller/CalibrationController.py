@@ -30,7 +30,7 @@ from .. import calibrants_path
 from ..widgets.CalibrationWidget import CalibrationWidget
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
-from ..model.CalibrationModel import NotEnoughSpacingsInCalibrant, get_available_detectors
+from ..model.CalibrationModel import NotEnoughSpacingsInCalibrant, get_available_detectors, DetectorModes
 
 
 class CalibrationController(object):
@@ -64,6 +64,7 @@ class CalibrationController(object):
         """
         self.model.img_changed.connect(self.plot_image)
         self.model.configuration_selected.connect(self.update_calibration_parameter_in_view)
+        self.model.configuration_selected.connect(self.update_detector_parameters_in_view)
 
         self.create_transformation_signals()
         self.create_update_signals()
@@ -220,8 +221,6 @@ class CalibrationController(object):
         """
         if ind != 0:
             self.model.calibration_model.load_detector(self.widget.detectors_cb.currentText())
-            self.widget.enable_pixel_size_txt(False)
-            self._update_pixel_size_in_gui()
             emit_img_changed = self.model.calibration_model.detector.shape == self.model.img_model.img_data.shape
             # makes no sense to have transformations when loading a detector, however only emitting that the img changed
             # if detector and image have same size, otherwise the user should have the possibility to load an image
@@ -229,8 +228,7 @@ class CalibrationController(object):
             self.model.img_model.reset_transformations(emit_img_changed)
         else:
             self.model.calibration_model.reset_detector()
-            self.widget.enable_pixel_size_txt(True)
-        self._update_spline_in_gui()
+        self.update_detector_parameters_in_view()
 
     def load_detector_from_file(self):
         filename = open_file_dialog(self.widget, caption="Load Nexus Detector",
@@ -239,28 +237,12 @@ class CalibrationController(object):
 
         if filename is not '':
             self.model.calibration_model.load_detector_from_file(filename)
-
-            self.widget.detectors_cb.setVisible(False)
-            self.widget.detector_name_lbl.setVisible(True)
-            self.widget.detector_name_lbl.setText(os.path.basename(filename))
-            self.widget.detector_reset_btn.setEnabled(True)
-
-            self.widget.enable_pixel_size_txt(False)
-            self._update_pixel_size_in_gui()
-            self._update_spline_in_gui()
+            self.update_detector_parameters_in_view()
 
     def reset_detector_from_file(self):
-        self.widget.detector_reset_btn.setEnabled(False)
-        self.widget.detectors_cb.setVisible(True)
-        self.widget.detector_name_lbl.setVisible(False)
-        self.widget.enable_pixel_size_txt(True)
-
-        if self.widget.detectors_cb.currentIndex() != 0:
-            self.widget.detectors_cb.setCurrentIndex(0)
-        else:
-            self.model.calibration_model.reset_detector()
-        self._update_spline_in_gui()
+        self.model.calibration_model.reset_detector()
         self.model.img_model.reset_transformations()
+        self.update_detector_parameters_in_view()
 
     def _update_pixel_size_in_gui(self):
         self.widget.set_pixel_size(self.model.calibration_model.orig_pixel1,
@@ -692,6 +674,31 @@ class CalibrationController(object):
                 os.path.basename(self.model.calibration_model.distortion_spline_filename))
         else:
             self.widget.spline_filename_txt.setText('None')
+
+    def update_detector_parameters_in_view(self):
+        detector_mode = self.model.calibration_model.detector_mode
+
+        self.widget.enable_pixel_size_txt(detector_mode == DetectorModes.CUSTOM)
+        self.widget.detectors_cb.setVisible(detector_mode in (DetectorModes.CUSTOM, DetectorModes.PREDEFINED))
+        self.widget.detector_name_lbl.setVisible(detector_mode == DetectorModes.NEXUS)
+        self.widget.detector_reset_btn.setEnabled(detector_mode == DetectorModes.NEXUS)
+
+        if detector_mode == DetectorModes.CUSTOM:
+            self.widget.detectors_cb.blockSignals(True)
+            self.widget.detectors_cb.setCurrentText('Custom')
+            self.widget.detectors_cb.blockSignals(False)
+
+        if detector_mode == DetectorModes.PREDEFINED:
+            self.widget.detectors_cb.blockSignals(True)
+            self.widget.detectors_cb.setCurrentText(self.model.calibration_model.detector.name)
+            self.widget.detectors_cb.blockSignals(False)
+
+        if detector_mode == DetectorModes.NEXUS:
+            self.widget.detector_name_lbl.setText(
+                os.path.basename(self.model.calibration_model.detector.filename))
+
+        self._update_pixel_size_in_gui()
+        self._update_spline_in_gui()
 
     def save_calibration(self):
         """

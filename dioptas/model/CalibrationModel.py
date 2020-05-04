@@ -22,6 +22,7 @@ import logging
 import os
 import sys
 import time
+from enum import Enum
 from copy import deepcopy
 
 import numpy as np
@@ -55,7 +56,8 @@ class CalibrationModel(QtCore.QObject):
         self.points_index = []
 
         self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
-        self._original_detector = None # used for saving original state before rotating or flipping
+        self.detector_mode = DetectorModes.CUSTOM
+        self._original_detector = None  # used for saving original state before rotating or flipping
         self.pattern_geometry = GeometryRefinement(detector=self.detector, wavelength=0.3344e-10,
                                                    poni1=0, poni2=0)  # default params are necessary, otherwise fails...
         self.pattern_geometry_img_shape = None
@@ -509,12 +511,14 @@ class CalibrationModel(QtCore.QObject):
         self.filename = filename
 
     def load_detector(self, name):
+        self.detector_mode = DetectorModes.PREDEFINED
         names, classes = get_available_detectors()
         detector_ind = names.index(name)
 
         self._load_detector(classes[detector_ind]())
 
     def load_detector_from_file(self, filename):
+        self.detector_mode = DetectorModes.NEXUS
         self._load_detector(NexusDetector(filename))
 
     def _load_detector(self, detector):
@@ -535,6 +539,7 @@ class CalibrationModel(QtCore.QObject):
         self._original_detector = None
 
     def reset_detector(self):
+        self.detector_mode = DetectorModes.CUSTOM
         self.detector = Detector(pixel1=self.orig_pixel1, pixel2=self.orig_pixel2)
         self.pattern_geometry.detector = self.detector
         if self.cake_geometry:
@@ -742,6 +747,22 @@ class CalibrationModel(QtCore.QObject):
         self.set_supersampling()
         self._original_detector = None
 
+    def load_transformations_string_list(self, transformations):
+        """ Transforms the detector parameters (shape, pixel size and distortion correction) based on a
+        list of transformation actions.
+        :param transformations: list of transformations specified as strings, values are "flipud", "fliplr",
+                                "rotate_matrix_m90", "rotate_matrix_p90
+        """
+        for transformation in transformations:
+            if transformation == "flipud":
+                self.flip_detector_vertically()
+            elif transformation == "fliplr":
+                self.flip_detector_horizontally()
+            elif transformation == "rotate_matrix_m90":
+                self.rotate_detector_m90()
+            elif transformation == "rotate_matrix_p90":
+                self.rotate_detector_p90()
+
     def _save_original_detector_definition(self):
         """
         Saves the state of the detector to _original_detector if not done yet. Used for restoration upon resetting
@@ -787,6 +808,12 @@ class CalibrationModel(QtCore.QObject):
     def _reset_detector_mask(self):
         """resets and recalculates the mask. Transforamtions to shape and module size have to be performed before."""
         self.detector._mask = False
+
+
+class DetectorModes(Enum):
+    CUSTOM = 1
+    NEXUS = 2
+    PREDEFINED = 3
 
 
 class NotEnoughSpacingsInCalibrant(Exception):
