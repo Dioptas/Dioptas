@@ -735,10 +735,13 @@ class CalibrationModel(QtCore.QObject):
 
     def flip_detector_vertically(self):
         self._save_original_detector_definition()
-        self._transform_pixel_corners(np.flipup)
+        self._transform_pixel_corners(np.flipud)
 
     def reset_transformations(self):
         """Restores the detector to it's original state"""
+        if self._original_detector is None: # no transformations done so far
+            return
+
         self.detector = deepcopy(self._original_detector)
         self.orig_pixel1, self.orig_pixel2 = self.detector.pixel1, self.detector.pixel2
         self.pattern_geometry.detector = self.detector
