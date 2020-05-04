@@ -348,7 +348,7 @@ class PatternWidget(QtCore.QObject):
                 self.auto_range = True
             else:
                 self.auto_range = False
-                self.view_box.scaleBy(2)
+                self.view_box.scaleBy((2, 2))
             self.emit_sig_range_changed()
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())
