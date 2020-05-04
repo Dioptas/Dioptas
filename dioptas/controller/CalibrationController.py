@@ -331,7 +331,6 @@ class CalibrationController(object):
         :return:
         """
         self.widget.img_widget.plot_image(self.model.img_data, True)
-        self.widget.img_widget.auto_level()
         self.widget.set_img_filename(self.model.img_model.filename)
 
     def search_peaks(self, x, y):

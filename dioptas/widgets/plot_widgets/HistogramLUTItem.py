@@ -203,9 +203,6 @@ class HistogramLUTItem(GraphicsWidget):
         self.imageChanged()
         # self.vb.autoRange()
 
-    def viewRangeChanged(self):
-        self.update()
-
     def gradientChanged(self):
         if self.imageItem is not None:
             if self.gradient.isLookupTrivial():
@@ -229,10 +226,7 @@ class HistogramLUTItem(GraphicsWidget):
         return self.lut
 
     def regionChanged(self):
-        # if self.imageItem is not None:
-        # self.imageItem.setLevels(self.region.getRegion())
         self.sigLevelChangeFinished.emit(self)
-        # self.update()
 
     def regionChanging(self):
         if self.imageItem is not None:
@@ -271,6 +265,8 @@ class HistogramLUTItem(GraphicsWidget):
 
     def setLevels(self, mn, mx):
         self.region.setRegion([mn, mx])
+        if self.imageItem is not None:
+            self.imageItem.setLevels(np.exp(self.region.getRegion()))
 
     def empty_function(self, *args):
         pass
