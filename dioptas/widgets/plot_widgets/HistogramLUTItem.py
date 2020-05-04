@@ -241,7 +241,7 @@ class HistogramLUTItem(GraphicsWidget):
         self.update()
 
     def imageChanged(self, autoRange=False):
-        hist_x, hist_y = list(self.imageItem.getHistogram(bins=300))
+        hist_x, hist_y = list(self.imageItem.getHistogram(bins=3000))
 
         if hist_x is None:
             return

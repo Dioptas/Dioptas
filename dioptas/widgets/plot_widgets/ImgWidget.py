@@ -135,12 +135,7 @@ class ImgWidget(QtCore.QObject):
         hist_y_sum = np.sum(hist_y)
 
         max_ind = np.where(hist_y_cumsum < (0.996 * hist_y_sum))
-        min_ind = np.where(hist_y_cumsum > (0.05 * hist_y_sum))
-
-        if len(min_ind) == 1:
-            min_level = np.min(hist_x)
-        else:
-            min_level = hist_x[min_ind[0][1]]
+        min_level = np.mean(hist_x[:2])
 
         if len(max_ind[0]):
             max_level = hist_x[max_ind[0][-1]]
