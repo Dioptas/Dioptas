@@ -483,3 +483,56 @@ class ProjectSaveLoadTest(QtTest):
     def prepare_series_file(self):
         self.model.img_model.load(os.path.join(data_path, 'karabo_epix.h5'))
         self.assertTrue(self.model.img_model.series_max > 1)
+
+    ####################################################################################################################
+    def test_using_predefined_detector(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_load_predefined_detector_test,
+                                         intermediate_function=self.disable_calibration_check)
+        from pyFAI import detectors
+        self.assertIsInstance(self.model.calibration_model.detector, detectors.PilatusCdTe1M)
+        self.assertEqual(self.model.calibration_model.orig_pixel1, 172e-6)
+        self.assertEqual(self.model.calibration_model.orig_pixel2, 172e-6)
+
+        detector_gb = self.widget.calibration_widget.calibration_control_widget.calibration_parameters_widget. \
+            detector_gb
+        self.assertEqual(self.widget.calibration_widget.detectors_cb.currentText(), 'Pilatus CdTe 1M')
+        self.assertEqual(float(detector_gb.pixel_width_txt.text()), 172)
+        self.assertEqual(float(detector_gb.pixel_height_txt.text()), 172)
+
+        self.assertFalse(detector_gb.pixel_width_txt.isEnabled())
+        self.assertFalse(detector_gb.pixel_height_txt.isEnabled())
+
+    def prepare_load_predefined_detector_test(self):
+        self.widget.calibration_widget.detectors_cb.setCurrentIndex(
+            self.widget.calibration_widget.detectors_cb.findText('Pilatus CdTe 1M')
+        )
+
+    ###################################################################################################################
+    def test_using_loaded_nexus_detector(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_using_loaded_nexus_detector_test,
+                                         intermediate_function=self.disable_calibration_check)
+
+        from ...model.CalibrationModel import DetectorModes
+        from pyFAI import detectors
+
+        self.assertEqual(self.model.calibration_model.detector_mode, DetectorModes.NEXUS)
+        self.assertIsInstance(self.model.calibration_model.detector, detectors.NexusDetector)
+
+    def prepare_using_loaded_nexus_detector_test(self):
+        self.model.calibration_model.load_detector_from_file(os.path.join(data_path, 'detector.h5'))
+
+    ###################################################################################################
+    def test_using_predefined_detector_and_rotate(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_using_predefined_detector_and_rotate,
+                                         intermediate_function=self.disable_calibration_check)
+        self.assertEqual(self.model.calibration_model.detector.shape, (981, 1043))
+
+    def prepare_using_predefined_detector_and_rotate(self):
+        self.widget.calibration_widget.detectors_cb.setCurrentIndex(
+            self.widget.calibration_widget.detectors_cb.findText('Pilatus CdTe 1M')
+        )
+        click_button(self.widget.calibration_widget.rotate_p90_btn)
+        self.assertEqual(self.model.calibration_model.detector.shape, (981, 1043))
