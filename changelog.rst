@@ -3,6 +3,8 @@
 
 New features:
     - Phase lines can now be shown in the Cake Widget. Intensity is shown as thickness and opacity of the lines.
+    - Phase line parameters can now be copied out of the jcpds widget by using ctrl+c and used directly in your
+      preferred table/text editor
     - Added a Detector Groupbox in the Calibration Widget. Predefined Detectors can now be loaded as well as Nexus
       Detector files. This enables to load e.g. Nexus detector h5 files which include positions for each pixel.
       (distortion correction and also useful for combined detector modules not adjacent to each other).
@@ -19,7 +21,7 @@ Bug Fixes:
     - fixed double logarithm for the intensity distribution display histogram
     - (re)loading of a project with image transformations should now work correctly
     - loading cif files with the newer '_space_group_IT_number' representation work now correctly
-
+    - green line in cake widget is now shown correctly upon reloading dioptas
 
 0.5.0 (stable 03/05/2019)
 -------------------------
