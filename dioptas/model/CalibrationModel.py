@@ -622,7 +622,8 @@ class CalibrationModel(QtCore.QObject):
                                        rot3=pyFAI_parameter['rot3'],
                                        pixel1=pyFAI_parameter['pixel1'],
                                        pixel2=pyFAI_parameter['pixel2'])
-        # the detector pixel1 and pixel2 values are updated by setPyFAI
+        self.detector.pixel1 = pyFAI_parameter['pixel1']
+        self.detector.pixel2 = pyFAI_parameter['pixel2']
         self.orig_pixel1 = self.detector.pixel1
         self.orig_pixel2 = self.detector.pixel2
         self.pattern_geometry.wavelength = pyFAI_parameter['wavelength']
