@@ -65,7 +65,7 @@ class ImgWidget(QtCore.QObject):
         self.mouse_click_item = pg.ScatterPlotItem()
         self.mouse_click_item.setSymbol('+')
         self.mouse_click_item.setSize(15)
-        self.mouse_click_item.addPoints([1024], [1024])
+        self.mouse_click_item.addPoints([0], [0])
         self.mouse_left_clicked.connect(self.set_mouse_click_position)
         self.activate_mouse_click_item()
 
