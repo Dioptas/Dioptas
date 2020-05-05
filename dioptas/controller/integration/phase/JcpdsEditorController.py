@@ -265,21 +265,27 @@ class JcpdsEditorController(QtCore.QObject):
 
     def reflection_table_key_pressed(self, key_press_event):
         if key_press_event == QtGui.QKeySequence.Copy:
-            res = ''
-            selection_ranges = self.jcpds_widget.reflection_table_view.selectedRanges()
-            for range_ind in range(len(selection_ranges)):
-                if range_ind > 0:
-                    res += '\n'
-                for row_ind in range(int(selection_ranges[range_ind].rowCount())):
-                    if row_ind > 0:
-                        res += '\n'
-                    for col_ind in range(selection_ranges[range_ind].columnCount()):
-                        if col_ind > 0:
-                            res += '\t'
-                        res += str(self.jcpds_widget.reflection_table_view.item(
-                            selection_ranges[range_ind].topRow() + row_ind,
-                            selection_ranges[range_ind].leftColumn() + col_ind).text())
-            QtWidgets.QApplication.clipboard().setText(res)
+            select = self.jcpds_widget.reflection_table_view.selectionModel()
+            if not select.hasSelection():
+                return # nothing selected
+
+            lines = []
+            if self.jcpds_widget.reflection_table_model.wavelength is None:
+                lines.append('\t'.join(self.jcpds_widget.reflection_table_model.header_labels)) # Header
+                for item in select.selectedRows():
+                    line = '{:.0f}\t{:.0f}\t{:.0f}\t{:.2f}\t{:.4f}\t{:.4f}'.format(
+                        *self.jcpds_widget.reflection_table_model.reflection_data[item.row(), :]
+                    )
+                    lines.append(line)
+            else:
+                lines.append('\t'.join(self.jcpds_widget.reflection_table_model.header_labels)) # Header
+                for item in select.selectedRows():
+                    line = '{:.0f}\t{:.0f}\t{:.0f}\t{:.2f}\t{:.4f}\t{:.4f}\t{:.4f}\t{:.4f}\t{:.4f}\t{:.4f}'.format(
+                        *self.jcpds_widget.reflection_table_model.reflection_data[item.row(), :]
+                    )
+                    lines.append(line)
+            QtWidgets.QApplication.clipboard().setText('\n'.join(lines))
+
         elif key_press_event == QtGui.QKeySequence.SelectAll:
             self.jcpds_widget.reflection_table_view.selectAll()
 
