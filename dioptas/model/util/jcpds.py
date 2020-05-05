@@ -80,6 +80,7 @@ class MyDict(dict):
             self.__setitem__('modified', True)
         super(MyDict, self).__setitem__(key, value)
 
+
 class jcpds(object):
     def __init__(self):
         self._filename = ''
@@ -456,13 +457,13 @@ class jcpds(object):
 
         dtor = np.pi / 180.
         self.params['v0'] = (self.params['a0'] * self.params['b0'] * self.params['c0'] *
-                   np.sqrt(1. -
-                           np.cos(self.params['alpha0'] * dtor) ** 2 -
-                           np.cos(self.params['beta0'] * dtor) ** 2 -
-                           np.cos(self.params['gamma0'] * dtor) ** 2 +
-                           2. * (np.cos(self.params['alpha0'] * dtor) *
-                                 np.cos(self.params['beta0'] * dtor) *
-                                 np.cos(self.params['gamma0'] * dtor))))
+                             np.sqrt(1. -
+                                     np.cos(self.params['alpha0'] * dtor) ** 2 -
+                                     np.cos(self.params['beta0'] * dtor) ** 2 -
+                                     np.cos(self.params['gamma0'] * dtor) ** 2 +
+                                     2. * (np.cos(self.params['alpha0'] * dtor) *
+                                           np.cos(self.params['beta0'] * dtor) *
+                                           np.cos(self.params['gamma0'] * dtor))))
 
     def compute_volume(self, pressure=None, temperature=None):
         """
@@ -508,25 +509,37 @@ class jcpds(object):
 
         # Assume 0 K really means room T
         if temperature == 0: temperature = 298.
+
         # Compute values of K0, K0P and alphat at this temperature
         self.params['alpha_t'] = self.params['alpha_t0'] + self.params['d_alpha_dt'] * (temperature - 298.)
         self.params['k0p'] = self.params['k0p0'] + self.params['dk0pdt'] * (temperature - 298.)
 
+        k0 = self.params['k0'] + self.params['dk0dt'] * (temperature - 298.)
+        k0p = self.params['k0p']
+
         if pressure == 0.:
             self.params['v'] = self.params['v0'] * (1 + self.params['alpha_t'] * (temperature - 298.))
         if pressure < 0:
-            self.params['v'] = self.params['v0'] * (1 - pressure / self.params['k0'])
+            if self.params['k0'] <= 0.:
+                logger.info('K0 is zero, computing zero pressure volume')
+                self.params['v'] = self.params['v0']
+            else:
+                self.params['v'] = self.params['v0'] * (1 - pressure / self.params['k0'])
         else:
             if self.params['k0'] <= 0.:
                 logger.info('K0 is zero, computing zero pressure volume')
                 self.params['v'] = self.params['v0']
             else:
                 self.mod_pressure = pressure - \
-                                    self.params['alpha_t'] * self.params['k0'] * (temperature - 298.)
-                res = minimize(self.bm3_inverse, 1.)
+                                    self.params['alpha_t'] * k0 * (temperature - 298.)
+                res = minimize(self.bm3_inverse, 1.,
+                               args=(k0, k0p, self.mod_pressure),
+                               method='Nelder-Mead')
+                if not res.success:
+                    raise ArithmeticError("minimize didn't find a minimum!\n" + str(res))
                 self.params['v'] = self.params['v0'] / np.float(res.x)
 
-    def bm3_inverse(self, v0_v):
+    def bm3_inverse(self, v0_v, k0, k0p, pressure):
         """
         Returns the value of the third order Birch-Murnaghan equation minus
         pressure.  It is used to solve for V0/V for a given
@@ -555,9 +568,9 @@ class jcpds(object):
            diff = jcpds_bm3_inverse(1.3)
         """
 
-        return (1.5 * self.params['k0'] * (v0_v ** (7. / 3.) - v0_v ** (5. / 3.)) *
-                (1 + 0.75 * (self.params['k0p'] - 4.) * (v0_v ** (2. / 3.) - 1.0)) -
-                self.mod_pressure) ** 2
+        return (1.5 * k0 * (v0_v ** (7. / 3.) - v0_v ** (5. / 3.)) *
+                (1 + 0.75 * (k0p - 4.) * (v0_v ** (2. / 3.) - 1.0)) -
+                pressure) ** 2
 
     def compute_d0(self):
         """
@@ -728,7 +741,7 @@ class jcpds(object):
         self.reflections.append(new_reflection)
         self.params['modified'] = True
 
-    def remove_reflection(self, ind):
+    def delete_reflection(self, ind):
         del self.reflections[ind]
         self.params['modified'] = True
 

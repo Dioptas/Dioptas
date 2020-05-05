@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -87,7 +87,8 @@ a = Analysis(['Dioptas.py'],
              binaries=binaries,
              datas=extra_datas,
              hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'skimage._shared.geometry',
-                            'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy', 'pywt._extensions._cwt'] +
+                            'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy', 'pywt._extensions._cwt',
+                            'pkg_resources.py2_warn'] +
                             fabio_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
@@ -155,7 +156,12 @@ else:
     platform += "32"
 
 # getting the current version of Dioptas
-from dioptas import __version__
+try:
+    with open(os.path.join('dioptas', '__version__'), 'r') as fp:
+        __version__ = fp.readline()
+except FileNotFoundError:
+    from dioptas import __version__
+
 
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)

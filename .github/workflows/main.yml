@@ -1,0 +1,35 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+    - uses: goanpeca/setup-miniconda@v1
+      with:
+        auto-update-conda: true
+        python-version: 3.6
+        channels: cprescher
+
+    - name: Install Conda Dependencies
+      shell: bash -l {0}
+      run: |
+        conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph cython
+        
+    - name: Install Pip Dependencies
+      shell: bash -l {0}
+      run:
+        pip install pyepics extra_data
+
+    - name: Run tests
+      shell: bash -l {0}
+      run: |
+        xvfb-run -a py.test dioptas/tests/unit_tests
+        xvfb-run -a py.test dioptas/tests/controller_tests
+        xvfb-run -a py.test dioptas/tests/functional_tests

@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -127,18 +127,6 @@ class MaskModelTest(unittest.TestCase):
                                        np.array([[0, 0, 1],
                                                  [0, 0, 1],
                                                  [1, 1, 1]]))
-                        )
-
-    def test_use_roi_with_supersampling(self):
-        self.mask_model.roi = [0, 2, 0, 2]
-        self.mask_model.set_supersampling(2)
-        self.assertTrue(np.array_equal(self.mask_model.get_mask()[0:6, 0:6],
-                                       np.array([[0, 0, 0, 0, 1, 1],
-                                                 [0, 0, 0, 0, 1, 1],
-                                                 [0, 0, 0, 0, 1, 1],
-                                                 [0, 0, 0, 0, 1, 1],
-                                                 [1, 1, 1, 1, 1, 1],
-                                                 [1, 1, 1, 1, 1, 1]]))
                         )
 
     def test_save_mask(self):

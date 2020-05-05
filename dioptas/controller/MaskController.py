@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -439,13 +439,13 @@ class MaskController(object):
 
     def fill_rb_click(self):
         self.model.transparent_mask = False
-        self.widget.img_widget.set_color([255, 0, 0, 255])
+        self.widget.img_widget.set_mask_color([255, 0, 0, 255])
         self.plot_mask()
 
     #
     def transparent_rb_click(self):
         self.model.transparent_mask = True
-        self.widget.img_widget.set_color([255, 0, 0, 100])
+        self.widget.img_widget.set_mask_color([255, 0, 0, 100])
         self.plot_mask()
 
     def show_img_mouse_position(self, x, y):
