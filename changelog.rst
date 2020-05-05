@@ -1,5 +1,5 @@
-0.5.1 (development)
--------------------
+0.5.1 (stable 05/05/2020)
+-------------------------
 
 New features:
     - Phase lines can now be shown in the Cake Widget. Intensity is shown as thickness and opacity of the lines.
