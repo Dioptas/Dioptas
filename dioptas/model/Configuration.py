@@ -586,14 +586,16 @@ class Configuration(QtCore.QObject):
             pass
 
         # load detector definition
-        detector_mode = f.get('detector').attrs['detector_mode']
-        if detector_mode == DetectorModes.PREDEFINED.value:
-            detector_name = f.get('detector').attrs['detector_name']
-            self.calibration_model.load_detector(detector_name)
-        elif detector_mode == DetectorModes.NEXUS.value:
-            nexus_filename = f.get('detector').attrs['nexus_filename']
-            self.calibration_model.load_detector_from_file(nexus_filename)
-
+        try:
+            detector_mode = f.get('detector').attrs['detector_mode']
+            if detector_mode == DetectorModes.PREDEFINED.value:
+                detector_name = f.get('detector').attrs['detector_name']
+                self.calibration_model.load_detector(detector_name)
+            elif detector_mode == DetectorModes.NEXUS.value:
+                nexus_filename = f.get('detector').attrs['nexus_filename']
+                self.calibration_model.load_detector_from_file(nexus_filename)
+        except AttributeError: # to ensure backwards compatibility
+            pass
 
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
