@@ -536,3 +536,17 @@ class ProjectSaveLoadTest(QtTest):
         )
         click_button(self.widget.calibration_widget.rotate_p90_btn)
         self.assertEqual(self.model.calibration_model.detector.shape, (981, 1043))
+
+    ###################################################################################################
+    def test_using_detector_and_calibration(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_using_detector_and_calibration,
+                                         intermediate_function=self.disable_calibration_check)
+
+        self.assertAlmostEqual(self.model.calibration_model.detector.pixel1, 172e-6)
+
+    def prepare_using_detector_and_calibration(self):
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, 'image_001.tif'))
+
+        self.assertAlmostEqual(self.model.calibration_model.detector.pixel1, 172e-6)
