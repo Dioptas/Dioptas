@@ -45,6 +45,8 @@ logger.setLevel(logging.INFO)
 
 
 class CalibrationModel(QtCore.QObject):
+    detector_reset = QtCore.Signal()
+
     def __init__(self, img_model=None):
         """
         :param img_model:
@@ -329,6 +331,31 @@ class CalibrationModel(QtCore.QObject):
         # reset the integrator (not the geometric parameters)
         self.pattern_geometry.reset()
 
+    def _check_detector_and_image_shape(self):
+        if self.detector.shape is not None:
+            if self.detector.shape != self.img_model.img_data.shape:
+                self.reset_detector()
+                self.detector_reset.emit()
+
+    def _prepare_integration_mask(self, mask):
+        if mask is None:
+            return self.detector.mask
+        else:
+            if self.detector.mask is None:
+                return mask
+            else:
+                if mask.shape == self.detector.mask.shape:
+                    return np.logical_or(self.detector.mask,  mask)
+
+    def _prepare_integration_super_sampling(self, mask):
+        if self.supersampling_factor > 1:
+            img_data = supersample_image(self.img_model.img_data, self.supersampling_factor)
+            if mask is not None:
+                mask = supersample_image(mask, self.supersampling_factor)
+        else:
+            img_data = self.img_model.img_data
+        return img_data, mask
+
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
                      unit='2th_deg', method='csr'):
         if np.sum(mask) == self.img_model.img_data.shape[0] * self.img_model.img_data.shape[1]:
@@ -343,12 +370,9 @@ class CalibrationModel(QtCore.QObject):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
-        if self.supersampling_factor > 1:
-            img_data = supersample_image(self.img_model.img_data, self.supersampling_factor)
-            if mask is not None:
-                mask = supersample_image(mask, self.supersampling_factor)
-        else:
-            img_data = self.img_model.img_data
+        self._check_detector_and_image_shape()
+        mask = self._prepare_integration_mask(mask)
+        img_data, mask = self._prepare_integration_super_sampling(mask)
 
         if num_points is None:
             num_points = self.calculate_number_of_pattern_points(img_data.shape, 2)
@@ -411,12 +435,9 @@ class CalibrationModel(QtCore.QObject):
             self.cake_geometry.reset()
             self.cake_geometry_img_shape = self.img_model.img_data.shape
 
-        if self.supersampling_factor > 1:
-            img_data = supersample_image(self.img_model.img_data, self.supersampling_factor)
-            if mask is not None:
-                mask = supersample_image(mask, self.supersampling_factor)
-        else:
-            img_data = self.img_model.img_data
+        self._check_detector_and_image_shape()
+        mask = self._prepare_integration_mask(mask)
+        img_data, mask = self._prepare_integration_super_sampling(mask)
 
         if rad_points is None:
             rad_points = self.calculate_number_of_pattern_points(img_data.shape, 2)
@@ -495,6 +516,13 @@ class CalibrationModel(QtCore.QObject):
         self.pattern_geometry.load(filename)
         self.orig_pixel1 = self.pattern_geometry.pixel1
         self.orig_pixel2 = self.pattern_geometry.pixel2
+
+        if self.pattern_geometry.pixel1 == self.detector.pixel1 and \
+                self.pattern_geometry.pixel2 == self.detector.pixel2:
+            self.pattern_geometry.detector = self.detector # necessary since loading a poni file will reset the detector
+        else:
+            self.reset_detector()
+
         self.calibration_name = get_base_name(filename)
         self.filename = filename
         self.is_calibrated = True
@@ -739,7 +767,7 @@ class CalibrationModel(QtCore.QObject):
 
     def reset_transformations(self):
         """Restores the detector to it's original state"""
-        if self._original_detector is None: # no transformations done so far
+        if self._original_detector is None:  # no transformations done so far
             return
 
         self.detector = deepcopy(self._original_detector)
@@ -822,6 +850,8 @@ class DetectorModes(Enum):
 class NotEnoughSpacingsInCalibrant(Exception):
     pass
 
+class DetectorShapeError(Exception):
+    pass
 
 class DummyStdOut(object):
     @classmethod

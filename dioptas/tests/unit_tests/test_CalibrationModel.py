@@ -21,11 +21,13 @@
 import os
 
 import numpy as np
+from mock import MagicMock
 
+from pyFAI import detectors
 from pyFAI.detectors import Detector
 
 from ..utility import QtTest, delete_if_exists
-from ...model.CalibrationModel import CalibrationModel, get_available_detectors
+from ...model.CalibrationModel import CalibrationModel, get_available_detectors, DetectorModes, DetectorShapeError
 from ...model.ImgModel import ImgModel
 from ... import calibrants_path
 import gc
@@ -329,6 +331,25 @@ class CalibrationModelTest(QtTest):
         self.assertEqual(self.calibration_model.orig_pixel1, 100e-6)
         self.assertEqual(self.calibration_model.detector.pixel1, 100e-6)
 
+    def test_load_predefined_detector_and_poni_after(self):
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        self.assertIsInstance(self.calibration_model.detector, detectors.PilatusCdTe1M)
+        self.assertIsInstance(self.calibration_model.pattern_geometry.detector, detectors.PilatusCdTe1M)
+
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.assertIsInstance(self.calibration_model.detector, detectors.PilatusCdTe1M)
+        self.assertIsInstance(self.calibration_model.pattern_geometry.detector, detectors.PilatusCdTe1M)
+
+    def test_load_predefined_detector_and_poni_with_different_pixel_size(self):
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        self.assertIsInstance(self.calibration_model.detector, detectors.PilatusCdTe1M)
+        self.assertIsInstance(self.calibration_model.pattern_geometry.detector, detectors.PilatusCdTe1M)
+
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.assertEqual(self.calibration_model.detector_mode, DetectorModes.CUSTOM)
+        self.assertIsInstance(self.calibration_model.detector, detectors.Detector)
+        self.assertIsInstance(self.calibration_model.pattern_geometry.detector, detectors.Detector)
+
     def test_integration_with_predefined_detector(self):
         self.calibration_model.load_detector('Pilatus CdTe 1M')
         self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
@@ -417,3 +438,21 @@ class CalibrationModelTest(QtTest):
         detector = self.calibration_model.detector
         self.assertAlmostEqual(detector.pixel1, 50e-6)
         self.assertFalse(detector.uniform_pixel)
+
+    def test_integrate1d_with_different_detector_and_image_shape(self):
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        callback_function = MagicMock()
+        self.calibration_model.detector_reset.connect(callback_function)
+        self.calibration_model.integrate_1d()
+        callback_function.assert_called_once()
+
+    def test_integrate2d_with_different_detector_and_image_shape(self):
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        callback_function = MagicMock()
+        self.calibration_model.detector_reset.connect(callback_function)
+        self.calibration_model.integrate_2d()
+        callback_function.assert_called_once()

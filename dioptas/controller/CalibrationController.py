@@ -65,6 +65,8 @@ class CalibrationController(object):
         self.model.img_changed.connect(self.plot_image)
         self.model.configuration_selected.connect(self.update_calibration_parameter_in_view)
         self.model.configuration_selected.connect(self.update_detector_parameters_in_view)
+        self.model.calibration_model.detector_reset.connect(self.update_detector_parameters_in_view)
+        self.model.calibration_model.detector_reset.connect(self.show_detector_reset_message_box)
 
         self.create_transformation_signals()
         self.create_update_signals()
@@ -596,8 +598,7 @@ class CalibrationController(object):
         if filename is not '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
-            if self.model.img_model.filename != '':
-                self.update_all()
+            self.update_all(integrate=self.model.img_model.filename != '')
 
     def plot_mask(self):
         """
@@ -628,11 +629,11 @@ class CalibrationController(object):
             progress_dialog = self.create_progress_dialog('Integrating to cake.', '',
                                                           0, show_cancel_btn=False)
             QtWidgets.QApplication.processEvents()
-            self.model.current_configuration.integrate_image_1d()
+            self.model.current_configuration.integrate_image_2d()
             progress_dialog.setLabelText('Integrating to pattern.')
             QtWidgets.QApplication.processEvents()
             QtWidgets.QApplication.processEvents()
-            self.model.current_configuration.integrate_image_2d()
+            self.model.current_configuration.integrate_image_1d()
             progress_dialog.close()
         self.widget.cake_widget.plot_image(self.model.cake_data, False)
         self.widget.cake_widget.auto_level()
@@ -698,6 +699,13 @@ class CalibrationController(object):
 
         self._update_pixel_size_in_gui()
         self._update_spline_in_gui()
+
+    def show_detector_reset_message_box(self):
+        QtWidgets.QMessageBox.critical(self.widget,
+                                       'Shape mismatch.',
+                                       'Image and detector definition do not have the same shape!\n' + \
+                                       'The Detector has been reset.',
+                                       QtWidgets.QMessageBox.Ok)
 
     def save_calibration(self):
         """

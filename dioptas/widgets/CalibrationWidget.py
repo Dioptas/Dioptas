@@ -81,7 +81,6 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.load_spline_btn = detector_gb.spline_load_btn
         self.spline_filename_txt = detector_gb.spline_name_txt
 
-
         sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
         self.rotate_m90_btn = sv_gb.rotate_m90_btn
         self.rotate_p90_btn = sv_gb.rotate_p90_btn
@@ -175,7 +174,6 @@ class CalibrationWidget(QtWidgets.QWidget):
         detector_gb.pixel_width_txt.setEnabled(bool)
         detector_gb.pixel_height_txt.setEnabled(bool)
 
-
     def get_fixed_values(self):
         fixed_values = {}
 
@@ -197,7 +195,7 @@ class CalibrationWidget(QtWidgets.QWidget):
         return fixed_values
 
     def get_float_from_txt_field(self, txt_field):
-        if len(txt_field.text())>0:
+        if len(txt_field.text()) > 0:
             return float(txt_field.text())
         else:
             return 0
@@ -229,8 +227,7 @@ class CalibrationWidget(QtWidgets.QWidget):
 
             sv_gb.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
             sv_gb.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
-            detector_gb.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
-            detector_gb.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
+            self.set_pixel_size(pyfai_parameter['pixel1'], pyfai_parameter['pixel2'])
         except (AttributeError, TypeError):
             pyfai_widget.distance_txt.setText('')
             pyfai_widget.poni1_txt.setText('')
@@ -338,7 +335,7 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self._status_layout.addWidget(self.calibrate_btn)
         self._status_layout.addWidget(self.refine_btn)
         self._status_layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                            QtWidgets.QSizePolicy.Minimum))
+                                                                QtWidgets.QSizePolicy.Minimum))
         self._status_layout.addWidget(self.position_lbl)
         self._layout.addLayout(self._status_layout)
 
@@ -356,7 +353,7 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         super(CalibrationControlWidget, self).__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self._file_layout = QtWidgets.QHBoxLayout()
         self.load_img_btn = FlatButton("Load Image File", self)
@@ -414,16 +411,16 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.peak_selection_gb)
         self._layout.addWidget(self.refinement_options_gb)
         self._layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                     QtWidgets.QSizePolicy.Expanding))
+                                                         QtWidgets.QSizePolicy.Expanding))
 
         self.setLayout(self._layout)
+
 
 class DetectorGroupbox(QtWidgets.QGroupBox):
     def __init__(self, *args, **kwargs):
         super(DetectorGroupbox, self).__init__('Detector', *args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
-
 
         self.detector_cb = CleanLooksComboBox()
         self.detector_name_lbl = LabelAlignRight()
@@ -448,7 +445,6 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
 
         self._layout.addLayout(self._detector_layout)
 
-
         self._grid_layout1 = QtWidgets.QGridLayout()
 
         self._grid_layout1.addWidget(LabelAlignRight('Pixel width:'), 1, 0)
@@ -460,7 +456,6 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
         self.pixel_height_txt = NumberTextField('79')
         self._grid_layout1.addWidget(self.pixel_height_txt, 2, 1)
         self._grid_layout1.addWidget(QtWidgets.QLabel('um'), 2, 2)
-
 
         self.spline_name_txt = QtWidgets.QLabel('None')
         self.spline_load_btn = FlatButton()
@@ -544,7 +539,7 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
 
         self._layout = QtWidgets.QGridLayout()
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                               QtWidgets.QSizePolicy.Minimum), 0, 0)
+                                                   QtWidgets.QSizePolicy.Minimum), 0, 0)
         self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
         self.peak_num_sb = SpinBoxAlignRight()
         self.peak_num_sb.setValue(1)
@@ -552,7 +547,7 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self._layout.addWidget(self.peak_num_sb, 0, 3)
 
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                               QtWidgets.QSizePolicy.Minimum), 1, 0, 1, 2)
+                                                   QtWidgets.QSizePolicy.Minimum), 1, 0, 1, 2)
         self.automatic_peak_num_inc_cb = QtWidgets.QCheckBox('automatic increase')
         self.automatic_peak_num_inc_cb.setChecked(True)
         self._layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
@@ -569,7 +564,7 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self.search_size_sb.setMaximumWidth(50)
         self._layout.addWidget(self.search_size_sb, 4, 1, 1, 2)
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                               QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
+                                                   QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
 
         self.undo_peaks_btn = FlatButton("Undo")
         self.clear_peaks_btn = FlatButton("Clear All Peaks")
@@ -698,8 +693,9 @@ class PyfaiParametersWidget(QtWidgets.QWidget):
         self.update_btn = FlatButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
-        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
-                             11, 0, 1, 4)
+        self._layout.addItem(
+            QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
+            11, 0, 1, 4)
 
         self.setLayout(self._layout)
 
@@ -762,7 +758,8 @@ class Fit2dParametersWidget(QtWidgets.QWidget):
         self.update_btn = FlatButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
-        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
-                             11, 0, 1, 4)
+        self._layout.addItem(
+            QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
+            11, 0, 1, 4)
 
         self.setLayout(self._layout)

@@ -59,21 +59,25 @@ class TestCalibrationController(QtTest):
     def test_load_detector(self):
         detector_names, detector_classes = get_available_detectors()
         det_ind = 9
-        self.widget.detectors_cb.setCurrentIndex(det_ind+3) # +3 since there is also the custom element at 0
-                                                            # and 2 separators
+        self.widget.detectors_cb.setCurrentIndex(det_ind + 3)  # +3 since there is also the custom element at 0
+        # and 2 separators
         self.assertIsInstance(self.model.calibration_model.detector, detector_classes[det_ind])
 
         detector_gb = self.widget.calibration_control_widget.calibration_parameters_widget.detector_gb
-        self.assertAlmostEqual(float(detector_gb.pixel_width_txt.text())*1e-6, self.model.calibration_model.orig_pixel1)
-        self.assertAlmostEqual(float(detector_gb.pixel_height_txt.text())*1e-6, self.model.calibration_model.orig_pixel2)
+        self.assertAlmostEqual(float(detector_gb.pixel_width_txt.text()) * 1e-6,
+                               self.model.calibration_model.orig_pixel1)
+        self.assertAlmostEqual(float(detector_gb.pixel_height_txt.text()) * 1e-6,
+                               self.model.calibration_model.orig_pixel2)
 
         self.assertFalse(detector_gb.pixel_width_txt.isEnabled())
         self.assertFalse(detector_gb.pixel_width_txt.isEnabled())
 
         self.widget.detectors_cb.setCurrentIndex(0)
         self.assertNotIsInstance(self.model.calibration_model.detector, detector_classes[det_ind])
-        self.assertAlmostEqual(float(detector_gb.pixel_width_txt.text())*1e-6, self.model.calibration_model.orig_pixel1)
-        self.assertAlmostEqual(float(detector_gb.pixel_height_txt.text())*1e-6, self.model.calibration_model.orig_pixel2)
+        self.assertAlmostEqual(float(detector_gb.pixel_width_txt.text()) * 1e-6,
+                               self.model.calibration_model.orig_pixel1)
+        self.assertAlmostEqual(float(detector_gb.pixel_height_txt.text()) * 1e-6,
+                               self.model.calibration_model.orig_pixel2)
         self.assertTrue(detector_gb.pixel_width_txt.isEnabled())
         self.assertTrue(detector_gb.pixel_width_txt.isEnabled())
 
@@ -103,7 +107,7 @@ class TestCalibrationController(QtTest):
         self.assertAlmostEqual(self.model.calibration_model.orig_pixel1, 100e-6)
 
         self.assertTrue(self.widget.detector_reset_btn.isEnabled())
-        self.widget.show() # to check visibility
+        self.widget.show()  # to check visibility
         self.assertFalse(self.widget.detectors_cb.isVisible())
         self.assertTrue(self.widget.detector_name_lbl.isVisible())
         self.assertEqual(self.widget.detector_name_lbl.text(), 'detector.h5')
@@ -130,6 +134,25 @@ class TestCalibrationController(QtTest):
         click_button(self.widget.detector_load_btn)
 
         self.assertEqual(self.widget.spline_filename_txt.text(), 'from Detector')
+
+    def test_load_detector_and_image_with_different_dimension(self):
+        # set the detector
+        self.widget.detectors_cb.setCurrentIndex(self.widget.detectors_cb.findText('Pilatus CdTe 1M'))
+
+        # load calibration
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'CeO2_Pilatus1M.poni'))
+        QTest.mouseClick(self.widget.load_calibration_btn, QtCore.Qt.LeftButton)
+
+        # load image file with different dimension than detector, which should automatically
+        # reset the detector to a custom detector
+        QtWidgets.QMessageBox.critical = MagicMock()
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
+        click_button(self.widget.load_img_btn)
+
+        QtWidgets.QMessageBox.critical.assert_called_once()
+        self.assertEqual(self.widget.detectors_cb.currentText(), 'Custom')
 
     def test_automatic_calibration(self):
         self.mock_integrate_functions()
@@ -252,3 +275,5 @@ class TestCalibrationController(QtTest):
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni'))
         QTest.mouseClick(self.widget.load_calibration_btn, QtCore.Qt.LeftButton)
+        self.widget.get_pyFAI_parameter()  # would cause error if GUI not updated
+        self.widget.get_fit2d_parameter()  # would cause error if GUI not updated
