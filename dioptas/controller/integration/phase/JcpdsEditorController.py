@@ -328,13 +328,13 @@ class JcpdsEditorController(QtCore.QObject):
 
     def export_table_data(self, filename):
         fp = open(filename, 'w', encoding='utf-8')
-        for col in range(self.jcpds_widget.reflection_table_view.columnCount()):
-            fp.write(self.jcpds_widget.reflection_table_view.horizontalHeaderItem(col).text() + '\t')
+        for col in range(self.jcpds_widget.reflection_table_model.columnCount()):
+            fp.write(self.jcpds_widget.reflection_table_model.header_labels[col] + '\t')
         fp.write('\n')
-        for row in range(self.jcpds_widget.reflection_table_view.rowCount()):
+        for row in range(self.jcpds_widget.reflection_table_model.rowCount()):
             line = ''
-            for col in range(self.jcpds_widget.reflection_table_view.columnCount()):
-                line = line + self.jcpds_widget.reflection_table_view.item(row, col).text() + '\t'
+            for col in range(self.jcpds_widget.reflection_table_model.columnCount()):
+                line = line + self.jcpds_widget.reflection_table_model.index(row, col).data() + '\t'
             line = line + '\n'
             fp.write(line)
         fp.close()

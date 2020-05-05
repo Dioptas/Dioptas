@@ -72,6 +72,7 @@ class JcpdsEditorControllerTest(QtTest):
         self.model.delete_configurations()
         del self.model
         delete_if_exists(os.path.join(jcpds_path, 'dummy.jcpds'))
+        delete_if_exists(os.path.join(data_path, 'reflection_table.txt'))
         gc.collect()
 
     # Utility Functions
@@ -270,3 +271,9 @@ class JcpdsEditorControllerTest(QtTest):
                                     'HAHA this is a phase you will never see in your pattern')
         self.assertEqual(self.controller.jcpds_phase.params['comments'][0],
                          'HAHA this is a phase you will never see in your pattern')
+
+    def test_export_reflection_table(self):
+        path = os.path.join(data_path, 'reflection_table.txt')
+        self.controller.export_table_data(path)
+        with open(path, 'r') as f:
+            self.assertEqual(len(f.readlines()), 21)
