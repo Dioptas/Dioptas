@@ -21,7 +21,7 @@
 import unittest
 from ..utility import QtTest
 from qtpy.QtTest import QTest
-from qtpy import QtCore
+from qtpy import QtCore, QtGui
 import os
 import gc
 from qtpy import QtWidgets
@@ -277,3 +277,16 @@ class JcpdsEditorControllerTest(QtTest):
         self.controller.export_table_data(path)
         with open(path, 'r') as f:
             self.assertEqual(len(f.readlines()), 21)
+
+    def test_copy_complete_reflection_table(self):
+        self.controller.reflection_table_key_pressed(QtGui.QKeySequence.SelectAll)
+        self.controller.reflection_table_key_pressed(QtGui.QKeySequence.Copy)
+
+        self.assertEqual(QtWidgets.QApplication.clipboard().text().split('\n')[3],
+                         '1	0	1	100.00	2.1065	2.1065	8.4396	8.4396	2.9828	2.9828')
+
+        self.jcpds_widget.reflection_table_model.wavelength = None
+        self.controller.reflection_table_key_pressed(QtGui.QKeySequence.Copy)
+        self.assertEqual(QtWidgets.QApplication.clipboard().text().split('\n')[3],
+                         '1	0	1	100.00	2.1065	2.1065')
+
