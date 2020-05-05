@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ class PhaseControllerTest(QtTest):
         self.model.calibration_model.is_calibrated = True
         self.model.calibration_model.pattern_geometry.wavelength = 0.31E-10
         self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
-                                                                      self.model.calibration_model.int))
+                                                                            self.model.calibration_model.int))
         self.widget = IntegrationWidget()
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
@@ -131,7 +131,7 @@ class PhaseControllerTest(QtTest):
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
-    def test_pressurestep_spinbox_changes_pressure_spinboxes(self):
+    def test_pressure_step_spinbox_changes_pressure_spinboxes(self):
         self.load_phases()
         for ind in range(6):
             self.assertEqual(self.phase_widget.pressure_sbs[ind].singleStep(), 1)
@@ -141,7 +141,7 @@ class PhaseControllerTest(QtTest):
         for ind in range(6):
             self.assertEqual(self.phase_widget.pressure_sbs[ind].singleStep(), new_step)
 
-    def test_temperaturestep_spinbox_changes_temperature_spinboxes(self):
+    def test_temperature_step_spinbox_changes_temperature_spinboxes(self):
         self.load_phases()
         for ind in range(6):
             self.assertEqual(self.phase_widget.temperature_sbs[ind].singleStep(), 100)
@@ -163,7 +163,7 @@ class PhaseControllerTest(QtTest):
 
     def test_temperature_change(self):
         self.load_phases()
-        click_checkbox(self.phase_widget.apply_to_all_cb)
+        self.model.phase_model.set_pressure(2, 100) # otherwise the reflections go none
 
         temperature = 1500
 
@@ -214,77 +214,19 @@ class PhaseControllerTest(QtTest):
         temperature = 1500
         pressure = 200
         self.load_phases()
-        self.phase_widget.temperature_sbs[0].setValue(temperature)
         self.phase_widget.pressure_sbs[0].setValue(pressure)
+        self.phase_widget.temperature_sbs[0].setValue(temperature)
         self.load_phases()
 
         for ind, phase in enumerate(self.model.phase_model.phases):
-
             self.assertEqual(phase.params['pressure'], pressure)
             self.assertEqual(self.phase_widget.get_phase_pressure(ind), pressure)
-
-
-    def test_apply_to_all_for_new_added_phase_d_positions(self):
-        pressure = 50
-        self.load_phase('au_Anderson.jcpds')
-        self.phase_widget.pressure_sbs[0].setValue(pressure)
-        self.load_phase('au_Anderson.jcpds')
-
-        reflections1 = self.model.phase_model.get_lines_d(0)
-        reflections2 = self.model.phase_model.get_lines_d(1)
-        self.assertTrue(np.array_equal(reflections1, reflections2))
 
     def test_to_not_show_lines_in_legend(self):
         self.load_phases()
         self.phase_tw.selectRow(1)
         QTest.mouseClick(self.widget.phase_del_btn, QtCore.Qt.LeftButton)
         self.widget.pattern_widget.hide_phase(1)
-
-    def test_auto_scaling_of_lines_in_pattern_view(self):
-        pattern_view = self.widget.pattern_widget
-
-        pattern_view_range = pattern_view.view_box.viewRange()
-        pattern_y = pattern_view.plot_item.getData()[1]
-        expected_maximum_height = np.max(pattern_y) - pattern_view_range[1][0]
-
-        self.load_phase('au_Anderson.jcpds')
-        phase_plot = pattern_view.phases[0]
-        line_heights = []
-        for line in phase_plot.line_items:
-            line_data = line.getData()
-            height = line_data[1][1] - line_data[1][0]
-            line_heights.append(height)
-
-        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
-
-        pattern_view_range = pattern_view.view_box.viewRange()
-        pattern_y = pattern_view.plot_item.getData()[1]
-        expected_maximum_height = np.max(pattern_y) - pattern_view_range[1][0]
-
-        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
-
-    def test_line_height_in_pattern_view_after_zooming(self):
-        pattern_view = self.widget.pattern_widget
-        self.load_phase('au_Anderson.jcpds')
-
-        pattern_view.view_box.setRange(xRange=[17, 30])
-        pattern_view.emit_sig_range_changed()
-
-        phase_plot = pattern_view.phases[0]
-        line_heights = []
-        for line in phase_plot.line_items:
-            line_data = line.getData()
-            if (line_data[0][0] > 17) and (line_data[0][1] < 30):
-                height = line_data[1][1] - line_data[1][0]
-                line_heights.append(height)
-
-        pattern_view_range = pattern_view.view_box.viewRange()
-        pattern_x, pattern_y = pattern_view.plot_item.getData()
-        pattern_y_max_in_range = np.max(pattern_y[(pattern_x > pattern_view_range[0][0]) & \
-                                                    (pattern_x < pattern_view_range[0][1])])
-        expected_maximum_height = pattern_y_max_in_range - pattern_view_range[1][0]
-
-        self.assertAlmostEqual(expected_maximum_height, np.max(line_heights))
 
     def test_save_and_load_phase_lists(self):
         # load some phases
@@ -329,7 +271,7 @@ class PhaseControllerTest(QtTest):
         click_checkbox(self.phase_widget.phase_show_cbs[1])
         self.controller.phase_tw_header_section_clicked(0)
         for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
-                self.assertFalse(cb.isChecked())
+            self.assertFalse(cb.isChecked())
 
         self.controller.phase_tw_header_section_clicked(0)
         for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
@@ -344,5 +286,5 @@ class PhaseControllerTest(QtTest):
         self.load_phase('re.jcpds')
 
     def load_phase(self, filename):
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[os.path.join(jcpds_path, filename)])
-        click_button(self.widget.phase_add_btn)
+        self.model.phase_model.add_jcpds(os.path.join(jcpds_path, filename))
+

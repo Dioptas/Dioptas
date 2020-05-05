@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,12 +43,17 @@ class PatternWidget(QtCore.QObject):
         self.create_main_plot()
         self.create_pos_line()
         self.modify_mouse_behavior()
+
         self._auto_range = True
-        self.phases = []
+
+        self.phases = []  # type: list[PhasePlot]
         self.phases_vlines = []
+
         self.overlays = []
         self.overlay_names = []
         self.overlay_show = []
+
+        self.plot_name = ''
 
     def create_graphics(self):
         self.pattern_plot = self.pg_layout.addPlot(labels={'left': 'Intensity', 'bottom': '2 Theta'})
@@ -67,7 +72,6 @@ class PatternWidget(QtCore.QObject):
                                         pen=pg.mkPen(color=(255, 0, 0), width=2, style=QtCore.Qt.DashLine))
         self.pattern_plot.addItem(self.bkg_item)
         self.legend.addItem(self.plot_item, '')
-        self.plot_name = ''
         self.legend.setParentItem(self.pattern_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
         self.phases_legend.setParentItem(self.pattern_plot.vb)
@@ -226,9 +230,9 @@ class PatternWidget(QtCore.QObject):
             overlay.opts['antialias'] = value
             overlay.updateItems()
 
-    def add_phase(self, name, positions, intensities, baseline):
-        self.phases.append(PhasePlot(self.pattern_plot, self.phases_legend, positions, intensities, name, baseline))
-        return self.phases[-1].color
+    def add_phase(self, name, positions, intensities, baseline, color):
+        self.phases.append(
+            PhasePlot(self.pattern_plot, self.phases_legend, positions, intensities, color, name, baseline))
 
     def set_phase_color(self, ind, color):
         self.phases[ind].set_color(color)
@@ -336,7 +340,7 @@ class PatternWidget(QtCore.QObject):
     def myMouseClickEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and
-                         ev.modifiers() & QtCore.Qt.ControlModifier):
+                 ev.modifiers() & QtCore.Qt.ControlModifier):
             view_range = np.array(self.view_box.viewRange()) * 2
             curve_data = self.plot_item.getData()
             x_range = np.max(curve_data[0]) - np.min(curve_data[0])
@@ -344,7 +348,7 @@ class PatternWidget(QtCore.QObject):
                 self.auto_range = True
             else:
                 self.auto_range = False
-                self.view_box.scaleBy(2)
+                self.view_box.scaleBy((2, 2))
             self.emit_sig_range_changed()
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())
@@ -355,7 +359,7 @@ class PatternWidget(QtCore.QObject):
 
     def myMouseDoubleClickEvent(self, ev):
         if (ev.button() == QtCore.Qt.RightButton) or (ev.button() == QtCore.Qt.LeftButton and
-                                                              ev.modifiers() & QtCore.Qt.ControlModifier):
+                                                      ev.modifiers() & QtCore.Qt.ControlModifier):
             self.auto_range = True
             self.emit_sig_range_changed()
 
@@ -369,7 +373,7 @@ class PatternWidget(QtCore.QObject):
 
         if ev.button() == QtCore.Qt.RightButton or \
                 (ev.button() == QtCore.Qt.LeftButton and
-                         ev.modifiers() & QtCore.Qt.ControlModifier):
+                 ev.modifiers() & QtCore.Qt.ControlModifier):
             # determine the amount of translation
             tr = dif
             tr = self.view_box.mapToView(tr) - self.view_box.mapToView(pg.Point(0, 0))
@@ -416,7 +420,7 @@ class PatternWidget(QtCore.QObject):
                 x_range = np.max(curve_data[0]) - np.min(curve_data[0])
                 y_range = np.max(curve_data[1]) - np.min(curve_data[1])
                 if (view_range[0][1] - view_range[0][0]) >= x_range and \
-                                (view_range[1][1] - view_range[1][0]) >= y_range:
+                        (view_range[1][1] - view_range[1][0]) >= y_range:
                     self.auto_range = True
                 else:
                     self.auto_range = False
@@ -453,15 +457,15 @@ class PhaseLinesPlot(object):
 class PhasePlot(object):
     num_phases = 0
 
-    def __init__(self, plot_item, legend_item, positions, intensities, name=None, baseline=0):
+    def __init__(self, plot_item, legend_item, positions, intensities, color, name=None, baseline=0):
         self.plot_item = plot_item
         self.legend_item = legend_item
         self.visible = True
-        self.line_items = []
+        self.line_items = []  # type: list[pg.PlotDataItem]
         self.line_visible = []
         self.pattern_x_range = []
         self.index = PhasePlot.num_phases
-        self.color = calculate_color(self.index + 9)
+        self.color = color
         self.pen = pg.mkPen(color=self.color, width=0.9, style=QtCore.Qt.SolidLine)
         self.ref_legend_line = pg.PlotDataItem(pen=self.pen)
         self.name = ''
@@ -496,14 +500,14 @@ class PhasePlot(object):
         self.plot_item.addItem(self.line_items[-1])
         self.plot_item.blockSignals(False)
 
-    def remove_line(self, ind=-1):
+    def delete_line(self, ind=-1):
         self.plot_item.removeItem(self.line_items[ind])
         del self.line_items[ind]
         del self.line_visible[ind]
 
     def clear_lines(self):
         for dummy_ind in range(len(self.line_items)):
-            self.remove_line()
+            self.delete_line()
 
     def update_intensities(self, positions, intensities, baseline=0):
         if self.visible:

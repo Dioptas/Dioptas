@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,7 +59,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
         self.vertical_splitter.setStretchFactor(1, 99999)
 
-
         self.vertical_splitter_left = QtWidgets.QSplitter(self)
         self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter_left.addWidget(self.integration_image_widget)
@@ -95,15 +94,13 @@ class IntegrationWidget(QtWidgets.QWidget):
         img_file_widget = self.integration_control_widget.img_control_widget.file_widget
         self.load_img_btn = img_file_widget.load_btn
         self.autoprocess_cb = img_file_widget.file_cb
-        self.prev_img_btn = img_file_widget.previous_btn
-        self.next_img_btn = img_file_widget.next_btn
-        self.image_browse_step_txt = img_file_widget.step_txt
-        self.img_browse_by_name_rb = img_file_widget.browse_by_name_rb
-        self.img_browse_by_time_rb = img_file_widget.browse_by_time_rb
+        self.img_step_file_widget = img_file_widget.step_file_widget
+        self.img_step_series_widget = img_file_widget.step_series_widget
         self.img_filename_txt = img_file_widget.file_txt
         self.img_directory_txt = img_file_widget.directory_txt
         self.img_directory_btn = img_file_widget.directory_btn
         self.file_info_btn = self.integration_control_widget.img_control_widget.file_info_btn
+        self.move_btn = self.integration_control_widget.img_control_widget.move_btn
         self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
         self.img_batch_mode_integrate_rb = self.integration_control_widget.img_control_widget.batch_mode_integrate_rb
         self.img_batch_mode_add_rb = self.integration_control_widget.img_control_widget.batch_mode_add_rb
@@ -112,11 +109,11 @@ class IntegrationWidget(QtWidgets.QWidget):
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
         self.pattern_load_btn = pattern_file_widget.load_btn
         self.pattern_autocreate_cb = pattern_file_widget.file_cb
-        self.pattern_previous_btn = pattern_file_widget.previous_btn
-        self.pattern_next_btn = pattern_file_widget.next_btn
-        self.pattern_browse_step_txt = pattern_file_widget.step_txt
-        self.pattern_browse_by_name_rb = pattern_file_widget.browse_by_name_rb
-        self.pattern_browse_by_time_rb = pattern_file_widget.browse_by_time_rb
+        self.pattern_previous_btn = pattern_file_widget.step_file_widget.previous_btn
+        self.pattern_next_btn = pattern_file_widget.step_file_widget.next_btn
+        self.pattern_browse_step_txt = pattern_file_widget.step_file_widget.step_txt
+        self.pattern_browse_by_name_rb = pattern_file_widget.step_file_widget.browse_by_name_rb
+        self.pattern_browse_by_time_rb = pattern_file_widget.step_file_widget.browse_by_time_rb
         self.pattern_filename_txt = pattern_file_widget.file_txt
         self.pattern_directory_txt = pattern_file_widget.directory_txt
         self.pattern_directory_btn = pattern_file_widget.directory_btn
@@ -228,11 +225,13 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_roi_btn = image_widget.roi_btn
         self.img_mode_btn = image_widget.mode_btn
         self.img_mask_btn = image_widget.mask_btn
+        self.img_phases_btn = image_widget.phases_btn
         self.cake_shift_azimuth_sl = image_widget.cake_shift_azimuth_sl
         self.mask_transparent_cb = image_widget.transparent_cb
         self.img_autoscale_btn = image_widget.autoscale_btn
         self.img_dock_btn = image_widget.undock_btn
         self.img_widget = image_widget.img_view
+        self.cake_widget = image_widget.cake_view
         self.img_show_background_subtracted_btn = image_widget.show_background_subtracted_img_btn
 
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget

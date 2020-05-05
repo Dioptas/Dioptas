@@ -19,6 +19,7 @@ cloc-1.62.pl
 *.ui.autosave
 *.coverage
 smooth_bruckner_cython.c
+smooth_bruckner_cython.html
 
 log.txt
 .idea
@@ -31,6 +32,7 @@ install.sh
 analysis
 .pytest_cache
 libsmooth_b*
+__version__
 
 # Build results
 

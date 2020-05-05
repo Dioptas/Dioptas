@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,24 +20,20 @@
 
 from __future__ import absolute_import
 
-from ._version import get_versions
-
-__version__ = get_versions()['version']
-del get_versions
-
-if __version__ == "0+unknown":
-    __version__ = "0.5.0"
-
 import sys
 import os
 import time
+
+from .version import get_version
+
+__version__ = get_version()
 
 try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
 import traceback
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 
 dioptas_version = __version__[:5]
 
@@ -46,6 +42,9 @@ calibrants_path = os.path.join(resources_path, 'calibrants')
 icons_path = os.path.join(resources_path, 'icons')
 data_path = os.path.join(resources_path, 'data')
 style_path = os.path.join(resources_path, 'style')
+
+# Enable scaling for high DPI displays
+QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
 from ._desktop_shortcuts import make_shortcut
 
@@ -62,7 +61,6 @@ def excepthook(exc_type, exc_value, traceback_obj):
     :param traceback_obj: traceback object
     :return:
     """
-
     separator = '-' * 80
     log_file = "error.log"
     notice = \
@@ -104,7 +102,13 @@ def main():
     if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
 
-    controller = MainController()
-    controller.show_window()
-    app.exec_()
+
+    if len(sys.argv) == 1: # normal start
+        controller = MainController()
+        controller.show_window()
+        app.exec_()
+    else: # with command line arguments
+        if sys.argv[1] == 'test':
+            controller = MainController(use_settings=False)
+            controller.show_window()
     del app
