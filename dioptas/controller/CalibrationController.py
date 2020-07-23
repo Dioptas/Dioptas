@@ -668,12 +668,7 @@ class CalibrationController(object):
         """
         pyFAI_parameter, fit2d_parameter = self.model.calibration_model.get_calibration_parameter()
         self.widget.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
-
-        if self.model.calibration_model.distortion_spline_filename:
-            self.widget.spline_filename_txt.setText(
-                os.path.basename(self.model.calibration_model.distortion_spline_filename))
-        else:
-            self.widget.spline_filename_txt.setText('None')
+        self._update_spline_in_gui()
 
     def update_detector_parameters_in_view(self):
         detector_mode = self.model.calibration_model.detector_mode
