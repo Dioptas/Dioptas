@@ -157,8 +157,7 @@ class CalibrationModel(QtCore.QObject):
             return num_points
 
     def create_cake_geometry(self):
-        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename,
-                                                 detector=self.detector)
+        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename)
 
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
         pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
@@ -168,9 +167,9 @@ class CalibrationModel(QtCore.QObject):
                                     poni2=pyFAI_parameter['poni2'],
                                     rot1=pyFAI_parameter['rot1'],
                                     rot2=pyFAI_parameter['rot2'],
-                                    rot3=pyFAI_parameter['rot3'],
-                                    detector=self.detector)
+                                    rot3=pyFAI_parameter['rot3'])
 
+        self.cake_geometry.detector = self.detector
         self.cake_geometry.wavelength = pyFAI_parameter['wavelength']
 
     def setup_peak_search_algorithm(self, algorithm, mask=None):
