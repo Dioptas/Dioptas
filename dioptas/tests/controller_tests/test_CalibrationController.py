@@ -174,7 +174,7 @@ class TestCalibrationController(QtTest):
         self.assertEqual(QtWidgets.QProgressDialog.setValue.call_count, 15)
 
         calibration_parameter = self.model.calibration_model.get_calibration_parameter()[0]
-        self.assertAlmostEqual(calibration_parameter['dist'], .1967, places=4)
+        self.assertAlmostEqual(calibration_parameter['dist'], .1968, places=3)
 
     def test_splines(self):
         self.mock_integrate_functions()
