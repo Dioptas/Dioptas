@@ -24,9 +24,9 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-c2
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-pip-c2
 
     - name: Install Apt Dependencies
       run: sudo apt-get install gfortran libgfortran3 libxkbcommon-x11-0 libxcb-xinerama0
