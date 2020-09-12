@@ -30,12 +30,12 @@ jobs:
 
     - name: Install Apt Dependencies
       run: |
-        sudo apt-get install gfortran libgfortran3 libxkbcommon-x11-0 libxcb-xinerama0 libfontconfig1-dev
-        sudo apt-get install libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev
-        sudo apt-get install libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev
-        sudo apt-get install libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-shape0-dev
-        sudo apt-get install libxcb-randr0-dev libxcb-render-util0-dev libxcd-xinerama-dev libxkbcommon-dev
-        sudo apt-get install libxkbcommon-x11-dev
+        sudo apt-get update
+        sudo apt-get install gfortran libgfortran3 libxkbcommon-x11-0 libxkbcommon-x11-dev libxcb-xinerama0  \
+        libxkbcommon-dev libfontconfig1-dev libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+        libxi-dev libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev \
+        libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-shape0-dev \
+        libxcb-randr0-dev libxcb-render-util0-dev libxcd-xinerama-dev
 
     - name: Install Pip Dependencies
       run: |
