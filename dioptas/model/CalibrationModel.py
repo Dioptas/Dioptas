@@ -37,7 +37,7 @@ from skimage.measure import find_contours
 
 from .. import calibrants_path
 from .ImgModel import ImgModel
-from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90
+from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90, get_partial_index
 from .util.calc import supersample_image
 
 logger = logging.getLogger(__name__)
