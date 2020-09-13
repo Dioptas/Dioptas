@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -47,7 +47,6 @@ class ImgModel(QtCore.QObject):
         - image transformations like rotating and flipping
         - setting a background image
         - setting an absorption correction (img_data is divided by this)
-        - using supersampling (splitting each pixel into n**2 pixel with equal intensity)
 
     In order to subscribe to changes of the data in the ImgModel, please use the img_changed QtSignal.
     The Signal will be called every time the img_data has changed.
@@ -61,7 +60,6 @@ class ImgModel(QtCore.QObject):
         super(ImgModel, self).__init__()
         self.filename = ''
         self.img_transformations = []
-        self.supersampling_factor = 1
 
         self.file_iteration_mode = 'number'
         self.file_name_iterator = FileNameIterator()
@@ -73,11 +71,6 @@ class ImgModel(QtCore.QObject):
         self._img_data_background_subtracted = None
         self._img_data_absorption_corrected = None
         self._img_data_background_subtracted_absorption_corrected = None
-
-        self._img_data_supersampled = None
-        self._img_data_supersampled_background_subtracted = None
-        self._img_data_supersampled_absorption_corrected = None
-        self._img_data_supersampled_background_subtracted_absorption_corrected = None
 
         self.background_filename = ''
         self._background_data = None
@@ -124,8 +117,8 @@ class ImgModel(QtCore.QObject):
     def load(self, filename):
         """
         Loads an image file in any format known by fabIO, PIL or HDF5. Automatically performs all previous img
-        transformations, performs supersampling and recalculates background subtracted and absorption corrected image
-        data. The img_changed signal will be emitted after the process.
+        transformations, recalculates background subtracted and absorption corrected image data.
+        The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
         filename = str(filename)  # since it could also be QString
@@ -269,7 +262,7 @@ class ImgModel(QtCore.QObject):
     def load_background(self, filename):
         """
         Loads an image file as background in any format known by fabIO. Automatically performs all previous img
-        transformations, supersampling and recalculates background subtracted and absorption corrected image data.
+        transformations, recalculates background subtracted and absorption corrected image data.
         The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
@@ -290,8 +283,8 @@ class ImgModel(QtCore.QObject):
 
     def add(self, filename):
         """
-        Adds an image file in any format known by fabIO. Automatically performs all previous img transformations,
-        performs supersampling and recalculates background subtracted and absorption corrected image data.
+        Adds an image file in any format known by fabIO. Automatically performs all previous img transformations and
+        recalculates background subtracted and absorption corrected image data.
         The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
@@ -486,58 +479,25 @@ class ImgModel(QtCore.QObject):
                     self._background_scaling * self._background_data + self._background_offset)) / \
                                                                         self._img_corrections.get_data()
 
-        # supersample the current image data
-        if self.supersampling_factor > 1:
-            if self._background_data is None and not self._img_corrections.has_items():
-                self._img_data_supersampled = self.supersample_data(self._img_data, self.supersampling_factor)
-
-            if self._background_data is not None and not self._img_corrections.has_items():
-                self._img_data_supersampled_background_subtracted = \
-                    self.supersample_data(self._img_data_background_subtracted, self.supersampling_factor)
-
-            elif self._background_data is None and self._img_corrections.has_items():
-                self._img_data_supersampled_absorption_corrected = \
-                    self.supersample_data(self._img_data_absorption_corrected, self.supersampling_factor)
-
-            elif self._background_data is not None and self._img_corrections.has_items():
-                self._img_data_supersampled_background_subtracted_absorption_corrected = \
-                    self.supersample_data(self._img_data_background_subtracted_absorption_corrected,
-                                          self.supersampling_factor)
-
     @property
     def img_data(self):
         """
         :return:
-            The image based on the current state of the ImgData object. If supersampling is set it will return a
-            supersampled image array if background_data is set it will return a background_subtracted array and so on.
-            It also works for combinations of all these options.
+            The image based on the current state of the ImgData object. It will apply all image correction as well as
+            background subtraction. in case you want the raw data without corrections, please use the
+            raw_img_data property.
         """
-        if self.supersampling_factor == 1:
-            if self._background_data is None and not self._img_corrections.has_items():
-                return self._img_data * self.factor
+        if self._background_data is None and not self._img_corrections.has_items():
+            return self._img_data * self.factor
 
-            elif self._background_data is not None and not self._img_corrections.has_items():
-                return self._img_data_background_subtracted * self.factor
+        elif self._background_data is not None and not self._img_corrections.has_items():
+            return self._img_data_background_subtracted * self.factor
 
-            elif self._background_data is None and self._img_corrections.has_items():
-                return self._img_data_absorption_corrected * self.factor
+        elif self._background_data is None and self._img_corrections.has_items():
+            return self._img_data_absorption_corrected * self.factor
 
-            elif self._background_data is not None and self._img_corrections.has_items():
-                return self._img_data_background_subtracted_absorption_corrected * self.factor
-
-        else:
-            if self._background_data is None and not self._img_corrections.has_items():
-                return self._img_data_supersampled * self.factor
-
-            elif self._background_data is not None and not self._img_corrections.has_items():
-                return self._img_data_supersampled_background_subtracted * self.factor
-
-            elif self._background_data is None and self._img_corrections.has_items():
-                return self._img_data_supersampled_absorption_corrected * self.factor
-
-            elif self._background_data is not None and self._img_corrections.has_items():
-                return self._img_data_supersampled_background_subtracted_absorption_corrected * self.factor
-        return self._img_data * self.factor
+        elif self._background_data is not None and self._img_corrections.has_items():
+            return self._img_data_background_subtracted_absorption_corrected * self.factor
 
     @property
     def raw_img_data(self):
@@ -612,10 +572,10 @@ class ImgModel(QtCore.QObject):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def reset_transformations(self):
+    def reset_transformations(self, img_changed=True):
         """
         Reverts all image transformations and resets the transformation stack.
-        The img_changed signal will be emitted after the process.
+        The img_changed signal will be emitted after the process, if set to true.
         """
         self._reset_img_transformations()
         self._reset_background_transformations()
@@ -624,7 +584,8 @@ class ImgModel(QtCore.QObject):
         self.transformations_changed.emit()
 
         self._calculate_img_data()
-        self.img_changed.emit()
+        if img_changed:
+            self.img_changed.emit()
 
     def _reset_img_transformations(self):
         for transformation in reversed(self.img_transformations):
@@ -653,7 +614,6 @@ class ImgModel(QtCore.QObject):
         """
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
-
 
     def _perform_background_transformations(self):
         """
@@ -684,35 +644,6 @@ class ImgModel(QtCore.QObject):
                 self.img_transformations.append(rotate_matrix_p90)
         self._perform_img_transformations()
         self._perform_background_transformations()
-
-    def set_supersampling(self, factor=None):
-        """
-        Stores the supersampling factor and calculates supersampled original and background image arrays.
-        Updates all data calculations according to current ImgData object state.
-        The img_changed signal will be emitted after the process.
-        :param factor: int - supersampling factor
-        """
-        self.supersampling_factor = factor
-        self._calculate_img_data()
-        self.img_changed.emit()
-
-    def supersample_data(self, img_data, factor):
-        """
-        Creates a supersampled array from img_data.
-        :param img_data: image array
-        :param factor: int - supersampling factor
-        :return: supersampled image
-        """
-        if factor > 1:
-            img_data_supersampled = np.zeros((img_data.shape[0] * factor,
-                                              img_data.shape[1] * factor))
-            for row in range(factor):
-                for col in range(factor):
-                    img_data_supersampled[row::factor, col::factor] = img_data
-
-            return img_data_supersampled
-        else:
-            return img_data
 
     def add_img_correction(self, correction, name=None):
         """

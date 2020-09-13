@@ -1,0 +1,82 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CD_LINUX
+
+on: [push, pull_request]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build_linux:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+    - name: Setup Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+
+    - name: Use Python Dependency Cache
+      id: pip-cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-c2
+        restore-keys: |
+          ${{ runner.os }}-pip-c2
+
+    - name: Install Apt Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install gfortran libgfortran3 libxkbcommon-x11-0 libxkbcommon-x11-dev libxcb-xinerama0  \
+        libxkbcommon-dev libfontconfig1-dev libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+        libxi-dev libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev \
+        libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-shape0-dev \
+        libxcb-randr0-dev libxcb-render-util0-dev
+
+    - name: Install Pip Dependencies
+      run: |
+        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics extra_data pyinstaller
+        pip install --pre pyqtgraph
+
+    - name: Compile smooth_bruckner
+      run: |
+        cd dioptas/model/util/
+        f2py -c -m smooth_bruckner smooth_bruckner.f95
+
+    - name: Run Dioptas from source to test and create version file
+      run: xvfb-run python Dioptas.py test
+        
+    - name: Run PyInstaller
+      run: bash create_executable.sh
+
+    - name: Clean Up Executable Folder
+      run: |
+        cd dist/Dioptas*
+        rm libQt5Quick.so.5 libQt5Qml.so.5 libQt5Network.so.5 libcrypto.so.1.1 libsqlite3.so.0
+        rm -r imageio matplotlib mpl-data
+
+    - name: Run Dioptas
+      run: |
+        cd dist/Dioptas*
+        xvfb-run ./Dioptas test
+
+    - name: Compress Executable
+      run: |
+        cd dist
+        export DIOPTAS_FOLDER=$(ls | grep Dioptas)
+        tar -zcvf $DIOPTAS_FOLDER.tar.gz $DIOPTAS_FOLDER
+        du -sh $DIOPTAS_FOLDER.tar.gz
+
+    - name: Upload Compressed App to Dropbox
+      env:
+        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+      run: |
+        pip install dropbox
+        cd dist
+        export compressedFile=$(ls | grep .tar.gz)
+        export targetFile='/develop/linux/'$compressedFile
+        python ../scripts/dropbox_upload.py $compressedFile $targetFile

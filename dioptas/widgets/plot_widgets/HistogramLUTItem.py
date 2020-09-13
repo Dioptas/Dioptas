@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -203,9 +203,6 @@ class HistogramLUTItem(GraphicsWidget):
         self.imageChanged()
         # self.vb.autoRange()
 
-    def viewRangeChanged(self):
-        self.update()
-
     def gradientChanged(self):
         if self.imageItem is not None:
             if self.gradient.isLookupTrivial():
@@ -229,10 +226,7 @@ class HistogramLUTItem(GraphicsWidget):
         return self.lut
 
     def regionChanged(self):
-        # if self.imageItem is not None:
-        # self.imageItem.setLevels(self.region.getRegion())
         self.sigLevelChangeFinished.emit(self)
-        # self.update()
 
     def regionChanging(self):
         if self.imageItem is not None:
@@ -241,12 +235,18 @@ class HistogramLUTItem(GraphicsWidget):
         self.update()
 
     def imageChanged(self, autoRange=False):
-        hist_x, hist_y = list(self.imageItem.getHistogram(bins=1000))
-        self.hist_x = hist_x
-        self.hist_y = hist_y
+        hist_x, hist_y = list(self.imageItem.getHistogram(bins=3000))
 
         if hist_x is None:
             return
+
+        hist_x, hist_y = np.array(hist_x), np.array(hist_y)
+
+        hist_x = hist_x[np.where(hist_y>0)]
+        hist_y = hist_y[np.where(hist_y>0)]
+
+        self.hist_x = hist_x
+        self.hist_y = hist_y
 
         hist_y_log = np.log(hist_y[1:])
         hist_x_log = np.log(hist_x[1:])
@@ -265,6 +265,8 @@ class HistogramLUTItem(GraphicsWidget):
 
     def setLevels(self, mn, mx):
         self.region.setRegion([mn, mx])
+        if self.imageItem is not None:
+            self.imageItem.setLevels(np.exp(self.region.getRegion()))
 
     def empty_function(self, *args):
         pass

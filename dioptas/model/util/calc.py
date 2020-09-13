@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,3 +51,22 @@ def convert_units(value, wavelength, previous_unit, new_unit):
     else:
         res = None
     return res
+
+
+def supersample_image(img_data, factor):
+    """
+    Creates a supersampled array from img_data.
+    :param img_data: image array
+    :param factor: int - supersampling factor
+    :return: supersampled image
+    """
+    if factor > 1:
+        img_data_supersampled = np.zeros((img_data.shape[0] * factor,
+                                          img_data.shape[1] * factor))
+        for row in range(factor):
+            for col in range(factor):
+                img_data_supersampled[row::factor, col::factor] = img_data
+
+        return img_data_supersampled
+    else:
+        return img_data
