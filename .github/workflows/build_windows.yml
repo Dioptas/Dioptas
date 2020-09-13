@@ -1,0 +1,69 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CD_WINDOWS
+
+on: [push]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build_windows:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+    - name: Setup Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+
+    - name: Use Python Dependency Cache
+      id: pip-cache
+      uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+        
+    - name: Install Pip Dependencies
+      run: |
+        pip install pycifrw pandas python-dateutil h5py cython scikit-image pyqt5 future qtpy pyfai lmfit pyepics extra_data pyinstaller
+        pip install --pre pyqtgraph
+
+    - name: Compile Smooth Bruckner
+      run: cythonize -a -i dioptas\model\util\smooth_bruckner_cython.pyx
+
+    - name: Run Dioptas from source to test and create version file
+      run: python Dioptas.py test
+
+    - name: Run PyInstaller
+      shell: cmd
+      run: pyinstaller Dioptas.spec
+
+    - name: Run Dioptas Executable
+      shell: cmd
+      run: |
+        cd dist\Dioptas*
+        Dioptas.exe test
+
+    - name: Compress App
+      run: |
+        cd dist\Dioptas*
+        $folderName = pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
+        cd ..
+        $zipName = $folderName + '.zip'
+        Compress-Archive $folderName $zipName
+        Write-Host((Get-Item $zipName).length/1MB)
+
+    - name: Upload Compressed App to Dropbox
+      env:
+        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+      run: |
+        pip install dropbox
+        cd dist
+        $zipFile = Resolve-Path ".\Dioptas*.zip" | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
+        $targetFile = '/develop/windows/' + $zipFile
+        python ..\scripts\dropbox_upload.py $zipFile $targetFile

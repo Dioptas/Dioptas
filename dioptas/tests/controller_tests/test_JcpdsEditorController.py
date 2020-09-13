@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 import unittest
 from ..utility import QtTest
 from qtpy.QtTest import QTest
-from qtpy import QtCore
+from qtpy import QtCore, QtGui
 import os
 import gc
 from qtpy import QtWidgets
@@ -72,6 +72,7 @@ class JcpdsEditorControllerTest(QtTest):
         self.model.delete_configurations()
         del self.model
         delete_if_exists(os.path.join(jcpds_path, 'dummy.jcpds'))
+        delete_if_exists(os.path.join(data_path, 'reflection_table.txt'))
         gc.collect()
 
     # Utility Functions
@@ -270,3 +271,22 @@ class JcpdsEditorControllerTest(QtTest):
                                     'HAHA this is a phase you will never see in your pattern')
         self.assertEqual(self.controller.jcpds_phase.params['comments'][0],
                          'HAHA this is a phase you will never see in your pattern')
+
+    def test_export_reflection_table(self):
+        path = os.path.join(data_path, 'reflection_table.txt')
+        self.controller.export_table_data(path)
+        with open(path, 'r') as f:
+            self.assertEqual(len(f.readlines()), 21)
+
+    def test_copy_complete_reflection_table(self):
+        self.controller.reflection_table_key_pressed(QtGui.QKeySequence.SelectAll)
+        self.controller.reflection_table_key_pressed(QtGui.QKeySequence.Copy)
+
+        self.assertEqual(QtWidgets.QApplication.clipboard().text().split('\n')[3],
+                         '1	0	1	100.00	2.1065	2.1065	8.4396	8.4396	2.9828	2.9828')
+
+        self.jcpds_widget.reflection_table_model.wavelength = None
+        self.controller.reflection_table_key_pressed(QtGui.QKeySequence.Copy)
+        self.assertEqual(QtWidgets.QApplication.clipboard().text().split('\n')[3],
+                         '1	0	1	100.00	2.1065	2.1065')
+

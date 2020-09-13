@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -72,6 +72,15 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.tab_widget = self.calibration_display_widget.tab_widget
         self.ToolBox = self.calibration_control_widget.toolbox
 
+        detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
+        self.detectors_cb = detector_gb.detector_cb
+        self.detector_name_lbl = detector_gb.detector_name_lbl
+        self.detector_load_btn = detector_gb.detector_load_btn
+        self.detector_reset_btn = detector_gb.detector_reset_btn
+        self.spline_reset_btn = detector_gb.spline_reset_btn
+        self.load_spline_btn = detector_gb.spline_load_btn
+        self.spline_filename_txt = detector_gb.spline_name_txt
+
         sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
         self.rotate_m90_btn = sv_gb.rotate_m90_btn
         self.rotate_p90_btn = sv_gb.rotate_p90_btn
@@ -85,8 +94,6 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.sv_distance_txt = sv_gb.distance_txt
         self.sv_distance_cb = sv_gb.distance_cb
         self.sv_polarisation_txt = sv_gb.polarization_txt
-        self.sv_pixel_width_txt = sv_gb.pixel_width_txt
-        self.sv_pixel_height_txt = sv_gb.pixel_height_txt
 
         refinement_options_gb = self.calibration_control_widget.calibration_parameters_widget.refinement_options_gb
         self.use_mask_cb = refinement_options_gb.use_mask_cb
@@ -122,11 +129,6 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.pf_rot2_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation2_cb
         self.pf_rot3_cb = self.calibration_control_widget.pyfai_parameters_widget.rotation3_cb
 
-        distortion_gb = self.calibration_control_widget.calibration_parameters_widget.distortion_correction_gb
-        self.load_spline_btn = distortion_gb.spline_load_btn
-        self.spline_filename_txt = distortion_gb.spline_filename_txt
-        self.spline_reset_btn = distortion_gb.spline_reset_btn
-
         self.img_widget = self.calibration_display_widget.img_widget
         self.cake_widget = self.calibration_display_widget.cake_widget
         self.pattern_widget = self.calibration_display_widget.pattern_widget
@@ -144,8 +146,6 @@ class CalibrationWidget(QtWidgets.QWidget):
         sv_gb.distance_txt.setText('%.3f' % (start_values['dist'] * 1000))
         sv_gb.wavelength_txt.setText('%.6f' % (start_values['wavelength'] * 1e10))
         sv_gb.polarization_txt.setText('%.3f' % (start_values['polarization_factor']))
-        sv_gb.pixel_height_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
-        sv_gb.pixel_width_txt.setText('%.0f' % (start_values['pixel_width'] * 1e6))
 
     def get_start_values(self):
         """
@@ -156,10 +156,49 @@ class CalibrationWidget(QtWidgets.QWidget):
         sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
         start_values = {'dist': float(sv_gb.distance_txt.text()) * 1e-3,
                         'wavelength': float(sv_gb.wavelength_txt.text()) * 1e-10,
-                        'pixel_width': float(sv_gb.pixel_width_txt.text()) * 1e-6,
-                        'pixel_height': float(sv_gb.pixel_height_txt.text()) * 1e-6,
                         'polarization_factor': float(sv_gb.polarization_txt.text())}
         return start_values
+
+    def get_pixel_size(self):
+        detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
+        return float(detector_gb.pixel_width_txt.text()) * 1e-6, \
+               float(detector_gb.pixel_height_txt.text()) * 1e-6
+
+    def set_pixel_size(self, pixel_width, pixel_height):
+        detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
+        detector_gb.pixel_width_txt.setText('%.0f' % (pixel_width * 1e6))
+        detector_gb.pixel_height_txt.setText('%.0f' % (pixel_height * 1e6))
+
+    def enable_pixel_size_txt(self, bool):
+        detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
+        detector_gb.pixel_width_txt.setEnabled(bool)
+        detector_gb.pixel_height_txt.setEnabled(bool)
+
+    def get_fixed_values(self):
+        fixed_values = {}
+
+        pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
+        sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
+
+        if not sv_gb.distance_cb.isChecked():
+            fixed_values['dist'] = self.get_float_from_txt_field(sv_gb.distance_txt) * 1e-3
+        if not pyfai_widget.rotation1_cb.isChecked():
+            fixed_values['rot1'] = self.get_float_from_txt_field(pyfai_widget.rotation1_txt)
+        if not pyfai_widget.rotation2_cb.isChecked():
+            fixed_values['rot2'] = self.get_float_from_txt_field(pyfai_widget.rotation2_txt)
+        if not pyfai_widget.rotation3_cb.isChecked():
+            fixed_values['rot3'] = self.get_float_from_txt_field(pyfai_widget.rotation3_txt)
+        if not pyfai_widget.poni1_cb.isChecked():
+            fixed_values['poni1'] = self.get_float_from_txt_field(pyfai_widget.poni1_txt)
+        if not pyfai_widget.poni2_cb.isChecked():
+            fixed_values['poni2'] = self.get_float_from_txt_field(pyfai_widget.poni2_txt)
+        return fixed_values
+
+    def get_float_from_txt_field(self, txt_field):
+        if len(txt_field.text()) > 0:
+            return float(txt_field.text())
+        else:
+            return 0
 
     def set_calibration_parameters(self, pyFAI_parameter, fit2d_parameter):
         self.set_pyFAI_parameter(pyFAI_parameter)
@@ -172,6 +211,8 @@ class CalibrationWidget(QtWidgets.QWidget):
             polarization_factor, pixel1, pixel2
         """
         pyfai_widget = self.calibration_control_widget.pyfai_parameters_widget
+        sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
+        detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
         try:
             pyfai_widget.distance_txt.setText('%.6f' % (pyfai_parameter['dist'] * 1000))
             pyfai_widget.poni1_txt.setText('%.6f' % (pyfai_parameter['poni1']))
@@ -183,6 +224,10 @@ class CalibrationWidget(QtWidgets.QWidget):
             pyfai_widget.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
             pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
             pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
+
+            sv_gb.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
+            sv_gb.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
+            self.set_pixel_size(pyfai_parameter['pixel1'], pyfai_parameter['pixel2'])
         except (AttributeError, TypeError):
             pyfai_widget.distance_txt.setText('')
             pyfai_widget.poni1_txt.setText('')
@@ -290,7 +335,7 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self._status_layout.addWidget(self.calibrate_btn)
         self._status_layout.addWidget(self.refine_btn)
         self._status_layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                            QtWidgets.QSizePolicy.Minimum))
+                                                                QtWidgets.QSizePolicy.Minimum))
         self._status_layout.addWidget(self.position_lbl)
         self._layout.addLayout(self._status_layout)
 
@@ -308,10 +353,10 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         super(CalibrationControlWidget, self).__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self._file_layout = QtWidgets.QHBoxLayout()
-        self.load_img_btn = FlatButton("Load File", self)
+        self.load_img_btn = FlatButton("Load Image File", self)
         self.load_previous_img_btn = FlatButton("<", self)
         self.load_next_img_btn = FlatButton(">", self)
 
@@ -346,8 +391,8 @@ class CalibrationControlWidget(QtWidgets.QWidget):
     def style_widgets(self):
         self.load_previous_img_btn.setMaximumWidth(50)
         self.load_next_img_btn.setMaximumWidth(50)
-        self.setMaximumWidth(350)
-        self.setMinimumWidth(350)
+        self.setMaximumWidth(310)
+        self.setMinimumWidth(310)
 
 
 class CalibrationParameterWidget(QtWidgets.QWidget):
@@ -356,17 +401,81 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QVBoxLayout(self)
 
+        self.detector_gb = DetectorGroupbox()
         self.start_values_gb = StartValuesGroupBox(self)
         self.peak_selection_gb = PeakSelectionGroupBox()
         self.refinement_options_gb = RefinementOptionsGroupBox()
-        self.distortion_correction_gb = DistortionCorrectionGroupBox()
 
+        self._layout.addWidget(self.detector_gb)
         self._layout.addWidget(self.start_values_gb)
         self._layout.addWidget(self.peak_selection_gb)
         self._layout.addWidget(self.refinement_options_gb)
-        self._layout.addWidget(self.distortion_correction_gb)
         self._layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                     QtWidgets.QSizePolicy.Expanding))
+                                                         QtWidgets.QSizePolicy.Expanding))
+
+        self.setLayout(self._layout)
+
+
+class DetectorGroupbox(QtWidgets.QGroupBox):
+    def __init__(self, *args, **kwargs):
+        super(DetectorGroupbox, self).__init__('Detector', *args, **kwargs)
+
+        self._layout = QtWidgets.QVBoxLayout(self)
+
+        self.detector_cb = CleanLooksComboBox()
+        self.detector_name_lbl = LabelAlignRight()
+        self.detector_name_lbl.hide()
+        self.detector_load_btn = FlatButton()
+        self.detector_load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.detector_load_btn.setIconSize(QtCore.QSize(13, 13))
+        self.detector_load_btn.setMaximumWidth(21)
+        self.detector_load_btn.setToolTip('Open Detector File')
+        self.detector_reset_btn = FlatButton()
+        self.detector_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.detector_reset_btn.setIconSize(QtCore.QSize(13, 13))
+        self.detector_reset_btn.setMaximumWidth(21)
+        self.detector_reset_btn.setToolTip('Reset Detector')
+        self.detector_reset_btn.setDisabled(True)
+
+        self._detector_layout = QtWidgets.QHBoxLayout()
+        self._detector_layout.addWidget(self.detector_cb)
+        self._detector_layout.addWidget(self.detector_name_lbl)
+        self._detector_layout.addWidget(self.detector_load_btn)
+        self._detector_layout.addWidget(self.detector_reset_btn)
+
+        self._layout.addLayout(self._detector_layout)
+
+        self._grid_layout1 = QtWidgets.QGridLayout()
+
+        self._grid_layout1.addWidget(LabelAlignRight('Pixel width:'), 1, 0)
+        self.pixel_width_txt = NumberTextField('79')
+        self._grid_layout1.addWidget(self.pixel_width_txt, 1, 1)
+        self._grid_layout1.addWidget(QtWidgets.QLabel('um'), 1, 2)
+
+        self._grid_layout1.addWidget(LabelAlignRight('Pixel height:'), 2, 0)
+        self.pixel_height_txt = NumberTextField('79')
+        self._grid_layout1.addWidget(self.pixel_height_txt, 2, 1)
+        self._grid_layout1.addWidget(QtWidgets.QLabel('um'), 2, 2)
+
+        self.spline_name_txt = QtWidgets.QLabel('None')
+        self.spline_load_btn = FlatButton()
+        self.spline_load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.spline_load_btn.setIconSize(QtCore.QSize(13, 13))
+        self.spline_load_btn.setMaximumWidth(21)
+        self.spline_load_btn.setToolTip('Open Spline File')
+        self.spline_reset_btn = FlatButton()
+        self.spline_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.spline_reset_btn.setIconSize(QtCore.QSize(13, 13))
+        self.spline_reset_btn.setMaximumWidth(21)
+        self.spline_reset_btn.setToolTip('Reset distortion correction')
+        self.spline_reset_btn.setDisabled(True)
+
+        self._grid_layout1.addWidget(LabelAlignRight('Distortion:'), 3, 0)
+        self._grid_layout1.addWidget(self.spline_name_txt, 3, 1)
+        self._grid_layout1.addWidget(self.spline_load_btn, 3, 2)
+        self._grid_layout1.addWidget(self.spline_reset_btn, 3, 3)
+
+        self._layout.addLayout(self._grid_layout1)
 
         self.setLayout(self._layout)
 
@@ -397,16 +506,6 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
         self._grid_layout1.addWidget(LabelAlignRight('Polarization:'), 2, 0)
         self.polarization_txt = NumberTextField('0.99')
         self._grid_layout1.addWidget(self.polarization_txt, 2, 1)
-
-        self._grid_layout1.addWidget(LabelAlignRight('Pixel width:'), 3, 0)
-        self.pixel_width_txt = NumberTextField('72')
-        self._grid_layout1.addWidget(self.pixel_width_txt, 3, 1)
-        self._grid_layout1.addWidget(QtWidgets.QLabel('um'))
-
-        self._grid_layout1.addWidget(LabelAlignRight('Pixel height:'), 4, 0)
-        self.pixel_height_txt = NumberTextField('72')
-        self._grid_layout1.addWidget(self.pixel_height_txt, 4, 1)
-        self._grid_layout1.addWidget(QtWidgets.QLabel('um'))
 
         self._grid_layout1.addWidget(LabelAlignRight('Calibrant:'), 5, 0)
         self.calibrant_cb = CleanLooksComboBox()
@@ -440,7 +539,7 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
 
         self._layout = QtWidgets.QGridLayout()
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                               QtWidgets.QSizePolicy.Minimum), 0, 0)
+                                                   QtWidgets.QSizePolicy.Minimum), 0, 0)
         self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
         self.peak_num_sb = SpinBoxAlignRight()
         self.peak_num_sb.setValue(1)
@@ -448,7 +547,7 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self._layout.addWidget(self.peak_num_sb, 0, 3)
 
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                               QtWidgets.QSizePolicy.Minimum), 1, 0, 1, 2)
+                                                   QtWidgets.QSizePolicy.Minimum), 1, 0, 1, 2)
         self.automatic_peak_num_inc_cb = QtWidgets.QCheckBox('automatic increase')
         self.automatic_peak_num_inc_cb.setChecked(True)
         self._layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
@@ -465,7 +564,7 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self.search_size_sb.setMaximumWidth(50)
         self._layout.addWidget(self.search_size_sb, 4, 1, 1, 2)
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                               QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
+                                                   QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
 
         self.undo_peaks_btn = FlatButton("Undo")
         self.clear_peaks_btn = FlatButton("Clear All Peaks")
@@ -517,26 +616,6 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self.number_of_rings_sb = SpinBoxAlignRight()
         self.number_of_rings_sb.setValue(15)
         self._layout.addWidget(self.number_of_rings_sb, 6, 1)
-
-        self.setLayout(self._layout)
-
-
-class DistortionCorrectionGroupBox(QtWidgets.QGroupBox):
-    def __init__(self):
-        super(DistortionCorrectionGroupBox, self).__init__('Distortion Correction')
-
-        self._layout = QtWidgets.QGridLayout()
-        self.spline_load_btn = FlatButton('Load Splinefile')
-        self.spline_filename_txt = QtWidgets.QLabel('None')
-        self.spline_reset_btn = FlatButton()
-        self.spline_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
-        self.spline_reset_btn.setIconSize(QtCore.QSize(13, 13))
-        self.spline_reset_btn.setMaximumWidth(21)
-        self.spline_reset_btn.setToolTip('Reset distortion correction')
-
-        self._layout.addWidget(self.spline_load_btn, 0, 0)
-        self._layout.addWidget(self.spline_filename_txt, 1, 0, 1, 2)
-        self._layout.addWidget(self.spline_reset_btn, 0, 1)
 
         self.setLayout(self._layout)
 
@@ -614,8 +693,9 @@ class PyfaiParametersWidget(QtWidgets.QWidget):
         self.update_btn = FlatButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
-        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
-                             11, 0, 1, 4)
+        self._layout.addItem(
+            QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
+            11, 0, 1, 4)
 
         self.setLayout(self._layout)
 
@@ -678,7 +758,8 @@ class Fit2dParametersWidget(QtWidgets.QWidget):
         self.update_btn = FlatButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
-        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
-                             11, 0, 1, 4)
+        self._layout.addItem(
+            QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding),
+            11, 0, 1, 4)
 
         self.setLayout(self._layout)

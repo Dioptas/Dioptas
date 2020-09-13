@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ class ImageController(object):
         self.create_mouse_behavior()
 
     def initialize(self):
-        self.update_img_info()
+        self.update_img()
         self.plot_img()
         self.plot_mask()
         self.widget.img_widget.auto_level()
@@ -155,7 +155,7 @@ class ImageController(object):
 
     def create_signals(self):
         self.model.configuration_selected.connect(self.update_gui_from_configuration)
-        self.model.img_changed.connect(self.update_img_info)
+        self.model.img_changed.connect(self.update_img)
 
         self.model.img_changed.connect(self.plot_img)
         self.model.img_changed.connect(self.plot_mask)
@@ -163,20 +163,21 @@ class ImageController(object):
         """
         Creates all the connections of the GUI elements.
         """
-
-        ###
-        # File Connections and browsing
-        self.widget.next_img_btn.clicked.connect(self.load_next_img)
-        self.widget.prev_img_btn.clicked.connect(self.load_previous_img)
+        self.widget.img_step_file_widget.next_btn.clicked.connect(self.load_next_img)
+        self.widget.img_step_file_widget.previous_btn.clicked.connect(self.load_previous_img)
         self.widget.load_img_btn.clicked.connect(self.load_file)
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.widget.img_directory_btn.clicked.connect(self.img_directory_btn_click)
 
+        self.widget.img_step_series_widget.next_btn.clicked.connect(self.load_next_series_img)
+        self.widget.img_step_series_widget.previous_btn.clicked.connect(self.load_prev_series_img)
+        self.widget.img_step_series_widget.pos_txt.editingFinished.connect(self.load_series_img)
+
         self.widget.file_info_btn.clicked.connect(self.show_file_info)
 
-        self.widget.img_browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
-        self.widget.img_browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
+        self.widget.img_step_file_widget.browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
+        self.widget.img_step_file_widget.browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
         self.widget.mask_transparent_cb.clicked.connect(self.update_mask_transparency)
 
         ###
@@ -433,12 +434,26 @@ class ImageController(object):
     def update_img_mode(self):
         self.widget.img_mode_btn.click()
 
+    def load_series_img(self):
+        pos = int(str(self.widget.img_step_series_widget.pos_txt.text()))
+        self.model.img_model.load_series_img(pos)
+
+    def load_prev_series_img(self):
+        step = int(str(self.widget.img_step_series_widget.step_txt.text()))
+        pos = int(str(self.widget.img_step_series_widget.pos_txt.text()))
+        self.model.img_model.load_series_img(pos-step)
+
+    def load_next_series_img(self):
+        step = int(str(self.widget.img_step_series_widget.step_txt.text()))
+        pos = int(str(self.widget.img_step_series_widget.pos_txt.text()))
+        self.model.img_model.load_series_img(pos+step)
+
     def load_next_img(self):
-        step = int(str(self.widget.image_browse_step_txt.text()))
+        step = int(str(self.widget.img_step_file_widget.step_txt.text()))
         self.model.img_model.load_next_file(step=step)
 
     def load_previous_img(self):
-        step = int(str(self.widget.image_browse_step_txt.text()))
+        step = int(str(self.widget.img_step_file_widget.step_txt.text()))
         self.model.img_model.load_previous_file(step=step)
 
     def filename_txt_changed(self):
@@ -475,7 +490,14 @@ class ImageController(object):
             self.model.working_directories['image'] = directory
             self.widget.img_directory_txt.setText(directory)
 
-    def update_img_info(self):
+    def update_img(self):
+        self.widget.img_step_series_widget.setVisible(self.model.img_model.series_max > 1)
+        self.widget.img_step_series_widget.pos_validator.setTop(self.model.img_model.series_max)
+        self.widget.img_step_series_widget.pos_txt.setText(str(self.model.img_model.series_pos))
+
+        self.widget.file_info_btn.setVisible(self.model.img_model.file_info != "")
+        self.widget.move_btn.setVisible(len(self.model.img_model.motors_info) > 0)
+
         self.widget.img_filename_txt.setText(os.path.basename(self.model.img_model.filename))
         self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.model.img_model.file_info)
@@ -558,7 +580,6 @@ class ImageController(object):
 
         self.model.cake_changed.connect(self.plot_cake)
         self.plot_cake()
-        self.update_cake_axes_range()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
         self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi) / 2)
@@ -899,22 +920,21 @@ class ImageController(object):
         if filename is not '':
             if filename.endswith('.png'):
                 if self.widget.img_mode == 'Cake':
-                    self.widget.img_widget.deactivate_vertical_line()
-                    self.widget.img_widget.deactivate_mouse_click_item()
+                    self.widget.cake_widget.deactivate_vertical_line()
+                    self.widget.cake_widget.deactivate_mouse_click_item()
+                    QtWidgets.QApplication.processEvents()
+                    self.widget.cake_widget.save_img(filename)
+                    self.widget.cake_widget.activate_vertical_line()
+                    self.widget.cake_widget.activate_mouse_click_item()
                 elif self.widget.img_mode == 'Image':
                     self.widget.img_widget.deactivate_circle_scatter()
                     self.widget.img_widget.deactivate_roi()
-
-                QtWidgets.QApplication.processEvents()
-                self.widget.img_widget.save_img(filename)
-
-                if self.widget.img_mode == 'Cake':
-                    self.widget.img_widget.activate_vertical_line()
-                    self.widget.img_widget.activate_mouse_click_item()
-                elif self.widget.img_mode == 'Image':
+                    QtWidgets.QApplication.processEvents()
+                    self.widget.img_widget.save_img(filename)
                     self.widget.img_widget.activate_circle_scatter()
                     if self.roi_active:
                         self.widget.img_widget.activate_roi()
+
             elif filename.endswith('.tiff') or filename.endswith('.tif'):
                 if self.widget.img_mode == 'Image':
                     im_array = np.int32(self.model.img_data)
@@ -941,6 +961,7 @@ class ImageController(object):
         self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
 
+        self.update_img()
         self.update_mask_mode()
         self.update_roi_in_gui()
 
