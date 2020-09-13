@@ -103,12 +103,12 @@ class IntegrationMockFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
         self.model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
-                                                                     mask=None, unit='2th_deg')
+                                                                     azi_range=None, mask=None, unit='2th_deg')
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
-        self.model.calibration_model.integrate_1d.assert_called_with(num_points=None,
+        self.model.calibration_model.integrate_1d.assert_called_with(num_points=None, azi_range=None,
                                                                      mask=None, unit='2th_deg')
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
