@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -105,7 +105,6 @@ class ImageController(object):
 
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         self.widget.cake_widget.plot_image(np.roll(self.model.cake_data, shift_amount, axis=0))
-        self.update_cake_axes_range()
         if auto_scale:
             self.widget.cake_widget.auto_level()
 
@@ -169,7 +168,7 @@ class ImageController(object):
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
         self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
-        self.widget.integration_image_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
+        self.widget.integration_image_widget.cake_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
         self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
         self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
 
@@ -554,7 +553,6 @@ class ImageController(object):
 
         self.model.cake_changed.connect(self.plot_cake)
         self.plot_cake()
-        self.update_cake_axes_range()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
         self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi) / 2)
@@ -602,12 +600,9 @@ class ImageController(object):
 
     def _update_cake_line_pos(self):
         cur_tth = self.get_current_pattern_tth()
-        if cur_tth < np.min(self.model.cake_tth) or cur_tth > np.max(self.model.cake_tth):
-            self.widget.cake_widget.vertical_line.hide()
-        else:
+        if cur_tth > np.min(self.model.cake_tth) and cur_tth < np.max(self.model.cake_tth):
             new_pos = get_partial_index(self.model.cake_tth, cur_tth) + 0.5
             self.widget.cake_widget.vertical_line.setValue(new_pos)
-            self.widget.cake_widget.vertical_line.show()
 
     def _update_cake_mouse_click_pos(self):
         if self.clicked_tth is None or not self.model.calibration_model.is_calibrated:
@@ -797,6 +792,8 @@ class ImageController(object):
 
             self.clicked_tth = tth
             self.clicked_azi = azi
+
+            # self._update_cake_line_pos()
 
             # calculate right unit for the position line the pattern widget
             if self.widget.pattern_q_btn.isChecked():

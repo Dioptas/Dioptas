@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ import unittest
 
 from ..utility import QtTest, QtWidgets
 from ...model.util import jcpds
-from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget, TestTableModelWidget, ReflectionTableModel
+from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')

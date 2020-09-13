@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 import os
 import json
+import datetime
 from sys import platform as _platform
 
 from qtpy import QtWidgets, QtCore
@@ -150,7 +151,6 @@ class MainController(object):
 
             # update the GUI
         if ind == 2:  # integration tab
-            self.model.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.image_controller._auto_scale = False
@@ -202,10 +202,11 @@ class MainController(object):
         img_filename = os.path.basename(self.model.img_model.filename)
         pattern_filename = os.path.basename(self.model.pattern.filename)
         calibration_name = self.model.calibration_model.calibration_name
+        year = datetime.datetime.now().year
         str = 'Dioptas ' + __version__
         if img_filename is '' and pattern_filename is '':
-            self.widget.setWindowTitle(str + u' - © 2019 C. Prescher')
-            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2019 C. Prescher')
+            self.widget.setWindowTitle(str + u' - © {} C. Prescher'.format(year))
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © {} C. Prescher'.format(year))
             return
 
         if img_filename is not '' or pattern_filename is not '':
@@ -219,7 +220,7 @@ class MainController(object):
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += u' - © 2019 C. Prescher'
+        str += u' - © {} C. Prescher'.format(year)
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 

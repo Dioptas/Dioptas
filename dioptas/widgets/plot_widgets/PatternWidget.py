@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -348,7 +348,7 @@ class PatternWidget(QtCore.QObject):
                 self.auto_range = True
             else:
                 self.auto_range = False
-                self.view_box.scaleBy(2)
+                self.view_box.scaleBy((2, 2))
             self.emit_sig_range_changed()
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())

@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -355,9 +355,16 @@ class CifPhase(object):
         else:
             self.space_group = None
 
-        self.space_group_number = cif_dictionary.get('_symmetry_Int_Tables_number')
+        if '_symmetry_Int_Tables_number'.lower() in cif_dictionary.keys():
+            self.space_group_number = cif_dictionary.get('_symmetry_Int_Tables_number'.lower())
+        elif '_space_group_IT_number'.lower() in cif_dictionary.keys():
+            self.space_group_number = cif_dictionary.get('_space_group_IT_number'.lower())
+        else:
+            self.space_group_number = None
+
         if self.space_group_number is not None:
             self.space_group_number = int(self.space_group_number)
+
         self.symmetry = self.get_symmetry_from_space_group_number(self.space_group_number)
 
         self.comments = ''

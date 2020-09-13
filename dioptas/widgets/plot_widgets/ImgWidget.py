@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ class ImgWidget(QtCore.QObject):
         self.mouse_click_item = pg.ScatterPlotItem()
         self.mouse_click_item.setSymbol('+')
         self.mouse_click_item.setSize(15)
-        self.mouse_click_item.addPoints([1024], [1024])
+        self.mouse_click_item.addPoints([0], [0])
         self.mouse_left_clicked.connect(self.set_mouse_click_position)
         self.activate_mouse_click_item()
 
@@ -135,12 +135,7 @@ class ImgWidget(QtCore.QObject):
         hist_y_sum = np.sum(hist_y)
 
         max_ind = np.where(hist_y_cumsum < (0.996 * hist_y_sum))
-        min_ind = np.where(hist_y_cumsum > (0.05 * hist_y_sum))
-
-        if len(min_ind) == 1:
-            min_level = np.min(hist_x)
-        else:
-            min_level = hist_x[min_ind[0][1]]
+        min_level = np.mean(hist_x[:2])
 
         if len(max_ind[0]):
             max_level = hist_x[max_ind[0][-1]]
@@ -193,7 +188,7 @@ class ImgWidget(QtCore.QObject):
                         (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
                     self.auto_range()
                 else:
-                    self.img_view_box.scaleBy(2)
+                    self.img_view_box.scaleBy((2,2))
 
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
