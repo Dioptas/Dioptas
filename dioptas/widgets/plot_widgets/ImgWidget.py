@@ -425,6 +425,7 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
         self.add_cake_axes()
+        self.move_image()
         self.add_cake_integral()
         self.modify_cake_integral_plot_mouse_behavior()
         self.arange_layout()
@@ -436,12 +437,20 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.bottom_axis_cake.setLabel(u'2θ', u'°')
         self.left_axis_cake.setLabel(u'Azimuth', u'°')
 
-        self.pg_layout.addItem(self.bottom_axis_cake, row=2, col=1)
+        self.pg_layout.addItem(self.bottom_axis_cake, row=2, col=2)
         self.pg_layout.addItem(self.left_axis_cake, row=1, col=0)
+
+    def move_image(self):
+        cake_image = self.pg_layout.getItem(1, 1)
+        self.pg_layout.removeItem(cake_image)
+        self.pg_layout.addItem(cake_image, 1, 2)
+        cake_lut = self.pg_layout.getItem(0, 1)
+        self.pg_layout.removeItem(cake_lut)
+        self.pg_layout.addItem(cake_lut, 0, 2)
 
     def add_cake_integral(self):
         self.cake_integral_item = pg.PlotDataItem([], [], pen=pg.mkPen(color='#FFF', width=1.5))
-        self.cake_integral_plot = self.pg_layout.addPlot(row=1, col=3, rowspan=2, colspan=1,
+        self.cake_integral_plot = self.pg_layout.addPlot(row=1, col=1, rowspan=2, colspan=1,
                                                          labels={'bottom': 'Intensity'})
         self.cake_integral_plot.hideAxis('left')
         self.cake_integral_plot.addItem(self.cake_integral_item)
@@ -451,9 +460,10 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.cake_integral_plot.setYLink(self.img_view_box)
 
     def arange_layout(self):
+        # self.pg_layout.ci.setSpacing(0)
         self.pg_layout.ci.layout.setColumnStretchFactor(0, 1)
-        self.pg_layout.ci.layout.setColumnStretchFactor(1, 14)
-        self.pg_layout.ci.layout.setColumnStretchFactor(2, 3)
+        self.pg_layout.ci.layout.setColumnStretchFactor(1, 3)
+        self.pg_layout.ci.layout.setColumnStretchFactor(2, 14)
 
     def modify_cake_integral_plot_mouse_behavior(self):
         self.cake_integral_plot.vb.mouseClickEvent = self.empty_function
