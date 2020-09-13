@@ -187,6 +187,9 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.automatic_binning_cb = options_control_widget.bin_count_cb
         self.correct_solid_angle_cb = options_control_widget.correct_solid_angle_cb
         self.supersampling_sb = options_control_widget.supersampling_sb
+        self.oned_full_range_btn = options_control_widget.oned_full_toggle_btn
+        self.oned_azimuth_min_txt = options_control_widget.oned_azimuth_min_txt
+        self.oned_azimuth_max_txt = options_control_widget.oned_azimuth_max_txt
 
         self.mouse_x_lbl = self.integration_status_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl
         self.mouse_y_lbl = self.integration_status_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl
