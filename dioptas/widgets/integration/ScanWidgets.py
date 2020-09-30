@@ -4,7 +4,7 @@ from pyqtgraph import GraphicsLayoutWidget
 import os
 import numpy as np
 
-from ..plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationCakeWidget
+from ..plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationBatchWidget
 from .CustomWidgets import FlatButton
 
 class ScanWidget(QtWidgets.QWidget):
@@ -23,7 +23,7 @@ class ScanWidget(QtWidgets.QWidget):
         #self.setGeometry(200, 100, 800, 600)
 
         self.img_pg_layout = GraphicsLayoutWidget()
-        self.img_view = IntegrationCakeWidget(self.img_pg_layout, orientation='horizontal')
+        self.img_view = IntegrationBatchWidget(self.img_pg_layout, orientation='horizontal')
         self._frame_layout.addWidget(self.img_pg_layout)
 
         #self.position_and_unit_widget = QtWidgets.QWidget()

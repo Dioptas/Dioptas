@@ -1,15 +1,9 @@
 import logging
 import os
-from past.builtins import basestring
-import copy
 
 import h5py
 import numpy as np
-
-from PIL import Image
 from qtpy import QtCore
-
-from . import ImgModel, CalibrationModel, MaskModel
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +16,8 @@ class ScanModel(QtCore.QObject):
         self.data = None
         self.binning = None
 
-        self.file_map = []
-        self.files = []
+        self.file_map = None
+        self.files = None
         self.pos_map = None
 
         self.calibration_model = calibration_model
@@ -48,27 +42,27 @@ class ScanModel(QtCore.QObject):
             self.files = data_file['files'][()].astype('U')
             self.pos_map = data_file['pos_map'][()]
 
-            cal_file = data_file.attrs['calibration']
-            print(cal_file, str(cal_file))
+            cal_file = str(data_file.attrs['calibration'])
             self.calibration_model.load(cal_file)
             #mask_file = data_file.attrs['mask']
             #self.mask_model.load_mask(mask_file)
 
     def save_proc_data(self, filename):
-
+        """
+        Save diffraction patterns to h5 file
+        """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
 
             f.attrs['calibration'] = self.calibration_model.filename
             f.attrs['int_method'] = 'Bla'
-            f.attrs['num_points'] = len(self.binning)
+            f.attrs['num_points'] = self.binning.shape[0]
 
             f.create_dataset("data", data=self.data)
             f.create_dataset("binning", data=self.binning)
             f.create_dataset("pos_map", data=self.pos_map)
-            f.create_dataset("file_map", data=np.array(self.file_map))
-            f.create_dataset("files", data=np.array(self.files).astype('S'))
-
+            f.create_dataset("file_map", data=self.file_map)
+            f.create_dataset("files", data=self.files.astype('S'))
 
     def integrate_raw_data(self):
         """
@@ -77,9 +71,10 @@ class ScanModel(QtCore.QObject):
         """
         data = []
         pos_map = []
+        file_map = []
         for file in self.files:
             self.calibration_model.img_model.load(file)
-            self.file_map.append(len(data))
+            file_map.append(len(data))
 
             for i in range(self.calibration_model.img_model.series_max):
                 self.calibration_model.img_model.load_series_img(i)
@@ -91,20 +86,13 @@ class ScanModel(QtCore.QObject):
                 data.append(intensity)
 
         self.pos_map = np.array(pos_map)
-        self.binning = binning
+        self.binning = np.array(binning)
         self.data = np.array(data)
-
-        print(self.data.shape, self.file_map)
-
-    def save_scan(self, filename):
-        """
-        Save diffraction patterns to h5 file
-        """
-        pass
+        self.file_map = np.array(file_map)
 
     def get_image_info(self, index):
 
-        f_index = np.where(np.array(self.file_map) <= index)[0][-1]
+        f_index = np.where(self.file_map <= index)[0][-1]
         filename = self.files[f_index]
         pos = self.pos_map[index]
         return filename, pos

@@ -283,6 +283,7 @@ class CalibrationCakeWidget(ImgWidget):
             self.img_view_box.removeItem(self.vertical_line)
 
     def set_vertical_line_pos(self, x, y):
+        print('Set vertical pos', x, y)
         self.vertical_line.setValue(x)
 
 
@@ -471,6 +472,39 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
     def update_phase_intensities(self, ind, positions, intensities):
         if len(self.phases):
             self.phases[ind].update_lines(positions, intensities)
+
+
+class IntegrationBatchWidget(IntegrationCakeWidget):
+    def __init__(self, pg_layout, orientation='vertical'):
+        super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
+        self.create_horizontal_line()
+        self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
+        self.horizontal_line = None
+
+    def create_horizontal_line(self):
+        self.horizontal_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(0, 255, 0), width=2))
+        self.activate_horizontal_line()
+
+    def activate_horizontal_line(self):
+        if not self.horizontal_line in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.horizontal_line)
+            self.horizontal_line.setVisible(True)  # oddly this is needed for the line to be displayed correctly
+
+    def deactivate_horizontal_line(self):
+        if self.horizontal_line in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.horizontal_line)
+
+    def set_horizontal_line_pos(self, x, y):
+        self.horizontal_line.setValue(y)
+
+    def add_cake_axes(self):
+        self.left_axis_cake = pg.AxisItem('left')
+        self.bottom_axis_cake = pg.AxisItem('bottom')
+        self.bottom_axis_cake.setLabel(u'2θ', u'°')
+        self.left_axis_cake.setLabel(u'Image number', u'')
+
+        self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
+        self.pg_layout.addItem(self.left_axis_cake, 1, 0)
 
 
 class CakePhasePlot(object):
