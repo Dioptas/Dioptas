@@ -44,7 +44,7 @@ data_path = os.path.join(resources_path, 'data')
 style_path = os.path.join(resources_path, 'style')
 
 # Enable scaling for high DPI displays
-QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+#QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
 from ._desktop_shortcuts import make_shortcut
 
