@@ -24,6 +24,7 @@ from qtpy import QtWidgets, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
 from ..EpicsWidgets import MoveStageWidget
+from .ScanWidgets import ScanWidget
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .control import IntegrationControlWidget
@@ -84,6 +85,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self.file_info_widget = FileInfoWidget(self)
         self.move_widget = MoveStageWidget(self)
+        self.scan_widget = ScanWidget(self)
 
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)

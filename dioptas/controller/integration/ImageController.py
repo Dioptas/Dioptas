@@ -152,6 +152,7 @@ class ImageController(object):
         self.widget.img_step_series_widget.pos_txt.editingFinished.connect(self.load_series_img)
 
         self.widget.file_info_btn.clicked.connect(self.show_file_info)
+        self.widget.integration_control_widget.img_control_widget.scan_btn.clicked.connect(self.show_scan_frame)
 
         self.widget.img_step_file_widget.browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
         self.widget.img_step_file_widget.browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
@@ -344,6 +345,10 @@ class ImageController(object):
         if self.widget.pattern_header_dat_cb.isChecked():
             res.append('.dat')
         return res
+
+    def show_scan_frame(self):
+        print("Show scan frame")
+        self.widget.scan_widget.show()
 
     def show_file_info(self):
         self.widget.file_info_widget.raise_widget()
