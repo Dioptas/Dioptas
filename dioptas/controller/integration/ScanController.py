@@ -58,11 +58,18 @@ class ScanController(object):
 
         self.model.scan_model.set_image_files(filenames)
 
+        names = [os.path.basename(f) for f in filenames]
+        self.widget.img_filename_txt.setText(str(names))
+        self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
+        self.model.working_directories['image'] = os.path.dirname(filenames[0])
+
     def load_proc_data(self):
         filename = open_file_dialog(self.widget, "Load image data file(s)",
                                     self.model.working_directories['image'])
 
         self.model.scan_model.load_proc_data(filename)
+        self.widget.calibration_lbl.setText(
+            self.model.calibration_model.calibration_name)
         img = self.model.scan_model.data
         self.widget.scan_widget.img_view.plot_image(img, True)
         self.widget.scan_widget.img_view.auto_level()
@@ -77,6 +84,8 @@ class ScanController(object):
     def img_mouse_click(self, x, y):
 
         img_data = self.model.scan_model.data
+        if img_data is None:
+            return
         if 0 < x < img_data.shape[1] - 1 and 0 < y < img_data.shape[0] - 1:
             self.model.current_configuration.auto_integrate_pattern = False
             self.model.scan_model.load_image(int(y))
@@ -155,10 +164,17 @@ class ScanController(object):
         self.widget.scan_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
 
     def integrate(self):
-
+        if not self.model.calibration_model.is_calibrated:
+            self.widget.show_error_msg("Can not integrate multiple images without calibration.")
+            return
         self.model.img_model.blockSignals(True)
-        self.model.scan_model.integrate_raw_data()
+        self.model.blockSignals(True)
+        progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
+                                                          100)
+        self.model.scan_model.integrate_raw_data(progress_dialog)
+        progress_dialog.close()
         self.model.img_model.blockSignals(False)
+        self.model.blockSignals(False)
         img = self.model.scan_model.data
         self.widget.scan_widget.img_view.plot_image(img, True)
         self.widget.scan_widget.img_view.auto_level()

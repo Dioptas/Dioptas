@@ -283,7 +283,6 @@ class CalibrationCakeWidget(ImgWidget):
             self.img_view_box.removeItem(self.vertical_line)
 
     def set_vertical_line_pos(self, x, y):
-        print('Set vertical pos', x, y)
         self.vertical_line.setValue(x)
 
 
@@ -479,7 +478,6 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
         self.create_horizontal_line()
         self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
-        self.horizontal_line = None
 
     def create_horizontal_line(self):
         self.horizontal_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(0, 255, 0), width=2))
