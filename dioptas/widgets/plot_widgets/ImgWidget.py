@@ -20,9 +20,12 @@
 
 from __future__ import absolute_import
 
+from matplotlib import cm
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
 from pyqtgraph.exporters.ImageExporter import ImageExporter
+from pyqtgraph.opengl import GLSurfacePlotItem
+
 import numpy as np
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
@@ -472,6 +475,38 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         if len(self.phases):
             self.phases[ind].update_lines(positions, intensities)
 
+
+class SurfWidget(QtCore.QObject):
+
+    def __init__(self, pg_layout, orientation='vertical'):
+        super(SurfWidget, self).__init__()
+        self.pg_layout = pg_layout
+
+        #self.pg_layout.scale(2, 2, 1)
+        #self.pg_layout.setDepthValue(10)
+
+        self.create_graphics()
+
+    def create_graphics(self):
+        self.surf_view_item = GLSurfacePlotItem()
+        self.pg_layout.addItem(self.surf_view_item)
+
+    def plot_surf(self, data):
+        colors = self.get_colors(data.reshape(-1, 4), )
+        self.surf_view_item.setData(z=data, colors=colors)
+        self.surf_view_item.scale(2. / data.shape[0], 2. / data.shape[1], 1. / np.max(data))
+        self.surf_view_item.setGLOptions('translucent')
+        self.surf_view_item.translate(0, 0, 0)
+
+    def get_colors(self, data, map_name='jet'):
+        colormap = cm.get_cmap(map_name)
+        colormap._init()
+        lut = (colormap._lut).view(np.ndarray)[:, :3]
+        int_data = (data / np.max(data) * 255).astype(int)
+        colors_rgb = lut[int_data]
+        colors = np.ones((colors_rgb.shape[0], colors_rgb.shape[1], 4))
+        colors[..., :3] = colors_rgb
+        return colors
 
 class IntegrationBatchWidget(IntegrationCakeWidget):
     def __init__(self, pg_layout, orientation='vertical'):
