@@ -64,7 +64,7 @@ class ScanModel(QtCore.QObject):
             f.create_dataset("file_map", data=self.file_map)
             f.create_dataset("files", data=self.files.astype('S'))
 
-    def integrate_raw_data(self):
+    def integrate_raw_data(self, progress_dialog):
         """
         Integrate images from given file
 
@@ -77,8 +77,8 @@ class ScanModel(QtCore.QObject):
             file_map.append(len(data))
 
             for i in range(self.calibration_model.img_model.series_max):
+                progress_dialog.setValue(i)
                 self.calibration_model.img_model.load_series_img(i)
-                print(i)
 
                 binning, intensity = self.calibration_model.integrate_1d(num_points=1500,
                                                                          mask=None)#self.mask_model.get_mask())
