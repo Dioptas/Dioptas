@@ -109,8 +109,7 @@ class ScanModel(QtCore.QObject):
         Load image base on index of the image in the scan
         """
         filename, pos = self.get_image_info(index)
-        self.calibration_model.img_model.load(filename)
-        self.calibration_model.img_model.load_series_img(pos)
+        self.calibration_model.img_model.load(filename, pos)
 
 
 
