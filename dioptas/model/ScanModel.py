@@ -19,16 +19,26 @@ class ScanModel(QtCore.QObject):
         self.file_map = None
         self.files = None
         self.pos_map = None
+        self.n_img = None
 
         self.calibration_model = calibration_model
         self.mask_model = mask_model
-        self.raw_data_path = ''
 
     def set_image_files(self, files):
-        self.files = files
 
-    def set_raw_data_path(self, raw_data_path):
-        self.raw_data_path = raw_data_path
+        pos_map = []
+        file_map = []
+        image_counter = 0
+        for file in files:
+            self.calibration_model.img_model.load(file)
+            file_map.append(image_counter)
+            image_counter += self.calibration_model.img_model.series_max
+            pos_map += list(range(self.calibration_model.img_model.series_max))
+
+        self.pos_map = np.array(pos_map)
+        self.files = np.array(files)
+        self.file_map = np.array(file_map)
+        self.n_img = image_counter
 
     def load_proc_data(self, filename):
         """
@@ -70,25 +80,22 @@ class ScanModel(QtCore.QObject):
 
         """
         data = []
-        pos_map = []
-        file_map = []
+        image_counter = 0
         for file in self.files:
             self.calibration_model.img_model.load(file)
-            file_map.append(len(data))
 
             for i in range(self.calibration_model.img_model.series_max):
-                progress_dialog.setValue(i)
+                if progress_dialog.wasCanceled():
+                    break
+                image_counter += 1
+                progress_dialog.setValue(image_counter)
                 self.calibration_model.img_model.load_series_img(i)
-
                 binning, intensity = self.calibration_model.integrate_1d(num_points=1500,
                                                                          mask=None)#self.mask_model.get_mask())
-                pos_map.append(i)
                 data.append(intensity)
 
-        self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = np.array(data)
-        self.file_map = np.array(file_map)
 
     def get_image_info(self, index):
 
