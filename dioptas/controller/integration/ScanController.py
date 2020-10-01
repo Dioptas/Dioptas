@@ -1,3 +1,4 @@
+from glob import glob
 import os
 from functools import partial
 
@@ -32,7 +33,6 @@ class ScanController(object):
         self.create_signals()
         self.create_mouse_behavior()
 
-
     def create_signals(self):
 
         """
@@ -43,6 +43,10 @@ class ScanController(object):
         self.widget.scan_widget.save_btn.clicked.connect(self.save_data)
         self.widget.scan_widget.load_proc_btn.clicked.connect(self.load_proc_data)
 
+        self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
+        self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
+        self.widget.img_directory_btn.clicked.connect(self.directory_txt_changed)
+
         self.widget.scan_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
 
     def create_mouse_behavior(self):
@@ -52,16 +56,49 @@ class ScanController(object):
 
         self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
 
+    def filename_txt_changed(self):
+        current_filenames = self.model.scan_model.files
+        current_directory = self.model.working_directories['image']
+
+        print(current_directory)
+        img_filename_txt = str(self.widget.img_filename_txt.text())
+        new_filenames = []
+        for t in img_filename_txt.split():
+            print(os.path.join(current_directory, t))
+            new_filenames += glob(os.path.join(current_directory, t))
+
+        print(new_filenames, current_filenames)
+        if len(new_filenames) > 0:
+            try:
+                self.model.scan_model.set_image_files(new_filenames)
+            except TypeError:
+                basenames = [os.path.basename(f) for f in current_filenames]
+                self.widget.img_filename_txt.setText(' '.join(basenames))
+        else:
+            basenames = [os.path.basename(f) for f in current_filenames]
+            self.widget.img_filename_txt.setText(' '.join(basenames))
+
+    def directory_txt_changed(self):
+        new_directory = str(self.widget.img_directory_txt.text())
+        print("Process new directory ", new_directory)
+        current_filenames = self.model.scan_model.files
+        if current_filenames is None:
+            return
+        filenames = [os.path.basename(f) for f in current_filenames]
+        new_filenames = [os.path.join(new_directory, f) for f in filenames]
+        self.model.scan_model.set_image_files(new_filenames)
+
     def load_img_files(self):
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
                                       self.model.working_directories['image'])
-
-        self.model.scan_model.set_image_files(filenames)
-
-        names = [os.path.basename(f) for f in filenames]
-        self.widget.img_filename_txt.setText(str(names))
         self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
         self.model.working_directories['image'] = os.path.dirname(filenames[0])
+
+        basenames = [os.path.basename(f) for f in filenames]
+        self.widget.img_filename_txt.setText(' '.join(basenames))
+        self.model.img_model.blockSignals(True)
+        self.model.scan_model.set_image_files(filenames)
+        self.model.img_model.blockSignals(False)
 
     def load_proc_data(self):
         filename = open_file_dialog(self.widget, "Load image data file(s)",
@@ -167,10 +204,14 @@ class ScanController(object):
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not integrate multiple images without calibration.")
             return
+        if self.model.scan_model.n_img is None or self.model.scan_model.n_img < 1:
+            self.widget.show_error_msg("No images loaded for integration")
+            return
+
         self.model.img_model.blockSignals(True)
         self.model.blockSignals(True)
-        progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
-                                                          100)
+        progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
+                                                          self.model.scan_model.n_img)
         self.model.scan_model.integrate_raw_data(progress_dialog)
         progress_dialog.close()
         self.model.img_model.blockSignals(False)
