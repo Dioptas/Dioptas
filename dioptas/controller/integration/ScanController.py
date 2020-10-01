@@ -42,6 +42,7 @@ class ScanController(object):
         self.widget.scan_widget.integrate_btn.clicked.connect(self.integrate)
         self.widget.scan_widget.save_btn.clicked.connect(self.save_data)
         self.widget.scan_widget.load_proc_btn.clicked.connect(self.load_proc_data)
+        self.widget.scan_widget.change_view_btn.clicked.connect(self.change_view)
 
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
@@ -55,6 +56,18 @@ class ScanController(object):
         """
 
         self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
+
+    def change_view(self):
+        if self.widget.scan_widget.view_mode == 0:
+            self.widget.scan_widget.view_mode = 1
+            self.widget.scan_widget.img_pg_layout.hide()
+            self.widget.scan_widget.surf_pg_layout.show()
+            self.widget.scan_widget.change_view_btn.setText("Show in 2D")
+        else:
+            self.widget.scan_widget.view_mode = 0
+            self.widget.scan_widget.surf_pg_layout.hide()
+            self.widget.scan_widget.img_pg_layout.show()
+            self.widget.scan_widget.change_view_btn.setText("Show in 3D")
 
     def filename_txt_changed(self):
         current_filenames = self.model.scan_model.files
@@ -109,6 +122,7 @@ class ScanController(object):
             self.model.calibration_model.calibration_name)
         img = self.model.scan_model.data
         self.widget.scan_widget.img_view.plot_image(img, True)
+        self.widget.scan_widget.surf_view.plot_surf(img)
         self.widget.scan_widget.img_view.auto_level()
 
     def save_data(self):

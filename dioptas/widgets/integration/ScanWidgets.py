@@ -1,10 +1,11 @@
 from qtpy import QtCore, QtGui, QtWidgets
 import pyqtgraph as pq
 from pyqtgraph import GraphicsLayoutWidget
+from pyqtgraph.opengl import GLViewWidget
 import os
 import numpy as np
 
-from ..plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationBatchWidget
+from ..plot_widgets.ImgWidget import SurfWidget, IntegrationBatchWidget
 from .CustomWidgets import FlatButton
 
 class ScanWidget(QtWidgets.QWidget):
@@ -20,11 +21,16 @@ class ScanWidget(QtWidgets.QWidget):
         self._frame_layout.setContentsMargins(0, 0, 0, 0)
         self._frame_layout.setSpacing(0)
 
-        #self.setGeometry(200, 100, 800, 600)
+        self.view_mode = 0  # 0 - 2D, 1 - 3D
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_view = IntegrationBatchWidget(self.img_pg_layout, orientation='horizontal')
         self._frame_layout.addWidget(self.img_pg_layout)
+
+        self.surf_pg_layout = GLViewWidget()
+        self.surf_view = SurfWidget(self.surf_pg_layout, orientation='horizontal')
+        self._frame_layout.addWidget(self.surf_pg_layout)
+        self.surf_pg_layout.hide()
 
         #self.position_and_unit_widget = QtWidgets.QWidget()
         #self.position_and_unit_widget.setObjectName('img_position_and_unit_widget')
@@ -35,12 +41,14 @@ class ScanWidget(QtWidgets.QWidget):
         self.integrate_btn = FlatButton("Integrate")
         self.load_proc_btn = FlatButton("Load proc data")
         self.save_btn = FlatButton("Save proc data")
+        self.change_view_btn = FlatButton("Show in 3D")
 
         self.main_control_layout = QtWidgets.QVBoxLayout()
         self.main_control_layout.addWidget(self.load_files_btn)
         self.main_control_layout.addWidget(self.integrate_btn)
         self.main_control_layout.addWidget(self.load_proc_btn)
         self.main_control_layout.addWidget(self.save_btn)
+        self.main_control_layout.addWidget(self.change_view_btn)
 
         self._frame_layout.addLayout(self.main_control_layout)
 
