@@ -114,18 +114,19 @@ class ImgModel(QtCore.QObject):
         )
         self._directory_watcher.file_added.connect(self.load)
 
-    def load(self, filename):
+    def load(self, filename, pos=0):
         """
         Loads an image file in any format known by fabIO, PIL or HDF5. Automatically performs all previous img
         transformations, recalculates background subtracted and absorption corrected image data.
         The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
+        :param pos: position of image in the image file to be loaded
         """
         filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
         self.filename = filename
 
-        image_file_data = self.get_image_data(filename)
+        image_file_data = self.get_image_data(filename, pos)
         self.set_loadable_attributes(image_file_data)
 
         self.file_name_iterator.update_filename(filename)
@@ -136,18 +137,19 @@ class ImgModel(QtCore.QObject):
 
         self.img_changed.emit()
 
-    def get_image_data(self, filename):
+    def get_image_data(self, filename, pos=0):
         """
         Tries to load the given file using different image loader libraries and returns a dictionary containing all
         retrieved file data.
         :param filename: string containing a path to an image file
+        :param pos: position of image in the image file to be loaded
         :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names.
                  Present key names depend on applied image loader
         """
         img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda, self.load_karabo]
 
         for loader in img_loaders:
-            data = loader(filename)
+            data = loader(filename, pos)
             if data:
                 return data
         else:
@@ -167,7 +169,7 @@ class ImgModel(QtCore.QObject):
             else:
                 self.__setattr__(attribute["attribute"], copy.copy(attribute["default"]))
 
-    def load_PIL(self, filename):
+    def load_PIL(self, filename, *args):
         """
         Loads an image using the PIL library. Also returns file and motor info if present
         :param filename: path to the image file to be loaded
@@ -191,7 +193,7 @@ class ImgModel(QtCore.QObject):
         except IOError:
             return None
 
-    def load_spe(self, filename):
+    def load_spe(self, filename, *args):
         """
         Loads an image using the builtin spe library.
         :param filename: path to the image file to be loaded
@@ -203,7 +205,7 @@ class ImgModel(QtCore.QObject):
         else:
             return None
 
-    def load_fabio(self, filename):
+    def load_fabio(self, filename, *args):
         """
         Loads an image using the fabio library.
         :param filename: path to the image file to be loaded
@@ -216,10 +218,11 @@ class ImgModel(QtCore.QObject):
         except (IOError, fabio.fabioutils.NotGoodReader):
             return None
 
-    def load_lambda(self, filename):
+    def load_lambda(self, filename, pos=0):
         """
         loads an image made by a lambda detector using the builtin lambda library.
         :param filename: path to the image file to be loaded
+        :param pos: position of image in the image file to be loaded
         :return: dictionary with img_data, series_max and series_get_image, None if unsuccessful
         """
         try:
@@ -227,14 +230,17 @@ class ImgModel(QtCore.QObject):
         except IOError:
             return None
 
-        return {"img_data": lambda_im.get_image(0),
+        if pos >= lambda_im.series_max:
+            return None
+        return {"img_data": lambda_im.get_image(pos),
                 "series_max": lambda_im.series_max,
                 "series_get_image": lambda_im.get_image}
 
-    def load_karabo(self, filename):
+    def load_karabo(self, filename, pos=0):
         """
         Loads an Imageseries created from within the karabo-framework at XFEL.
         :param filename: path to the *.h5 karabo file
+        :param pos: position of image in the image file to be loaded
         :return: dictionary with img_data of the first train_id, series_start, series_max and series_get_image,
                  None if unsuccessful
         """
@@ -242,8 +248,9 @@ class ImgModel(QtCore.QObject):
             karabo_file = KaraboFile(filename)
         except IOError:
             return None
-
-        return {"img_data": karabo_file.get_image(0),
+        if pos >= karabo_file.series_max:
+            return None
+        return {"img_data": karabo_file.get_image(pos),
                 "series_max": karabo_file.series_max,
                 "series_get_image": karabo_file.get_image}
 
