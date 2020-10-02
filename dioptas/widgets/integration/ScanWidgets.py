@@ -1,9 +1,6 @@
-from qtpy import QtCore, QtGui, QtWidgets
-import pyqtgraph as pq
+from qtpy import QtWidgets
 from pyqtgraph import GraphicsLayoutWidget
 from pyqtgraph.opengl import GLViewWidget
-import os
-import numpy as np
 
 from ..plot_widgets.ImgWidget import SurfWidget, IntegrationBatchWidget
 from .CustomWidgets import FlatButton, StepFrameWidget, HorizontalSpacerItem
@@ -13,6 +10,9 @@ from . import CLICKED_COLOR
 
 
 class ScanWidget(QtWidgets.QWidget):
+    """
+    Class describe a widget for batch integration
+    """
 
     def __init__(self, parent=None):
         super(ScanWidget, self).__init__(parent)
@@ -46,15 +46,9 @@ class ScanWidget(QtWidgets.QWidget):
         self._position_and_unit_layout.setContentsMargins(0, 0, 0, 0)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)
-        #self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget(CLICKED_COLOR)
-
         self._position_and_unit_layout.addWidget(self.mouse_pos_widget)
-        #self._position_and_unit_layout.addSpacerItem(HorizontalSpacerItem())
-        #self._position_and_unit_layout.addWidget(self.mouse_unit_widget)
-
         self.position_and_unit_widget.setLayout(self._position_and_unit_layout)
         self._frame_layout.addWidget(self.position_and_unit_widget)
-
 
         self.load_files_btn = FlatButton("Load Files")
         self.integrate_btn = FlatButton("Integrate")
@@ -73,13 +67,5 @@ class ScanWidget(QtWidgets.QWidget):
 
         self.frame.setLayout(self._frame_layout)
 
-
-
     def show(self):
-        img_frame_size = QtCore.QSize(400, 500)
-        img_frame_position = QtCore.QPoint(0, 0)
-
-        self.frame.resize(img_frame_size)
-        self.frame.move(img_frame_position)
-
         self.frame.show()

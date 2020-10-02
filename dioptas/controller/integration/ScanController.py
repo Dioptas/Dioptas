@@ -15,7 +15,7 @@ from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 class ScanController(object):
     """
-    The ImageController manages the Image actions in the Integration Window. It connects the file actions, as
+    The class manages the Image actions in the batch integration Window. It connects the file actions, as
     well as interaction with the image_view.
     """
 
@@ -34,7 +34,6 @@ class ScanController(object):
         self.create_mouse_behavior()
 
     def create_signals(self):
-
         """
         Creates all the connections of the GUI elements.
         """
@@ -48,6 +47,10 @@ class ScanController(object):
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.widget.img_directory_btn.clicked.connect(self.directory_txt_changed)
 
+        self.widget.scan_widget.step_series_widget.next_btn.clicked.connect(self.load_next_img)
+        self.widget.scan_widget.step_series_widget.previous_btn.clicked.connect(self.load_prev_img)
+        self.widget.scan_widget.step_series_widget.pos_txt.editingFinished.connect(self.load_given_img)
+
         self.widget.scan_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
 
     def create_mouse_behavior(self):
@@ -57,8 +60,43 @@ class ScanController(object):
         self.widget.scan_widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
 
-    def show_img_mouse_position(self, x, y):
+    def load_next_img(self):
+        """
+        Load next image in the batch
+        """
+        step = int(str(self.widget.scan_widget.step_series_widget.step_txt.text()))
+        pos = int(str(self.widget.scan_widget.step_series_widget.pos_txt.text()))
+        x = self.widget.scan_widget.img_view.vertical_line.getXPos()
+        y = pos + step
+        self.widget.scan_widget.img_view.horizontal_line.setValue(y)
+        self.img_mouse_click(x, y)
 
+    def load_prev_img(self):
+        """
+        Load previous image in the batch
+        """
+        step = int(str(self.widget.scan_widget.step_series_widget.step_txt.text()))
+        pos = int(str(self.widget.scan_widget.step_series_widget.pos_txt.text()))
+        x = self.widget.scan_widget.img_view.vertical_line.getXPos()
+        y = pos - step
+        self.widget.scan_widget.img_view.horizontal_line.setValue(y)
+        self.img_mouse_click(x, y)
+
+    def load_given_img(self):
+        """
+        Load image given in the text box
+        """
+        pos = int(str(self.widget.scan_widget.step_series_widget.pos_txt.text()))
+        x = self.widget.scan_widget.img_view.vertical_line.getXPos()
+        self.widget.scan_widget.img_view.horizontal_line.setValue(pos)
+        self.img_mouse_click(x, pos)
+
+    def show_img_mouse_position(self, x, y):
+        """
+        Show position of the mouse with respect of the heatmap
+
+        Show image number, position in diffraction pattern and intensity
+        """
         img = self.model.scan_model.data
         binning = self.model.scan_model.binning
         if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
@@ -67,12 +105,14 @@ class ScanController(object):
         tth = x * scale + binning[0]
         z = img[int(y), int(x)]
 
-        self.widget.scan_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.setText(f'Img: {y:.0f}')
+        self.widget.scan_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
         self.widget.scan_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.setText(f'2θ:{tth:.1f}')
         self.widget.scan_widget.mouse_pos_widget.cur_pos_widget.int_lbl.setText(f'{z:.1f}')
 
-
     def change_view(self):
+        """
+        Change between 2D and 3D view
+        """
         if self.widget.scan_widget.view_mode == 0:
             self.widget.scan_widget.view_mode = 1
             self.widget.scan_widget.img_pg_layout.hide()
@@ -85,17 +125,18 @@ class ScanController(object):
             self.widget.scan_widget.change_view_btn.setText("Show in 3D")
 
     def filename_txt_changed(self):
+        """
+        Set image files of the batch base on filename given in the text box
+        """
         current_filenames = self.model.scan_model.files
         current_directory = self.model.working_directories['image']
 
-        print(current_directory)
         img_filename_txt = str(self.widget.img_filename_txt.text())
         new_filenames = []
         for t in img_filename_txt.split():
             print(os.path.join(current_directory, t))
             new_filenames += glob(os.path.join(current_directory, t))
 
-        print(new_filenames, current_filenames)
         if len(new_filenames) > 0:
             try:
                 self.model.scan_model.set_image_files(new_filenames)
@@ -107,6 +148,9 @@ class ScanController(object):
             self.widget.img_filename_txt.setText(' '.join(basenames))
 
     def directory_txt_changed(self):
+        """
+        Change directory name for image files of the batch
+        """
         new_directory = str(self.widget.img_directory_txt.text())
         print("Process new directory ", new_directory)
         current_filenames = self.model.scan_model.files
@@ -117,6 +161,9 @@ class ScanController(object):
         self.model.scan_model.set_image_files(new_filenames)
 
     def load_img_files(self):
+        """
+        Set image files of the batch base on files given in the dialog window
+        """
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
                                       self.model.working_directories['image'])
         self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
@@ -128,7 +175,14 @@ class ScanController(object):
         self.model.scan_model.set_image_files(filenames)
         self.model.img_model.blockSignals(False)
 
+        n_img = self.model.scan_model.n_img
+        self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img - 1)
+        self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}):")
+
     def load_proc_data(self):
+        """
+        Load processed data (diffraction patterns and metadata)
+        """
         filename = open_file_dialog(self.widget, "Load image data file(s)",
                                     self.model.working_directories['image'])
 
@@ -140,10 +194,17 @@ class ScanController(object):
         self.widget.scan_widget.surf_view.plot_surf(img)
         self.widget.scan_widget.img_view.auto_level()
 
+        self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, img.shape[0] - 1)
+        self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({img.shape[0]}):")
+
     def save_data(self):
+        """
+        Save diffraction patterns and metadata
+        """
         filename = save_file_dialog(self.widget, "Save Image.",
                                     os.path.join(self.model.working_directories['image']),
-                                    ('Image (*.png);;Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;Data (*h5)'))
+                                    (
+                                        'Image (*.png);;Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;Data (*h5)'))
 
         name, ext = os.path.splitext(filename)
         if filename is not '':
@@ -165,7 +226,9 @@ class ScanController(object):
                 self.model.img_model.blockSignals(False)
 
     def img_mouse_click(self, x, y):
-
+        """
+        Load single image and draw lines on the heatmap plot based on mause click
+        """
         img = self.model.scan_model.data
         binning = self.model.scan_model.binning
         if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
@@ -174,9 +237,10 @@ class ScanController(object):
         tth = x * scale + binning[0]
         z = img[int(y), int(x)]
 
-        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(f'Img: {y:.0f}')
+        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
         self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.y_pos_lbl.setText(f'2θ:{tth:.1f}')
         self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.int_lbl.setText(f'I: {z:.1f}')
+        self.widget.scan_widget.step_series_widget.pos_txt.setText(str(int(y)))
 
         self.model.current_configuration.auto_integrate_pattern = False
         self.model.scan_model.load_image(int(y))
@@ -184,6 +248,9 @@ class ScanController(object):
         self.model.pattern_model.set_pattern(binning, img[int(y)])
 
     def update_axes_range(self):
+        """
+        Update axis of the 2D image
+        """
         self.update_x_axis()
         self.update_azimuth_axis()
 
@@ -253,6 +320,9 @@ class ScanController(object):
         self.widget.scan_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
 
     def integrate(self):
+        """
+        Integrate images in the batch
+        """
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not integrate multiple images without calibration.")
             return
@@ -260,11 +330,16 @@ class ScanController(object):
             self.widget.show_error_msg("No images loaded for integration")
             return
 
+        if not self.widget.automatic_binning_cb.isChecked():
+            num_points = int(str(self.widget.bin_count_txt.text()))
+        else:
+            num_points = None
+
         self.model.img_model.blockSignals(True)
         self.model.blockSignals(True)
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
                                                           self.model.scan_model.n_img)
-        self.model.scan_model.integrate_raw_data(progress_dialog)
+        self.model.scan_model.integrate_raw_data(progress_dialog, num_points)
         progress_dialog.close()
         self.model.img_model.blockSignals(False)
         self.model.blockSignals(False)
