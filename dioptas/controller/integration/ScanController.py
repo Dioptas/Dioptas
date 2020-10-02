@@ -54,8 +54,23 @@ class ScanController(object):
         """
         Creates the signal connections of mouse interactions
         """
-
+        self.widget.scan_widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
+
+    def show_img_mouse_position(self, x, y):
+
+        img = self.model.scan_model.data
+        binning = self.model.scan_model.binning
+        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
+            return
+        scale = (binning[-1] - binning[0]) / binning.shape[0]
+        tth = x * scale + binning[0]
+        z = img[int(y), int(x)]
+
+        self.widget.scan_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.setText(f'Img: {y:.0f}')
+        self.widget.scan_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.setText(f'2θ:{tth:.1f}')
+        self.widget.scan_widget.mouse_pos_widget.cur_pos_widget.int_lbl.setText(f'{z:.1f}')
+
 
     def change_view(self):
         if self.widget.scan_widget.view_mode == 0:
@@ -128,22 +143,45 @@ class ScanController(object):
     def save_data(self):
         filename = save_file_dialog(self.widget, "Save Image.",
                                     os.path.join(self.model.working_directories['image']),
-                                    ('Image (*.png);;Data (*.tiff);;Text (*.txt)'))
+                                    ('Image (*.png);;Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;Data (*h5)'))
 
-        self.model.scan_model.save_proc_data(filename)
+        name, ext = os.path.splitext(filename)
+        if filename is not '':
+            print(filename)
+            if ext == '.png':
+                if self.widget.scan_widget.view_mode == 0:
+                    QtWidgets.QApplication.processEvents()
+                    self.widget.scan_widget.img_view.save_img(filename)
+            elif ext == '.h5':
+                self.model.scan_model.save_proc_data(filename)
+            else:
+                self.model.img_model.blockSignals(True)
+                img_data = self.model.scan_model.data
+                pattern_x = self.model.scan_model.binning
+                for y in range(img_data.shape[0]):
+                    pattern_y = img_data[int(y)]
+                    self.model.pattern_model.set_pattern(pattern_x, pattern_y)
+                    self.model.current_configuration.save_pattern(f"{name}_{y}.{ext}", subtract_background=True)
+                self.model.img_model.blockSignals(False)
 
     def img_mouse_click(self, x, y):
 
-        img_data = self.model.scan_model.data
-        if img_data is None:
+        img = self.model.scan_model.data
+        binning = self.model.scan_model.binning
+        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
             return
-        if 0 < x < img_data.shape[1] - 1 and 0 < y < img_data.shape[0] - 1:
-            self.model.current_configuration.auto_integrate_pattern = False
-            self.model.scan_model.load_image(int(y))
-            self.model.current_configuration.auto_integrate_pattern = True
-            pattern_x = self.model.scan_model.binning
-            pattern_y = img_data[int(y)]
-            self.model.pattern_model.set_pattern(pattern_x, pattern_y)
+        scale = (binning[-1] - binning[0]) / binning.shape[0]
+        tth = x * scale + binning[0]
+        z = img[int(y), int(x)]
+
+        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(f'Img: {y:.0f}')
+        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.y_pos_lbl.setText(f'2θ:{tth:.1f}')
+        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.int_lbl.setText(f'I: {z:.1f}')
+
+        self.model.current_configuration.auto_integrate_pattern = False
+        self.model.scan_model.load_image(int(y))
+        self.model.current_configuration.auto_integrate_pattern = True
+        self.model.pattern_model.set_pattern(binning, img[int(y)])
 
     def update_axes_range(self):
         self.update_x_axis()
