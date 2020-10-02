@@ -508,7 +508,12 @@ class SurfWidget(QtCore.QObject):
         colors[..., :3] = colors_rgb
         return colors
 
+
 class IntegrationBatchWidget(IntegrationCakeWidget):
+    """
+    Class describe a widget for 2D image (Theta vs ImageNumber) of batch integration window.
+
+    """
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
         self.create_horizontal_line()
@@ -531,6 +536,9 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         self.horizontal_line.setValue(y)
 
     def add_cake_axes(self):
+        """
+        Describe axis of 2D plot
+        """
         self.left_axis_cake = pg.AxisItem('left')
         self.bottom_axis_cake = pg.AxisItem('bottom')
         self.bottom_axis_cake.setLabel(u'2θ', u'°')

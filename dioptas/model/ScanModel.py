@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class ScanModel(QtCore.QObject):
+    """
+    Class describe a model for batch integration
+    """
 
     def __init__(self, calibration_model, mask_model):
         super(ScanModel, self).__init__()
@@ -25,7 +28,14 @@ class ScanModel(QtCore.QObject):
         self.mask_model = mask_model
 
     def set_image_files(self, files):
+        """
+        Set internal variables with respect of given list of files.
 
+        Open each file and count number of images inside. Position of each image in the file
+        and total number of images are stored in internal variables.
+
+        :param files: List of file names including path
+        """
         pos_map = []
         file_map = []
         image_counter = 0
@@ -51,11 +61,13 @@ class ScanModel(QtCore.QObject):
             self.file_map = data_file['file_map'][()]
             self.files = data_file['files'][()].astype('U')
             self.pos_map = data_file['pos_map'][()]
+            self.n_img = self.data.shape[0]
 
             cal_file = str(data_file.attrs['calibration'])
             self.calibration_model.load(cal_file)
-            #mask_file = data_file.attrs['mask']
-            #self.mask_model.load_mask(mask_file)
+            if 'mask' in data_file.attrs:
+                mask_file = data_file.attrs['mask']
+                self.mask_model.load_mask(mask_file)
 
     def save_proc_data(self, filename):
         """
@@ -63,10 +75,10 @@ class ScanModel(QtCore.QObject):
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
-
             f.attrs['calibration'] = self.calibration_model.filename
             f.attrs['int_method'] = 'Bla'
             f.attrs['num_points'] = self.binning.shape[0]
+            # ToDo Save mask if applied
 
             f.create_dataset("data", data=self.data)
             f.create_dataset("binning", data=self.binning)
@@ -74,13 +86,17 @@ class ScanModel(QtCore.QObject):
             f.create_dataset("file_map", data=self.file_map)
             f.create_dataset("files", data=self.files.astype('S'))
 
-    def integrate_raw_data(self, progress_dialog):
+    def integrate_raw_data(self, progress_dialog, num_points):
         """
         Integrate images from given file
 
+        :param progress_dialog: Progress dialog to show progress
+        :param num_points: Numbers of radial bins
         """
         data = []
         image_counter = 0
+        if self.mask_model.mode:
+            mask = self.mask_model.get_mask()
         for file in self.files:
             self.calibration_model.img_model.load(file)
 
@@ -90,15 +106,19 @@ class ScanModel(QtCore.QObject):
                 image_counter += 1
                 progress_dialog.setValue(image_counter)
                 self.calibration_model.img_model.load_series_img(i)
-                binning, intensity = self.calibration_model.integrate_1d(num_points=1500,
-                                                                         mask=None)#self.mask_model.get_mask())
+                binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
+                                                                         mask=mask)
                 data.append(intensity)
 
         self.binning = np.array(binning)
         self.data = np.array(data)
 
     def get_image_info(self, index):
+        """
+        Get filename and image position in the file
 
+        :param index: Index of image in the batch
+        """
         f_index = np.where(self.file_map <= index)[0][-1]
         filename = self.files[f_index]
         pos = self.pos_map[index]
@@ -106,10 +126,9 @@ class ScanModel(QtCore.QObject):
 
     def load_image(self, index):
         """
-        Load image base on index of the image in the scan
+        Load image in image model
+
+        :param index: Index of image in the batch
         """
         filename, pos = self.get_image_info(index)
         self.calibration_model.img_model.load(filename, pos)
-
-
-
