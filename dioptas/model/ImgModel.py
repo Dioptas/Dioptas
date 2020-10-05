@@ -134,6 +134,7 @@ class ImgModel(QtCore.QObject):
 
         self._perform_img_transformations()
         self._calculate_img_data()
+        self.series_pos = pos+1
 
         self.img_changed.emit()
 

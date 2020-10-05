@@ -485,14 +485,18 @@ class SurfWidget(QtCore.QObject):
         #self.pg_layout.scale(2, 2, 1)
         #self.pg_layout.setDepthValue(10)
 
-        self.create_graphics()
+        #self.create_graphics()
+        self.surf_view_item = None
 
     def create_graphics(self):
         self.surf_view_item = GLSurfacePlotItem()
         self.pg_layout.addItem(self.surf_view_item)
 
     def plot_surf(self, data):
-        colors = self.get_colors(data.reshape(-1, 4), )
+        if self.surf_view_item is None:
+            self.create_graphics()
+        colors = self.get_colors(data).reshape(-1,4)
+        self.surf_view_item.resetTransform()
         self.surf_view_item.setData(z=data, colors=colors)
         self.surf_view_item.scale(2. / data.shape[0], 2. / data.shape[1], 1. / np.max(data))
         self.surf_view_item.setGLOptions('translucent')

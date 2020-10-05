@@ -345,4 +345,5 @@ class ScanController(object):
         self.model.blockSignals(False)
         img = self.model.scan_model.data
         self.widget.scan_widget.img_view.plot_image(img, True)
+        self.widget.scan_widget.surf_view.plot_surf(img)
         self.widget.scan_widget.img_view.auto_level()
