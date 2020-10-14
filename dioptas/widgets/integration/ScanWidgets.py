@@ -97,7 +97,7 @@ class ScanWidget(QtWidgets.QWidget):
         self.change_view_btn = FlatButton("3D")
         self.change_view_btn.setToolTip("Change view to 3D")
 
-        self.change_scale_btn = FlatButton("log")
+        self.change_scale_btn = CheckableFlatButton("log")
         self.change_scale_btn.setToolTip("Change scale to log")
 
         self.waterfall_btn = CheckableFlatButton("Waterfall")
