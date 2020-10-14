@@ -481,11 +481,6 @@ class SurfWidget(QtCore.QObject):
     def __init__(self, pg_layout, orientation='vertical'):
         super(SurfWidget, self).__init__()
         self.pg_layout = pg_layout
-
-        #self.pg_layout.scale(2, 2, 1)
-        #self.pg_layout.setDepthValue(10)
-
-        #self.create_graphics()
         self.surf_view_item = None
 
     def create_graphics(self):
@@ -538,6 +533,11 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
 
     def set_horizontal_line_pos(self, x, y):
         self.horizontal_line.setValue(y)
+
+    def draw_rectangle(self, x, y):
+        rect = MyRectangle(x, y, 0, 0, QtGui.QColor(255, 0, 0, 150))
+        self.img_view_box.addItem(rect)
+        return rect
 
     def add_cake_axes(self):
         """

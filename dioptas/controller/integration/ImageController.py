@@ -348,7 +348,7 @@ class ImageController(object):
 
     def show_scan_frame(self):
         print("Show scan frame")
-        self.widget.scan_widget.show()
+        self.widget.scan_widget.raise_widget()
 
     def show_file_info(self):
         self.widget.file_info_widget.raise_widget()

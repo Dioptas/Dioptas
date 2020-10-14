@@ -30,6 +30,9 @@ class ScanController(object):
         self.widget = widget
         self.model = dioptas_model
 
+        self.clicks = 0
+        self.rect = None
+
         self.create_signals()
         self.create_mouse_behavior()
 
@@ -37,11 +40,11 @@ class ScanController(object):
         """
         Creates all the connections of the GUI elements.
         """
-        self.widget.scan_widget.load_files_btn.clicked.connect(self.load_img_files)
+        self.widget.scan_widget.load_btn.clicked.connect(self.load_img_files)
         self.widget.scan_widget.integrate_btn.clicked.connect(self.integrate)
         self.widget.scan_widget.save_btn.clicked.connect(self.save_data)
-        self.widget.scan_widget.load_proc_btn.clicked.connect(self.load_proc_data)
         self.widget.scan_widget.change_view_btn.clicked.connect(self.change_view)
+        self.widget.scan_widget.waterfall_btn.clicked.connect(self.waterfall_mode)
 
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
@@ -60,6 +63,19 @@ class ScanController(object):
         self.widget.scan_widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
 
+    def waterfall_mode(self):
+        """
+        Set/unset widget in waterfall mode
+        """
+        if self.widget.scan_widget.waterfall_btn.isChecked():
+            self.widget.scan_widget.img_view.vertical_line.setVisible(False)
+            self.widget.scan_widget.img_view.horizontal_line.setVisible(False)
+        else:
+            if self.rect is not None:
+                self.widget.scan_widget.img_view.img_view_box.removeItem(self.rect)
+            self.widget.scan_widget.img_view.vertical_line.setVisible(True)
+            self.widget.scan_widget.img_view.horizontal_line.setVisible(True)
+
     def load_next_img(self):
         """
         Load next image in the batch
@@ -69,7 +85,7 @@ class ScanController(object):
         x = self.widget.scan_widget.img_view.vertical_line.getXPos()
         y = pos + step
         self.widget.scan_widget.img_view.horizontal_line.setValue(y)
-        self.img_mouse_click(x, y)
+        self.load_single_image(x, y)
 
     def load_prev_img(self):
         """
@@ -80,7 +96,7 @@ class ScanController(object):
         x = self.widget.scan_widget.img_view.vertical_line.getXPos()
         y = pos - step
         self.widget.scan_widget.img_view.horizontal_line.setValue(y)
-        self.img_mouse_click(x, y)
+        self.load_single_image(x, y)
 
     def load_given_img(self):
         """
@@ -89,7 +105,7 @@ class ScanController(object):
         pos = int(str(self.widget.scan_widget.step_series_widget.pos_txt.text()))
         x = self.widget.scan_widget.img_view.vertical_line.getXPos()
         self.widget.scan_widget.img_view.horizontal_line.setValue(pos)
-        self.img_mouse_click(x, pos)
+        self.load_single_image(x, pos)
 
     def show_img_mouse_position(self, x, y):
         """
@@ -117,12 +133,12 @@ class ScanController(object):
             self.widget.scan_widget.view_mode = 1
             self.widget.scan_widget.img_pg_layout.hide()
             self.widget.scan_widget.surf_pg_layout.show()
-            self.widget.scan_widget.change_view_btn.setText("Show in 2D")
+            self.widget.scan_widget.change_view_btn.setText("2D")
         else:
             self.widget.scan_widget.view_mode = 0
             self.widget.scan_widget.surf_pg_layout.hide()
             self.widget.scan_widget.img_pg_layout.show()
-            self.widget.scan_widget.change_view_btn.setText("Show in 3D")
+            self.widget.scan_widget.change_view_btn.setText("3D")
 
     def filename_txt_changed(self):
         """
@@ -162,30 +178,35 @@ class ScanController(object):
 
     def load_img_files(self):
         """
-        Set image files of the batch base on files given in the dialog window
+        Set image files of the batch, base on files given in the dialog window
         """
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
-                                      self.model.working_directories['image'])
-        self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
-        self.model.working_directories['image'] = os.path.dirname(filenames[0])
+                                      self.model.working_directories['image'],
+                                      ('Raw data (*.nxs);;'
+                                       'Proc data (*.h5);;')
+                                      )
 
-        basenames = [os.path.basename(f) for f in filenames]
-        self.widget.img_filename_txt.setText(' '.join(basenames))
-        self.model.img_model.blockSignals(True)
-        self.model.scan_model.set_image_files(filenames)
-        self.model.img_model.blockSignals(False)
+        name, ext = os.path.splitext(filenames[0])
+        if ext == '.h5':
+            self.load_proc_data(filenames[0])
+        else:
+            self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
+            self.model.working_directories['image'] = os.path.dirname(filenames[0])
 
-        n_img = self.model.scan_model.n_img
-        self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img - 1)
-        self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}):")
+            basenames = [os.path.basename(f) for f in filenames]
+            self.widget.img_filename_txt.setText(' '.join(basenames))
+            self.model.img_model.blockSignals(True)
+            self.model.scan_model.set_image_files(filenames)
+            self.model.img_model.blockSignals(False)
 
-    def load_proc_data(self):
+            n_img = self.model.scan_model.n_img
+            self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img - 1)
+            self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}):")
+
+    def load_proc_data(self, filename):
         """
         Load processed data (diffraction patterns and metadata)
         """
-        filename = open_file_dialog(self.widget, "Load image data file(s)",
-                                    self.model.working_directories['image'])
-
         self.model.scan_model.load_proc_data(filename)
         self.widget.calibration_lbl.setText(
             self.model.calibration_model.calibration_name)
@@ -203,8 +224,9 @@ class ScanController(object):
         """
         filename = save_file_dialog(self.widget, "Save Image.",
                                     os.path.join(self.model.working_directories['image']),
-                                    (
-                                        'Image (*.png);;Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;Data (*h5)'))
+                                    ('Image (*.png);;'
+                                     'Data (*.xy);;Data (*.chi);;'
+                                     'Data (*.dat);;GSAS (*.fxye);;Data (*h5)'))
 
         name, ext = os.path.splitext(filename)
         if filename is not '':
@@ -227,7 +249,39 @@ class ScanController(object):
 
     def img_mouse_click(self, x, y):
         """
-        Load single image and draw lines on the heatmap plot based on mause click
+        Process mouse click
+        """
+        if self.widget.scan_widget.waterfall_btn.isChecked():
+            self.process_waterfall(x, y)
+        else:
+            self.load_single_image(x, y)
+
+    def process_waterfall(self, x, y):
+        """
+        Create waterfall plot based on selected rectangle in the heatmap
+        """
+        if self.clicks == 0:
+            self.clicks += 1
+            if self.rect is not None:
+                self.widget.scan_widget.img_view.img_view_box.removeItem(self.rect)
+            self.rect = self.widget.scan_widget.img_view.draw_rectangle(x, y)
+            self.widget.scan_widget.img_view.mouse_moved.connect(self.rect.set_size)
+        elif self.clicks == 1:
+            self.clicks = 0
+            self.widget.scan_widget.img_view.mouse_moved.disconnect(self.rect.set_size)
+            # create waterfall plot
+            data = self.model.scan_model.data
+            binning = self.model.scan_model.binning
+            rect = self.rect.rect()
+            y1, y2 = sorted((int(rect.top()), int(rect.top() - rect.height())))
+            x1, x2 = sorted((int(rect.left()), int(rect.left() - rect.width())))
+            step = int(str(self.widget.scan_widget.step_series_widget.step_txt.text()))
+            for i in range(y1, y2, step):
+                self.model.overlay_model.add_overlay(binning[x1:x2], data[i, x1:x2])
+
+    def load_single_image(self, x, y):
+        """
+        Load single image and draw lines on the heatmap plot based on given x and y
         """
         img = self.model.scan_model.data
         binning = self.model.scan_model.binning
