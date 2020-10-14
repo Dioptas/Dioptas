@@ -49,6 +49,7 @@ class ScanController(object):
         self.widget.scan_widget.waterfall_btn.clicked.connect(self.waterfall_mode)
         self.widget.scan_widget.change_scale_btn.clicked.connect(self.change_scale)
         self.widget.scan_widget.background_btn.clicked.connect(self.handle_bkg)
+        self.widget.scan_widget.phases_btn.clicked.connect(self.toggle_show_phases)
 
         # unit callbacks
         self.widget.scan_widget.tth_btn.clicked.connect(self.set_unit_tth)
@@ -67,6 +68,13 @@ class ScanController(object):
         self.widget.scan_widget.step_series_widget.pos_txt.editingFinished.connect(self.load_given_img)
 
         self.widget.scan_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
+
+    def create_mouse_behavior(self):
+        """
+        Creates the signal connections of mouse interactions
+        """
+        self.widget.scan_widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
+        self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
 
     def set_unit_tth(self):
         previous_unit = self.integration_unit
@@ -110,12 +118,18 @@ class ScanController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_axis()
 
-    def create_mouse_behavior(self):
+    def toggle_show_phases(self):
         """
-        Creates the signal connections of mouse interactions
+        Show and hide phases
         """
-        self.widget.scan_widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
-        self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
+        if str(self.widget.scan_widget.phases_btn.text()) == 'Show Phases':
+            self.widget.scan_widget.img_view.show_all_visible_cake_phases(
+                self.widget.phase_widget.phase_show_cbs)
+            self.widget.scan_widget.phases_btn.setText('Hide Phases')
+            self.model.enabled_phases_in_cake.emit()
+        elif str(self.widget.scan_widget.phases_btn.text()) == 'Hide Phases':
+            self.widget.scan_widget.img_view.hide_all_cake_phases()
+            self.widget.scan_widget.phases_btn.setText('Show Phases')
 
     def handle_bkg(self):
         """
