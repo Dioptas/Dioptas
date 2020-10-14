@@ -5,6 +5,8 @@ import h5py
 import numpy as np
 from qtpy import QtCore
 
+from .util import extract_background
+
 logger = logging.getLogger(__name__)
 
 
@@ -86,6 +88,15 @@ class ScanModel(QtCore.QObject):
             f.create_dataset("file_map", data=self.file_map)
             f.create_dataset("files", data=self.files.astype('S'))
 
+    def save_as_csv(self, filename):
+        """
+        Save diffraction patterns to 3-columns csv file
+        """
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        x = self.binning.repeat(self.n_img)
+        y = np.arange(self.n_img)[None,:].repeat(self.binning.shape[0], axis=0).flatten()
+        np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
+
     def integrate_raw_data(self, progress_dialog, num_points):
         """
         Integrate images from given file
@@ -112,6 +123,23 @@ class ScanModel(QtCore.QObject):
 
         self.binning = np.array(binning)
         self.data = np.array(data)
+
+    def subtract_background(self, parameters, progress_dialog):
+        """
+        Subtract background calculated with respect of given parameters
+        """
+
+        data_bkg = np.zeros(self.data.shape)
+        for i, y in enumerate(self.data):
+            if progress_dialog.wasCanceled():
+                break
+
+            progress_dialog.setValue(i)
+            data_bkg[i] = extract_background(self.binning, y,
+                                           parameters[0],
+                                           parameters[1],
+                                           parameters[2])
+        return self.data-data_bkg
 
     def get_image_info(self, index):
         """

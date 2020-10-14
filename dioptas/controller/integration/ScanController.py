@@ -36,6 +36,8 @@ class ScanController(object):
         self.create_signals()
         self.create_mouse_behavior()
 
+        self.integration_unit = '2th_deg'
+
     def create_signals(self):
         """
         Creates all the connections of the GUI elements.
@@ -45,6 +47,16 @@ class ScanController(object):
         self.widget.scan_widget.save_btn.clicked.connect(self.save_data)
         self.widget.scan_widget.change_view_btn.clicked.connect(self.change_view)
         self.widget.scan_widget.waterfall_btn.clicked.connect(self.waterfall_mode)
+        self.widget.scan_widget.change_scale_btn.clicked.connect(self.change_scale)
+        self.widget.scan_widget.background_btn.clicked.connect(self.handle_bkg)
+
+        # unit callbacks
+        self.widget.scan_widget.tth_btn.clicked.connect(self.set_unit_tth)
+        self.widget.scan_widget.q_btn.clicked.connect(self.set_unit_q)
+        self.widget.scan_widget.d_btn.clicked.connect(self.set_unit_d)
+        self.widget.pattern_q_btn.clicked.connect(self.set_unit_q)
+        self.widget.pattern_tth_btn.clicked.connect(self.set_unit_tth)
+        self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
 
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
@@ -56,12 +68,86 @@ class ScanController(object):
 
         self.widget.scan_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
 
+    def set_unit_tth(self):
+        previous_unit = self.integration_unit
+        self.widget.scan_widget.tth_btn.setChecked(True)
+        self.widget.pattern_tth_btn.setChecked(True)
+        if previous_unit == '2th_deg':
+            return
+        self.integration_unit = '2th_deg'
+
+        self.model.current_configuration.integration_unit = '2th_deg'
+        self.widget.scan_widget.img_view.bottom_axis_cake.setLabel(u'2θ', '°')
+        self.widget.scan_widget.img_view.img_view_box.invertX(False)
+        if self.model.calibration_model.is_calibrated:
+            self.update_x_axis()
+
+    def set_unit_q(self):
+        previous_unit = self.integration_unit
+        self.widget.scan_widget.q_btn.setChecked(True)
+        self.widget.pattern_q_btn.setChecked(True)
+        if previous_unit == 'q_A^-1':
+            return
+        self.integration_unit = "q_A^-1"
+
+        self.model.current_configuration.integration_unit = "q_A^-1"
+        self.widget.scan_widget.img_view.img_view_box.invertX(False)
+        self.widget.scan_widget.img_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
+        if self.model.calibration_model.is_calibrated:
+            self.update_x_axis()
+
+    def set_unit_d(self):
+        previous_unit = self.integration_unit
+        self.widget.scan_widget.d_btn.setChecked(True)
+        self.widget.pattern_d_btn.setChecked(True)
+        if previous_unit == 'd_A':
+            return
+        self.integration_unit = 'd_A'
+
+        self.model.current_configuration.integration_unit = 'd_A'
+        self.widget.scan_widget.img_view.bottom_axis_cake.setLabel('d', 'A')
+        self.widget.scan_widget.img_view.img_view_box.invertX(True)
+        if self.model.calibration_model.is_calibrated:
+            self.update_x_axis()
+
     def create_mouse_behavior(self):
         """
         Creates the signal connections of mouse interactions
         """
         self.widget.scan_widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
+
+    def handle_bkg(self):
+        """
+        Calculate background and show image with subtracted background
+        """
+        if self.widget.scan_widget.background_btn.isChecked():
+            progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
+                                                              self.model.scan_model.n_img)
+
+            parameters = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_parameters()
+            img = self.model.scan_model.subtract_background(parameters, progress_dialog)
+            progress_dialog.close()
+            self.widget.scan_widget.img_view.plot_image(img, True)
+        else:
+            img = self.model.scan_model.data
+            self.widget.scan_widget.img_view.plot_image(img, True)
+
+    def change_scale(self):
+        """
+        Change scale between log and linear
+        """
+        img = self.model.scan_model.data
+        if img is None:
+            return
+        if self.widget.scan_widget.change_scale_btn.isChecked():
+            self.widget.scan_widget.img_view.plot_image(np.log10(img), True)
+            self.widget.scan_widget.surf_view.plot_surf(np.log10(img))
+            self.widget.scan_widget.img_view.auto_level()
+        else:
+            self.widget.scan_widget.img_view.plot_image(img, True)
+            self.widget.scan_widget.surf_view.plot_surf(img)
+            self.widget.scan_widget.img_view.auto_level()
 
     def waterfall_mode(self):
         """
@@ -224,7 +310,7 @@ class ScanController(object):
         """
         filename = save_file_dialog(self.widget, "Save Image.",
                                     os.path.join(self.model.working_directories['image']),
-                                    ('Image (*.png);;'
+                                    ('Image (*.png);;Data in 3 columns csv (*csv);;'
                                      'Data (*.xy);;Data (*.chi);;'
                                      'Data (*.dat);;GSAS (*.fxye);;Data (*h5)'))
 
@@ -237,6 +323,8 @@ class ScanController(object):
                     self.widget.scan_widget.img_view.save_img(filename)
             elif ext == '.h5':
                 self.model.scan_model.save_proc_data(filename)
+            elif ext == '.csv':
+                self.model.scan_model.save_as_csv(filename)
             else:
                 self.model.img_model.blockSignals(True)
                 img_data = self.model.scan_model.data
@@ -330,6 +418,11 @@ class ScanController(object):
             self.widget.scan_widget.img_view.bottom_axis_cake.setRange(
                 self.convert_x_value(min_tth, '2th_deg', 'q_A^-1'),
                 self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
+        elif self.model.current_configuration.integration_unit == 'd_A':
+            self.widget.scan_widget.img_view.bottom_axis_cake.setRange(
+                self.convert_x_value(min_tth, '2th_deg', 'd_A'),
+                self.convert_x_value(max_tth, '2th_deg', 'd_A'))
+
 
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.model.calibration_model.wavelength
