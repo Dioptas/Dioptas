@@ -48,7 +48,8 @@ class ScanController(object):
         self.widget.scan_widget.change_view_btn.clicked.connect(self.change_view)
         self.widget.scan_widget.waterfall_btn.clicked.connect(self.waterfall_mode)
         self.widget.scan_widget.change_scale_btn.clicked.connect(self.change_scale)
-        self.widget.scan_widget.background_btn.clicked.connect(self.handle_bkg)
+        self.widget.scan_widget.background_btn.clicked.connect(self.subtract_background)
+        self.widget.scan_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.scan_widget.phases_btn.clicked.connect(self.toggle_show_phases)
 
         # unit callbacks
@@ -68,6 +69,7 @@ class ScanController(object):
         self.widget.scan_widget.step_series_widget.pos_txt.editingFinished.connect(self.load_given_img)
 
         self.widget.scan_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
+        self.model.configuration_selected.connect(self.update_gui)
 
     def create_mouse_behavior(self):
         """
@@ -76,7 +78,32 @@ class ScanController(object):
         self.widget.scan_widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
 
+        self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+
+    def pattern_left_click(self, x, y):
+        """
+        Update position of vertical line
+
+        :param x: Position of vertical line on pattern plot in current_configuration units
+        """
+        x = self.convert_x_value(x, self.model.current_configuration.integration_unit, '2th_deg')
+        data_img_item = self.widget.scan_widget.img_view.data_img_item
+        cake_tth = self.model.scan_model.binning
+        if cake_tth is None:
+            return
+        bound = data_img_item.boundingRect().width()
+        h_scale = (np.max(cake_tth) - np.min(cake_tth)) / bound
+        h_shift = np.min(cake_tth)
+        pos = (x - h_shift)/h_scale
+
+        self.widget.scan_widget.img_view.vertical_line.setValue(pos)
+
     def set_unit_tth(self):
+        """
+        Set 2th_deg unit on batch plot
+
+        Corresponding buttons on batch and pattern widgets are checked.
+        """
         previous_unit = self.integration_unit
         self.widget.scan_widget.tth_btn.setChecked(True)
         self.widget.pattern_tth_btn.setChecked(True)
@@ -91,6 +118,11 @@ class ScanController(object):
             self.update_x_axis()
 
     def set_unit_q(self):
+        """
+        Set q_A^-1 unit on batch plot
+
+        Corresponding buttons on batch and pattern widgets are checked.
+        """
         previous_unit = self.integration_unit
         self.widget.scan_widget.q_btn.setChecked(True)
         self.widget.pattern_q_btn.setChecked(True)
@@ -105,6 +137,11 @@ class ScanController(object):
             self.update_x_axis()
 
     def set_unit_d(self):
+        """
+        Set d_A unit on batch plot
+
+        Corresponding buttons on batch and pattern widgets are checked.
+        """
         previous_unit = self.integration_unit
         self.widget.scan_widget.d_btn.setChecked(True)
         self.widget.pattern_d_btn.setChecked(True)
@@ -131,21 +168,29 @@ class ScanController(object):
             self.widget.scan_widget.img_view.hide_all_cake_phases()
             self.widget.scan_widget.phases_btn.setText('Show Phases')
 
-    def handle_bkg(self):
+    def subtract_background(self):
         """
-        Calculate background and show image with subtracted background
+        Toddle background subtraction in batch image
         """
+        data = self.model.scan_model.data
+        bkg = self.model.scan_model.bkg
+        if data is None or bkg is None or data.shape != bkg.shape:
+            return
         if self.widget.scan_widget.background_btn.isChecked():
-            progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
-                                                              self.model.scan_model.n_img)
-
-            parameters = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_parameters()
-            img = self.model.scan_model.subtract_background(parameters, progress_dialog)
-            progress_dialog.close()
-            self.widget.scan_widget.img_view.plot_image(img, True)
+            self.widget.scan_widget.img_view.plot_image(data-bkg, True)
         else:
-            img = self.model.scan_model.data
-            self.widget.scan_widget.img_view.plot_image(img, True)
+            self.widget.scan_widget.img_view.plot_image(data, True)
+
+    def extract_background(self):
+        """
+        Extract background from batch data
+        """
+        progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
+                                                          self.model.scan_model.n_img)
+
+        parameters = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_parameters()
+        self.model.scan_model.extract_background(parameters, progress_dialog)
+        progress_dialog.close()
 
     def change_scale(self):
         """
@@ -508,3 +553,14 @@ class ScanController(object):
         self.widget.scan_widget.img_view.plot_image(img, True)
         self.widget.scan_widget.surf_view.plot_surf(img)
         self.widget.scan_widget.img_view.auto_level()
+
+    def update_gui(self):
+        if self.model.current_configuration.integration_unit == '2th_deg':
+            self.widget.scan_widget.tth_btn.setChecked(True)
+            self.set_unit_tth()
+        elif self.model.current_configuration.integration_unit == 'd_A':
+            self.widget.scan_widget.d_btn.setChecked(True)
+            self.set_unit_d()
+        elif self.model.current_configuration.integration_unit == 'q_A^-1':
+            self.widget.scan_widget.q_btn.setChecked(True)
+            self.set_unit_q()
