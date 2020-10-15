@@ -313,7 +313,6 @@ class ScanController(object):
         Change directory name for image files of the batch
         """
         new_directory = str(self.widget.img_directory_txt.text())
-        print("Process new directory ", new_directory)
         current_filenames = self.model.scan_model.files
         if current_filenames is None:
             return
@@ -344,9 +343,9 @@ class ScanController(object):
             self.model.scan_model.set_image_files(filenames)
             self.model.img_model.blockSignals(False)
 
-            n_img = self.model.scan_model.n_img
-            self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img - 1)
-            self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}):")
+            n_img_all = self.model.scan_model.n_img_all
+            self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img_all - 1)
+            self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame(-/{n_img_all}):")
 
     def load_proc_data(self, filename):
         """
@@ -357,11 +356,13 @@ class ScanController(object):
             self.model.calibration_model.calibration_name)
         img = self.model.scan_model.data
         self.widget.scan_widget.img_view.plot_image(img, True)
-        self.widget.scan_widget.surf_view.plot_surf(img)
+        #self.widget.scan_widget.surf_view.plot_surf(img)
         self.widget.scan_widget.img_view.auto_level()
 
-        self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, img.shape[0] - 1)
-        self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({img.shape[0]}):")
+        n_img = self.model.scan_model.n_img
+        n_img_all = self.model.scan_model.n_img_all
+        self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img - 1)
+        self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
 
     def save_data(self):
         """
@@ -375,7 +376,6 @@ class ScanController(object):
 
         name, ext = os.path.splitext(filename)
         if filename is not '':
-            print(filename)
             if ext == '.png':
                 if self.widget.scan_widget.view_mode == 0:
                     QtWidgets.QApplication.processEvents()
@@ -482,7 +482,6 @@ class ScanController(object):
                 self.convert_x_value(min_tth, '2th_deg', 'd_A'),
                 self.convert_x_value(max_tth, '2th_deg', 'd_A'))
 
-
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.model.calibration_model.wavelength
         if previous_unit == '2th_deg':
@@ -532,7 +531,7 @@ class ScanController(object):
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not integrate multiple images without calibration.")
             return
-        if self.model.scan_model.n_img is None or self.model.scan_model.n_img < 1:
+        if self.model.scan_model.n_img_all is None or self.model.scan_model.n_img_all < 1:
             self.widget.show_error_msg("No images loaded for integration")
             return
 
@@ -541,15 +540,21 @@ class ScanController(object):
         else:
             num_points = None
 
+        step = int(str(self.widget.scan_widget.step_series_widget.step_txt.text()))
+
         self.model.img_model.blockSignals(True)
         self.model.blockSignals(True)
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
-                                                          self.model.scan_model.n_img)
-        self.model.scan_model.integrate_raw_data(progress_dialog, num_points)
+                                                          self.model.scan_model.n_img_all)
+        self.model.scan_model.integrate_raw_data(progress_dialog, num_points, step)
         progress_dialog.close()
         self.model.img_model.blockSignals(False)
         self.model.blockSignals(False)
         img = self.model.scan_model.data
+        n_img = self.model.scan_model.n_img
+        n_img_all = self.model.scan_model.n_img_all
+        self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
+
         self.widget.scan_widget.img_view.plot_image(img, True)
         self.widget.scan_widget.surf_view.plot_surf(img)
         self.widget.scan_widget.img_view.auto_level()
