@@ -26,6 +26,7 @@ class ScanModel(QtCore.QObject):
         self.files = None
         self.pos_map = None
         self.n_img = None
+        self.n_img_all = None
 
         self.calibration_model = calibration_model
         self.mask_model = mask_model
@@ -48,10 +49,8 @@ class ScanModel(QtCore.QObject):
             image_counter += self.calibration_model.img_model.series_max
             pos_map += list(range(self.calibration_model.img_model.series_max))
 
-        self.pos_map = np.array(pos_map)
         self.files = np.array(files)
-        self.file_map = np.array(file_map)
-        self.n_img = image_counter
+        self.n_img_all = image_counter
 
     def load_proc_data(self, filename):
         """
@@ -76,6 +75,8 @@ class ScanModel(QtCore.QObject):
             if 'bkg' in data_file:
                 self.data = data_file['bkg'][()]
 
+        self.set_image_files(self.files)
+
     def save_proc_data(self, filename):
         """
         Save diffraction patterns to h5 file
@@ -83,7 +84,7 @@ class ScanModel(QtCore.QObject):
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
             f.attrs['calibration'] = self.calibration_model.filename
-            f.attrs['int_method'] = 'Bla'
+            f.attrs['int_method'] = 'Bla'  # ToDO
             f.attrs['num_points'] = self.binning.shape[0]
 
             if self.mask_model.filename:
@@ -107,32 +108,44 @@ class ScanModel(QtCore.QObject):
         y = np.arange(self.n_img)[None,:].repeat(self.binning.shape[0], axis=0).flatten()
         np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
 
-    def integrate_raw_data(self, progress_dialog, num_points):
+    def integrate_raw_data(self, progress_dialog, num_points, step):
         """
         Integrate images from given file
 
         :param progress_dialog: Progress dialog to show progress
         :param num_points: Numbers of radial bins
+        :param step: Step along images to integrate
         """
         data = []
+        pos_map = []
+        file_map = []
         image_counter = 0
         if self.mask_model.mode:
             mask = self.mask_model.get_mask()
         for file in self.files:
             self.calibration_model.img_model.load(file)
 
+            if len(data) not in file_map:
+                file_map.append(len(data))
+
             for i in range(self.calibration_model.img_model.series_max):
                 if progress_dialog.wasCanceled():
                     break
                 image_counter += 1
                 progress_dialog.setValue(image_counter)
+                if image_counter % step > 0:
+                    continue
                 self.calibration_model.img_model.load_series_img(i)
                 binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
                                                                          mask=mask)
+                pos_map.append(i)
                 data.append(intensity)
 
+        self.pos_map = np.array(pos_map)
+        self.file_map = np.array(file_map)
         self.binning = np.array(binning)
         self.data = np.array(data)
+        self.n_img = self.data.shape[0]
 
     def extract_background(self, parameters, progress_dialog):
         """
