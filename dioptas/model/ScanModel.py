@@ -19,6 +19,7 @@ class ScanModel(QtCore.QObject):
         super(ScanModel, self).__init__()
 
         self.data = None
+        self.bkg = None
         self.binning = None
 
         self.file_map = None
@@ -67,9 +68,13 @@ class ScanModel(QtCore.QObject):
 
             cal_file = str(data_file.attrs['calibration'])
             self.calibration_model.load(cal_file)
+
             if 'mask' in data_file.attrs:
                 mask_file = data_file.attrs['mask']
                 self.mask_model.load_mask(mask_file)
+
+            if 'bkg' in data_file:
+                self.data = data_file['bkg'][()]
 
     def save_proc_data(self, filename):
         """
@@ -80,7 +85,12 @@ class ScanModel(QtCore.QObject):
             f.attrs['calibration'] = self.calibration_model.filename
             f.attrs['int_method'] = 'Bla'
             f.attrs['num_points'] = self.binning.shape[0]
-            # ToDo Save mask if applied
+
+            if self.mask_model.filename:
+                f.attrs['mask'] = self.calibration_model.filename
+
+            if self.bkg is not None:
+                f.create_dataset("bkg", data=self.bkg)
 
             f.create_dataset("data", data=self.data)
             f.create_dataset("binning", data=self.binning)
@@ -124,22 +134,19 @@ class ScanModel(QtCore.QObject):
         self.binning = np.array(binning)
         self.data = np.array(data)
 
-    def subtract_background(self, parameters, progress_dialog):
+    def extract_background(self, parameters, progress_dialog):
         """
         Subtract background calculated with respect of given parameters
         """
 
-        data_bkg = np.zeros(self.data.shape)
+        bkg = np.zeros(self.data.shape)
         for i, y in enumerate(self.data):
             if progress_dialog.wasCanceled():
                 break
 
             progress_dialog.setValue(i)
-            data_bkg[i] = extract_background(self.binning, y,
-                                           parameters[0],
-                                           parameters[1],
-                                           parameters[2])
-        return self.data-data_bkg
+            bkg[i] = extract_background(self.binning, y, *parameters)
+        self.bkg = bkg
 
     def get_image_info(self, index):
         """

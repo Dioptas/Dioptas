@@ -80,9 +80,6 @@ class ScanWidget(QtWidgets.QWidget):
         self.load_btn.setToolTip("Load raw/proc data")
         self.load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
         self.load_btn.setIconSize(QtCore.QSize(13, 13))
-        self.load_btn.setMinimumHeight(25)
-        self.load_btn.setMaximumHeight(25)
-        self.load_btn.setMinimumWidth(25)
         self.load_btn.setMaximumWidth(25)
 
         self.integrate_btn = FlatButton("Integrate")
@@ -103,6 +100,9 @@ class ScanWidget(QtWidgets.QWidget):
         self.waterfall_btn = CheckableFlatButton("Waterfall")
         self.waterfall_btn.setToolTip("Create waterfall plot")
 
+        self.calc_bkg_btn = FlatButton("Calc bkg")
+        self.calc_bkg_btn.setToolTip("Extract background")
+
         self.phases_btn = CheckableFlatButton('Show Phases')
 
         self.bottom_control_layout = QtWidgets.QHBoxLayout()
@@ -112,6 +112,7 @@ class ScanWidget(QtWidgets.QWidget):
         self.bottom_control_layout.addWidget(self.integrate_btn)
         self.bottom_control_layout.addWidget(self.waterfall_btn)
         self.bottom_control_layout.addWidget(self.phases_btn)
+        self.bottom_control_layout.addWidget(self.calc_bkg_btn)
 
         self.bottom_control_layout.addSpacerItem(HorizontalSpacerItem())
         self.bottom_control_layout.addWidget(self.change_view_btn)
@@ -153,7 +154,8 @@ class ScanWidget(QtWidgets.QWidget):
         self.bottom_control_widget.setStyleSheet("""
                     #pattern_bottom_control_widget QPushButton{
                         padding: 0px;
-        	            padding-right: 1px;
+        	            padding-right: 5px;
+        	            padding-left: 5px;
         	            border-radius: 3px;
                     }
                     #pattern_frame, #pattern_bottom_control_widget, QLabel {
