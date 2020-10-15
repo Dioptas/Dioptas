@@ -21,7 +21,6 @@ class ScanModel(QtCore.QObject):
         self.data = None
         self.bkg = None
         self.binning = None
-
         self.file_map = None
         self.files = None
         self.pos_map = None
@@ -30,6 +29,16 @@ class ScanModel(QtCore.QObject):
 
         self.calibration_model = calibration_model
         self.mask_model = mask_model
+
+    def reset_data(self):
+        self.data = None
+        self.bkg = None
+        self.binning = None
+        self.file_map = None
+        self.files = None
+        self.pos_map = None
+        self.n_img = None
+        self.n_img_all = None
 
     def set_image_files(self, files):
         """
@@ -51,6 +60,12 @@ class ScanModel(QtCore.QObject):
 
         self.files = np.array(files)
         self.n_img_all = image_counter
+        if self.data is None:
+            self.pos_map = np.array(pos_map)
+            self.file_map = np.array(file_map)
+            self.binning = np.array([0])
+            self.data = np.ones((image_counter, 1))
+            self.n_img = self.data.shape[0]
 
     def load_proc_data(self, filename):
         """

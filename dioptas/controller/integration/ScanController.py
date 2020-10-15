@@ -340,12 +340,16 @@ class ScanController(object):
             basenames = [os.path.basename(f) for f in filenames]
             self.widget.img_filename_txt.setText(' '.join(basenames))
             self.model.img_model.blockSignals(True)
+            self.model.scan_model.reset_data()
             self.model.scan_model.set_image_files(filenames)
             self.model.img_model.blockSignals(False)
 
             n_img_all = self.model.scan_model.n_img_all
+            data = self.model.scan_model.data
             self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img_all - 1)
             self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame(-/{n_img_all}):")
+            self.widget.scan_widget.img_view.plot_image(data, True)
+            self.update_axes_range()
 
     def load_proc_data(self, filename):
         """
