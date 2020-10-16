@@ -4,7 +4,7 @@ from functools import partial
 
 import numpy as np
 from PIL import Image
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -45,9 +45,9 @@ class ScanController(object):
         self.widget.scan_widget.load_btn.clicked.connect(self.load_img_files)
         self.widget.scan_widget.integrate_btn.clicked.connect(self.integrate)
         self.widget.scan_widget.save_btn.clicked.connect(self.save_data)
-        self.widget.scan_widget.change_view_btn.clicked.connect(self.change_view)
+        self.widget.scan_widget.view_3d_btn.clicked.connect(self.change_view)
         self.widget.scan_widget.waterfall_btn.clicked.connect(self.waterfall_mode)
-        self.widget.scan_widget.change_scale_btn.clicked.connect(self.change_scale)
+        self.widget.scan_widget.scale_log_btn.clicked.connect(self.change_scale)
         self.widget.scan_widget.background_btn.clicked.connect(self.subtract_background)
         self.widget.scan_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.scan_widget.phases_btn.clicked.connect(self.toggle_show_phases)
@@ -326,8 +326,8 @@ class ScanController(object):
         """
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
                                       self.model.working_directories['image'],
-                                      ('Raw data (*.nxs);;'
-                                       'Proc data (*.h5);;')
+                                      ('Raw data (*.nxs *tif *tiff);;'
+                                       'Proc data (*.nxs)')
                                       )
 
         name, ext = os.path.splitext(filenames[0])
@@ -345,11 +345,17 @@ class ScanController(object):
             self.model.img_model.blockSignals(False)
 
             n_img_all = self.model.scan_model.n_img_all
-            data = self.model.scan_model.data
+            files = self.model.scan_model.files
+            file_map = self.model.scan_model.file_map
             self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img_all - 1)
             self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame(-/{n_img_all}):")
-            self.widget.scan_widget.img_view.plot_image(data, True)
-            self.update_axes_range()
+
+            for i, file in enumerate(files):
+                self.widget.scan_widget.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
+                self.widget.scan_widget.tree_model.setItem(i, 1, QtGui.QStandardItem(f"{file_map[i+1]-file_map[i]}"))
+
+            #self.widget.scan_widget.img_view.plot_image(data, True)
+            #self.update_axes_range()
 
     def load_proc_data(self, filename):
         """
@@ -374,9 +380,9 @@ class ScanController(object):
         """
         filename = save_file_dialog(self.widget, "Save Image.",
                                     os.path.join(self.model.working_directories['image']),
-                                    ('Image (*.png);;Data in 3 columns csv (*csv);;'
-                                     'Data (*.xy);;Data (*.chi);;'
-                                     'Data (*.dat);;GSAS (*.fxye);;Data (*h5)'))
+                                    ('Image (*.png);;Single file ascii (*csv);;'
+                                     'Multifile ascii (*.xy *.chi *.dat);;'
+                                     'GSAS (*.fxye);;Data (*nxs)'))
 
         name, ext = os.path.splitext(filename)
         if filename is not '':
@@ -384,7 +390,7 @@ class ScanController(object):
                 if self.widget.scan_widget.view_mode == 0:
                     QtWidgets.QApplication.processEvents()
                     self.widget.scan_widget.img_view.save_img(filename)
-            elif ext == '.h5':
+            elif ext == '.nxs':
                 self.model.scan_model.save_proc_data(filename)
             elif ext == '.csv':
                 self.model.scan_model.save_as_csv(filename)
@@ -450,7 +456,10 @@ class ScanController(object):
         self.model.current_configuration.auto_integrate_pattern = False
         self.model.scan_model.load_image(int(y))
         self.model.current_configuration.auto_integrate_pattern = True
-        self.model.pattern_model.set_pattern(binning, img[int(y)])
+
+        x0 = self.convert_x_value(binning[0], '2th_deg', self.model.current_configuration.integration_unit)
+        x1 = self.convert_x_value(binning[-1], '2th_deg', self.model.current_configuration.integration_unit)
+        self.model.pattern_model.set_pattern(np.linspace(x0, x1, binning.shape[0]), img[int(y)])
 
     def update_axes_range(self):
         """
@@ -483,8 +492,8 @@ class ScanController(object):
                 self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
         elif self.model.current_configuration.integration_unit == 'd_A':
             self.widget.scan_widget.img_view.bottom_axis_cake.setRange(
-                self.convert_x_value(min_tth, '2th_deg', 'd_A'),
-                self.convert_x_value(max_tth, '2th_deg', 'd_A'))
+                self.convert_x_value(max_tth, '2th_deg', 'd_A'),
+                self.convert_x_value(min_tth, '2th_deg', 'd_A'))
 
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.model.calibration_model.wavelength

@@ -257,3 +257,83 @@ class StepFrameWidget(StepWidget):
         self._layout.addLayout(self._pos_layout)
 
         self.pos_txt.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Maximum)
+
+
+class StepBatchWidget(QtWidgets.QWidget):
+    """
+    Widget to navigate across frame in the batch
+    
+    Widget contains:
+        buttons: next, previous
+        slider
+        fields: step, min, max, current 
+    """
+
+    iteration_name = ''
+    def __init__(self):
+        super(StepBatchWidget, self).__init__()
+        self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
+
+        self.small_btn_max_width = 50
+        self.small_btn_min_width = 20
+
+        self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(5, 0, 0, 5)
+        self.init_navigator()
+
+        self.setLayout(self._layout)
+
+    def init_navigator(self):
+        self.next_btn = FlatButton('>')
+        self.next_btn.setToolTip('Loads next {}'.format(self.iteration_name))
+        self.previous_btn = FlatButton('<')
+        self.previous_btn.setToolTip(('Loads previous {}'.format(self.iteration_name)))
+        
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        
+        self.step_txt = QtWidgets.QSpinBox()
+        self.step_txt.setValue(1)
+        self.step_txt.setRange(1, 10000)
+
+        self.stop_txt = QtWidgets.QSpinBox()
+        self.stop_txt.setValue(1)
+        self.stop_txt.setRange(1, 10000)
+        
+        self.start_txt = QtWidgets.QSpinBox()
+        self.start_txt.setValue(1)
+        self.start_txt.setRange(1, 10000)
+        
+        self.next_btn.setMaximumWidth(self.small_btn_max_width)
+        self.previous_btn.setMaximumWidth(self.small_btn_max_width)
+        self.next_btn.setMinimumWidth(self.small_btn_min_width)
+        self.previous_btn.setMinimumWidth(self.small_btn_min_width)
+        self.step_txt.setMinimumWidth(25)
+
+        self._navigator_layout = QtWidgets.QGridLayout()
+        self._navigator_layout.addWidget(self.previous_btn, 0, 0)
+        self._navigator_layout.addWidget(self.slider, 0, 1)
+        self._navigator_layout.addWidget(self.next_btn, 0, 2)
+        
+        self._step_layout = QtWidgets.QHBoxLayout()
+        self._step_layout.addWidget(LabelAlignRight('Start:'))
+        self._step_layout.addWidget(self.start_txt)
+        self._step_layout.addWidget(LabelAlignRight('Stop:'))
+        self._step_layout.addWidget(self.stop_txt)
+        self._step_layout.addWidget(LabelAlignRight('Step:'))
+        self._step_layout.addWidget(self.step_txt)
+        self._navigator_layout.addLayout(self._step_layout, 1, 0, 1, 3)
+        self._layout.addLayout(self._navigator_layout)
+
+        self.pos_txt = QtWidgets.QLineEdit()
+        self.pos_validator = QtGui.QIntValidator(1, 1)
+        self.pos_txt.setValidator(self.pos_validator)
+        self.pos_txt.setToolTip('Currently loaded frame')
+        self.pos_label = QtWidgets.QLabel('Frame:')
+        self.pos_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom)
+
+        self._pos_layout = QtWidgets.QVBoxLayout()
+        self._pos_layout.addWidget(self.pos_label)
+        self._pos_layout.addWidget(self.pos_txt)
+        self._layout.addLayout(self._pos_layout)
+
+        self.pos_txt.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Maximum)

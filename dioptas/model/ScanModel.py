@@ -57,6 +57,7 @@ class ScanModel(QtCore.QObject):
             file_map.append(image_counter)
             image_counter += self.calibration_model.img_model.series_max
             pos_map += list(range(self.calibration_model.img_model.series_max))
+        file_map.append(image_counter)
 
         self.files = np.array(files)
         self.n_img_all = image_counter
@@ -64,7 +65,7 @@ class ScanModel(QtCore.QObject):
             self.pos_map = np.array(pos_map)
             self.file_map = np.array(file_map)
             self.binning = np.array([0])
-            self.data = np.ones((image_counter, 1))
+            self.data = np.ones((image_counter, 0))
             self.n_img = self.data.shape[0]
 
     def load_proc_data(self, filename):
