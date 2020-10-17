@@ -32,6 +32,7 @@ class ScanController(object):
 
         self.clicks = 0
         self.rect = None
+        self.scale = np.array
 
         self.create_signals()
         self.create_mouse_behavior()
@@ -42,17 +43,21 @@ class ScanController(object):
         """
         Creates all the connections of the GUI elements.
         """
-        self.widget.scan_widget.load_btn.clicked.connect(self.load_img_files)
-        self.widget.scan_widget.integrate_btn.clicked.connect(self.integrate)
+        self.widget.scan_widget.load_btn.clicked.connect(self.load_data)
         self.widget.scan_widget.save_btn.clicked.connect(self.save_data)
-        self.widget.scan_widget.view_3d_btn.clicked.connect(self.change_view)
+        self.widget.scan_widget.integrate_btn.clicked.connect(self.integrate)
         self.widget.scan_widget.waterfall_btn.clicked.connect(self.waterfall_mode)
+        self.widget.scan_widget.phases_btn.clicked.connect(self.toggle_show_phases)
+        self.widget.scan_widget.view_3d_btn.clicked.connect(self.change_view)
+        self.widget.scan_widget.view_2d_btn.clicked.connect(self.change_view)
+        self.widget.scan_widget.view_f_btn.clicked.connect(self.change_view)
         self.widget.scan_widget.scale_log_btn.clicked.connect(self.change_scale)
+        self.widget.scan_widget.scale_lin_btn.clicked.connect(self.change_scale)
+        self.widget.scan_widget.scale_sqrt_btn.clicked.connect(self.change_scale)
         self.widget.scan_widget.background_btn.clicked.connect(self.subtract_background)
         self.widget.scan_widget.calc_bkg_btn.clicked.connect(self.extract_background)
-        self.widget.scan_widget.phases_btn.clicked.connect(self.toggle_show_phases)
 
-        # unit callbacks
+        # set unit of x axis
         self.widget.scan_widget.tth_btn.clicked.connect(self.set_unit_tth)
         self.widget.scan_widget.q_btn.clicked.connect(self.set_unit_q)
         self.widget.scan_widget.d_btn.clicked.connect(self.set_unit_d)
@@ -60,13 +65,18 @@ class ScanController(object):
         self.widget.pattern_tth_btn.clicked.connect(self.set_unit_tth)
         self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
 
+        # work with filenames
         self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.widget.img_directory_btn.clicked.connect(self.directory_txt_changed)
 
+        # image navigation
         self.widget.scan_widget.step_series_widget.next_btn.clicked.connect(self.load_next_img)
         self.widget.scan_widget.step_series_widget.previous_btn.clicked.connect(self.load_prev_img)
         self.widget.scan_widget.step_series_widget.pos_txt.editingFinished.connect(self.load_given_img)
+        self.widget.scan_widget.step_series_widget.start_txt.editingFinished.connect(self.set_range_img)
+        self.widget.scan_widget.step_series_widget.stop_txt.editingFinished.connect(self.set_range_img)
+        self.widget.scan_widget.step_series_widget.slider.valueChanged.connect(self.process_slider)
 
         self.widget.scan_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
         self.model.configuration_selected.connect(self.update_gui)
@@ -174,12 +184,21 @@ class ScanController(object):
         """
         data = self.model.scan_model.data
         bkg = self.model.scan_model.bkg
-        if data is None or bkg is None or data.shape != bkg.shape:
+        if data is None:
             return
-        if self.widget.scan_widget.background_btn.isChecked():
-            self.widget.scan_widget.img_view.plot_image(data-bkg, True)
-        else:
-            self.widget.scan_widget.img_view.plot_image(data, True)
+
+        if bkg is None:
+            self.widget.show_error_msg("Background is not jet calculated. Calculate background.")
+            self.widget.scan_widget.background_btn.setChecked(False)
+            return
+
+        if data.shape != bkg.shape:
+            self.widget.show_error_msg(f"Shape of data {data.shape} and background {bkg.shape} are different."
+                                        "Recalculate background.")
+            self.widget.scan_widget.background_btn.setChecked(False)
+            return
+
+        self.plot_batch()
 
     def extract_background(self):
         """
@@ -196,17 +215,13 @@ class ScanController(object):
         """
         Change scale between log and linear
         """
-        img = self.model.scan_model.data
-        if img is None:
-            return
-        if self.widget.scan_widget.change_scale_btn.isChecked():
-            self.widget.scan_widget.img_view.plot_image(np.log10(img), True)
-            self.widget.scan_widget.surf_view.plot_surf(np.log10(img))
-            self.widget.scan_widget.img_view.auto_level()
+        if self.widget.scan_widget.scale_log_btn.isChecked():
+            self.scale = np.log10
+        elif self.widget.scan_widget.scale_sqrt_btn.isChecked():
+            self.scale = np.sqrt
         else:
-            self.widget.scan_widget.img_view.plot_image(img, True)
-            self.widget.scan_widget.surf_view.plot_surf(img)
-            self.widget.scan_widget.img_view.auto_level()
+            self.scale = np.array
+        self.plot_batch()
 
     def waterfall_mode(self):
         """
@@ -220,6 +235,23 @@ class ScanController(object):
                 self.widget.scan_widget.img_view.img_view_box.removeItem(self.rect)
             self.widget.scan_widget.img_view.vertical_line.setVisible(True)
             self.widget.scan_widget.img_view.horizontal_line.setVisible(True)
+
+    def process_slider(self):
+        y = self.widget.scan_widget.step_series_widget.slider.value()
+        x = self.widget.scan_widget.img_view.vertical_line.getXPos()
+        self.load_single_image(x, y)
+
+    def set_range_img(self):
+        start = int(str(self.widget.scan_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.widget.scan_widget.step_series_widget.stop_txt.text()))
+        n_img_all = self.model.scan_model.n_img_all
+        if n_img_all is None or stop < 0:
+            return
+
+        start = min(start, n_img_all, stop)
+        stop = min(max(start, stop), n_img_all)
+        self.widget.scan_widget.step_series_widget.slider.setRange(start, stop)
+        self.widget.scan_widget.step_series_widget.pos_validator.setRange(start, stop)
 
     def load_next_img(self):
         """
@@ -274,16 +306,18 @@ class ScanController(object):
         """
         Change between 2D and 3D view
         """
-        if self.widget.scan_widget.view_mode == 0:
-            self.widget.scan_widget.view_mode = 1
+        if self.widget.scan_widget.view_f_btn.isChecked():
+            self.widget.scan_widget.treeView.show()
+            self.widget.scan_widget.img_pg_layout.hide()
+            self.widget.scan_widget.surf_pg_layout.hide()
+        elif self.widget.scan_widget.view_3d_btn.isChecked():
+            self.widget.scan_widget.treeView.hide()
             self.widget.scan_widget.img_pg_layout.hide()
             self.widget.scan_widget.surf_pg_layout.show()
-            self.widget.scan_widget.change_view_btn.setText("2D")
         else:
-            self.widget.scan_widget.view_mode = 0
-            self.widget.scan_widget.surf_pg_layout.hide()
+            self.widget.scan_widget.treeView.hide()
             self.widget.scan_widget.img_pg_layout.show()
-            self.widget.scan_widget.change_view_btn.setText("3D")
+            self.widget.scan_widget.surf_pg_layout.hide()
 
     def filename_txt_changed(self):
         """
@@ -320,7 +354,7 @@ class ScanController(object):
         new_filenames = [os.path.join(new_directory, f) for f in filenames]
         self.model.scan_model.set_image_files(new_filenames)
 
-    def load_img_files(self):
+    def load_data(self):
         """
         Set image files of the batch, base on files given in the dialog window
         """
@@ -333,29 +367,49 @@ class ScanController(object):
         name, ext = os.path.splitext(filenames[0])
         if ext == '.h5':
             self.load_proc_data(filenames[0])
+            raw_filenames = self.model.scan_model.files
+            self.load_raw_data(raw_filenames)
         else:
             self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
             self.model.working_directories['image'] = os.path.dirname(filenames[0])
 
             basenames = [os.path.basename(f) for f in filenames]
             self.widget.img_filename_txt.setText(' '.join(basenames))
-            self.model.img_model.blockSignals(True)
-            self.model.scan_model.reset_data()
-            self.model.scan_model.set_image_files(filenames)
-            self.model.img_model.blockSignals(False)
+            self.load_raw_data(filenames)
+            self.widget.scan_widget.view_f_btn.setChecked(True)
+            self.change_view()
 
-            n_img_all = self.model.scan_model.n_img_all
-            files = self.model.scan_model.files
-            file_map = self.model.scan_model.file_map
-            self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img_all - 1)
-            self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame(-/{n_img_all}):")
+        self.plot_image(0)
 
-            for i, file in enumerate(files):
-                self.widget.scan_widget.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
-                self.widget.scan_widget.tree_model.setItem(i, 1, QtGui.QStandardItem(f"{file_map[i+1]-file_map[i]}"))
+    def load_raw_data(self, filenames):
+        """
+        Load metadata for raw data
 
-            #self.widget.scan_widget.img_view.plot_image(data, True)
-            #self.update_axes_range()
+        Following information is loaded:
+            filenames, number of images in each file
+        """
+
+        self.model.img_model.blockSignals(True)
+        self.model.scan_model.reset_data()
+        self.model.scan_model.set_image_files(filenames)
+        self.model.img_model.blockSignals(False)
+
+        files = self.model.scan_model.files
+        file_map = self.model.scan_model.file_map
+        for i, file in enumerate(files):
+            self.widget.scan_widget.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
+            self.widget.scan_widget.tree_model.setItem(i, 1, QtGui.QStandardItem(f"{file_map[i + 1] - file_map[i]}"))
+
+        n_img = self.model.scan_model.n_img
+        n_img_all = self.model.scan_model.n_img_all
+        self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
+
+        if n_img is None:
+            n_img = n_img_all
+        self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img - 1)
+        self.widget.scan_widget.step_series_widget.start_txt.setValue(0)
+        self.widget.scan_widget.step_series_widget.stop_txt.setValue(n_img)
+        self.widget.scan_widget.step_series_widget.slider.setRange(0, n_img)
 
     def load_proc_data(self, filename):
         """
@@ -364,15 +418,22 @@ class ScanController(object):
         self.model.scan_model.load_proc_data(filename)
         self.widget.calibration_lbl.setText(
             self.model.calibration_model.calibration_name)
-        img = self.model.scan_model.data
-        self.widget.scan_widget.img_view.plot_image(img, True)
-        #self.widget.scan_widget.surf_view.plot_surf(img)
-        self.widget.scan_widget.img_view.auto_level()
 
-        n_img = self.model.scan_model.n_img
-        n_img_all = self.model.scan_model.n_img_all
-        self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img - 1)
-        self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
+        self.plot_batch()
+
+    def plot_batch(self):
+        """
+        Plot batch of diffraction patters taking into account scale abd background subtraction
+        """
+        data = self.model.scan_model.data
+        bkg = self.model.scan_model.bkg
+        if self.widget.scan_widget.background_btn.isChecked():
+            data = data - bkg
+        data = self.scale(data)
+
+        self.widget.scan_widget.img_view.plot_image(data, True)
+        # self.widget.scan_widget.surf_view.plot_surf(img)
+        self.widget.scan_widget.img_view.auto_level()
 
     def save_data(self):
         """
@@ -438,7 +499,14 @@ class ScanController(object):
 
     def load_single_image(self, x, y):
         """
-        Load single image and draw lines on the heatmap plot based on given x and y
+        Plot raw image, diffraction pattern and draw lines on the heatmap plot based on given x and y
+        """
+        self.plot_image(int(y))
+        self.plot_pattern(int(x), int(y))
+
+    def plot_pattern(self, x, y):
+        """
+        Plot diffraction pattern using proc data
         """
         img = self.model.scan_model.data
         binning = self.model.scan_model.binning
@@ -446,20 +514,28 @@ class ScanController(object):
             return
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         tth = x * scale + binning[0]
-        z = img[int(y), int(x)]
+        z = img[y, x]
 
-        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
         self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.y_pos_lbl.setText(f'2θ:{tth:.1f}')
         self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.int_lbl.setText(f'I: {z:.1f}')
-        self.widget.scan_widget.step_series_widget.pos_txt.setText(str(int(y)))
 
+        x0 = self.convert_x_value(binning[0], '2th_deg', self.model.current_configuration.integration_unit)
+        x1 = self.convert_x_value(binning[-1], '2th_deg', self.model.current_configuration.integration_unit)
+        self.model.pattern_model.set_pattern(np.linspace(x0, x1, binning.shape[0]), img[y])
+
+    def plot_image(self, y):
+        """
+        Plot single raw image from the batch
+
+        :param y: Number of raw image in the batch
+        """
         self.model.current_configuration.auto_integrate_pattern = False
         self.model.scan_model.load_image(int(y))
         self.model.current_configuration.auto_integrate_pattern = True
 
-        x0 = self.convert_x_value(binning[0], '2th_deg', self.model.current_configuration.integration_unit)
-        x1 = self.convert_x_value(binning[-1], '2th_deg', self.model.current_configuration.integration_unit)
-        self.model.pattern_model.set_pattern(np.linspace(x0, x1, binning.shape[0]), img[int(y)])
+        self.widget.scan_widget.step_series_widget.pos_txt.setText(str(int(y)))
+        self.widget.scan_widget.step_series_widget.slider.setValue(int(y))
+        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
 
     def update_axes_range(self):
         """
@@ -520,7 +596,9 @@ class ScanController(object):
         return res
 
     def update_azimuth_axis(self):
-
+        """
+        Update y-axis of the batch plot
+        """
         if self.model.scan_model.data is None:
             return
 
@@ -573,6 +651,9 @@ class ScanController(object):
         self.widget.scan_widget.img_view.auto_level()
 
     def update_gui(self):
+        """
+        Apply integration unit from current_configuration
+        """
         if self.model.current_configuration.integration_unit == '2th_deg':
             self.widget.scan_widget.tth_btn.setChecked(True)
             self.set_unit_tth()
