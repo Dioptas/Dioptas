@@ -88,6 +88,9 @@ class PatternController(object):
         self.widget.pattern_tth_btn.clicked.connect(self.set_unit_tth)
         self.widget.pattern_q_btn.clicked.connect(self.set_unit_q)
         self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
+        self.widget.scan_widget.tth_btn.clicked.connect(self.set_unit_tth)
+        self.widget.scan_widget.q_btn.clicked.connect(self.set_unit_q)
+        self.widget.scan_widget.d_btn.clicked.connect(self.set_unit_d)
 
         # quick actions
         self.widget.qa_save_pattern_btn.clicked.connect(self.save_pattern)

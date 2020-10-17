@@ -86,7 +86,7 @@ class ScanModel(QtCore.QObject):
                 self.mask_model.load_mask(mask_file)
 
             if 'bkg' in data_file:
-                self.data = data_file['bkg'][()]
+                self.bkg = data_file['bkg'][()]
 
     def save_proc_data(self, filename):
         """
@@ -97,7 +97,7 @@ class ScanModel(QtCore.QObject):
             f.attrs['calibration'] = self.calibration_model.filename
             f.attrs['int_method'] = 'Bla'  # ToDO
             f.attrs['num_points'] = self.binning.shape[0]
-
+            f.attrs['data_type'] = 'processed'
             if self.mask_model.filename:
                 f.attrs['mask'] = self.calibration_model.filename
 
@@ -152,6 +152,7 @@ class ScanModel(QtCore.QObject):
                 pos_map.append(i)
                 data.append(intensity)
 
+        file_map.append(len(data))
         self.pos_map = np.array(pos_map)
         self.file_map = np.array(file_map)
         self.binning = np.array(binning)

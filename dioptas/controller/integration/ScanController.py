@@ -3,6 +3,7 @@ import os
 from functools import partial
 
 import numpy as np
+import h5py
 from PIL import Image
 from qtpy import QtWidgets, QtCore, QtGui
 
@@ -329,7 +330,6 @@ class ScanController(object):
         img_filename_txt = str(self.widget.img_filename_txt.text())
         new_filenames = []
         for t in img_filename_txt.split():
-            print(os.path.join(current_directory, t))
             new_filenames += glob(os.path.join(current_directory, t))
 
         if len(new_filenames) > 0:
@@ -364,8 +364,8 @@ class ScanController(object):
                                        'Proc data (*.nxs)')
                                       )
 
-        name, ext = os.path.splitext(filenames[0])
-        if ext == '.h5':
+        data_file = h5py.File(filenames[0], "r")
+        if 'data_type' in data_file.attrs and data_file.attrs['data_type']=='processed':
             self.load_proc_data(filenames[0])
             raw_filenames = self.model.scan_model.files
             self.load_raw_data(raw_filenames)
@@ -375,6 +375,7 @@ class ScanController(object):
 
             basenames = [os.path.basename(f) for f in filenames]
             self.widget.img_filename_txt.setText(' '.join(basenames))
+            self.model.scan_model.reset_data()
             self.load_raw_data(filenames)
             self.widget.scan_widget.view_f_btn.setChecked(True)
             self.change_view()
@@ -390,12 +391,14 @@ class ScanController(object):
         """
 
         self.model.img_model.blockSignals(True)
-        self.model.scan_model.reset_data()
         self.model.scan_model.set_image_files(filenames)
         self.model.img_model.blockSignals(False)
 
         files = self.model.scan_model.files
         file_map = self.model.scan_model.file_map
+        self.widget.scan_widget.tree_model.clear()
+        self.widget.scan_widget.tree_model.setColumnCount(2)
+        self.widget.scan_widget.tree_model.setHorizontalHeaderLabels(["Fine name", "N img"])
         for i, file in enumerate(files):
             self.widget.scan_widget.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
             self.widget.scan_widget.tree_model.setItem(i, 1, QtGui.QStandardItem(f"{file_map[i + 1] - file_map[i]}"))
@@ -485,7 +488,7 @@ class ScanController(object):
         self.widget.integration_control_widget.tab_widget_2.setCurrentWidget(
             self.widget.integration_control_widget.overlay_control_widget
         )
-        
+
         if self.clicks == 0:
             self.clicks += 1
             if self.rect is not None:
