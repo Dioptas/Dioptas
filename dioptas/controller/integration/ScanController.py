@@ -478,12 +478,21 @@ class ScanController(object):
         """
         Create waterfall plot based on selected rectangle in the heatmap
         """
+        # show overlay widget
+        self.widget.integration_control_widget.tab_widget_1.setCurrentWidget(
+            self.widget.integration_control_widget.overlay_control_widget
+        )
+        self.widget.integration_control_widget.tab_widget_2.setCurrentWidget(
+            self.widget.integration_control_widget.overlay_control_widget
+        )
+        
         if self.clicks == 0:
             self.clicks += 1
             if self.rect is not None:
                 self.widget.scan_widget.img_view.img_view_box.removeItem(self.rect)
             self.rect = self.widget.scan_widget.img_view.draw_rectangle(x, y)
             self.widget.scan_widget.img_view.mouse_moved.connect(self.rect.set_size)
+            self.plot_pattern(int(x), int(y))
         elif self.clicks == 1:
             self.clicks = 0
             self.widget.scan_widget.img_view.mouse_moved.disconnect(self.rect.set_size)
@@ -491,11 +500,13 @@ class ScanController(object):
             data = self.model.scan_model.data
             binning = self.model.scan_model.binning
             rect = self.rect.rect()
-            y1, y2 = sorted((int(rect.top()), int(rect.top() - rect.height())))
-            x1, x2 = sorted((int(rect.left()), int(rect.left() - rect.width())))
+            y1, y2 = sorted((int(rect.top()), int(rect.bottom())))
+            x1, x2 = sorted((int(rect.left()), int(rect.right())))
             step = int(str(self.widget.scan_widget.step_series_widget.step_txt.text()))
             for i in range(y1, y2, step):
                 self.model.overlay_model.add_overlay(binning[x1:x2], data[i, x1:x2])
+            separation = self.widget.integration_control_widget.overlay_control_widget.waterfall_separation_msb.value()
+            self.model.overlay_model.overlay_waterfall(separation)
 
     def load_single_image(self, x, y):
         """
