@@ -61,12 +61,9 @@ class ScanModel(QtCore.QObject):
 
         self.files = np.array(files)
         self.n_img_all = image_counter
-        if self.data is None:
+        if self.pos_map is None:
             self.pos_map = np.array(pos_map)
             self.file_map = np.array(file_map)
-            self.binning = np.array([0])
-            self.data = np.ones((image_counter, 0))
-            self.n_img = self.data.shape[0]
 
     def load_proc_data(self, filename):
         """
@@ -90,8 +87,6 @@ class ScanModel(QtCore.QObject):
 
             if 'bkg' in data_file:
                 self.data = data_file['bkg'][()]
-
-        self.set_image_files(self.files)
 
     def save_proc_data(self, filename):
         """
