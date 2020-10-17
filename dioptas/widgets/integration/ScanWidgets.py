@@ -37,8 +37,7 @@ class ScanWidget(QtWidgets.QWidget):
         self.treeView = QtWidgets.QTreeView()
         self.treeView.setObjectName('treeView')
 
-        self.tree_model = QtGui.QStandardItemModel(0, 2)
-        self.tree_model.setHorizontalHeaderLabels(["Fine name", "N img"])
+        self.tree_model = QtGui.QStandardItemModel()
         self.treeView.setModel(self.tree_model)
         self.treeView.setColumnWidth(0, 400)
         self._central_layout.addWidget(self.treeView)
