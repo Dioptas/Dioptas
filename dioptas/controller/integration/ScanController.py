@@ -57,6 +57,7 @@ class ScanController(object):
         self.widget.scan_widget.scale_sqrt_btn.clicked.connect(self.change_scale)
         self.widget.scan_widget.background_btn.clicked.connect(self.subtract_background)
         self.widget.scan_widget.calc_bkg_btn.clicked.connect(self.extract_background)
+        self.widget.scan_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
 
         # set unit of x axis
         self.widget.scan_widget.tth_btn.clicked.connect(self.set_unit_tth)
@@ -117,7 +118,6 @@ class ScanController(object):
         """
         previous_unit = self.integration_unit
         self.widget.scan_widget.tth_btn.setChecked(True)
-        self.widget.pattern_tth_btn.setChecked(True)
         if previous_unit == '2th_deg':
             return
         self.integration_unit = '2th_deg'
@@ -136,7 +136,6 @@ class ScanController(object):
         """
         previous_unit = self.integration_unit
         self.widget.scan_widget.q_btn.setChecked(True)
-        self.widget.pattern_q_btn.setChecked(True)
         if previous_unit == 'q_A^-1':
             return
         self.integration_unit = "q_A^-1"
@@ -155,7 +154,6 @@ class ScanController(object):
         """
         previous_unit = self.integration_unit
         self.widget.scan_widget.d_btn.setChecked(True)
-        self.widget.pattern_d_btn.setChecked(True)
         if previous_unit == 'd_A':
             return
         self.integration_unit = 'd_A'
@@ -477,6 +475,10 @@ class ScanController(object):
         else:
             self.load_single_image(x, y)
 
+    def img_autoscale_btn_clicked(self):
+        if self.widget.img_autoscale_btn.isChecked():
+            self.widget.scan_widget.img_view.auto_level()
+
     def process_waterfall(self, x, y):
         """
         Create waterfall plot based on selected rectangle in the heatmap
@@ -536,6 +538,14 @@ class ScanController(object):
         x0 = self.convert_x_value(binning[0], '2th_deg', self.model.current_configuration.integration_unit)
         x1 = self.convert_x_value(binning[-1], '2th_deg', self.model.current_configuration.integration_unit)
         self.model.pattern_model.set_pattern(np.linspace(x0, x1, binning.shape[0]), img[y])
+
+        pos = x * scale + binning[0]
+        pos = self.convert_x_value(pos, '2th_deg', self.model.current_configuration.integration_unit)
+        self.widget.pattern_widget.set_pos_line(pos)
+        if self.model.calibration_model.is_calibrated:
+            pass  # ToDo Change line in image and cake plot
+            # self.update_image_widget_line_position()
+
 
     def plot_image(self, y):
         """
