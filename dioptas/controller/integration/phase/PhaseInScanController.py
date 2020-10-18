@@ -39,7 +39,7 @@ class PhaseInScanController(object):
 
     def get_phase_position_and_intensities(self, ind, clip=True):
         """
-        Obtains the positions and intensities for lines of a phase with an index ind within the cake view.
+        Obtains the positions and intensities for lines of a phase with an index ind within the scan view.
 
         No clipping is used for the first call to add the CakePhasePlot to the ImgWidget. Subsequent calls are used with
         clipping. Thus, only lines within the cake_tth are returned. The visibility of each line is then estimated in
@@ -50,10 +50,9 @@ class PhaseInScanController(object):
                      than the
         :return: line_positions, line_intensities
         """
-        if self.model.cake_tth is None:
-            cake_tth = self.model.calibration_model.tth
-        else:
-            cake_tth = self.model.cake_tth
+        cake_tth = self.model.scan_model.binning
+        if cake_tth is None:
+            return
         reflections_tth = self.phase_model.get_phase_line_positions(ind, 'tth',
                                                                     self.model.calibration_model.wavelength * 1e10)
         reflections_intensities = [reflex[1] for reflex in self.phase_model.reflections[ind]]
