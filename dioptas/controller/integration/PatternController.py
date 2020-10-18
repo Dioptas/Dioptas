@@ -64,6 +64,7 @@ class PatternController(object):
         # Gui subscriptions
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+        self.widget.scan_widget.img_view.mouse_left_clicked.connect(self.batch_left_click)
         self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
     def create_gui_signals(self):
@@ -305,6 +306,19 @@ class PatternController(object):
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.model.calibration_model.wavelength
         return convert_units(value, wavelength, previous_unit, new_unit)
+
+    def batch_left_click(self, x, y):
+        """
+        Plot dashed line on pattern, image and cake view, which mouse clicked on batch plot.
+
+        :param x: x value of batch plot
+        """
+        binning = self.model.scan_model.binning
+        if binning is None:
+            return
+        scale = (binning[-1] - binning[0]) / binning.shape[0]
+        pos = x * scale + binning[0]
+        self.pattern_left_click(pos, y)
 
     def pattern_left_click(self, x, y):
         self.set_line_position(x)

@@ -539,14 +539,6 @@ class ScanController(object):
         x1 = self.convert_x_value(binning[-1], '2th_deg', self.model.current_configuration.integration_unit)
         self.model.pattern_model.set_pattern(np.linspace(x0, x1, binning.shape[0]), img[y])
 
-        pos = x * scale + binning[0]
-        pos = self.convert_x_value(pos, '2th_deg', self.model.current_configuration.integration_unit)
-        self.widget.pattern_widget.set_pos_line(pos)
-        if self.model.calibration_model.is_calibrated:
-            pass  # ToDo Change line in image and cake plot
-            # self.update_image_widget_line_position()
-
-
     def plot_image(self, y):
         """
         Plot single raw image from the batch
