@@ -347,7 +347,6 @@ class ImageController(object):
         return res
 
     def show_scan_frame(self):
-        print("Show scan frame")
         self.widget.scan_widget.raise_widget()
 
     def show_file_info(self):
