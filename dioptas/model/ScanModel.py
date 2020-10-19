@@ -50,14 +50,14 @@ class ScanModel(QtCore.QObject):
         :param files: List of file names including path
         """
         pos_map = []
-        file_map = []
+        file_map = [0]
         image_counter = 0
-        for file in files:
+        for i, file in enumerate(files):
             self.calibration_model.img_model.load(file)
+            n_img = self.calibration_model.img_model.series_max
+            image_counter += n_img
+            pos_map += list(zip([i] * n_img, range(n_img)))
             file_map.append(image_counter)
-            image_counter += self.calibration_model.img_model.series_max
-            pos_map += list(range(self.calibration_model.img_model.series_max))
-        file_map.append(image_counter)
 
         self.files = np.array(files)
         self.n_img_all = image_counter
@@ -119,42 +119,41 @@ class ScanModel(QtCore.QObject):
         y = np.arange(self.n_img)[None,:].repeat(self.binning.shape[0], axis=0).flatten()
         np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
 
-    def integrate_raw_data(self, progress_dialog, num_points, step):
+    def integrate_raw_data(self, progress_dialog, num_points, start, stop, step):
         """
         Integrate images from given file
 
         :param progress_dialog: Progress dialog to show progress
         :param num_points: Numbers of radial bins
+        :param start: Start image index fro integration
+        :param stop: Stop image index fro integration
         :param step: Step along images to integrate
         """
         data = []
         pos_map = []
-        file_map = []
         image_counter = 0
+        current_file = ''
         if self.mask_model.mode:
             mask = self.mask_model.get_mask()
-        for file in self.files:
-            self.calibration_model.img_model.load(file)
 
-            if len(data) not in file_map:
-                file_map.append(len(data))
+        for index in range(start, stop, step):
+            i_file, pos = self.pos_map[index]
+            if i_file != current_file:
+                current_file = i_file
+                self.calibration_model.img_model.load(self.files[i_file])
+            if progress_dialog.wasCanceled():
+                break
 
-            for i in range(self.calibration_model.img_model.series_max):
-                if progress_dialog.wasCanceled():
-                    break
-                image_counter += 1
-                progress_dialog.setValue(image_counter)
-                if image_counter % step > 0:
-                    continue
-                self.calibration_model.img_model.load_series_img(i)
-                binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
-                                                                         mask=mask)
-                pos_map.append(i)
-                data.append(intensity)
+            self.calibration_model.img_model.load_series_img(pos)
+            binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
+                                                                     mask=mask)
+            image_counter += 1
+            progress_dialog.setValue(image_counter)
 
-        file_map.append(len(data))
+            pos_map.append((i_file, pos))
+            data.append(intensity)
+
         self.pos_map = np.array(pos_map)
-        self.file_map = np.array(file_map)
         self.binning = np.array(binning)
         self.data = np.array(data)
         self.n_img = self.data.shape[0]
@@ -179,9 +178,8 @@ class ScanModel(QtCore.QObject):
 
         :param index: Index of image in the batch
         """
-        f_index = np.where(self.file_map <= index)[0][-1]
+        f_index, pos = self.pos_map[index]
         filename = self.files[f_index]
-        pos = self.pos_map[index]
         return filename, pos
 
     def load_image(self, index):

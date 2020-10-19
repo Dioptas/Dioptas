@@ -422,9 +422,10 @@ class CalibrationModel(QtCore.QObject):
                                                                        filename=filename)
         logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
 
-        ind = np.where((self.int > 0) & (~np.isnan(self.int)))
-        self.tth = self.tth[ind]
-        self.int = self.int[ind]
+        # following commented lines breaks batch integration
+        #ind = np.where((self.int > 0) & (~np.isnan(self.int)))
+        #self.tth = self.tth[ind]
+        #self.int = self.int[ind]
         return self.tth, self.int
 
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr',

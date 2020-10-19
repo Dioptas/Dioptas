@@ -238,6 +238,7 @@ class ScanController(object):
     def process_slider(self):
         y = self.widget.scan_widget.step_series_widget.slider.value()
         x = self.widget.scan_widget.img_view.vertical_line.getXPos()
+        self.widget.scan_widget.img_view.horizontal_line.setValue(y)
         self.load_single_image(x, y)
 
     def set_range_img(self):
@@ -251,6 +252,7 @@ class ScanController(object):
         stop = min(max(start, stop), n_img_all)
         self.widget.scan_widget.step_series_widget.slider.setRange(start, stop)
         self.widget.scan_widget.step_series_widget.pos_validator.setRange(start, stop)
+        self.plot_batch()
 
     def load_next_img(self):
         """
@@ -291,6 +293,8 @@ class ScanController(object):
         """
         img = self.model.scan_model.data
         binning = self.model.scan_model.binning
+        y += int(str(self.widget.scan_widget.step_series_widget.start_txt.text()))
+
         if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
             return
         scale = (binning[-1] - binning[0]) / binning.shape[0]
@@ -363,7 +367,7 @@ class ScanController(object):
                                       )
 
         data_file = h5py.File(filenames[0], "r")
-        if 'data_type' in data_file.attrs and data_file.attrs['data_type']=='processed':
+        if 'data_type' in data_file.attrs and data_file.attrs['data_type'] == 'processed':
             self.load_proc_data(filenames[0])
             raw_filenames = self.model.scan_model.files
             self.load_raw_data(raw_filenames)
@@ -408,9 +412,11 @@ class ScanController(object):
         if n_img is None:
             n_img = n_img_all
         self.widget.scan_widget.step_series_widget.pos_validator.setRange(0, n_img - 1)
+        self.widget.scan_widget.step_series_widget.start_txt.setRange(0, n_img - 1)
+        self.widget.scan_widget.step_series_widget.stop_txt.setRange(0, n_img - 1)
+        self.widget.scan_widget.step_series_widget.slider.setRange(0, n_img - 1)
         self.widget.scan_widget.step_series_widget.start_txt.setValue(0)
-        self.widget.scan_widget.step_series_widget.stop_txt.setValue(n_img)
-        self.widget.scan_widget.step_series_widget.slider.setRange(0, n_img)
+        self.widget.scan_widget.step_series_widget.stop_txt.setValue(n_img - 1)
 
     def load_proc_data(self, filename):
         """
@@ -422,19 +428,26 @@ class ScanController(object):
 
         self.plot_batch()
 
-    def plot_batch(self):
+    def plot_batch(self, start=None, stop=None):
         """
         Plot batch of diffraction patters taking into account scale abd background subtraction
         """
         data = self.model.scan_model.data
         bkg = self.model.scan_model.bkg
+        if data is None:
+            return
         if self.widget.scan_widget.background_btn.isChecked():
             data = data - bkg
         data = self.scale(data)
 
-        self.widget.scan_widget.img_view.plot_image(data, True)
-        # self.widget.scan_widget.surf_view.plot_surf(img)
+        if stop is None:
+            stop = int(str(self.widget.scan_widget.step_series_widget.stop_txt.text()))
+        if start is None:
+            start = int(str(self.widget.scan_widget.step_series_widget.start_txt.text()))
+
+        self.widget.scan_widget.img_view.plot_image(data[start:stop+1], True)
         self.widget.scan_widget.img_view.auto_level()
+        self.update_azimuth_axis()
 
     def save_data(self):
         """
@@ -463,13 +476,15 @@ class ScanController(object):
                 for y in range(img_data.shape[0]):
                     pattern_y = img_data[int(y)]
                     self.model.pattern_model.set_pattern(pattern_x, pattern_y)
-                    self.model.current_configuration.save_pattern(f"{name}_{y}.{ext}", subtract_background=True)
+                    self.model.current_configuration.save_pattern(f"{name}_{y}{ext}", subtract_background=True)
                 self.model.img_model.blockSignals(False)
 
     def img_mouse_click(self, x, y):
         """
         Process mouse click
         """
+
+        y += int(str(self.widget.scan_widget.step_series_widget.start_txt.text()))
         if self.widget.scan_widget.waterfall_btn.isChecked():
             self.process_waterfall(x, y)
         else:
@@ -545,13 +560,16 @@ class ScanController(object):
 
         :param y: Number of raw image in the batch
         """
+        y = int(y)
         self.model.current_configuration.auto_integrate_pattern = False
-        self.model.scan_model.load_image(int(y))
+        self.model.scan_model.load_image(y)
+        f_name, pos = self.model.scan_model.get_image_info(y)
+        self.widget.scan_widget.setWindowTitle(f"Batch widget. {f_name} - {pos}")
         self.model.current_configuration.auto_integrate_pattern = True
 
-        self.widget.scan_widget.step_series_widget.pos_txt.setText(str(int(y)))
-        self.widget.scan_widget.step_series_widget.slider.setValue(int(y))
-        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
+        self.widget.scan_widget.step_series_widget.pos_txt.setText(str(y))
+        self.widget.scan_widget.step_series_widget.slider.setValue(y)
+        self.widget.scan_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(f'Img: {y:.0f}')
 
     def update_axes_range(self):
         """
@@ -618,16 +636,19 @@ class ScanController(object):
         if self.model.scan_model.data is None:
             return
 
+        start = int(str(self.widget.scan_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.widget.scan_widget.step_series_widget.stop_txt.text()))
+
         data_img_item = self.widget.scan_widget.img_view.data_img_item
-        img_data = self.model.scan_model.data
+        img_data = self.model.scan_model.data[start:stop+1]
 
         height = data_img_item.viewRect().height()
         bottom = data_img_item.viewRect().top()
         bound = data_img_item.boundingRect().height()
 
         v_scale = img_data.shape[0] / bound
-        min_azi = v_scale * bottom
-        max_azi = v_scale * (bottom + height)
+        min_azi = v_scale * bottom + start
+        max_azi = v_scale * (bottom + height) + start
 
         self.widget.scan_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
 
@@ -648,23 +669,27 @@ class ScanController(object):
             num_points = None
 
         step = int(str(self.widget.scan_widget.step_series_widget.step_txt.text()))
+        stop = int(str(self.widget.scan_widget.step_series_widget.stop_txt.text()))
+        start = int(str(self.widget.scan_widget.step_series_widget.start_txt.text()))
 
         self.model.img_model.blockSignals(True)
         self.model.blockSignals(True)
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
                                                           self.model.scan_model.n_img_all)
-        self.model.scan_model.integrate_raw_data(progress_dialog, num_points, step)
+        self.model.scan_model.integrate_raw_data(progress_dialog, num_points, start, stop+1, step)
         progress_dialog.close()
+
         self.model.img_model.blockSignals(False)
         self.model.blockSignals(False)
-        img = self.model.scan_model.data
         n_img = self.model.scan_model.n_img
         n_img_all = self.model.scan_model.n_img_all
+        self.widget.scan_widget.step_series_widget.start_txt.setValue(0)
+        self.widget.scan_widget.step_series_widget.start_txt.setRange(0, n_img - 1)
+        self.widget.scan_widget.step_series_widget.stop_txt.setValue(n_img - 1)
+        self.widget.scan_widget.step_series_widget.stop_txt.setRange(0, n_img - 1)
+        self.widget.scan_widget.step_series_widget.slider.setRange(0, n_img - 1)
         self.widget.scan_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
-
-        self.widget.scan_widget.img_view.plot_image(img, True)
-        self.widget.scan_widget.surf_view.plot_surf(img)
-        self.widget.scan_widget.img_view.auto_level()
+        self.plot_batch()
 
     def update_gui(self):
         """
