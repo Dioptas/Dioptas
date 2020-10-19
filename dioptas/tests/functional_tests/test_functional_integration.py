@@ -335,3 +335,84 @@ class IntegrationFunctionalTest(QtTest):
         self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
         self.integration_image_controller.img_mouse_click(1840, 500)
         self.model.select_configuration(0)
+
+
+class BatchIntegrationFunctionalTest(QtTest):
+    def setUp(self):
+        self.model = DioptasModel()
+
+        self.integration_widget = IntegrationWidget()
+        self.integration_controller = IntegrationController(widget=self.integration_widget,
+                                                            dioptas_model=self.model)
+        self.model.calibration_model.load(os.path.join(data_path, 'lambda/L2.poni'))
+
+        files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'),
+                 os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')]
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
+        click_button(self.integration_widget.scan_widget.load_btn)
+
+        self.integration_controller.scan_controller.integrate()
+
+    def test_data_is_ok(self):
+        self.assertTrue(self.model.scan_model.data is not None)
+        self.assertEqual(self.model.scan_model.data.shape[0], 20)
+        self.assertEqual(self.model.scan_model.data.shape[1],
+                         self.model.scan_model.binning.shape[0])
+        self.assertEqual(self.model.scan_model.data.shape[0],
+                         self.model.scan_model.n_img)
+        start = int(str(self.integration_widget.scan_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.scan_widget.step_series_widget.stop_txt.text()))
+        self.assertEqual(stop, 19)
+        self.assertEqual(start, 0)
+
+    def save_pattern(self, filename):
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
+        click_button(self.integration_widget.scan_widget.save_btn)
+
+    def test_save_data(self):
+        for ext in ['nxs', 'csv', 'png']:
+            self.save_pattern(os.path.join(data_path, f'Test_spec.{ext}'))
+            self.assertTrue(os.path.exists(os.path.join(data_path, f'Test_spec.{ext}')))
+            self.assertGreater(os.stat(os.path.join(data_path, f'Test_spec.{ext}')).st_size, 1)
+            os.remove(os.path.join(data_path, f'Test_spec.{ext}'))
+
+        self.save_pattern(os.path.join(data_path, 'Test_spec.dat'))
+        for i in range(20):
+            self.assertTrue(os.path.exists(os.path.join(data_path, f'Test_spec_{i}.dat')))
+            self.assertGreater(os.stat(os.path.join(data_path, f'Test_spec_{i}.dat')).st_size, 1)
+            os.remove(os.path.join(data_path, f'Test_spec_{i}.dat'))
+
+    def test_save_load_reintegrate(self):
+        self.save_pattern(os.path.join(data_path, 'Test_spec.nxs'))
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'Test_spec.nxs')])
+        click_button(self.integration_widget.scan_widget.load_btn)
+
+        self.assertEqual(self.model.scan_model.data.shape[0], 20)
+        self.assertEqual(self.model.scan_model.data.shape[1],
+                         self.model.scan_model.binning.shape[0])
+
+        self.integration_widget.scan_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_controller.scan_controller.integrate()
+
+        self.assertEqual(self.model.scan_model.data.shape[0], 10)
+
+    def test_integrate_with_parameters(self):
+
+        self.integration_widget.scan_widget.step_series_widget.step_txt.setValue(1)
+        self.integration_widget.scan_widget.step_series_widget.start_txt.setValue(4)
+        self.integration_widget.scan_widget.step_series_widget.stop_txt.setValue(15)
+        self.integration_controller.scan_controller.integrate()
+        start = int(str(self.integration_widget.scan_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.scan_widget.step_series_widget.stop_txt.text()))
+        self.assertEqual(self.model.scan_model.data.shape[0], 12)
+        self.assertEqual(stop, 11)
+        self.assertEqual(start, 0)
+
+        self.integration_widget.scan_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_widget.scan_widget.step_series_widget.start_txt.setValue(0)
+        self.integration_widget.scan_widget.step_series_widget.stop_txt.setValue(12)
+        self.integration_controller.scan_controller.integrate()
+        self.assertEqual(self.model.scan_model.data.shape[0], 6)

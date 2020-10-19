@@ -296,12 +296,12 @@ class StepBatchWidget(QtWidgets.QWidget):
         self.step_txt.setRange(1, 10000)
 
         self.stop_txt = QtWidgets.QSpinBox()
-        self.stop_txt.setValue(1)
-        self.stop_txt.setRange(1, 10000)
+        self.stop_txt.setValue(0)
+        self.stop_txt.setRange(0, 99000)
         
         self.start_txt = QtWidgets.QSpinBox()
-        self.start_txt.setValue(1)
-        self.start_txt.setRange(1, 10000)
+        self.start_txt.setValue(0)
+        self.start_txt.setRange(0, 99000)
         
         self.next_btn.setMaximumWidth(self.small_btn_max_width)
         self.previous_btn.setMaximumWidth(self.small_btn_max_width)

@@ -32,7 +32,7 @@ class LambdaImage:
         """
         detector_identifiers = [["/entry/instrument/detector/description", "Lambda"], ["/entry/instrument/detector/description", b"Lambda"]]
         filenumber_list = [1, 2, 3]
-        regex_in = r"(.+_m)\d(.nxs)"
+        regex_in = r"(.+_m)\d(.+nxs)"
         regex_out = r"\g<1>{}\g<2>"
         data_path = "entry/instrument/detector/data"
         module_positions_path = "/entry/instrument/detector/translation/distance"
