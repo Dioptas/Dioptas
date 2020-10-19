@@ -416,3 +416,40 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.integration_widget.scan_widget.step_series_widget.stop_txt.setValue(12)
         self.integration_controller.scan_controller.integrate()
         self.assertEqual(self.model.scan_model.data.shape[0], 6)
+
+    def test_load_missing_raw(self):
+        """
+        Load processed data, while raw data not available.
+
+        Fix error by giving correct path to raw data
+        """
+
+        # Create tmp raw data
+        import shutil
+        shutil.copytree(os.path.join(data_path, 'lambda'),
+                        os.path.join(data_path, 'lambda_temp'))
+        # Integrate tmp data. Save proc. Delete tmp data.
+        files = [os.path.join(data_path, 'lambda_temp/testasapo1_1009_00002_m1_part00000.nxs'),
+                 os.path.join(data_path, 'lambda_temp/testasapo1_1009_00002_m1_part00001.nxs')]
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
+        click_button(self.integration_widget.scan_widget.load_btn)
+
+        self.integration_controller.scan_controller.integrate()
+        self.save_pattern(os.path.join(data_path, f'Test_missing_raw.nxs'))
+
+        shutil.rmtree(os.path.join(data_path, 'lambda_temp'))
+
+        # Load proc data with missing raw data
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'Test_missing_raw.nxs')])
+        click_button(self.integration_widget.scan_widget.load_btn)
+        self.assertTrue(self.model.scan_model.n_img_all is None)
+
+        self.model.working_directories['image'] = os.path.join(data_path, 'lambda')
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'Test_missing_raw.nxs')])
+        click_button(self.integration_widget.scan_widget.load_btn)
+        self.assertEqual(self.model.scan_model.n_img_all, 20)
+
+        os.remove(os.path.join(data_path, f'Test_missing_raw.nxs'))

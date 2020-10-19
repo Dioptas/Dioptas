@@ -26,6 +26,7 @@ class ScanModel(QtCore.QObject):
         self.pos_map = None
         self.n_img = None
         self.n_img_all = None
+        self.raw_available = False
 
         self.calibration_model = calibration_model
         self.mask_model = mask_model
@@ -61,6 +62,7 @@ class ScanModel(QtCore.QObject):
 
         self.files = np.array(files)
         self.n_img_all = image_counter
+        self.raw_available = True
         if self.pos_map is None:
             self.pos_map = np.array(pos_map)
             self.file_map = np.array(file_map)
@@ -188,5 +190,7 @@ class ScanModel(QtCore.QObject):
 
         :param index: Index of image in the batch
         """
+        if not self.raw_available:
+            return
         filename, pos = self.get_image_info(index)
         self.calibration_model.img_model.load(filename, pos)

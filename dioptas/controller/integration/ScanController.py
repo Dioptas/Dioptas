@@ -327,6 +327,8 @@ class ScanController(object):
         Set image files of the batch base on filename given in the text box
         """
         current_filenames = self.model.scan_model.files
+        if current_filenames is None:
+            return
         current_directory = self.model.working_directories['image']
 
         img_filename_txt = str(self.widget.img_filename_txt.text())
@@ -336,7 +338,7 @@ class ScanController(object):
 
         if len(new_filenames) > 0:
             try:
-                self.model.scan_model.set_image_files(new_filenames)
+                self.load_raw_data(new_filenames)
             except TypeError:
                 basenames = [os.path.basename(f) for f in current_filenames]
                 self.widget.img_filename_txt.setText(' '.join(basenames))
@@ -354,7 +356,7 @@ class ScanController(object):
             return
         filenames = [os.path.basename(f) for f in current_filenames]
         new_filenames = [os.path.join(new_directory, f) for f in filenames]
-        self.model.scan_model.set_image_files(new_filenames)
+        self.load_raw_data(new_filenames)
 
     def load_data(self):
         """
@@ -368,17 +370,20 @@ class ScanController(object):
 
         data_file = h5py.File(filenames[0], "r")
         if 'data_type' in data_file.attrs and data_file.attrs['data_type'] == 'processed':
+            self.model.scan_model.reset_data()
             self.load_proc_data(filenames[0])
             raw_filenames = self.model.scan_model.files
+            dir_name = self.model.working_directories['image']
+
+            raw_filenames = [os.path.join(dir_name, os.path.basename(f)) for f in raw_filenames]
             self.load_raw_data(raw_filenames)
         else:
             self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
             self.model.working_directories['image'] = os.path.dirname(filenames[0])
-
-            basenames = [os.path.basename(f) for f in filenames]
-            self.widget.img_filename_txt.setText(' '.join(basenames))
             self.model.scan_model.reset_data()
             self.load_raw_data(filenames)
+            #basenames = [os.path.basename(f) for f in filenames]
+            #self.widget.img_filename_txt.setText(' '.join(basenames))
             self.widget.scan_widget.view_f_btn.setChecked(True)
             self.change_view()
 
@@ -393,7 +398,12 @@ class ScanController(object):
         """
 
         self.model.img_model.blockSignals(True)
-        self.model.scan_model.set_image_files(filenames)
+        try:
+            self.model.scan_model.set_image_files(filenames)
+        except IOError:
+            self.model.img_model.blockSignals(False)
+            return
+
         self.model.img_model.blockSignals(False)
 
         files = self.model.scan_model.files
@@ -401,6 +411,7 @@ class ScanController(object):
         self.widget.scan_widget.tree_model.clear()
         self.widget.scan_widget.tree_model.setColumnCount(2)
         self.widget.scan_widget.tree_model.setHorizontalHeaderLabels(["Fine name", "N img"])
+        self.widget.scan_widget.treeView.setColumnWidth(0, 400)
         for i, file in enumerate(files):
             self.widget.scan_widget.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
             self.widget.scan_widget.tree_model.setItem(i, 1, QtGui.QStandardItem(f"{file_map[i + 1] - file_map[i]}"))
