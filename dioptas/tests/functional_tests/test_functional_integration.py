@@ -453,3 +453,16 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.assertEqual(self.model.scan_model.n_img_all, 20)
 
         os.remove(os.path.join(data_path, f'Test_missing_raw.nxs'))
+
+    def test_create_waterfall(self):
+
+        self.integration_widget.scan_widget.waterfall_btn.setChecked(True)
+        self.integration_controller.scan_controller.waterfall_mode()
+
+        # Nothing should happen if click outside of data range
+        self.integration_controller.scan_controller.img_mouse_click(-10, 5)
+        self.integration_controller.scan_controller.img_mouse_click(5, 5)
+        self.integration_controller.scan_controller.rect.set_size(10,15)
+        self.integration_controller.scan_controller.img_mouse_click(10, 15)
+
+        self.assertEqual(len(self.model.overlay_model.overlays), 10)
