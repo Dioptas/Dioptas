@@ -494,8 +494,10 @@ class ScanController(object):
         """
         Process mouse click
         """
-
         y += int(str(self.widget.scan_widget.step_series_widget.start_txt.text()))
+        img = self.model.scan_model.data
+        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
+            return
         if self.widget.scan_widget.waterfall_btn.isChecked():
             self.process_waterfall(x, y)
         else:
