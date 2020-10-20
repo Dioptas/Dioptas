@@ -318,6 +318,7 @@ class PatternController(object):
             return
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         pos = x * scale + binning[0]
+        pos = self.convert_x_value(pos, '2th_deg', self.model.current_configuration.integration_unit)
         self.pattern_left_click(pos, y)
 
     def pattern_left_click(self, x, y):

@@ -37,7 +37,7 @@ from ...controller.integration import IntegrationController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
-
+jcpds_path = os.path.join(data_path, 'jcpds')
 
 class IntegrationMockFunctionalTest(QtTest):
     def setUp(self):
@@ -466,3 +466,14 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.integration_controller.scan_controller.img_mouse_click(10, 15)
 
         self.assertEqual(len(self.model.overlay_model.overlays), 10)
+
+    def test_show_phases(self):
+
+        self.model.phase_model.add_jcpds(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
+        click_button(self.integration_widget.scan_widget.phases_btn)
+
+        self.assertEqual(len(self.integration_widget.scan_widget.img_view.phases), 1)
+        self.assertEqual(len(self.integration_widget.scan_widget.img_view.phases[0].line_items), 27)
+
+        last_line_position = self.integration_widget.scan_widget.img_view.phases[0].line_items[-1].getPos()
+        self.assertGreater(last_line_position[0], 2000)
