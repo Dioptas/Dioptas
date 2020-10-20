@@ -24,6 +24,7 @@ class ScanModel(QtCore.QObject):
         self.file_map = None
         self.files = None
         self.pos_map = None
+        self.pos_map_all = None
         self.n_img = None
         self.n_img_all = None
         self.raw_available = False
@@ -38,6 +39,7 @@ class ScanModel(QtCore.QObject):
         self.file_map = None
         self.files = None
         self.pos_map = None
+        self.pos_map_all = None
         self.n_img = None
         self.n_img_all = None
 
@@ -63,9 +65,8 @@ class ScanModel(QtCore.QObject):
         self.files = np.array(files)
         self.n_img_all = image_counter
         self.raw_available = True
-        if self.pos_map is None:
-            self.pos_map = np.array(pos_map)
-            self.file_map = np.array(file_map)
+        self.pos_map_all = np.array(pos_map)
+        self.file_map = np.array(file_map)
 
     def load_proc_data(self, filename):
         """
@@ -118,10 +119,10 @@ class ScanModel(QtCore.QObject):
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         x = self.binning.repeat(self.n_img)
-        y = np.arange(self.n_img)[None,:].repeat(self.binning.shape[0], axis=0).flatten()
+        y = np.arange(self.n_img)[None, :].repeat(self.binning.shape[0], axis=0).flatten()
         np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
 
-    def integrate_raw_data(self, progress_dialog, num_points, start, stop, step):
+    def integrate_raw_data(self, progress_dialog, num_points, start, stop, step, use_all=False):
         """
         Integrate images from given file
 
@@ -130,6 +131,7 @@ class ScanModel(QtCore.QObject):
         :param start: Start image index fro integration
         :param stop: Stop image index fro integration
         :param step: Step along images to integrate
+        :param use_all: Use all images. If False use only images, that were already integrated.
         """
         data = []
         pos_map = []
@@ -139,7 +141,10 @@ class ScanModel(QtCore.QObject):
             mask = self.mask_model.get_mask()
 
         for index in range(start, stop, step):
-            i_file, pos = self.pos_map[index]
+            if use_all:
+                i_file, pos = self.pos_map_all[index]
+            else:
+                i_file, pos = self.pos_map[index]
             if i_file != current_file:
                 current_file = i_file
                 self.calibration_model.img_model.load(self.files[i_file])
@@ -174,23 +179,28 @@ class ScanModel(QtCore.QObject):
             bkg[i] = extract_background(self.binning, y, *parameters)
         self.bkg = bkg
 
-    def get_image_info(self, index):
+    def get_image_info(self, index, use_all=False):
         """
         Get filename and image position in the file
 
         :param index: Index of image in the batch
+        :param use_all: Indexing with respect to all images. If False count only images, that were integrated.
         """
-        f_index, pos = self.pos_map[index]
+        if use_all:
+            f_index, pos = self.pos_map_all[index]
+        else:
+            f_index, pos = self.pos_map[index]
         filename = self.files[f_index]
         return filename, pos
 
-    def load_image(self, index):
+    def load_image(self, index, use_all=False):
         """
         Load image in image model
 
         :param index: Index of image in the batch
+        :param use_all: Indexing with respect to all images. If False count only images, that were integrated.
         """
         if not self.raw_available:
             return
-        filename, pos = self.get_image_info(index)
+        filename, pos = self.get_image_info(index, use_all)
         self.calibration_model.img_model.load(filename, pos)
