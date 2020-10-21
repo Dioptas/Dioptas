@@ -28,8 +28,6 @@ class ScanWidget(QtWidgets.QWidget):
         self._frame_layout.setContentsMargins(0, 0, 0, 0)
         self._frame_layout.setSpacing(0)
 
-        self.view_mode = 0  # 0 - 2D, 1 - 3D
-
         # central layout
         self._central_layout = QtWidgets.QHBoxLayout()
         self._central_layout.setSpacing(0)
@@ -46,7 +44,6 @@ class ScanWidget(QtWidgets.QWidget):
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_view = IntegrationBatchWidget(self.img_pg_layout, orientation='horizontal')
         self._central_layout.addWidget(self.img_pg_layout)
-        #self.img_pg_layout.hide()
 
         self.surf_pg_layout = GLViewWidget()
         self.surf_view = SurfWidget(self.surf_pg_layout, orientation='horizontal')
@@ -71,8 +68,6 @@ class ScanWidget(QtWidgets.QWidget):
         self.unit_btn_group.addButton(self.q_btn)
         self.unit_btn_group.addButton(self.d_btn)
         self.background_btn = CheckableFlatButton('bg')
-        self.antialias_btn = CheckableFlatButton('AA')
-        self.auto_range_btn = CheckableFlatButton('A')
 
         self.scale_log_btn = CheckableFlatButton("log")
         self.scale_log_btn.setToolTip("Change scale to log")

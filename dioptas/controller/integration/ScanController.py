@@ -38,8 +38,6 @@ class ScanController(object):
         self.create_signals()
         self.create_mouse_behavior()
 
-        self.integration_unit = '2th_deg'
-
     def create_signals(self):
         """
         Creates all the connections of the GUI elements.
@@ -117,18 +115,12 @@ class ScanController(object):
 
         Corresponding buttons on batch and pattern widgets are checked.
         """
-        previous_unit = self.integration_unit
         self.widget.scan_widget.tth_btn.setChecked(True)
         self.widget.integration_pattern_widget.tth_btn.setChecked(True)
-        if previous_unit == '2th_deg':
-            return
-        self.integration_unit = '2th_deg'
-
         self.model.current_configuration.integration_unit = '2th_deg'
         self.widget.scan_widget.img_view.bottom_axis_cake.setLabel(u'2θ', '°')
         self.widget.scan_widget.img_view.img_view_box.invertX(False)
-        if self.model.calibration_model.is_calibrated:
-            self.update_x_axis()
+        self.update_x_axis()
 
     def set_unit_q(self):
         """
@@ -136,18 +128,12 @@ class ScanController(object):
 
         Corresponding buttons on batch and pattern widgets are checked.
         """
-        previous_unit = self.integration_unit
         self.widget.scan_widget.q_btn.setChecked(True)
         self.widget.integration_pattern_widget.q_btn.setChecked(True)
-        if previous_unit == 'q_A^-1':
-            return
-        self.integration_unit = "q_A^-1"
-
         self.model.current_configuration.integration_unit = "q_A^-1"
         self.widget.scan_widget.img_view.img_view_box.invertX(False)
         self.widget.scan_widget.img_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
-        if self.model.calibration_model.is_calibrated:
-            self.update_x_axis()
+        self.update_x_axis()
 
     def set_unit_d(self):
         """
@@ -155,18 +141,11 @@ class ScanController(object):
 
         Corresponding buttons on batch and pattern widgets are checked.
         """
-        previous_unit = self.integration_unit
         self.widget.scan_widget.d_btn.setChecked(True)
         self.widget.integration_pattern_widget.d_btn.setChecked(True)
-        if previous_unit == 'd_A':
-            return
-        self.integration_unit = 'd_A'
-
         self.model.current_configuration.integration_unit = 'd_A'
         self.widget.scan_widget.img_view.bottom_axis_cake.setLabel('d', 'A')
-        self.widget.scan_widget.img_view.img_view_box.invertX(True)
-        if self.model.calibration_model.is_calibrated:
-            self.update_x_axis()
+        self.update_x_axis()
 
     def toggle_show_phases(self):
         """
@@ -496,7 +475,7 @@ class ScanController(object):
         name, ext = os.path.splitext(filename)
         if filename is not '':
             if ext == '.png':
-                if self.widget.scan_widget.view_mode == 0:
+                if self.widget.scan_widget.view_2d_btn.isChecked():
                     QtWidgets.QApplication.processEvents()
                     self.widget.scan_widget.img_view.save_img(filename)
             elif ext == '.nxs':
@@ -565,10 +544,11 @@ class ScanController(object):
         x1, x2 = sorted((int(rect.left()), int(rect.right())))
         step = int(str(self.widget.scan_widget.step_series_widget.step_txt.text()))
         self.model.overlay_model.reset()
+        new_binning = self.convert_x_value(binning[x1:x2], '2th_deg', self.model.current_configuration.integration_unit)
         for i in range(y1, y2, step):
             f_name, pos = self.model.scan_model.get_image_info(i)
             f_name = os.path.basename(f_name)
-            self.model.overlay_model.add_overlay(binning[x1:x2], data[i, x1:x2], f'{f_name}, {pos}')
+            self.model.overlay_model.add_overlay(new_binning, data[i, x1:x2], f'{f_name}, {pos}')
         separation = self.widget.integration_control_widget.overlay_control_widget.waterfall_separation_msb.value()
         self.model.overlay_model.overlay_waterfall(separation)
 
@@ -633,13 +613,14 @@ class ScanController(object):
         h_shift = binning[0]
         min_tth = h_scale * left + h_shift
         max_tth = h_scale * (left + width) + h_shift
-        self.widget.scan_widget.img_view.bottom_axis_cake.setRange(min_tth, max_tth)
         if self.model.current_configuration.integration_unit == 'q_A^-1':
-            ticks = self.get_ticks(max_tth, min_tth, 'q_A^-1', '2th_deg')
-            self.widget.scan_widget.img_view.bottom_axis_cake.setTicks([ticks])
+            ticks = [self.get_ticks(max_tth, min_tth, 'q_A^-1', '2th_deg')]
         elif self.model.current_configuration.integration_unit == 'd_A':
-            ticks = self.get_ticks(min_tth, max_tth, 'd_A', '2th_deg')
-            self.widget.scan_widget.img_view.bottom_axis_cake.setTicks([ticks])
+            ticks = [self.get_ticks(min_tth, max_tth, 'd_A', '2th_deg')]
+        else:
+            ticks = None
+        self.widget.scan_widget.img_view.bottom_axis_cake.setRange(min_tth, max_tth)
+        self.widget.scan_widget.img_view.bottom_axis_cake.setTicks(ticks)
 
     def get_ticks(self, min_val, max_val, ticks_unit, base_unit, n_ticks=8):
         """
@@ -769,22 +750,3 @@ class ScanController(object):
         elif self.model.current_configuration.integration_unit == 'q_A^-1':
             self.widget.scan_widget.q_btn.setChecked(True)
             self.set_unit_q()
-
-    def convert_tth_x(self, x=None, tth=None):
-        """
-        Conversion between bin number of 2theta value
-
-        :param x: bin number
-        :param tth: 2theta value
-        """
-        if self.model.scan_model.binning is None:
-            return None
-
-        binning = self.model.scan_model.binning
-        scale = (np.max(binning) - np.min(binning)) / binning.shape[0]
-        shift = binning[0]
-        if x is not None:
-            return scale * x + shift
-        if tth is not None:
-            return (tth - shift)/scale
-        return None

@@ -98,7 +98,8 @@ class ScanModel(QtCore.QObject):
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
             f.attrs['calibration'] = self.calibration_model.filename
-            f.attrs['int_method'] = 'Bla'  # ToDO
+            f.attrs['int_method'] = 'csr'
+            f.attrs['int_unit'] = '2th_deg'
             f.attrs['num_points'] = self.binning.shape[0]
             f.attrs['data_type'] = 'processed'
             if self.mask_model.filename:
