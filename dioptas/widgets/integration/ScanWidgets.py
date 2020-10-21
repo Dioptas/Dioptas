@@ -13,6 +13,7 @@ from ..CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, Ho
 from . import CLICKED_COLOR
 from ... import icons_path
 
+
 class ScanWidget(QtWidgets.QWidget):
     """
     Class describe a widget for batch integration
