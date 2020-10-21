@@ -361,11 +361,10 @@ class ScanController(object):
         Change directory name for image files of the batch
         """
         new_directory = str(self.widget.img_directory_txt.text())
-        current_filenames = self.model.scan_model.files
-        if current_filenames is None:
+        filenames = self.model.scan_model.files
+        if filenames is None:
             return
-        filenames = [os.path.basename(f) for f in current_filenames]
-        new_filenames = [os.path.join(new_directory, f) for f in filenames]
+        new_filenames = [os.path.join(new_directory, os.path.basename(f)) for f in filenames]
         self.load_raw_data(new_filenames)
 
     def load_data(self):
@@ -378,25 +377,22 @@ class ScanController(object):
                                        'Proc data (*.nxs)')
                                       )
 
-        data_file = h5py.File(filenames[0], "r")
-        if 'data_type' in data_file.attrs and data_file.attrs['data_type'] == 'processed':
-            self.model.scan_model.reset_data()
-            self.load_proc_data(filenames[0])
-            raw_filenames = self.model.scan_model.files
-            dir_name = self.model.working_directories['image']
-
-            raw_filenames = [os.path.join(dir_name, os.path.basename(f)) for f in raw_filenames]
-            self.load_raw_data(raw_filenames)
-            self.widget.scan_widget.view_2d_btn.setChecked(True)
-            self.change_view()
-            self.plot_batch()
+        if os.path.splitext(filenames[0])[1] == '.nxs':
+            data_file = h5py.File(filenames[0], "r")
+            if 'data_type' in data_file.attrs and data_file.attrs['data_type'] == 'processed':
+                self.model.scan_model.reset_data()
+                self.load_proc_data(filenames[0])
+                self.load_raw_data(self.model.scan_model.files)
+                self.widget.scan_widget.view_2d_btn.setChecked(True)
+                self.change_view()
+                self.plot_batch()
         else:
             self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
             self.model.working_directories['image'] = os.path.dirname(filenames[0])
             self.model.scan_model.reset_data()
             self.load_raw_data(filenames)
-            basenames = [os.path.basename(f) for f in filenames]
-            self.widget.img_filename_txt.setText(' '.join(basenames))
+            #basenames = [os.path.basename(f) for f in filenames]
+            #self.widget.img_filename_txt.setText(' '.join(basenames))
             self.widget.scan_widget.view_f_btn.setChecked(True)
             self.change_view()
 
@@ -414,20 +410,25 @@ class ScanController(object):
         try:
             self.model.scan_model.set_image_files(filenames)
         except IOError:
-            self.model.img_model.blockSignals(False)
-            return
+            try:
+                dir_name = self.model.working_directories['image']
+                filenames = [os.path.join(dir_name, os.path.basename(f)) for f in filenames]
+                self.model.scan_model.set_image_files(filenames)
+            except IOError:
+                print("Raw images are not found")
 
         self.model.img_model.blockSignals(False)
-
         files = self.model.scan_model.files
         file_map = self.model.scan_model.file_map
         self.widget.scan_widget.tree_model.clear()
-        self.widget.scan_widget.tree_model.setColumnCount(2)
-        self.widget.scan_widget.tree_model.setHorizontalHeaderLabels(["Fine name", "N img"])
-        self.widget.scan_widget.treeView.setColumnWidth(0, 400)
-        for i, file in enumerate(files):
-            self.widget.scan_widget.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
-            self.widget.scan_widget.tree_model.setItem(i, 1, QtGui.QStandardItem(f"{file_map[i + 1] - file_map[i]}"))
+        if files is not None:
+            self.widget.scan_widget.tree_model.setColumnCount(2)
+            self.widget.scan_widget.tree_model.setHorizontalHeaderLabels(["Fine name", "N img"])
+            self.widget.scan_widget.treeView.setColumnWidth(0, 400)
+            for i, file in enumerate(files):
+                self.widget.scan_widget.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
+                self.widget.scan_widget.tree_model.setItem(i, 1,
+                                                           QtGui.QStandardItem(f"{file_map[i + 1] - file_map[i]}"))
 
         n_img = self.model.scan_model.n_img
         n_img_all = self.model.scan_model.n_img_all

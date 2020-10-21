@@ -31,6 +31,8 @@ class ScanModel(QtCore.QObject):
 
         self.calibration_model = calibration_model
         self.mask_model = mask_model
+        self._used_mask = None
+        self._used_calibration = None
 
     def reset_data(self):
         self.data = None
@@ -42,6 +44,9 @@ class ScanModel(QtCore.QObject):
         self.pos_map_all = None
         self.n_img = None
         self.n_img_all = None
+        self._used_mask = None
+        self._used_calibration = None
+        self.raw_available = False
 
     def set_image_files(self, files):
         """
@@ -82,11 +87,15 @@ class ScanModel(QtCore.QObject):
             self.n_img = self.data.shape[0]
 
             cal_file = str(data_file.attrs['calibration'])
-            self.calibration_model.load(cal_file)
+            try:
+                self.calibration_model.load(cal_file)
+            except:
+                pass
 
-            if 'mask' in data_file.attrs:
-                mask_file = data_file.attrs['mask']
-                self.mask_model.load_mask(mask_file)
+            if 'mask' in data_file:
+                mask = data_file['mask'][()]
+                self.mask_model.set_dimension(mask.shape)
+                self.mask_model.set_mask(mask)
 
             if 'bkg' in data_file:
                 self.bkg = data_file['bkg'][()]
@@ -97,13 +106,13 @@ class ScanModel(QtCore.QObject):
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
-            f.attrs['calibration'] = self.calibration_model.filename
+            f.attrs['calibration'] = self._used_calibration
             f.attrs['int_method'] = 'csr'
             f.attrs['int_unit'] = '2th_deg'
             f.attrs['num_points'] = self.binning.shape[0]
             f.attrs['data_type'] = 'processed'
-            if self.mask_model.filename:
-                f.attrs['mask'] = self.calibration_model.filename
+            if self._used_mask is not None:
+                f.create_dataset("mask", data=self._used_mask)
 
             if self.bkg is not None:
                 f.create_dataset("bkg", data=self.bkg)
@@ -140,6 +149,7 @@ class ScanModel(QtCore.QObject):
         current_file = ''
         if self.mask_model.mode:
             mask = self.mask_model.get_mask()
+            self._used_mask = mask
 
         for index in range(start, stop, step):
             if use_all:
@@ -161,6 +171,7 @@ class ScanModel(QtCore.QObject):
             pos_map.append((i_file, pos))
             data.append(intensity)
 
+        self._used_calibration = self.calibration_model.filename
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = np.array(data)
@@ -188,6 +199,8 @@ class ScanModel(QtCore.QObject):
         :param use_all: Indexing with respect to all images. If False count only images, that were integrated.
         """
         if use_all:
+            if not self.raw_available:
+                return None, None
             f_index, pos = self.pos_map_all[index]
         else:
             f_index, pos = self.pos_map[index]
