@@ -377,26 +377,32 @@ class ScanController(object):
                                        'Proc data (*.nxs)')
                                       )
 
-        if os.path.splitext(filenames[0])[1] == '.nxs':
-            data_file = h5py.File(filenames[0], "r")
-            if 'data_type' in data_file.attrs and data_file.attrs['data_type'] == 'processed':
-                self.model.scan_model.reset_data()
-                self.load_proc_data(filenames[0])
-                self.load_raw_data(self.model.scan_model.files)
-                self.widget.scan_widget.view_2d_btn.setChecked(True)
-                self.change_view()
-                self.plot_batch()
+        if self.is_proc(filenames[0]):
+            self.model.scan_model.reset_data()
+            self.load_proc_data(filenames[0])
+            self.load_raw_data(self.model.scan_model.files)
+            self.widget.scan_widget.view_2d_btn.setChecked(True)
+            self.change_view()
+            self.plot_batch()
         else:
             self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
             self.model.working_directories['image'] = os.path.dirname(filenames[0])
             self.model.scan_model.reset_data()
             self.load_raw_data(filenames)
-            #basenames = [os.path.basename(f) for f in filenames]
-            #self.widget.img_filename_txt.setText(' '.join(basenames))
             self.widget.scan_widget.view_f_btn.setChecked(True)
             self.change_view()
 
         self.plot_image(0)
+
+    def is_proc(self, filename):
+        """
+        Check if file contains processed data
+        """
+        if os.path.splitext(filename)[1] == '.nxs':
+            data_file = h5py.File(filename, "r")
+            if 'data_type' in data_file.attrs and data_file.attrs['data_type'] == 'processed':
+                return True
+        return False
 
     def load_raw_data(self, filenames):
         """
