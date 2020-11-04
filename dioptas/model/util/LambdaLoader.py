@@ -24,18 +24,22 @@ import re
 
 
 class LambdaImage:
-    def __init__(self, filename):
+    def __init__(self, filename=None, file_list=None):
         """
         Loads an image produced by a Lambda detector.
         :param filename: path to the image file to be loaded
         :return: dictionary with image_data, img_data_lambda and series_max, None if unsuccessful
         """
-        detector_identifiers = [["/entry/instrument/detector/description", "Lambda"], ["/entry/instrument/detector/description", b"Lambda"]]
+        detector_identifiers = [["/entry/instrument/detector/description", "Lambda"],
+                                ["/entry/instrument/detector/description", b"Lambda"]]
         filenumber_list = [1, 2, 3]
-        regex_in = r"(.+_m)\d(.+nxs)"
+        regex_in = r"(.+_m)\d(.nxs)"
         regex_out = r"\g<1>{}\g<2>"
         data_path = "entry/instrument/detector/data"
         module_positions_path = "/entry/instrument/detector/translation/distance"
+
+        if not filename:
+            filename = file_list[0]
 
         try:
             nx_file = h5py.File(filename, "r")
@@ -51,19 +55,26 @@ class LambdaImage:
         else:
             raise IOError("not a lambda image")
 
-
         # the image data is spread over multiple files, so we compile a list of them here
         lambda_files = []
+        if file_list:
+            for f_name in file_list:
+                try:
+                    lambda_files.append(h5py.File(f_name, "r"))
+                except OSError:
+                    pass
+        else:
+            for moduleIndex in filenumber_list:
+                try:
+                    lambda_files.append(h5py.File(re.sub(regex_in, regex_out.format(moduleIndex), filename), "r"))
+                except OSError:
+                    pass
 
-        for moduleIndex in filenumber_list:
-            try:
-                lambda_files.append(h5py.File(re.sub(regex_in, regex_out.format(moduleIndex), filename), "r"))
-            except OSError:
-                pass
-
+        self.file_list = file_list
         self.full_img_data = [imageFile[data_path] for imageFile in lambda_files]
-
+        self.shapes = np.array([module[0].shape for module in self.full_img_data])
         self._module_pos = np.array([np.ravel(nxim[module_positions_path]).astype(int) for nxim in lambda_files])
+        self.img_idx = lambda_files[0]['entry/instrument/detector/sequence_number']
 
         # remove any empty columns/rows to the left or top of the image data or shift any negative rows/columns into the positive
         np.subtract(self._module_pos, self._module_pos[:, 0].min(), self._module_pos, where=[1, 0, 0])
@@ -76,22 +87,15 @@ class LambdaImage:
         :param image_nr: position from which to take the image from the image set
         :return: image_data
         """
-        # the empty array needs to have the width of the detector data for concatenate()
-        image = np.empty((0, self.full_img_data[-1].shape[-1] + self._module_pos[:, 0].max()))
+
+        tmp = self.shapes + self._module_pos[:, :2][:, ::-1]
+        shape = (np.max(tmp[:, 0]), np.max(tmp[:, 1]))
+        image = np.zeros(shape)
 
         for modulenr, moduleImageData in enumerate(self.full_img_data):
-            # generate empty columns to the left and right of the data to match with the others
-            imagedata = np.concatenate([np.zeros((moduleImageData.shape[1], self._module_pos[modulenr, 0])),
-                                        moduleImageData[image_nr],
-                                        np.zeros((moduleImageData.shape[1], self._module_pos[:, 0].max() - self._module_pos[modulenr, 0]))], axis=1)
-
-            image = np.concatenate(
-                [image,
-                 np.zeros((
-                     # generate as many empty rows as needed to get to the position where the module data wants to be
-                     int(self._module_pos[modulenr, 1]) -
-                     image.shape[0],
-                     moduleImageData.shape[-1] + self._module_pos[:, 0].max())),
-                 imagedata])  # append the actual new image data
+            image[self._module_pos[modulenr, 1]:self._module_pos[modulenr, 1] + self.shapes[modulenr][0],
+            self._module_pos[modulenr, 0]:self._module_pos[modulenr, 0] + self.shapes[modulenr][1]] = moduleImageData[
+                image_nr]
 
         return image[::-1]
+
