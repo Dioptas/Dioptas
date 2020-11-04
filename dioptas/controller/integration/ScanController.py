@@ -428,6 +428,8 @@ class ScanController(object):
         file_map = self.model.scan_model.file_map
         self.widget.scan_widget.tree_model.clear()
         if files is not None:
+            if len(file_map) == len(files):
+                file_map = np.hstack((file_map, self.model.scan_model.data.shape[0]))
             self.widget.scan_widget.tree_model.setColumnCount(2)
             self.widget.scan_widget.tree_model.setHorizontalHeaderLabels(["Fine name", "N img"])
             self.widget.scan_widget.treeView.setColumnWidth(0, 400)
