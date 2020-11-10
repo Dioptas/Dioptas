@@ -585,7 +585,7 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         resp = check_output(cmd, shell=True).decode('utf8')
 
-        proc_file = os.path.join(data_path, 'tmp/testasapo1_1009_00002.nxs')
+        proc_file = os.path.join(data_path, 'tmp/testasapo1_1009_00002_v-01.nxs')
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[proc_file])
         click_button(self.integration_widget.batch_widget.load_btn)
 

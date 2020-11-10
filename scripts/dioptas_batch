@@ -200,7 +200,11 @@ def run():
         with Pool(processes=config['n_proc']) as pool:
             pool.map(integrate, args)
 
-        save_proc_data(f"{config['out_path']}/{os.path.basename(batch_name)}.nxs", batch_files[i_batch], file_map,
+        local_path = os.path.basename(batch_name)
+        if '/raw/' in batch_name:
+            local_path = batch_name[batch_name.find('/raw/')+5:]
+        save_proc_data(f"{config['out_path']}/{local_path}_v{config['version']:03d}.nxs",
+                       batch_files[i_batch], file_map,
                        pos_map)
 
         log.info(f"Running time: {time.time() - ts:0.2f} for {n_img} images")
@@ -237,6 +241,8 @@ def main():
                         default=0)
     parser.add_argument('--n_cores', type=int, help='Number of cores per process',
                         default=1)
+    parser.add_argument('--version', type=int, help='Version of the reprocessing config',
+                        default=-1)
     parser.add_argument('--log-file', type=str, default='./proc2.log')
     parser.add_argument("--log_level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                         help="Set log level for the application")
