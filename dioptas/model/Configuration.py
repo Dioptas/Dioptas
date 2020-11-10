@@ -30,7 +30,7 @@ from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCor
 
 from .util import Pattern
 from .util.calc import convert_units
-from . import ImgModel, CalibrationModel, MaskModel, PatternModel, ScanModel
+from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .CalibrationModel import DetectorModes
 
 
@@ -48,7 +48,7 @@ class Configuration(QtCore.QObject):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
-        self.scan_model = ScanModel(self.calibration_model, self.mask_model)
+        self.batch_model = BatchModel(self.calibration_model, self.mask_model)
         self.pattern_model = PatternModel()
 
         if working_directories is None:

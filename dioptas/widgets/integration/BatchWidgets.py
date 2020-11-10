@@ -14,13 +14,13 @@ from . import CLICKED_COLOR
 from ... import icons_path
 
 
-class ScanWidget(QtWidgets.QWidget):
+class BatchWidget(QtWidgets.QWidget):
     """
     Class describe a widget for batch integration
     """
 
     def __init__(self, parent=None):
-        super(ScanWidget, self).__init__(parent)
+        super(BatchWidget, self).__init__(parent)
 
         self.frame = QtWidgets.QFrame()
         self.frame.setObjectName('batch_frame')
