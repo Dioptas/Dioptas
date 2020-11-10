@@ -86,7 +86,7 @@ class ScanModel(QtCore.QObject):
             self.pos_map = data_file['pos_map'][()]
             self.n_img = self.data.shape[0]
 
-            cal_file = str(data_file.attrs['calibration'])
+            cal_file = str(data_file.attrs['cal_file'])
             try:
                 self.calibration_model.load(cal_file)
             except:
@@ -97,6 +97,10 @@ class ScanModel(QtCore.QObject):
                 self.mask_model.set_dimension(mask.shape)
                 self.mask_model.set_mask(mask)
 
+            if 'mask_file' in data_file.attrs:
+                self.mask_model.set_dimension(tuple(data_file.attrs['mask_shape']))
+                self.mask_model.load_mask(str(data_file.attrs['mask_file']))
+
             if 'bkg' in data_file:
                 self.bkg = data_file['bkg'][()]
 
@@ -106,7 +110,7 @@ class ScanModel(QtCore.QObject):
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
-            f.attrs['calibration'] = self._used_calibration
+            f.attrs['cal_file'] = self._used_calibration
             f.attrs['int_method'] = 'csr'
             f.attrs['int_unit'] = '2th_deg'
             f.attrs['num_points'] = self.binning.shape[0]
