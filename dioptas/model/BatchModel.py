@@ -10,13 +10,13 @@ from .util import extract_background
 logger = logging.getLogger(__name__)
 
 
-class ScanModel(QtCore.QObject):
+class BatchModel(QtCore.QObject):
     """
     Class describe a model for batch integration
     """
 
     def __init__(self, calibration_model, mask_model):
-        super(ScanModel, self).__init__()
+        super(BatchModel, self).__init__()
 
         self.data = None
         self.bkg = None

@@ -291,11 +291,11 @@ class DioptasModel(QtCore.QObject):
         return self._phase_model
 
     @property
-    def scan_model(self):
+    def batch_model(self):
         """
         :rtype: ImgModel
         """
-        return self.configurations[self.configuration_ind].scan_model
+        return self.configurations[self.configuration_ind].batch_model
 
     @property
     def use_mask(self):

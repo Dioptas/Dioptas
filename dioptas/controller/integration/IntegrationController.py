@@ -27,7 +27,7 @@ from .OverlayController import OverlayController
 from .PatternController import PatternController
 from dioptas.controller.integration.phase.PhaseController import PhaseController
 from .OptionsController import OptionsController
-from .ScanController import ScanController
+from .BatchController import BatchController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -69,4 +69,4 @@ class IntegrationController(object):
         self.background_controller = BackgroundController(self.widget, self.model)
         self.correction_controller = CorrectionController(self.widget, self.model)
         self.options_controller = OptionsController(self.widget, self.model)
-        self.scan_controller = ScanController(self.widget, self.model)
+        self.batch_controller = BatchController(self.widget, self.model)

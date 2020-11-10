@@ -152,7 +152,7 @@ class ImageController(object):
         self.widget.img_step_series_widget.pos_txt.editingFinished.connect(self.load_series_img)
 
         self.widget.file_info_btn.clicked.connect(self.show_file_info)
-        self.widget.integration_control_widget.img_control_widget.scan_btn.clicked.connect(self.show_scan_frame)
+        self.widget.integration_control_widget.img_control_widget.batch_btn.clicked.connect(self.show_batch_frame)
 
         self.widget.img_step_file_widget.browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
         self.widget.img_step_file_widget.browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
@@ -346,8 +346,8 @@ class ImageController(object):
             res.append('.dat')
         return res
 
-    def show_scan_frame(self):
-        self.widget.scan_widget.raise_widget()
+    def show_batch_frame(self):
+        self.widget.batch_widget.raise_widget()
 
     def show_file_info(self):
         self.widget.file_info_widget.raise_widget()
