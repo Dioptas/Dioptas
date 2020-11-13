@@ -29,46 +29,46 @@ def integrate(args):
 
     :param args: List of arguments [index of worker, number of cores to use]
     """
-    i_worker, n_cores = args
-    subprocess.check_output(f"taskset -p -c {n_cores * i_worker}-{n_cores * (i_worker + 1) - 1} {os.getpid()}",
-                            shell=True)
+    try:
+        i_worker, n_cores = args
+        subprocess.check_output(f"taskset -p -c {n_cores * i_worker}-{n_cores * (i_worker + 1) - 1} {os.getpid()}",
+                                shell=True)
 
-    # Dioptas is included here after changed the affinity because then it works faster
-    from dioptas.model import ImgModel, CalibrationModel, MaskModel
-    from dioptas.model.util.LambdaLoader import LambdaImage
+        # Dioptas is included here after changed the affinity because then it works faster
+        from dioptas.model import ImgModel, CalibrationModel, MaskModel
+        from dioptas.model.util.LambdaLoader import LambdaImage
 
-    img_model = ImgModel()
-    calibration_model = CalibrationModel(img_model)
-    calibration_model.load(config['cal_file'])
-    mask_model = MaskModel()
-    mask = None
-    if config['mask_file'] is not None:
-        mask_model.load_mask(config['mask_file'])
-        mask = mask_model.get_mask() 
+        img_model = ImgModel()
+        calibration_model = CalibrationModel(img_model)
+        calibration_model.load(config['cal_file'])
+        mask_model = MaskModel()
+        mask = None
 
-    lambda_img = None
-    while not data_to_process.empty():
+        lambda_img = None
+        while not data_to_process.empty():
 
-        file_list, img_pos, img_id = data_to_process.get()
+            file_list, img_pos, img_id = data_to_process.get()
 
-        if lambda_img is None or lambda_img.file_list != file_list:
-            lambda_img = LambdaImage(file_list=file_list)
-            if lambda_img is None:
-                return
+            if lambda_img is None or lambda_img.file_list != file_list:
+                lambda_img = LambdaImage(file_list=file_list)
+                if lambda_img is None:
+                    return
 
-        image = lambda_img.get_image(int(img_pos))
+            image = lambda_img.get_image(int(img_pos))
 
-        calibration_model.img_model.set_loadable_attributes(
-            {'img_data': image})
+            calibration_model.img_model.set_loadable_attributes(
+                {'img_data': image})
 
-        if mask is not None and mask.shape != image.shape:
-            mask_model.set_dimension(image.shape)
-            mask_model.load_mask(config['mask_file'])
-            mask = mask_model.get_mask()
-            mask_shape[...] = image.shape
+            if mask is None and config['mask_file'] is not None:
+                mask_model.set_dimension(image.shape)
+                mask_model.load_mask(config['mask_file'])
+                mask = mask_model.get_mask()
+                mask_shape[...] = image.shape
 
-        proc_data[img_id] = np.array(calibration_model.integrate_1d(num_points=config['num_points'],
-                                                                    mask=mask, method=config['int_method']))
+            proc_data[img_id] = np.array(calibration_model.integrate_1d(num_points=config['num_points'],
+                                                                        mask=mask, method=config['int_method']))
+    except Exception as e:
+        log.error("Processing fail: {e}", exc_info=True)
 
 
 def fill_queue(faw_files):
@@ -203,10 +203,11 @@ def run():
         local_path = os.path.basename(batch_name)
         if '/raw/' in batch_name:
             local_path = batch_name[batch_name.find('/raw/')+5:]
-        save_proc_data(f"{config['out_path']}/{local_path}_v{config['version']:03d}.nxs",
-                       batch_files[i_batch], file_map,
-                       pos_map)
 
+        out_file_name = f"{config['out_path']}/{local_path}_v{config['version']:03d}.nxs"
+        save_proc_data(out_file_name, batch_files[i_batch], file_map, pos_map)
+
+        log.info(f"Save file: {out_file_name}")
         log.info(f"Running time: {time.time() - ts:0.2f} for {n_img} images")
         log.info(f"Time per image: {(time.time() - ts) / n_img * 1000:0.2f} ({n_img})")
 
