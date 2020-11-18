@@ -2,8 +2,7 @@ import os
 
 from qtpy import QtWidgets
 from qtpy import QtWidgets, QtCore, QtGui
-from pyqtgraph import GraphicsLayoutWidget
-from pyqtgraph.opengl import GLViewWidget
+from pyqtgraph import GraphicsLayoutWidget, ColorButton
 
 from ..plot_widgets.ImgWidget import SurfWidget, IntegrationBatchWidget
 from .CustomWidgets import FlatButton, StepFrameWidget, StepBatchWidget
@@ -33,6 +32,53 @@ class BatchWidget(QtWidgets.QWidget):
         self._central_layout = QtWidgets.QHBoxLayout()
         self._central_layout.setSpacing(0)
 
+        # Left control panel
+        self.left_control_widget = QtWidgets.QWidget()
+        self.left_control_widget.setObjectName('pattern_left_control_widget')
+        self.left_control_widget.setMaximumWidth(22)
+        self.left_control_widget.setMinimumWidth(22)
+        self._left_control_layout = QtWidgets.QVBoxLayout()
+        self._left_control_layout.setContentsMargins(0, 0, 0, 6)
+        self._left_control_layout.setSpacing(4)
+
+        self.scale_x_btn = CheckableFlatButton('x')
+        self.scale_y_btn = CheckableFlatButton('y')
+        self.scale_z_btn = CheckableFlatButton('z')
+        self.scale_s_btn = CheckableFlatButton('s')
+        self.trim_h_btn = CheckableFlatButton('h')
+        self.trim_l_btn = CheckableFlatButton('l')
+        self.move_g_btn = CheckableFlatButton('g')
+        self.move_m_btn = CheckableFlatButton('m')
+        self.scroll_btn_group = QtWidgets.QButtonGroup()
+        self.scroll_btn_group.addButton(self.scale_x_btn)
+        self.scroll_btn_group.addButton(self.scale_y_btn)
+        self.scroll_btn_group.addButton(self.scale_z_btn)
+        self.scroll_btn_group.addButton(self.scale_s_btn)
+        self.scroll_btn_group.addButton(self.trim_h_btn)
+        self.scroll_btn_group.addButton(self.trim_h_btn)
+        self.scroll_btn_group.addButton(self.move_g_btn)
+        self.scroll_btn_group.addButton(self.move_m_btn)
+        self.m_color_btn = ColorButton()
+        self.m_color_btn.setMinimumHeight(80)
+
+        self._left_control_layout.addWidget(self.m_color_btn)
+        self._left_control_layout.addSpacerItem(VerticalSpacerItem())
+        self._left_control_layout.addWidget(self.scale_x_btn)
+        self._left_control_layout.addWidget(self.scale_y_btn)
+        self._left_control_layout.addWidget(self.scale_z_btn)
+        self._left_control_layout.addWidget(self.scale_s_btn)
+        self._left_control_layout.addSpacerItem(VerticalSpacerItem())
+        self._left_control_layout.addWidget(self.trim_h_btn)
+        self._left_control_layout.addWidget(self.trim_l_btn)
+        self._left_control_layout.addSpacerItem(VerticalSpacerItem())
+        self._left_control_layout.addWidget(self.move_g_btn)
+        self._left_control_layout.addWidget(self.move_m_btn)
+
+        self.left_control_widget.setLayout(self._left_control_layout)
+        self.left_control_widget.hide()
+        self._central_layout.addWidget(self.left_control_widget)
+
+        # Middle view area
         self.treeView = QtWidgets.QTreeView()
         self.treeView.setObjectName('treeView')
 
@@ -46,10 +92,10 @@ class BatchWidget(QtWidgets.QWidget):
         self.img_view = IntegrationBatchWidget(self.img_pg_layout, orientation='horizontal')
         self._central_layout.addWidget(self.img_pg_layout)
 
-        self.surf_pg_layout = GLViewWidget()
-        self.surf_view = SurfWidget(self.surf_pg_layout, orientation='horizontal')
-        self._central_layout.addWidget(self.surf_pg_layout)
-        self.surf_pg_layout.hide()
+        self.surf_view = SurfWidget()
+        self.surf_pg_layout = self.surf_view.pg_layout
+        self._central_layout.addWidget(self.surf_view)
+        self.surf_view.hide()
 
         # Right control
         self.right_control_widget = QtWidgets.QWidget()
@@ -185,6 +231,18 @@ class BatchWidget(QtWidgets.QWidget):
                     #pattern_right_control_widget QPushButton{
                         padding: 0px;
         	            padding-right: 1px;
+        	            border-radius: 3px;
+                    }
+        	    """)
+
+        self.left_control_widget.setStyleSheet("""
+                    #pattern_frame, #pattern_left_control_widget, QLabel {
+                        background: black;
+                        color: yellow;
+                    }
+                    #pattern_left_control_widget QPushButton{
+                        padding: 0px;
+        	            padding-left: 1px;
         	            border-radius: 3px;
                     }
         	    """)

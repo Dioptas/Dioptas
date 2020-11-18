@@ -110,22 +110,31 @@ class BatchModel(QtCore.QObject):
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
-            f.attrs['cal_file'] = self._used_calibration
-            f.attrs['int_method'] = 'csr'
-            f.attrs['int_unit'] = '2th_deg'
-            f.attrs['num_points'] = self.binning.shape[0]
-            f.attrs['data_type'] = 'processed'
+            f.attrs['default'] = 'entry'
+
+            nxentry = f.create_group('entry')
+            nxentry.attrs["NX_class"] = 'NXentry'
+            nxentry.attrs['default'] = 'collection'
+
+            nxcollection = nxentry.create_group('collection')
+            nxcollection.attrs["NX_class"] = 'NXcollection'
+            nxcollection.attrs["data_type"] = 'processed'
+
+            nxcollection['cal_file'] = str(self._used_calibration)
+            nxcollection['int_method'] = 'csr'
+            nxcollection['int_unit'] = '2th_deg'
+            nxcollection['num_points'] = self.binning.shape[0]
             if self._used_mask is not None:
-                f.create_dataset("mask", data=self._used_mask)
+                nxcollection.create_dataset("mask", data=self._used_mask)
 
             if self.bkg is not None:
-                f.create_dataset("bkg", data=self.bkg)
+                nxcollection.create_dataset("bkg", data=self.bkg)
 
-            f.create_dataset("data", data=self.data)
-            f.create_dataset("binning", data=self.binning)
-            f.create_dataset("pos_map", data=self.pos_map)
-            f.create_dataset("file_map", data=self.file_map)
-            f.create_dataset("files", data=self.files.astype('S'))
+            nxcollection.create_dataset("data", data=self.data)
+            nxcollection.create_dataset("binning", data=self.binning)
+            nxcollection.create_dataset("pos_map", data=self.pos_map)
+            nxcollection.create_dataset("file_map", data=self.file_map)
+            nxcollection.create_dataset("files", data=self.files.astype('S'))
 
     def save_as_csv(self, filename):
         """

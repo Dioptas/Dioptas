@@ -25,12 +25,15 @@ import pyqtgraph as pg
 from pyqtgraph import ViewBox
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.opengl import GLSurfacePlotItem
+from pyqtgraph.opengl import GLViewWidget, GLGridItem
+from pyqtgraph import GraphicsLayoutWidget
 
 import numpy as np
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
+from .Custom3DAxis import Custom3DAxis
 from ...model.util.HelperModule import calculate_color
 
 
@@ -476,35 +479,141 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
             self.phases[ind].update_lines(positions, intensities)
 
 
-class SurfWidget(QtCore.QObject):
+class SurfWidget(QtWidgets.QWidget):
 
-    def __init__(self, pg_layout, orientation='vertical'):
+    iteration_name = ''
+    def __init__(self):
         super(SurfWidget, self).__init__()
-        self.pg_layout = pg_layout
+
+        self.lut_pg_layout = GraphicsLayoutWidget()
+        self.pg_layout = GLViewWidget()
         self.surf_view_item = None
+        self.pressed_key = None
+        self.show_range = np.array([0.0, 1.0])
+        self.show_scale = np.array([2., 2., 1.])
+        self.g_translate = 0
+        self.marker = 0
+        self.marker_color = [0,0,0]
+        self.data = None
+
+        self.create_graphics()
+
+        self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+
+        self._lut_w = QtWidgets.QWidget()
+        self._lut_w.setMaximumHeight(80)
+
+        self._lut_lo = QtWidgets.QVBoxLayout()
+        self._lut_lo.setContentsMargins(0, 0, 0, 0)
+        self._lut_lo.addWidget(self.lut_pg_layout)
+
+        self._lut_w.setLayout(self._lut_lo)
+
+
+        self._layout.addWidget(self._lut_w)
+        self._layout.addWidget(self.pg_layout)
+
+        self.img_histogram_LUT_horizontal = HistogramLUTItem()
+        self.img_histogram_LUT_horizontal.gradient.loadPreset('jet')
+
+        self.img_histogram_LUT_horizontal.sigLevelsChanged.connect(self.update_color)
+        self.img_histogram_LUT_horizontal.sigLevelChangeFinished.connect(self.update_color)
+        self.img_histogram_LUT_horizontal.sigLookupTableChanged.connect(self.update_color)
+
+        self.lut_pg_layout.addItem(self.img_histogram_LUT_horizontal, 0, 1)
+
+        self.setLayout(self._layout)
 
     def create_graphics(self):
-        self.surf_view_item = GLSurfacePlotItem()
+        self.g = GLGridItem()
+        self.g.rotate(90, 0, 1, 0)
+        self.g.setSize(1, 1, 0)
+        self.g.setSpacing(1, 0.1, 1)
+        self.g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+        self.pg_layout.addItem(self.g)
+
+        self.gx = GLGridItem()
+        self.gx.setSize(26, 4000, 0)
+        self.gx.setSpacing(1, 100, 1)
+        self.gx.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+        self.pg_layout.addItem(self.gx)
+
+
+        self.axis = Custom3DAxis(self.pg_layout, color=(0.9, 0.9, 0.9, .6), axis=[False, True, False])
+        self.axis.add_labels(y_label=u'2θ')
+
+        self.surf_view_item = GLSurfacePlotItem(z=np.array([[0]]),
+                                                colors=np.array([[0, 0, 0, 0]]),
+                                                smooth=False)
+        self.surf_view_item.setGLOptions('translucent')
         self.pg_layout.addItem(self.surf_view_item)
 
-    def plot_surf(self, data):
-        if self.surf_view_item is None:
-            self.create_graphics()
-        colors = self.get_colors(data).reshape(-1,4)
-        self.surf_view_item.resetTransform()
-        self.surf_view_item.setData(z=data, colors=colors)
-        self.surf_view_item.scale(2. / data.shape[0], 2. / data.shape[1], 1. / np.max(data))
-        self.surf_view_item.setGLOptions('translucent')
-        self.surf_view_item.translate(0, 0, 0)
+    def update_color(self):
+        if self.data is not None:
+            colors = self.get_colors(self.data).reshape(-1, 4)
+            self.surf_view_item.setData(z=self.data, colors=colors)
 
-    def get_colors(self, data, map_name='jet'):
-        colormap = cm.get_cmap(map_name)
-        colormap._init()
-        lut = (colormap._lut).view(np.ndarray)[:, :3]
-        int_data = (data / np.max(data) * 255).astype(int)
+    def plot_surf(self, data):
+        colors = self.get_colors(data).reshape(-1, 4)
+
+        abs_range = self.show_range * (np.nanmax(data) - np.nanmin(data)) + np.nanmin(data)
+        data2 = np.copy(data)
+        data2[data2 > abs_range[1]] = abs_range[1]
+        data2[data2 < abs_range[0]] = abs_range[0]
+        self.data = data2
+
+        self.surf_view_item.setData(z=data2, colors=colors)
+
+        self.img_histogram_LUT_horizontal.imageChanged(img_data=data2)
+        self.img_histogram_LUT_horizontal.setLevels(np.nanmin(data2), np.nanmax(data2))
+
+        self.g.setSize(np.nanmax(data), data2.shape[1], 0)
+        self.gx.setSize(data2.shape[0], data2.shape[1], 0)
+        self.axis.setSize(*self.show_scale)
+
+    def update_scale(self, data):
+        self.surf_view_item.resetTransform()
+
+        scale = [self.show_scale[0] / data.shape[0],
+                 self.show_scale[1] / data.shape[1],
+                 self.show_scale[2] / np.nanmax(data)]
+
+        self.surf_view_item.scale(*scale, local=False)
+
+        self.g.resetTransform()
+        self.g.rotate(90, 0, 1, 0)
+        self.g.translate(self.g_translate, data.shape[1]/2., np.nanmax(data)/2.)
+        self.g.scale(*scale, local=False)
+
+        self.gx.resetTransform()
+        self.gx.translate(data.shape[0]/2., data.shape[1]/2., 0)
+        self.gx.scale(*scale, local=False)
+
+        self.axis.setSize(*self.show_scale)
+        self.axis.diff = [self.show_scale[0]*self.g_translate/data.shape[0],0,0]
+
+    def get_colors(self, data):
+        lut = self.img_histogram_LUT_horizontal.gradient.getLookupTable(256) / 256.
+
+        level = self.img_histogram_LUT_horizontal.getExpLevels()
+        print(np.nanmax(data), np.nanmin(data), level)
+        # int_data = ((data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data)) * 255).astype(int)
+        min = np.nanmin(data)
+        if level[0] > 1:
+            min = level[0]
+        int_data = ((data - min) / (level[1] - min) * 255).astype(int)
+        int_data[int_data > 255] = 255
+        int_data[int_data < 0] = 0
+        int_data = np.nan_to_num(int_data)
+        int_data[int_data < 0] = 0
         colors_rgb = lut[int_data]
         colors = np.ones((colors_rgb.shape[0], colors_rgb.shape[1], 4))
         colors[..., :3] = colors_rgb
+
+        colors[:, int(self.marker):int(self.marker) + 10, :3] = self.marker_color
+        colors[:int(self.g_translate), :, :] = 0.01
         return colors
 
 
