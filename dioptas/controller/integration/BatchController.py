@@ -38,6 +38,8 @@ class BatchController(object):
         self.create_signals()
         self.create_mouse_behavior()
 
+        self.trim = 1
+
     def create_signals(self):
         """
         Creates all the connections of the GUI elements.
@@ -79,6 +81,11 @@ class BatchController(object):
         self.widget.batch_widget.step_series_widget.step_txt.editingFinished.connect(self.process_step)
         self.widget.batch_widget.step_series_widget.slider.valueChanged.connect(self.process_slider)
 
+        # 3D navigation
+        self.widget.batch_widget.m_color_btn.sigColorChanged.connect(self.set_marker_color)
+        self.widget.batch_widget.surf_pg_layout.wheelEvent = self.wheel_event_3d
+        self.widget.batch_widget.surf_pg_layout.keyPressEvent = self.key_pressed_3d
+
         self.widget.batch_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
         self.model.configuration_selected.connect(self.update_gui)
 
@@ -90,6 +97,98 @@ class BatchController(object):
         self.widget.batch_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
 
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+
+    def set_marker_color(self):
+
+        color = self.widget.batch_widget.m_color_btn.color(mode = 'float')
+        print(color)
+        self.widget.batch_widget.surf_view.marker_color = color[:3]
+        self.plot_batch()
+
+    def key_pressed_3d(self, ev):
+        pressed_key = ev.key()
+        self.widget.batch_widget.surf_view.pressed_key = pressed_key
+        print("Key", pressed_key)
+        if pressed_key == 49:
+            self.widget.batch_widget.scale_lin_btn.setChecked(True)
+            self.scale = np.array
+        if pressed_key == 50:
+            self.widget.batch_widget.scale_sqrt_btn.setChecked(True)
+            self.scale = np.sqrt
+        if pressed_key == 51:
+            self.widget.batch_widget.scale_log_btn.setChecked(True)
+            self.scale = np.log10
+        if pressed_key == 66:
+            if self.widget.batch_widget.background_btn.isChecked():
+                self.widget.batch_widget.background_btn.setChecked(False)
+            else:
+                self.widget.batch_widget.background_btn.setChecked(True)
+        if pressed_key == 72:
+            self.widget.batch_widget.trim_h_btn.setChecked(True)
+        if pressed_key == 76:
+            self.widget.batch_widget.trim_l_btn.setChecked(True)
+        if pressed_key == 88:
+            self.widget.batch_widget.scale_x_btn.setChecked(True)
+        if pressed_key == 89:
+            self.widget.batch_widget.scale_y_btn.setChecked(True)
+        if pressed_key == 90:
+            self.widget.batch_widget.scale_z_btn.setChecked(True)
+        if pressed_key == 83:
+            self.widget.batch_widget.scale_s_btn.setChecked(True)
+        if pressed_key == 71:
+            self.widget.batch_widget.move_g_btn.setChecked(True)
+        if pressed_key == 77:
+            self.widget.batch_widget.move_m_btn.setChecked(True)
+        #if pressed_key == 67:
+        #    color_calc += 1
+        #    if color_calc > 3:
+        #        color_calc = 0
+
+        self.plot_batch()
+
+
+
+    def wheel_event_3d(self, ev):
+
+        data = self.model.batch_model.data
+        layout = self.widget.batch_widget.surf_pg_layout
+        pressed_key = self.widget.batch_widget.surf_view.pressed_key
+        show_range = self.widget.batch_widget.surf_view.show_range
+        show_scale = self.widget.batch_widget.surf_view.show_scale
+        surf_view = self.widget.batch_widget.surf_view
+
+        delta = ev.angleDelta().x()
+        if delta == 0:
+            delta = ev.angleDelta().y()
+        diff = delta / 10000
+
+        if pressed_key == 72:
+            if 1 > show_range[1] + diff > show_range[0]:
+                show_range[1] += diff
+        elif pressed_key == 76:
+            if 0 < show_range[0] + diff < show_range[1]:
+                show_range[0] += diff
+        elif pressed_key == 88:
+            show_scale[0] += diff
+        elif pressed_key == 89:
+            show_scale[1] += diff
+        elif pressed_key == 90:
+            show_scale[2] += diff
+        elif pressed_key == 71:
+            surf_view.g_translate += int(diff * data.shape[0] * 2)
+        elif pressed_key == 77:
+            if 0 <= surf_view.marker + int(diff * data.shape[1]) <= data.shape[1]:
+                surf_view.marker += int(diff * data.shape[1])
+        else:
+            if ev.modifiers() & QtCore.Qt.ControlModifier:
+                layout.opts['fov'] *= 0.999 ** delta
+            else:
+                layout.opts['distance'] *= 0.999 ** delta
+            layout.update()
+
+        self.plot_batch()
+
+
 
     def pattern_left_click(self, x, y):
         """
@@ -314,14 +413,17 @@ class BatchController(object):
         if self.widget.batch_widget.view_f_btn.isChecked():
             self.widget.batch_widget.treeView.show()
             self.widget.batch_widget.img_pg_layout.hide()
-            self.widget.batch_widget.surf_pg_layout.hide()
+            self.widget.batch_widget.surf_view.hide()
+            self.widget.batch_widget.left_control_widget.hide()
             n_img_all = self.model.batch_model.n_img_all
             if n_img_all is not None:
                 self.set_navigation_range((0, n_img_all-1), (0, n_img_all-1))
         elif self.widget.batch_widget.view_3d_btn.isChecked():
             self.widget.batch_widget.treeView.hide()
             self.widget.batch_widget.img_pg_layout.hide()
-            self.widget.batch_widget.surf_pg_layout.show()
+            self.widget.batch_widget.surf_view.show()
+            self.widget.batch_widget.left_control_widget.show()
+            self.plot_batch()
         else:
             n_img = self.model.batch_model.n_img
             if n_img is None:
@@ -329,7 +431,8 @@ class BatchController(object):
                 return
             self.widget.batch_widget.treeView.hide()
             self.widget.batch_widget.img_pg_layout.show()
-            self.widget.batch_widget.surf_pg_layout.hide()
+            self.widget.batch_widget.left_control_widget.hide()
+            self.widget.batch_widget.surf_view.hide()
             self.set_navigation_range((0, n_img-1), (0, n_img-1))
 
     def filename_txt_changed(self):
@@ -460,6 +563,7 @@ class BatchController(object):
             return
         if self.widget.batch_widget.background_btn.isChecked():
             data = data - bkg
+            data[data<0.1] = 0.1
         data = self.scale(data)
 
         if stop is None:
@@ -467,9 +571,15 @@ class BatchController(object):
         if start is None:
             start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
 
-        self.widget.batch_widget.img_view.plot_image(data[start:stop + 1], True)
-        self.widget.batch_widget.img_view.auto_level()
-        self.update_y_axis()
+        if self.widget.batch_widget.view_2d_btn.isChecked():
+            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1], True)
+            self.widget.batch_widget.img_view.auto_level()
+            self.update_y_axis()
+
+        if self.widget.batch_widget.view_3d_btn.isChecked():
+            self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1])
+            self.widget.batch_widget.surf_view.update_scale(data[start:stop + 1])
+            self.update_3d_axis(data[start:stop + 1])
 
     def save_data(self):
         """
@@ -608,6 +718,23 @@ class BatchController(object):
         """
         self.update_x_axis()
         self.update_y_axis()
+
+    def update_3d_axis(self, data):
+        if self.model.batch_model.binning is None:
+            return
+
+        surf_view = self.widget.batch_widget.surf_view
+        binning = self.model.batch_model.binning
+        h_scale = (np.max(binning) - np.min(binning)) / binning.shape[0]
+
+        size = surf_view.pg_layout.pixelSize(np.array([0, 0, 0]))
+        space = round(size * binning.shape[0] * 0.3, 2)
+        print("sizeL: ", size, binning[0], binning[-1], round(size * binning.shape[0] * 0.2, 2), h_scale)
+        # self.axis.set_tick_values(yticks=np.arange(0, data2.shape[1], 50000 * size))
+
+        surf_view.axis.set_tick_values(yticks=np.round(np.arange(binning[0], binning[-1], space), 2))
+        surf_view.g.setSpacing(np.nanmax(data)/8., space / h_scale, 1)
+        surf_view.gx.setSpacing(1, space / h_scale, 1)
 
     def update_x_axis(self):
         if self.model.batch_model.binning is None:
