@@ -556,18 +556,17 @@ class SurfWidget(QtWidgets.QWidget):
         colors = self.get_colors(data).reshape(-1, 4)
 
         abs_range = self.show_range * (np.nanmax(data) - np.nanmin(data)) + np.nanmin(data)
-        data2 = np.copy(data)
-        data2[data2 > abs_range[1]] = abs_range[1]
-        data2[data2 < abs_range[0]] = abs_range[0]
-        self.data = data2
+        self.data= np.copy(data)
+        self.data[self.data > abs_range[1]] = abs_range[1]
+        self.data[self.data < abs_range[0]] = abs_range[0]
 
-        self.surf_view_item.setData(z=data2, colors=colors)
+        self.surf_view_item.setData(z=self.data, colors=colors)
 
-        self.img_histogram_LUT_horizontal.imageChanged(img_data=data2)
-        self.img_histogram_LUT_horizontal.setLevels(np.nanmin(data2), np.nanmax(data2))
+        self.img_histogram_LUT_horizontal.imageChanged(img_data=self.data)
+        self.img_histogram_LUT_horizontal.setLevels(np.nanmin(self.data), np.nanmax(self.data))
 
-        self.g.setSize(np.nanmax(data), data2.shape[1] * 1.1, 0)
-        self.gx.setSize(data2.shape[0], data2.shape[1] * 1.1, 0)
+        self.g.setSize(np.nanmax(data), self.data.shape[1], 0)
+        self.gx.setSize(self.data.shape[0], self.data.shape[1], 0)
         self.axis.setSize(*self.show_scale)
 
     def update_scale(self, data):
@@ -581,11 +580,11 @@ class SurfWidget(QtWidgets.QWidget):
 
         self.g.resetTransform()
         self.g.rotate(90, 0, 1, 0)
-        self.g.translate(self.g_translate, data.shape[1] / 2. * 1.3, np.nanmax(data) / 2.)
+        self.g.translate(self.g_translate, data.shape[1] / 2., np.nanmax(data) / 2.)
         self.g.scale(*scale, local=False)
 
         self.gx.resetTransform()
-        self.gx.translate(data.shape[0] / 2., data.shape[1] / 2. * 1.3, 0)
+        self.gx.translate(data.shape[0] / 2., data.shape[1] / 2., 0)
         self.gx.scale(*scale, local=False)
 
         self.axis.setSize(*self.show_scale)
