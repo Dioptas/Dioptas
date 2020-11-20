@@ -480,8 +480,8 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
 
 
 class SurfWidget(QtWidgets.QWidget):
-
     iteration_name = ''
+
     def __init__(self):
         super(SurfWidget, self).__init__()
 
@@ -493,25 +493,23 @@ class SurfWidget(QtWidgets.QWidget):
         self.show_scale = np.array([2., 2., 1.])
         self.g_translate = 0
         self.marker = 0
-        self.marker_color = [0,0,0]
+        self.marker_color = [1, 0, 0]
+        self.marker_size = 5
         self.data = None
 
         self.create_graphics()
-
-        self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-
-        self._lut_w = QtWidgets.QWidget()
-        self._lut_w.setMaximumHeight(80)
 
         self._lut_lo = QtWidgets.QVBoxLayout()
         self._lut_lo.setContentsMargins(0, 0, 0, 0)
         self._lut_lo.addWidget(self.lut_pg_layout)
 
+        self._lut_w = QtWidgets.QWidget()
+        self._lut_w.setMaximumHeight(80)
         self._lut_w.setLayout(self._lut_lo)
 
-
+        self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
         self._layout.addWidget(self._lut_w)
         self._layout.addWidget(self.pg_layout)
 
@@ -539,7 +537,6 @@ class SurfWidget(QtWidgets.QWidget):
         self.gx.setSpacing(1, 100, 1)
         self.gx.setDepthValue(10)  # draw grid after surfaces since they may be translucent
         self.pg_layout.addItem(self.gx)
-
 
         self.axis = Custom3DAxis(self.pg_layout, color=(0.9, 0.9, 0.9, .6), axis=[False, True, False])
         self.axis.add_labels(y_label=u'2θ')
@@ -569,8 +566,8 @@ class SurfWidget(QtWidgets.QWidget):
         self.img_histogram_LUT_horizontal.imageChanged(img_data=data2)
         self.img_histogram_LUT_horizontal.setLevels(np.nanmin(data2), np.nanmax(data2))
 
-        self.g.setSize(np.nanmax(data), data2.shape[1], 0)
-        self.gx.setSize(data2.shape[0], data2.shape[1], 0)
+        self.g.setSize(np.nanmax(data), data2.shape[1] * 1.1, 0)
+        self.gx.setSize(data2.shape[0], data2.shape[1] * 1.1, 0)
         self.axis.setSize(*self.show_scale)
 
     def update_scale(self, data):
@@ -584,15 +581,15 @@ class SurfWidget(QtWidgets.QWidget):
 
         self.g.resetTransform()
         self.g.rotate(90, 0, 1, 0)
-        self.g.translate(self.g_translate, data.shape[1]/2., np.nanmax(data)/2.)
+        self.g.translate(self.g_translate, data.shape[1] / 2. * 1.3, np.nanmax(data) / 2.)
         self.g.scale(*scale, local=False)
 
         self.gx.resetTransform()
-        self.gx.translate(data.shape[0]/2., data.shape[1]/2., 0)
+        self.gx.translate(data.shape[0] / 2., data.shape[1] / 2. * 1.3, 0)
         self.gx.scale(*scale, local=False)
 
         self.axis.setSize(*self.show_scale)
-        self.axis.diff = [self.show_scale[0]*self.g_translate/data.shape[0],0,0]
+        self.axis.diff = [self.show_scale[0] * self.g_translate / data.shape[0], 0, 0]
 
     def get_colors(self, data):
         lut = self.img_histogram_LUT_horizontal.gradient.getLookupTable(256) / 256.
@@ -612,8 +609,8 @@ class SurfWidget(QtWidgets.QWidget):
         colors = np.ones((colors_rgb.shape[0], colors_rgb.shape[1], 4))
         colors[..., :3] = colors_rgb
 
-        colors[:, int(self.marker):int(self.marker) + 10, :3] = self.marker_color
-        colors[:int(self.g_translate), :, :] = 0.01
+        colors[:, int(self.marker):int(self.marker) + self.marker_size, :3] = self.marker_color
+        colors[int(self.g_translate), :, :3] = self.marker_color
         return colors
 
 
