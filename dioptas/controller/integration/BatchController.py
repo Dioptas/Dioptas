@@ -38,7 +38,7 @@ class BatchController(object):
         self.create_signals()
         self.create_mouse_behavior()
 
-        self.trim = 1
+        self.min_val = 0.1
 
     def create_signals(self):
         """
@@ -52,9 +52,9 @@ class BatchController(object):
         self.widget.batch_widget.view_3d_btn.clicked.connect(self.change_view)
         self.widget.batch_widget.view_2d_btn.clicked.connect(self.change_view)
         self.widget.batch_widget.view_f_btn.clicked.connect(self.change_view)
-        self.widget.batch_widget.scale_log_btn.clicked.connect(self.change_scale)
-        self.widget.batch_widget.scale_lin_btn.clicked.connect(self.change_scale)
-        self.widget.batch_widget.scale_sqrt_btn.clicked.connect(self.change_scale)
+        self.widget.batch_widget.scale_log_btn.mouseReleaseEvent = self.change_scale
+        self.widget.batch_widget.scale_lin_btn.mouseReleaseEvent = self.change_scale
+        self.widget.batch_widget.scale_sqrt_btn.mouseReleaseEvent = self.change_scale
         self.widget.batch_widget.background_btn.clicked.connect(self.subtract_background)
         self.widget.batch_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.batch_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
@@ -89,11 +89,11 @@ class BatchController(object):
         self.widget.batch_widget.scale_x_btn.clicked.connect(self.pressed_button_x)
         self.widget.batch_widget.scale_y_btn.clicked.connect(self.pressed_button_y)
         self.widget.batch_widget.scale_z_btn.clicked.connect(self.pressed_button_z)
-        #self.widget.batch_widget.scale_s_btn.clicked.connect(self.pressed_button_s)
+        self.widget.batch_widget.scale_s_btn.clicked.connect(self.pressed_button_s)
         self.widget.batch_widget.trim_h_btn.clicked.connect(self.pressed_button_h)
         self.widget.batch_widget.trim_l_btn.clicked.connect(self.pressed_button_l)
         self.widget.batch_widget.move_g_btn.clicked.connect(self.pressed_button_g)
-        self.widget.batch_widget.move_m_btn.clicked.connect(self.pressed_button_m)
+        self.widget.batch_widget.move_m_btn.mouseReleaseEvent = self.pressed_button_m
         self.widget.batch_widget.m_color_btn.sigColorChanged.connect(self.set_marker_color)
 
         self.widget.batch_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
@@ -175,9 +175,17 @@ class BatchController(object):
     def pressed_button_g(self):
         self.key_pressed_3d(None, pressed_key=71)
 
-    def pressed_button_m(self):
+    def pressed_button_m(self, ev):
+        if ev.button() & QtCore.Qt.RightButton:
+            val, ok = QtWidgets.QInputDialog.getInt(self.widget.integration_image_widget, 'Edit marker size',
+                                                    'marker size:', min=0, max=25,
+                                                    value=self.widget.batch_widget.surf_view.marker_size)
+            if ok:
+                self.widget.batch_widget.surf_view.marker_size = val
         self.key_pressed_3d(None, pressed_key=77)
 
+    def pressed_button_s(self):
+        self.key_pressed_3d(None, pressed_key=83)
 
     def set_marker_color(self):
         color = self.widget.batch_widget.m_color_btn.color(mode='float')
@@ -385,10 +393,18 @@ class BatchController(object):
         self.model.batch_model.extract_background(parameters, progress_dialog)
         progress_dialog.close()
 
-    def change_scale(self):
+    def change_scale(self, ev):
         """
-        Change scale between log and linear
+        Change scale between log and linear. Edit hard minimum of image value
         """
+
+        if ev.button() & QtCore.Qt.RightButton:
+            val, ok = QtWidgets.QInputDialog.getDouble(self.widget.integration_image_widget, 'Edit minimal value',
+                                                       'value:', decimals=3,
+                                                       value=self.min_val)
+            if ok:
+                self.min_val = val
+
         if self.widget.batch_widget.scale_log_btn.isChecked():
             self.scale = np.log10
         elif self.widget.batch_widget.scale_sqrt_btn.isChecked():
@@ -674,7 +690,8 @@ class BatchController(object):
             return
         if self.widget.batch_widget.background_btn.isChecked():
             data = data - bkg
-            data[data<0.1] = 0.1
+        if self.min_val is not None:
+            data[data < self.min_val] = self.min_val
         data = self.scale(data)
 
         if stop is None:
@@ -831,20 +848,24 @@ class BatchController(object):
         self.update_y_axis()
 
     def update_3d_axis(self, data):
+        """
+        Update axis and grid in 3D view
+        """
         if self.model.batch_model.binning is None:
             return
 
         surf_view = self.widget.batch_widget.surf_view
         binning = self.model.batch_model.binning
-        h_scale = (np.max(binning) - np.min(binning)) / binning.shape[0]
 
         size = surf_view.pg_layout.pixelSize(np.array([0, 0, 0]))
         space = round(size * binning.shape[0] * 0.3, 2)
-        print("sizeL: ", size, binning[0], binning[-1], round(size * binning.shape[0] * 0.2, 2), h_scale)
+        ticks = np.round(np.arange(binning[0], binning[-1], space), 2)
+        if ticks.shape[0] < 2:
+            ticks = np.array([binning[0], binning[-1]])
 
-        surf_view.axis.set_tick_values(yticks=np.round(np.arange(binning[0], binning[-1]+space, space), 2))
-        surf_view.g.setSpacing(np.nanmax(data)/8., space / h_scale, 1)
-        surf_view.gx.setSpacing(1, space / h_scale, 1)
+        surf_view.axis.set_tick_values(yticks=np.round(np.arange(binning[0], binning[-1], space), 2))
+        surf_view.g.setSpacing(np.nanmax(data)/8., data.shape[1]/(ticks.shape[0]-1), 1)
+        surf_view.gx.setSpacing(1, data.shape[1]/(ticks.shape[0]-1), 1)
 
     def update_x_axis(self):
         if self.model.batch_model.binning is None:
