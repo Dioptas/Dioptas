@@ -6,6 +6,7 @@ import numpy as np
 import h5py
 from PIL import Image
 from qtpy import QtWidgets, QtCore, QtGui
+from pyqtgraph import makeQImage
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -39,6 +40,7 @@ class BatchController(object):
         self.create_mouse_behavior()
 
         self.min_val = 0.1
+        self.size_threshold = 500000
 
     def create_signals(self):
         """
@@ -52,9 +54,9 @@ class BatchController(object):
         self.widget.batch_widget.view_3d_btn.clicked.connect(self.change_view)
         self.widget.batch_widget.view_2d_btn.clicked.connect(self.change_view)
         self.widget.batch_widget.view_f_btn.clicked.connect(self.change_view)
-        self.widget.batch_widget.scale_log_btn.mouseReleaseEvent = self.change_scale
-        self.widget.batch_widget.scale_lin_btn.mouseReleaseEvent = self.change_scale
-        self.widget.batch_widget.scale_sqrt_btn.mouseReleaseEvent = self.change_scale
+        self.widget.batch_widget.scale_log_btn.mouseReleaseEvent = self.change_scale_log
+        self.widget.batch_widget.scale_lin_btn.mouseReleaseEvent = self.change_scale_lin
+        self.widget.batch_widget.scale_sqrt_btn.mouseReleaseEvent = self.change_scale_sqrt
         self.widget.batch_widget.background_btn.clicked.connect(self.subtract_background)
         self.widget.batch_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.batch_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
@@ -393,11 +395,7 @@ class BatchController(object):
         self.model.batch_model.extract_background(parameters, progress_dialog)
         progress_dialog.close()
 
-    def change_scale(self, ev):
-        """
-        Change scale between log and linear. Edit hard minimum of image value
-        """
-
+    def set_hard_minimum(self, ev):
         if ev.button() & QtCore.Qt.RightButton:
             val, ok = QtWidgets.QInputDialog.getDouble(self.widget.integration_image_widget, 'Edit minimal value',
                                                        'value:', decimals=3,
@@ -405,12 +403,31 @@ class BatchController(object):
             if ok:
                 self.min_val = val
 
-        if self.widget.batch_widget.scale_log_btn.isChecked():
-            self.scale = np.log10
-        elif self.widget.batch_widget.scale_sqrt_btn.isChecked():
-            self.scale = np.sqrt
-        else:
-            self.scale = np.array
+    def change_scale_log(self, ev):
+        """
+        Change scale to log. Edit hard minimum of image value
+        """
+        self.widget.batch_widget.scale_log_btn.setChecked(True)
+        self.set_hard_minimum(ev)
+        self.scale = np.log10
+        self.plot_batch()
+
+    def change_scale_lin(self, ev):
+        """
+        Change scale to linear. Edit hard minimum of image value
+        """
+        self.widget.batch_widget.scale_lin_btn.setChecked(True)
+        self.set_hard_minimum(ev)
+        self.scale = np.array
+        self.plot_batch()
+
+    def change_scale_sqrt(self, ev):
+        """
+        Change scale to square root. Edit hard minimum of image value
+        """
+        self.widget.batch_widget.scale_sqrt_btn.setChecked(True)
+        self.set_hard_minimum(ev)
+        self.scale = np.sqrt
         self.plot_batch()
 
     def process_step(self):
@@ -705,9 +722,13 @@ class BatchController(object):
             self.update_y_axis()
 
         if self.widget.batch_widget.view_3d_btn.isChecked():
-            self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1])
-            self.widget.batch_widget.surf_view.update_scale(data[start:stop + 1])
-            self.update_3d_axis(data[start:stop + 1])
+            step = int(data[start:stop + 1].size / self.size_threshold)
+            if step == 0:
+                step = 1
+            self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
+            self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1:step])
+            self.widget.batch_widget.surf_view.update_scale(data[start:stop + 1:step])
+            self.update_3d_axis(data[start:stop + 1:step])
 
     def save_data(self):
         """
@@ -725,6 +746,9 @@ class BatchController(object):
                 if self.widget.batch_widget.view_2d_btn.isChecked():
                     QtWidgets.QApplication.processEvents()
                     self.widget.batch_widget.img_view.save_img(filename)
+                if self.widget.batch_widget.view_3d_btn.isChecked():
+                    d = self.widget.batch_widget.surf_view.pg_layout.renderToArray((1000, 1000))
+                    makeQImage(d).save(filename)
             elif ext == '.nxs':
                 self.model.batch_model.save_proc_data(filename)
             elif ext == '.csv':
