@@ -114,12 +114,12 @@ class BatchModel(QtCore.QObject):
 
             nxentry = f.create_group('processed')
             nxentry.attrs["NX_class"] = 'NXentry'
-            nxentry.attrs['default'] = 'collection'
+            nxentry.attrs['default'] = 'result'
 
             nxdata = nxentry.create_group('result')
             nxdata.attrs["NX_class"] = 'NXdata'
             nxdata.attrs["signal"] = 'data'
-            nxdata.attrs["axes"] = ['image_id', 'binning']
+            nxdata.attrs["axes"] = ['.', 'binning']
 
             nxprocess = nxentry.create_group('process')
             nxprocess.attrs["NX_class"] = 'NXprocess'
@@ -128,6 +128,7 @@ class BatchModel(QtCore.QObject):
             nxprocess['int_method'] = 'csr'
             nxprocess['int_unit'] = '2th_deg'
             nxprocess['num_points'] = self.binning.shape[0]
+
             if self._used_mask is not None:
                 nxprocess.create_dataset("mask", data=self._used_mask)
 
@@ -138,9 +139,6 @@ class BatchModel(QtCore.QObject):
             tth = nxdata.create_dataset("binning", data=self.binning)
             tth.attrs["unit"] = 'deg'
             tth.attrs['long_name'] = 'two_theta (degrees)'
-
-            img_id = nxdata.create_dataset("image_id", data=np.arange(0, self.data.shape[0]))
-            img_id.attrs['long_name'] = 'image index'
 
             nxprocess.create_dataset("pos_map", data=self.pos_map)
             nxprocess.create_dataset("file_map", data=self.file_map)

@@ -594,7 +594,6 @@ class SurfWidget(QtWidgets.QWidget):
         lut = self.img_histogram_LUT_horizontal.gradient.getLookupTable(256) / 256.
 
         level = self.img_histogram_LUT_horizontal.getExpLevels()
-        print(np.nanmax(data), np.nanmin(data), level)
         # int_data = ((data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data)) * 255).astype(int)
         min = np.nanmin(data)
         if level[0] > 1:
