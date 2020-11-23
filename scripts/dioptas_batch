@@ -144,21 +144,37 @@ def save_proc_data(filename, files, file_map, pos_map):
     """
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with h5py.File(filename, mode="w") as f:
-        f.attrs['cal_file'] = config['cal_file']
-        f.attrs['int_method'] = config['int_method']
-        f.attrs['int_unit'] = '2th_deg'
-        f.attrs['num_points'] = config['num_points']
-        f.attrs['data_type'] = 'processed'
+        f.attrs['default'] = 'processed'
+
+        nxentry = f.create_group('processed')
+        nxentry.attrs["NX_class"] = 'NXentry'
+        nxentry.attrs['default'] = 'result'
+
+        nxdata = nxentry.create_group('result')
+        nxdata.attrs["NX_class"] = 'NXdata'
+        nxdata.attrs["signal"] = 'data'
+        nxdata.attrs["axes"] = ['.', 'binning']
+
+        nxprocess = nxentry.create_group('process')
+        nxprocess.attrs["NX_class"] = 'NXprocess'
+
+        nxprocess['cal_file'] = config['cal_file']
+        nxprocess['int_method'] = config['int_method']
+        nxprocess['int_unit'] = '2th_deg'
+        nxprocess['num_points'] = config['num_points']
 
         if config['mask_file'] is not None:
-            f.attrs['mask_file'] = config['mask_file']
-            f.attrs['mask_shape'] = mask_shape
+            nxprocess['mask_file'] = config['mask_file']
+            nxprocess['mask_shape'] = mask_shape
 
-        f.create_dataset("data", data=proc_data[:, 1, :])
-        f.create_dataset("binning", data=proc_data[0, 0, :])
-        f.create_dataset("pos_map", data=np.array(pos_map))
-        f.create_dataset("file_map", data=np.array(file_map))
-        f.create_dataset("files", data=np.array(files).astype('S'))
+        nxdata.create_dataset("data", data=proc_data[:, 1, :])
+        tth = nxdata.create_dataset("binning", data=proc_data[0, 0, :])
+        tth.attrs["unit"] = 'deg'
+        tth.attrs['long_name'] = 'two_theta (degrees)'
+
+        nxprocess.create_dataset("pos_map", data=np.array(pos_map))
+        nxprocess.create_dataset("file_map", data=np.array(file_map))
+        nxprocess.create_dataset("files", data=np.array(files).astype('S'))
 
 
 def run():

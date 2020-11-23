@@ -79,30 +79,30 @@ class BatchModel(QtCore.QObject):
 
         """
         with h5py.File(filename, "r") as data_file:
-            self.data = data_file['data'][()]
-            self.binning = data_file['binning'][()]
-            self.file_map = data_file['file_map'][()]
-            self.files = data_file['files'][()].astype('U')
-            self.pos_map = data_file['pos_map'][()]
+            self.data = data_file['processed/result/data'][()]
+            self.binning = data_file['processed/result/binning'][()]
+            self.file_map = data_file['processed/process/file_map'][()]
+            self.files = data_file['processed/process/files'][()].astype('U')
+            self.pos_map = data_file['processed/process/pos_map'][()]
             self.n_img = self.data.shape[0]
 
-            cal_file = str(data_file.attrs['cal_file'])
+            cal_file = str(data_file['processed/process/cal_file'])
             try:
                 self.calibration_model.load(cal_file)
             except:
                 pass
 
-            if 'mask' in data_file:
-                mask = data_file['mask'][()]
+            if 'mask' in data_file['processed/process/']:
+                mask = data_file['processed/process/mask'][()]
                 self.mask_model.set_dimension(mask.shape)
                 self.mask_model.set_mask(mask)
 
-            if 'mask_file' in data_file.attrs:
-                self.mask_model.set_dimension(tuple(data_file.attrs['mask_shape']))
-                self.mask_model.load_mask(str(data_file.attrs['mask_file']))
+            if 'mask_file' in data_file['processed/process/']:
+                self.mask_model.set_dimension(tuple(data_file['processed/process/mask_shape'][()]))
+                self.mask_model.load_mask(str(data_file['processed/process/mask_file'][()]))
 
-            if 'bkg' in data_file:
-                self.bkg = data_file['bkg'][()]
+            if 'bkg' in data_file['processed/process/']:
+                self.bkg = data_file['processed/process/bkg'][()]
 
     def save_proc_data(self, filename):
         """

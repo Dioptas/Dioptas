@@ -594,7 +594,7 @@ class BatchIntegrationFunctionalTest(QtTest):
                          self.model.batch_model.binning.shape[0])
 
         mask = self.model.batch_model.mask_model.get_mask()
-        self.assertEqual(mask.shape, (516, 1554))
+        self.assertEqual(mask.shape, (1833, 1556))
         self.assertEqual(resp, 'All done\n')
 
         import shutil

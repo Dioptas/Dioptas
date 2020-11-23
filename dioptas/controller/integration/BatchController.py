@@ -647,7 +647,7 @@ class BatchController(object):
         """
         if os.path.splitext(filename)[1] == '.nxs':
             data_file = h5py.File(filename, "r")
-            if 'data_type' in data_file.attrs and data_file.attrs['data_type'] == 'processed':
+            if 'processed' in data_file:
                 return True
         return False
 
