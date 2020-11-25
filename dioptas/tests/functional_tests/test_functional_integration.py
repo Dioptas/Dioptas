@@ -337,10 +337,10 @@ class IntegrationFunctionalTest(QtTest):
 
     def test_azimuthal_plot_shows_same_independent_of_unit(self):
         click_button(self.integration_widget.img_mode_btn)
-        self.integration_image_controller.img_mouse_click(300, 400)
-        x1, y1 = self.integration_widget.cake_widget.azimuth_histogram_item.getData()
+        self.integration_image_controller.img_mouse_click(600, 150)
+        x1, y1 = self.integration_widget.cake_widget.cake_integral_item.getData()
         click_button(self.integration_widget.pattern_q_btn)
-        self.integration_image_controller.img_mouse_click(300, 400)
-        x2, y2 = self.integration_widget.cake_widget.azimuth_histogram_item.getData()
-        self.assertAlmostEqual(np.sum((x1 - x2) ** 2), 0)
-        self.assertAlmostEqual(np.sum((y1 - y2) ** 2), 0)
+        self.integration_image_controller.img_mouse_click(600, 150)
+        x2, y2 = self.integration_widget.cake_widget.cake_integral_item.getData()
+        self.assertAlmostEqual(np.nansum((x1 - x2) ** 2), 0)
+        self.assertAlmostEqual(np.nansum((y1 - y2) ** 2), 0)
