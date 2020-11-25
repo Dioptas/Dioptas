@@ -188,9 +188,10 @@ class ImageControllerTest(QtTest):
         click_button(self.widget.integration_image_widget.mode_btn)
         self.controller.img_mouse_click(100, 300)
 
-        y = self.widget.cake_widget.cake_integral_item.yData
+        x = self.widget.cake_widget.cake_integral_item.xData
         self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.setValue(3)
-        self.assertFalse(np.array_equal(y, self.widget.cake_widget.cake_integral_item.yData))
+        self.controller.img_mouse_click(100, 300)
+        self.assertFalse(np.array_equal(x, self.widget.cake_widget.cake_integral_item.xData))
 
     def test_loading_series_karabo_file_shows_correct_gui(self):
         filename = os.path.join(unittest_data_path, 'karabo_epix.h5')
