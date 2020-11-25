@@ -1000,8 +1000,9 @@ class BatchController(object):
         n_int = (stop-start)/step
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
                                                           n_int)
-        self.model.batch_model.integrate_raw_data(progress_dialog, num_points, start, stop + 1, step,
-                                                  self.widget.batch_widget.view_f_btn.isChecked())
+        self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
+                                                  self.widget.batch_widget.view_f_btn.isChecked(),
+                                                  progress_dialog=progress_dialog)
         progress_dialog.close()
 
         self.model.img_model.blockSignals(False)
