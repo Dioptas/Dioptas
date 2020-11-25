@@ -321,9 +321,9 @@ class CalibrationModel(QtCore.QObject):
             fix.append(key)
             setattr(self.pattern_geometry, key, value)
 
+        self.pattern_geometry.refine2(fix=fix)
         if self.fit_wavelength:
-            self.pattern_geometry.refine2(fix=fix)
-        self.pattern_geometry.refine2_wavelength(fix=fix)
+            self.pattern_geometry.refine2_wavelength(fix=fix)
 
         self.create_cake_geometry()
         self.set_supersampling()
@@ -344,7 +344,7 @@ class CalibrationModel(QtCore.QObject):
                 return mask
             else:
                 if mask.shape == self.detector.mask.shape:
-                    return np.logical_or(self.detector.mask,  mask)
+                    return np.logical_or(self.detector.mask, mask)
 
     def _prepare_integration_super_sampling(self, mask):
         if self.supersampling_factor > 1:
@@ -522,7 +522,7 @@ class CalibrationModel(QtCore.QObject):
 
         if self.pattern_geometry.pixel1 == self.detector.pixel1 and \
                 self.pattern_geometry.pixel2 == self.detector.pixel2:
-            self.pattern_geometry.detector = self.detector # necessary since loading a poni file will reset the detector
+            self.pattern_geometry.detector = self.detector  # necessary since loading a poni file will reset the detector
         else:
             self.reset_detector()
 
@@ -854,8 +854,10 @@ class DetectorModes(Enum):
 class NotEnoughSpacingsInCalibrant(Exception):
     pass
 
+
 class DetectorShapeError(Exception):
     pass
+
 
 class DummyStdOut(object):
     @classmethod
