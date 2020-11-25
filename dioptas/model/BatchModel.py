@@ -108,7 +108,8 @@ class BatchModel(QtCore.QObject):
         """
         Save diffraction patterns to h5 file
         """
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        if os.path.dirname(filename) != '':
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
             f.attrs['default'] = 'processed'
 
@@ -148,12 +149,13 @@ class BatchModel(QtCore.QObject):
         """
         Save diffraction patterns to 3-columns csv file
         """
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        if os.path.dirname(filename) != '':
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
         x = self.binning.repeat(self.n_img)
         y = np.arange(self.n_img)[None, :].repeat(self.binning.shape[0], axis=0).flatten()
         np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
 
-    def integrate_raw_data(self, progress_dialog, num_points, start, stop, step, use_all=False):
+    def integrate_raw_data(self, num_points, start, stop, step, use_all=False, progress_dialog=None):
         """
         Integrate images from given file
 
@@ -169,8 +171,9 @@ class BatchModel(QtCore.QObject):
         image_counter = 0
         current_file = ''
         if self.mask_model.mode:
-            mask = self.mask_model.get_mask()
-            self._used_mask = mask
+            self._used_mask = self.mask_model.get_mask()
+        else:
+            self._used_mask = None
 
         for index in range(start, stop, step):
             if use_all:
@@ -180,14 +183,16 @@ class BatchModel(QtCore.QObject):
             if i_file != current_file:
                 current_file = i_file
                 self.calibration_model.img_model.load(self.files[i_file])
-            if progress_dialog.wasCanceled():
+
+            if progress_dialog is not None and progress_dialog.wasCanceled():
                 break
 
             self.calibration_model.img_model.load_series_img(pos)
             binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
-                                                                     mask=mask)
+                                                                     mask=self._used_mask)
             image_counter += 1
-            progress_dialog.setValue(image_counter)
+            if progress_dialog is not None:
+                progress_dialog.setValue(image_counter)
 
             pos_map.append((i_file, pos))
             data.append(intensity)
@@ -198,17 +203,19 @@ class BatchModel(QtCore.QObject):
         self.data = np.array(data)
         self.n_img = self.data.shape[0]
 
-    def extract_background(self, parameters, progress_dialog):
+    def extract_background(self, parameters, progress_dialog=None):
         """
         Subtract background calculated with respect of given parameters
         """
 
         bkg = np.zeros(self.data.shape)
         for i, y in enumerate(self.data):
-            if progress_dialog.wasCanceled():
-                break
 
-            progress_dialog.setValue(i)
+            if progress_dialog is not None:
+                if progress_dialog.wasCanceled():
+                    break
+                progress_dialog.setValue(i)
+
             bkg[i] = extract_background(self.binning, y, *parameters)
         self.bkg = bkg
 
