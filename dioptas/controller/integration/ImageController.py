@@ -201,7 +201,7 @@ class ImageController(object):
         self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
         self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
         self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.valueChanged. \
-            connect(self.plot_cake_integral)
+            connect(partial(self.plot_cake_integral, None))
         self.widget.integration_control_widget.integration_options_widget.cake_save_integral_btn.clicked. \
             connect(self.save_cake_integral)
 
