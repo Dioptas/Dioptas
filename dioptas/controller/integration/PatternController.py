@@ -366,14 +366,7 @@ class PatternController(object):
                 new_pos = pos - step
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
-            self.set_line_position(new_pos)
-            self.update_image_widget_line_position()
-
-            tth_str, d_str, q_str, azi_str = self.get_position_strings(new_pos)
-            self.widget.click_tth_lbl.setText(tth_str)
-            self.widget.click_d_lbl.setText(d_str)
-            self.widget.click_q_lbl.setText(q_str)
-            self.widget.click_azi_lbl.setText(azi_str)
+            self.widget.pattern_widget.mouse_left_clicked.emit(new_pos, 0)
 
     def update_gui(self):
         if self.model.current_configuration.integration_unit == '2th_deg':
