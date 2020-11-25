@@ -541,13 +541,13 @@ class CifPhase(object):
             self.comments += ' structure type'
         if self.cif_dictionary.get('_database_code_icsd'):
             self.comments = self.comments.strip()
-            if self.comments is not '':
+            if self.comments != '':
                 self.comments += ', ICSD '
             else:
                 self.comments += 'ICSD '
             self.comments += self.cif_dictionary['_database_code_icsd']
         elif self.cif_dictionary.get('_database_code_amcsd'):
-            if self.comments is not '':
+            if self.comments != '':
                 self.comments += ', amcsd '
             else:
                 self.comments += 'amcsd '

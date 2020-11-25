@@ -94,7 +94,7 @@ class BackgroundController(object):
             self.widget, "Load an image background file",
             self.model.working_directories['image'])
 
-        if filename is not None and filename is not '':
+        if filename is not None and filename != '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
             try:
                 self.model.img_model.load_background(filename)
@@ -199,7 +199,7 @@ class BackgroundController(object):
             os.path.join(self.model.working_directories['pattern'],
                          img_filename + '.xy'), ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye)'))
 
-        if filename is not '':
+        if filename != '':
             self.model.current_configuration.save_background_pattern(filename)
 
     def bkg_pattern_as_overlay_btn_callback(self):
