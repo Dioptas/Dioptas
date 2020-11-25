@@ -259,7 +259,7 @@ class OverlayController(object):
         background or unset if it already. Any other overlay which was set before as bkg will
         """
         cur_ind = self.overlay_widget.get_selected_overlay_row()
-        if cur_ind is -1:  # no overlay selected
+        if cur_ind == -1:  # no overlay selected
             self.overlay_widget.set_as_bkg_btn.setChecked(False)
             return
 

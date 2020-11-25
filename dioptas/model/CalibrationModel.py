@@ -380,7 +380,7 @@ class CalibrationModel(QtCore.QObject):
 
         t1 = time.time()
 
-        if unit is 'd_A':
+        if unit == 'd_A':
             try:
                 self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
                                                                        method=method,
