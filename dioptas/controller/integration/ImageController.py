@@ -232,7 +232,7 @@ class ImageController(object):
         else:
             filenames = [filename]
 
-        if filenames is not None and len(filenames) is not 0:
+        if filenames is not None and len(filenames) != 0:
             self.model.working_directories['image'] = os.path.dirname(str(filenames[0]))
             if len(filenames) == 1:
                 self.model.img_model.load(str(filenames[0]))
@@ -255,7 +255,7 @@ class ImageController(object):
             return
 
         working_directory = self._get_pattern_working_directory()
-        if working_directory is '':
+        if working_directory == '':
             return  # abort file processing if no directory was selected
 
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
@@ -306,7 +306,7 @@ class ImageController(object):
             self.widget, "Please choose the output directory for the Images.",
             self.model.working_directories['image']))
 
-        if working_directory is '':
+        if working_directory == '':
             return
 
         self._set_up_batch_processing()
@@ -484,7 +484,7 @@ class ImageController(object):
             self.widget,
             "Please choose the image working directory.",
             self.model.working_directories['image']))
-        if directory is not '':
+        if directory != '':
             if self.model.img_model.autoprocess:
                 self._files_now = dict([(f, None) for f in os.listdir(self.model.working_directories['image'])])
             self.model.working_directories['image'] = directory
@@ -899,7 +899,7 @@ class ImageController(object):
             self.widget, "Load calibration...",
             self.model.working_directories['calibration'],
             '*.poni')
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
@@ -917,7 +917,7 @@ class ImageController(object):
                                                      img_filename + '.png'),
                                         ('Image (*.png);;Data (*.tiff);;Text (*.txt)'))
 
-        if filename is not '':
+        if filename != '':
             if filename.endswith('.png'):
                 if self.widget.img_mode == 'Cake':
                     self.widget.cake_widget.deactivate_vertical_line()

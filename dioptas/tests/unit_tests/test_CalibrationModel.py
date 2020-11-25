@@ -131,8 +131,8 @@ class CalibrationModelTest(QtTest):
         self.find_pilatus_1M_peaks()
 
         self.calibration_model.calibrate()
-        self.assertAlmostEqual(super_poni1, self.calibration_model.pattern_geometry.poni1, places=4)
-        self.assertAlmostEqual(super_poni2, self.calibration_model.pattern_geometry.poni2, places=4)
+        self.assertAlmostEqual(super_poni1, self.calibration_model.pattern_geometry.poni1, places=3)
+        self.assertAlmostEqual(super_poni2, self.calibration_model.pattern_geometry.poni2, places=3)
 
     def test_integration_with_supersampling(self):
         self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))

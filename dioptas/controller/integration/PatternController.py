@@ -168,7 +168,7 @@ class PatternController(object):
                          img_filename + '.xy'),
             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;png (*.png);;svg (*.svg)'))
 
-        if filename is not '':
+        if filename != '':
             if filename.endswith('.png'):
                 self.widget.pattern_widget.save_png(filename)
             elif filename.endswith('.svg'):
@@ -182,7 +182,7 @@ class PatternController(object):
             filename = open_file_dialog(self.widget, caption="Load Pattern",
                                         directory=self.model.working_directories['pattern'])
 
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['pattern'] = os.path.dirname(filename)
             self.widget.pattern_filename_txt.setText(os.path.basename(filename))
             self.widget.pattern_directory_txt.setText(os.path.dirname(filename))
@@ -223,7 +223,7 @@ class PatternController(object):
             self.widget,
             "Please choose the default directory for autosaved .",
             self.model.working_directories['pattern'])
-        if directory is not '':
+        if directory != '':
             self.model.working_directories['pattern'] = str(directory)
             self.widget.pattern_directory_txt.setText(directory)
 
