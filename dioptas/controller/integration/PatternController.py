@@ -313,48 +313,6 @@ class PatternController(object):
 
     def set_line_position(self, x):
         self.widget.pattern_widget.set_pos_line(x)
-        if self.model.calibration_model.is_calibrated:
-            self.update_image_widget_line_position()
-
-    def get_line_tth(self):
-        x = self.widget.pattern_widget.get_pos_line()
-        if self.integration_unit == 'q_A^-1':
-            x = self.convert_x_value(x, 'q_A^-1', '2th_deg')
-        elif self.integration_unit == 'd_A':
-            x = self.convert_x_value(x, 'd_A', '2th_deg')
-        return x
-
-    def update_image_widget_line_position(self):
-        tth = self.get_line_tth()
-        if self.widget.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
-            self.set_cake_line_position(tth)
-        else:  # image mode
-            self.set_image_line_position(tth)
-
-    def set_cake_line_position(self, tth):
-        upper_ind = np.where(self.model.cake_tth > tth)[0]
-        lower_ind = np.where(self.model.cake_tth < tth)[0]
-
-        if len(upper_ind) == 0 or len(lower_ind) == 0:
-            self.widget.cake_widget.plot_cake_integral(np.array([]), np.array([]))
-            self.widget.cake_widget.deactivate_vertical_line()
-            return
-
-        spacing = self.model.cake_tth[upper_ind[0]] - self.model.cake_tth[lower_ind[-1]]
-        new_pos = lower_ind[-1] + (tth - self.model.cake_tth[lower_ind[-1]]) / spacing + 0.5
-        self.widget.cake_widget.vertical_line.setValue(new_pos)
-        self.widget.cake_widget.activate_vertical_line()
-
-        x, y = self.model.calibration_model.cake_integral(
-            tth,
-            self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.value()
-        )
-        self.widget.cake_widget.plot_cake_integral(x, y)
-
-    def set_image_line_position(self, tth):
-        if self.model.calibration_model.is_calibrated:
-            self.widget.img_widget.set_circle_line(
-                self.model.calibration_model.get_two_theta_array(), tth / 180 * np.pi)
 
     def show_pattern_mouse_position(self, x, _):
         tth_str, d_str, q_str, azi_str = self.get_position_strings(x)

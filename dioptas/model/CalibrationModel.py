@@ -478,7 +478,8 @@ class CalibrationModel(QtCore.QObject):
         y3 = (right - np.floor(right)) * self.cake_img[:, int(np.floor(right))]
 
         x = np.array(range(len(self.cake_azi))) + 0.5
-        return x, (y1 + y2 + y3)/bins
+        y = (y1 + y2 + y3) / bins
+        return x, y
 
     def create_point_array(self, points, points_ind):
         res = []
