@@ -48,8 +48,8 @@ jobs:
       run: |
         cd dist/Dioptas*
         cd Contents/MacOS
-        rm QtQuick QtQml QtQmlmodels QtNetwork QtWebSockets libcrypto.1.0.0.dylib
-        rm -r imageio matplotlib mpl-data
+        rm QtQuick QtQml QtQmlmodels QtNetwork QtWebSockets
+        rm -r imageio matplotlib
 
     - name: Run Dioptas Executable
       run: |

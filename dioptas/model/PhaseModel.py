@@ -226,7 +226,7 @@ class PhaseModel(QtCore.QObject):
         :param wavelength: wavelength in nm
         """
         positions = self.reflections[ind][:, 0]
-        if unit is 'q' or unit is 'tth':
+        if unit == 'q' or unit == 'tth':
             positions = 2 * \
                         np.arcsin(wavelength / (2 * positions)) * 180.0 / np.pi
             if unit == 'q':
@@ -246,9 +246,9 @@ class PhaseModel(QtCore.QObject):
         :return: array of intensities, baseline representing the start for the lines
         """
         x, y = pattern.data
-        if len(y) is not 0:
+        if len(y) != 0:
             y_in_range = y[(x > x_range[0]) & (x < x_range[1])]
-            if len(y_in_range) is 0:
+            if len(y_in_range) == 0:
                 return [], 0
             max_pattern_intensity = np.min([np.max(y_in_range), y_range[1]])
         else:

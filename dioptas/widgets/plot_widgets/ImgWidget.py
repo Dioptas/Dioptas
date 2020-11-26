@@ -57,15 +57,15 @@ class ImgWidget(QtCore.QObject):
         self._max_range = True
 
     def create_graphics(self):
-        self.img_view_box = self.pg_layout.addViewBox(1, 1)  # type: ViewBox
+        self.img_view_box = self.pg_layout.addViewBox(row=1, col=1)  # type: ViewBox
 
         self.data_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.data_img_item)
 
         self.img_histogram_LUT_horizontal = HistogramLUTItem(self.data_img_item)
-        self.pg_layout.addItem(self.img_histogram_LUT_horizontal, 0, 1)
+        self.pg_layout.addItem(self.img_histogram_LUT_horizontal, row=0, col=1)
         self.img_histogram_LUT_vertical = HistogramLUTItem(self.data_img_item, orientation='vertical')
-        self.pg_layout.addItem(self.img_histogram_LUT_vertical, 1, 2)
+        self.pg_layout.addItem(self.img_histogram_LUT_vertical, row=1, col=2)
 
     def create_mouse_click_item(self):
         self.mouse_click_item = pg.ScatterPlotItem()
@@ -288,7 +288,7 @@ class CalibrationCakeWidget(ImgWidget):
         if self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.removeItem(self.vertical_line)
 
-    def set_vertical_line_pos(self, x, y):
+    def set_vertical_line_pos(self, x, _):
         self.vertical_line.setValue(x)
 
 
@@ -431,6 +431,10 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
         self.add_cake_axes()
+        self.move_image()
+        self.add_cake_integral()
+        self.modify_cake_integral_plot_mouse_behavior()
+        self.arange_layout()
         self.phases = []  # type: list[CakePhasePlot]
 
     def add_cake_axes(self):
@@ -439,8 +443,46 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.bottom_axis_cake.setLabel(u'2θ', u'°')
         self.left_axis_cake.setLabel(u'Azimuth', u'°')
 
-        self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
-        self.pg_layout.addItem(self.left_axis_cake, 1, 0)
+        self.pg_layout.addItem(self.bottom_axis_cake, row=2, col=2)
+        self.pg_layout.addItem(self.left_axis_cake, row=1, col=0)
+
+    def move_image(self):
+        cake_image = self.pg_layout.getItem(1, 1)
+        self.pg_layout.removeItem(cake_image)
+        self.pg_layout.addItem(cake_image, 1, 2)
+        cake_lut = self.pg_layout.getItem(0, 1)
+        self.pg_layout.removeItem(cake_lut)
+        self.pg_layout.addItem(cake_lut, 0, 2)
+
+    def add_cake_integral(self):
+        self.cake_integral_item = pg.PlotDataItem([], [], pen=pg.mkPen(color='#FFF', width=1.5))
+        self.cake_integral_plot = self.pg_layout.addPlot(row=1, col=1, rowspan=2, colspan=1,
+                                                         labels={'bottom': 'Intensity'})
+        self.cake_integral_plot.hideAxis('left')
+        self.cake_integral_plot.addItem(self.cake_integral_item)
+        self.cake_integral_plot.enableAutoRange(False)
+        self.cake_integral_plot.buttonsHidden = True
+
+        self.cake_integral_plot.setYLink(self.img_view_box)
+
+    def arange_layout(self):
+        # self.pg_layout.ci.setSpacing(0)
+        self.pg_layout.ci.layout.setColumnStretchFactor(0, 1)
+        self.pg_layout.ci.layout.setColumnStretchFactor(1, 3)
+        self.pg_layout.ci.layout.setColumnStretchFactor(2, 14)
+
+    def modify_cake_integral_plot_mouse_behavior(self):
+        self.cake_integral_plot.vb.mouseClickEvent = self.empty_function
+        self.cake_integral_plot.vb.mouseDragEvent = self.empty_function
+        self.cake_integral_plot.vb.mouseDoubleClickEvent = self.empty_function
+        self.cake_integral_plot.vb.wheelEvent = self.empty_function
+
+    def empty_function(self, *_, **__):
+        return
+
+    def plot_cake_integral(self, x, y):
+        y[np.where(y <= 0)] = np.nan  # remove 0 values to be able to plot
+        self.cake_integral_item.setData(y, x)
 
     def add_cake_phase(self, positions, intensities, color):
         self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, color))

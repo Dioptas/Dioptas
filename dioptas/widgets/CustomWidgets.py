@@ -168,12 +168,6 @@ class ConservativeSpinBox(QtWidgets.QSpinBox):
     def wheelEvent(self, e: QtGui.QWheelEvent):
         pass
 
-    def keyPressEvent(self, e: QtGui.QKeyEvent):
-        self.lineEdit().keyPressEvent(e)
-
-    def keyReleaseEvent(self, e: QtGui.QKeyEvent):
-        self.lineEdit().keyReleaseEvent(e)
-
 
 class FlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):
