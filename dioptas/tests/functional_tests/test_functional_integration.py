@@ -74,9 +74,24 @@ class IntegrationMockFunctionalTest(QtTest):
         QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
         QtWidgets.QApplication.processEvents()
 
+    def test_1D_integration_with_azimuth_limits(self):
+        # Edith wants to perform 1D integration within a certain range of azimuthal angles. She sees there is an option
+        # in the X tab and deselects the Full Range button, enabling the text edits and then manually inputs -100, 80
+        self.assertFalse(self.integration_widget.oned_azimuth_min_txt.isEnabled())
+        self.assertFalse(self.integration_widget.oned_azimuth_max_txt.isEnabled())
+        self.integration_widget.oned_full_range_btn.setChecked(False)
+        self.assertTrue(self.integration_widget.oned_azimuth_min_txt.isEnabled())
+        self.assertTrue(self.integration_widget.oned_azimuth_max_txt.isEnabled())
+
+        self.enter_value_into_text_field(self.integration_widget.oned_azimuth_min_txt, -100)
+        self.enter_value_into_text_field(self.integration_widget.oned_azimuth_max_txt, 80)
+
+        self.model.calibration_model.integrate_1d.assert_called_with(mask=None, num_points=None, unit='2th_deg',
+                                                                     azi_range=(-100, 80))
+
     def test_changing_number_of_integration_bins(self):
         # Edith wants to change the number of integration bins in order to see the effect of binning onto her line
-        # shape. She sees that there is an option in the X tab and deselects automatic and sees that the sbinbox
+        # shape. She sees that there is an option in the X tab and deselects automatic and sees that the spinbox
         # becomes editable.
         self.assertFalse(self.integration_widget.bin_count_txt.isEnabled())
         self.integration_widget.automatic_binning_cb.setChecked(False)
@@ -88,12 +103,12 @@ class IntegrationMockFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
         self.model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
-                                                                     mask=None, unit='2th_deg')
+                                                                     azi_range=None, mask=None, unit='2th_deg')
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
-        self.model.calibration_model.integrate_1d.assert_called_with(num_points=None,
+        self.model.calibration_model.integrate_1d.assert_called_with(num_points=None, azi_range=None,
                                                                      mask=None, unit='2th_deg')
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
@@ -132,7 +147,6 @@ class IntegrationMockFunctionalTest(QtTest):
 
         # Tests if the pattern save procedures is are working for all file-endings
         def save_test_for_size_and_delete(self):
-
             def save_pattern(filename):
                 QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
                 click_button(self.integration_widget.qa_save_pattern_btn)
@@ -320,3 +334,13 @@ class IntegrationFunctionalTest(QtTest):
         self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
         self.integration_image_controller.img_mouse_click(1840, 500)
         self.model.select_configuration(0)
+
+    def test_azimuthal_plot_shows_same_independent_of_unit(self):
+        click_button(self.integration_widget.img_mode_btn)
+        self.integration_image_controller.img_mouse_click(600, 150)
+        x1, y1 = self.integration_widget.cake_widget.cake_integral_item.getData()
+        click_button(self.integration_widget.pattern_q_btn)
+        self.integration_image_controller.img_mouse_click(600, 150)
+        x2, y2 = self.integration_widget.cake_widget.cake_integral_item.getData()
+        self.assertAlmostEqual(np.nansum((x1 - x2) ** 2), 0)
+        self.assertAlmostEqual(np.nansum((y1 - y2) ** 2), 0)

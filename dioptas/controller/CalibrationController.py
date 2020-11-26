@@ -179,7 +179,7 @@ class CalibrationController(object):
                                     directory=self.model.working_directories['image'],
                                     )
 
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['image'] = os.path.dirname(filename)
             self.model.img_model.load(filename)
 
@@ -237,7 +237,7 @@ class CalibrationController(object):
                                     directory=self.model.working_directories['image'],
                                     filter='*.h5')
 
-        if filename is not '':
+        if filename != '':
             self.model.calibration_model.load_detector_from_file(filename)
             self.update_detector_parameters_in_view()
 
@@ -292,7 +292,7 @@ class CalibrationController(object):
             wavelength = start_values['wavelength']
         elif wavelength_from == 'pyFAI':
             pyFAI_parameter, _ = self.model.calibration_model.get_calibration_parameter()
-            if pyFAI_parameter['wavelength'] is not 0:
+            if pyFAI_parameter['wavelength'] != 0:
                 wavelength = pyFAI_parameter['wavelength']
             else:
                 start_values = self.widget.get_start_values()
@@ -404,7 +404,7 @@ class CalibrationController(object):
                                     directory=self.model.working_directories['image'],
                                     filter='*.spline')
 
-        if filename is not '':
+        if filename != '':
             self.model.calibration_model.load_distortion(filename)
             self._update_spline_in_gui()
             self.widget.spline_reset_btn.setEnabled(True)
@@ -595,7 +595,7 @@ class CalibrationController(object):
         filename = open_file_dialog(self.widget, caption="Load calibration...",
                                     directory=self.model.working_directories['calibration'],
                                     filter='*.poni')
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
             self.update_all(integrate=self.model.img_model.filename != '')
@@ -655,8 +655,8 @@ class CalibrationController(object):
         if self.widget.tab_widget.currentIndex() == 0:
             self.widget.tab_widget.setCurrentIndex(1)
 
-        if self.widget.ToolBox.currentIndex() is not 2 or \
-                self.widget.ToolBox.currentIndex() is not 3:
+        if self.widget.ToolBox.currentIndex() != 2 or \
+                self.widget.ToolBox.currentIndex() != 3:
             self.widget.ToolBox.setCurrentIndex(2)
         self.update_calibration_parameter_in_view()
         self.load_calibrant('pyFAI')
@@ -668,12 +668,7 @@ class CalibrationController(object):
         """
         pyFAI_parameter, fit2d_parameter = self.model.calibration_model.get_calibration_parameter()
         self.widget.set_calibration_parameters(pyFAI_parameter, fit2d_parameter)
-
-        if self.model.calibration_model.distortion_spline_filename:
-            self.widget.spline_filename_txt.setText(
-                os.path.basename(self.model.calibration_model.distortion_spline_filename))
-        else:
-            self.widget.spline_filename_txt.setText('None')
+        self._update_spline_in_gui()
 
     def update_detector_parameters_in_view(self):
         detector_mode = self.model.calibration_model.detector_mode
@@ -715,7 +710,7 @@ class CalibrationController(object):
 
         filename = save_file_dialog(self.widget, "Save calibration...",
                                     self.model.working_directories['calibration'], '*.poni')
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
             if not filename.rsplit('.', 1)[-1] == 'poni':
                 filename = filename + '.poni'
