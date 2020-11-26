@@ -172,7 +172,7 @@ class PatternController(object):
                          img_filename + '.xy'),
             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;png (*.png);;svg (*.svg)'))
 
-        if filename is not '':
+        if filename != '':
             if filename.endswith('.png'):
                 self.widget.pattern_widget.save_png(filename)
             elif filename.endswith('.svg'):
@@ -186,7 +186,7 @@ class PatternController(object):
             filename = open_file_dialog(self.widget, caption="Load Pattern",
                                         directory=self.model.working_directories['pattern'])
 
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['pattern'] = os.path.dirname(filename)
             self.widget.pattern_filename_txt.setText(os.path.basename(filename))
             self.widget.pattern_directory_txt.setText(os.path.dirname(filename))
@@ -227,7 +227,7 @@ class PatternController(object):
             self.widget,
             "Please choose the default directory for autosaved .",
             self.model.working_directories['pattern'])
-        if directory is not '':
+        if directory != '':
             self.model.working_directories['pattern'] = str(directory)
             self.widget.pattern_directory_txt.setText(directory)
 
@@ -331,36 +331,6 @@ class PatternController(object):
 
     def set_line_position(self, x):
         self.widget.pattern_widget.set_pos_line(x)
-        if self.model.calibration_model.is_calibrated:
-            self.update_image_widget_line_position()
-
-    def get_line_tth(self):
-        x = self.widget.pattern_widget.get_pos_line()
-        if self.integration_unit == 'q_A^-1':
-            x = self.convert_x_value(x, 'q_A^-1', '2th_deg')
-        elif self.integration_unit == 'd_A':
-            x = self.convert_x_value(x, 'd_A', '2th_deg')
-        return x
-
-    def update_image_widget_line_position(self):
-        tth = self.get_line_tth()
-        if self.widget.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
-            self.set_cake_line_position(tth)
-        else:  # image mode
-            self.set_image_line_position(tth)
-
-    def set_cake_line_position(self, tth):
-        upper_ind = np.where(self.model.cake_tth > tth)
-        lower_ind = np.where(self.model.cake_tth < tth)
-        if len(upper_ind) > 0 and len(lower_ind) > 0:
-            spacing = self.model.cake_tth[upper_ind[0][0]] - self.model.cake_tth[lower_ind[-1][-1]]
-            new_pos = lower_ind[-1][-1] + (tth - self.model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
-            self.widget.cake_widget.vertical_line.setValue(new_pos)
-
-    def set_image_line_position(self, tth):
-        if self.model.calibration_model.is_calibrated:
-            self.widget.img_widget.set_circle_line(
-                self.model.calibration_model.get_two_theta_array(), tth / 180 * np.pi)
 
     def show_pattern_mouse_position(self, x, _):
         tth_str, d_str, q_str, azi_str = self.get_position_strings(x)
@@ -414,14 +384,7 @@ class PatternController(object):
                 new_pos = pos - step
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
-            self.set_line_position(new_pos)
-            self.update_image_widget_line_position()
-
-            tth_str, d_str, q_str, azi_str = self.get_position_strings(new_pos)
-            self.widget.click_tth_lbl.setText(tth_str)
-            self.widget.click_d_lbl.setText(d_str)
-            self.widget.click_q_lbl.setText(q_str)
-            self.widget.click_azi_lbl.setText(azi_str)
+            self.widget.pattern_widget.mouse_left_clicked.emit(new_pos, 0)
 
     def update_gui(self):
         if self.model.current_configuration.integration_unit == '2th_deg':

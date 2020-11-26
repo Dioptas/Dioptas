@@ -148,7 +148,6 @@ class IntegrationMockFunctionalTest(QtTest):
 
         # Tests if the pattern save procedures is are working for all file-endings
         def save_test_for_size_and_delete(self):
-
             def save_pattern(filename):
                 QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
                 click_button(self.integration_widget.qa_save_pattern_btn)
@@ -336,6 +335,16 @@ class IntegrationFunctionalTest(QtTest):
         self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
         self.integration_image_controller.img_mouse_click(1840, 500)
         self.model.select_configuration(0)
+
+    def test_azimuthal_plot_shows_same_independent_of_unit(self):
+        click_button(self.integration_widget.img_mode_btn)
+        self.integration_image_controller.img_mouse_click(600, 150)
+        x1, y1 = self.integration_widget.cake_widget.cake_integral_item.getData()
+        click_button(self.integration_widget.pattern_q_btn)
+        self.integration_image_controller.img_mouse_click(600, 150)
+        x2, y2 = self.integration_widget.cake_widget.cake_integral_item.getData()
+        self.assertAlmostEqual(np.nansum((x1 - x2) ** 2), 0)
+        self.assertAlmostEqual(np.nansum((y1 - y2) ** 2), 0)
 
 
 class BatchIntegrationFunctionalTest(QtTest):

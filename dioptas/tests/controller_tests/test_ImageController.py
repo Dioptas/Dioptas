@@ -180,6 +180,19 @@ class ImageControllerTest(QtTest):
         new_data = self.model.img_data
         self.assertFalse(np.array_equal(old_data, new_data))
 
+    def test_changing_cake_integral_width(self):
+        file_name = os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif')
+        self.model.img_model.load(file_name)
+        calibration_file_name = os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni')
+        self.model.calibration_model.load(calibration_file_name)
+        click_button(self.widget.integration_image_widget.mode_btn)
+        self.controller.img_mouse_click(100, 300)
+
+        x = self.widget.cake_widget.cake_integral_item.xData
+        self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.setValue(3)
+        self.controller.img_mouse_click(100, 300)
+        self.assertFalse(np.array_equal(x, self.widget.cake_widget.cake_integral_item.xData))
+
     def test_loading_series_karabo_file_shows_correct_gui(self):
         filename = os.path.join(unittest_data_path, 'karabo_epix.h5')
         file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
