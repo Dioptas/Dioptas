@@ -1,3 +1,15 @@
+0.5.2 (development)
+-------------------
+
+New features:
+    - Added an azimuthal histogram for the cake view, please check the X-Tab in the integration view to change the
+      integration bins in 2 theta direction
+    - Azimuthal range for 1d integration can no be set in the X-Tab
+
+Bug Fixes:
+    - fix calibration algorithm, which was currently failing most of the time for difficult geometries. It should now
+      work correctly again as in 0.5.0
+
 0.5.1 (stable 05/05/2020)
 -------------------------
 
