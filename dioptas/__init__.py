@@ -70,6 +70,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
         """An unhandled exception occurred. Please report the bug under:\n """ \
         """\t%s\n""" \
         """or via email to:\n\t <%s>.\n\n""" \
+        """Please make sure to report the steps to reproduce the error. Otherwise it will be hard to fix it. \n\n""" \
         """A log has been written to "%s".\n\nError information:\n""" % \
         ("https://github.com/Dioptas/Dioptas/issues",
          "clemens.prescher@gmail.com",
@@ -97,7 +98,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
 
 def main():
     app = QtWidgets.QApplication([])
-    # sys.excepthook = excepthook
+    sys.excepthook = excepthook
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))
 
