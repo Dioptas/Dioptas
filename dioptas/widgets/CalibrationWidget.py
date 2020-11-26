@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import sys
 
 from qtpy import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
@@ -414,7 +415,8 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
                                                          QtWidgets.QSizePolicy.Expanding))
 
         self.setLayout(self._layout)
-        self.setMaximumWidth(295)
+        if sys.platform.startswith('linux'):
+            self.setMaximumWidth(295)
 
 
 class DetectorGroupbox(QtWidgets.QGroupBox):
