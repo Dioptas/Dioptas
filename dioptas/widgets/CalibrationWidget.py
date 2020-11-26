@@ -414,6 +414,7 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
                                                          QtWidgets.QSizePolicy.Expanding))
 
         self.setLayout(self._layout)
+        self.setMaximumWidth(295)
 
 
 class DetectorGroupbox(QtWidgets.QGroupBox):
@@ -423,13 +424,16 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
         self._layout = QtWidgets.QVBoxLayout(self)
 
         self.detector_cb = CleanLooksComboBox()
+
         self.detector_name_lbl = LabelAlignRight()
         self.detector_name_lbl.hide()
+
         self.detector_load_btn = FlatButton()
         self.detector_load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
         self.detector_load_btn.setIconSize(QtCore.QSize(13, 13))
         self.detector_load_btn.setMaximumWidth(21)
         self.detector_load_btn.setToolTip('Open Detector File')
+
         self.detector_reset_btn = FlatButton()
         self.detector_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
         self.detector_reset_btn.setIconSize(QtCore.QSize(13, 13))
@@ -463,6 +467,7 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
         self.spline_load_btn.setIconSize(QtCore.QSize(13, 13))
         self.spline_load_btn.setMaximumWidth(21)
         self.spline_load_btn.setToolTip('Open Spline File')
+
         self.spline_reset_btn = FlatButton()
         self.spline_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
         self.spline_reset_btn.setIconSize(QtCore.QSize(13, 13))
@@ -489,16 +494,20 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
         self._grid_layout1 = QtWidgets.QGridLayout()
 
         self._grid_layout1.addWidget(LabelAlignRight('Distance:'), 0, 0)
+
         self.distance_txt = NumberTextField('200')
         self.distance_cb = QtWidgets.QCheckBox()
         self.distance_cb.setChecked(True)
+
         self._grid_layout1.addWidget(self.distance_txt, 0, 1)
         self._grid_layout1.addWidget(QtWidgets.QLabel('mm'), 0, 2)
         self._grid_layout1.addWidget(self.distance_cb, 0, 3)
 
         self._grid_layout1.addWidget(LabelAlignRight('Wavelength:'), 1, 0)
+
         self.wavelength_txt = NumberTextField('0.3344')
         self.wavelength_cb = QtWidgets.QCheckBox()
+
         self._grid_layout1.addWidget(self.wavelength_txt, 1, 1)
         self._grid_layout1.addWidget(QtWidgets.QLabel('A'), 1, 2)
         self._grid_layout1.addWidget(self.wavelength_cb, 1, 3)

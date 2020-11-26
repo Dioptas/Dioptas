@@ -37,7 +37,7 @@ from skimage.measure import find_contours
 
 from .. import calibrants_path
 from .ImgModel import ImgModel
-from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90
+from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90, get_partial_index
 from .util.calc import supersample_image
 
 logger = logging.getLogger(__name__)
@@ -157,8 +157,7 @@ class CalibrationModel(QtCore.QObject):
             return num_points
 
     def create_cake_geometry(self):
-        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename,
-                                                 detector=self.detector)
+        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename)
 
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
         pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
@@ -168,9 +167,9 @@ class CalibrationModel(QtCore.QObject):
                                     poni2=pyFAI_parameter['poni2'],
                                     rot1=pyFAI_parameter['rot1'],
                                     rot2=pyFAI_parameter['rot2'],
-                                    rot3=pyFAI_parameter['rot3'],
-                                    detector=self.detector)
+                                    rot3=pyFAI_parameter['rot3'])
 
+        self.cake_geometry.detector = self.detector
         self.cake_geometry.wavelength = pyFAI_parameter['wavelength']
 
     def setup_peak_search_algorithm(self, algorithm, mask=None):
@@ -322,9 +321,9 @@ class CalibrationModel(QtCore.QObject):
             fix.append(key)
             setattr(self.pattern_geometry, key, value)
 
+        self.pattern_geometry.refine2(fix=fix)
         if self.fit_wavelength:
-            self.pattern_geometry.refine2(fix=fix)
-        self.pattern_geometry.refine2_wavelength(fix=fix)
+            self.pattern_geometry.refine2_wavelength(fix=fix)
 
         self.create_cake_geometry()
         self.set_supersampling()
@@ -345,7 +344,7 @@ class CalibrationModel(QtCore.QObject):
                 return mask
             else:
                 if mask.shape == self.detector.mask.shape:
-                    return np.logical_or(self.detector.mask,  mask)
+                    return np.logical_or(self.detector.mask, mask)
 
     def _prepare_integration_super_sampling(self, mask):
         if self.supersampling_factor > 1:
@@ -357,7 +356,7 @@ class CalibrationModel(QtCore.QObject):
         return img_data, mask
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='csr'):
+                     unit='2th_deg', method='csr', azi_range=None):
         if np.sum(mask) == self.img_model.img_data.shape[0] * self.img_model.img_data.shape[1]:
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
@@ -381,11 +380,12 @@ class CalibrationModel(QtCore.QObject):
 
         t1 = time.time()
 
-        if unit is 'd_A':
+        if unit == 'd_A':
             try:
                 self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
                                                                        method=method,
                                                                        unit='2th_deg',
+                                                                       azimuth_range=azi_range,
                                                                        mask=mask,
                                                                        polarization_factor=polarization_factor,
                                                                        correctSolidAngle=self.correct_solid_angle,
@@ -394,6 +394,7 @@ class CalibrationModel(QtCore.QObject):
                 self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
                                                                        method='csr',
                                                                        unit='2th_deg',
+                                                                       azimuth_range=azi_range,
                                                                        mask=mask,
                                                                        polarization_factor=polarization_factor,
                                                                        correctSolidAngle=self.correct_solid_angle,
@@ -405,6 +406,7 @@ class CalibrationModel(QtCore.QObject):
                 self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
                                                                        method=method,
                                                                        unit=unit,
+                                                                       azimuth_range=azi_range,
                                                                        mask=mask,
                                                                        polarization_factor=polarization_factor,
                                                                        correctSolidAngle=self.correct_solid_angle,
@@ -413,6 +415,7 @@ class CalibrationModel(QtCore.QObject):
                 self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
                                                                        method='csr',
                                                                        unit=unit,
+                                                                       azimuth_range=azi_range,
                                                                        mask=mask,
                                                                        polarization_factor=polarization_factor,
                                                                        correctSolidAngle=self.correct_solid_angle,
@@ -457,6 +460,26 @@ class CalibrationModel(QtCore.QObject):
         self.cake_tth = res[1]
         self.cake_azi = res[2]
         return self.cake_img
+
+    def cake_integral(self, tth, bins=1):
+        """
+        calculates a histogram of the cake in tth direction, thus the result will be pixel vs intensity
+        :param tth: tth value in A^-1
+        :param bins: number of bins for summing
+        :return: cake_azimuth_pixel, intensity
+        """
+        tth_partial_index = get_partial_index(self.cake_tth, tth)
+        tth_center = tth_partial_index + 0.5
+        left = tth_center - 0.5 * bins
+        right = tth_center + 0.5 * bins
+
+        y1 = abs(np.ceil(left) - left) * self.cake_img[:, int(np.floor(left))]
+        y2 = np.sum(self.cake_img[:, int(np.ceil(left)): int(np.floor(right))], axis=1)
+        y3 = (right - np.floor(right)) * self.cake_img[:, int(np.floor(right))]
+
+        x = np.array(range(len(self.cake_azi))) + 0.5
+        y = (y1 + y2 + y3) / bins
+        return x, y
 
     def create_point_array(self, points, points_ind):
         res = []
@@ -519,7 +542,7 @@ class CalibrationModel(QtCore.QObject):
 
         if self.pattern_geometry.pixel1 == self.detector.pixel1 and \
                 self.pattern_geometry.pixel2 == self.detector.pixel2:
-            self.pattern_geometry.detector = self.detector # necessary since loading a poni file will reset the detector
+            self.pattern_geometry.detector = self.detector  # necessary since loading a poni file will reset the detector
         else:
             self.reset_detector()
 
@@ -851,8 +874,10 @@ class DetectorModes(Enum):
 class NotEnoughSpacingsInCalibrant(Exception):
     pass
 
+
 class DetectorShapeError(Exception):
     pass
+
 
 class DummyStdOut(object):
     @classmethod

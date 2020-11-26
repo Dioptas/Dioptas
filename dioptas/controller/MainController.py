@@ -204,16 +204,16 @@ class MainController(object):
         calibration_name = self.model.calibration_model.calibration_name
         year = datetime.datetime.now().year
         str = 'Dioptas ' + __version__
-        if img_filename is '' and pattern_filename is '':
+        if img_filename == '' and pattern_filename == '':
             self.widget.setWindowTitle(str + u' - © {} C. Prescher'.format(year))
             self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © {} C. Prescher'.format(year))
             return
 
-        if img_filename is not '' or pattern_filename is not '':
+        if img_filename != '' or pattern_filename != '':
             str += ' - ['
-        if img_filename is not '':
+        if img_filename != '':
             str += img_filename
-        elif img_filename is '' and pattern_filename is not '':
+        elif img_filename == '' and pattern_filename != '':
             str += pattern_filename
         if not img_filename == pattern_filename:
             str += ', ' + pattern_filename

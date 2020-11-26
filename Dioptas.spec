@@ -23,7 +23,6 @@ block_cipher = None
 import sys
 import os
 
-
 folder = os.getcwd()
 
 from distutils.sysconfig import get_python_lib
@@ -38,7 +37,6 @@ pyFAI_path = os.path.dirname(pyFAI.__file__)
 matplotlib_path = os.path.dirname(matplotlib.__file__)
 lib2to3_path = os.path.dirname(lib2to3.__file__)
 
-
 extra_datas = [
     ("dioptas/resources", "dioptas/resources"),
     (os.path.join(pyFAI_path, "resources"), "pyFAI/resources"),
@@ -50,46 +48,46 @@ extra_datas = [
 binaries = []
 
 fabio_hiddenimports = [
-   "fabio.edfimage",
-   "fabio.adscimage",
-   "fabio.tifimage",
-   "fabio.marccdimage",
-   "fabio.mar345image",
-   "fabio.fit2dmaskimage",
-   "fabio.brukerimage",
-   "fabio.bruker100image",
-   "fabio.pnmimage",
-   "fabio.GEimage",
-   "fabio.OXDimage",
-   "fabio.dm3image",
-   "fabio.HiPiCimage",
-   "fabio.pilatusimage",
-   "fabio.fit2dspreadsheetimage",
-   "fabio.kcdimage",
-   "fabio.cbfimage",
-   "fabio.xsdimage",
-   "fabio.binaryimage",
-   "fabio.pixiimage",
-   "fabio.raxisimage",
-   "fabio.numpyimage",
-   "fabio.eigerimage",
-   "fabio.hdf5image",
-   "fabio.fit2dimage",
-   "fabio.speimage",
-   "fabio.jpegimage",
-   "fabio.jpeg2kimage",
-   "fabio.mpaimage",
-   "fabio.mrcimage"
+    "fabio.edfimage",
+    "fabio.adscimage",
+    "fabio.tifimage",
+    "fabio.marccdimage",
+    "fabio.mar345image",
+    "fabio.fit2dmaskimage",
+    "fabio.brukerimage",
+    "fabio.bruker100image",
+    "fabio.pnmimage",
+    "fabio.GEimage",
+    "fabio.OXDimage",
+    "fabio.dm3image",
+    "fabio.HiPiCimage",
+    "fabio.pilatusimage",
+    "fabio.fit2dspreadsheetimage",
+    "fabio.kcdimage",
+    "fabio.cbfimage",
+    "fabio.xsdimage",
+    "fabio.binaryimage",
+    "fabio.pixiimage",
+    "fabio.raxisimage",
+    "fabio.numpyimage",
+    "fabio.eigerimage",
+    "fabio.hdf5image",
+    "fabio.fit2dimage",
+    "fabio.speimage",
+    "fabio.jpegimage",
+    "fabio.jpeg2kimage",
+    "fabio.mpaimage",
+    "fabio.mrcimage"
 ]
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
              binaries=binaries,
              datas=extra_datas,
-             hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'skimage._shared.geometry',
-                            'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy', 'pywt._extensions._cwt',
-                            'pkg_resources.py2_warn'] +
-                            fabio_hiddenimports,
+             hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
+                            'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
+                            'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
+                           fabio_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=['PyQt4', 'PySide'],
@@ -109,33 +107,31 @@ a.binaries = [x for x in a.binaries if not x[0].startswith("libQtDesigner")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("PySide")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
 
-
 exclude_datas = [
     "IPython",
-#   "matplotlib",
-#   "mpl-data", #needs to be included
-#   "_MEI",
-#   "docutils",
-#   "pytz",
-#   "lib",
-   "include",
-   "sphinx",
-#   ".py",
-   "tests",
-   "skimage",
-   "alabaster",
-   "boto",
-   "jsonschema",
-   "babel",
-   "idlelib",
-   "requests",
-   "qt4_plugins",
-   "qt5_plugins"
+    #   "matplotlib",
+    #   "mpl-data", #needs to be included
+    #   "_MEI",
+    #   "docutils",
+    #   "pytz",
+    #   "lib",
+    "include",
+    "sphinx",
+    #   ".py",
+    "tests",
+    "skimage",
+    "alabaster",
+    "boto",
+    "jsonschema",
+    "babel",
+    "idlelib",
+    "requests",
+    "qt4_plugins",
+    "qt5_plugins"
 ]
 
 for exclude_data in exclude_datas:
     a.datas = [x for x in a.datas if exclude_data not in x[0]]
-
 
 platform = ''
 
@@ -162,7 +158,6 @@ try:
 except FileNotFoundError:
     from dioptas import __version__
 
-
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
 
@@ -173,7 +168,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False,
+          console=True,
           icon="dioptas/resources/icons/icon.ico")
 
 coll = COLLECT(exe,
