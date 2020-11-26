@@ -20,7 +20,7 @@ jobs:
     - name: Install Conda Dependencies
       shell: bash -l {0}
       run: |
-        conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph cython
+        conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph cython pyopengl pyopengl-accelerate
         
     - name: Install Pip Dependencies
       shell: bash -l {0}
