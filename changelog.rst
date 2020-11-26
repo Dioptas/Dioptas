@@ -10,6 +10,8 @@ Bug Fixes:
     - fix calibration algorithm, which was currently failing most of the time for difficult geometries. It should now
       work correctly again as in 0.5.0
     - fix display bug which was showing horizontal scroll bar in "calibration parameters" on some linux systems
+    - disable QT high dpi mode for Linux platforms, which was causing very tiny font sizes. It is working correctly
+      without it
 
 0.5.1 (stable 05/05/2020)
 -------------------------
