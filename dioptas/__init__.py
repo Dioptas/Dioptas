@@ -24,6 +24,8 @@ import sys
 import os
 import time
 
+from sys import platform as _platform
+
 from .version import get_version
 
 __version__ = get_version()
@@ -44,7 +46,8 @@ data_path = os.path.join(resources_path, 'data')
 style_path = os.path.join(resources_path, 'style')
 
 # Enable scaling for high DPI displays
-QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+if not _platform.startswith('linux'):
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
 from ._desktop_shortcuts import make_shortcut
 
@@ -94,20 +97,18 @@ def excepthook(exc_type, exc_value, traceback_obj):
 
 def main():
     app = QtWidgets.QApplication([])
-    #sys.excepthook = excepthook
-    from sys import platform as _platform
+    # sys.excepthook = excepthook
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))
 
     if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
         app.setStyle('plastique')
 
-
-    if len(sys.argv) == 1: # normal start
+    if len(sys.argv) == 1:  # normal start
         controller = MainController()
         controller.show_window()
         app.exec_()
-    else: # with command line arguments
+    else:  # with command line arguments
         if sys.argv[1] == 'test':
             controller = MainController(use_settings=False)
             controller.show_window()
