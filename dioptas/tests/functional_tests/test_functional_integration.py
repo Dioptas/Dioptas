@@ -475,13 +475,13 @@ class BatchIntegrationFunctionalTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(data_path, 'Test_missing_raw.nxs')])
         click_button(self.integration_widget.batch_widget.load_btn)
-        self.assertTrue(self.model.batch_model.n_img_all is None)
+        self.assertTrue(self.model.batch_model.raw_available is False)
         start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
         stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
         frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 19)
         self.assertEqual(start, 0)
-        self.assertEqual(frame, "Frame(20/None):")
+        self.assertEqual(frame, "Frame(20/20):")
 
         # Pattern widget is still working
         self.integration_controller.batch_controller.img_mouse_click(5, 15)
