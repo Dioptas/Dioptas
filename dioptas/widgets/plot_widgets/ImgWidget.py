@@ -534,6 +534,7 @@ class SurfWidget(QtWidgets.QWidget):
         self.show_range = np.array([0.0, 1.0])
         self.show_scale = np.array([2., 2., 1.])
         self.g_translate = 0
+        self.g_translate_start = 0
         self.marker = 0
         self.marker_color = [1, 0, 0]
         self.marker_size = 5
@@ -594,11 +595,12 @@ class SurfWidget(QtWidgets.QWidget):
             colors = self.get_colors(self.data).reshape(-1, 4)
             self.surf_view_item.setData(z=self.data, colors=colors)
 
-    def plot_surf(self, data):
+    def plot_surf(self, data, start):
+        self.g_translate_start = start
         colors = self.get_colors(data).reshape(-1, 4)
 
         abs_range = self.show_range * (np.nanmax(data) - np.nanmin(data)) + np.nanmin(data)
-        self.data= np.copy(data)
+        self.data = np.copy(data)
         self.data[self.data > abs_range[1]] = abs_range[1]
         self.data[self.data < abs_range[0]] = abs_range[0]
 
@@ -611,6 +613,8 @@ class SurfWidget(QtWidgets.QWidget):
         self.gx.setSize(self.data.shape[0], self.data.shape[1], 0)
         self.axis.setSize(*self.show_scale)
 
+        self.update_scale(data)
+
     def update_scale(self, data):
         self.surf_view_item.resetTransform()
 
@@ -622,7 +626,7 @@ class SurfWidget(QtWidgets.QWidget):
 
         self.g.resetTransform()
         self.g.rotate(90, 0, 1, 0)
-        self.g.translate(self.g_translate, data.shape[1] / 2., np.nanmax(data) / 2.)
+        self.g.translate(self.g_translate-self.g_translate_start, data.shape[1] / 2., np.nanmax(data) / 2.)
         self.g.scale(*scale, local=False)
 
         self.gx.resetTransform()
@@ -630,7 +634,7 @@ class SurfWidget(QtWidgets.QWidget):
         self.gx.scale(*scale, local=False)
 
         self.axis.setSize(*self.show_scale)
-        self.axis.diff = [self.show_scale[0] * self.g_translate / data.shape[0], 0, 0]
+        self.axis.diff = [self.show_scale[0] * (self.g_translate-self.g_translate_start) / data.shape[0], 0, 0]
 
     def get_colors(self, data):
         lut = self.img_histogram_LUT_horizontal.gradient.getLookupTable(256) / 256.
@@ -650,7 +654,7 @@ class SurfWidget(QtWidgets.QWidget):
         colors[..., :3] = colors_rgb
 
         colors[:, int(self.marker):int(self.marker) + self.marker_size, :3] = self.marker_color
-        colors[int(self.g_translate), :, :3] = self.marker_color
+        colors[int(self.g_translate-self.g_translate_start), :, :3] = self.marker_color
         return colors
 
 
@@ -663,6 +667,15 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
         self.create_horizontal_line()
         self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
+
+    def move_image(self):
+        pass
+
+    def add_cake_integral(self):
+        pass
+
+    def modify_cake_integral_plot_mouse_behavior(self):
+        pass
 
     def create_horizontal_line(self):
         self.horizontal_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(0, 255, 0), width=2))

@@ -456,7 +456,6 @@ class BatchController(object):
         """
         y = self.widget.batch_widget.step_series_widget.slider.value()
         x = self.widget.batch_widget.img_view.vertical_line.getXPos()
-        self.widget.batch_widget.img_view.horizontal_line.setValue(y)
         self.load_single_image(x, y)
         if self.widget.batch_widget.view_3d_btn.isChecked():
             self.widget.batch_widget.surf_view.g_translate = y
@@ -489,7 +488,6 @@ class BatchController(object):
         if y > stop:
             return
         x = self.widget.batch_widget.img_view.vertical_line.getXPos()
-        self.widget.batch_widget.img_view.horizontal_line.setValue(y)
         self.load_single_image(x, y)
 
     def load_prev_img(self):
@@ -503,7 +501,6 @@ class BatchController(object):
         if y < start:
             return
         x = self.widget.batch_widget.img_view.vertical_line.getXPos()
-        self.widget.batch_widget.img_view.horizontal_line.setValue(y)
         self.load_single_image(x, y)
 
     def load_given_img(self):
@@ -512,7 +509,6 @@ class BatchController(object):
         """
         pos = int(str(self.widget.batch_widget.step_series_widget.pos_txt.text()))
         x = self.widget.batch_widget.img_view.vertical_line.getXPos()
-        self.widget.batch_widget.img_view.horizontal_line.setValue(pos)
         self.load_single_image(x, pos)
 
     def show_img_mouse_position(self, x, y):
@@ -569,7 +565,7 @@ class BatchController(object):
             self.widget.batch_widget.img_pg_layout.show()
             self.widget.batch_widget.left_control_widget.hide()
             self.widget.batch_widget.surf_view.hide()
-            self.set_navigation_range((0, n_img-1), (0, n_img-1))
+            self.set_navigation_range((0, n_img - 1), (0, n_img - 1))
 
             self.widget.batch_widget.view3d_f_btn.hide()
             self.widget.batch_widget.view3d_s_btn.hide()
@@ -728,8 +724,8 @@ class BatchController(object):
             if step == 0:
                 step = 1
             self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
-            self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1:step])
-            self.widget.batch_widget.surf_view.update_scale(data[start:stop + 1:step])
+            self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1:step], start)
+            #self.widget.batch_widget.surf_view.update_scale(data[start:stop + 1:step])
             self.update_3d_axis(data[start:stop + 1:step])
 
     def save_data(self):
@@ -831,6 +827,8 @@ class BatchController(object):
         """
         self.plot_image(int(y))
         self.plot_pattern(int(x), int(y))
+        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+        self.widget.batch_widget.img_view.horizontal_line.setValue(y-start)
 
     def plot_pattern(self, x, y):
         """
@@ -961,6 +959,10 @@ class BatchController(object):
         if self.model.batch_model.data is None:
             return
 
+        y = self.widget.batch_widget.step_series_widget.slider.value()
+        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+        self.widget.batch_widget.img_view.horizontal_line.setValue(y-start)
+
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
         stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
 
@@ -984,7 +986,7 @@ class BatchController(object):
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg("Can not integrate multiple images without calibration.")
             return
-        if self.model.batch_model.n_img_all is None or self.model.batch_model.n_img_all < 1:
+        if not self.model.batch_model.raw_available or self.model.batch_model.n_img_all < 1:
             self.widget.show_error_msg("No images loaded for integration")
             return
 
@@ -1011,11 +1013,9 @@ class BatchController(object):
         self.model.blockSignals(False)
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
+        self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
         self.widget.batch_widget.view_2d_btn.setChecked(True)
         self.change_view()
-        self.set_navigation_range((0, n_img-1), (0, n_img-1))
-        self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
-        self.plot_batch()
 
     def set_navigation_range(self, all_range, nav_range):
         """

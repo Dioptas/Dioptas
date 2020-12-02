@@ -85,6 +85,7 @@ class BatchModel(QtCore.QObject):
             self.files = data_file['processed/process/files'][()].astype('U')
             self.pos_map = data_file['processed/process/pos_map'][()]
             self.n_img = self.data.shape[0]
+            self.n_img_all = self.data.shape[0]
 
             cal_file = str(data_file['processed/process/cal_file'])
             try:
