@@ -620,9 +620,11 @@ class BatchController(object):
         """
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
                                       self.model.working_directories['image'],
-                                      ('Raw data (*.nxs *tif *tiff);;'
+                                      ('Raw data (*.nxs *.tif *.tiff);;'
                                        'Proc data (*.nxs)')
                                       )
+        if len(filenames) == 0:
+            return
 
         if self.is_proc(filenames[0]):
             self.model.batch_model.reset_data()
@@ -736,9 +738,9 @@ class BatchController(object):
         """
         filename = save_file_dialog(self.widget, "Save Image.",
                                     os.path.join(self.model.working_directories['image']),
-                                    ('Image (*.png);;Single file ascii (*csv);;'
-                                     'Multifile ascii (*.xy *.chi *.dat);;'
-                                     'GSAS (*.fxye);;Data (*nxs)'))
+                                    ('Image (*.png);;Single file ascii (*.csv);;'
+                                     'Multifile ascii (*.xy *.chi *.dat *.fxye);;'
+                                     'Data (*.nxs)'))
 
         name, ext = os.path.splitext(filename)
         if filename is not '':
