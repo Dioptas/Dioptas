@@ -80,7 +80,7 @@ class BatchController(object):
         self.widget.batch_widget.step_series_widget.pos_txt.editingFinished.connect(self.load_given_img)
         self.widget.batch_widget.step_series_widget.start_txt.valueChanged.connect(self.set_range_img)
         self.widget.batch_widget.step_series_widget.stop_txt.valueChanged.connect(self.set_range_img)
-        self.widget.batch_widget.step_series_widget.step_txt.editingFinished.connect(self.process_step)
+        self.widget.batch_widget.step_series_widget.step_txt.valueChanged.connect(self.process_step)
         self.widget.batch_widget.step_series_widget.slider.valueChanged.connect(self.process_slider)
 
         # 3D navigation
@@ -436,6 +436,8 @@ class BatchController(object):
         """
         if self.widget.batch_widget.waterfall_btn.isChecked():
             self.plot_waterfall()
+        if self.widget.batch_widget.view_3d_btn.isChecked():
+            self.plot_batch()
 
     def waterfall_mode(self):
         """
@@ -721,10 +723,11 @@ class BatchController(object):
             self.update_y_axis()
 
         if self.widget.batch_widget.view_3d_btn.isChecked():
-            step = int(data[start:stop + 1].size / self.size_threshold)
-            if step == 0:
-                step = 1
-            self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
+            step = int(str(self.widget.batch_widget.step_series_widget.step_txt.text()))
+            step_min = max(1, int(data[start:stop + 1].size / self.size_threshold))
+            if step < step_min:
+                step = step_min
+                self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
             self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1:step], start)
             self.update_3d_axis(data[start:stop + 1:step])
 
