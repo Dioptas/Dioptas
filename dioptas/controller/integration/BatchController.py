@@ -477,7 +477,8 @@ class BatchController(object):
         start = min(start, n_img_all, stop)
         stop = min(max(start, stop), n_img_all)
 
-        self.set_navigation_range(None, (start, stop))
+        self.widget.batch_widget.step_series_widget.slider.setRange(start, stop)
+        self.widget.batch_widget.step_series_widget.pos_validator.setRange(start, stop)
         self.plot_batch()
 
     def load_next_img(self):
@@ -547,6 +548,15 @@ class BatchController(object):
             if n_img_all is not None:
                 self.set_navigation_range((0, n_img_all-1), (0, n_img_all-1))
         elif self.widget.batch_widget.view_3d_btn.isChecked():
+            n_img = self.model.batch_model.n_img
+            if n_img is None:
+                self.widget.batch_widget.view_f_btn.setChecked(True)
+                return
+            self.set_navigation_range((0, n_img - 1), (0, n_img - 1))
+
+            y = self.widget.batch_widget.step_series_widget.slider.value()
+            self.widget.batch_widget.surf_view.g_translate = y
+
             self.widget.batch_widget.treeView.hide()
             self.widget.batch_widget.img_pg_layout.hide()
             self.widget.batch_widget.surf_view.show()
@@ -564,12 +574,12 @@ class BatchController(object):
             if n_img is None:
                 self.widget.batch_widget.view_f_btn.setChecked(True)
                 return
+            self.set_navigation_range((0, n_img - 1), (0, n_img - 1))
+
             self.widget.batch_widget.treeView.hide()
             self.widget.batch_widget.img_pg_layout.show()
             self.widget.batch_widget.left_control_widget.hide()
             self.widget.batch_widget.surf_view.hide()
-            self.set_navigation_range((0, n_img - 1), (0, n_img - 1))
-
             self.widget.batch_widget.view3d_f_btn.hide()
             self.widget.batch_widget.view3d_s_btn.hide()
             self.widget.batch_widget.view3d_t_btn.hide()
@@ -577,6 +587,7 @@ class BatchController(object):
             self.widget.batch_widget.tth_btn.show()
             self.widget.batch_widget.q_btn.show()
             self.widget.batch_widget.d_btn.show()
+            self.plot_batch()
 
     def filename_txt_changed(self):
         """
@@ -641,6 +652,8 @@ class BatchController(object):
             self.widget.batch_widget.view_f_btn.setChecked(True)
             self.change_view()
 
+        n_img_all = self.model.batch_model.n_img_all
+        self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img_all)
         self.plot_image(0)
 
     def is_proc(self, filename):
@@ -719,8 +732,7 @@ class BatchController(object):
             start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
 
         if self.widget.batch_widget.view_2d_btn.isChecked():
-            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1],
-                                                         self.widget.img_autoscale_btn.isChecked())
+            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1], True)
             self.update_y_axis()
 
         if self.widget.batch_widget.view_3d_btn.isChecked():
@@ -976,6 +988,8 @@ class BatchController(object):
         bottom = data_img_item.viewRect().top()
         bound = data_img_item.boundingRect().height()
 
+        if bound == 0:
+            return
         v_scale = img_data.shape[0] / bound
         min_azi = v_scale * bottom + start
         max_azi = v_scale * (bottom + height) + start
@@ -1017,10 +1031,10 @@ class BatchController(object):
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
+        self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img-1)
         self.widget.batch_widget.view_2d_btn.setChecked(True)
         self.change_view()
         self.widget.batch_widget.img_view.auto_range()
-
 
     def set_navigation_range(self, all_range, nav_range):
         """
@@ -1031,10 +1045,17 @@ class BatchController(object):
             self.widget.batch_widget.step_series_widget.stop_txt.setRange(*all_range)
 
         if nav_range is not None:
-            self.widget.batch_widget.step_series_widget.slider.setRange(*nav_range)
-            self.widget.batch_widget.step_series_widget.pos_validator.setRange(*nav_range)
-            self.widget.batch_widget.step_series_widget.start_txt.setValue(nav_range[0])
-            self.widget.batch_widget.step_series_widget.stop_txt.setValue(nav_range[1])
+            start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+            stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
+
+            start = min(max(nav_range[0], start), nav_range[1])
+            stop = max(min(nav_range[1], stop), nav_range[0])
+
+            self.widget.batch_widget.step_series_widget.slider.setRange(start, stop)
+            self.widget.batch_widget.step_series_widget.pos_validator.setRange(start, stop)
+
+            self.widget.batch_widget.step_series_widget.start_txt.setValue(start)
+            self.widget.batch_widget.step_series_widget.stop_txt.setValue(stop)
 
     def update_gui(self):
         """
