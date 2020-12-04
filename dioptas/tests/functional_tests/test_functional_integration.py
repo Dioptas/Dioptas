@@ -497,6 +497,9 @@ class BatchIntegrationFunctionalTest(QtTest):
                                                            [os.path.join(data_path, 'Test_missing_raw.nxs')])
         click_button(self.integration_widget.batch_widget.load_btn)
         self.assertEqual(self.model.batch_model.n_img_all, 20)
+        self.assertTrue(self.model.batch_model.raw_available)
+        self.assertEqual(os.path.basename(self.model.batch_model.calibration_model.filename),
+                         'L2.poni')
         start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
         stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
         frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
