@@ -716,8 +716,8 @@ class BatchController(object):
             start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
 
         if self.widget.batch_widget.view_2d_btn.isChecked():
-            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1], True)
-            self.widget.batch_widget.img_view.auto_level()
+            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1],
+                                                         self.widget.img_autoscale_btn.isChecked())
             self.update_y_axis()
 
         if self.widget.batch_widget.view_3d_btn.isChecked():
@@ -726,7 +726,6 @@ class BatchController(object):
                 step = 1
             self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
             self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1:step], start)
-            #self.widget.batch_widget.surf_view.update_scale(data[start:stop + 1:step])
             self.update_3d_axis(data[start:stop + 1:step])
 
     def save_data(self):
@@ -776,8 +775,7 @@ class BatchController(object):
             self.load_single_image(x, y)
 
     def img_autoscale_btn_clicked(self):
-        if self.widget.img_autoscale_btn.isChecked():
-            self.widget.batch_widget.img_view.auto_level()
+        self.widget.batch_widget.img_view.auto_level()
 
     def process_waterfall(self, x, y):
         """
