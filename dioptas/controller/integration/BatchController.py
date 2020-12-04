@@ -1017,17 +1017,16 @@ class BatchController(object):
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
 
         self.model.img_model.blockSignals(True)
-        self.model.blockSignals(True)
         n_int = (stop-start)/step
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
                                                           n_int)
+        progress_dialog.setParent(self.widget.batch_widget)
         self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
                                                   self.widget.batch_widget.view_f_btn.isChecked(),
                                                   progress_dialog=progress_dialog)
         progress_dialog.close()
 
         self.model.img_model.blockSignals(False)
-        self.model.blockSignals(False)
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
