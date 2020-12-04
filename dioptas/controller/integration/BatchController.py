@@ -273,11 +273,12 @@ class BatchController(object):
         elif pressed_key == 90:
             show_scale[2] += diff
         elif pressed_key == 71:
-            if 0 <= surf_view.g_translate + int(diff * data.shape[0] * 2) < data.shape[0]:
-                surf_view.g_translate += int(diff * data.shape[0] * 2)
-                y = int(surf_view.g_translate)
-                self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
-                self.load_single_image(int(surf_view.marker), y)
+            start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+            stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
+            surf_view.g_translate = min(stop, max(start, surf_view.g_translate + int(diff * data.shape[0] * 4)))
+            y = int(surf_view.g_translate)
+            self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
+            self.load_single_image(int(surf_view.marker), y)
         elif pressed_key == 77:
             if 0 <= surf_view.marker + int(diff * data.shape[1]) < data.shape[1]:
                 surf_view.marker += int(diff * data.shape[1])
@@ -728,7 +729,7 @@ class BatchController(object):
             if step < step_min:
                 step = step_min
                 self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
-            self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1:step], start)
+            self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1:step], start, step)
             self.update_3d_axis(data[start:stop + 1:step])
 
     def save_data(self):
