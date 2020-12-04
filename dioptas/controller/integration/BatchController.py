@@ -629,6 +629,7 @@ class BatchController(object):
             self.widget.batch_widget.view_2d_btn.setChecked(True)
             self.change_view()
             self.plot_batch()
+            self.widget.batch_widget.img_view.auto_range()
         else:
             self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
             self.model.working_directories['image'] = os.path.dirname(filenames[0])
@@ -1016,6 +1017,8 @@ class BatchController(object):
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
         self.widget.batch_widget.view_2d_btn.setChecked(True)
         self.change_view()
+        self.widget.batch_widget.img_view.auto_range()
+
 
     def set_navigation_range(self, all_range, nav_range):
         """
