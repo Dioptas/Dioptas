@@ -205,7 +205,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.calc_bkg_btn.setToolTip("Extract background")
 
         self.phases_btn = CheckableFlatButton('Show Phases')
-        self.autoscale_btn = CheckableFlatButton("AutoScale")
+        self.autoscale_btn = FlatButton("AutoScale")
 
         self.bottom_control_layout = QtWidgets.QHBoxLayout()
         self.bottom_control_layout.addWidget(self.load_btn)
