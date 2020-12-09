@@ -32,4 +32,7 @@ jobs:
       run: |
         xvfb-run -a py.test dioptas/tests/unit_tests
         xvfb-run -a py.test dioptas/tests/controller_tests
-        xvfb-run -a py.test dioptas/tests/functional_tests
+        xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_integration.py
+        xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
+        xvfb-run -a py.test dioptas/tests/functional_tests/test_img_bg.py
+        xvfb-run -a py.test dioptas/tests/functional_tests/test_userinterface.py
