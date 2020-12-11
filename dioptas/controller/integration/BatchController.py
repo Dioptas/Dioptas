@@ -70,7 +70,6 @@ class BatchController(object):
         self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
 
         # work with filenames
-        self.widget.img_filename_txt.editingFinished.connect(self.filename_txt_changed)
         self.widget.img_directory_txt.editingFinished.connect(self.directory_txt_changed)
         self.widget.img_directory_btn.clicked.connect(self.directory_txt_changed)
 
@@ -628,8 +627,12 @@ class BatchController(object):
         """
         Set image files of the batch, base on files given in the dialog window
         """
+        if self.model.batch_model.files is not None:
+            start_dir = os.path.dirname(self.model.batch_model.files[0])
+        else:
+            start_dir = self.model.working_directories['image']
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
-                                      self.model.working_directories['image'],
+                                      start_dir,
                                       ('Raw data (*.nxs *.tif *.tiff);;'
                                        'Proc data (*.nxs)')
                                       )
@@ -901,7 +904,6 @@ class BatchController(object):
         ticks = np.round(np.arange(binning[0], binning[-1], space), 2)
         if ticks.shape[0] < 2:
             ticks = np.array([binning[0], binning[-1]])
-
         surf_view.axis.set_tick_values(yticks=np.round(np.arange(binning[0], binning[-1], space), 2))
         surf_view.g.setSpacing(np.nanmax(data)/8., data.shape[1]/(ticks.shape[0]-1), 1)
         surf_view.gx.setSpacing(1, data.shape[1]/(ticks.shape[0]-1), 1)
@@ -1031,6 +1033,7 @@ class BatchController(object):
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
         self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img-1)
+        self.widget.batch_widget.step_series_widget.start_txt.setValue(0)
         self.widget.batch_widget.view_2d_btn.setChecked(True)
         self.change_view()
         self.widget.batch_widget.img_view.auto_range()
