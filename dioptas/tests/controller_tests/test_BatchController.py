@@ -62,7 +62,7 @@ class BatchControllerTest(QtTest):
         self.phase_controller = PhaseController(self.widget, self.model)
 
         # Load existing proc+raw data
-        filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_proc.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
         self.model.batch_model.load_proc_data(filename)
         raw_files = self.model.batch_model.files
         raw_files = [os.path.join(os.path.dirname(filename), os.path.basename(f)) for f in raw_files]
@@ -83,11 +83,11 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.model.batch_model.data.shape, (50, 4038))
 
     def test_is_proc(self):
-        filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs')
         is_proc = self.controller.is_proc(filename)
         self.assertFalse(is_proc)
 
-        filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_proc.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
         is_proc = self.controller.is_proc(filename)
         self.assertTrue(is_proc)
 
@@ -249,7 +249,7 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 49')
         self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 49)
 
-        filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_m1_part00004.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00004.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 9")
 
     def test_set_range_img(self):
@@ -283,8 +283,8 @@ class BatchControllerTest(QtTest):
         shutil.rmtree(test_raw_folder)
 
     def test_load_raw_data(self):
-        files = [os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'),
-                 os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')]
+        files = [os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs'),
+                 os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')]
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
         self.controller.load_data()
@@ -304,7 +304,7 @@ class BatchControllerTest(QtTest):
         self.assertTrue((self.model.batch_model.files == files).all())
 
     def test_load_proc_data(self):
-        filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_proc.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[filename])
         self.controller.load_data()
 
@@ -327,7 +327,7 @@ class BatchControllerTest(QtTest):
 
         unittest_path = os.path.dirname(__file__)
         tests_dir = unittest_path[:unittest_path.find('controller_tests')]
-        filename = os.path.join(tests_dir, 'data/lambda/testasapo1_1009_00002_m1_part00000.nxs')
+        filename = os.path.join(tests_dir, 'data', 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 0")
         self.assertEqual(self.model.calibration_model.calibration_name, 'L2')
 
@@ -360,7 +360,7 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 15')
         self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
 
-        filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
 
     def test_process_waterfall(self):
@@ -388,7 +388,7 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 15')
         self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
 
-        filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
         self.assertEqual(self.widget.batch_widget.img_view.horizontal_line.value(), 15)
 
@@ -401,7 +401,7 @@ class BatchControllerTest(QtTest):
     def test_plot_image(self):
         self.controller.plot_image(15)
 
-        filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
         self.assertTrue(self.model.current_configuration.auto_integrate_pattern)
 
