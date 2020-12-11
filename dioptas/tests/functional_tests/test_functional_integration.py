@@ -557,7 +557,7 @@ class BatchIntegrationFunctionalTest(QtTest):
         start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
         stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
         frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
-        self.assertEqual(stop, 19)
+        self.assertEqual(stop, 6)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(7/20):")
 

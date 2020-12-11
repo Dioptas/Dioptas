@@ -4,10 +4,8 @@ import shutil
 import numpy as np
 from mock import MagicMock
 
-from ..utility import QtTest, click_button, click_checkbox
+from ..utility import QtTest
 
-from qtpy import QtCore, QtWidgets
-from qtpy.QtTest import QTest
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ...widgets.integration import IntegrationWidget
@@ -66,7 +64,9 @@ class BatchControllerTest(QtTest):
         # Load existing proc+raw data
         filename = os.path.join(unittest_data_path, 'lambda/testasapo1_1009_00002_proc.nxs')
         self.model.batch_model.load_proc_data(filename)
-        self.model.batch_model.set_image_files(self.model.batch_model.files)
+        raw_files = self.model.batch_model.files
+        raw_files = [os.path.join(os.path.basename(filename), os.path.basename(f)) for f in raw_files]
+        self.model.batch_model.set_image_files(raw_files)
         self.widget.batch_widget.step_series_widget.stop_txt.setValue(self.model.batch_model.n_img - 1)
 
     def tearDown(self):
