@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import datetime
 import logging
 import os
 from glob import glob
@@ -145,6 +146,7 @@ def save_proc_data(filename, files, file_map, pos_map):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with h5py.File(filename, mode="w") as f:
         f.attrs['default'] = 'processed'
+        f.attrs['file_time'] = datetime.datetime.now().isoformat()
 
         nxentry = f.create_group('processed')
         nxentry.attrs["NX_class"] = 'NXentry'
@@ -223,7 +225,7 @@ def run():
         out_file_name = f"{config['out_path']}/{local_path}_v{config['version']:03d}.nxs"
         save_proc_data(out_file_name, batch_files[i_batch], file_map, pos_map)
 
-        log.info(f"Save file: {out_file_name}")
+        log.info(f"Save file: {out_file_name} {n_img}")
         log.info(f"Running time: {time.time() - ts:0.2f} for {n_img} images")
         log.info(f"Time per image: {(time.time() - ts) / n_img * 1000:0.2f} ({n_img})")
 
