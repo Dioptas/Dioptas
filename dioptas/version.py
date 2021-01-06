@@ -39,8 +39,11 @@ def get_version():
         except ImportError:
             version = "0.5.2"
     else:
-        # trying to freeze the current version into a python file which gets loaded in case it is not accessible
-        with open(os.path.join(dir_path, '__version__'), 'w+') as fp:
-            fp.write(version)
+        try:
+            # trying to freeze the current version into a python file which gets loaded in case it is not accessible
+            with open(os.path.join(dir_path, '__version__'), 'w+') as fp:
+                fp.write(version)
+        except PermissionError:
+            pass
 
     return version
