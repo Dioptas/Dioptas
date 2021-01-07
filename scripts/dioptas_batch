@@ -215,7 +215,9 @@ def run():
         log.info(f"Found {n_img} images")
 
         ts = time.time()
-        with Pool(processes=config['n_proc']) as pool:
+        n_current_proc = min(config['n_proc'], max(1, int(n_img/10.)) )
+        log.info(f"Process with {n_current_proc} cores")
+        with Pool(processes=n_current_proc) as pool:
             pool.map(integrate, args)
 
         local_path = os.path.basename(batch_name)
