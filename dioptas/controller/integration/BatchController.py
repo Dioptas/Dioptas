@@ -39,7 +39,7 @@ class BatchController(object):
         self.create_signals()
         self.create_mouse_behavior()
 
-        self.min_val = 0.1
+        self.min_val = {'lin': 0, 'sqrt': 0.1, 'log': 0.1, 'current': 0}
         self.size_threshold = 500000
 
     def create_signals(self):
@@ -395,20 +395,21 @@ class BatchController(object):
         self.model.batch_model.extract_background(parameters, progress_dialog)
         progress_dialog.close()
 
-    def set_hard_minimum(self, ev):
+    def set_hard_minimum(self, ev, scale):
         if ev.button() & QtCore.Qt.RightButton:
             val, ok = QtWidgets.QInputDialog.getDouble(self.widget.integration_image_widget, 'Edit minimal value',
                                                        'value:', decimals=3,
-                                                       value=self.min_val)
+                                                       value=self.min_val[scale])
             if ok:
-                self.min_val = val
+                self.min_val[scale] = val
+        self.min_val['current'] = self.min_val[scale]
 
     def change_scale_log(self, ev):
         """
         Change scale to log. Edit hard minimum of image value
         """
         self.widget.batch_widget.scale_log_btn.setChecked(True)
-        self.set_hard_minimum(ev)
+        self.set_hard_minimum(ev, 'log')
         self.scale = np.log10
         self.plot_batch()
 
@@ -417,7 +418,7 @@ class BatchController(object):
         Change scale to linear. Edit hard minimum of image value
         """
         self.widget.batch_widget.scale_lin_btn.setChecked(True)
-        self.set_hard_minimum(ev)
+        self.set_hard_minimum(ev, 'lin')
         self.scale = np.array
         self.plot_batch()
 
@@ -426,7 +427,7 @@ class BatchController(object):
         Change scale to square root. Edit hard minimum of image value
         """
         self.widget.batch_widget.scale_sqrt_btn.setChecked(True)
-        self.set_hard_minimum(ev)
+        self.set_hard_minimum(ev, 'sqrt')
         self.scale = np.sqrt
         self.plot_batch()
 
@@ -725,8 +726,8 @@ class BatchController(object):
             return
         if self.widget.batch_widget.background_btn.isChecked():
             data = data - bkg
-        if self.min_val is not None:
-            data[data < self.min_val] = self.min_val
+        if self.min_val.get('current', None) is not None:
+            data[data < self.min_val['current']] = self.min_val['current']
         data = self.scale(data)
 
         if stop is None:
