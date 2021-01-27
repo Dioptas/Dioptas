@@ -707,11 +707,8 @@ class BatchController(object):
         """
         Show calibration file and mask file in the file view
         """
-        if self.model.batch_model.used_calibration is not None:
-            self.widget.batch_widget.file_view_widget.set_cal_file(self.model.batch_model.used_calibration)
-
-        if self.model.batch_model.used_mask is not None:
-            self.widget.batch_widget.file_view_widget.set_mask_file(self.model.batch_model.used_mask)
+        self.widget.batch_widget.file_view_widget.set_cal_file(self.model.batch_model.used_calibration)
+        self.widget.batch_widget.file_view_widget.set_mask_file(self.model.batch_model.used_mask)
 
     def load_proc_data(self, filename):
         """

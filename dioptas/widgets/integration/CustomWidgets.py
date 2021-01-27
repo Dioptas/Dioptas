@@ -394,7 +394,11 @@ class FileViewWidget(QtWidgets.QWidget):
             self.tree_model.setItem(i, 1, QtGui.QStandardItem(f"{images[i]}"))
 
     def set_cal_file(self, file_path):
+        if file_path is None:
+            file_path = 'undefined'
         self.cal_file.setText(f"<span style='background: #3C3C3C; color: white;' >Calibration file:</span> {file_path}")
 
     def set_mask_file(self, file_path):
+        if file_path is None:
+            file_path = 'undefined'
         self.mask_file.setText(f"<span style='background: #3C3C3C; color: white;' >Mask file:</span> {file_path}")
