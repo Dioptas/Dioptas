@@ -31,8 +31,8 @@ class BatchModel(QtCore.QObject):
 
         self.calibration_model = calibration_model
         self.mask_model = mask_model
-        self._used_mask = None
-        self._used_calibration = None
+        self.used_mask = None
+        self.used_calibration = None
 
     def reset_data(self):
         self.data = None
@@ -44,8 +44,8 @@ class BatchModel(QtCore.QObject):
         self.pos_map_all = None
         self.n_img = None
         self.n_img_all = None
-        self._used_mask = None
-        self._used_calibration = None
+        self.used_mask = None
+        self.used_calibration = None
         self.raw_available = False
 
     def set_image_files(self, files):
@@ -87,9 +87,9 @@ class BatchModel(QtCore.QObject):
             self.n_img = self.data.shape[0]
             self.n_img_all = self.data.shape[0]
 
-            cal_file = str(data_file['processed/process/cal_file'][()])
+            self.used_calibration = str(data_file['processed/process/cal_file'][()])
             try:
-                self.calibration_model.load(cal_file)
+                self.calibration_model.load(self.used_calibration)
             except:
                 pass
 
@@ -99,8 +99,9 @@ class BatchModel(QtCore.QObject):
                 self.mask_model.set_mask(mask)
 
             if 'mask_file' in data_file['processed/process/']:
+                self.used_mask = str(data_file['processed/process/mask_file'][()])
                 self.mask_model.set_dimension(tuple(data_file['processed/process/mask_shape'][()]))
-                self.mask_model.load_mask(str(data_file['processed/process/mask_file'][()]))
+                self.mask_model.load_mask(self.used_mask)
 
             if 'bkg' in data_file['processed/process/']:
                 self.bkg = data_file['processed/process/bkg'][()]
@@ -126,13 +127,13 @@ class BatchModel(QtCore.QObject):
             nxprocess = nxentry.create_group('process')
             nxprocess.attrs["NX_class"] = 'NXprocess'
 
-            nxprocess['cal_file'] = str(self._used_calibration)
+            nxprocess['cal_file'] = str(self.used_calibration)
             nxprocess['int_method'] = 'csr'
             nxprocess['int_unit'] = '2th_deg'
             nxprocess['num_points'] = self.binning.shape[0]
 
-            if self._used_mask is not None:
-                nxprocess.create_dataset("mask", data=self._used_mask)
+            if self.used_mask is not None:
+                nxprocess.create_dataset("mask", data=self.used_mask)
 
             if self.bkg is not None:
                 nxprocess.create_dataset("bkg", data=self.bkg)
@@ -172,9 +173,9 @@ class BatchModel(QtCore.QObject):
         image_counter = 0
         current_file = ''
         if self.mask_model.mode:
-            self._used_mask = self.mask_model.get_mask()
+            self.used_mask = self.mask_model.get_mask()
         else:
-            self._used_mask = None
+            self.used_mask = None
 
         for index in range(start, stop, step):
             if use_all:
@@ -190,7 +191,7 @@ class BatchModel(QtCore.QObject):
 
             self.calibration_model.img_model.load_series_img(pos)
             binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
-                                                                     mask=self._used_mask)
+                                                                     mask=self.used_mask)
             image_counter += 1
             if progress_dialog is not None:
                 progress_dialog.setValue(image_counter)
@@ -198,7 +199,7 @@ class BatchModel(QtCore.QObject):
             pos_map.append((i_file, pos))
             data.append(intensity)
 
-        self._used_calibration = self.calibration_model.filename
+        self.used_calibration = self.calibration_model.filename
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = np.array(data)

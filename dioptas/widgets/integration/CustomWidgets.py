@@ -337,3 +337,64 @@ class StepBatchWidget(QtWidgets.QWidget):
         self._layout.addLayout(self._pos_layout)
 
         self.pos_txt.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Maximum)
+
+
+class FileViewWidget(QtWidgets.QWidget):
+    """
+    Widget to show raw files, calibration and mask files
+
+    Widget contains:
+        QTLine: calibration file
+        QTLine: mask file
+        QTreeView: raw files
+    """
+
+    iteration_name = ''
+
+    def __init__(self):
+        super(FileViewWidget, self).__init__()
+
+        self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+
+        self.cal_file = QtWidgets.QLabel(
+            '<span style="background: #3C3C3C; color: white;" >Calibration file:</span> undefined')
+        self.mask_file = QtWidgets.QLabel(
+            '<span style="background: #3C3C3C; color: white;" >Mask file:</span> undefined')
+
+        self._layout.addWidget(self.cal_file)
+        self._layout.addWidget(self.mask_file)
+
+        self.treeView = QtWidgets.QTreeView()
+        self.treeView.setObjectName('treeView')
+
+        self.tree_model = QtGui.QStandardItemModel()
+        self.treeView.setModel(self.tree_model)
+        self.treeView.setColumnWidth(0, 400)
+        self._layout.addWidget(self.treeView)
+
+        self.setLayout(self._layout)
+
+        self.setStyleSheet("""
+        #pattern_frame, #treeView, QLabel {
+                        background: black;
+                        color: yellow;
+                    }
+        """)
+
+    def set_raw_files(self, files, images):
+        self.tree_model.clear()
+        self.tree_model.setColumnCount(2)
+        self.tree_model.setHorizontalHeaderLabels(["Raw file name", "N images"])
+        self.treeView.setColumnWidth(0, 400)
+
+        for i, file in enumerate(files):
+            self.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
+            self.tree_model.setItem(i, 1, QtGui.QStandardItem(f"{images[i]}"))
+
+    def set_cal_file(self, file_path):
+        self.cal_file.setText(f"<span style='background: #3C3C3C; color: white;' >Calibration file:</span> {file_path}")
+
+    def set_mask_file(self, file_path):
+        self.mask_file.setText(f"<span style='background: #3C3C3C; color: white;' >Mask file:</span> {file_path}")
