@@ -628,10 +628,7 @@ class BatchController(object):
         """
         Set image files of the batch, base on files given in the dialog window
         """
-        if self.model.batch_model.files is not None:
-            start_dir = os.path.dirname(self.model.batch_model.files[0])
-        else:
-            start_dir = self.model.working_directories['image']
+        start_dir = self.model.working_directories.get('proc', os.path.expanduser("~"))
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
                                       start_dir,
                                       ('Raw data (*.nxs *.tif *.tiff);;'
@@ -641,6 +638,7 @@ class BatchController(object):
             return
 
         if self.is_proc(filenames[0]):
+            self.model.working_directories['proc'] = os.path.dirname(filenames[0])
             self.model.batch_model.reset_data()
             self.load_proc_data(filenames[0])
             self.load_raw_data(self.model.batch_model.files)
@@ -760,7 +758,7 @@ class BatchController(object):
         Save diffraction patterns and metadata
         """
         filename = save_file_dialog(self.widget, "Save Image.",
-                                    os.path.join(self.model.working_directories['image']),
+                                    os.path.join(self.model.working_directories.get('proc', os.path.expanduser("~"))),
                                     ('Image (*.png);;Single file ascii (*.csv);;'
                                      'Multifile ascii (*.xy *.chi *.dat *.fxye);;'
                                      'Data (*.nxs)'))
