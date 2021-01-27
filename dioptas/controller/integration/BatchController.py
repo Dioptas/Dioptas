@@ -540,7 +540,7 @@ class BatchController(object):
         Change between 2D, 3D and file views
         """
         if self.widget.batch_widget.view_f_btn.isChecked():
-            self.widget.batch_widget.treeView.show()
+            self.widget.batch_widget.file_view_widget.show()
             self.widget.batch_widget.img_pg_layout.hide()
             self.widget.batch_widget.surf_view.hide()
             self.widget.batch_widget.left_control_widget.hide()
@@ -557,7 +557,7 @@ class BatchController(object):
             y = self.widget.batch_widget.step_series_widget.slider.value()
             self.widget.batch_widget.surf_view.g_translate = y
 
-            self.widget.batch_widget.treeView.hide()
+            self.widget.batch_widget.file_view_widget.hide()
             self.widget.batch_widget.img_pg_layout.hide()
             self.widget.batch_widget.surf_view.show()
             self.widget.batch_widget.left_control_widget.show()
@@ -576,7 +576,7 @@ class BatchController(object):
                 return
             self.set_navigation_range((0, n_img - 1), (0, n_img - 1))
 
-            self.widget.batch_widget.treeView.hide()
+            self.widget.batch_widget.file_view_widget.hide()
             self.widget.batch_widget.img_pg_layout.show()
             self.widget.batch_widget.left_control_widget.hide()
             self.widget.batch_widget.surf_view.hide()
@@ -692,21 +692,28 @@ class BatchController(object):
         self.model.img_model.blockSignals(False)
         files = self.model.batch_model.files
         file_map = self.model.batch_model.file_map
-        self.widget.batch_widget.tree_model.clear()
+
         if files is not None:
             if len(file_map) == len(files):
                 file_map = np.hstack((file_map, self.model.batch_model.data.shape[0]))
-            self.widget.batch_widget.tree_model.setColumnCount(2)
-            self.widget.batch_widget.tree_model.setHorizontalHeaderLabels(["Fine name", "N img"])
-            self.widget.batch_widget.treeView.setColumnWidth(0, 400)
-            for i, file in enumerate(files):
-                self.widget.batch_widget.tree_model.appendRow(QtGui.QStandardItem(f"{file}"))
-                self.widget.batch_widget.tree_model.setItem(i, 1,
-                                                            QtGui.QStandardItem(f"{file_map[i + 1] - file_map[i]}"))
+            images = [(file_map[i + 1] - file_map[i]) for i in range(len(files))]
+            self.widget.batch_widget.file_view_widget.set_raw_files(files, images)
+
+        self.show_metadata_info()
 
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
+
+    def show_metadata_info(self):
+        """
+        Show calibration file and mask file in the file view
+        """
+        if self.model.batch_model.used_calibration is not None:
+            self.widget.batch_widget.file_view_widget.set_cal_file(self.model.batch_model.used_calibration)
+
+        if self.model.batch_model.used_mask is not None:
+            self.widget.batch_widget.file_view_widget.set_mask_file(self.model.batch_model.used_mask)
 
     def load_proc_data(self, filename):
         """
@@ -1028,6 +1035,7 @@ class BatchController(object):
                                                   self.widget.batch_widget.view_f_btn.isChecked(),
                                                   progress_dialog=progress_dialog)
         progress_dialog.close()
+        self.show_metadata_info()
 
         self.model.img_model.blockSignals(False)
         n_img = self.model.batch_model.n_img

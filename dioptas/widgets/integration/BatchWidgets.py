@@ -5,7 +5,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget, ColorButton
 
 from ..plot_widgets.ImgWidget import SurfWidget, IntegrationBatchWidget
-from .CustomWidgets import FlatButton, StepFrameWidget, StepBatchWidget
+from .CustomWidgets import FlatButton, StepFrameWidget, StepBatchWidget, FileViewWidget
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from ..CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
 
@@ -90,14 +90,9 @@ class BatchWidget(QtWidgets.QWidget):
         self._central_layout.addWidget(self.left_control_widget)
 
         # Middle view area
-        self.treeView = QtWidgets.QTreeView()
-        self.treeView.setObjectName('treeView')
-
-        self.tree_model = QtGui.QStandardItemModel()
-        self.treeView.setModel(self.tree_model)
-        self.treeView.setColumnWidth(0, 400)
-        self._central_layout.addWidget(self.treeView)
-        self.treeView.hide()
+        self.file_view_widget = FileViewWidget()
+        self._central_layout.addWidget(self.file_view_widget)
+        self.file_view_widget.hide()
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_view = IntegrationBatchWidget(self.img_pg_layout, orientation='horizontal')
@@ -282,13 +277,6 @@ class BatchWidget(QtWidgets.QWidget):
         	            border-radius: 3px;
                     }
                     #pattern_frame, #pattern_bottom_control_widget, QLabel {
-                        background: black;
-                        color: yellow;
-                    }
-        	    """)
-
-        self.treeView.setStyleSheet("""
-                    #pattern_frame, #treeView, QLabel {
                         background: black;
                         color: yellow;
                     }
