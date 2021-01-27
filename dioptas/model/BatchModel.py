@@ -32,6 +32,7 @@ class BatchModel(QtCore.QObject):
         self.calibration_model = calibration_model
         self.mask_model = mask_model
         self.used_mask = None
+        self.used_mask_shape = None
         self.used_calibration = None
 
     def reset_data(self):
@@ -45,6 +46,7 @@ class BatchModel(QtCore.QObject):
         self.n_img = None
         self.n_img_all = None
         self.used_mask = None
+        self.used_mask_shape = None
         self.used_calibration = None
         self.raw_available = False
 
@@ -127,13 +129,16 @@ class BatchModel(QtCore.QObject):
             nxprocess = nxentry.create_group('process')
             nxprocess.attrs["NX_class"] = 'NXprocess'
 
-            nxprocess['cal_file'] = str(self.used_calibration)
+            if self.used_calibration is not None:
+                nxprocess['cal_file'] = str(self.used_calibration)
+
+            if self.used_mask is not None:
+                nxprocess["mask_file"] = str(self.used_mask)
+                nxprocess['mask_shape'] = self.used_mask_shape
+
             nxprocess['int_method'] = 'csr'
             nxprocess['int_unit'] = '2th_deg'
             nxprocess['num_points'] = self.binning.shape[0]
-
-            if self.used_mask is not None:
-                nxprocess.create_dataset("mask", data=self.used_mask)
 
             if self.bkg is not None:
                 nxprocess.create_dataset("bkg", data=self.bkg)
@@ -173,9 +178,12 @@ class BatchModel(QtCore.QObject):
         image_counter = 0
         current_file = ''
         if self.mask_model.mode:
-            self.used_mask = self.mask_model.get_mask()
+            if self.mask_model.filename != '':
+                self.used_mask = self.mask_model.filename
+            mask = self.mask_model.get_mask()
+            self.used_mask_shape = mask.shape
         else:
-            self.used_mask = None
+            mask = None
 
         for index in range(start, stop, step):
             if use_all:
@@ -191,7 +199,7 @@ class BatchModel(QtCore.QObject):
 
             self.calibration_model.img_model.load_series_img(pos)
             binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
-                                                                     mask=self.used_mask)
+                                                                     mask=mask)
             image_counter += 1
             if progress_dialog is not None:
                 progress_dialog.setValue(image_counter)
@@ -199,7 +207,8 @@ class BatchModel(QtCore.QObject):
             pos_map.append((i_file, pos))
             data.append(intensity)
 
-        self.used_calibration = self.calibration_model.filename
+        if self.calibration_model.filename != '':
+            self.used_calibration = self.calibration_model.filename
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = np.array(data)
