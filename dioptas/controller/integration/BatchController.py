@@ -1040,6 +1040,7 @@ class BatchController(object):
         progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
                                                           n_int)
         progress_dialog.setParent(self.widget.batch_widget)
+        progress_dialog.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Window)
         self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
                                                   self.widget.batch_widget.view_f_btn.isChecked(),
                                                   progress_dialog=progress_dialog)
