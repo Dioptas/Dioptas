@@ -12,7 +12,7 @@ import subprocess
 import h5py
 import re
 import psutil
-import pyFAI
+
 import sharedmem
 
 data_to_process = Queue()
@@ -103,8 +103,8 @@ def fill_queue(raw_files):
 
     # Group files by file-sets. Check, that all 3 lambda files are present.
     file_sets = []
-    for file in sorted(raw_files, key=lambda x: x[-10:]):
-           
+    for file in sorted(raw_files):
+
         # avoid duplications
         if len(file_sets) > 0 and file in file_sets[-1]:
             continue
@@ -180,7 +180,6 @@ def save_proc_data(filename, files, file_map, pos_map):
     with h5py.File(filename, mode="w") as f:
         f.attrs['default'] = 'processed'
         f.attrs['file_time'] = datetime.datetime.now().isoformat()
-        f.attrs['pyFAI_version'] = pyFAI.version
 
         nxentry = f.create_group('processed')
         nxentry.attrs["NX_class"] = 'NXentry'
