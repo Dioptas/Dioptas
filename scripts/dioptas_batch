@@ -6,7 +6,7 @@ import logging
 import os
 from glob import glob
 import numpy as np
-import time
+from time import time
 from multiprocessing import Queue, Pool
 import subprocess
 import h5py
@@ -36,19 +36,23 @@ def integrate(args):
                                 shell=True)
 
         # Dioptas is included here after changed the affinity because then it works faster
-        from dioptas.model import ImgModel, CalibrationModel, MaskModel
+        from dioptas.model import MaskModel
         from dioptas.model.util.LambdaLoader import LambdaImage
+        from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
+        from pyFAI.geometryRefinement import GeometryRefinement
 
-        img_model = ImgModel()
-        calibration_model = CalibrationModel(img_model)
-        calibration_model.load(config['cal_file'])
         mask_model = MaskModel()
         mask = None
+        pattern_geometry = None
 
         lambda_img = None
         while not data_to_process.empty():
 
-            file_list, img_pos, img_id = data_to_process.get()
+            try:
+                file_list, img_pos, img_id = data_to_process.get(timeout=5)
+            except Exception as e:
+                # Excepting is taking place is empty() return True for enpty queue.
+                pass
 
             if lambda_img is None or lambda_img.file_list != file_list:
                 lambda_img = LambdaImage(file_list=file_list)
@@ -57,17 +61,31 @@ def integrate(args):
 
             image = lambda_img.get_image(int(img_pos))
 
-            calibration_model.img_model.set_loadable_attributes(
-                {'img_data': image})
-
             if mask is None and config['mask_file'] is not None:
                 mask_model.set_dimension(image.shape)
                 mask_model.load_mask(config['mask_file'])
                 mask = mask_model.get_mask()
                 mask_shape[...] = image.shape
 
-            proc_data[img_id] = np.array(calibration_model.integrate_1d(num_points=config['num_points'],
-                                                                        mask=mask, method=config['int_method']))
+            if pattern_geometry is None:
+                # default params are necessary, otherwise fails...
+                detector = Detector(pixel1=79e-6, pixel2=79e-6)
+                pattern_geometry = GeometryRefinement(wavelength=0.3344e-10, detector=detector,
+                                                      poni1=0, poni2=0)
+                pattern_geometry.load(config['cal_file'])
+                pattern_geometry.detector = Detector(pixel1=pattern_geometry.pixel1, pixel2=pattern_geometry.pixel2)
+
+            ts = time()
+            proc_data[img_id] = np.array(pattern_geometry.integrate1d(image, config['num_points'],
+                                                     method=config['int_method'],
+                                                     unit='2th_deg',
+                                                     azimuth_range=None,
+                                                     mask=mask,
+                                                     polarization_factor=0.99,
+                                                     correctSolidAngle=True,
+                                                     filename=None))
+            log.info(f"Integrate img {img_id}: {time() - ts:0.2f} ")
+
     except Exception as e:
         log.error("Processing fail: {e}", exc_info=True)
         return False
@@ -213,6 +231,7 @@ def run():
 
     for i_batch, batch_name in enumerate(name_list):
 
+        ts = time()
         log.info(f"Process batch {i_batch}/{len(name_list)}: {batch_name}")
 
         try:
@@ -230,23 +249,28 @@ def run():
         mask_shape = sharedmem.empty(2, dtype='i4')
         log.info(f"Found {n_img} images")
 
-        ts = time.time()
         n_current_proc = min(config['n_proc'], max(1, int(n_img/10.)) )
         log.info(f"Process with {n_current_proc} cores")
+        int_time = time()
         with Pool(processes=n_current_proc) as pool:
             status = pool.map(integrate, args)
+        int_time = time()-int_time
 
         if all(status):
             local_path = os.path.basename(batch_name)
             if '/raw/' in batch_name:
                 local_path = batch_name[batch_name.find('/raw/')+5:]
 
-            out_file_name = f"{config['out_path']}/{local_path}_v{config['version']:03d}.nxs"
-            save_proc_data(out_file_name, batch_files[i_batch], file_map, pos_map)
+            try:
+                out_file_name = f"{config['out_path']}/{local_path}_v{config['version']:03d}.nxs"
+                save_proc_data(out_file_name, batch_files[i_batch], file_map, pos_map)
+                log.info(f"Save file: {out_file_name} {n_img}")
+            except Exception as e:
+                log.error(f"Saving file {out_file_name} fails: {e}")
 
-            log.info(f"Save file: {out_file_name} {n_img}")
-            log.info(f"Running time: {time.time() - ts:0.2f} for {n_img} images")
-            log.info(f"Time per image: {(time.time() - ts) / n_img * 1000:0.2f} ({n_img})")
+            log.info(f"Running time: {time() - ts:0.2f}s for {n_img} images")
+            log.info(f"Integration time: {int_time:0.2f}s for {n_img} images")
+            log.info(f"Time per image: {int_time / n_img * 1000:0.2f}ms ({n_img})")
 
     global data_to_process
     del data_to_process
