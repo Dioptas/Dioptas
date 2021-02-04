@@ -62,6 +62,7 @@ class IntegrationMockFunctionalTest(QtTest):
     def tearDown(self):
         del self.integration_pattern_controller
         del self.integration_controller
+        del self.integration_widget
         self.model.delete_configurations()
         del self.model
         gc.collect()
@@ -363,6 +364,12 @@ class BatchIntegrationFunctionalTest(QtTest):
         click_button(self.integration_widget.batch_widget.load_btn)
 
         self.integration_controller.batch_controller.integrate()
+
+    def tearDown(self):
+        del self.integration_widget
+        del self.integration_controller
+        del self.model
+        gc.collect()
 
     def test_data_is_ok(self):
         self.assertTrue(self.model.batch_model.data is not None)
