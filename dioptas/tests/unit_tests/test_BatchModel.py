@@ -15,11 +15,13 @@ data_path = os.path.join(unittest_path, '../data')
 files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'),
          os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')]
 
+cal_file = os.path.join(data_path, 'lambda/L2.poni')
 
 class BatchModelTest(QtTest):
     def setUp(self):
         self.img_model = ImgModel()
         self.calibration_model = CalibrationModel(self.img_model)
+        self.calibration_model.load(cal_file)
         self.mask_model = MaskModel()
         self.mask_model.mode = False
         self.batch_model = BatchModel(self.calibration_model, self.mask_model)
@@ -82,7 +84,7 @@ class BatchModelTest(QtTest):
         self.assertTrue(np.all(self.batch_model.pos_map[0] == [0, 2]))
         self.assertEqual(self.batch_model.pos_map.shape, (8, 2))
 
-        os.remove(os.path.join(data_path, "test_save_proc.nxs"))
+        #os.remove(os.path.join(data_path, "test_save_proc.nxs"))
 
     def test_save_as_csv(self):
         self.batch_model.integrate_raw_data(num_points=1000, start=5, stop=10, step=2, use_all=True)
