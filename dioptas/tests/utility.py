@@ -54,7 +54,7 @@ def enter_value_into_text_field(text_field, value):
     QtWidgets.QApplication.processEvents()
 
 
-class TestMouseEvent:
+class MockMouseEvent:
     def __init__(self, key=None, diff=None):
         self.key_value = key
         self.diff = diff
