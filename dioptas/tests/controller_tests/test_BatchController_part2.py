@@ -1,12 +1,11 @@
 import os
 import gc
 import shutil
-import numpy as np
 from mock import MagicMock
 
 from ..utility import QtTest
 
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtGui
 
 from ...widgets.integration import IntegrationWidget
 from ...widgets.plot_widgets.ImgWidget import MyRectangle
@@ -176,80 +175,3 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.model.overlay_model.overlays[0].name,
                          'testasapo1_1009_00002_m1_part00002.nxs, 4')
         self.assertEqual(self.model.overlay_model.overlays[0]._pattern_x.shape, (10,))
-
-    def test_load_single_image(self):
-        self.controller.load_single_image(10, 15)
-
-        self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
-
-        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
-        self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
-        self.assertEqual(self.widget.batch_widget.img_view.horizontal_line.value(), 15)
-
-    def test_plot_pattern(self):
-        self.controller.plot_pattern(10, 15)
-
-        self.assertAlmostEqual(self.model.pattern_model.pattern.data[0][0], 9.6926780, places=3)
-        self.assertEqual(self.model.pattern_model.pattern.data[1][0], np.float32(0.1))
-
-    def test_plot_image(self):
-        self.controller.plot_image(15)
-
-        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
-        self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
-        self.assertTrue(self.model.current_configuration.auto_integrate_pattern)
-
-        self.assertEqual(self.widget.batch_widget.step_series_widget.pos_txt.text(), '15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
-        self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), f'Img: 15')
-
-    def test_update_3d_axis(self):
-        self.controller.update_3d_axis(np.full((10, 1000), 80))
-
-        self.assertEqual(self.widget.batch_widget.surf_view.axis.ticks[0].text, '9.69')
-        self.assertEqual(self.widget.batch_widget.surf_view.g.spacing(), [10.0, 1000., 1])
-
-    def test_update_y_axis(self):
-        self.widget.batch_widget.step_series_widget.slider.setValue(15)
-        self.widget.batch_widget.step_series_widget.start_txt.setValue(5)
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(28)
-
-        self.controller.update_y_axis()
-        self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[0],
-                               2.898080396, places=3)
-        self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[1],
-                               30.3251324, places=3)
-
-    def test_integrate(self):
-        self.widget.batch_widget.step_series_widget.start_txt.setValue(5)
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(28)
-        self.widget.batch_widget.step_series_widget.step_txt.setValue(3)
-
-        self.controller.integrate()
-
-        self.assertEqual(self.model.batch_model.data.shape, (8, 4038))
-        self.assertEqual(self.model.batch_model.binning.shape, (4038,))
-        self.assertEqual(self.model.batch_model.n_img, 8)
-        self.assertEqual(self.model.batch_model.n_img_all, 50)
-        self.assertEqual(self.model.batch_model.pos_map.shape, (8, 2))
-
-    def test_set_navigation_range(self):
-        self.controller.set_navigation_range((10, 50), (15, 80))
-        self.assertEqual(self.widget.batch_widget.step_series_widget.start_txt.text(), '15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.stop_txt.text(), '49')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
-
-        self.widget.batch_widget.step_series_widget.slider.setValue(60)
-        self.controller.set_navigation_range((10, 50), (15, 80))
-        self.assertEqual(self.widget.batch_widget.step_series_widget.start_txt.text(), '15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.stop_txt.text(), '49')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 49)
-
-        self.widget.batch_widget.step_series_widget.slider.setValue(60)
-        self.controller.set_navigation_range((10, 50), (15, 40))
-        self.assertEqual(self.widget.batch_widget.step_series_widget.start_txt.text(), '15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.stop_txt.text(), '40')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 40)
-
-        # ToDo Test interaction with other controllers: Integration window vertical line. Patterns
