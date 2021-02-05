@@ -135,38 +135,6 @@ class BatchControllerTest(QtTest):
         self.assertAlmostEqual(self.widget.batch_widget.img_view.vertical_line.getXPos(),
                                1310.94006, places=3)
 
-    def test_set_unit(self):
-        bottom_axis = self.widget.batch_widget.img_view.bottom_axis_cake
-
-        self.controller.set_unit_tth()
-        self.assertEqual(self.model.current_configuration.integration_unit, '2th_deg')
-        self.assertAlmostEqual(bottom_axis.range[0], 8.660802, places=2)
-        self.assertAlmostEqual(bottom_axis.range[1], 26.74354, places=2)
-
-        self.controller.set_unit_d()
-        self.assertTrue(self.widget.integration_pattern_widget.d_btn.isChecked())
-        self.assertEqual(self.model.current_configuration.integration_unit, 'd_A')
-        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 9.467504, places=2)
-
-        self.controller.set_unit_q()
-        self.assertTrue(self.widget.integration_pattern_widget.q_btn.isChecked())
-        self.assertEqual(self.model.current_configuration.integration_unit, 'q_A^-1')
-        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 24.43931, places=2)
-
-    def test_show_phases(self):
-        # Load phases
-        self.model.phase_model.add_jcpds(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
-
-        self.assertEqual(str(self.widget.batch_widget.phases_btn.text()), 'Show Phases')
-        self.controller.toggle_show_phases()
-        self.assertEqual(str(self.widget.batch_widget.phases_btn.text()), 'Hide Phases')
-
-        self.assertEqual(len(self.widget.batch_widget.img_view.phases), 1)
-        self.assertEqual(len(self.widget.batch_widget.img_view.phases[0].line_items), 27)
-
-        #last_line_position = self.widget.batch_widget.img_view.phases[0].line_items[-1].getPos()
-        #self.assertGreater(last_line_position[0], 1000)
-
     def test_subtract_background(self):
         self.model.batch_model.data = np.ones((100, 1000))
         self.model.batch_model.bkg = np.ones((100, 1000))
