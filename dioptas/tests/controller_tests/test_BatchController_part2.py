@@ -100,6 +100,7 @@ class BatchControllerTest(QtTest):
     def test_load_proc_data(self):
         filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[filename])
+        self.model.working_directories['image'] = os.path.join(unittest_data_path, 'lambda')
         self.controller.load_data()
 
         self.assertTrue(self.model.batch_model.data is not None)
@@ -133,8 +134,8 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.widget.batch_widget.img_view.img_data.shape, (31, 4038))
         self.assertTrue(self.widget.batch_widget.img_view._max_range)
         self.assertEqual(self.widget.batch_widget.img_view.horizontal_line.value(), 0)
-        self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[0], 7.28502051, places=3)
-        self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[1], 42.7116293, places=3)
+        self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[0], 7.28502051, places=1)
+        self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[1], 42.7116293, places=1)
 
     def test_plot_batch_3d(self):
         self.widget.batch_widget.step_series_widget.start_txt.setValue(10)
