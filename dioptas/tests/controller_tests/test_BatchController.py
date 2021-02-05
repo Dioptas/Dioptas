@@ -1,15 +1,12 @@
 import os
 import gc
-import shutil
 import numpy as np
-from mock import MagicMock
 
-from ..utility import QtTest, TestMouseEvent
+from ..utility import QtTest, MockMouseEvent
 
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtGui
 
 from ...widgets.integration import IntegrationWidget
-from ...widgets.plot_widgets.ImgWidget import MyRectangle
 from ...controller.integration.BatchController import BatchController
 from ...model.DioptasModel import DioptasModel
 from dioptas.controller.integration.phase.PhaseController import PhaseController
@@ -103,31 +100,31 @@ class BatchControllerTest(QtTest):
         self.assertEqual(surf_view.g_translate, 0)
         self.assertEqual(surf_view.marker, 0)
 
-        self.controller.wheel_event_3d(TestMouseEvent())
+        self.controller.wheel_event_3d(MockMouseEvent())
         self.assertLess(pg_layout.opts['distance'], 10)
 
-        self.controller.key_pressed_3d(TestMouseEvent(key=76))
-        self.controller.wheel_event_3d(TestMouseEvent())
+        self.controller.key_pressed_3d(MockMouseEvent(key=76))
+        self.controller.wheel_event_3d(MockMouseEvent())
         self.assertGreater(show_range[0], 0)
 
-        self.controller.key_pressed_3d(TestMouseEvent(key=88))
-        self.controller.wheel_event_3d(TestMouseEvent())
+        self.controller.key_pressed_3d(MockMouseEvent(key=88))
+        self.controller.wheel_event_3d(MockMouseEvent())
         self.assertGreater(show_scale[0], 2.)
 
-        self.controller.key_pressed_3d(TestMouseEvent(key=89))
-        self.controller.wheel_event_3d(TestMouseEvent())
+        self.controller.key_pressed_3d(MockMouseEvent(key=89))
+        self.controller.wheel_event_3d(MockMouseEvent())
         self.assertGreater(show_scale[1], 2.)
 
-        self.controller.key_pressed_3d(TestMouseEvent(key=90))
-        self.controller.wheel_event_3d(TestMouseEvent())
+        self.controller.key_pressed_3d(MockMouseEvent(key=90))
+        self.controller.wheel_event_3d(MockMouseEvent())
         self.assertGreater(show_scale[2], 1.)
 
-        self.controller.key_pressed_3d(TestMouseEvent(key=71))
-        self.controller.wheel_event_3d(TestMouseEvent())
+        self.controller.key_pressed_3d(MockMouseEvent(key=71))
+        self.controller.wheel_event_3d(MockMouseEvent())
         self.assertEqual(surf_view.g_translate, 2)
 
-        self.controller.key_pressed_3d(TestMouseEvent(key=77))
-        self.controller.wheel_event_3d(TestMouseEvent())
+        self.controller.key_pressed_3d(MockMouseEvent(key=77))
+        self.controller.wheel_event_3d(MockMouseEvent())
         self.assertGreater(surf_view.marker, 0)
 
     def test_pattern_left_click(self):
@@ -143,19 +140,18 @@ class BatchControllerTest(QtTest):
 
         self.controller.set_unit_tth()
         self.assertEqual(self.model.current_configuration.integration_unit, '2th_deg')
-        print(bottom_axis.range[0])
         self.assertAlmostEqual(bottom_axis.range[0], 8.660802, places=2)
-        self.assertAlmostEqual(bottom_axis.range[1], 26.74354, places=3)
+        self.assertAlmostEqual(bottom_axis.range[1], 26.74354, places=2)
 
         self.controller.set_unit_d()
         self.assertTrue(self.widget.integration_pattern_widget.d_btn.isChecked())
         self.assertEqual(self.model.current_configuration.integration_unit, 'd_A')
-        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 9.467504, places=3)
+        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 9.467504, places=2)
 
         self.controller.set_unit_q()
         self.assertTrue(self.widget.integration_pattern_widget.q_btn.isChecked())
         self.assertEqual(self.model.current_configuration.integration_unit, 'q_A^-1')
-        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 24.43931, places=3)
+        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 24.43931, places=2)
 
     def test_show_phases(self):
         # Load phases
@@ -189,15 +185,15 @@ class BatchControllerTest(QtTest):
         self.widget.batch_widget.view_2d_btn.setChecked(True)
         self.model.batch_model.data[:, :] = 100
 
-        self.controller.change_scale_log(TestMouseEvent())
+        self.controller.change_scale_log(MockMouseEvent())
         self.assertEqual(self.controller.scale, np.log10)
         self.assertTrue(np.all(self.widget.batch_widget.img_view.img_data == 2.))
 
-        self.controller.change_scale_sqrt(TestMouseEvent())
+        self.controller.change_scale_sqrt(MockMouseEvent())
         self.assertEqual(self.controller.scale, np.sqrt)
         self.assertTrue(np.all(self.widget.batch_widget.img_view.img_data == 10.))
 
-        self.controller.change_scale_lin(TestMouseEvent())
+        self.controller.change_scale_lin(MockMouseEvent())
         self.assertEqual(self.controller.scale, np.array)
         self.assertTrue(np.all(self.widget.batch_widget.img_view.img_data == 100.))
 
