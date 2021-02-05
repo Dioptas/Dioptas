@@ -120,9 +120,7 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 0')
         self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 0)
 
-        unittest_path = os.path.dirname(__file__)
-        tests_dir = unittest_path[:unittest_path.find('controller_tests')]
-        filename = os.path.join(tests_dir, 'data', 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs')
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 0")
         self.assertEqual(self.model.calibration_model.calibration_name, 'L2')
 
