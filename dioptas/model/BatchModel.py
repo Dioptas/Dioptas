@@ -63,8 +63,12 @@ class BatchModel(QtCore.QObject):
         file_map = [0]
         image_counter = 0
         for i, file in enumerate(files):
-            self.calibration_model.img_model.load(file)
-            n_img = self.calibration_model.img_model.series_max
+            # Assume tif file contains only one image
+            if file[-4:] == '.tif':
+                n_img = 1
+            else:
+                self.calibration_model.img_model.load(file)
+                n_img = self.calibration_model.img_model.series_max
             image_counter += n_img
             pos_map += list(zip([i] * n_img, range(n_img)))
             file_map.append(image_counter)
