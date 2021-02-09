@@ -275,7 +275,7 @@ def run():
 
     global data_to_process
     del data_to_process
-    print("All done")
+    log.info("All done")
 
 
 def main():
