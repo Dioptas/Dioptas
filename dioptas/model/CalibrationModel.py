@@ -32,11 +32,11 @@ from pyFAI.calibrant import Calibrant
 from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.massif import Massif
-from qtpy import QtCore
 from skimage.measure import find_contours
 
 from .. import calibrants_path
 from .ImgModel import ImgModel
+from .util import Signal
 from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90, get_partial_index
 from .util.calc import supersample_image
 
@@ -44,8 +44,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class CalibrationModel(QtCore.QObject):
-    detector_reset = QtCore.Signal()
+class CalibrationModel(object):
 
     def __init__(self, img_model=None):
         """
@@ -96,6 +95,8 @@ class CalibrationModel(QtCore.QObject):
         self.cake_azi = None
 
         self.peak_search_algorithm = None
+
+        self.detector_reset = Signal()
 
     def find_peaks_automatic(self, x, y, peak_ind):
         """

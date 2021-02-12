@@ -25,10 +25,10 @@ import copy
 
 import numpy as np
 from PIL import Image
-from qtpy import QtCore
 
 import fabio
 
+from .util import Signal
 from .util.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
@@ -39,7 +39,7 @@ from .util.KaraboLoader import KaraboFile
 logger = logging.getLogger(__name__)
 
 
-class ImgModel(QtCore.QObject):
+class ImgModel(object):
     """
     Main Image handling class. Supports several features:
         - loading image files in any format using fabio
@@ -51,11 +51,6 @@ class ImgModel(QtCore.QObject):
     In order to subscribe to changes of the data in the ImgModel, please use the img_changed QtSignal.
     The Signal will be called every time the img_data has changed.
     """
-    img_changed = QtCore.Signal()
-    autoprocess_changed = QtCore.Signal()
-    transformations_changed = QtCore.Signal()
-    corrections_removed = QtCore.Signal()
-
     def __init__(self):
         super(ImgModel, self).__init__()
         self.filename = ''
@@ -113,6 +108,12 @@ class ImgModel(QtCore.QObject):
                         '.mccd', '.mar3450', '.pnm', 'spe']
         )
         self._directory_watcher.file_added.connect(self.load)
+
+        # define the signals
+        self.img_changed = Signal()
+        self.autoprocess_changed = Signal()
+        self.transformations_changed = Signal()
+        self.corrections_removed = Signal()
 
     def load(self, filename):
         """

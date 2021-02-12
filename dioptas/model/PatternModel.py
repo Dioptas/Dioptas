@@ -20,16 +20,15 @@
 
 import logging
 
-from qtpy import QtCore
-
 from math import sqrt
+from .util import Signal
 from .util.HelperModule import FileNameIterator, get_base_name
 from .util import Pattern
 
 logger = logging.getLogger(__name__)
 
 
-class PatternModel(QtCore.QObject):
+class PatternModel(object):
     """
     Main Pattern handling class. Supporting:
         - setting background pattern
@@ -38,7 +37,6 @@ class PatternModel(QtCore.QObject):
 
     all changes to the internal data throw a pattern_changed signal.
     """
-    pattern_changed = QtCore.Signal()
 
     def __init__(self):
         super(PatternModel, self).__init__()
@@ -50,6 +48,8 @@ class PatternModel(QtCore.QObject):
         self.file_name_iterator = FileNameIterator()
 
         self._background_pattern = None
+
+        self.pattern_changed = Signal()
 
     def set_pattern(self, x, y, filename='', unit=''):
         """
@@ -109,13 +109,13 @@ class PatternModel(QtCore.QObject):
             if 'CONQ' in header:
                 factor = 1
             header = header.replace('NUM_POINTS', '{0:.6g}'.format(num_points))
-            header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor*x[0]))
-            header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor*(x[1]-x[0])))
+            header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor * x[0]))
+            header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor * (x[1] - x[0])))
 
             file_handle.write(header)
             file_handle.write('\n')
             for ind in range(num_points):
-                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor*x[ind], y[ind], sqrt(abs(y[ind]))))
+                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor * x[ind], y[ind], sqrt(abs(y[ind]))))
         else:
             if header is not None:
                 file_handle.write(header)
