@@ -18,7 +18,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from inspect import signature
+
 from .BackgroundExtraction import extract_background
 
 from .Pattern import Pattern
 from .jcpds import jcpds
+
+
+class Signal:
+    def __init__(self, *_):
+        self.listeners = []
+
+    def connect(self, handle):
+        self.listeners.append(handle)
+
+    def disconnect(self, handle):
+        try:
+            self.listeners.remove(handle)
+        except ValueError:
+            return
+
+    def emit(self, *args):
+        for handle in self.listeners:
+            if type(handle) == Signal:
+                handle.emit(*args)
+            else:
+                if len(signature(handle).parameters) == 0:
+                    handle()
+                else:
+                    handle(*args)
