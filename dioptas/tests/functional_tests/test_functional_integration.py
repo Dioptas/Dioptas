@@ -590,32 +590,3 @@ class BatchIntegrationFunctionalTest(QtTest):
         click_button(self.integration_widget.batch_widget.tth_btn)
         x4, y4 = self.model.pattern.data
         self.assertTrue(np.array_equal(x1, x4))
-
-    def test_dioptas_batch(self):
-
-        data_files = os.path.join(data_path, 'lambda/testasapo1_1009_00002*nxs')
-        mask_file = os.path.join(data_path, 'lambda/l2_l1_synrh9_150m_200ms_850c_oscillation_00001_m2.mask')
-        out_path = os.path.join(data_path, 'tmp')
-        os.makedirs(out_path, exist_ok=True)
-        cmd = f'dioptas_batch --data_path {data_files} '
-        cmd += f'--out_path {out_path} '
-        cmd += f"--cal_file {os.path.join(data_path, 'lambda/L2.poni')} "
-        cmd += f"--mask_file {mask_file}"
-
-        resp = check_output(cmd, shell=True).decode('utf8')
-
-        proc_file = os.path.join(data_path, 'tmp/testasapo1_1009_00002_v-01.nxs')
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[proc_file])
-        click_button(self.integration_widget.batch_widget.load_btn)
-
-        self.assertEqual(self.model.batch_model.data.shape[0], 50)
-        self.assertEqual(self.model.batch_model.data.shape[1],
-                         self.model.batch_model.binning.shape[0])
-
-        mask = self.model.batch_model.mask_model.get_mask()
-        self.assertEqual(mask.shape, (1833, 1556))
-        self.assertEqual(resp, 'All done\n')
-
-        import shutil
-        shutil.rmtree(os.path.join(data_path, 'tmp'))
-
