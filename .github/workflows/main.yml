@@ -53,5 +53,4 @@ jobs:
         xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_img_bg.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_save_and_load_project.py
-        xvfb-run -a py.test dioptas/tests/functional_tests/test_scripts.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_userinterface.py
