@@ -46,7 +46,7 @@ class BatchIntegrationFunctionalTest(QtTest):
 
     def test_dioptas_batch(self):
 
-        data_files = os.path.join(data_path, 'lambda/testasapo1_1009_00002*nxs')
+        data_files = os.path.join(data_path, 'lambda/testasapo1_1009_00002_m*nxs')
         mask_file = os.path.join(data_path, 'lambda/l2_l1_synrh9_150m_200ms_850c_oscillation_00001_m2.mask')
         out_path = os.path.join(data_path, 'tmp')
         script_parh = os.path.join(unittest_path, os.pardir, os.pardir, os.pardir, 'scripts')
