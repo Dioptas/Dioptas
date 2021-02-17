@@ -33,6 +33,22 @@ jobs:
         xvfb-run -a py.test dioptas/tests/unit_tests
         xvfb-run -a py.test dioptas/tests/controller_tests/test_BatchController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_BatchController_part2.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_BackgroundController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_CalibrationController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_ConfigurationController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_CorrectionController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_EpicsController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_ImageController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_IntegrationController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_OptionsController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_PhaseController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_JcpdsEditorController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_OverlayController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_PhaseInCakeController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_IntegrationBackgroundController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_MaskController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_PatternController.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_PhaseInPatternController.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_integration.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_img_bg.py
