@@ -25,7 +25,7 @@ jobs:
     - name: Install Pip Dependencies
       shell: bash -l {0}
       run:
-        pip install pyepics extra_data
+        pip install pyepics extra_data sharedmem
 
     - name: Run tests
       shell: bash -l {0}
