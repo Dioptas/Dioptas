@@ -69,7 +69,7 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         mask = self.model.batch_model.mask_model.get_mask()
         self.assertEqual(mask.shape, (1833, 1556))
-        self.assertEqual(resp, 'All done\n')
+        self.assertEqual(resp, '')
 
         import shutil
         shutil.rmtree(os.path.join(data_path, 'tmp'))
