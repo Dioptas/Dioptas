@@ -24,7 +24,7 @@ import shutil
 from mock import MagicMock
 
 from ..utility import QtTest
-from ...model.util.NewFileWatcher import NewFileInDirectoryWatcher
+from ...model.util.NewFileWatcherDog import NewFileInDirectoryWatcher
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
@@ -48,5 +48,23 @@ class NewFileInDirectoryWatcherTest(QtTest):
         shutil.copy2(os.path.join(unittest_data_path, 'image_001.tif'),
                      os.path.join(unittest_data_path, 'image_003.tif'))
 
-        self.directory_watcher._file_system_watcher.directoryChanged.emit('test')
         callback_fcn.assert_called_with(os.path.join(unittest_data_path, 'image_003.tif'))
+
+    def test_filename_is_emitted_with_full_file_available(self):
+
+        original_path = os.path.join(unittest_data_path, 'image_001.tif')
+        destination_path = os.path.join(unittest_data_path, 'image_003.tif')
+        original_filesize = os.stat(original_path).st_size
+
+        def callback_fcn(filepath):
+            filesize = os.stat(filepath).st_size
+            self.assertEqual(filesize, original_filesize)
+
+        self.directory_watcher.path = unittest_data_path
+        self.directory_watcher.file_added.connect(callback_fcn)
+        self.directory_watcher.file_types.add('.tif')
+        self.directory_watcher.activate()
+
+        shutil.copy2(original_path, destination_path)
+
+        self.directory_watcher.deactivate()
