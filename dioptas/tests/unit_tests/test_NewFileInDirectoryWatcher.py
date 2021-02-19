@@ -24,7 +24,7 @@ import shutil
 from mock import MagicMock
 
 from ..utility import QtTest
-from ...model.util.NewFileWatcherDog import NewFileInDirectoryWatcher
+from ...model.util.NewFileWatcher import NewFileInDirectoryWatcher
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
