@@ -777,7 +777,6 @@ class BatchController(object):
         if filename is not '':
             if ext == '.png':
                 if self.widget.batch_widget.view_2d_btn.isChecked():
-                    QtWidgets.QApplication.processEvents()
                     self.widget.batch_widget.img_view.save_img(filename)
                 if self.widget.batch_widget.view_3d_btn.isChecked():
                     d = self.widget.batch_widget.surf_view.pg_layout.renderToArray((1000, 1000))
