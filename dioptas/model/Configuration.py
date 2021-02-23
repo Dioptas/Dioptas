@@ -53,7 +53,7 @@ class Configuration(QtCore.QObject):
 
         if working_directories is None:
             self.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"), 'pattern': '',
-                                        'overlay': '', 'phase': '', 'proc': os.path.expanduser("~")}
+                                        'overlay': '', 'phase': '', 'batch': os.path.expanduser("~")}
         else:
             self.working_directories = working_directories
 
@@ -410,7 +410,7 @@ class Configuration(QtCore.QObject):
                 working_directories_gp.attrs[key] = self.working_directories[key]
         except TypeError:
             self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
-                                        'phase': '', 'proc': ''}
+                                        'phase': '', 'batch': ''}
             for key in self.working_directories:
                 working_directories_gp.attrs[key] = self.working_directories[key]
 
