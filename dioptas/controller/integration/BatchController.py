@@ -637,6 +637,7 @@ class BatchController(object):
         if len(filenames) == 0:
             return
         self.model.working_directories['batch'] = os.path.dirname(filenames[0])
+        self.widget.batch_widget.load_btn.setToolTip(f"Load raw/proc data ({os.path.dirname(filenames[0])})")
         if self.is_proc(filenames[0]):
             self.model.batch_model.reset_data()
             self.load_proc_data(filenames[0])
