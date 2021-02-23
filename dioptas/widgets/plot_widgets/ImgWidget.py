@@ -698,6 +698,22 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         self.img_view_box.addItem(rect)
         return rect
 
+    def save_img(self, filename):
+        self.horizontal_line.hide()
+        self.vertical_line.hide()
+        self.mouse_click_item.hide()
+        self.pg_layout.removeItem(self.img_histogram_LUT_horizontal)
+
+        QtWidgets.QApplication.processEvents()
+        exporter = ImageExporter(self.pg_layout.scene())
+        exporter.parameters()['width'] = 2048
+        exporter.export(filename)
+
+        self.horizontal_line.show()
+        self.vertical_line.show()
+        self.mouse_click_item.show()
+        self.pg_layout.addItem(self.img_histogram_LUT_horizontal, row=0, col=1)
+
     def add_cake_axes(self):
         """
         Describe axis of 2D plot
