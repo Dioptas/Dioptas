@@ -628,7 +628,7 @@ class BatchController(object):
         """
         Set image files of the batch, base on files given in the dialog window
         """
-        start_dir = self.model.working_directories.get('proc', os.path.expanduser("~"))
+        start_dir = self.model.working_directories.get('batch', os.path.expanduser("~"))
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
                                       start_dir,
                                       ('Raw data (*.nxs *.tif *.tiff);;'
@@ -636,9 +636,8 @@ class BatchController(object):
                                       )
         if len(filenames) == 0:
             return
-
+        self.model.working_directories['batch'] = os.path.dirname(filenames[0])
         if self.is_proc(filenames[0]):
-            self.model.working_directories['proc'] = os.path.dirname(filenames[0])
             self.model.batch_model.reset_data()
             self.load_proc_data(filenames[0])
             self.load_raw_data(self.model.batch_model.files)
@@ -648,7 +647,6 @@ class BatchController(object):
             self.widget.batch_widget.img_view.auto_range()
         else:
             self.widget.img_directory_txt.setText(os.path.dirname(filenames[0]))
-            self.model.working_directories['image'] = os.path.dirname(filenames[0])
             self.model.batch_model.reset_data()
             self.load_raw_data(filenames)
             self.widget.batch_widget.view_f_btn.setChecked(True)
@@ -755,7 +753,7 @@ class BatchController(object):
         Save diffraction patterns and metadata
         """
         filename = QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save Image.",
-                                                         directory=os.path.join(self.model.working_directories.get('proc', os.path.expanduser("~"))),
+                                                         directory=os.path.join(self.model.working_directories.get('batch', os.path.expanduser("~"))),
                                                          filter=('Image (*.png);;Single file ascii (*.csv);;'
                                                                  'Multifile Data (*.xy);;'
                                                                  'Multifile Data (*.chi);;'
