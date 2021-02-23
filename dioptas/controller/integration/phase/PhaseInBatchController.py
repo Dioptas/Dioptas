@@ -37,6 +37,8 @@ class PhaseInBatchController(object):
         self.phase_model.reflection_added.connect(self.reflection_added)
         self.phase_model.reflection_deleted.connect(self.reflection_deleted)
 
+        self.model.enabled_phases_in_cake.connect(self.update_all_phases)
+
     def get_phase_position_and_intensities(self, ind, clip=True):
         """
         Obtains the positions and intensities for lines of a phase with an index ind within the batch view.
@@ -52,7 +54,7 @@ class PhaseInBatchController(object):
         """
         cake_tth = self.model.batch_model.binning
         if cake_tth is None:
-            return
+            cake_tth = self.model.calibration_model.tth
         reflections_tth = self.phase_model.get_phase_line_positions(ind, 'tth',
                                                                     self.model.calibration_model.wavelength * 1e10)
         reflections_intensities = [reflex[1] for reflex in self.phase_model.reflections[ind]]
@@ -80,6 +82,10 @@ class PhaseInBatchController(object):
     def update_phase_lines(self, ind):
         cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(ind)
         self.batch_view_widget.update_phase_intensities(ind, cake_line_positions, cake_line_intensities)
+
+    def update_all_phases(self):
+        for ind in range(len(self.phase_model.phases)):
+            self.update_phase_lines(ind)
 
     def update_phase_color(self, ind):
         self.batch_view_widget.set_cake_phase_color(ind, self.model.phase_model.phase_colors[ind])
