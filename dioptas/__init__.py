@@ -64,7 +64,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
     :return:
     """
     separator = '-' * 80
-    log_file = "error.log"
+    log_path = f"{os.path.expanduser('~')}/dioptas_error.log"
     notice = \
         """An unhandled exception occurred. Please report the bug under:\n """ \
         """\t%s\n""" \
@@ -72,8 +72,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
         """Please make sure to report the steps to reproduce the error. Otherwise it will be hard to fix it. \n\n""" \
         """A log has been written to "%s".\n\nError information:\n""" % \
         ("https://github.com/Dioptas/Dioptas/issues",
-         "clemens.prescher@gmail.com",
-         os.path.join(os.path.dirname(__file__), log_file))
+         "clemens.prescher@gmail.com", log_path)
     version_info = '\n'.join((separator, "Dioptas Version: %s" % dioptas_version))
     time_string = time.strftime("%Y-%m-%d, %H:%M:%S")
     tb_info_file = StringIO()
@@ -84,7 +83,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
     sections = [separator, time_string, separator, errmsg, separator, tb_info]
     msg = '\n'.join(sections)
     try:
-        f = open(log_file, "w")
+        f = open(log_path, "a")
         f.write(msg)
         f.write(version_info)
         f.close()
