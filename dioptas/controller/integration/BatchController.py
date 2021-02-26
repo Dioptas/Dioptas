@@ -754,25 +754,16 @@ class BatchController(object):
         """
         Save diffraction patterns and metadata
         """
-        filename = QtWidgets.QFileDialog.getSaveFileName(self.widget, "Save Image.",
-                                                         directory=os.path.join(self.model.working_directories.get('batch', os.path.expanduser("~"))),
-                                                         filter=('Image (*.png);;Single file ascii (*.csv);;'
-                                                                 'Multifile Data (*.xy);;'
-                                                                 'Multifile Data (*.chi);;'
-                                                                 'Multifile Data (*.dat);;'
-                                                                 'Multifile GSAS (*.fxye);;'
-                                                                 'Single file Data (*.nxs)'))
-
-        if isinstance(filename, tuple):  # PyQt5 returns a tuple...
-            # if no extension is given
-            if os.path.splitext(str(filename[0]))[1] == '':
-                ext = str(filename[1])
-                ext = ext[ext.find("(")+2:ext.find(")")]
-                filename = f"{filename[0]}{ext}"
-            else:
-                filename = str(filename[0])
-        else:
-            filename = str(filename)
+        filename = save_file_dialog(self.widget, "Save Image.",
+                                    directory=os.path.join(
+                                        self.model.working_directories.get('batch', os.path.expanduser("~"))),
+                                    filter=('Image (*.png);;Single file ascii (*.csv);;'
+                                            'Multifile Data (*.xy);;'
+                                            'Multifile Data (*.chi);;'
+                                            'Multifile Data (*.dat);;'
+                                            'Multifile GSAS (*.fxye);;'
+                                            'Single file Data (*.nxs)')
+                                    )
 
         name, ext = os.path.splitext(filename)
         if filename is not '':
