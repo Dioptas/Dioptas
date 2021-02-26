@@ -577,3 +577,9 @@ class DioptasModel(object):
         for configuration in self.configurations:
             configuration.img_model.load_previous_folder(mec_mode=mec_mode)
         self._teardown_multiple_file_loading()
+
+    def blockSignals(self, block=True):
+        for member in vars(self):
+            attr = getattr(self, member)
+            if isinstance(attr, Signal):
+                attr.blocked = block
