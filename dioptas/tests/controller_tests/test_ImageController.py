@@ -68,8 +68,6 @@ class ImageControllerTest(QtTest):
                          pos=QtCore.QPoint(2, self.widget.autoprocess_cb.height() / 2.0))
 
         self.assertFalse(self.model.configurations[0].img_model._directory_watcher.signalsBlocked())
-        self.assertFalse(
-            self.model.configurations[0].img_model._directory_watcher._file_system_watcher.signalsBlocked())
 
         self.assertTrue(self.widget.autoprocess_cb.isChecked())
         self.assertTrue(self.model.img_model.autoprocess)
@@ -77,8 +75,7 @@ class ImageControllerTest(QtTest):
         shutil.copy2(os.path.join(unittest_data_path, 'image_001.tif'),
                      os.path.join(unittest_data_path, 'image_003.tif'))
 
-        self.model.configurations[0].img_model._directory_watcher._file_system_watcher.directoryChanged.emit(
-            unittest_data_path)
+        self.model.img_model._directory_watcher.file_added.emit(os.path.join(unittest_data_path, 'image_003.tif'))
 
         self.assertEqual('image_003.tif', str(self.widget.img_filename_txt.text()))
 
@@ -194,6 +191,9 @@ class ImageControllerTest(QtTest):
         self.assertFalse(np.array_equal(x, self.widget.cake_widget.cake_integral_item.xData))
 
     def test_loading_series_karabo_file_shows_correct_gui(self):
+        from dioptas.model.util.KaraboLoader import karabo_installed
+        if not karabo_installed:
+            return
         filename = os.path.join(unittest_data_path, 'karabo_epix.h5')
         file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
         self.widget.show()
@@ -202,6 +202,9 @@ class ImageControllerTest(QtTest):
         self.assertTrue(file_widget.step_series_widget.isVisible())
 
     def test_fileinfo_and_move_button_visibility(self):
+        from dioptas.model.util.KaraboLoader import karabo_installed
+        if not karabo_installed:
+            return
         filename = os.path.join(unittest_data_path, 'image_001.tif')
         self.widget.show()
         self.model.img_model.load(filename)
