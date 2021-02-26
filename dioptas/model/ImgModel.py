@@ -51,6 +51,7 @@ class ImgModel(object):
     In order to subscribe to changes of the data in the ImgModel, please use the img_changed QtSignal.
     The Signal will be called every time the img_data has changed.
     """
+
     def __init__(self):
         super(ImgModel, self).__init__()
         self.filename = ''
@@ -761,10 +762,10 @@ class ImgModel(object):
         self.img_changed.emit()
 
     def blockSignals(self, block=True):
-        self.img_changed.blocked = block
-        self.autoprocess_changed.blocked = block
-        self.transformations_changed.blocked = block
-        self.corrections_removed.blocked = block
+        for member in vars(self):
+            attr = getattr(self, member)
+            if isinstance(attr, Signal):
+                attr.blocked = block
 
 
 class BackgroundDimensionWrongException(Exception):
