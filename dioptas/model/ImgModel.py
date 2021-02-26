@@ -760,6 +760,12 @@ class ImgModel(object):
         self._factor = new_value
         self.img_changed.emit()
 
+    def blockSignals(self, block=True):
+        self.img_changed.blocked = block
+        self.autoprocess_changed.blocked = block
+        self.transformations_changed.blocked = block
+        self.corrections_removed.blocked = block
+
 
 class BackgroundDimensionWrongException(Exception):
     pass

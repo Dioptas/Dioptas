@@ -29,6 +29,7 @@ from .jcpds import jcpds
 class Signal:
     def __init__(self, *_):
         self.listeners = []
+        self.blocked = False
 
     def connect(self, handle):
         self.listeners.append(handle)
@@ -40,6 +41,8 @@ class Signal:
             return
 
     def emit(self, *args):
+        if self.blocked:
+            return
         for handle in self.listeners:
             if type(handle) == Signal:
                 handle.emit(*args)
