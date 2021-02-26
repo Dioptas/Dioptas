@@ -201,5 +201,27 @@ def save_file_dialog(parent_widget, caption, directory, filter=None):
                                                      directory=directory,
                                                      filter=filter)
     if isinstance(filename, tuple):  # PyQt5 returns a tuple...
-        return str(filename[0])
+        return set_extension(str(filename[0]), str(filename[1]))
     return str(filename)
+
+
+def set_extension(filename, ext_filter):
+    """
+    Set extension to filename if not given.
+    Extension is taken from filter string.
+
+    :param filename: Name of file
+    :param ext_filter: Filter string used in getSaveFileName dialog
+    """
+    name, ext = os.path.splitext(filename)
+
+    # extension already given
+    if ext != '':
+        return filename
+
+    # Extension can not be extracted from filter string
+    if ext_filter.count("(") != 1:
+        return filename
+
+    ext = ext_filter[ext_filter.find("(") + 2:ext_filter.find(")")]
+    return f"{filename}{ext}"
