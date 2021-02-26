@@ -20,16 +20,17 @@
 
 import os
 import shutil
+import unittest
+import time
 
 from mock import MagicMock
 
-from ..utility import QtTest
 from ...model.util.NewFileWatcher import NewFileInDirectoryWatcher
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 
-class NewFileInDirectoryWatcherTest(QtTest):
+class NewFileInDirectoryWatcherTest(unittest.TestCase):
     def setUp(self):
         self.directory_watcher = NewFileInDirectoryWatcher(path=None)
 
@@ -48,7 +49,10 @@ class NewFileInDirectoryWatcherTest(QtTest):
         shutil.copy2(os.path.join(unittest_data_path, 'image_001.tif'),
                      os.path.join(unittest_data_path, 'image_003.tif'))
 
-        callback_fcn.assert_called_with(os.path.join(unittest_data_path, 'image_003.tif'))
+        self.directory_watcher.deactivate()
+        time.sleep(2)
+
+        callback_fcn.assert_called_with(os.path.abspath(os.path.join(unittest_data_path, 'image_003.tif')))
 
     def test_filename_is_emitted_with_full_file_available(self):
 

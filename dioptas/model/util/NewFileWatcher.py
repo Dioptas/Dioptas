@@ -78,7 +78,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
 
         self._file_added_qt.connect(self.file_added.emit)
         self.filepath_queue = queue.Queue()
-        self.queue_thread = threading.Thread(target=self.process_events)
+        self.queue_thread = threading.Thread(target=self.process_events, daemon=True)
         self.queue_thread.start()
 
     def on_file_created(self, event):
