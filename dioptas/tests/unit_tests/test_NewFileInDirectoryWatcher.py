@@ -39,7 +39,8 @@ class NewFileInDirectoryWatcherTest(unittest.TestCase):
             os.remove(os.path.join(unittest_data_path, 'image_003.tif'))
 
     def test_getting_callback_for_new_file(self):
-        callback_fcn = MagicMock()
+        def callback_fcn(filepath):
+            self.assertEqual(filepath, os.path.abspath(os.path.join(unittest_data_path, 'image_003.tif')))
 
         self.directory_watcher.path = unittest_data_path
         self.directory_watcher.file_added.connect(callback_fcn)
@@ -50,12 +51,8 @@ class NewFileInDirectoryWatcherTest(unittest.TestCase):
                      os.path.join(unittest_data_path, 'image_003.tif'))
 
         self.directory_watcher.deactivate()
-        time.sleep(2)
-
-        callback_fcn.assert_called_with(os.path.abspath(os.path.join(unittest_data_path, 'image_003.tif')))
 
     def test_filename_is_emitted_with_full_file_available(self):
-
         original_path = os.path.join(unittest_data_path, 'image_001.tif')
         destination_path = os.path.join(unittest_data_path, 'image_003.tif')
         original_filesize = os.stat(original_path).st_size
