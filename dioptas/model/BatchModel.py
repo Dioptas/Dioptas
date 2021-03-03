@@ -4,6 +4,7 @@ import os
 import h5py
 import numpy as np
 from qtpy import QtCore
+from PIL import Image
 
 from .util import extract_background
 
@@ -106,7 +107,8 @@ class BatchModel(QtCore.QObject):
 
             if 'mask_file' in data_file['processed/process/']:
                 self.used_mask = str(data_file['processed/process/mask_file'][()])
-                self.mask_model.set_dimension(tuple(data_file['processed/process/mask_shape'][()]))
+                mask_data = np.array(Image.open(self.used_mask))
+                self.mask_model.set_dimension(mask_data.shape)
                 self.mask_model.load_mask(self.used_mask)
 
             if 'bkg' in data_file['processed/process/']:
