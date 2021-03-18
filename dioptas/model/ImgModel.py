@@ -153,7 +153,7 @@ class ImgModel(object):
             if data:
                 return data
         else:
-            raise IOError("No handler found for given image")
+            raise IOError("No handler found for given image with filename: " + filename)
 
     def set_loadable_attributes(self, loaded_data):
         """

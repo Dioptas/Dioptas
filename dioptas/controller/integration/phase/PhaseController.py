@@ -158,7 +158,7 @@ class PhaseController(object):
         self.phase_widget.rename_phase(ind, phase_name)
         self.phase_widget.set_phase_pressure(ind, self.model.phase_model.phases[ind].params['pressure'])
         self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
-        self.phase_widget.temperature_sbs[ind].setEnabled(self.model.phase_model.phases[ind].has_thermal_expansion())
+        self.phase_widget.temperature_sbs[ind].setEnabled(int(self.model.phase_model.phases[ind].has_thermal_expansion()))
 
     def delete_btn_click_callback(self):
         """
