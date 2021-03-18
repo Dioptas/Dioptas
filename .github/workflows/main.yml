@@ -32,7 +32,6 @@ jobs:
       run: |
         xvfb-run -a py.test dioptas/tests/unit_tests
 
-      # Controller tests
         xvfb-run -a py.test dioptas/tests/controller_tests/test_BackgroundController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_CalibrationController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_ConfigurationController.py
@@ -50,7 +49,6 @@ jobs:
         xvfb-run -a py.test dioptas/tests/controller_tests/test_PhaseInCakeController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_PhaseInPatternController.py
 
-      # Functional Tests
         xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_integration.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_img_bg.py
