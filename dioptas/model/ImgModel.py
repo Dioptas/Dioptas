@@ -104,9 +104,9 @@ class ImgModel(object):
         # setting up autoprocess
         self._autoprocess = False
         self._directory_watcher = NewFileInDirectoryWatcher(
-            file_types=['.img', '.sfrm', '.dm3', '.edf', '.xml',
-                        '.cbf', '.kccd', '.msk', '.spr', '.tif',
-                        '.mccd', '.mar3450', '.pnm', 'spe']
+            file_types=['img', 'sfrm', 'dm3', 'edf', 'xml',
+                        'cbf', 'kccd', 'msk', 'spr', 'tif',
+                        'mccd', 'mar3450', 'pnm', 'spe']
         )
         self._directory_watcher.file_added.connect(self.load)
 
