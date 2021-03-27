@@ -68,8 +68,6 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         self.event_handler = PatternMatchingEventHandler(self.patterns)
         self.event_handler.on_created = self.on_file_created
 
-        self.file_event_handler = PatternMatchingEventHandler()
-
         self.active = False
         if activate:
             self.activate()
@@ -101,13 +99,11 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
             self._stop_observing()
 
     def _start_observing(self):
-        pass
         self.observer = Observer()
         self.observer.schedule(self.event_handler, self.path)
         self.observer.start()
 
     def _stop_observing(self):
-        pass
         if self.observer.is_alive():
             self.observer.stop()
             self.observer.join()
