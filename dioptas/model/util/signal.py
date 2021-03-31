@@ -48,7 +48,12 @@ class Signal:
         try:
             self.listeners.remove(handle)
         except ValueError:
-            return
+            pass
+
+        try:
+            self.priority_listeners.remove(handle)
+        except ValueError:
+            pass
 
     def emit(self, *args):
         if self.blocked:
