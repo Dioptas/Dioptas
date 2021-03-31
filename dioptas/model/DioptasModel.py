@@ -238,7 +238,7 @@ class DioptasModel(object):
         """
         Connects signals of the currently selected configuration
         """
-        self.img_model.img_changed.connect(self.img_changed)
+        self.img_model.img_changed.connect(self.img_changed, priority=True)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
         self.current_configuration.cake_changed.connect(self.cake_changed)
 

@@ -24,6 +24,7 @@ from inspect import signature
 class Signal:
     def __init__(self, *_):
         self.listeners = []
+        self.priority_listeners = []
         self.blocked = False
 
     def connect(self, handle, priority=False):
@@ -35,7 +36,7 @@ class Signal:
         If multiple handles are added with priority, they will obviously be called in the reverse order of adding.
         """
         if priority:
-            self.listeners.insert(0, handle)
+            self.priority_listeners.insert(0, handle)
         else:
             self.listeners.append(handle)
 
@@ -52,7 +53,12 @@ class Signal:
     def emit(self, *args):
         if self.blocked:
             return
-        for handle in self.listeners:
+        self._serve_listeners(self.priority_listeners, *args)
+        self._serve_listeners(self.listeners, *args)
+
+    @staticmethod
+    def _serve_listeners(listeners, *args):
+        for handle in listeners:
             if type(handle) == Signal:
                 handle.emit(*args)
             else:
