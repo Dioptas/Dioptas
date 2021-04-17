@@ -66,7 +66,7 @@ class OptionsController(object):
 
     def update_gui(self):
         self.options_widget.blockSignals(True)
-        self.options_widget.correct_solid_angle_cb.setChecked(self.model.current_configuration.correct_solid_angle)
+        self.options_widget.correct_solid_angle_cb.setChecked(int(self.model.current_configuration.correct_solid_angle))
         self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))
 
         self.options_widget.cake_azimuth_points_sb.setValue(self.model.current_configuration.cake_azimuth_points)

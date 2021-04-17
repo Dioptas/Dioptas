@@ -439,9 +439,9 @@ class ImageController(object):
         self.model.img_model.img_changed.emit()
 
     def update_mask_mode(self):
-        self.widget.integration_image_widget.mask_btn.setChecked(self.model.use_mask)
-        self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
-        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
+        self.widget.integration_image_widget.mask_btn.setChecked(bool(self.model.use_mask))
+        self.widget.mask_transparent_cb.setVisible(bool(self.model.use_mask))
+        self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
 
     def update_img_mode(self):
         self.widget.img_mode_btn.click()
@@ -503,7 +503,7 @@ class ImageController(object):
             self.widget.img_directory_txt.setText(directory)
 
     def update_img(self):
-        self.widget.img_step_series_widget.setVisible(self.model.img_model.series_max > 1)
+        self.widget.img_step_series_widget.setVisible(int(self.model.img_model.series_max > 1))
         self.widget.img_step_series_widget.pos_validator.setTop(self.model.img_model.series_max)
         self.widget.img_step_series_widget.pos_txt.setText(str(self.model.img_model.series_pos))
 
@@ -548,8 +548,8 @@ class ImageController(object):
             self.widget.img_widget.activate_roi()
             self.widget.img_widget.update_roi_shade_limits(self.model.img_data.shape)
 
-            pos = QtCore.QPoint(roi[2], roi[0])
-            size = QtCore.QPoint(roi[3] - roi[2], roi[1] - roi[0])
+            pos = QtCore.QPoint(int(roi[2]), int(roi[0]))
+            size = QtCore.QPoint(int(roi[3] - roi[2]), int(roi[1] - roi[0]))
             self.widget.img_widget.roi.setRoiLimits(pos, size)
 
             if not self.roi_active:
@@ -594,8 +594,8 @@ class ImageController(object):
         self.plot_cake()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
-        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi) / 2)
-        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi) / 2)
+        self.widget.cake_shift_azimuth_sl.setMinimum(int(-len(self.model.cake_azi) / 2))
+        self.widget.cake_shift_azimuth_sl.setMaximum(int(len(self.model.cake_azi) / 2))
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
         self.widget.img_phases_btn.setVisible(True)
 
@@ -1003,9 +1003,9 @@ class ImageController(object):
                             out_file.write("{:6.2f}".format(azi) + row_str + '\n')
 
     def update_gui_from_configuration(self):
-        self.widget.img_mask_btn.setChecked(self.model.use_mask)
-        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
-        self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
+        self.widget.img_mask_btn.setChecked(int(self.model.use_mask))
+        self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
+        self.widget.autoprocess_cb.setChecked(bool(self.model.img_model.autoprocess))
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
 
         self.update_img()
