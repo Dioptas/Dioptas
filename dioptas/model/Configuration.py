@@ -20,12 +20,12 @@
 
 import os
 import numpy as np
-from qtpy import QtCore
 
 from copy import deepcopy
 
 import h5py
 
+from .util import Signal
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 from .util import Pattern
@@ -34,13 +34,12 @@ from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .CalibrationModel import DetectorModes
 
 
-class Configuration(QtCore.QObject):
+class Configuration(object):
     """
     The configuration class contains a working combination of an ImgModel, PatternModel, MaskModel and CalibrationModel.
     It does handles the core data manipulation of Dioptas.
     The management of multiple Configurations is done by the DioptasModel.
     """
-    cake_changed = QtCore.Signal()
 
     def __init__(self, working_directories=None):
         super(Configuration, self).__init__()
@@ -74,6 +73,7 @@ class Configuration(QtCore.QObject):
         self.auto_save_integrated_pattern = False
         self.integrated_patterns_file_formats = ['.xy']
 
+        self.cake_changed = Signal()
         self._connect_signals()
 
     def _connect_signals(self):

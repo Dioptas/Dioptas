@@ -97,7 +97,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         name_item = QtWidgets.QTableWidgetItem(name + ':')
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        name_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        name_item.setTextAlignment(int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter))
         tw.setItem(new_row_ind, 0, name_item)
 
         value_item = NumberTextField('{:g}'.format(value))
@@ -105,7 +105,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         unit_item = QtWidgets.QTableWidgetItem(unit)
         unit_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        unit_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        unit_item.setTextAlignment(int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter))
         tw.setItem(new_row_ind, 2, unit_item)
 
         tw.resizeColumnToContents(0)

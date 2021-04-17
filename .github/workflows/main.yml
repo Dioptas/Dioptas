@@ -20,7 +20,7 @@ jobs:
     - name: Install Conda Dependencies
       shell: bash -l {0}
       run: |
-        conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph cython pyopengl pyopengl-accelerate
+        conda install --yes pycifrw pandas python-dateutil h5py scikit-image future qtpy pyfai lmfit mock pytest pytest-cov pyqtgraph cython watchdog pyopengl pyopengl-accelerate
         
     - name: Install Pip Dependencies
       shell: bash -l {0}
@@ -31,9 +31,10 @@ jobs:
       shell: bash -l {0}
       run: |
         xvfb-run -a py.test dioptas/tests/unit_tests
+
         xvfb-run -a py.test dioptas/tests/controller_tests/test_BackgroundController.py
-        xvfb-run -a py.test dioptas/tests/controller_tests/test_BatchController_part1.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_BatchController_part2.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_BatchController_part1.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_CalibrationController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_ConfigurationController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_CorrectionController.py
@@ -49,6 +50,7 @@ jobs:
         xvfb-run -a py.test dioptas/tests/controller_tests/test_PhaseController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_PhaseInCakeController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_PhaseInPatternController.py
+
         xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_integration.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
         xvfb-run -a py.test dioptas/tests/functional_tests/test_img_bg.py

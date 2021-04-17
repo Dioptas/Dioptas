@@ -25,7 +25,7 @@ except ImportError:
 else:
     karabo_installed = True
 
-__all__ = ['KaraboFile']
+__all__ = ['KaraboFile', 'karabo_installed']
 
 
 class KaraboFile:

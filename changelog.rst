@@ -1,3 +1,10 @@
+0.5.3 (under development)
+-------------------------
+
+Bug Fixes:
+    - no longer remove integrated intensities below 0, instead now only values with equal to 0 are removed
+      (this should fix all the issues with background corrected images)
+
 0.5.2 (stable 11/26/2020)
 -------------------------
 
