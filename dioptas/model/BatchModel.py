@@ -179,7 +179,8 @@ class BatchModel(QtCore.QObject):
         :param step: Step along images to integrate
         :param use_all: Use all images. If False use only images, that were already integrated.
         """
-        data = []
+        intensity_data = []
+        binning_data = []
         pos_map = []
         image_counter = 0
         current_file = ''
@@ -193,12 +194,12 @@ class BatchModel(QtCore.QObject):
 
         for index in range(start, stop, step):
             if use_all:
-                i_file, pos = self.pos_map_all[index]
+                file_index, pos = self.pos_map_all[index]
             else:
-                i_file, pos = self.pos_map[index]
-            if i_file != current_file:
-                current_file = i_file
-                self.calibration_model.img_model.load(self.files[i_file])
+                file_index, pos = self.pos_map[index]
+            if file_index != current_file:
+                current_file = file_index
+                self.calibration_model.img_model.load(self.files[file_index])
 
             if progress_dialog is not None and progress_dialog.wasCanceled():
                 break
@@ -210,14 +211,27 @@ class BatchModel(QtCore.QObject):
             if progress_dialog is not None:
                 progress_dialog.setValue(image_counter)
 
-            pos_map.append((i_file, pos))
-            data.append(intensity)
+            pos_map.append((file_index, pos))
+            intensity_data.append(intensity)
+            binning_data.append(binning)
+
+        # deal with different x lengths due to trimmed zeros:
+        binning_lengths = [len(binning) for binning in binning_data]
+        binning_max_length_ind = np.argmax(binning_lengths)
+        binning_max_length = binning_lengths[binning_max_length_ind]
+        binning = binning_data[binning_max_length_ind]
+
+        for ind in range(len(intensity_data)):
+            intensity_data[ind] = np.append(intensity_data[ind],
+                                            np.zeros((binning_max_length - binning_lengths[ind], 1)))
+
+        # finish and save everything
 
         if self.calibration_model.filename != '':
             self.used_calibration = self.calibration_model.filename
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
-        self.data = np.array(data)
+        self.data = np.array(intensity_data)
         self.n_img = self.data.shape[0]
 
     def extract_background(self, parameters, progress_dialog=None):

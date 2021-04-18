@@ -17,6 +17,7 @@ files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'
 
 cal_file = os.path.join(data_path, 'lambda/L2.poni')
 
+
 class BatchModelTest(QtTest):
     def setUp(self):
         self.img_model = ImgModel()
@@ -29,6 +30,7 @@ class BatchModelTest(QtTest):
 
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'detector_with_spline.h5'))
+        delete_if_exists(os.path.join(data_path, "test_save_proc.nxs"))
         del self.img_model
         del self.calibration_model.pattern_geometry
         del self.calibration_model
@@ -50,8 +52,7 @@ class BatchModelTest(QtTest):
 
         self.batch_model.integrate_raw_data(num_points, start, stop, step, use_all=True)
 
-        self.assertEqual(self.batch_model.binning.shape, (num_points,))
-        self.assertEqual(self.batch_model.data.shape, (8, num_points))
+        self.assertEqual(self.batch_model.data.shape[0], 8)
         self.assertEqual(self.batch_model.n_img, 8)
         self.assertTrue(np.all(self.batch_model.pos_map[0] == [0, 2]))
         self.assertEqual(self.batch_model.pos_map.shape, (8, 2))
@@ -78,13 +79,10 @@ class BatchModelTest(QtTest):
         self.batch_model.reset_data()
         self.batch_model.load_proc_data(os.path.join(data_path, "test_save_proc.nxs"))
 
-        self.assertEqual(self.batch_model.binning.shape, (num_points,))
-        self.assertEqual(self.batch_model.data.shape, (8, num_points))
+        self.assertEqual(self.batch_model.data.shape[0], 8)
         self.assertEqual(self.batch_model.n_img, 8)
         self.assertTrue(np.all(self.batch_model.pos_map[0] == [0, 2]))
         self.assertEqual(self.batch_model.pos_map.shape, (8, 2))
-
-        #os.remove(os.path.join(data_path, "test_save_proc.nxs"))
 
     def test_save_as_csv(self):
         self.batch_model.integrate_raw_data(num_points=1000, start=5, stop=10, step=2, use_all=True)
@@ -95,4 +93,4 @@ class BatchModelTest(QtTest):
     def test_extract_background(self):
         self.batch_model.integrate_raw_data(num_points=1000, start=5, stop=10, step=2, use_all=True)
         self.batch_model.extract_background(parameters=(0.1, 150, 50))
-        self.assertEqual(self.batch_model.bkg.shape, (3, 1000))
+        self.assertEqual(self.batch_model.bkg.shape[0], 3)
