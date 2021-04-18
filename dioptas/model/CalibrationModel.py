@@ -38,7 +38,7 @@ from .. import calibrants_path
 from .ImgModel import ImgModel
 from .util import Signal
 from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90, get_partial_index
-from .util.calc import supersample_image
+from .util.calc import supersample_image, trim_trailing_zeros
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -423,11 +423,8 @@ class CalibrationModel(object):
                                                                        filename=filename)
         logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
 
-        # remove for now due to issues with batch processing
-        # ind = np.where((self.int != 0) & (~np.isnan(self.int)))
-        # self.tth = self.tth[ind]
-        # self.int = self.int[ind]
-        
+        self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
+
         return self.tth, self.int
 
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr',
