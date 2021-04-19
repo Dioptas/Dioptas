@@ -589,4 +589,6 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         click_button(self.integration_widget.batch_widget.tth_btn)
         x4, y4 = self.model.pattern.data
-        self.assertTrue(np.array_equal(x1, x4))
+        self.assertTrue(np.array_equal(x1[:3000], x4[:3000]))
+        # can not be tested for full array, due trimming of zeros of the individual pattern during integration after
+        # changing of the unit
