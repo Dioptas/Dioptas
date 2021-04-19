@@ -148,6 +148,8 @@ class ImgWidget(QtCore.QObject):
         else:
             max_level = 0.5 * np.max(hist_x)
 
+        if len(hist_x[hist_x > 0]) > 0:
+            min_level = max(min_level, np.nanmin(hist_x[hist_x > 0]))
         self.img_histogram_LUT_vertical.setLevels(min_level, max_level)
         self.img_histogram_LUT_horizontal.setLevels(min_level, max_level)
 
