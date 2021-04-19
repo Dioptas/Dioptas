@@ -60,6 +60,8 @@ class BatchModel(QtCore.QObject):
 
         :param files: List of file names including path
         """
+        if files is None:
+            return
         pos_map = []
         file_map = [0]
         image_counter = 0
@@ -88,16 +90,21 @@ class BatchModel(QtCore.QObject):
         with h5py.File(filename, "r") as data_file:
             self.data = data_file['processed/result/data'][()]
             self.binning = data_file['processed/result/binning'][()]
+            self.n_img = self.data.shape[0]
+            self.n_img_all = self.data.shape[0]
+
+            if 'process' not in data_file['processed']:
+                logger.info("No matching to raw data")
+                return
+
             self.file_map = data_file['processed/process/file_map'][()]
             self.files = data_file['processed/process/files'][()].astype('U')
             self.pos_map = data_file['processed/process/pos_map'][()]
-            self.n_img = self.data.shape[0]
-            self.n_img_all = self.data.shape[0]
 
             self.used_calibration = str(data_file['processed/process/cal_file'][()])
             try:
                 self.calibration_model.load(self.used_calibration)
-            except:
+            except FileNotFoundError:
                 pass
 
             if 'mask' in data_file['processed/process/']:
@@ -257,6 +264,8 @@ class BatchModel(QtCore.QObject):
         :param index: Index of image in the batch
         :param use_all: Indexing with respect to all images. If False count only images, that were integrated.
         """
+        if self.pos_map_all is None or self.pos_map is None:
+            return "NA", index
         if use_all:
             if not self.raw_available:
                 return None, None
