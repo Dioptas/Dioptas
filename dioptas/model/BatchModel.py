@@ -264,13 +264,13 @@ class BatchModel(QtCore.QObject):
         :param index: Index of image in the batch
         :param use_all: Indexing with respect to all images. If False count only images, that were integrated.
         """
-        if self.pos_map_all is None or self.pos_map is None:
-            return "NA", index
         if use_all:
             if not self.raw_available:
                 return None, None
             f_index, pos = self.pos_map_all[index]
         else:
+            if self.pos_map is None:
+                return "NA", index
             f_index, pos = self.pos_map[index]
         filename = self.files[f_index]
         return filename, pos
