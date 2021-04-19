@@ -449,9 +449,10 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
     def move_image(self):
         cake_image = self.pg_layout.getItem(1, 1)
         self.pg_layout.removeItem(cake_image)
-        self.pg_layout.addItem(cake_image, 1, 2)
         cake_lut = self.pg_layout.getItem(0, 1)
         self.pg_layout.removeItem(cake_lut)
+        self.pg_layout.removeItem(self.pg_layout.getItem(1, 2))
+        self.pg_layout.addItem(cake_image, 1, 2)
         self.pg_layout.addItem(cake_lut, 0, 2)
 
     def add_cake_integral(self):
