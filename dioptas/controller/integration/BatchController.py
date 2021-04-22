@@ -666,6 +666,9 @@ class BatchController(object):
             data_file = h5py.File(filename, "r")
             if 'processed' in data_file:
                 return True
+            # ToDo Check for old format. To be removed
+            if 'data' in data_file:
+                return True
         return False
 
     def load_raw_data(self, filenames):

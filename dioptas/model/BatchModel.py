@@ -82,12 +82,41 @@ class BatchModel(QtCore.QObject):
         self.pos_map_all = np.array(pos_map)
         self.file_map = np.array(file_map)
 
+    def try_load_old_format(self, data_file):
+        self.data = data_file['data'][()]
+        self.binning = data_file['binning'][()]
+        self.file_map = data_file['file_map'][()]
+        self.files = data_file['files'][()].astype('U')
+        self.pos_map = data_file['pos_map'][()]
+        self.n_img = self.data.shape[0]
+        self.n_img_all = self.data.shape[0]
+        logger.info("Loading data using deprecated format")
+
+        try:
+            cal_file = str(data_file.attrs['calibration'])
+            self.calibration_model.load(cal_file)
+        except KeyError:
+            logger.info("Calibration info is not found")
+        except FileNotFoundError:
+            logger.info("Calibration file is not found")
+
+        if 'mask' in data_file.attrs:
+            mask_file = data_file.attrs['mask']
+            self.mask_model.load_mask(mask_file)
+
+        if 'bkg' in data_file:
+            self.data = data_file['bkg'][()]
+
     def load_proc_data(self, filename):
         """
         Load diffraction patterns and metadata from h5 file
 
         """
         with h5py.File(filename, "r") as data_file:
+            # ToDo To be removed
+            if 'processed/result' not in data_file:
+                self.try_load_old_format(data_file)
+                return
             self.data = data_file['processed/result/data'][()]
             self.binning = data_file['processed/result/binning'][()]
             self.n_img = self.data.shape[0]
