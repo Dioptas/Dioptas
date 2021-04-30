@@ -20,14 +20,20 @@
 
 from __future__ import absolute_import
 
+from matplotlib import cm
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
 from pyqtgraph.exporters.ImageExporter import ImageExporter
+from pyqtgraph.opengl import GLSurfacePlotItem
+from pyqtgraph.opengl import GLViewWidget, GLGridItem
+from pyqtgraph import GraphicsLayoutWidget
+
 import numpy as np
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
+from .Custom3DAxis import Custom3DAxis
 from ...model.util.HelperModule import calculate_color
 
 
@@ -142,6 +148,8 @@ class ImgWidget(QtCore.QObject):
         else:
             max_level = 0.5 * np.max(hist_x)
 
+        if len(hist_x[hist_x > 0]) > 0:
+            min_level = max(min_level, np.nanmin(hist_x[hist_x > 0]))
         self.img_histogram_LUT_vertical.setLevels(min_level, max_level)
         self.img_histogram_LUT_horizontal.setLevels(min_level, max_level)
 
@@ -443,9 +451,10 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
     def move_image(self):
         cake_image = self.pg_layout.getItem(1, 1)
         self.pg_layout.removeItem(cake_image)
-        self.pg_layout.addItem(cake_image, 1, 2)
         cake_lut = self.pg_layout.getItem(0, 1)
         self.pg_layout.removeItem(cake_lut)
+        self.pg_layout.removeItem(self.pg_layout.getItem(1, 2))
+        self.pg_layout.addItem(cake_image, 1, 2)
         self.pg_layout.addItem(cake_lut, 0, 2)
 
     def add_cake_integral(self):
@@ -513,6 +522,212 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
     def update_phase_intensities(self, ind, positions, intensities):
         if len(self.phases):
             self.phases[ind].update_lines(positions, intensities)
+
+
+class SurfWidget(QtWidgets.QWidget):
+    iteration_name = ''
+
+    def __init__(self):
+        super(SurfWidget, self).__init__()
+
+        self.lut_pg_layout = GraphicsLayoutWidget()
+        self.pg_layout = GLViewWidget()
+        self.surf_view_item = None
+        self.pressed_key = None
+        self.show_range = np.array([0.0, 1.0])
+        self.show_scale = np.array([2., 2., 1.])
+        self.g_translate = 0
+        self.g_pos = 0
+        self.marker = 0
+        self.marker_color = [1, 0, 0]
+        self.marker_size = 5
+        self.data = None
+
+        self.create_graphics()
+
+        self._lut_lo = QtWidgets.QVBoxLayout()
+        self._lut_lo.setContentsMargins(0, 0, 0, 0)
+        self._lut_lo.addWidget(self.lut_pg_layout)
+
+        self._lut_w = QtWidgets.QWidget()
+        self._lut_w.setMaximumHeight(80)
+        self._lut_w.setLayout(self._lut_lo)
+
+        self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+        self._layout.addWidget(self._lut_w)
+        self._layout.addWidget(self.pg_layout)
+
+        self.img_histogram_LUT_horizontal = HistogramLUTItem()
+        self.img_histogram_LUT_horizontal.gradient.loadPreset('jet')
+
+        self.img_histogram_LUT_horizontal.sigLevelsChanged.connect(self.update_color)
+        self.img_histogram_LUT_horizontal.sigLevelChangeFinished.connect(self.update_color)
+        self.img_histogram_LUT_horizontal.sigLookupTableChanged.connect(self.update_color)
+
+        self.lut_pg_layout.addItem(self.img_histogram_LUT_horizontal, 0, 1)
+
+        self.setLayout(self._layout)
+
+    def create_graphics(self):
+        self.g = GLGridItem()
+        self.g.rotate(90, 0, 1, 0)
+        self.g.setSize(1, 1, 0)
+        self.g.setSpacing(1, 0.1, 1)
+        self.g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+        self.pg_layout.addItem(self.g)
+
+        self.gx = GLGridItem()
+        self.gx.setSize(26, 4000, 0)
+        self.gx.setSpacing(1, 100, 1)
+        self.gx.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+        self.pg_layout.addItem(self.gx)
+
+        self.axis = Custom3DAxis(self.pg_layout, color=(0.9, 0.9, 0.9, .6), axis=[False, True, False])
+        self.axis.add_labels(y_label=u'2θ')
+
+        self.surf_view_item = GLSurfacePlotItem(z=np.array([[0]]),
+                                                colors=np.array([[0, 0, 0, 0]]),
+                                                smooth=False)
+        self.surf_view_item.setGLOptions('translucent')
+        self.pg_layout.addItem(self.surf_view_item)
+
+    def update_color(self):
+        if self.data is not None:
+            colors = self.get_colors(self.data).reshape(-1, 4)
+            self.surf_view_item.setData(z=self.data, colors=colors)
+
+    def plot_surf(self, data, start, step):
+        self.g_pos = int((self.g_translate-start)/step)
+        colors = self.get_colors(data).reshape(-1, 4)
+
+        abs_range = self.show_range * (np.nanmax(data) - np.nanmin(data)) + np.nanmin(data)
+        self.data = np.copy(data)
+        self.data[self.data > abs_range[1]] = abs_range[1]
+        self.data[self.data < abs_range[0]] = abs_range[0]
+
+        self.surf_view_item.setData(z=self.data, colors=colors)
+
+        self.img_histogram_LUT_horizontal.imageChanged(img_data=self.data)
+        self.img_histogram_LUT_horizontal.setLevels(np.nanmin(self.data), np.nanmax(self.data))
+
+        self.g.setSize(np.nanmax(data), self.data.shape[1], 0)
+        self.gx.setSize(self.data.shape[0], self.data.shape[1], 0)
+        self.axis.setSize(*self.show_scale)
+
+        self.update_scale(data)
+
+    def update_scale(self, data):
+        self.surf_view_item.resetTransform()
+
+        scale = [self.show_scale[0] / data.shape[0],
+                 self.show_scale[1] / data.shape[1],
+                 self.show_scale[2] / np.nanmax(data)]
+
+        self.surf_view_item.scale(*scale, local=False)
+
+        self.g.resetTransform()
+        self.g.rotate(90, 0, 1, 0)
+        self.g.translate(self.g_pos, data.shape[1] / 2., np.nanmax(data) / 2.)
+        self.g.scale(*scale, local=False)
+
+        self.gx.resetTransform()
+        self.gx.translate(data.shape[0] / 2., data.shape[1] / 2., 0)
+        self.gx.scale(*scale, local=False)
+
+        self.axis.setSize(*self.show_scale)
+        self.axis.diff = [self.show_scale[0] * self.g_pos / data.shape[0], 0, 0]
+
+    def get_colors(self, data):
+        lut = self.img_histogram_LUT_horizontal.gradient.getLookupTable(256) / 256.
+
+        level = self.img_histogram_LUT_horizontal.getExpLevels()
+        # int_data = ((data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data)) * 255).astype(int)
+        min = np.nanmin(data)
+        if level[0] > 1:
+            min = level[0]
+        int_data = ((data - min) / (level[1] - min) * 255).astype(int)
+        int_data[int_data > 255] = 255
+        int_data[int_data < 0] = 0
+        int_data = np.nan_to_num(int_data)
+        int_data[int_data < 0] = 0
+        colors_rgb = lut[int_data]
+        colors = np.ones((colors_rgb.shape[0], colors_rgb.shape[1], 4))
+        colors[..., :3] = colors_rgb
+
+        colors[:, int(self.marker):int(self.marker) + self.marker_size, :3] = self.marker_color
+        colors[self.g_pos, :, :3] = self.marker_color
+        return colors
+
+
+class IntegrationBatchWidget(IntegrationCakeWidget):
+    """
+    Class describe a widget for 2D image (Theta vs ImageNumber) of batch integration window.
+
+    """
+    def __init__(self, pg_layout, orientation='vertical'):
+        super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
+        self.create_horizontal_line()
+        self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
+
+    def move_image(self):
+        pass
+
+    def add_cake_integral(self):
+        pass
+
+    def modify_cake_integral_plot_mouse_behavior(self):
+        pass
+
+    def create_horizontal_line(self):
+        self.horizontal_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(0, 255, 0), width=2))
+        self.activate_horizontal_line()
+
+    def activate_horizontal_line(self):
+        if not self.horizontal_line in self.img_view_box.addedItems:
+            self.img_view_box.addItem(self.horizontal_line)
+            self.horizontal_line.setVisible(True)  # oddly this is needed for the line to be displayed correctly
+
+    def deactivate_horizontal_line(self):
+        if self.horizontal_line in self.img_view_box.addedItems:
+            self.img_view_box.removeItem(self.horizontal_line)
+
+    def set_horizontal_line_pos(self, x, y):
+        self.horizontal_line.setValue(y)
+
+    def draw_rectangle(self, x, y):
+        rect = MyRectangle(x, y, 0, 0, QtGui.QColor(255, 0, 0, 150))
+        self.img_view_box.addItem(rect)
+        return rect
+
+    def save_img(self, filename):
+        self.horizontal_line.hide()
+        self.vertical_line.hide()
+        self.mouse_click_item.hide()
+        self.pg_layout.removeItem(self.img_histogram_LUT_horizontal)
+
+        QtWidgets.QApplication.processEvents()
+        exporter = ImageExporter(self.pg_layout.scene())
+        exporter.parameters()['width'] = 2048
+        exporter.export(filename)
+
+        self.horizontal_line.show()
+        self.vertical_line.show()
+        self.mouse_click_item.show()
+        self.pg_layout.addItem(self.img_histogram_LUT_horizontal, row=0, col=1)
+
+    def add_cake_axes(self):
+        """
+        Describe axis of 2D plot
+        """
+        self.left_axis_cake = pg.AxisItem('left')
+        self.bottom_axis_cake = pg.AxisItem('bottom')
+        self.bottom_axis_cake.setLabel(u'2θ', u'°')
+        self.left_axis_cake.setLabel(u'Image number', u'')
+
+        self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
+        self.pg_layout.addItem(self.left_axis_cake, 1, 0)
 
 
 class CakePhasePlot(object):

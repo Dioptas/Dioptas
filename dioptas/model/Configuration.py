@@ -30,7 +30,7 @@ from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCor
 
 from .util import Pattern
 from .util.calc import convert_units
-from . import ImgModel, CalibrationModel, MaskModel, PatternModel
+from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .CalibrationModel import DetectorModes
 
 
@@ -47,11 +47,12 @@ class Configuration(object):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
+        self.batch_model = BatchModel(self.calibration_model, self.mask_model)
         self.pattern_model = PatternModel()
 
         if working_directories is None:
             self.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"), 'pattern': '',
-                                        'overlay': '', 'phase': ''}
+                                        'overlay': '', 'phase': '', 'batch': os.path.expanduser("~")}
         else:
             self.working_directories = working_directories
 
@@ -409,7 +410,7 @@ class Configuration(object):
                 working_directories_gp.attrs[key] = self.working_directories[key]
         except TypeError:
             self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
-                                        'phase': ''}
+                                        'phase': '', 'batch': ''}
             for key in self.working_directories:
                 working_directories_gp.attrs[key] = self.working_directories[key]
 

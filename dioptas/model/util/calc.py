@@ -70,3 +70,17 @@ def supersample_image(img_data, factor):
         return img_data_supersampled
     else:
         return img_data
+
+
+def trim_trailing_zeros(x, y):
+    """
+    Trims the trailing zeros of a x, y pattern
+    :param x: x-values
+    :param y: y-values
+    :return: trimmed x, y values as tuple (x, y)
+    """
+
+    y_trim = np.trim_zeros(y, 'b')
+    x_trim = x[:len(y_trim)]
+
+    return x_trim, y_trim
