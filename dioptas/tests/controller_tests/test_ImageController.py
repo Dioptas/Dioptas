@@ -191,7 +191,7 @@ class ImageControllerTest(QtTest):
         self.assertFalse(np.array_equal(x, self.widget.cake_widget.cake_integral_item.xData))
 
     def test_loading_series_karabo_file_shows_correct_gui(self):
-        from dioptas.model.util.KaraboLoader import karabo_installed
+        from dioptas.model.loader.KaraboLoader import karabo_installed
         if not karabo_installed:
             return
         filename = os.path.join(unittest_data_path, 'karabo_epix.h5')
@@ -202,7 +202,7 @@ class ImageControllerTest(QtTest):
         self.assertTrue(file_widget.step_series_widget.isVisible())
 
     def test_fileinfo_and_move_button_visibility(self):
-        from dioptas.model.util.KaraboLoader import karabo_installed
+        from dioptas.model.loader.KaraboLoader import karabo_installed
         if not karabo_installed:
             return
         filename = os.path.join(unittest_data_path, 'image_001.tif')
