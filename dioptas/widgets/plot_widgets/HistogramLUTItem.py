@@ -38,6 +38,11 @@ __all__ = ['HistogramLUTItem']
 pyqtgraph.graphicsItems.GradientEditorItem.Gradients['grey_inverse'] = \
     {'ticks': [(0.0, (255, 255, 255, 255)), (1.0, (0, 0, 0, 255))], 'mode': 'rgb'}
 
+pyqtgraph.graphicsItems.GradientEditorItem.Gradients['jet'] = \
+    {'ticks': [(0.0, (0, 0, 128, 255)), (0.1, (0, 0, 255, 255)),
+               (0.4, (0, 255, 255, 255)), (0.5, (0, 255, 0, 255)),
+               (0.6, (255, 255, 0, 255)), (0.9, (255, 0, 0, 255)), (1.0, (128, 0, 0, 255))], 'mode': 'rgb'}
+
 # set the error handling for numpy
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -234,8 +239,13 @@ class HistogramLUTItem(GraphicsWidget):
         self.sigLevelsChanged.emit(self)
         self.update()
 
-    def imageChanged(self, autoRange=False):
-        hist_x, hist_y = list(self.imageItem.getHistogram(bins=3000))
+    def imageChanged(self, autoRange=False, img_data=None):
+
+        if img_data is not None:
+            hist = np.histogram(img_data, bins=3000)
+            hist_x, hist_y = hist[1][:-1], hist[0]
+        else:
+            hist_x, hist_y = list(self.imageItem.getHistogram(bins=3000))
 
         if hist_x is None:
             return
