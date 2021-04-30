@@ -25,16 +25,18 @@ import copy
 
 import numpy as np
 from PIL import Image
+import h5py
 
 import fabio
 
 from .util import Signal
-from .util.spe import SpeFile
+from dioptas.model.loader.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
-from .util.LambdaLoader import LambdaImage
-from .util.KaraboLoader import KaraboFile
+from dioptas.model.loader.LambdaLoader import LambdaImage
+from dioptas.model.loader.KaraboLoader import KaraboFile
+from dioptas.model.loader.hdf5Loader import Hdf5Image
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +95,14 @@ class ImgModel(object):
 
             # function to get an image in the current series. A function assigned to this attribute should take
             # a single parameter pos (position in the series starting at 0) and return a 2d array with the image data
-            {"name": "series_get_image", "default": None, "attribute": "series_get_image"}
+            {"name": "series_get_image", "default": None, "attribute": "series_get_image"},
+
+            # list of sources for different image series within 1 file. This is used by an HDF5 file with several
+            # datasets
+            {"name": "sources", "default": None, "attribute": "sources"},
+
+            # a function to select a source:
+            {"name": "select_source", "default": None, "attribute": "_select_source"}
         ]
 
         # set the loadable attributes to their defaults
@@ -136,7 +145,7 @@ class ImgModel(object):
 
         self._perform_img_transformations()
         self._calculate_img_data()
-        self.series_pos = pos+1
+        self.series_pos = pos + 1
 
         self.img_changed.emit()
 
@@ -149,7 +158,8 @@ class ImgModel(object):
         :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names.
                  Present key names depend on applied image loader
         """
-        img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda, self.load_karabo]
+        img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda, self.load_karabo,
+                       self.load_hdf5]
 
         for loader in img_loaders:
             data = loader(filename, pos)
@@ -256,6 +266,36 @@ class ImgModel(object):
         return {"img_data": karabo_file.get_image(pos),
                 "series_max": karabo_file.series_max,
                 "series_get_image": karabo_file.get_image}
+
+    def load_hdf5(self, filename, pos):
+        """
+        Loads an ESRF hdf5 file
+        :param filename: filename with path to *.h5 ESRF file
+        :return: dictionary with img_data of the first image in the first source, dataset_list, series_max, and
+                 series_get_image
+        """
+
+        hdf5_image = Hdf5Image(filename)
+
+        return {"img_data": hdf5_image.get_image(pos),
+                "series_max": hdf5_image.series_max,
+                "series_get_image": hdf5_image.get_image,
+                "sources": hdf5_image.image_sources,
+                "select_source": hdf5_image.select_source}
+
+    def select_source(self, source):
+        """
+        Selects a source from the available sources and loads updates the current image in the model.
+        :param source: string for source (check sources for available strings for the corresponding file)
+        """
+        self._select_source(source)
+        self.series_pos = min(self.series_pos, self.series_max)
+        self._img_data = self.series_get_image(self.series_pos - 1)
+
+        self._perform_img_transformations()
+        self._calculate_img_data()
+
+        self.img_changed.emit()
 
     def save(self, filename):
         """
