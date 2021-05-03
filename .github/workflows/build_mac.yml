@@ -20,6 +20,8 @@ jobs:
       with:
         auto-activate-base: true
         activate-environment: ""
+
+    - name: Get information about conda
       run: |
         conda info
         conda list
