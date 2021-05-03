@@ -80,15 +80,19 @@ fabio_hiddenimports = [
     "fabio.mrcimage"
 ]
 
+pyqtgraph_hiddenimports = [
+    "pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5",
+    "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5"
+]
+
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
              binaries=binaries,
              datas=extra_datas,
              hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
                             'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
-                            'pywt._extensions._cwt', 'pkg_resources.py2_warn',
-                            'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5'] +
-                           fabio_hiddenimports,
+                            'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
+                           fabio_hiddenimports + pyqtgraph_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=['PyQt4', 'PySide'],
