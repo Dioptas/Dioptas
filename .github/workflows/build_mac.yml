@@ -16,10 +16,7 @@ jobs:
     - run: git fetch --prune --unshallow
 
     - name: Use Miniconda
-      uses: conda-incubator/setup-miniconda@v2
-      with:
-        auto-activate-base: true
-        activate-environment: ""
+      uses: s-weigand/setup-conda@v1
 
     - name: Get information about conda
       run: |
