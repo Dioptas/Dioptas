@@ -20,6 +20,16 @@ jobs:
       with:
         auto-activate-base: true
         activate-environment: ""
+      run: |
+        conda info
+        conda list
+        conda config --show-sources
+        conda config --show
+        which python
+        which conda
+        which pip
+
+
     - name: install pip
       run: conda install pip -y
 
