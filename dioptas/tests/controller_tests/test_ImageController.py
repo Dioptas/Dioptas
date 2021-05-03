@@ -215,3 +215,29 @@ class ImageControllerTest(QtTest):
         self.model.img_model.load(filename)
         self.assertTrue(self.widget.file_info_btn.isVisible())
         self.assertTrue(self.widget.file_info_btn.isVisible())
+
+    def test_sources_visibility(self):
+        file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
+        self.widget.show()
+        self.assertFalse(file_widget.sources_widget.isVisible())
+
+        # load file with different sources
+        filename = os.path.join(unittest_data_path, 'hdf5_dataset', 'ma4500_demoh5.h5')
+        self.model.img_model.load(filename)
+        self.assertTrue(file_widget.sources_widget.isVisible())
+
+        # load file without sources
+        filename = os.path.join(unittest_data_path, 'image_001.tif')
+        self.model.img_model.load(filename)
+        self.assertFalse(file_widget.sources_widget.isVisible())
+
+    def test_sources_are_updated_in_sources_combobox(self):
+        file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
+        filename = os.path.join(unittest_data_path, 'hdf5_dataset', 'ma4500_demoh5.h5')
+        self.model.img_model.load(filename)
+
+        self.assertGreater(file_widget.sources_cb.count(), 0)
+        self.assertEqual(file_widget.sources_cb.count(), len(self.model.img_model.sources))
+
+        file_widget.sources_cb.setCurrentIndex(2)
+        self.assertEqual(file_widget.sources_cb.currentText(), self.model.img_model.sources[2])
