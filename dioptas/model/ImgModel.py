@@ -64,6 +64,7 @@ class ImgModel(object):
 
         self.series_pos = 1
         self.series_max = 1
+        self.selected_source = None
 
         self._img_data = None
         self._img_data_background_subtracted = None
@@ -276,12 +277,15 @@ class ImgModel(object):
         """
 
         hdf5_image = Hdf5Image(filename)
+        self.loader = hdf5_image
+        self.selected_source = hdf5_image.image_sources[0]
 
         return {"img_data": hdf5_image.get_image(pos),
                 "series_max": hdf5_image.series_max,
                 "series_get_image": hdf5_image.get_image,
                 "sources": hdf5_image.image_sources,
-                "select_source": hdf5_image.select_source}
+                "select_source": hdf5_image.select_source
+                }
 
     def select_source(self, source):
         """
@@ -289,6 +293,8 @@ class ImgModel(object):
         :param source: string for source (check sources for available strings for the corresponding file)
         """
         self._select_source(source)
+        self.selected_source = source
+        self.series_max = self.loader.series_max
         self.series_pos = min(self.series_pos, self.series_max)
         self._img_data = self.series_get_image(self.series_pos - 1)
 

@@ -20,7 +20,7 @@
 
 from qtpy import QtWidgets, QtGui, QtCore
 
-from ..CustomWidgets import LabelAlignRight, FlatButton, HorizontalSpacerItem, HorizontalLine
+from ..CustomWidgets import LabelAlignRight, FlatButton, CleanLooksComboBox
 
 
 class MouseCurrentAndClickedWidget(QtWidgets.QWidget):
@@ -159,8 +159,15 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
         self._directory_layout.addWidget(self.directory_txt)
         self._directory_layout.addWidget(self.directory_btn)
         self._layout.addLayout(self._directory_layout, 3, 0, 1, 5)
-        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum,
-                                                   QtWidgets.QSizePolicy.Minimum), 1, 5)
+
+        self.sources_widget = QtWidgets.QWidget()
+        self.sources_cb = CleanLooksComboBox()
+        self._sources_layout = QtWidgets.QHBoxLayout()
+        self._sources_layout.setContentsMargins(0, 0, 0, 0)
+        self._sources_layout.addWidget(LabelAlignRight('Source:'))
+        self._sources_layout.addWidget(self.sources_cb)
+        self.sources_widget.setLayout(self._sources_layout)
+        self._layout.addWidget(self.sources_widget, 4, 0, 1, 5)
 
         self.setLayout(self._layout)
 
