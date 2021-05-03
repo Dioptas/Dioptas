@@ -14,20 +14,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: git fetch --prune --unshallow
-    - name: Setup Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
 
-    - name: Use Python Dependency Cache
-      id: pip-cache
-      uses: actions/cache@v1
+    - name: Use Miniconda
+      uses: conda-incubator/setup-miniconda@v2
       with:
-        path: ~/Library/Caches/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-        
+        auto-activate-base: true
+        activate-environment: ""
+    - name: install pip
+      run: conda install pip -y
+
     - name: Install Pip Dependencies
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics pyinstaller cython watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph
