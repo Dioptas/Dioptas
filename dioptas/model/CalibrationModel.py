@@ -423,7 +423,8 @@ class CalibrationModel(object):
                                                                        filename=filename)
         logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
 
-        self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
+        if np.sum(self.int) != 0:  # only trim zeros if not everything is 0 (e.g. bkg-subtraction of the same image)
+            self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
 
         return self.tth, self.int
 
