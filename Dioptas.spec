@@ -82,7 +82,8 @@ fabio_hiddenimports = [
 
 pyqtgraph_hiddenimports = [
     "pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5",
-    "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5"
+    "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5",
+    "pyqtgraph.imageview.ImageViewTemplate_pyqt5"
 ]
 
 a = Analysis(['Dioptas.py'],
