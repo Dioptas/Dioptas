@@ -17,7 +17,7 @@ jobs:
     - name: Setup Python 3.9
       uses: actions/setup-python@v2
       with:
-        python-version: 3.9
+        python-version: 3.6
 
     - name: Use Python Dependency Cache
       id: pip-cache
@@ -30,7 +30,7 @@ jobs:
         
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics pyinstaller cython watchdog pyopengl pyopengl-accelerate
+        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics pyinstaller cython watchdog pyopengl pyopengl-accelerate h5py hdf5plugin
         pip install --pre pyqtgraph
 
 #    - name: Compile smooth_bruckner
