@@ -96,7 +96,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
 
 def main():
     app = QtWidgets.QApplication([])
-    sys.excepthook = excepthook
+    # sys.excepthook = excepthook
     from .controller.MainController import MainController
     print("Dioptas {}".format(__version__))
 
