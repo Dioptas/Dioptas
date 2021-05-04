@@ -191,7 +191,7 @@ class ImageControllerTest(QtTest):
         self.assertFalse(np.array_equal(x, self.widget.cake_widget.cake_integral_item.xData))
 
     def test_loading_series_karabo_file_shows_correct_gui(self):
-        from dioptas.model.util.KaraboLoader import karabo_installed
+        from dioptas.model.loader.KaraboLoader import karabo_installed
         if not karabo_installed:
             return
         filename = os.path.join(unittest_data_path, 'karabo_epix.h5')
@@ -202,7 +202,7 @@ class ImageControllerTest(QtTest):
         self.assertTrue(file_widget.step_series_widget.isVisible())
 
     def test_fileinfo_and_move_button_visibility(self):
-        from dioptas.model.util.KaraboLoader import karabo_installed
+        from dioptas.model.loader.KaraboLoader import karabo_installed
         if not karabo_installed:
             return
         filename = os.path.join(unittest_data_path, 'image_001.tif')
@@ -215,3 +215,29 @@ class ImageControllerTest(QtTest):
         self.model.img_model.load(filename)
         self.assertTrue(self.widget.file_info_btn.isVisible())
         self.assertTrue(self.widget.file_info_btn.isVisible())
+
+    def test_sources_for_hdf5_files(self):
+        file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
+        self.widget.show()
+        self.assertFalse(file_widget.sources_widget.isVisible())
+
+        # load file with different sources
+        filename = os.path.join(unittest_data_path, 'hdf5_dataset', 'ma4500_demoh5.h5')
+        self.model.img_model.load(filename)
+        self.assertTrue(file_widget.sources_widget.isVisible())
+
+        # load file without sources
+        filename = os.path.join(unittest_data_path, 'image_001.tif')
+        self.model.img_model.load(filename)
+        self.assertFalse(file_widget.sources_widget.isVisible())
+
+    def test_sources_are_updated_in_sources_combobox(self):
+        file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
+        filename = os.path.join(unittest_data_path, 'hdf5_dataset', 'ma4500_demoh5.h5')
+        self.model.img_model.load(filename)
+
+        self.assertGreater(file_widget.sources_cb.count(), 0)
+        self.assertEqual(file_widget.sources_cb.count(), len(self.model.img_model.sources))
+
+        file_widget.sources_cb.setCurrentIndex(2)
+        self.assertEqual(file_widget.sources_cb.currentText(), self.model.img_model.sources[2])
