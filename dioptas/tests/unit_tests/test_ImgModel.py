@@ -254,6 +254,15 @@ class ImgModelTest(QtTest):
         self.img_model.load(os.path.join(spe_path, 'CeO2_PI_CCD_Mo.SPE'))
         self.assertEqual(self.img_model.img_data.shape, (1042, 1042))
 
+    def test_loading_ESRF_hdf5_file(self):
+        self.img_model.load(os.path.join(data_path, 'hdf5_dataset', 'ma4500_demoh5.h5'))
+        self.assertEqual(self.img_model.img_data.shape, (2048, 2048))
+
+        img1 = self.img_model.img_data
+        self.img_model.select_source(self.img_model.sources[2])
+        img2 = self.img_model.img_data
+        self.assertNotEqual(np.sum(img1-img2), 0)
+
     def test_summing_files(self):
         data1 = np.copy(self.img_model._img_data).astype(np.uint32)
         self.img_model.add(os.path.join(data_path, 'image_001.tif'))

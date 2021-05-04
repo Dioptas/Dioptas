@@ -37,7 +37,7 @@ def integrate(args):
 
         # Dioptas is included here after changed the affinity because then it works faster
         from dioptas.model import MaskModel
-        from dioptas.model.util.LambdaLoader import LambdaImage
+        from dioptas.model.loader.LambdaLoader import LambdaImage
         from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
         from pyFAI.geometryRefinement import GeometryRefinement
 

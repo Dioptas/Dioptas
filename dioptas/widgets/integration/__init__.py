@@ -93,14 +93,15 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_mode = 'Image'
 
     def create_shortcuts(self):
-        img_file_widget = self.integration_control_widget.img_control_widget.file_widget
-        self.load_img_btn = img_file_widget.load_btn
-        self.autoprocess_cb = img_file_widget.file_cb
-        self.img_step_file_widget = img_file_widget.step_file_widget
-        self.img_step_series_widget = img_file_widget.step_series_widget
-        self.img_filename_txt = img_file_widget.file_txt
-        self.img_directory_txt = img_file_widget.directory_txt
-        self.img_directory_btn = img_file_widget.directory_btn
+        img_control_widget = self.integration_control_widget.img_control_widget.file_widget
+        self.image_control_widget = img_control_widget
+        self.load_img_btn = img_control_widget.load_btn
+        self.autoprocess_cb = img_control_widget.file_cb
+        self.img_step_file_widget = img_control_widget.step_file_widget
+        self.img_step_series_widget = img_control_widget.step_series_widget
+        self.img_filename_txt = img_control_widget.file_txt
+        self.img_directory_txt = img_control_widget.directory_txt
+        self.img_directory_btn = img_control_widget.directory_btn
         self.file_info_btn = self.integration_control_widget.img_control_widget.file_info_btn
         self.move_btn = self.integration_control_widget.img_control_widget.move_btn
         self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
