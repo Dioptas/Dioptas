@@ -216,7 +216,7 @@ class ImageControllerTest(QtTest):
         self.assertTrue(self.widget.file_info_btn.isVisible())
         self.assertTrue(self.widget.file_info_btn.isVisible())
 
-    def test_sources_visibility(self):
+    def test_sources_for_hdf5_files(self):
         file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
         self.widget.show()
         self.assertFalse(file_widget.sources_widget.isVisible())
