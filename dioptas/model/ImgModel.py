@@ -37,6 +37,7 @@ from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, Tr
 from dioptas.model.loader.LambdaLoader import LambdaImage
 from dioptas.model.loader.KaraboLoader import KaraboFile
 from dioptas.model.loader.hdf5Loader import Hdf5Image
+from dioptas.model.loader.FabioLoader import FabioLoader
 
 logger = logging.getLogger(__name__)
 
@@ -226,9 +227,13 @@ class ImgModel(object):
         :return: dictionary with image_data and image_data_fabio, None if unsuccessful
         """
         try:
-            img_data_fabio = fabio.open(filename)
-            img_data = img_data_fabio.data[::-1]
-            return {"img_data_fabio": img_data_fabio, "img_data": img_data}
+            self.loader = FabioLoader(filename)
+            return {
+                "img_data_fabio": self.loader.fabio_image,
+                "img_data": self.loader.get_image(),
+                "series_max": self.loader.series_max,
+                "series_get_image": self.loader.get_image
+            }
         except (IOError, fabio.fabioutils.NotGoodReader):
             return None
 
