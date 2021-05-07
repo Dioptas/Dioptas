@@ -631,7 +631,7 @@ class BatchController(object):
         start_dir = self.model.working_directories.get('batch', os.path.expanduser("~"))
         filenames = open_files_dialog(self.widget, "Load image data file(s)",
                                       start_dir,
-                                      ('Raw data (*.nxs *.tif *.tiff);;'
+                                      ('Raw data (*.nxs *.tif *.tiff *.h5);;'
                                        'Proc data (*.nxs)')
                                       )
         if len(filenames) == 0:

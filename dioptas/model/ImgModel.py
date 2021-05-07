@@ -220,28 +220,29 @@ class ImgModel(object):
         else:
             return None
 
-    def load_fabio(self, filename, *args):
+    def load_fabio(self, filename, frame_index=0):
         """
         Loads an image using the fabio library.
         :param filename: path to the image file to be loaded
+        :param frame_index: frame index of the image file to be loaded inside of multi-frame file
         :return: dictionary with image_data and image_data_fabio, None if unsuccessful
         """
         try:
             self.loader = FabioLoader(filename)
             return {
                 "img_data_fabio": self.loader.fabio_image,
-                "img_data": self.loader.get_image(),
+                "img_data": self.loader.get_image(frame_index),
                 "series_max": self.loader.series_max,
                 "series_get_image": self.loader.get_image
             }
         except (IOError, fabio.fabioutils.NotGoodReader):
             return None
 
-    def load_lambda(self, filename, pos=0):
+    def load_lambda(self, filename, frame_index=0):
         """
         loads an image made by a lambda detector using the builtin lambda library.
         :param filename: path to the image file to be loaded
-        :param pos: position of image in the image file to be loaded
+        :param frame_index: frame index of the image file to be loaded inside of multi-frame file
         :return: dictionary with img_data, series_max and series_get_image, None if unsuccessful
         """
         try:
@@ -249,17 +250,17 @@ class ImgModel(object):
         except IOError:
             return None
 
-        if pos >= lambda_im.series_max:
+        if frame_index >= lambda_im.series_max:
             return None
-        return {"img_data": lambda_im.get_image(pos),
+        return {"img_data": lambda_im.get_image(frame_index),
                 "series_max": lambda_im.series_max,
                 "series_get_image": lambda_im.get_image}
 
-    def load_karabo(self, filename, pos=0):
+    def load_karabo(self, filename, frame_index=0):
         """
         Loads an Imageseries created from within the karabo-framework at XFEL.
         :param filename: path to the *.h5 karabo file
-        :param pos: position of image in the image file to be loaded
+        :param frame_index: position of image in the image file to be loaded
         :return: dictionary with img_data of the first train_id, series_start, series_max and series_get_image,
                  None if unsuccessful
         """
@@ -267,16 +268,17 @@ class ImgModel(object):
             karabo_file = KaraboFile(filename)
         except IOError:
             return None
-        if pos >= karabo_file.series_max:
+        if frame_index >= karabo_file.series_max:
             return None
-        return {"img_data": karabo_file.get_image(pos),
+        return {"img_data": karabo_file.get_image(frame_index),
                 "series_max": karabo_file.series_max,
                 "series_get_image": karabo_file.get_image}
 
-    def load_hdf5(self, filename, pos):
+    def load_hdf5(self, filename, frame_index=0):
         """
         Loads an ESRF hdf5 file
         :param filename: filename with path to *.h5 ESRF file
+        :param frame_index: frame index for multi-image file
         :return: dictionary with img_data of the first image in the first source, dataset_list, series_max, and
                  series_get_image
         """
@@ -285,7 +287,7 @@ class ImgModel(object):
         self.loader = hdf5_image
         self.selected_source = hdf5_image.image_sources[0]
 
-        return {"img_data": hdf5_image.get_image(pos),
+        return {"img_data": hdf5_image.get_image(frame_index),
                 "series_max": hdf5_image.series_max,
                 "series_get_image": hdf5_image.get_image,
                 "sources": hdf5_image.image_sources,
