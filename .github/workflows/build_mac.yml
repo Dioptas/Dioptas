@@ -35,8 +35,7 @@ jobs:
     - name: Install Pip Dependencies
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics \
-                    pyinstaller cython watchdog pyopengl pyopengl-accelerate h5py hdf5plugin
-        pip install --pre pyqtgraph
+                    pyinstaller cython watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph
 
 #    - name: Compile smooth_bruckner
 #      run: |
