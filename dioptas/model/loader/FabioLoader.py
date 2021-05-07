@@ -18,42 +18,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import h5py
-import hdf5plugin
+import fabio
 
 
-class Hdf5Image:
+class FabioLoader:
     def __init__(self, filename):
         """
         Loads an Hdf5 image produced by ESRF
         :param filename: path to the hdf5 file to be loaded
         """
 
-        self.f = h5py.File(filename, 'r')
-        self.image_sources = find_image_sources(self.f)
+        self.fabio_image = fabio.open(filename)
+        self.series_max = self.fabio_image.nframes
 
-        self.dataset = self.f[self.image_sources[0]]
-        self.series_max = self.dataset.shape[0]
-
-    def get_image(self, ind):
-        return self.dataset[ind]
-
-    def select_source(self, source):
-        self.dataset = self.f[source]
-        self.series_max = self.dataset.shape[0]
-
-
-def find_image_sources(hd5_file):
-    image_paths = []
-
-    def traverse_groups(group, parent_path=''):
-        if isinstance(group, h5py.Dataset):
-            if len(group.shape) >= 3:
-                image_paths.append(parent_path)
-        else:  # node is a group
-            for key in group.keys():
-                traverse_groups(group[key], parent_path + '/' + key)
-
-    traverse_groups(hd5_file)
-
-    return image_paths
+    def get_image(self, ind=0):
+        return self.fabio_image.get_frame(ind).data[::-1]
