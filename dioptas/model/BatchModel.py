@@ -101,8 +101,11 @@ class BatchModel(QtCore.QObject):
             logger.info("Calibration file is not found")
 
         if 'mask' in data_file.attrs:
-            mask_file = data_file.attrs['mask']
-            self.mask_model.load_mask(mask_file)
+            try:
+                mask_file = data_file.attrs['mask']
+                self.mask_model.load_mask(mask_file)
+            except FileNotFoundError:
+                logger.info("Mask file is not found")
 
         if 'bkg' in data_file:
             self.data = data_file['bkg'][()]
@@ -142,10 +145,13 @@ class BatchModel(QtCore.QObject):
                 self.mask_model.set_mask(mask)
 
             if 'mask_file' in data_file['processed/process/']:
-                self.used_mask = str(data_file['processed/process/mask_file'][()])
-                mask_data = np.array(Image.open(self.used_mask))
-                self.mask_model.set_dimension(mask_data.shape)
-                self.mask_model.load_mask(self.used_mask)
+                try:
+                    self.used_mask = str(data_file['processed/process/mask_file'][()])
+                    mask_data = np.array(Image.open(self.used_mask))
+                    self.mask_model.set_dimension(mask_data.shape)
+                    self.mask_model.load_mask(self.used_mask)
+                except FileNotFoundError:
+                    logger.info(f"Mask file {self.used_mask} is not found")
 
             if 'bkg' in data_file['processed/process/']:
                 self.bkg = data_file['processed/process/bkg'][()]
