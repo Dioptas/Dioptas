@@ -70,6 +70,8 @@ class BatchModel(QtCore.QObject):
             if file[-4:] == '.tif':
                 n_img = 1
             else:
+                if not os.path.exists(file):
+                    return
                 self.calibration_model.img_model.load(file)
                 n_img = self.calibration_model.img_model.series_max
             image_counter += n_img
