@@ -94,11 +94,10 @@ class BatchModel(QtCore.QObject):
 
         try:
             cal_file = str(data_file.attrs['calibration'])
-            self.calibration_model.load(cal_file)
+            if os.path.isfile(cal_file):
+                self.calibration_model.load(cal_file)
         except KeyError:
             logger.info("Calibration info is not found")
-        except FileNotFoundError:
-            logger.info("Calibration file is not found")
 
         if 'mask' in data_file.attrs:
             try:
@@ -134,10 +133,8 @@ class BatchModel(QtCore.QObject):
             self.pos_map = data_file['processed/process/pos_map'][()]
 
             self.used_calibration = str(data_file['processed/process/cal_file'][()])
-            try:
+            if os.path.isfile(self.used_calibration):
                 self.calibration_model.load(self.used_calibration)
-            except FileNotFoundError:
-                pass
 
             if 'mask' in data_file['processed/process/']:
                 mask = data_file['processed/process/mask'][()]
