@@ -31,7 +31,7 @@ jobs:
     - name: Install Pip Dependencies
       run: |
         pip install pycifrw pandas numpy==1.19.3 python-dateutil h5py cython scikit-image pyqt5 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate
-        pip install --pre pyqtgraph
+        pip install --pre pyqtgraph==0.11.0
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas\model\util\smooth_bruckner_cython.pyx
