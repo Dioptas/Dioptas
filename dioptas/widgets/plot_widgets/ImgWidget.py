@@ -91,9 +91,11 @@ class ImgWidget(QtCore.QObject):
         if orientation == 'horizontal':
             self.img_histogram_LUT_vertical.hide()
             self.img_histogram_LUT_horizontal.show()
+            self.img_histogram_LUT_vertical.gradient = self.img_histogram_LUT_horizontal.gradient
         elif orientation == 'vertical':
             self.img_histogram_LUT_horizontal.hide()
             self.img_histogram_LUT_vertical.show()
+            self.img_histogram_LUT_horizontal.gradient = self.img_histogram_LUT_vertical.gradient
         self.orientation = orientation
 
     def create_scatter_plot(self):
