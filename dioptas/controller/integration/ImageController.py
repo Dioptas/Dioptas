@@ -576,6 +576,10 @@ class ImageController(object):
             self.widget.img_phases_btn.setText('Show Phases')
 
     def activate_cake_mode(self):
+        if self.model.calibration_model.cake_geometry is None:
+            self.widget.show_error_msg("Can not switch to the cake mode without calibration.")
+            return
+
         if not self.model.current_configuration.auto_integrate_cake:
             self.model.current_configuration.auto_integrate_cake = True
 
