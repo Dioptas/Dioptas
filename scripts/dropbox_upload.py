@@ -15,9 +15,7 @@ if os.getenv('DROPBOX_TOKEN') == None:
 
 target_path = sys.argv[2]
 dir_name, file_name = os.path.split(target_path)
-print("Name: ", target_path, file_name)
 base_name = "_".join(file_name.split("_")[1:])
-print("base ", dir_name, base_name)
 ts = datetime.now().strftime("%Y-%m-%d_%H-%M")
 new_path = f"{dir_name}/Dioptas_{ts}_{base_name}"
 db = Dropbox(os.getenv('DROPBOX_TOKEN'))
