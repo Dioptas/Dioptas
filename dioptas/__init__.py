@@ -35,9 +35,6 @@ from .controller.MainController import MainController
 if _platform != "linux" or _platform != "linux2":  # does not work correctly on linux
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
-__version__ = get_version()
-dioptas_version = __version__[:5]
-
 
 def main():
     app = QtWidgets.QApplication([])
