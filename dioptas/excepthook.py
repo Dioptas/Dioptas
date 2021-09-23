@@ -28,6 +28,7 @@ except ImportError:
     from io import StringIO
 
 from .widgets.UtilityWidgets import ErrorMessageBox
+from . import __version__
 
 
 def excepthook(exc_type, exc_value, traceback_obj):
@@ -50,7 +51,7 @@ def excepthook(exc_type, exc_value, traceback_obj):
         """A log has been written to "%s".\n\nError information:\n""" % \
         ("https://github.com/Dioptas/Dioptas/issues",
          "clemens.prescher@gmail.com", log_path)
-    version_info = '\n'.join((separator, "Dioptas Version: %s" % dioptas_version))
+    version_info = '\n'.join((separator, "Dioptas Version: %s" % __version__))
     time_string = time.strftime("%Y-%m-%d, %H:%M:%S")
     tb_info_file = StringIO()
     traceback.print_tb(traceback_obj, None, tb_info_file)
