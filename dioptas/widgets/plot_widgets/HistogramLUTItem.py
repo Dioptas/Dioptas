@@ -20,7 +20,7 @@
 
 from __future__ import absolute_import
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
 from pyqtgraph.graphicsItems.GradientEditorItem import *
