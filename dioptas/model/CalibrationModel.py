@@ -834,13 +834,7 @@ class CalibrationModel(object):
         """
         :param transform_function: function pointer which will affect the dx, dy and pixel corners of the detector
         """
-        if self.detector._dx is not None:
-            old_dx, old_dy = self.detector._dx, self.detector._dy
-            self.detector.set_dx(transform_function(old_dx))
-            self.detector.set_dy(transform_function(old_dy))
-
-        if self.detector._pixel_corners is not None:
-            self.detector._pixel_corners = transform_function(self.detector._pixel_corners)
+        self.detector._pixel_corners = np.ascontiguousarray(transform_function(self.detector.get_pixel_corners()))
 
     def _swap_pixel_size(self):
         """swaps the pixel sizes"""
