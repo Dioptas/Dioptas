@@ -20,21 +20,15 @@
 
 from __future__ import absolute_import
 
-from matplotlib import cm
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
 from pyqtgraph.exporters.ImageExporter import ImageExporter
-from pyqtgraph.opengl import GLSurfacePlotItem
-from pyqtgraph.opengl import GLViewWidget, GLGridItem
-from pyqtgraph import GraphicsLayoutWidget
 
 import numpy as np
 from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
-from .Custom3DAxis import Custom3DAxis
-from ...model.util.HelperModule import calculate_color
 
 
 class ImgWidget(QtCore.QObject):
@@ -196,7 +190,7 @@ class ImgWidget(QtCore.QObject):
                         (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
                     self.auto_range()
                 else:
-                    self.img_view_box.scaleBy((2,2))
+                    self.img_view_box.scaleBy((2, 2))
 
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.img_view_box.mapFromScene(ev.pos())
@@ -524,148 +518,12 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
             self.phases[ind].update_lines(positions, intensities)
 
 
-class SurfWidget(QtWidgets.QWidget):
-    iteration_name = ''
-
-    def __init__(self):
-        super(SurfWidget, self).__init__()
-
-        self.lut_pg_layout = GraphicsLayoutWidget()
-        self.pg_layout = GLViewWidget()
-        self.surf_view_item = None
-        self.pressed_key = None
-        self.show_range = np.array([0.0, 1.0])
-        self.show_scale = np.array([2., 2., 1.])
-        self.g_translate = 0
-        self.g_pos = 0
-        self.marker = 0
-        self.marker_color = [1, 0, 0]
-        self.marker_size = 5
-        self.data = None
-
-        self.create_graphics()
-
-        self._lut_lo = QtWidgets.QVBoxLayout()
-        self._lut_lo.setContentsMargins(0, 0, 0, 0)
-        self._lut_lo.addWidget(self.lut_pg_layout)
-
-        self._lut_w = QtWidgets.QWidget()
-        self._lut_w.setMaximumHeight(80)
-        self._lut_w.setLayout(self._lut_lo)
-
-        self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-        self._layout.addWidget(self._lut_w)
-        self._layout.addWidget(self.pg_layout)
-
-        self.img_histogram_LUT_horizontal = HistogramLUTItem()
-        self.img_histogram_LUT_horizontal.gradient.loadPreset('jet')
-
-        self.img_histogram_LUT_horizontal.sigLevelsChanged.connect(self.update_color)
-        self.img_histogram_LUT_horizontal.sigLevelChangeFinished.connect(self.update_color)
-        self.img_histogram_LUT_horizontal.sigLookupTableChanged.connect(self.update_color)
-
-        self.lut_pg_layout.addItem(self.img_histogram_LUT_horizontal, 0, 1)
-
-        self.setLayout(self._layout)
-
-    def create_graphics(self):
-        self.g = GLGridItem()
-        self.g.rotate(90, 0, 1, 0)
-        self.g.setSize(1, 1, 0)
-        self.g.setSpacing(1, 0.1, 1)
-        self.g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
-        self.pg_layout.addItem(self.g)
-
-        self.gx = GLGridItem()
-        self.gx.setSize(26, 4000, 0)
-        self.gx.setSpacing(1, 100, 1)
-        self.gx.setDepthValue(10)  # draw grid after surfaces since they may be translucent
-        self.pg_layout.addItem(self.gx)
-
-        self.axis = Custom3DAxis(self.pg_layout, color=(0.9, 0.9, 0.9, .6), axis=[False, True, False])
-        self.axis.add_labels(y_label=u'2θ')
-
-        self.surf_view_item = GLSurfacePlotItem(z=np.array([[0]]),
-                                                colors=np.array([[0, 0, 0, 0]]),
-                                                smooth=False)
-        self.surf_view_item.setGLOptions('translucent')
-        self.pg_layout.addItem(self.surf_view_item)
-
-    def update_color(self):
-        if self.data is not None:
-            colors = self.get_colors(self.data).reshape(-1, 4)
-            self.surf_view_item.setData(z=self.data, colors=colors)
-
-    def plot_surf(self, data, start, step):
-        self.g_pos = int((self.g_translate-start)/step)
-        colors = self.get_colors(data).reshape(-1, 4)
-
-        abs_range = self.show_range * (np.nanmax(data) - np.nanmin(data)) + np.nanmin(data)
-        self.data = np.copy(data)
-        self.data[self.data > abs_range[1]] = abs_range[1]
-        self.data[self.data < abs_range[0]] = abs_range[0]
-
-        self.surf_view_item.setData(z=self.data, colors=colors)
-
-        self.img_histogram_LUT_horizontal.imageChanged(img_data=self.data)
-        self.img_histogram_LUT_horizontal.setLevels(np.nanmin(self.data), np.nanmax(self.data))
-
-        self.g.setSize(np.nanmax(data), self.data.shape[1], 0)
-        self.gx.setSize(self.data.shape[0], self.data.shape[1], 0)
-        self.axis.setSize(*self.show_scale)
-
-        self.update_scale(data)
-
-    def update_scale(self, data):
-        self.surf_view_item.resetTransform()
-
-        scale = [self.show_scale[0] / data.shape[0],
-                 self.show_scale[1] / data.shape[1],
-                 self.show_scale[2] / np.nanmax(data)]
-
-        self.surf_view_item.scale(*scale, local=False)
-
-        self.g.resetTransform()
-        self.g.rotate(90, 0, 1, 0)
-        self.g.translate(self.g_pos, data.shape[1] / 2., np.nanmax(data) / 2.)
-        self.g.scale(*scale, local=False)
-
-        self.gx.resetTransform()
-        self.gx.translate(data.shape[0] / 2., data.shape[1] / 2., 0)
-        self.gx.scale(*scale, local=False)
-
-        self.axis.setSize(*self.show_scale)
-        self.axis.diff = [self.show_scale[0] * self.g_pos / data.shape[0], 0, 0]
-
-    def get_colors(self, data):
-        lut = self.img_histogram_LUT_horizontal.gradient.getLookupTable(256) / 256.
-
-        level = self.img_histogram_LUT_horizontal.getExpLevels()
-        # int_data = ((data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data)) * 255).astype(int)
-        min = np.nanmin(data)
-        if level[0] > 1:
-            min = level[0]
-        int_data = ((data - min) / (level[1] - min) * 255).astype(int)
-        int_data[int_data > 255] = 255
-        int_data[int_data < 0] = 0
-        int_data = np.nan_to_num(int_data)
-        int_data[int_data < 0] = 0
-        colors_rgb = lut[int_data]
-        colors = np.ones((colors_rgb.shape[0], colors_rgb.shape[1], 4))
-        colors[..., :3] = colors_rgb
-
-        colors[:, int(self.marker):int(self.marker) + self.marker_size, :3] = self.marker_color
-        colors[self.g_pos, :, :3] = self.marker_color
-        return colors
-
-
 class IntegrationBatchWidget(IntegrationCakeWidget):
     """
     Class describe a widget for 2D image (Theta vs ImageNumber) of batch integration window.
 
     """
+
     def __init__(self, pg_layout, orientation='vertical'):
         super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
         self.create_horizontal_line()
