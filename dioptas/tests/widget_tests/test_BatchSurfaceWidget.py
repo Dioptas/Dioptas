@@ -42,4 +42,4 @@ class SurfaceView(QtTest):
     def test_surface_widget(self):
         self.widget.batch_widget.show()
         click_button(self.widget.batch_widget.view_3d_btn)
-        # self.app.exec_()
+        self.app.exec_()

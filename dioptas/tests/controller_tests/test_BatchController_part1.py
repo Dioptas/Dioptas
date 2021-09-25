@@ -65,10 +65,6 @@ class BatchControllerTest(QtTest):
         pg_layout = self.widget.batch_widget.surf_view.pg_layout
         self.assertEqual(pg_layout.opts['azimuth'], 0)
         self.assertEqual(pg_layout.opts['elevation'], 0)
-        self.assertEqual(pg_layout.opts['fov'], 0.1)
-        self.assertEqual(pg_layout.opts['distance'], 2500)
-        self.assertEqual(pg_layout.opts['center'], QtGui.QVector3D(1, 0.67, 0.5))
-        # self.assertEqual(len(self.widget.batch_widget.surf_view.axis.ticks), 2) --> currently no axis implemented
 
         self.controller.set_3d_view_t()
         pg_layout = self.widget.batch_widget.surf_view.pg_layout
@@ -94,7 +90,7 @@ class BatchControllerTest(QtTest):
         show_range = self.widget.batch_widget.surf_view.show_range
         surf_view = self.widget.batch_widget.surf_view
 
-        self.assertEqual(pg_layout.opts['distance'], 10)
+        self.assertEqual(pg_layout.opts['distance'], 3)
         self.assertTrue(np.all(show_scale == [2, 2, 1]))
         self.assertTrue(np.all(show_range == [0, 1]))
         self.assertEqual(surf_view.g_translate, 0)
