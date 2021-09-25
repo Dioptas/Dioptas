@@ -25,7 +25,7 @@ from pyqtgraph.opengl import GLViewWidget, GLGridItem
 from pyqtgraph import GraphicsLayoutWidget
 
 from .HistogramLUTItem import HistogramLUTItem
-from .Custom3DAxis import Custom3DAxis
+from .Custom3DAxis import Custom3DAxis, CustomAxis
 
 
 class SurfaceWidget(QtWidgets.QWidget):
@@ -36,6 +36,7 @@ class SurfaceWidget(QtWidgets.QWidget):
 
         self.lut_pg_layout = GraphicsLayoutWidget()
         self.pg_layout = GLViewWidget()
+        self.pg_layout.setCameraPosition(distance=3)
         self.surf_view_item = None
         self.pressed_key = None
         self.show_range = np.array([0.0, 1.0])
@@ -88,8 +89,7 @@ class SurfaceWidget(QtWidgets.QWidget):
         self.base_grid.setDepthValue(10)  # draw grid after surfaces since they may be translucent
         self.pg_layout.addItem(self.base_grid)
 
-        # self.axis = Custom3DAxis(self.pg_layout, color=(0.9, 0.9, 0.9, .6), axis=[False, True, False])
-        # self.axis.add_labels(y_label=u'2θ')
+        # self.axis = CustomAxis(self.pg_layout)
 
         self.surf_view_item = GLSurfacePlotItem(z=np.array([[0]]),
                                                 colors=np.array([[0, 0, 0, 0]]),
@@ -142,6 +142,7 @@ class SurfaceWidget(QtWidgets.QWidget):
         self.base_grid.scale(*scale, local=False)
 
         # self.axis.setSize(*self.show_scale)
+        # self.axis.translate(-data.shape[0] / 2, 0, np.nanmax(data) / 2. + np.nanmin(data))
         # self.axis.diff = [self.show_scale[0] * self.g_pos / data.shape[0], 0, 0]
 
     def get_colors(self, data):

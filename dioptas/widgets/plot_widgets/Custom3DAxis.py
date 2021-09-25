@@ -1,4 +1,3 @@
-
 from pyqtgraph.Qt import QtGui
 import pyqtgraph.opengl as gl
 import OpenGL.GL as ogl
@@ -43,6 +42,36 @@ class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
 
         self.GLViewWidget.qglColor(QtGui.QColor(*self.color))
         self.GLViewWidget.renderText(float(self.X), float(self.Y), float(self.Z), self.text)  # , fontObject)
+
+
+class CustomAxis(gl.GLGraphicsItem.GLGraphicsItem):
+    def __init__(self, parent, x=1, y=0, z=0, color=(0.9, 0.9, 0.9, .6)):
+        gl.GLGraphicsItem.GLGraphicsItem.__init__(self)
+        self.parent = parent
+        self.x = x
+        self.y = y
+        self.z = z
+
+        self.xLabel = CustomTextItem(x, y, z, "Hallo")
+        self.xLabel.setGLViewWidget(self.parent)
+        self.parent.addItem(self.xLabel)
+        self.update()
+
+    # def transform(self, x, y, z):
+    #     self.resetTransform()
+    #     self.transform(x, y, z)
+
+    def setSize(self, x=None, y=None, z=None, size=None):
+        """
+        Set the size of the axes (in its local coordinate system; this does not affect the transform)
+        Arguments can be x,y,z or size=QVector3D().
+        """
+        if size is not None:
+            x = size.x()
+            y = size.y()
+            z = size.z()
+        self.__size = [x, y, z]
+        self.update()
 
 
 class Custom3DAxis(gl.GLAxisItem):

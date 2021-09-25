@@ -134,36 +134,28 @@ class BatchController(object):
         pg_layout = self.widget.batch_widget.surf_view.pg_layout
         pg_layout.opts['azimuth'] = 0
         pg_layout.opts['elevation'] = 0
-        pg_layout.opts['fov'] = 0.1
-        pg_layout.opts['distance'] = 2500
-        pg_layout.opts['center'] = QtGui.QVector3D(1, 0.67, 0.5)
+        pg_layout.opts['distance'] = 3
         self.plot_batch()
 
     def set_3d_view_t(self):
         pg_layout = self.widget.batch_widget.surf_view.pg_layout
         pg_layout.opts['azimuth'] = 0
         pg_layout.opts['elevation'] = 90
-        pg_layout.opts['fov'] = 0.1
-        pg_layout.opts['distance'] = 2500
-        pg_layout.opts['center'] = QtGui.QVector3D(1, 0.67, 0.5)
+        pg_layout.opts['distance'] = 3
         self.plot_batch()
 
     def set_3d_view_s(self):
         pg_layout = self.widget.batch_widget.surf_view.pg_layout
         pg_layout.opts['azimuth'] = 90
         pg_layout.opts['elevation'] = 0
-        pg_layout.opts['fov'] = 0.1
-        pg_layout.opts['distance'] = 2500
-        pg_layout.opts['center'] = QtGui.QVector3D(1, 0.67, 0.5)
+        pg_layout.opts['distance'] = 3
         self.plot_batch()
 
     def set_3d_view_i(self):
         pg_layout = self.widget.batch_widget.surf_view.pg_layout
         pg_layout.opts['azimuth'] = 45
         pg_layout.opts['elevation'] = 30
-        pg_layout.opts['fov'] = 0.1
-        pg_layout.opts['distance'] = 2500
-        pg_layout.opts['center'] = QtGui.QVector3D(1, 0.67, 0.5)
+        pg_layout.opts['distance'] = 3
         self.plot_batch()
 
     def pressed_button_x(self):
