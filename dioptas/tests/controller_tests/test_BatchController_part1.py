@@ -68,7 +68,7 @@ class BatchControllerTest(QtTest):
         self.assertEqual(pg_layout.opts['fov'], 0.1)
         self.assertEqual(pg_layout.opts['distance'], 2500)
         self.assertEqual(pg_layout.opts['center'], QtGui.QVector3D(1, 0.67, 0.5))
-        self.assertEqual(len(self.widget.batch_widget.surf_view.axis.ticks), 2)
+        # self.assertEqual(len(self.widget.batch_widget.surf_view.axis.ticks), 2) --> currently no axis implemented
 
         self.controller.set_3d_view_t()
         pg_layout = self.widget.batch_widget.surf_view.pg_layout

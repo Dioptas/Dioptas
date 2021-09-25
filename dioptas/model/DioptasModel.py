@@ -28,7 +28,7 @@ from .util import Signal
 from .util import jcpds
 from .util import Pattern
 from .Configuration import Configuration
-from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
+from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel, BatchModel
 from .. import __version__
 
 
@@ -302,7 +302,7 @@ class DioptasModel(object):
     @property
     def batch_model(self):
         """
-        :rtype: ImgModel
+        :rtype: BatchModel
         """
         return self.configurations[self.configuration_ind].batch_model
 
