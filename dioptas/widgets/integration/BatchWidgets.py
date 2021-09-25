@@ -1,13 +1,13 @@
 import os
 
-from qtpy import QtWidgets
 from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget, ColorButton
 
-from ..plot_widgets.ImgWidget import SurfWidget, IntegrationBatchWidget
-from .CustomWidgets import FlatButton, StepFrameWidget, StepBatchWidget, FileViewWidget
-from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
-from ..CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
+from ..plot_widgets.ImgWidget import IntegrationBatchWidget
+from ..plot_widgets.SurfaceWidget import SurfaceWidget
+from .CustomWidgets import StepBatchWidget, FileViewWidget
+from .CustomWidgets import MouseCurrentAndClickedWidget
+from ..CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
 
 from . import CLICKED_COLOR
 from ... import icons_path
@@ -98,7 +98,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.img_view = IntegrationBatchWidget(self.img_pg_layout, orientation='horizontal')
         self._central_layout.addWidget(self.img_pg_layout)
 
-        self.surf_view = SurfWidget()
+        self.surf_view = SurfaceWidget()
         self.surf_pg_layout = self.surf_view.pg_layout
         self._central_layout.addWidget(self.surf_view)
         self.surf_view.hide()
@@ -245,42 +245,45 @@ class BatchWidget(QtWidgets.QWidget):
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setWindowTitle("Batch widget")
 
-        self.right_control_widget.setStyleSheet("""
-                    #pattern_frame, #pattern_right_control_widget, QLabel {
-                        background: black;
-                        color: yellow;
-                    }
-                    #pattern_right_control_widget QPushButton{
-                        padding: 0px;
-        	            padding-right: 1px;
-        	            border-radius: 3px;
-                    }
-        	    """)
+        self.right_control_widget.setStyleSheet(
+            """
+            #pattern_frame, #pattern_right_control_widget, QLabel {
+                background: black;
+                color: yellow;
+            }
+            #pattern_right_control_widget QPushButton{
+                padding: 0px;
+                padding-right: 1px;
+                border-radius: 3px;
+            }
+            """)
 
-        self.left_control_widget.setStyleSheet("""
-                    #pattern_frame, #pattern_left_control_widget, QLabel {
-                        background: black;
-                        color: yellow;
-                    }
-                    #pattern_left_control_widget QPushButton{
-                        padding: 0px;
-        	            padding-left: 1px;
-        	            border-radius: 3px;
-                    }
-        	    """)
+        self.left_control_widget.setStyleSheet(
+            """
+                #pattern_frame, #pattern_left_control_widget, QLabel {
+                    background: black;
+                    color: yellow;
+                }
+                #pattern_left_control_widget QPushButton{
+                    padding: 0px;
+                    padding-left: 1px;
+                    border-radius: 3px;
+                }
+            """)
 
-        self.bottom_control_widget.setStyleSheet("""
-                    #pattern_bottom_control_widget QPushButton{
-                        padding: 0px;
-        	            padding-right: 5px;
-        	            padding-left: 5px;
-        	            border-radius: 3px;
-                    }
-                    #pattern_frame, #pattern_bottom_control_widget, QLabel {
-                        background: black;
-                        color: yellow;
-                    }
-        	    """)
+        self.bottom_control_widget.setStyleSheet(
+            """
+                #pattern_bottom_control_widget QPushButton{
+                    padding: 0px;
+                    padding-right: 5px;
+                    padding-left: 5px;
+                    border-radius: 3px;
+                }
+                #pattern_frame, #pattern_bottom_control_widget, QLabel {
+                    background: black;
+                    color: yellow;
+                }
+            """)
 
     def raise_widget(self):
         self.show()
