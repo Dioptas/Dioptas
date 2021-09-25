@@ -1,15 +1,10 @@
 import os
 import gc
-import shutil
 import numpy as np
-from mock import MagicMock
 
 from ..utility import QtTest
 
-from qtpy import QtWidgets, QtCore, QtGui
-
 from ...widgets.integration import IntegrationWidget
-from ...widgets.plot_widgets.ImgWidget import MyRectangle
 from ...controller.integration.BatchController import BatchController
 from ...model.DioptasModel import DioptasModel
 from dioptas.controller.integration.phase.PhaseController import PhaseController
@@ -76,9 +71,6 @@ class BatchControllerTest(QtTest):
         self.assertEqual(len(self.widget.batch_widget.img_view.phases), 1)
         self.assertEqual(len(self.widget.batch_widget.img_view.phases[0].line_items), 27)
 
-        #last_line_position = self.widget.batch_widget.img_view.phases[0].line_items[-1].getPos()
-        #self.assertGreater(last_line_position[0], 1000)
-
     def test_load_single_image(self):
         self.controller.load_single_image(10, 15)
 
@@ -110,7 +102,7 @@ class BatchControllerTest(QtTest):
         self.controller.update_3d_axis(np.full((10, 1000), 80))
 
         self.assertEqual(self.widget.batch_widget.surf_view.axis.ticks[0].text, '9.69')
-        self.assertEqual(self.widget.batch_widget.surf_view.g.spacing(), [10.0, 1000., 1])
+        self.assertEqual(self.widget.batch_widget.surf_view.back_grid.spacing(), [10.0, 1000., 1])
 
     def test_update_y_axis(self):
         self.widget.batch_widget.step_series_widget.slider.setValue(15)
@@ -119,9 +111,9 @@ class BatchControllerTest(QtTest):
 
         self.controller.update_y_axis()
         self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[0],
-                               2.898080396, places=3)
+                               2.898080396, places=2)
         self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[1],
-                               30.3251324, places=3)
+                               30.3251324, places=2)
 
     def test_integrate(self):
         self.widget.batch_widget.step_series_widget.start_txt.setValue(5)

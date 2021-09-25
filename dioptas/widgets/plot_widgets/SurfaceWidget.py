@@ -75,21 +75,21 @@ class SurfaceWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
     def create_graphics(self):
-        self.g = GLGridItem()
-        self.g.rotate(90, 0, 1, 0)
-        self.g.setSize(1, 1, 0)
-        self.g.setSpacing(1, 0.1, 1)
-        self.g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
-        self.pg_layout.addItem(self.g)
+        self.back_grid = GLGridItem()
+        self.back_grid.rotate(90, 0, 1, 0)
+        self.back_grid.setSize(1, 1, 0)
+        self.back_grid.setSpacing(1, 0.1, 1)
+        self.back_grid.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+        self.pg_layout.addItem(self.back_grid)
 
-        self.gx = GLGridItem()
-        self.gx.setSize(26, 4000, 0)
-        self.gx.setSpacing(1, 100, 1)
-        self.gx.setDepthValue(10)  # draw grid after surfaces since they may be translucent
-        self.pg_layout.addItem(self.gx)
+        self.base_grid = GLGridItem()
+        self.base_grid.setSize(26, 4000, 0)
+        self.base_grid.setSpacing(1, 100, 1)
+        self.base_grid.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+        self.pg_layout.addItem(self.base_grid)
 
-        self.axis = Custom3DAxis(self.pg_layout, color=(0.9, 0.9, 0.9, .6), axis=[False, True, False])
-        self.axis.add_labels(y_label=u'2θ')
+        # self.axis = Custom3DAxis(self.pg_layout, color=(0.9, 0.9, 0.9, .6), axis=[False, True, False])
+        # self.axis.add_labels(y_label=u'2θ')
 
         self.surf_view_item = GLSurfacePlotItem(z=np.array([[0]]),
                                                 colors=np.array([[0, 0, 0, 0]]),
@@ -102,7 +102,7 @@ class SurfaceWidget(QtWidgets.QWidget):
             colors = self.get_colors(self.data).reshape(-1, 4)
             self.surf_view_item.setData(z=self.data, colors=colors)
 
-    def plot_surf(self, data, start, step):
+    def plot_surface(self, data, start, step):
         self.g_pos = int((self.g_translate - start) / step)
         colors = self.get_colors(data).reshape(-1, 4)
 
@@ -116,32 +116,33 @@ class SurfaceWidget(QtWidgets.QWidget):
         self.img_histogram_LUT_horizontal.imageChanged(img_data=self.data)
         self.img_histogram_LUT_horizontal.setLevels(np.nanmin(self.data), np.nanmax(self.data))
 
-        self.g.setSize(np.nanmax(data), self.data.shape[1], 0)
-        self.gx.setSize(self.data.shape[0], self.data.shape[1], 0)
-        self.axis.setSize(*self.show_scale)
+        # self.axis.setSize(*self.show_scale)
 
-        self.update_scale(data)
+        self.update_grids(data)
 
-    def update_scale(self, data):
-        self.surf_view_item.resetTransform()
+    def update_grids(self, data):
+        self.back_grid.setSize(np.nanmax(data), self.data.shape[1], 0)
+        self.base_grid.setSize(self.data.shape[0], self.data.shape[1], 0)
 
         scale = [self.show_scale[0] / data.shape[0],
                  self.show_scale[1] / data.shape[1],
                  self.show_scale[2] / np.nanmax(data)]
 
+        self.surf_view_item.resetTransform()
+        self.surf_view_item.translate(-data.shape[0] / 2., -data.shape[1] / 2., 0)
         self.surf_view_item.scale(*scale, local=False)
 
-        self.g.resetTransform()
-        self.g.rotate(90, 0, 1, 0)
-        self.g.translate(self.g_pos, data.shape[1] / 2., np.nanmax(data) / 2.)
-        self.g.scale(*scale, local=False)
+        self.back_grid.resetTransform()
+        self.back_grid.rotate(90, 0, 1, 0)
+        self.back_grid.translate(-data.shape[0] / 2, 0, np.nanmax(data) / 2. + np.nanmin(data))
+        self.back_grid.scale(*scale, local=False)
 
-        self.gx.resetTransform()
-        self.gx.translate(data.shape[0] / 2., data.shape[1] / 2., 0)
-        self.gx.scale(*scale, local=False)
+        self.base_grid.resetTransform()
+        self.base_grid.translate(0, 0, np.nanmin(data))
+        self.base_grid.scale(*scale, local=False)
 
-        self.axis.setSize(*self.show_scale)
-        self.axis.diff = [self.show_scale[0] * self.g_pos / data.shape[0], 0, 0]
+        # self.axis.setSize(*self.show_scale)
+        # self.axis.diff = [self.show_scale[0] * self.g_pos / data.shape[0], 0, 0]
 
     def get_colors(self, data):
         lut = self.img_histogram_LUT_horizontal.gradient.getLookupTable(256) / 256.
@@ -163,3 +164,12 @@ class SurfaceWidget(QtWidgets.QWidget):
         colors[:, int(self.marker):int(self.marker) + self.marker_size, :3] = self.marker_color
         colors[self.g_pos, :, :3] = self.marker_color
         return colors
+
+
+if __name__ == "__main__":
+    from pyqtgraph.Qt import QtCore, QtGui
+    import pyqtgraph.opengl as gl
+
+    app = QtGui.QApplication([])
+    w = SurfaceWidget()
+    w.show()

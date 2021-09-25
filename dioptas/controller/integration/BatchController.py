@@ -1,18 +1,35 @@
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from glob import glob
 import os
-from functools import partial
 
 import numpy as np
 import h5py
-from PIL import Image
 from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import makeQImage
 
-from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
+from ...widgets.UtilityWidgets import open_files_dialog, save_file_dialog
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
-from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 
 class BatchController(object):
@@ -750,7 +767,7 @@ class BatchController(object):
             if step < step_min:
                 step = step_min
                 self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
-            self.widget.batch_widget.surf_view.plot_surf(data[start:stop + 1:step], start, step)
+            self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step], start, step)
             self.update_3d_axis(data[start:stop + 1:step])
 
     def save_data(self):
@@ -914,9 +931,9 @@ class BatchController(object):
         ticks = np.round(np.arange(binning[0], binning[-1], space), 2)
         if ticks.shape[0] < 2:
             ticks = np.array([binning[0], binning[-1]])
-        surf_view.axis.set_tick_values(yticks=np.round(np.arange(binning[0], binning[-1], space), 2))
-        surf_view.g.setSpacing(np.nanmax(data)/8., data.shape[1]/(ticks.shape[0]-1), 1)
-        surf_view.gx.setSpacing(1, data.shape[1]/(ticks.shape[0]-1), 1)
+        # surf_view.axis.set_tick_values(yticks=np.round(np.arange(binning[0], binning[-1], space), 2))
+        surf_view.back_grid.setSpacing(np.nanmax(data) / 8., data.shape[1] / (ticks.shape[0] - 1), 1)
+        surf_view.base_grid.setSpacing(1, data.shape[1] / (ticks.shape[0] - 1), 1)
 
     def update_x_axis(self):
         if self.model.batch_model.binning is None:
