@@ -26,7 +26,8 @@ from .ConfigurationWidget import ConfigurationWidget
 from .CalibrationWidget import CalibrationWidget
 from .MaskWidget import MaskWidget
 from .integration import IntegrationWidget
-from .CustomWidgets import RotatedCheckableFlatButton, VerticalSpacerItem, CheckableFlatButton, FlatButton
+from .CustomWidgets import RotatedCheckableFlatButton, VerticalSpacerItem, CheckableFlatButton, FlatButton, \
+    SaveIconButton, OpenIconButton, ResetIconButton
 
 from .. import style_path, icons_path
 
@@ -52,9 +53,9 @@ class MainWidget(QtWidgets.QWidget):
         self._mode_layout.setSpacing(0)
 
         self.show_configuration_menu_btn = CheckableFlatButton('C')
-        self.save_btn = FlatButton()
-        self.load_btn = FlatButton()
-        self.reset_btn = FlatButton()
+        self.save_btn = SaveIconButton()
+        self.load_btn = OpenIconButton()
+        self.reset_btn = ResetIconButton()
 
         self.mode_btn_group = QtWidgets.QButtonGroup()
         self.calibration_mode_btn = RotatedCheckableFlatButton('Calibration', self)
@@ -148,7 +149,6 @@ class MainWidget(QtWidgets.QWidget):
                 "QDoubleSpinBox, QSpinBox {padding-right: -3px;}")
 
     def style_widgets(self):
-
         mode_btn_width = 27
         mode_btn_height = 130
         self.calibration_mode_btn.setMaximumWidth(mode_btn_width)
@@ -161,32 +161,15 @@ class MainWidget(QtWidgets.QWidget):
 
         button_height = 30
         button_width = 30
-        self.show_configuration_menu_btn.setMinimumHeight(button_height)
-        self.show_configuration_menu_btn.setMaximumHeight(button_height)
-        self.show_configuration_menu_btn.setMinimumWidth(button_width)
-        self.show_configuration_menu_btn.setMaximumWidth(button_width)
+        adjust_height_btns = [self.show_configuration_menu_btn, self.save_btn, self.load_btn, self.reset_btn]
+        for btn in adjust_height_btns:
+            btn.setHeight(button_height)
+            btn.setWidth(button_width)
 
+        adjust_icon_size_btns = adjust_height_btns[1:]
         icon_size = QtCore.QSize(20, 20)
-        self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
-        self.save_btn.setIconSize(icon_size)
-        self.save_btn.setMinimumHeight(button_height)
-        self.save_btn.setMaximumHeight(button_height)
-        self.save_btn.setMinimumWidth(button_width)
-        self.save_btn.setMaximumWidth(button_width)
-
-        self.load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
-        self.load_btn.setIconSize(icon_size)
-        self.load_btn.setMinimumHeight(button_height)
-        self.load_btn.setMaximumHeight(button_height)
-        self.load_btn.setMinimumWidth(button_width)
-        self.load_btn.setMaximumWidth(button_width)
-
-        self.reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
-        self.reset_btn.setIconSize(icon_size)
-        self.reset_btn.setMinimumHeight(button_height)
-        self.reset_btn.setMaximumHeight(button_height)
-        self.reset_btn.setMinimumWidth(button_width)
-        self.reset_btn.setMaximumWidth(button_width)
+        for btn in adjust_icon_size_btns:
+            btn.setIconSize(icon_size)
 
     def add_tooltips(self):
         self.load_btn.setToolTip('Open Project')

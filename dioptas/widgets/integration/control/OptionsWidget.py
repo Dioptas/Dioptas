@@ -23,7 +23,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 
 from .... import icons_path
 from ...CustomWidgets import IntegerTextField, NumberTextField, LabelAlignRight, SpinBoxAlignRight,\
-    ConservativeSpinBox, CheckableFlatButton, FlatButton
+    ConservativeSpinBox, CheckableFlatButton, SaveIconButton
 
 
 class OptionsWidget(QtWidgets.QWidget):
@@ -89,7 +89,7 @@ class OptionsWidget(QtWidgets.QWidget):
         self.cake_azimuth_max_txt = NumberTextField('180')
         self.cake_full_toggle_btn = CheckableFlatButton('Full')
         self.cake_integral_width_sb = ConservativeSpinBox()
-        self.cake_save_integral_btn = FlatButton()
+        self.cake_save_integral_btn = SaveIconButton()
 
         self._cake_gb_layout.addWidget(LabelAlignRight('Azimuth bins:'), 0, 0)
         self._cake_gb_layout.addWidget(self.cake_azimuth_points_sb, 0, 1)
@@ -146,12 +146,9 @@ class OptionsWidget(QtWidgets.QWidget):
         self.cake_integral_width_sb.setMaximum(1000000)
         button_width = 25
         button_height = 25
-        self.cake_save_integral_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
         self.cake_save_integral_btn.setIconSize(QtCore.QSize(15, 15))
-        self.cake_save_integral_btn.setMinimumHeight(button_height)
-        self.cake_save_integral_btn.setMaximumHeight(button_height)
-        self.cake_save_integral_btn.setMinimumWidth(button_width)
-        self.cake_save_integral_btn.setMaximumWidth(button_width)
+        self.cake_save_integral_btn.setWidth(button_width)
+        self.cake_save_integral_btn.setHeight(button_height)
 
     def set_tooltips(self):
         self.cake_full_toggle_btn.setToolTip("Set to full available range")
