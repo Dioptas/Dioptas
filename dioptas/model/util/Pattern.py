@@ -72,14 +72,56 @@ class Pattern(QtCore.QObject):
             self._original_y = data.T[1]
             self.name = os.path.basename(filename).split('.')[:-1][0]
             self.recalculate_pattern()
+            return self
 
         except ValueError:
             print('Wrong data format for pattern file! - ' + filename)
             return -1
 
-    def save(self, filename, header=''):
-        data = np.dstack((self._original_x, self._original_y))
-        np.savetxt(filename, data[0], header=header)
+    def save(self, filename, header='', subtract_background=False, unit='2th_deg'):
+        """
+        Saves the x, y data to file. Supporting several file formats: .chi, .xy, .fxye
+        :param filename: where to save the data
+        :param header: header for file
+        :param subtract_background: whether or not to save subtracted data
+        :param unit: x-unit used for the standard chi header (unused for other formats)
+        """
+        if subtract_background:
+            x, y = self.data
+        else:
+            x, y = self._original_x, self._original_y
+
+        file_handle = open(filename, 'w')
+        num_points = len(x)
+
+        if filename.endswith('.chi'):
+            if header is None or header == '':
+                file_handle.write(filename + '\n')
+                file_handle.write(unit + '\n\n')
+                file_handle.write("       {0}\n".format(num_points))
+            else:
+                file_handle.write(header)
+            for ind in range(num_points):
+                file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
+        elif filename.endswith('.fxye'):
+            factor = 100
+            if 'CONQ' in header:
+                factor = 1
+            header = header.replace('NUM_POINTS', '{0:.6g}'.format(num_points))
+            header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor * x[0]))
+            header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor * (x[1] - x[0])))
+
+            file_handle.write(header)
+            file_handle.write('\n')
+            for ind in range(num_points):
+                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor * x[ind], y[ind], np.sqrt(abs(y[ind]))))
+        else:
+            if header is not None:
+                file_handle.write(header)
+                file_handle.write('\n')
+            for ind in range(num_points):
+                file_handle.write('{0:.9E}  {1:.9E}\n'.format(x[ind], y[ind]))
+        file_handle.close()
 
     @property
     def background_pattern(self):
@@ -156,11 +198,11 @@ class Pattern(QtCore.QObject):
 
             # reset ROI if limits are larger or smaller than the actual data
             x_min, x_max = np.min(x), np.max(x)
-            if self.auto_background_subtraction_roi[0]<x_min:
-                self.auto_background_subtraction_roi[0]=x_min
+            if self.auto_background_subtraction_roi[0] < x_min:
+                self.auto_background_subtraction_roi[0] = x_min
 
-            if self.auto_background_subtraction_roi[1]>x_max:
-                self.auto_background_subtraction_roi[1]=x_max
+            if self.auto_background_subtraction_roi[1] > x_max:
+                self.auto_background_subtraction_roi[1] = x_max
 
             y_bkg = extract_background(x, y,
                                        self.auto_background_subtraction_parameters[0],
@@ -242,6 +284,9 @@ class Pattern(QtCore.QObject):
 
     @property
     def auto_background_pattern(self):
+        """
+        :rtype: Pattern
+        """
         return self._auto_background_pattern
 
     def has_background(self):
@@ -294,6 +339,41 @@ class Pattern(QtCore.QObject):
 
     def __len__(self):
         return len(self._original_x)
+
+
+def combine_patterns(patterns):
+    x_min = []
+    for pattern in patterns:
+        x = pattern.x
+        x_min.append(np.min(x))
+
+    sorted_pattern_ind = np.argsort(x_min)
+
+    pattern = patterns[sorted_pattern_ind[0]]
+    for ind in sorted_pattern_ind[1:]:
+        x1, y1 = pattern.data
+        x2, y2 = patterns[ind].data
+
+        pattern2_interp1d = interp1d(x2, y2, kind='linear')
+
+        overlap_ind_pattern1 = np.where((x1 <= np.max(x2)) & (x1 >= np.min(x2)))[0]
+        left_ind_pattern1 = np.where((x1 <= np.min(x2)))[0]
+        right_ind_pattern2 = np.where((x2 >= np.max(x1)))[0]
+
+        combined_x1 = x1[left_ind_pattern1]
+        combined_y1 = y1[left_ind_pattern1]
+        combined_x2 = x1[overlap_ind_pattern1]
+        combined_y2 = (y1[overlap_ind_pattern1] + pattern2_interp1d(combined_x2)) / 2
+        combined_x3 = x2[right_ind_pattern2]
+        combined_y3 = y2[right_ind_pattern2]
+
+        combined_x = np.hstack((combined_x1, combined_x2, combined_x3))
+        combined_y = np.hstack((combined_y1, combined_y2, combined_y3))
+
+        pattern = Pattern(combined_x, combined_y)
+
+    pattern.name = "Combined Pattern"
+    return pattern
 
 
 class BkgNotInRangeError(Exception):

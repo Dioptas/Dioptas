@@ -19,8 +19,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import time
 
+import os
 from qtpy import QtCore, QtWidgets, QtGui
 from math import floor, log10
+
+from .. import icons_path
 
 
 class NumberTextField(QtWidgets.QLineEdit):
@@ -174,6 +177,14 @@ class FlatButton(QtWidgets.QPushButton):
         super(FlatButton, self).__init__(*args)
         self.setFlat(True)
 
+    def setHeight(self, height):
+        self.setMinimumHeight(height)
+        self.setMaximumHeight(height)
+
+    def setWidth(self, width):
+        self.setMinimumWidth(width)
+        self.setMaximumWidth(width)
+
 
 class CheckableFlatButton(FlatButton):
     def __init__(self, *args):
@@ -226,6 +237,24 @@ class RotatedCheckableFlatButton(CheckableFlatButton):
         options.icon = self.icon()
         options.iconSize = self.iconSize()
         return options
+
+
+class SaveIconButton(FlatButton):
+    def __init__(self):
+        super(SaveIconButton, self).__init__()
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
+
+
+class OpenIconButton(FlatButton):
+    def __init__(self):
+        super(OpenIconButton, self).__init__()
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+
+
+class ResetIconButton(FlatButton):
+    def __init__(self):
+        super(ResetIconButton, self).__init__()
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
 
 
 class HorizontalLine(QtWidgets.QFrame):
