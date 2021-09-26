@@ -126,6 +126,7 @@ class Configuration(object):
         """
         Saves the current integrated pattern. The format depends on the file ending. Possible file formats:
             [*.xy, *.chi, *.dat, *.fxye]
+        :param filename: where to save the file
         :param subtract_background: flat whether the pattern should be saved with or without subtracted background
         """
         if filename is None:
@@ -149,9 +150,9 @@ class Configuration(object):
             filename = self.img_model.filename
 
         if filename.endswith('.xy'):
-            self.pattern_model.save_background_as_pattern(filename, header=self._create_xy_header())
+            self.pattern_model.save_auto_background_as_pattern(filename, header=self._create_xy_header())
         elif filename.endswith('.fxye'):
-            self.pattern_model.save_background_as_pattern(filename, header=self._create_fxye_header(filename))
+            self.pattern_model.save_auto_background_as_pattern(filename, header=self._create_fxye_header(filename))
         else:
             self.pattern_model.save_pattern(filename)
 
