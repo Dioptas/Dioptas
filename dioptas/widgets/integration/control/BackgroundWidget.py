@@ -23,7 +23,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 
 from ...CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
     CheckableFlatButton, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
-    DoubleMultiplySpinBoxAlignRight
+    DoubleMultiplySpinBoxAlignRight, SaveIconButton
 from .... import icons_path
 
 
@@ -76,7 +76,7 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.x_range_min_txt = NumberTextField('0')
         self.x_range_max_txt = NumberTextField('50')
         self.inspect_btn = CheckableFlatButton('Inspect')
-        self.save_btn = FlatButton()
+        self.save_btn = SaveIconButton()
         self.as_overlay = FlatButton('As Overlay')
 
         self._pattern_bkg_layout.addWidget(LabelAlignRight('Smooth Width:'), 0, 0)
@@ -166,7 +166,6 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.inspect_btn.setMaximumHeight(150)
 
         self.save_btn.setToolTip("Save generated background pattern")
-        self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
         self.save_btn.setIconSize(QtCore.QSize(13, 13))
         self.save_btn.setMaximumWidth(25)
 

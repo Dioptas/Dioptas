@@ -40,6 +40,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
+
 class IntegrationMockFunctionalTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
