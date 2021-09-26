@@ -72,6 +72,7 @@ class Pattern(QtCore.QObject):
             self._original_y = data.T[1]
             self.name = os.path.basename(filename).split('.')[:-1][0]
             self.recalculate_pattern()
+            return self
 
         except ValueError:
             print('Wrong data format for pattern file! - ' + filename)
@@ -338,6 +339,41 @@ class Pattern(QtCore.QObject):
 
     def __len__(self):
         return len(self._original_x)
+
+
+def combine_patterns(patterns):
+    x_min = []
+    for pattern in patterns:
+        x = pattern.x
+        x_min.append(np.min(x))
+
+    sorted_pattern_ind = np.argsort(x_min)
+
+    pattern = patterns[sorted_pattern_ind[0]]
+    for ind in sorted_pattern_ind[1:]:
+        x1, y1 = pattern.data
+        x2, y2 = patterns[ind].data
+
+        pattern2_interp1d = interp1d(x2, y2, kind='linear')
+
+        overlap_ind_pattern1 = np.where((x1 <= np.max(x2)) & (x1 >= np.min(x2)))[0]
+        left_ind_pattern1 = np.where((x1 <= np.min(x2)))[0]
+        right_ind_pattern2 = np.where((x2 >= np.max(x1)))[0]
+
+        combined_x1 = x1[left_ind_pattern1]
+        combined_y1 = y1[left_ind_pattern1]
+        combined_x2 = x1[overlap_ind_pattern1]
+        combined_y2 = (y1[overlap_ind_pattern1] + pattern2_interp1d(combined_x2)) / 2
+        combined_x3 = x2[right_ind_pattern2]
+        combined_y3 = y2[right_ind_pattern2]
+
+        combined_x = np.hstack((combined_x1, combined_x2, combined_x3))
+        combined_y = np.hstack((combined_y1, combined_y2, combined_y3))
+
+        pattern = Pattern(combined_x, combined_y)
+
+    pattern.name = "Combined Pattern"
+    return pattern
 
 
 class BkgNotInRangeError(Exception):
