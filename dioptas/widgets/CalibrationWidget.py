@@ -28,7 +28,7 @@ from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
 from ..widgets.plot_widgets import PatternWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
-    DoubleSpinBoxAlignRight, FlatButton
+    DoubleSpinBoxAlignRight, FlatButton, OpenIconButton, ResetIconButton
 
 from .. import icons_path
 
@@ -430,14 +430,12 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
         self.detector_name_lbl = LabelAlignRight()
         self.detector_name_lbl.hide()
 
-        self.detector_load_btn = FlatButton()
-        self.detector_load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.detector_load_btn = OpenIconButton()
         self.detector_load_btn.setIconSize(QtCore.QSize(13, 13))
         self.detector_load_btn.setMaximumWidth(21)
         self.detector_load_btn.setToolTip('Open Detector File')
 
-        self.detector_reset_btn = FlatButton()
-        self.detector_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.detector_reset_btn = ResetIconButton()
         self.detector_reset_btn.setIconSize(QtCore.QSize(13, 13))
         self.detector_reset_btn.setMaximumWidth(21)
         self.detector_reset_btn.setToolTip('Reset Detector')
@@ -464,14 +462,12 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
         self._grid_layout1.addWidget(QtWidgets.QLabel('um'), 2, 2)
 
         self.spline_name_txt = QtWidgets.QLabel('None')
-        self.spline_load_btn = FlatButton()
-        self.spline_load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.spline_load_btn = OpenIconButton()
         self.spline_load_btn.setIconSize(QtCore.QSize(13, 13))
         self.spline_load_btn.setMaximumWidth(21)
         self.spline_load_btn.setToolTip('Open Spline File')
 
-        self.spline_reset_btn = FlatButton()
-        self.spline_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.spline_reset_btn = ResetIconButton()
         self.spline_reset_btn.setIconSize(QtCore.QSize(13, 13))
         self.spline_reset_btn.setMaximumWidth(21)
         self.spline_reset_btn.setToolTip('Reset distortion correction')
