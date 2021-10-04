@@ -63,6 +63,9 @@ class BatchController(object):
         """
         Creates all the connections of the GUI elements.
         """
+        self.widget.integration_control_widget.img_control_widget.batch_btn.clicked.connect(self.show_batch_frame)
+        self.widget.batch_widget.closeEvent = self.close_batch_frame
+
         self.widget.batch_widget.load_btn.clicked.connect(self.load_data)
         self.widget.batch_widget.save_btn.clicked.connect(self.save_data)
         self.widget.batch_widget.integrate_btn.clicked.connect(self.integrate)
@@ -129,6 +132,13 @@ class BatchController(object):
         # 3D
         self.widget.batch_widget.surf_pg_layout.wheelEvent = self.wheel_event_3d
         self.widget.batch_widget.surf_pg_layout.keyPressEvent = self.key_pressed_3d
+
+    def show_batch_frame(self):
+        self.widget.batch_widget.raise_widget()
+
+    def close_batch_frame(self, event):
+        self.widget.batch_widget.hide()
+        event.ignore()
 
     def set_3d_view_f(self):
         pg_layout = self.widget.batch_widget.surf_view.pg_layout
@@ -1076,12 +1086,10 @@ class BatchController(object):
                              int(self.widget.batch_widget.y() + self.widget.batch_widget.size().height() / 2.0 -
                                  progress_dialog.size().height() / 2.0))
 
-
-
         progress_dialog.setWindowTitle('   ')
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
-        # progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        progress_dialog.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+        progress_dialog.setWindowFlags(
+            QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
         progress_dialog.show()
         QtWidgets.QApplication.processEvents()
         return progress_dialog
