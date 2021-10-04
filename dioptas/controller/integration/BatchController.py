@@ -316,7 +316,7 @@ class BatchController(object):
         bound = data_img_item.boundingRect().width()
         h_scale = (np.max(binning) - np.min(binning)) / bound
         h_shift = np.min(binning)
-        pos = (x - h_shift)/h_scale
+        pos = (x - h_shift) / h_scale
 
         self.widget.batch_widget.img_view.vertical_line.setValue(pos)
 
@@ -387,7 +387,7 @@ class BatchController(object):
 
         if data.shape != bkg.shape:
             self.widget.show_error_msg(f"Shape of data {data.shape} and background {bkg.shape} are different."
-                                        "Recalculate background.")
+                                       "Recalculate background.")
             self.widget.batch_widget.background_btn.setChecked(False)
             return
 
@@ -555,7 +555,7 @@ class BatchController(object):
             self.widget.batch_widget.left_control_widget.hide()
             n_img_all = self.model.batch_model.n_img_all
             if n_img_all is not None:
-                self.set_navigation_range((0, n_img_all-1), (0, n_img_all-1))
+                self.set_navigation_range((0, n_img_all - 1), (0, n_img_all - 1))
         elif self.widget.batch_widget.view_3d_btn.isChecked():
             n_img = self.model.batch_model.n_img
             if n_img is None:
@@ -865,7 +865,7 @@ class BatchController(object):
         self.plot_image(int(y))
         self.plot_pattern(int(x), int(y))
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        self.widget.batch_widget.img_view.horizontal_line.setValue(y-start)
+        self.widget.batch_widget.img_view.horizontal_line.setValue(y - start)
 
     def plot_pattern(self, x, y):
         """
@@ -997,7 +997,7 @@ class BatchController(object):
 
         y = self.widget.batch_widget.step_series_widget.slider.value()
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        self.widget.batch_widget.img_view.horizontal_line.setValue(y-start)
+        self.widget.batch_widget.img_view.horizontal_line.setValue(y - start)
 
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
         stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
@@ -1038,14 +1038,20 @@ class BatchController(object):
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
 
         self.model.img_model.blockSignals(True)
-        n_int = (stop-start)/step
-        progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
-                                                          n_int)
-        progress_dialog.setParent(self.widget.batch_widget)
-        progress_dialog.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Window)
+        n_int = (stop - start) / step
+        progress_dialog = self.create_progress_dialog("Integrating multiple images.", "Abort Integration", n_int)
+
+        def callback_fn(current_index):
+            if progress_dialog.wasCanceled():
+                return False
+            progress_dialog.setValue(current_index)
+            QtWidgets.QApplication.processEvents()
+            return ~progress_dialog.wasCanceled()
+
         self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
                                                   self.widget.batch_widget.view_f_btn.isChecked(),
-                                                  progress_dialog=progress_dialog)
+                                                  callback_fn=callback_fn)
+
         progress_dialog.close()
         self.show_metadata_info()
 
@@ -1054,11 +1060,31 @@ class BatchController(object):
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img-1)
+        self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img - 1)
         self.widget.batch_widget.step_series_widget.start_txt.setValue(0)
         self.widget.batch_widget.view_2d_btn.setChecked(True)
         self.change_view()
         self.widget.batch_widget.img_view.auto_range()
+
+    def create_progress_dialog(self, text_str, abort_str, end_value):
+        progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, end_value,
+                                                    self.widget.batch_widget)
+        # progress_dialog.setParent(self.widget.batch_widget)
+
+        progress_dialog.move(int(self.widget.batch_widget.x() + self.widget.batch_widget.size().width() / 2.0 - \
+                                 progress_dialog.size().width() / 2.0),
+                             int(self.widget.batch_widget.y() + self.widget.batch_widget.size().height() / 2.0 -
+                                 progress_dialog.size().height() / 2.0))
+
+
+
+        progress_dialog.setWindowTitle('   ')
+        progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+        # progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        progress_dialog.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+        progress_dialog.show()
+        QtWidgets.QApplication.processEvents()
+        return progress_dialog
 
     def set_navigation_range(self, all_range, nav_range):
         """
