@@ -30,6 +30,7 @@ Bug Fixes:
     - fix display bug which was showing horizontal scroll bar in "calibration parameters" on some linux systems
     - disable QT high dpi mode for Linux platforms, which was causing very tiny font sizes. It is working correctly
       without it
+    - fixed pixel width/height definition in the detector calibration definition (it was applied interchanged)
 
 0.5.1 (stable 05/05/2020)
 -------------------------

@@ -162,8 +162,8 @@ class CalibrationWidget(QtWidgets.QWidget):
 
     def get_pixel_size(self):
         detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
-        return float(detector_gb.pixel_width_txt.text()) * 1e-6, \
-               float(detector_gb.pixel_height_txt.text()) * 1e-6
+        return float(detector_gb.pixel_height_txt.text()) * 1e-6, \
+               float(detector_gb.pixel_width_txt.text()) * 1e-6
 
     def set_pixel_size(self, pixel_width, pixel_height):
         detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
@@ -223,12 +223,12 @@ class CalibrationWidget(QtWidgets.QWidget):
             pyfai_widget.rotation3_txt.setText('%.8f' % (pyfai_parameter['rot3']))
             pyfai_widget.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
             pyfai_widget.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
-            pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
-            pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
+            pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
+            pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
 
             sv_gb.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
             sv_gb.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
-            self.set_pixel_size(pyfai_parameter['pixel1'], pyfai_parameter['pixel2'])
+            self.set_pixel_size(pyfai_parameter['pixel2'], pyfai_parameter['pixel1'])
         except (AttributeError, TypeError):
             pyfai_widget.distance_txt.setText('')
             pyfai_widget.poni1_txt.setText('')
@@ -256,8 +256,8 @@ class CalibrationWidget(QtWidgets.QWidget):
                            'rot3': float(pyfai_widget.rotation3_txt.text()),
                            'wavelength': float(pyfai_widget.wavelength_txt.text()) / 1e10,
                            'polarization_factor': float(pyfai_widget.polarization_txt.text()),
-                           'pixel1': float(pyfai_widget.pixel_width_txt.text()) / 1e6,
-                           'pixel2': float(pyfai_widget.pixel_height_txt.text()) / 1e6}
+                           'pixel1': float(pyfai_widget.pixel_height_txt.text()) / 1e6,
+                           'pixel2': float(pyfai_widget.pixel_width_txt.text()) / 1e6}
         return pyfai_parameter
 
     def set_fit2d_parameter(self, fit2d_parameter):
