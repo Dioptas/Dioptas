@@ -204,16 +204,17 @@ class BatchModel(QtCore.QObject):
         y = np.arange(self.n_img)[None, :].repeat(self.binning.shape[0], axis=0).flatten()
         np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
 
-    def integrate_raw_data(self, num_points, start, stop, step, use_all=False, progress_dialog=None):
+    def integrate_raw_data(self, num_points, start, stop, step, use_all=False, callback_fn=None):
         """
         Integrate images from given file
 
-        :param progress_dialog: Progress dialog to show progress
         :param num_points: Numbers of radial bins
         :param start: Start image index fro integration
         :param stop: Stop image index fro integration
         :param step: Step along images to integrate
         :param use_all: Use all images. If False use only images, that were already integrated.
+        :param callback_fn: callback function which is called each iteration with the current image number as parameter,
+                            if it returns False the integration will be aborted.
         """
         intensity_data = []
         binning_data = []
@@ -237,19 +238,17 @@ class BatchModel(QtCore.QObject):
                 current_file = file_index
                 self.calibration_model.img_model.load(self.files[file_index])
 
-            if progress_dialog is not None and progress_dialog.wasCanceled():
-                break
-
             self.calibration_model.img_model.load_series_img(pos)
             binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
                                                                      mask=mask)
             image_counter += 1
-            if progress_dialog is not None:
-                progress_dialog.setValue(image_counter)
-
             pos_map.append((file_index, pos))
             intensity_data.append(intensity)
             binning_data.append(binning)
+
+            if callback_fn is not None:
+                if not callback_fn(image_counter):
+                    break
 
         # deal with different x lengths due to trimmed zeros:
         binning_lengths = [len(binning) for binning in binning_data]

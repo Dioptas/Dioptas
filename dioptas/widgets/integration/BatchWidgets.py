@@ -31,14 +31,15 @@ class BatchWidget(QtWidgets.QWidget):
         # central layout
         self._central_layout = QtWidgets.QHBoxLayout()
         self._central_layout.setSpacing(0)
+        self._frame_layout.setContentsMargins(0, 0, 0, 0)
 
         # Left control panel
         self.left_control_widget = QtWidgets.QWidget()
         self.left_control_widget.setObjectName('pattern_left_control_widget')
-        self.left_control_widget.setMaximumWidth(22)
-        self.left_control_widget.setMinimumWidth(22)
+        self.left_control_widget.setMaximumWidth(30)
+        self.left_control_widget.setMinimumWidth(30)
         self._left_control_layout = QtWidgets.QVBoxLayout()
-        self._left_control_layout.setContentsMargins(0, 0, 0, 6)
+        self._left_control_layout.setContentsMargins(4, 0, 4, 6)
         self._left_control_layout.setSpacing(4)
 
         self.scale_x_btn = CheckableFlatButton('x')
@@ -106,10 +107,10 @@ class BatchWidget(QtWidgets.QWidget):
         # Right control
         self.right_control_widget = QtWidgets.QWidget()
         self.right_control_widget.setObjectName('pattern_right_control_widget')
-        self.right_control_widget.setMaximumWidth(22)
-        self.right_control_widget.setMinimumWidth(22)
+        self.right_control_widget.setMaximumWidth(30)
+        self.right_control_widget.setMinimumWidth(30)
         self._right_control_layout = QtWidgets.QVBoxLayout()
-        self._right_control_layout.setContentsMargins(0, 0, 0, 6)
+        self._right_control_layout.setContentsMargins(4, 0, 4, 6)
         self._right_control_layout.setSpacing(4)
 
         self.view3d_f_btn = FlatButton("F")
@@ -228,6 +229,7 @@ class BatchWidget(QtWidgets.QWidget):
 
         self._positioning_layout = QtWidgets.QHBoxLayout()
         self._positioning_layout.setSpacing(0)
+        self._positioning_layout.setContentsMargins(4, 4, 4, 4)
         self._positioning_layout.addWidget(self.step_series_widget)
         self._positioning_layout.addSpacerItem(HorizontalSpacerItem())
         self._positioning_layout.addWidget(self.mouse_pos_widget)
@@ -243,6 +245,7 @@ class BatchWidget(QtWidgets.QWidget):
 
         self.setLayout(self._layout)
         self.setWindowFlags(QtCore.Qt.Tool)
+        self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
         self.setWindowTitle("Batch widget")
 
         self.right_control_widget.setStyleSheet(

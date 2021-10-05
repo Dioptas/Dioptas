@@ -375,6 +375,7 @@ class FileViewWidget(QtWidgets.QWidget):
 
         self.treeView = QtWidgets.QTreeView()
         self.treeView.setObjectName('treeView')
+        self.setObjectName("lala")
 
         self.tree_model = QtGui.QStandardItemModel()
         self.treeView.setModel(self.tree_model)
@@ -384,7 +385,7 @@ class FileViewWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
         self.setStyleSheet("""
-        #pattern_frame, #treeView, QLabel {
+        #pattern_frame, #treeView, QLabel, #lala {
                         background: black;
                         color: yellow;
                     }
