@@ -18,6 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+from ..widgets.UtilityWidgets import save_file_dialog
+
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.ConfigurationWidget import ConfigurationWidget
 from ..model.DioptasModel import DioptasModel
@@ -60,6 +63,7 @@ class ConfigurationController(object):
         self.widget.factor_txt.editingFinished.connect(self.factor_txt_changed)
 
         self.widget.combine_patterns_btn.clicked.connect(self.combine_patterns_btn_clicked)
+        self.widget.saved_combined_patterns_btn.clicked.connect(self.save_combined_patterns_btn_clicked)
         self.widget.combine_cakes_btn.clicked.connect(self.combine_cakes_btn_clicked)
 
     def update_configuration_widget(self):
@@ -73,6 +77,16 @@ class ConfigurationController(object):
 
     def combine_patterns_btn_clicked(self):
         self.model.combine_patterns = self.widget.combine_patterns_btn.isChecked()
+
+    def save_combined_patterns_btn_clicked(self):
+        img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
+        filename = save_file_dialog(
+            self.widget, "Save Combined Pattern Data.",
+            os.path.join(self.model.working_directories['pattern'],
+                         img_filename + '_combined.dat'), ('.dat'))
+
+        if filename != '':
+            self.model.save_combined_pattern(filename)
 
     def combine_cakes_btn_clicked(self):
         self.model.combine_cakes = self.widget.combine_cakes_btn.isChecked()

@@ -30,6 +30,7 @@ from ....widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_
 
 from .PhaseInPatternController import PhaseInPatternController
 from .PhaseInCakeController import PhaseInCakeController
+from .PhaseInBatchController import PhaseInBatchController
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.DioptasModel import DioptasModel
@@ -60,6 +61,7 @@ class PhaseController(object):
 
         self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget, dioptas_model)
         self.phase_in_cake_controller = PhaseInCakeController(self.integration_widget, dioptas_model)
+        self.phase_in_batch_controller = PhaseInBatchController(self.integration_widget.batch_widget, dioptas_model)
         self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
 
         self.phase_lw_items = []
@@ -158,7 +160,7 @@ class PhaseController(object):
         self.phase_widget.rename_phase(ind, phase_name)
         self.phase_widget.set_phase_pressure(ind, self.model.phase_model.phases[ind].params['pressure'])
         self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
-        self.phase_widget.temperature_sbs[ind].setEnabled(self.model.phase_model.phases[ind].has_thermal_expansion())
+        self.phase_widget.temperature_sbs[ind].setEnabled(int(self.model.phase_model.phases[ind].has_thermal_expansion()))
 
     def delete_btn_click_callback(self):
         """

@@ -14,10 +14,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: git fetch --prune --unshallow
-    - name: Setup Python 3.8
+    - name: Setup Python 3.9
       uses: actions/setup-python@v1
       with:
-        python-version: 3.8
+        python-version: 3.9
 
     - name: Use Python Dependency Cache
       id: pip-cache
@@ -31,7 +31,7 @@ jobs:
     - name: Install Apt Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install gfortran libgfortran3 libxkbcommon-x11-0 libxkbcommon-x11-dev libxcb-xinerama0  \
+        sudo apt-get install libxkbcommon-x11-0 libxkbcommon-x11-dev libxcb-xinerama0  \
         libxkbcommon-dev libfontconfig1-dev libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
         libxi-dev libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev \
         libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-shape0-dev \
@@ -39,13 +39,9 @@ jobs:
 
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics extra_data pyinstaller
-        pip install --pre pyqtgraph
-
-    - name: Compile smooth_bruckner
-      run: |
-        cd dioptas/model/util/
-        f2py -c -m smooth_bruckner smooth_bruckner.f95
+        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 cython future qtpy pyfai lmfit \
+                    pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph \
+                    sharedmem
 
     - name: Run Dioptas from source to test and create version file
       run: xvfb-run python Dioptas.py test
@@ -57,7 +53,7 @@ jobs:
       run: |
         cd dist/Dioptas*
         rm libQt5Quick.so.5 libQt5Qml.so.5 libQt5Network.so.5 libcrypto.so.1.1 libsqlite3.so.0
-        rm -r imageio matplotlib
+        rm -r imageio
 
     - name: Run Dioptas
       run: |

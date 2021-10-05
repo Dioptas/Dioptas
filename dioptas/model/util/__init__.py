@@ -19,6 +19,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from .BackgroundExtraction import extract_background
-
 from .Pattern import Pattern
 from .jcpds import jcpds
+from .signal import Signal

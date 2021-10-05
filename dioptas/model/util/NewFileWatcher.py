@@ -20,8 +20,16 @@
 
 import os
 import time
+import threading
+
+import queue
 
 from qtpy import QtCore
+
+from watchdog.observers import Observer
+from watchdog.events import PatternMatchingEventHandler
+
+from . import Signal
 
 
 class NewFileInDirectoryWatcher(QtCore.QObject):
@@ -36,107 +44,92 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         watcher.file_added.connect(callback_fcn)
 
     """
-    file_added = QtCore.Signal(str)
+    _file_added_qt = QtCore.Signal(str)  # used internally for inside of an qt application to avoid thread problems
 
     def __init__(self, path=None, file_types=None, activate=False):
         """
         :param path: path to folder which will be watched
-        :param file_types: list of file types which will be watched for, e.g. ['.tif', '.jpeg]
+        :param file_types: list of file types which will be watched for, e.g. ['.tif', '.jpeg']
         :param activate: whether or not the Watcher will already emit signals
         """
         super(NewFileInDirectoryWatcher, self).__init__()
 
-        self._file_system_watcher = QtCore.QFileSystemWatcher()
         if path is None:
             path = os.getcwd()
-        self._file_system_watcher.addPath(path)
-        self._files_in_path = os.listdir(path)
-
-        self._file_system_watcher.directoryChanged.connect(self._directory_changed)
-        self._file_system_watcher.blockSignals(~activate)
-
-        self._file_changed_watcher = QtCore.QFileSystemWatcher()
-        self._file_changed_watcher.fileChanged.connect(self._file_changed)
+        self._path = path
 
         if file_types is None:
             self.file_types = set([])
+            self.patterns = '*'
         else:
             self.file_types = set(file_types)
+            self.patterns = ['*.' + file_type for file_type in file_types]
+
+        self.event_handler = PatternMatchingEventHandler(self.patterns)
+        self.event_handler.on_created = self.on_file_created
+
+        self.active = False
+        if activate:
+            self.activate()
+
+        self.file_added = Signal(str)  # to be used signal
+
+        self._file_added_qt.connect(self.file_added.emit)
+        self.filepath_queue = queue.Queue()
+        self.queue_thread = threading.Thread(target=self.process_events, daemon=True)
+        self.queue_thread.start()
+
+    def on_file_created(self, event):
+        file_path = os.path.abspath(event.src_path)
+        file_size = -1
+        while file_size != os.stat(file_path).st_size:
+            file_size = os.stat(file_path).st_size
+            time.sleep(0.01)
+
+        self.filepath_queue.put(os.path.abspath(file_path))
+
+    def activate(self):
+        if not self.active:
+            self.active = True
+            self._start_observing()
+
+    def deactivate(self):
+        if self.active:
+            self.active = False
+            self._stop_observing()
+
+    def _start_observing(self):
+        self.observer = Observer()
+        self.observer.schedule(self.event_handler, self.path)
+        self.observer.start()
+
+    def _stop_observing(self):
+        if self.observer.is_alive():
+            self.observer.stop()
+            self.observer.join()
 
     @property
     def path(self):
-        return self._file_system_watcher.directories()[0]
+        return self._path
 
     @path.setter
     def path(self, new_path):
-        if len(self._file_system_watcher.directories()):
-            self._file_system_watcher.removePath(self._file_system_watcher.directories()[0])
-        self._file_system_watcher.addPath(new_path)
-        self._files_in_path = os.listdir(new_path)
+        active = self.active
+        if active:
+            self._stop_observing()
+        self._path = new_path
+        if active:
+            self._start_observing()
 
-    def activate(self):
-        """
-        activates the watcher to emit signals when a new file is added
-        """
-        self._file_system_watcher.blockSignals(False)
+    def process_events(self):
+        while True:
+            try:
+                file_path = self.filepath_queue.get(False)  # doesn't block
+            except queue.Empty:  # raised when queue is empty
+                time.sleep(0.05)
+                continue
 
-    def deactivate(self):
-        """
-        deactivates the watcher so it will not emit a signal when a new file is added
-        """
-        self._file_system_watcher.blockSignals(True)
-
-    def _directory_changed(self):
-        """
-        internal function which determines whether the change in directory is an actual new file. If a new file was
-        detected it looks if it has the right extension and checks the file size. When the file is not completely
-        written yet it watches it for changes and will call the _file_changed function which wil acctually emit the
-        signal.
-        """
-        files_now = os.listdir(self.path)
-        files_added = [f for f in files_now if not f in self._files_in_path]
-
-        if len(files_added) > 0:
-            new_file_path = os.path.join(str(self.path), files_added[-1])
-
-            # abort if the new_file added is actually a directory...
-            if os.path.isdir(new_file_path):
-                self._files_in_path = files_now
-                return
-
-            valid_file = False
-            for file_type in self.file_types:
-                if new_file_path.endswith(file_type):
-                    valid_file = True
-                    break
-
-            if valid_file:
-                if self._file_closed(new_file_path):
-                    self.file_added.emit(new_file_path)
-                else:
-                    self._file_changed_watcher.addPath(new_file_path)
-            self._files_in_path = files_now
-
-    def _file_closed(self, path):
-        """
-        Checks whether a file is used by other processes.
-        """
-        # since it is hard to ask the operating system for this directly, the change in file size is checked.
-        size1 = os.stat(path).st_size
-        time.sleep(0.10)
-        size2 = os.stat(path).st_size
-
-        return size1 == size2
-
-    def _file_changed(self, path):
-        """
-        internal function callback for the file_changed_watcher. The watcher is invoked if a new file is detected but
-        the file is still below 100 bytes (basically only the file handle created, and no data yet). The _file_changed
-        callback function is then invoked when the data is completely written into the file. To ensure that everything
-        is correct this function also checks whether the file is above 100 byte after the system sends a file changed
-        signal.
-        :param path: file path of the watched file
-        """
-        if self._file_closed(path):
-            self.file_added.emit(path)
-            self._file_changed_watcher.removePath(path)
+            if QtCore.QCoreApplication.instance() is not None:
+                self._file_added_qt.emit(file_path)
+            else:
+                self.file_added.emit(file_path)

@@ -71,7 +71,7 @@ class ImageController(object):
         self.create_mouse_behavior()
 
     def initialize(self):
-        self.update_img()
+        self.update_img_control_widget()
         self.plot_img()
         self.plot_mask()
         self.widget.img_widget.auto_level()
@@ -160,7 +160,7 @@ class ImageController(object):
 
     def create_signals(self):
         self.model.configuration_selected.connect(self.update_gui_from_configuration)
-        self.model.img_changed.connect(self.update_img)
+        self.model.img_changed.connect(self.update_img_control_widget)
 
         self.model.img_changed.connect(self.plot_img)
         self.model.img_changed.connect(self.plot_mask)
@@ -183,12 +183,14 @@ class ImageController(object):
 
         self.widget.img_step_file_widget.browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
         self.widget.img_step_file_widget.browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
-        self.widget.mask_transparent_cb.clicked.connect(self.update_mask_transparency)
+
+        self.widget.image_control_widget.sources_cb.currentTextChanged.connect(self.select_source)
 
         ###
         # Image widget image specific controls
         self.widget.img_roi_btn.clicked.connect(self.click_roi_btn)
         self.widget.img_mask_btn.clicked.connect(self.change_mask_mode)
+        self.widget.mask_transparent_cb.clicked.connect(self.update_mask_transparency)
 
         ###
         # Image Widget cake specific controls
@@ -435,9 +437,9 @@ class ImageController(object):
         self.model.img_model.img_changed.emit()
 
     def update_mask_mode(self):
-        self.widget.integration_image_widget.mask_btn.setChecked(self.model.use_mask)
-        self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
-        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
+        self.widget.integration_image_widget.mask_btn.setChecked(bool(self.model.use_mask))
+        self.widget.mask_transparent_cb.setVisible(bool(self.model.use_mask))
+        self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
 
     def update_img_mode(self):
         self.widget.img_mode_btn.click()
@@ -498,8 +500,8 @@ class ImageController(object):
             self.model.working_directories['image'] = directory
             self.widget.img_directory_txt.setText(directory)
 
-    def update_img(self):
-        self.widget.img_step_series_widget.setVisible(self.model.img_model.series_max > 1)
+    def update_img_control_widget(self):
+        self.widget.img_step_series_widget.setVisible(int(self.model.img_model.series_max > 1))
         self.widget.img_step_series_widget.pos_validator.setTop(self.model.img_model.series_max)
         self.widget.img_step_series_widget.pos_txt.setText(str(self.model.img_model.series_pos))
 
@@ -509,6 +511,18 @@ class ImageController(object):
         self.widget.img_filename_txt.setText(os.path.basename(self.model.img_model.filename))
         self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
         self.widget.file_info_widget.text_lbl.setText(self.model.img_model.file_info)
+
+        self.widget.image_control_widget.sources_widget.setVisible(not (self.model.img_model.sources is None))
+        if self.model.img_model.sources is not None:
+            sources_cb = self.widget.image_control_widget.sources_cb
+            sources_cb.blockSignals(True)
+            # remove all previous items:
+            for _ in range(sources_cb.count()):
+                sources_cb.removeItem(0)
+
+            sources_cb.addItems(self.model.img_model.sources)
+            sources_cb.setCurrentText(self.model.img_model.selected_source)
+            sources_cb.blockSignals(False)
 
         self.widget.cbn_plot_btn.setText('Plot')
         self.widget.oiadac_plot_btn.setText('Plot')
@@ -544,8 +558,8 @@ class ImageController(object):
             self.widget.img_widget.activate_roi()
             self.widget.img_widget.update_roi_shade_limits(self.model.img_data.shape)
 
-            pos = QtCore.QPoint(roi[2], roi[0])
-            size = QtCore.QPoint(roi[3] - roi[2], roi[1] - roi[0])
+            pos = QtCore.QPoint(int(roi[2]), int(roi[0]))
+            size = QtCore.QPoint(int(roi[3] - roi[2]), int(roi[1] - roi[0]))
             self.widget.img_widget.roi.setRoiLimits(pos, size)
 
             if not self.roi_active:
@@ -590,8 +604,8 @@ class ImageController(object):
         self.plot_cake()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
-        self.widget.cake_shift_azimuth_sl.setMinimum(-len(self.model.cake_azi) / 2)
-        self.widget.cake_shift_azimuth_sl.setMaximum(len(self.model.cake_azi) / 2)
+        self.widget.cake_shift_azimuth_sl.setMinimum(int(-len(self.model.cake_azi) / 2))
+        self.widget.cake_shift_azimuth_sl.setMaximum(int(len(self.model.cake_azi) / 2))
         self.widget.cake_shift_azimuth_sl.setSingleStep(1)
         self.widget.img_phases_btn.setVisible(True)
 
@@ -913,6 +927,9 @@ class ImageController(object):
     def set_iteration_mode_time(self):
         self.model.img_model.set_file_iteration_mode('time')
 
+    def select_source(self, source):
+        self.model.img_model.select_source(source)
+
     def convert_x_value(self, value, previous_unit, new_unit):
         wavelength = self.model.calibration_model.wavelength
         if previous_unit == '2th_deg':
@@ -999,12 +1016,12 @@ class ImageController(object):
                             out_file.write("{:6.2f}".format(azi) + row_str + '\n')
 
     def update_gui_from_configuration(self):
-        self.widget.img_mask_btn.setChecked(self.model.use_mask)
-        self.widget.mask_transparent_cb.setChecked(self.model.transparent_mask)
-        self.widget.autoprocess_cb.setChecked(self.model.img_model.autoprocess)
+        self.widget.img_mask_btn.setChecked(int(self.model.use_mask))
+        self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
+        self.widget.autoprocess_cb.setChecked(bool(self.model.img_model.autoprocess))
         self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
 
-        self.update_img()
+        self.update_img_control_widget()
         self.update_mask_mode()
         self.update_roi_in_gui()
 

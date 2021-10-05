@@ -36,6 +36,7 @@ class DioptasModelTest(QtTest):
 
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'empty.dio'))
+        delete_if_exists(os.path.join(data_path, 'combined_pattern.xy'))
 
     def test_add_configuration(self):
         self.model.img_model.load(os.path.join(data_path, "image_001.tif"))
@@ -149,7 +150,7 @@ class DioptasModelTest(QtTest):
         self.assertGreater(self.model.current_configuration.calibration_model.cake_azi[0], -100)
         self.assertLess(self.model.current_configuration.calibration_model.cake_azi[-1], 100)
 
-    def test_combine_patterns(self):
+    def prepare_combined_patterns(self):
         x1 = np.linspace(0, 10)
         y1 = np.ones(x1.shape)
         pattern1 = Pattern(x1, y1)
@@ -164,7 +165,18 @@ class DioptasModelTest(QtTest):
 
         self.model.combine_patterns = True
 
+    def test_combine_patterns(self):
+        self.prepare_combined_patterns()
         x3, y3 = self.model.pattern.data
+        self.assertLess(np.min(x3), 7)
+        self.assertGreater(np.max(x3), 10)
+
+    def test_save_combine_patterns(self):
+        self.prepare_combined_patterns()
+        file_path = os.path.join(data_path, 'combined_pattern.xy')
+        self.model.pattern.save(file_path)
+        saved_pattern = Pattern().load(file_path)
+        x3, y3 = saved_pattern.data
         self.assertLess(np.min(x3), 7)
         self.assertGreater(np.max(x3), 10)
 

@@ -14,29 +14,21 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: git fetch --prune --unshallow
-    - name: Setup Python 3.7
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.7
 
-    - name: Use Python Dependency Cache
-      id: pip-cache
-      uses: actions/cache@v1
-      with:
-        path: ~/Library/Caches/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-        
+    - name: Use Miniconda
+      uses: s-weigand/setup-conda@v1
+
+    - name: install pip
+      run: conda install pip -y
+
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics pyinstaller cython
-        pip install --pre pyqtgraph
+        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics \
+                    pyinstaller cython watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem \
+                    cython
 
-#    - name: Compile smooth_bruckner
-#      run: |
-#        cd dioptas/model/util/
-#        f2py -c -m smooth_bruckner smooth_bruckner.f95
+    - name: Compile Smooth Bruckner
+      run: cythonize -a -i dioptas\model\util\smooth_bruckner_cython.pyx
 
     - name: Run Dioptas from source to test and create version file
       run: python Dioptas.py test
@@ -44,12 +36,12 @@ jobs:
     - name: Run PyInstaller
       run: bash create_executable.sh
 
-    - name: Clean Up Executable Folder
-      run: |
-        cd dist/Dioptas*
-        cd Contents/MacOS
-        rm QtQuick QtQml QtQmlmodels QtNetwork QtWebSockets
-        rm -r imageio matplotlib
+#    - name: Clean Up Executable Folder
+#      run: |
+#        cd dist/Dioptas*
+#        cd Contents/MacOS
+#        rm QtQuick QtQml QtQmlmodels QtNetwork QtWebSockets
+#        rm -r imageio matplotlib
 
     - name: Run Dioptas Executable
       run: |

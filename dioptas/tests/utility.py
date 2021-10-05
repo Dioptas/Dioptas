@@ -25,6 +25,7 @@ import os
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), 'data')
 
+
 class QtTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -52,3 +53,33 @@ def enter_value_into_text_field(text_field, value):
     QTest.keyClicks(text_field, str(value))
     QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
     QtWidgets.QApplication.processEvents()
+
+
+class MockMouseEvent:
+    def __init__(self, key=None, diff=None):
+        self.key_value = key
+        self.diff = diff
+
+        class TestCoord:
+            def x(self):
+                return 100
+
+            def y(self):
+                return 100
+
+        self.coord = TestCoord()
+
+    def key(self):
+        return self.key_value
+
+    def x(self):
+        return self.diff
+
+    def angleDelta(self):
+        return self.coord
+
+    def modifiers(self):
+        return QtCore.Qt.CoverWindow
+
+    def button(self):
+        return QtCore.Qt.CoverWindow
