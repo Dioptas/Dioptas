@@ -247,8 +247,8 @@ class CalibrationController(object):
         self.update_detector_parameters_in_view()
 
     def _update_pixel_size_in_gui(self):
-        self.widget.set_pixel_size(self.model.calibration_model.orig_pixel1,
-                                   self.model.calibration_model.orig_pixel2)
+        self.widget.set_pixel_size(self.model.calibration_model.orig_pixel2,
+                                   self.model.calibration_model.orig_pixel1)
 
     def _update_spline_in_gui(self):
         if self.model.calibration_model.detector.splineFile is not None:

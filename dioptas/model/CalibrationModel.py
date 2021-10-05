@@ -32,20 +32,19 @@ from pyFAI.calibrant import Calibrant
 from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
 from pyFAI.geometryRefinement import GeometryRefinement
 from pyFAI.massif import Massif
-from qtpy import QtCore
 from skimage.measure import find_contours
 
 from .. import calibrants_path
 from .ImgModel import ImgModel
+from .util import Signal
 from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90, get_partial_index
-from .util.calc import supersample_image
+from .util.calc import supersample_image, trim_trailing_zeros
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class CalibrationModel(QtCore.QObject):
-    detector_reset = QtCore.Signal()
+class CalibrationModel(object):
 
     def __init__(self, img_model=None):
         """
@@ -96,6 +95,8 @@ class CalibrationModel(QtCore.QObject):
         self.cake_azi = None
 
         self.peak_search_algorithm = None
+
+        self.detector_reset = Signal()
 
     def find_peaks_automatic(self, x, y, peak_ind):
         """
@@ -422,9 +423,9 @@ class CalibrationModel(QtCore.QObject):
                                                                        filename=filename)
         logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
 
-        ind = np.where((self.int > 0) & (~np.isnan(self.int)))
-        self.tth = self.tth[ind]
-        self.int = self.int[ind]
+        if np.sum(self.int) != 0:  # only trim zeros if not everything is 0 (e.g. bkg-subtraction of the same image)
+            self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
+
         return self.tth, self.int
 
     def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr',
@@ -833,13 +834,7 @@ class CalibrationModel(QtCore.QObject):
         """
         :param transform_function: function pointer which will affect the dx, dy and pixel corners of the detector
         """
-        if self.detector._dx is not None:
-            old_dx, old_dy = self.detector._dx, self.detector._dy
-            self.detector.set_dx(transform_function(old_dx))
-            self.detector.set_dy(transform_function(old_dy))
-
-        if self.detector._pixel_corners is not None:
-            self.detector._pixel_corners = transform_function(self.detector._pixel_corners)
+        self.detector._pixel_corners = np.ascontiguousarray(transform_function(self.detector.get_pixel_corners()))
 
     def _swap_pixel_size(self):
         """swaps the pixel sizes"""

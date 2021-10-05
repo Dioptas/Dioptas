@@ -20,7 +20,7 @@
 
 import numpy as np
 
-from qtpy import QtCore
+from .util import Signal
 from .util.jcpds import jcpds, jcpds_reflection
 from .util.cif import CifConverter
 from .util.HelperModule import calculate_color
@@ -35,14 +35,7 @@ class PhaseLoadError(Exception):
         return "Could not load {0} as jcpds file".format(self.filename)
 
 
-class PhaseModel(QtCore.QObject):
-    phase_added = QtCore.Signal()
-    phase_removed = QtCore.Signal(int)  # phase ind
-    phase_changed = QtCore.Signal(int)  # phase ind
-    phase_reloaded = QtCore.Signal(int)  # phase ind
-
-    reflection_added = QtCore.Signal(int)
-    reflection_deleted = QtCore.Signal(int, int)  # phase index, reflection index
+class PhaseModel(object):
 
     num_phases = 0
 
@@ -55,6 +48,14 @@ class PhaseModel(QtCore.QObject):
         self.phase_visible = []
 
         self.same_conditions = True
+
+        self.phase_added = Signal()
+        self.phase_removed = Signal(int)  # phase ind
+        self.phase_changed = Signal(int)  # phase ind
+        self.phase_reloaded = Signal(int)  # phase ind
+
+        self.reflection_added = Signal(int)
+        self.reflection_deleted = Signal(int, int)  # phase index, reflection index
 
     def add_jcpds(self, filename):
         """

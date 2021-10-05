@@ -19,32 +19,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from scipy.interpolate import interp1d, interp2d
+from scipy.interpolate import interp2d
 import numpy as np
-from qtpy import QtCore
 
 import h5py
 
+from .util import Signal
 from .util import jcpds
-from .util import Pattern
+from .util.Pattern import Pattern, combine_patterns
 from .Configuration import Configuration
-from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel
+from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel, BatchModel
 from .. import __version__
 
 
-class DioptasModel(QtCore.QObject):
+class DioptasModel(object):
     """
     Handles all the data used in Dioptas. Image, Calibration and Mask are handled by so called configurations.
     Patterns and overlays are global and always the same, no matter which configuration is selected.
     """
-    configuration_added = QtCore.Signal()
-    configuration_selected = QtCore.Signal(int)  # new index
-    configuration_removed = QtCore.Signal(int)  # removed index
-
-    img_changed = QtCore.Signal()
-    pattern_changed = QtCore.Signal()
-    cake_changed = QtCore.Signal()
-    enabled_phases_in_cake = QtCore.Signal()
 
     def __init__(self):
         super(DioptasModel, self).__init__()
@@ -58,6 +50,15 @@ class DioptasModel(QtCore.QObject):
         self._combine_patterns = False
         self._combine_cakes = False
         self._cake_data = None
+
+        self.configuration_added = Signal()
+        self.configuration_selected = Signal(int)  # new index
+        self.configuration_removed = Signal(int)  # removed index
+
+        self.img_changed = Signal()
+        self.pattern_changed = Signal()
+        self.cake_changed = Signal()
+        self.enabled_phases_in_cake = Signal()
 
         self.connect_models()
 
@@ -116,8 +117,8 @@ class DioptasModel(QtCore.QObject):
         overlay_group = f.create_group('overlays')
 
         for ind, overlay in enumerate(self.overlay_model.overlays):
-            ov = overlay_group.create_group(str(ind).zfill(5)) # need to fill the ind string, in order to keep it
-                                                               # ordered also for larger numbers of overlays
+            ov = overlay_group.create_group(str(ind).zfill(5))  # need to fill the ind string, in order to keep it
+            # ordered also for larger numbers of overlays
             ov.attrs['name'] = overlay.name
             ov.create_dataset('x', overlay.original_x.shape, 'f', overlay.original_x)
             ov.create_dataset('y', overlay.original_y.shape, 'f', overlay.original_y)
@@ -157,6 +158,14 @@ class DioptasModel(QtCore.QObject):
         self.disconnect_models()
 
         f = h5py.File(filename, 'r')
+
+        # delete old configurations
+        for config in self.configurations:
+            del config.img_model
+            del config.calibration_model
+            del config.mask_model
+            import gc
+            gc.collect()
 
         # load_configurations
         self.configurations = []
@@ -229,7 +238,7 @@ class DioptasModel(QtCore.QObject):
         """
         Connects signals of the currently selected configuration
         """
-        self.img_model.img_changed.connect(self.img_changed)
+        self.img_model.img_changed.connect(self.img_changed, priority=True)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
         self.current_configuration.cake_changed.connect(self.cake_changed)
 
@@ -289,6 +298,13 @@ class DioptasModel(QtCore.QObject):
         :rtype: PhaseModel
         """
         return self._phase_model
+
+    @property
+    def batch_model(self):
+        """
+        :rtype: BatchModel
+        """
+        return self.configurations[self.configuration_ind].batch_model
 
     @property
     def use_mask(self):
@@ -409,45 +425,20 @@ class DioptasModel(QtCore.QObject):
 
     @property
     def pattern(self):
+        """
+        :rtype: Pattern
+        """
         if not self.combine_patterns:
             return self.pattern_model.pattern
         else:
-            x_min = []
-            for ind in range(0, len(self.configurations)):
-                # determine ranges
-                x = self.configurations[ind].pattern_model.pattern.x
-                x_min.append(np.min(x))
-
-            sorted_pattern_ind = np.argsort(x_min)
-
-            pattern = self.configurations[sorted_pattern_ind[0]].pattern_model.pattern
-            for ind in sorted_pattern_ind[1:]:
-                x1, y1 = pattern.data
-                x2, y2 = self.configurations[ind].pattern_model.pattern.data
-
-                pattern2_interp1d = interp1d(x2, y2, kind='linear')
-
-                overlap_ind_pattern1 = np.where((x1 <= np.max(x2)) & (x1 >= np.min(x2)))[0]
-                left_ind_pattern1 = np.where((x1 <= np.min(x2)))[0]
-                right_ind_pattern2 = np.where((x2 >= np.max(x1)))[0]
-
-                combined_x1 = x1[left_ind_pattern1]
-                combined_y1 = y1[left_ind_pattern1]
-                combined_x2 = x1[overlap_ind_pattern1]
-                combined_y2 = (y1[overlap_ind_pattern1] + pattern2_interp1d(combined_x2)) / 2
-                combined_x3 = x2[right_ind_pattern2]
-                combined_y3 = y2[right_ind_pattern2]
-
-                combined_x = np.hstack((combined_x1, combined_x2, combined_x3))
-                combined_y = np.hstack((combined_y1, combined_y2, combined_y3))
-
-                pattern = Pattern(combined_x, combined_y)
-
-            pattern.name = "Combined Pattern"
-            return pattern
+            patterns = [configuration.pattern_model.pattern for configuration in self.configurations]
+            return combine_patterns(patterns)
 
     @property
     def combine_patterns(self):
+        """
+        :rtype: bool
+        """
         return self._combine_patterns
 
     @combine_patterns.setter
@@ -455,8 +446,18 @@ class DioptasModel(QtCore.QObject):
         self._combine_patterns = new_val
         self.pattern_changed.emit()
 
+    def save_combined_pattern(self, filename):
+        """
+        Saves the current integrated pattern
+        :param filename: where to save the file
+        """
+        self.pattern.save(filename, unit=self.integration_unit)
+
     @property
     def combine_cakes(self):
+        """
+        :rtype: bool
+        """
         return self._combine_cakes
 
     @combine_cakes.setter
@@ -568,3 +569,9 @@ class DioptasModel(QtCore.QObject):
         for configuration in self.configurations:
             configuration.img_model.load_previous_folder(mec_mode=mec_mode)
         self._teardown_multiple_file_loading()
+
+    def blockSignals(self, block=True):
+        for member in vars(self):
+            attr = getattr(self, member)
+            if isinstance(attr, Signal):
+                attr.blocked = block

@@ -207,7 +207,7 @@ class PhaseWidget(QtWidgets.QWidget):
 
         name_item = QtWidgets.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        name_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        name_item.setTextAlignment(int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter))
         self.phase_tw.setItem(current_rows, 2, name_item)
 
         pressure_sb = DoubleSpinBoxAlignRight()

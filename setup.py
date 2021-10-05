@@ -41,6 +41,6 @@ setup(
                               'resources/icons/*',
                               ]
                   },
-    scripts=['scripts/dioptas'],
+    scripts=['scripts/dioptas', 'scripts/dioptas_batch'],
     ext_modules=ext_modules,
 )

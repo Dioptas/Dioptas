@@ -23,7 +23,7 @@ from functools import partial
 from qtpy import QtWidgets, QtCore
 
 from .CustomWidgets import LabelAlignRight, HorizontalSpacerItem, CheckableFlatButton, FlatButton, NumberTextField, \
-    IntegerTextField, VerticalLine
+    IntegerTextField, VerticalLine, SaveIconButton
 
 
 class ConfigurationWidget(QtWidgets.QWidget):
@@ -61,6 +61,8 @@ class ConfigurationWidget(QtWidgets.QWidget):
 
         self.combine_patterns_btn = CheckableFlatButton("Combine Patterns")
         self.combine_cakes_btn = CheckableFlatButton("Combine Cakes")
+        self.saved_combined_patterns_btn = SaveIconButton()
+        self.saved_combined_patterns_btn.setToolTip("Save combined pattern")
 
     def create_layout(self):
         self.main_layout = QtWidgets.QHBoxLayout()
@@ -85,6 +87,7 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.main_layout.addWidget(self.factor_txt)
         self.main_layout.addSpacerItem(QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum))
         self.main_layout.addWidget(self.combine_patterns_btn)
+        self.main_layout.addWidget(self.saved_combined_patterns_btn)
         self.main_layout.addWidget(self.combine_cakes_btn)
         self.setLayout(self.main_layout)
 
@@ -99,11 +102,14 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.previous_file_btn.setMaximumWidth(25)
         self.factor_txt.setMaximumWidth(35)
 
+        self.saved_combined_patterns_btn.setIconSize(QtCore.QSize(13, 13))
+        self.saved_combined_patterns_btn.setMaximumWidth(25)
+
     def update_configuration_btns(self, configurations, cur_ind):
         for btn in self.configuration_btns:
             self.configuration_btn_group.removeButton(btn)
             self.configurations_btn_layout.removeWidget(btn)
-            btn.deleteLater() # somehow needs tobe deleted, otherwise remains in the button group
+            btn.deleteLater()  # somehow needs tobe deleted, otherwise remains in the button group
 
         self.configuration_btns = []
 

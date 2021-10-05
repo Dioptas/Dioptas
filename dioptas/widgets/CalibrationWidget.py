@@ -28,7 +28,7 @@ from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
 from ..widgets.plot_widgets import PatternWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
-    DoubleSpinBoxAlignRight, FlatButton
+    DoubleSpinBoxAlignRight, FlatButton, OpenIconButton, ResetIconButton
 
 from .. import icons_path
 
@@ -162,8 +162,8 @@ class CalibrationWidget(QtWidgets.QWidget):
 
     def get_pixel_size(self):
         detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
-        return float(detector_gb.pixel_width_txt.text()) * 1e-6, \
-               float(detector_gb.pixel_height_txt.text()) * 1e-6
+        return float(detector_gb.pixel_height_txt.text()) * 1e-6, \
+               float(detector_gb.pixel_width_txt.text()) * 1e-6
 
     def set_pixel_size(self, pixel_width, pixel_height):
         detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
@@ -223,12 +223,12 @@ class CalibrationWidget(QtWidgets.QWidget):
             pyfai_widget.rotation3_txt.setText('%.8f' % (pyfai_parameter['rot3']))
             pyfai_widget.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
             pyfai_widget.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
-            pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
-            pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
+            pyfai_widget.pixel_height_txt.setText('%.4f' % (pyfai_parameter['pixel1'] * 1e6))
+            pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
 
             sv_gb.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
             sv_gb.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
-            self.set_pixel_size(pyfai_parameter['pixel1'], pyfai_parameter['pixel2'])
+            self.set_pixel_size(pyfai_parameter['pixel2'], pyfai_parameter['pixel1'])
         except (AttributeError, TypeError):
             pyfai_widget.distance_txt.setText('')
             pyfai_widget.poni1_txt.setText('')
@@ -256,8 +256,8 @@ class CalibrationWidget(QtWidgets.QWidget):
                            'rot3': float(pyfai_widget.rotation3_txt.text()),
                            'wavelength': float(pyfai_widget.wavelength_txt.text()) / 1e10,
                            'polarization_factor': float(pyfai_widget.polarization_txt.text()),
-                           'pixel1': float(pyfai_widget.pixel_width_txt.text()) / 1e6,
-                           'pixel2': float(pyfai_widget.pixel_height_txt.text()) / 1e6}
+                           'pixel1': float(pyfai_widget.pixel_height_txt.text()) / 1e6,
+                           'pixel2': float(pyfai_widget.pixel_width_txt.text()) / 1e6}
         return pyfai_parameter
 
     def set_fit2d_parameter(self, fit2d_parameter):
@@ -430,14 +430,12 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
         self.detector_name_lbl = LabelAlignRight()
         self.detector_name_lbl.hide()
 
-        self.detector_load_btn = FlatButton()
-        self.detector_load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.detector_load_btn = OpenIconButton()
         self.detector_load_btn.setIconSize(QtCore.QSize(13, 13))
         self.detector_load_btn.setMaximumWidth(21)
         self.detector_load_btn.setToolTip('Open Detector File')
 
-        self.detector_reset_btn = FlatButton()
-        self.detector_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.detector_reset_btn = ResetIconButton()
         self.detector_reset_btn.setIconSize(QtCore.QSize(13, 13))
         self.detector_reset_btn.setMaximumWidth(21)
         self.detector_reset_btn.setToolTip('Reset Detector')
@@ -464,14 +462,12 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
         self._grid_layout1.addWidget(QtWidgets.QLabel('um'), 2, 2)
 
         self.spline_name_txt = QtWidgets.QLabel('None')
-        self.spline_load_btn = FlatButton()
-        self.spline_load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.spline_load_btn = OpenIconButton()
         self.spline_load_btn.setIconSize(QtCore.QSize(13, 13))
         self.spline_load_btn.setMaximumWidth(21)
         self.spline_load_btn.setToolTip('Open Spline File')
 
-        self.spline_reset_btn = FlatButton()
-        self.spline_reset_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.spline_reset_btn = ResetIconButton()
         self.spline_reset_btn.setIconSize(QtCore.QSize(13, 13))
         self.spline_reset_btn.setMaximumWidth(21)
         self.spline_reset_btn.setToolTip('Reset distortion correction')

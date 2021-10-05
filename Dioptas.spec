@@ -43,6 +43,7 @@ extra_datas = [
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
+    (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), os.path.join('hdf5plugin', 'plugins'))
 ]
 
 binaries = []
@@ -80,6 +81,12 @@ fabio_hiddenimports = [
     "fabio.mrcimage"
 ]
 
+pyqtgraph_hiddenimports = [
+    "pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5",
+    "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5",
+    "pyqtgraph.imageview.ImageViewTemplate_pyqt5"
+]
+
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
              binaries=binaries,
@@ -87,7 +94,7 @@ a = Analysis(['Dioptas.py'],
              hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
                             'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
                             'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
-                           fabio_hiddenimports,
+                           fabio_hiddenimports + pyqtgraph_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=['PyQt4', 'PySide'],
@@ -168,7 +175,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False,
+          console=True,
           icon="dioptas/resources/icons/icon.ico")
 
 coll = COLLECT(exe,

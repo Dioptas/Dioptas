@@ -24,3 +24,4 @@ from .MaskModel import MaskModel
 from .PhaseModel import PhaseModel
 from .PatternModel import PatternModel
 from .OverlayModel import OverlayModel
+from .BatchModel import BatchModel

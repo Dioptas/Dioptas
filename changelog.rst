@@ -1,3 +1,21 @@
+0.5.3 (stable 10/04/2021)
+-------------------------
+
+New features:
+    - added a batch integration view (thanks to hard work of Mikhail Karnevskiy @ DESY). Here you can batch integrate
+      your collection series and interact with a contour or 3D plot of the integrated patterns -> this also includes
+      visualization of phases lines
+    - reading ESRF hdf5 data files is now possible
+    - combined patterns from multiple configurations can now be saved as a file (save button on the upper right)
+
+Bug Fixes:
+    - no longer remove integrated intensities below 0, instead now only values with equal to 0 are removed
+      (this should fix all the issues with background corrected images)
+    - reimplemented the automatic file recognition algorithm of the autoprocess integration function. This should now
+      work much more reliable also on network drives and linux systems
+    - QT high dpi scaling is now only activated for Windows and Mac OS X -> Disabling it on Linux fixes the display bugs
+      encountered here and it is usable with low and high dpi screens (it was not working correctly)
+
 0.5.2 (stable 11/26/2020)
 -------------------------
 
@@ -12,6 +30,7 @@ Bug Fixes:
     - fix display bug which was showing horizontal scroll bar in "calibration parameters" on some linux systems
     - disable QT high dpi mode for Linux platforms, which was causing very tiny font sizes. It is working correctly
       without it
+    - fixed pixel width/height definition in the detector calibration definition (it was applied interchanged)
 
 0.5.1 (stable 05/05/2020)
 -------------------------

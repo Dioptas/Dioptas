@@ -20,27 +20,26 @@
 
 import os
 import numpy as np
-from qtpy import QtCore
 
 from copy import deepcopy
 
 import h5py
 
+from .util import Signal
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 from .util import Pattern
 from .util.calc import convert_units
-from . import ImgModel, CalibrationModel, MaskModel, PatternModel
+from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .CalibrationModel import DetectorModes
 
 
-class Configuration(QtCore.QObject):
+class Configuration(object):
     """
     The configuration class contains a working combination of an ImgModel, PatternModel, MaskModel and CalibrationModel.
     It does handles the core data manipulation of Dioptas.
     The management of multiple Configurations is done by the DioptasModel.
     """
-    cake_changed = QtCore.Signal()
 
     def __init__(self, working_directories=None):
         super(Configuration, self).__init__()
@@ -48,11 +47,12 @@ class Configuration(QtCore.QObject):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
+        self.batch_model = BatchModel(self.calibration_model, self.mask_model)
         self.pattern_model = PatternModel()
 
         if working_directories is None:
             self.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"), 'pattern': '',
-                                        'overlay': '', 'phase': ''}
+                                        'overlay': '', 'phase': '', 'batch': os.path.expanduser("~")}
         else:
             self.working_directories = working_directories
 
@@ -73,6 +73,7 @@ class Configuration(QtCore.QObject):
         self.auto_save_integrated_pattern = False
         self.integrated_patterns_file_formats = ['.xy']
 
+        self.cake_changed = Signal()
         self._connect_signals()
 
     def _connect_signals(self):
@@ -125,6 +126,7 @@ class Configuration(QtCore.QObject):
         """
         Saves the current integrated pattern. The format depends on the file ending. Possible file formats:
             [*.xy, *.chi, *.dat, *.fxye]
+        :param filename: where to save the file
         :param subtract_background: flat whether the pattern should be saved with or without subtracted background
         """
         if filename is None:
@@ -148,9 +150,9 @@ class Configuration(QtCore.QObject):
             filename = self.img_model.filename
 
         if filename.endswith('.xy'):
-            self.pattern_model.save_background_as_pattern(filename, header=self._create_xy_header())
+            self.pattern_model.save_auto_background_as_pattern(filename, header=self._create_xy_header())
         elif filename.endswith('.fxye'):
-            self.pattern_model.save_background_as_pattern(filename, header=self._create_fxye_header(filename))
+            self.pattern_model.save_auto_background_as_pattern(filename, header=self._create_fxye_header(filename))
         else:
             self.pattern_model.save_pattern(filename)
 
@@ -409,7 +411,7 @@ class Configuration(QtCore.QObject):
                 working_directories_gp.attrs[key] = self.working_directories[key]
         except TypeError:
             self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
-                                        'phase': ''}
+                                        'phase': '', 'batch': ''}
             for key in self.working_directories:
                 working_directories_gp.attrs[key] = self.working_directories[key]
 
