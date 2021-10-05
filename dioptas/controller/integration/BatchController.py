@@ -788,7 +788,7 @@ class BatchController(object):
                                     )
 
         name, ext = os.path.splitext(filename)
-        if filename is not '':
+        if filename != '':
             if ext == '.png':
                 if self.widget.batch_widget.view_2d_btn.isChecked():
                     self.widget.batch_widget.img_view.save_img(filename)
