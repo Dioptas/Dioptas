@@ -3,13 +3,12 @@ from setuptools import find_packages, setup
 from Cython.Build import cythonize
 import versioneer
 
-ext_modules = []
 ext_modules = cythonize('dioptas/model/util/smooth_bruckner_cython.pyx')
 
 version = versioneer.get_version()
 
-if version=="0+unknown":
-    version="0.5.3"
+if version == "0+unknown":
+    version = "0.5.3a"
 
 setup(
     name='dioptas',
