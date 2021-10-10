@@ -70,6 +70,8 @@ class BatchModel(QtCore.QObject):
             if file[-4:] == '.tif':
                 n_img = 1
             else:
+                if not os.path.exists(file):
+                    return
                 self.calibration_model.img_model.load(file)
                 n_img = self.calibration_model.img_model.series_max
             image_counter += n_img
@@ -94,15 +96,17 @@ class BatchModel(QtCore.QObject):
 
         try:
             cal_file = str(data_file.attrs['calibration'])
-            self.calibration_model.load(cal_file)
+            if os.path.isfile(cal_file):
+                self.calibration_model.load(cal_file)
         except KeyError:
             logger.info("Calibration info is not found")
-        except FileNotFoundError:
-            logger.info("Calibration file is not found")
 
         if 'mask' in data_file.attrs:
-            mask_file = data_file.attrs['mask']
-            self.mask_model.load_mask(mask_file)
+            try:
+                mask_file = data_file.attrs['mask']
+                self.mask_model.load_mask(mask_file)
+            except FileNotFoundError:
+                logger.info("Mask file is not found")
 
         if 'bkg' in data_file:
             self.data = data_file['bkg'][()]
@@ -131,10 +135,8 @@ class BatchModel(QtCore.QObject):
             self.pos_map = data_file['processed/process/pos_map'][()]
 
             self.used_calibration = str(data_file['processed/process/cal_file'][()])
-            try:
+            if os.path.isfile(self.used_calibration):
                 self.calibration_model.load(self.used_calibration)
-            except FileNotFoundError:
-                pass
 
             if 'mask' in data_file['processed/process/']:
                 mask = data_file['processed/process/mask'][()]
@@ -142,10 +144,13 @@ class BatchModel(QtCore.QObject):
                 self.mask_model.set_mask(mask)
 
             if 'mask_file' in data_file['processed/process/']:
-                self.used_mask = str(data_file['processed/process/mask_file'][()])
-                mask_data = np.array(Image.open(self.used_mask))
-                self.mask_model.set_dimension(mask_data.shape)
-                self.mask_model.load_mask(self.used_mask)
+                try:
+                    self.used_mask = str(data_file['processed/process/mask_file'][()])
+                    mask_data = np.array(Image.open(self.used_mask))
+                    self.mask_model.set_dimension(mask_data.shape)
+                    self.mask_model.load_mask(self.used_mask)
+                except FileNotFoundError:
+                    logger.info(f"Mask file {self.used_mask} is not found")
 
             if 'bkg' in data_file['processed/process/']:
                 self.bkg = data_file['processed/process/bkg'][()]

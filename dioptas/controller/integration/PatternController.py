@@ -286,6 +286,8 @@ class PatternController(object):
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.pattern_plot.viewRange()[0]
         pattern_x = self.model.pattern.data[0]
+        if len(pattern_x) < 1:
+            return
         if np.min(pattern_x) < old_x_axis_range[0] or np.max(pattern_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
             self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
