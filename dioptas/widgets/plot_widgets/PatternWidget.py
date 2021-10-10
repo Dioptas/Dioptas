@@ -417,13 +417,14 @@ class PatternWidget(QtCore.QObject):
             if self.auto_range is not True:
                 view_range = np.array(self.view_box.viewRange())
                 curve_data = self.plot_item.getData()
-                x_range = np.max(curve_data[0]) - np.min(curve_data[0])
-                y_range = np.max(curve_data[1]) - np.min(curve_data[1])
-                if (view_range[0][1] - view_range[0][0]) >= x_range and \
-                        (view_range[1][1] - view_range[1][0]) >= y_range:
-                    self.auto_range = True
-                else:
-                    self.auto_range = False
+                self.auto_range = False
+                if len(curve_data[0]) > 2:
+                    x_range = np.max(curve_data[0]) - np.min(curve_data[0])
+                    y_range = np.max(curve_data[1]) - np.min(curve_data[1])
+                    if (view_range[0][1] - view_range[0][0]) >= x_range and \
+                            (view_range[1][1] - view_range[1][0]) >= y_range:
+                        self.auto_range = True
+                if not self.auto_range:
                     pg.ViewBox.wheelEvent(self.view_box, ev)
             self.emit_sig_range_changed()
 
@@ -516,7 +517,7 @@ class PhasePlot(object):
                                              x=[positions[ind], positions[ind]])
 
     def update_visibilities(self, pattern_range):
-        if self.visible:
+        if self.visible and pattern_range[0] is not None:
             for ind, line_item in enumerate(self.line_items):
                 data = line_item.getData()
                 position = data[0][0]
