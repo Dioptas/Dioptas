@@ -1,3 +1,12 @@
+0.5.3a (stable 10/10/2021)
+--------------------------
+
+New features:
+    - pip package has now the correct dependencies
+
+Bug Fixes:
+    - small bug fixes for batch integration (checks whether calibration or mask is loaded)
+
 0.5.3 (stable 10/04/2021)
 -------------------------
 
