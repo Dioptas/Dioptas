@@ -1,0 +1,1 @@
+'cython', 'extra_data', 'future', 'h5py', 'hdf5plugin', 'lmfit', 'pandas', 'pycifrw', 'python-dateutil', 'pyinstaller', 'pyqt5', 'pyfai', 'pyepics', 'pyopengl', 'pyopengl-accelerate', 'pyqtgraph', 'qtpy', 'scikit-image', 'sharedmem', 'watchdog', 
