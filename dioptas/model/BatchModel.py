@@ -272,6 +272,7 @@ class BatchModel(QtCore.QObject):
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = np.array(intensity_data)
+        self.bkg = None
         self.n_img = self.data.shape[0]
 
     def extract_background(self, parameters, progress_dialog=None):
