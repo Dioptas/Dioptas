@@ -372,12 +372,11 @@ class BatchController(object):
         """
         Show and hide phases
         """
-        if str(self.widget.batch_widget.phases_btn.text()) == 'Show Phases':
+        if self.widget.batch_widget.phases_btn.isChecked():
             self.widget.batch_widget.img_view.show_all_visible_cake_phases(
                 self.widget.phase_widget.phase_show_cbs)
             self.widget.batch_widget.phases_btn.setText('Hide Phases')
-            self.model.enabled_phases_in_cake.emit()
-        elif str(self.widget.batch_widget.phases_btn.text()) == 'Hide Phases':
+        else:
             self.widget.batch_widget.img_view.hide_all_cake_phases()
             self.widget.batch_widget.phases_btn.setText('Show Phases')
 
@@ -402,6 +401,7 @@ class BatchController(object):
             return
 
         self.plot_batch()
+        self.plot_waterfall()
 
     def extract_background(self):
         """
@@ -657,7 +657,7 @@ class BatchController(object):
             return
         self.model.working_directories['batch'] = os.path.dirname(filenames[0])
         self.widget.batch_widget.load_btn.setToolTip(f"Load raw/proc data ({os.path.dirname(filenames[0])})")
-        self.reset_view_buttons()
+        self.reset_view()
         if self.is_proc(filenames[0]):
             self.model.batch_model.reset_data()
             self.load_proc_data(filenames[0])
@@ -678,13 +678,17 @@ class BatchController(object):
         self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img_all)
         self.plot_image(0)
 
-    def reset_view_buttons(self):
+    def reset_view(self):
         """
         Set few view buttons to un-checked.
         This brings batch-widget to initial state
         """
         self.widget.batch_widget.background_btn.setChecked(False)
         self.widget.batch_widget.waterfall_btn.setChecked(False)
+        self.widget.batch_widget.phases_btn.setChecked(False)
+
+        self.waterfall_mode()
+        self.toggle_show_phases()
 
     def is_proc(self, filename):
         """
@@ -864,6 +868,12 @@ class BatchController(object):
         """
         data = self.model.batch_model.data
         binning = self.model.batch_model.binning
+        bkg = self.model.batch_model.bkg
+        if data is None:
+            return
+        if self.widget.batch_widget.background_btn.isChecked():
+            data = data - bkg
+
         rect = self.rect.rect()
         y1, y2 = sorted((int(rect.top()), int(rect.bottom())))
         x1, x2 = sorted((int(rect.left()), int(rect.right())))
