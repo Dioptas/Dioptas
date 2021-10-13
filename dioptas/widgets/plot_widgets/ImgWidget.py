@@ -29,6 +29,7 @@ from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
+from .PatternWidget import ModifiedLinearRegionItem
 
 
 class ImgWidget(QtCore.QObject):
@@ -530,6 +531,21 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
         self.create_horizontal_line()
         self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
+        self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
+
+    def show_linear_region(self):
+        self.img_view_box.addItem(self.linear_region_item)
+
+    def set_linear_region(self, x_min, x_max):
+        self.linear_region_item.blockSignals(True)
+        self.linear_region_item.setRegion((x_min, x_max))
+        self.linear_region_item.blockSignals(False)
+
+    def get_linear_region(self):
+        return self.linear_region_item.getRegion()
+
+    def hide_linear_region(self):
+        self.img_view_box.removeItem(self.linear_region_item)
 
     def move_image(self):
         pass

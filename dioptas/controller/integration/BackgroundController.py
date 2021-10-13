@@ -163,9 +163,16 @@ class BackgroundController(object):
             self.background_widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
 
             self.widget.pattern_widget.linear_region_item.blockSignals(True)
-            self.widget.pattern_widget.set_linear_region(
-                *self.model.pattern_model.pattern.auto_background_subtraction_roi)
+            bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+            self.widget.pattern_widget.set_linear_region(bkg_roi)
             self.widget.pattern_widget.linear_region_item.blockSignals(False)
+
+            binning = self.model.batch_model.binning
+            if binning is not None:
+                scale = (binning[-1] - binning[0]) / binning.shape[0]
+                x_min_bin = (bkg_roi[0] - binning[0]) / scale
+                x_max_bin = (bkg_roi[1] - binning[0]) / scale
+                self.widget.batch_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
 
     def bkg_pattern_inspect_btn_toggled_callback(self, checked):
         self.widget.bkg_pattern_inspect_btn.blockSignals(True)
@@ -182,11 +189,22 @@ class BackgroundController(object):
             )
             self.widget.bkg_pattern_x_min_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
             self.widget.bkg_pattern_x_max_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
+
+            self.widget.batch_widget.img_view.show_linear_region()
+            self.widget.batch_widget.img_view.linear_region_item.sigRegionChanged.connect(
+                self.bkg_batch_linear_region_callback
+            )
+
         else:
             self.widget.pattern_widget.hide_linear_region()
             self.widget.pattern_widget.linear_region_item.sigRegionChanged.disconnect(
                 self.bkg_pattern_linear_region_callback
             )
+
+            self.widget.batch_widget.img_view.linear_region_item.sigRegionChanged.disconnect(
+                self.bkg_batch_linear_region_callback
+            )
+            self.widget.batch_widget.img_view.hide_linear_region()
 
             self.widget.bkg_pattern_x_min_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
             self.widget.bkg_pattern_x_max_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
@@ -211,10 +229,30 @@ class BackgroundController(object):
         self.widget.bkg_pattern_x_max_txt.setText('{:.3f}'.format(x_max))
         self.bkg_pattern_parameters_changed()
 
+    def bkg_batch_linear_region_callback(self):
+        x_min, x_max = self.widget.batch_widget.img_view.get_linear_region()
+
+        binning = self.model.batch_model.binning
+        if binning is None:
+            return
+        scale = (binning[-1] - binning[0]) / binning.shape[0]
+        x_min_tth = x_min * scale + binning[0]
+        x_max_tth = x_max * scale + binning[0]
+        self.widget.bkg_pattern_x_min_txt.setText('{:.3f}'.format(x_min_tth))
+        self.widget.bkg_pattern_x_max_txt.setText('{:.3f}'.format(x_max_tth))
+        self.bkg_pattern_parameters_changed()
+
     def update_bkg_pattern_linear_region(self):
         self.widget.pattern_widget.linear_region_item.blockSignals(True)
-        self.widget.pattern_widget.set_linear_region(
-            *self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_roi())
+        bkg_roi = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_roi()
+        self.widget.pattern_widget.set_linear_region(*bkg_roi)
+
+        binning = self.model.batch_model.binning
+        if binning is not None:
+            scale = (binning[-1] - binning[0]) / binning.shape[0]
+            x_min_bin = (bkg_roi[0] - binning[0]) / scale
+            x_max_bin = (bkg_roi[1] - binning[0]) / scale
+            self.widget.batch_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
     def update_bkg_image_widgets(self):

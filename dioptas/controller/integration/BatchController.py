@@ -401,7 +401,6 @@ class BatchController(object):
             return
 
         self.plot_batch()
-        self.plot_waterfall()
 
     def extract_background(self):
         """
