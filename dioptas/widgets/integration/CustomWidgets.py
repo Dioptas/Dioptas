@@ -405,8 +405,10 @@ class FileViewWidget(QtWidgets.QWidget):
         if file_path is None:
             file_path = 'undefined'
         self.cal_file.setText(f"<span style='background: #3C3C3C; color: white;' >Calibration file:</span> {file_path}")
+        self.cal_file.setToolTip("Calibration used for integration")
 
     def set_mask_file(self, file_path):
         if file_path is None:
             file_path = 'undefined'
         self.mask_file.setText(f"<span style='background: #3C3C3C; color: white;' >Mask file:</span> {file_path}")
+        self.mask_file.setToolTip("Mask used for integration")
