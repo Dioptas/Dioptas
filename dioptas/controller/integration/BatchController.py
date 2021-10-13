@@ -760,7 +760,7 @@ class BatchController(object):
         bkg = self.model.batch_model.bkg
         if data is None:
             return
-        if self.widget.batch_widget.background_btn.isChecked():
+        if self.widget.batch_widget.background_btn.isChecked() and bkg is not None:
             data = data - bkg
         if self.min_val.get('current', None) is not None:
             data[data < self.min_val['current']] = self.min_val['current']
@@ -1091,6 +1091,7 @@ class BatchController(object):
         self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img - 1)
         self.widget.batch_widget.step_series_widget.start_txt.setValue(0)
         self.widget.batch_widget.view_2d_btn.setChecked(True)
+        self.reset_view()
         self.change_view()
         self.widget.batch_widget.img_view.auto_range()
 
