@@ -391,7 +391,7 @@ class BatchController(object):
             return
 
         if bkg is None:
-            self.widget.show_error_msg("Background is not jet calculated. Calculate background.")
+            self.widget.show_error_msg("Background is not yet calculated. Calculate background.")
             self.widget.batch_widget.background_btn.setChecked(False)
             return
 
@@ -657,6 +657,7 @@ class BatchController(object):
             return
         self.model.working_directories['batch'] = os.path.dirname(filenames[0])
         self.widget.batch_widget.load_btn.setToolTip(f"Load raw/proc data ({os.path.dirname(filenames[0])})")
+        self.reset_view_buttons()
         if self.is_proc(filenames[0]):
             self.model.batch_model.reset_data()
             self.load_proc_data(filenames[0])
@@ -676,6 +677,14 @@ class BatchController(object):
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img_all)
         self.plot_image(0)
+
+    def reset_view_buttons(self):
+        """
+        Set few view buttons to un-checked.
+        This brings batch-widget to initial state
+        """
+        self.widget.batch_widget.background_btn.setChecked(False)
+        self.widget.batch_widget.waterfall_btn.setChecked(False)
 
     def is_proc(self, filename):
         """
