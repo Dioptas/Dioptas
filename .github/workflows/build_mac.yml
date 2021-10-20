@@ -28,7 +28,7 @@ jobs:
                     cython
     - name: Update Pyinstaller Hooks
       run: |
-        pip uninstall pyinstaller-hooks-contrib
+        pip uninstall pyinstaller-hooks-contrib -y
         git clone https://github.com/pyinstaller/pyinstaller-hooks-contrib.git
         cd pyinstaller-hooks-contrib
         python setup.py install
