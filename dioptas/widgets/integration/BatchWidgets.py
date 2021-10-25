@@ -130,6 +130,8 @@ class BatchWidget(QtWidgets.QWidget):
         self.unit_btn_group.addButton(self.q_btn)
         self.unit_btn_group.addButton(self.d_btn)
         self.background_btn = CheckableFlatButton('bg')
+        self.bkg_cut_btn = CheckableFlatButton('T')
+        self.bkg_cut_btn.setToolTip("Trim data to show only region where background is calculated")
         self.view3d_f_btn.hide()
         self.view3d_s_btn.hide()
         self.view3d_t_btn.hide()
@@ -161,6 +163,7 @@ class BatchWidget(QtWidgets.QWidget):
         self._right_control_layout.addWidget(self.scale_log_btn)
         self._right_control_layout.addSpacerItem(VerticalSpacerItem())
         self._right_control_layout.addWidget(self.background_btn)
+        self._right_control_layout.addWidget(self.bkg_cut_btn)
         self.right_control_widget.setLayout(self._right_control_layout)
 
         self._central_layout.addWidget(self.right_control_widget)

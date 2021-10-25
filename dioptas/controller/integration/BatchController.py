@@ -78,6 +78,7 @@ class BatchController(object):
         self.widget.batch_widget.scale_lin_btn.mouseReleaseEvent = self.change_scale_lin
         self.widget.batch_widget.scale_sqrt_btn.mouseReleaseEvent = self.change_scale_sqrt
         self.widget.batch_widget.background_btn.clicked.connect(self.subtract_background)
+        self.widget.batch_widget.bkg_cut_btn.clicked.connect(self.plot_batch)
         self.widget.batch_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.batch_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
 
@@ -320,9 +321,11 @@ class BatchController(object):
         """
         x = self.convert_x_value(x, self.model.current_configuration.integration_unit, '2th_deg')
         data_img_item = self.widget.batch_widget.img_view.data_img_item
-        binning = self.model.batch_model.binning
-        if binning is None:
+        if self.model.batch_model.binning is None:
             return
+
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
         bound = data_img_item.boundingRect().width()
         h_scale = (np.max(binning) - np.min(binning)) / bound
         h_shift = np.min(binning)
@@ -766,14 +769,21 @@ class BatchController(object):
             data[data < self.min_val['current']] = self.min_val['current']
         data = self.scale(data)
 
+        start_x = 0
+        stop_x = data.shape[1]
+        if self.widget.batch_widget.bkg_cut_btn.isChecked():
+            start_x, stop_x = self.widget.batch_widget.img_view.linear_region_item.getRegion()
+
         if stop is None:
             stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
         if start is None:
             start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
 
         if self.widget.batch_widget.view_2d_btn.isChecked():
-            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1], True)
+            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1, int(start_x): int(stop_x)], True,
+                                                         [int(start_x), int(stop_x)])
             self.update_y_axis()
+            self.update_linear_region()
 
         if self.widget.batch_widget.view_3d_btn.isChecked():
             step = int(str(self.widget.batch_widget.step_series_widget.step_txt.text()))
@@ -783,6 +793,19 @@ class BatchController(object):
                 self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
             self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step], start, step)
             self.update_3d_axis(data[start:stop + 1:step])
+
+    def update_linear_region(self):
+        """
+        Update linear region of 2D-view to background roi
+        """
+        bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
+        if binning is not None and bkg_roi is not None:
+            scale = (binning[-1] - binning[0]) / binning.shape[0]
+            x_min_bin = (bkg_roi[0] - binning[0]) / scale
+            x_max_bin = (bkg_roi[1] - binning[0]) / scale
+            self.widget.batch_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
 
     def save_data(self):
         """
@@ -960,7 +983,8 @@ class BatchController(object):
             return
 
         data_img_item = self.widget.batch_widget.img_view.data_img_item
-        binning = self.model.batch_model.binning
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
 
         width = data_img_item.viewRect().width()
         left = data_img_item.viewRect().left()

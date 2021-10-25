@@ -532,6 +532,11 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         self.create_horizontal_line()
         self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
         self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
+        self.x_bin_range = [0, None]  # Range of shown bins
+
+    def plot_image(self, img_data, auto_level=False, x_bin_range=[0, None]):
+        self.x_bin_range = x_bin_range
+        super().plot_image(img_data, auto_level)
 
     def show_linear_region(self):
         self.img_view_box.addItem(self.linear_region_item)
