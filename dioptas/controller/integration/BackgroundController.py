@@ -164,11 +164,13 @@ class BackgroundController(object):
 
             self.widget.pattern_widget.linear_region_item.blockSignals(True)
             bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
-            self.widget.pattern_widget.set_linear_region(bkg_roi)
+            self.widget.pattern_widget.set_linear_region(*bkg_roi)
             self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
-            binning = self.model.batch_model.binning
-            if binning is not None:
+            if self.model.batch_model.binning is not None:
+                start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+                binning = self.model.batch_model.binning[start_x: stop_x]
+
                 scale = (binning[-1] - binning[0]) / binning.shape[0]
                 x_min_bin = (bkg_roi[0] - binning[0]) / scale
                 x_max_bin = (bkg_roi[1] - binning[0]) / scale
@@ -232,9 +234,10 @@ class BackgroundController(object):
     def bkg_batch_linear_region_callback(self):
         x_min, x_max = self.widget.batch_widget.img_view.get_linear_region()
 
-        binning = self.model.batch_model.binning
-        if binning is None:
+        if self.model.batch_model.binning is None:
             return
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         x_min_tth = x_min * scale + binning[0]
         x_max_tth = x_max * scale + binning[0]
@@ -247,11 +250,13 @@ class BackgroundController(object):
         bkg_roi = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_roi()
         self.widget.pattern_widget.set_linear_region(*bkg_roi)
 
-        binning = self.model.batch_model.binning
-        if binning is not None:
+        if self.model.batch_model.binning is not None:
+            start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+            binning = self.model.batch_model.binning[start_x: stop_x]
+
             scale = (binning[-1] - binning[0]) / binning.shape[0]
-            x_min_bin = (bkg_roi[0] - binning[0]) / scale
-            x_max_bin = (bkg_roi[1] - binning[0]) / scale
+            x_min_bin = int((bkg_roi[0] - binning[0]) / scale)
+            x_max_bin = int((bkg_roi[1] - binning[0]) / scale)
             self.widget.batch_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
