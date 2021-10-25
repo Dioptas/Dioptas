@@ -336,6 +336,7 @@ class StepBatchWidget(QtWidgets.QWidget):
         self.pos_txt.setValidator(self.pos_validator)
         self.pos_txt.setToolTip('Currently loaded frame')
         self.pos_label = QtWidgets.QLabel('Frame:')
+        self.pos_label.setToolTip("Number of frames: integrated/raw")
         self.pos_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom)
 
         self._pos_layout = QtWidgets.QVBoxLayout()
