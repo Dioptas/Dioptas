@@ -1061,6 +1061,8 @@ class BatchController(object):
             QtWidgets.QApplication.processEvents()
             return ~progress_dialog.wasCanceled()
 
+        #progress_dialog.setParent(self.widget.batch_widget)
+        #progress_dialog.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Window)
         self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
                                                   self.widget.batch_widget.view_f_btn.isChecked(),
                                                   callback_fn=callback_fn)
