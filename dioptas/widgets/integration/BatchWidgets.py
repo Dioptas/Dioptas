@@ -228,12 +228,15 @@ class BatchWidget(QtWidgets.QWidget):
 
         # Sliding and positioning
         self.step_series_widget = StepBatchWidget()
+        self.step_raw_widget = StepBatchWidget()
+        self.step_raw_widget.hide()
         self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)
 
         self._positioning_layout = QtWidgets.QHBoxLayout()
         self._positioning_layout.setSpacing(0)
         self._positioning_layout.setContentsMargins(4, 4, 4, 4)
         self._positioning_layout.addWidget(self.step_series_widget)
+        self._positioning_layout.addWidget(self.step_raw_widget)
         self._positioning_layout.addSpacerItem(HorizontalSpacerItem())
         self._positioning_layout.addWidget(self.mouse_pos_widget)
 
