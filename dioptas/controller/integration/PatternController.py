@@ -316,6 +316,8 @@ class PatternController(object):
         :param x: x value of batch plot
         """
         start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        if self.model.batch_model.binning is None:
+            return
         binning = self.model.batch_model.binning[start_x: stop_x]
 
         if self.widget.batch_widget.waterfall_btn.isChecked():
