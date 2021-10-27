@@ -171,14 +171,11 @@ class BatchControllerTest(QtTest):
         self.controller.process_step()
         self.assertEqual(self.widget.batch_widget.surf_view.data.shape[0], 25)
 
-    def test_process_slider(self):
+    def test_switch_frame(self):
         self.widget.batch_widget.view_3d_btn.setChecked(True)
-        self.widget.batch_widget.step_series_widget.slider.setValue(50)
-        self.controller.process_slider()
+        self.controller.switch_frame(49)
         self.assertEqual(self.widget.batch_widget.surf_view.g_translate, 49)
-
         self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 49')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 49)
 
         filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00004.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 9")

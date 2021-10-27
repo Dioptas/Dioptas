@@ -65,6 +65,7 @@ class BatchControllerTest(QtTest):
         self.model.phase_model.add_jcpds(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
 
         self.assertEqual(str(self.widget.batch_widget.phases_btn.text()), 'Show Phases')
+        self.widget.batch_widget.phases_btn.setChecked(True)
         self.controller.toggle_show_phases()
         self.assertEqual(str(self.widget.batch_widget.phases_btn.text()), 'Hide Phases')
 
@@ -75,7 +76,6 @@ class BatchControllerTest(QtTest):
         self.controller.load_single_image(10, 15)
 
         self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
 
         filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
@@ -93,9 +93,6 @@ class BatchControllerTest(QtTest):
         filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
         self.assertTrue(self.model.current_configuration.auto_integrate_pattern)
-
-        self.assertEqual(self.widget.batch_widget.step_series_widget.pos_txt.text(), '15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
         self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), f'Img: 15')
 
     def test_update_3d_axis(self):
@@ -119,31 +116,28 @@ class BatchControllerTest(QtTest):
         self.widget.batch_widget.step_series_widget.start_txt.setValue(5)
         self.widget.batch_widget.step_series_widget.stop_txt.setValue(28)
         self.widget.batch_widget.step_series_widget.step_txt.setValue(3)
+        self.widget.batch_widget.view_f_btn.setChecked(False)
+        self.widget.automatic_binning_cb.setChecked(False)
+        self.widget.bin_count_txt.setText(str(4000))
 
         self.controller.integrate()
 
-        self.assertEqual(self.model.batch_model.data.shape, (8, 4038))
-        self.assertEqual(self.model.batch_model.binning.shape, (4038,))
+        self.assertEqual(self.model.batch_model.data.shape, (8, 3984))
+        self.assertEqual(self.model.batch_model.binning.shape, (3984,))
         self.assertEqual(self.model.batch_model.n_img, 8)
         self.assertEqual(self.model.batch_model.n_img_all, 50)
         self.assertEqual(self.model.batch_model.pos_map.shape, (8, 2))
 
     def test_set_navigation_range(self):
-        self.controller.set_navigation_range((10, 50), (15, 80))
-        self.assertEqual(self.widget.batch_widget.step_series_widget.start_txt.text(), '15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.stop_txt.text(), '49')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
+        self.controller.set_navigation_range((10, 50))
+        self.assertEqual(self.widget.batch_widget.step_series_widget.start_txt.text(), '10')
+        self.assertEqual(self.widget.batch_widget.step_series_widget.stop_txt.text(), '50')
+        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 10)
 
-        self.widget.batch_widget.step_series_widget.slider.setValue(60)
-        self.controller.set_navigation_range((10, 50), (15, 80))
-        self.assertEqual(self.widget.batch_widget.step_series_widget.start_txt.text(), '15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.stop_txt.text(), '49')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 49)
-
-        self.widget.batch_widget.step_series_widget.slider.setValue(60)
-        self.controller.set_navigation_range((10, 50), (15, 40))
-        self.assertEqual(self.widget.batch_widget.step_series_widget.start_txt.text(), '15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.stop_txt.text(), '40')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 40)
+        self.widget.batch_widget.step_series_widget.slider.setValue(50)
+        self.controller.set_navigation_range((10, 50))
+        self.assertEqual(self.widget.batch_widget.step_series_widget.start_txt.text(), '10')
+        self.assertEqual(self.widget.batch_widget.step_series_widget.stop_txt.text(), '50')
+        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 50)
 
         # ToDo Test interaction with other controllers: Integration window vertical line. Patterns

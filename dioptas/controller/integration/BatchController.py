@@ -531,12 +531,12 @@ class BatchController(object):
             self.widget.batch_widget.step_raw_widget.show()
             self.widget.batch_widget.step_series_widget.hide()
         elif self.widget.batch_widget.view_3d_btn.isChecked():
-            self.widget.batch_widget.step_raw_widget.hide()
-            self.widget.batch_widget.step_series_widget.show()
             n_img = self.model.batch_model.n_img
             if n_img is None:
                 self.widget.batch_widget.view_f_btn.setChecked(True)
                 return
+            self.widget.batch_widget.step_raw_widget.hide()
+            self.widget.batch_widget.step_series_widget.show()
             self.set_navigation_range((0, n_img - 1))
 
             y = self.widget.batch_widget.step_series_widget.slider.value()
@@ -555,12 +555,12 @@ class BatchController(object):
             self.widget.batch_widget.d_btn.hide()
             self.plot_batch()
         else:
-            self.widget.batch_widget.step_raw_widget.hide()
-            self.widget.batch_widget.step_series_widget.show()
             n_img = self.model.batch_model.n_img
             if n_img is None:
                 self.widget.batch_widget.view_f_btn.setChecked(True)
                 return
+            self.widget.batch_widget.step_raw_widget.hide()
+            self.widget.batch_widget.step_series_widget.show()
             self.set_navigation_range((0, n_img - 1))
 
             self.widget.batch_widget.file_view_widget.hide()
@@ -814,6 +814,8 @@ class BatchController(object):
         Process mouse click
         """
         y += int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+        self.widget.batch_widget.step_series_widget.slider.setValue(y)
+        self.widget.batch_widget.step_series_widget.pos_txt.setText(str(int(y)))
         img = self.model.batch_model.data
         if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
             return
