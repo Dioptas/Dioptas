@@ -351,7 +351,7 @@ class StepBatchWidget(QtWidgets.QWidget):
         self.next_btn.clicked.connect(self.process_next_img)
         self.previous_btn.clicked.connect(self.process_prev_img)
         self.pos_txt.editingFinished.connect(self.process_pos_img)
-        self.slider.valueChanged.connect(self.process_slider)
+        self.slider.sliderReleased.connect(self.process_slider)
 
     def process_next_img(self):
         step = self.step_txt.value()
