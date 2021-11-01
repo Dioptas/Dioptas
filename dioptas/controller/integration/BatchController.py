@@ -78,7 +78,7 @@ class BatchController(object):
         self.widget.batch_widget.scale_lin_btn.mouseReleaseEvent = self.change_scale_lin
         self.widget.batch_widget.scale_sqrt_btn.mouseReleaseEvent = self.change_scale_sqrt
         self.widget.batch_widget.background_btn.clicked.connect(self.subtract_background)
-        self.widget.batch_widget.bkg_cut_btn.clicked.connect(self.plot_batch)
+        self.widget.batch_widget.bkg_cut_btn.clicked.connect(lambda: self.plot_batch())
         self.widget.batch_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.batch_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
 
@@ -734,11 +734,7 @@ class BatchController(object):
             data[data < self.min_val['current']] = self.min_val['current']
         data = self.scale(data)
 
-        start_x = 0
-        stop_x = data.shape[1]
-        if self.widget.batch_widget.bkg_cut_btn.isChecked():
-            start_x, stop_x = self.widget.batch_widget.img_view.linear_region_item.getRegion()
-
+        start_x, stop_x = self._get_x_range()
         if stop is None:
             stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
         if start is None:
@@ -756,8 +752,26 @@ class BatchController(object):
             if step < step_min:
                 step = step_min
                 self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
-            self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step], start, step)
+            self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step, int(start_x): int(stop_x)],
+                                                            start, step)
             self.update_3d_axis(data[start:stop + 1:step])
+
+    def _get_x_range(self):
+        """
+        Return bin-x range of the batch plot
+        """
+        if self.model.batch_model.data is None:
+            return 0, 0
+        start_x = 0
+        stop_x = self.model.batch_model.data.shape[1]
+        if self.widget.batch_widget.bkg_cut_btn.isChecked():
+            bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+            if bkg_roi is not None:
+                binning = self.model.batch_model.binning
+                scale = (binning[-1] - binning[0]) / binning.shape[0]
+                start_x = (bkg_roi[0] - binning[0]) / scale
+                stop_x = (bkg_roi[1] - binning[0]) / scale
+        return start_x, stop_x
 
     def update_linear_region(self):
         """
@@ -856,7 +870,8 @@ class BatchController(object):
         Create waterfall plot based on position and size of rectangle
         """
         data = self.model.batch_model.data
-        binning = self.model.batch_model.binning
+        start_x, stop_x = self._get_x_range()
+        binning = self.model.batch_model.binning[int(start_x): int(stop_x)]
         bkg = self.model.batch_model.bkg
         if data is None:
             return
