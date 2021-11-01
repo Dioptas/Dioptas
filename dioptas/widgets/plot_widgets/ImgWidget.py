@@ -579,6 +579,7 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
 
     def draw_rectangle(self, x, y):
         rect = MyRectangle(x, y, 0, 0, QtGui.QColor(255, 0, 0, 150))
+        rect.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0, 0), 0.1))
         self.img_view_box.addItem(rect)
         return rect
 
