@@ -642,7 +642,7 @@ class BatchController(object):
             self.widget.batch_widget.view_f_btn.setChecked(True)
             self.change_view()
 
-        self.plot_image(0)
+        self.load_single_image(1, 0)
 
     def reset_view(self):
         """
@@ -741,8 +741,8 @@ class BatchController(object):
             start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
 
         if self.widget.batch_widget.view_2d_btn.isChecked():
-            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1, int(start_x): int(stop_x)], True,
-                                                         [int(start_x), int(stop_x)])
+            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1, start_x:stop_x], True,
+                                                         [start_x, stop_x])
             self.update_y_axis()
             self.update_linear_region()
 
@@ -752,9 +752,9 @@ class BatchController(object):
             if step < step_min:
                 step = step_min
                 self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
-            self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step, int(start_x): int(stop_x)],
+            self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step, start_x:stop_x],
                                                             start, step)
-            self.update_3d_axis(data[start:stop + 1:step])
+            self.update_3d_axis(data[start:stop + 1:step, start_x:stop_x])
 
     def _get_x_range(self):
         """
@@ -771,7 +771,7 @@ class BatchController(object):
                 scale = (binning[-1] - binning[0]) / binning.shape[0]
                 start_x = (bkg_roi[0] - binning[0]) / scale
                 stop_x = (bkg_roi[1] - binning[0]) / scale
-        return start_x, stop_x
+        return int(start_x), int(stop_x)
 
     def update_linear_region(self):
         """
@@ -871,7 +871,7 @@ class BatchController(object):
         """
         data = self.model.batch_model.data
         start_x, stop_x = self._get_x_range()
-        binning = self.model.batch_model.binning[int(start_x): int(stop_x)]
+        binning = self.model.batch_model.binning[start_x:stop_x]
         bkg = self.model.batch_model.bkg
         if data is None:
             return
@@ -946,7 +946,8 @@ class BatchController(object):
             return
 
         surf_view = self.widget.batch_widget.surf_view
-        binning = self.model.batch_model.binning
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
 
         size = surf_view.pg_layout.pixelSize(np.array([0, 0, 0]))
         space = round(size * binning.shape[0] * 0.3, 2)
