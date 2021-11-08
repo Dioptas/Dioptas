@@ -519,7 +519,7 @@ class jcpds(object):
 
         if pressure == 0.:
             self.params['v'] = self.params['v0'] * (1 + self.params['alpha_t'] * (temperature - 298.))
-        if pressure < 0:
+        elif pressure < 0:
             if self.params['k0'] <= 0.:
                 logger.info('K0 is zero, computing zero pressure volume')
                 self.params['v'] = self.params['v0']
