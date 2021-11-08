@@ -407,11 +407,18 @@ class BatchController(object):
         """
         Extract background from batch data
         """
-        progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
-                                                          self.model.batch_model.n_img)
+        progress_dialog = self.create_progress_dialog("Integrating multiple images.", "Abort Integration",
+                                                      self.model.batch_model.n_img)
+
+        def callback_fn(current_index):
+            if progress_dialog.wasCanceled():
+                return False
+            progress_dialog.setValue(current_index)
+            QtWidgets.QApplication.processEvents()
+            return ~progress_dialog.wasCanceled()
 
         parameters = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_parameters()
-        self.model.batch_model.extract_background(parameters, progress_dialog)
+        self.model.batch_model.extract_background(parameters, callback_fn)
         progress_dialog.close()
 
     def set_hard_minimum(self, ev, scale):
@@ -887,7 +894,7 @@ class BatchController(object):
         for i in range(y1, y2, step):
             f_name, pos = self.model.batch_model.get_image_info(i)
             f_name = os.path.basename(f_name)
-            self.model.overlay_model.add_overlay(new_binning, data[i, x1:x2], f'{f_name}, {pos}')
+            self.model.overlay_model.add_overlay(new_binning, data[i, start_x+x1:start_x+x2], f'{f_name}, {pos}')
         separation = self.widget.integration_control_widget.overlay_control_widget.waterfall_separation_msb.value()
         self.model.overlay_model.overlay_waterfall(separation)
 
@@ -1079,8 +1086,6 @@ class BatchController(object):
             QtWidgets.QApplication.processEvents()
             return ~progress_dialog.wasCanceled()
 
-        #progress_dialog.setParent(self.widget.batch_widget)
-        #progress_dialog.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.Window)
         self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
                                                   self.widget.batch_widget.view_f_btn.isChecked(),
                                                   callback_fn=callback_fn)
