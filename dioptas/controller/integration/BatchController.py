@@ -407,6 +407,8 @@ class BatchController(object):
         """
         Extract background from batch data
         """
+        if self.model.batch_model.n_img is None:
+            return
         progress_dialog = self.create_progress_dialog("Integrating multiple images.", "Abort Integration",
                                                       self.model.batch_model.n_img)
 
@@ -537,6 +539,9 @@ class BatchController(object):
                 self.set_navigation_raw((0, n_img_all-1))
             self.widget.batch_widget.step_raw_widget.show()
             self.widget.batch_widget.step_series_widget.hide()
+            self.widget.batch_widget.waterfall_btn.hide()
+            self.widget.batch_widget.phases_btn.hide()
+            self.widget.batch_widget.autoscale_btn.hide()
         elif self.widget.batch_widget.view_3d_btn.isChecked():
             n_img = self.model.batch_model.n_img
             if n_img is None:
@@ -560,6 +565,9 @@ class BatchController(object):
             self.widget.batch_widget.tth_btn.hide()
             self.widget.batch_widget.q_btn.hide()
             self.widget.batch_widget.d_btn.hide()
+            self.widget.batch_widget.waterfall_btn.hide()
+            self.widget.batch_widget.phases_btn.hide()
+            self.widget.batch_widget.autoscale_btn.hide()
             self.plot_batch()
         else:
             n_img = self.model.batch_model.n_img
@@ -581,6 +589,9 @@ class BatchController(object):
             self.widget.batch_widget.tth_btn.show()
             self.widget.batch_widget.q_btn.show()
             self.widget.batch_widget.d_btn.show()
+            self.widget.batch_widget.waterfall_btn.show()
+            self.widget.batch_widget.phases_btn.show()
+            self.widget.batch_widget.autoscale_btn.show()
             self.plot_batch()
 
     def filename_txt_changed(self):
