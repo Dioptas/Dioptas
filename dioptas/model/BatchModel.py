@@ -275,7 +275,7 @@ class BatchModel(QtCore.QObject):
         self.bkg = None
         self.n_img = self.data.shape[0]
 
-    def extract_background(self, parameters, progress_dialog=None):
+    def extract_background(self, parameters, callback_fn=None):
         """
         Subtract background calculated with respect of given parameters
         """
@@ -283,11 +283,9 @@ class BatchModel(QtCore.QObject):
         bkg = np.zeros(self.data.shape)
         for i, y in enumerate(self.data):
 
-            if progress_dialog is not None:
-                if progress_dialog.wasCanceled():
+            if callback_fn is not None:
+                if not callback_fn(i):
                     break
-                progress_dialog.setValue(i)
-
             bkg[i] = extract_background(self.binning, y, *parameters)
         self.bkg = bkg
 
