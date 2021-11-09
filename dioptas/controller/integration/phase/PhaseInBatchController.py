@@ -52,9 +52,11 @@ class PhaseInBatchController(object):
                      than the
         :return: line_positions, line_intensities
         """
-        cake_tth = self.model.batch_model.binning
-        if cake_tth is None:
+        if self.model.batch_model.binning is None:
             cake_tth = self.model.calibration_model.tth
+        else:
+            start_x, stop_x = self._get_x_range()
+            cake_tth = self.model.batch_model.binning[start_x:stop_x]
         reflections_tth = self.phase_model.get_phase_line_positions(ind, 'tth',
                                                                     self.model.calibration_model.wavelength * 1e10)
         reflections_intensities = [reflex[1] for reflex in self.phase_model.reflections[ind]]
@@ -101,3 +103,20 @@ class PhaseInBatchController(object):
 
     def reflection_deleted(self, phase_ind, reflection_ind):
         self.batch_view_widget.phases[phase_ind].delete_line(reflection_ind)
+
+    def _get_x_range(self):
+        """
+        Return bin-x range of the batch plot
+        """
+        if self.model.batch_model.data is None:
+            return 0, 0
+        start_x = 0
+        stop_x = self.model.batch_model.data.shape[1]
+        if self.batch_widget.bkg_cut_btn.isChecked():
+            bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+            if bkg_roi is not None:
+                binning = self.model.batch_model.binning
+                scale = (binning[-1] - binning[0]) / binning.shape[0]
+                start_x = (bkg_roi[0] - binning[0]) / scale
+                stop_x = (bkg_roi[1] - binning[0]) / scale
+        return int(start_x), int(stop_x)
