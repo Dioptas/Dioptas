@@ -648,7 +648,6 @@ class BatchController(object):
             self.model.batch_model.reset_data()
             self.load_proc_data(filenames[0])
             self.load_raw_data(self.model.batch_model.files)
-            self.model.enabled_phases_in_cake.emit()
             self.widget.batch_widget.view_2d_btn.setChecked(True)
             self.change_view()
             self.plot_batch()
@@ -773,6 +772,8 @@ class BatchController(object):
             self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step, start_x:stop_x],
                                                             start, step)
             self.update_3d_axis(data[start:stop + 1:step, start_x:stop_x])
+
+        self.model.enabled_phases_in_cake.emit()
 
     def _get_x_range(self):
         """
@@ -1105,7 +1106,6 @@ class BatchController(object):
         self.show_metadata_info()
 
         self.model.img_model.blockSignals(False)
-        self.model.enabled_phases_in_cake.emit()
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
