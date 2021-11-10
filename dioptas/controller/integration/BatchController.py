@@ -798,6 +798,8 @@ class BatchController(object):
         if self.widget.batch_widget.bkg_cut_btn.isChecked():
             bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
             if bkg_roi is not None:
+                bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
+                                     '2th_deg')
                 binning = self.model.batch_model.binning
                 scale = (binning[-1] - binning[0]) / binning.shape[0]
                 start_x = (bkg_roi[0] - binning[0]) / scale
@@ -809,6 +811,8 @@ class BatchController(object):
         Update linear region of 2D-view to background roi
         """
         bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+        bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
+                            '2th_deg')
         start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
         binning = self.model.batch_model.binning[start_x: stop_x]
         if binning is not None and bkg_roi is not None:
