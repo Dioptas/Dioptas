@@ -171,6 +171,8 @@ class BackgroundController(object):
                 start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
                 binning = self.model.batch_model.binning[start_x: stop_x]
 
+                bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
+                                                 '2th_deg')
                 scale = (binning[-1] - binning[0]) / binning.shape[0]
                 x_min_bin = (bkg_roi[0] - binning[0]) / scale
                 x_max_bin = (bkg_roi[1] - binning[0]) / scale
@@ -241,8 +243,10 @@ class BackgroundController(object):
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         x_min_tth = x_min * scale + binning[0]
         x_max_tth = x_max * scale + binning[0]
-        self.widget.bkg_pattern_x_min_txt.setText('{:.3f}'.format(x_min_tth))
-        self.widget.bkg_pattern_x_max_txt.setText('{:.3f}'.format(x_max_tth))
+        x_min_val = self.convert_x_value(x_min_tth, '2th_deg', self.model.current_configuration.integration_unit)
+        x_max_val = self.convert_x_value(x_max_tth, '2th_deg', self.model.current_configuration.integration_unit)
+        self.widget.bkg_pattern_x_min_txt.setText('{:.3f}'.format(x_min_val))
+        self.widget.bkg_pattern_x_max_txt.setText('{:.3f}'.format(x_max_val))
         self.bkg_pattern_parameters_changed()
 
     def update_bkg_pattern_linear_region(self):
@@ -253,7 +257,8 @@ class BackgroundController(object):
         if self.model.batch_model.binning is not None:
             start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
             binning = self.model.batch_model.binning[start_x: stop_x]
-
+            bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
+                                           '2th_deg')
             scale = (binning[-1] - binning[0]) / binning.shape[0]
             x_min_bin = int((bkg_roi[0] - binning[0]) / scale)
             x_max_bin = int((bkg_roi[1] - binning[0]) / scale)
@@ -279,3 +284,27 @@ class BackgroundController(object):
         self.update_bkg_gui_parameters()
         self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)
         self.widget.bkg_pattern_inspect_btn.setChecked(False)
+
+    def convert_x_value(self, value, previous_unit, new_unit):
+        wavelength = self.model.calibration_model.wavelength
+        if previous_unit == '2th_deg':
+            tth = value
+        elif previous_unit == 'q_A^-1':
+            tth = np.arcsin(
+                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
+        elif previous_unit == 'd_A':
+            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
+        else:
+            tth = 0
+
+        if new_unit == '2th_deg':
+            res = tth
+        elif new_unit == 'q_A^-1':
+            res = 4 * np.pi * \
+                  np.sin(tth / 360 * np.pi) / \
+                  wavelength / 1e10
+        elif new_unit == 'd_A':
+            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+        else:
+            res = 0
+        return res
