@@ -343,6 +343,10 @@ class BatchController(object):
         self.widget.batch_widget.img_view.bottom_axis_cake.setLabel(u'2θ', '°')
         self.widget.batch_widget.img_view.img_view_box.invertX(False)
         self.update_x_axis()
+        if not self.model.calibration_model.is_calibrated:
+            x = self.widget.batch_widget.img_view.vertical_line.getXPos()
+            y = self.widget.batch_widget.step_series_widget.slider.value()
+            self.plot_pattern(int(x), int(y))
 
     def set_unit_q(self):
         """
@@ -356,6 +360,10 @@ class BatchController(object):
         self.widget.batch_widget.img_view.img_view_box.invertX(False)
         self.widget.batch_widget.img_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
         self.update_x_axis()
+        if not self.model.calibration_model.is_calibrated:
+            x = self.widget.batch_widget.img_view.vertical_line.getXPos()
+            y = self.widget.batch_widget.step_series_widget.slider.value()
+            self.plot_pattern(int(x), int(y))
 
     def set_unit_d(self):
         """
@@ -368,6 +376,10 @@ class BatchController(object):
         self.model.current_configuration.integration_unit = 'd_A'
         self.widget.batch_widget.img_view.bottom_axis_cake.setLabel('d', 'A')
         self.update_x_axis()
+        if not self.model.calibration_model.is_calibrated:
+            x = self.widget.batch_widget.img_view.vertical_line.getXPos()
+            y = self.widget.batch_widget.step_series_widget.slider.value()
+            self.plot_pattern(int(x), int(y))
 
     def toggle_show_phases(self):
         """

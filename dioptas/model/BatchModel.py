@@ -134,7 +134,10 @@ class BatchModel(QtCore.QObject):
             self.files = data_file['processed/process/files'][()].astype('U')
             self.pos_map = data_file['processed/process/pos_map'][()]
 
-            self.used_calibration = str(data_file['processed/process/cal_file'][()])
+            if isinstance(data_file['processed/process/cal_file'][()], bytes):
+                self.used_calibration = str(data_file['processed/process/cal_file'][()].decode("utf-8"))
+            else:
+                self.used_calibration = str(data_file['processed/process/cal_file'][()])
             if os.path.isfile(self.used_calibration):
                 self.calibration_model.load(self.used_calibration)
 
