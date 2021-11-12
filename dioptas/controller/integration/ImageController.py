@@ -734,6 +734,8 @@ class ImageController(object):
 
         data_img_item = self.widget.integration_image_widget.cake_view.data_img_item
         cake_tth = self.model.cake_tth
+        if data_img_item.boundingRect().width() == 0:
+            return
 
         width = data_img_item.viewRect().width()
         left = data_img_item.viewRect().left()
