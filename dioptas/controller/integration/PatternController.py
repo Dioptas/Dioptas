@@ -290,7 +290,7 @@ class PatternController(object):
             return
         if np.min(pattern_x) < old_x_axis_range[0] or np.max(pattern_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
-            if new_x_axis_range[0] is None:
+            if new_x_axis_range[0] is None or np.isnan(new_x_axis_range[0]):
                 return
             self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
 
