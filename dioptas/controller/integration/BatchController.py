@@ -873,9 +873,6 @@ class BatchController(object):
         y += int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
         self.widget.batch_widget.step_series_widget.slider.setValue(y)
         self.widget.batch_widget.step_series_widget.pos_txt.setText(str(int(y)))
-        img = self.model.batch_model.data
-        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
-            return
         if self.widget.batch_widget.waterfall_btn.isChecked():
             self.process_waterfall(x, y)
         else:
@@ -900,7 +897,8 @@ class BatchController(object):
             self.clicks += 1
             if self.rect is not None:
                 self.widget.batch_widget.img_view.img_view_box.removeItem(self.rect)
-            self.rect = self.widget.batch_widget.img_view.draw_rectangle(x, y)
+            start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+            self.rect = self.widget.batch_widget.img_view.draw_rectangle(x, y-start)
             self.widget.batch_widget.img_view.mouse_moved.connect(self.rect.set_size)
             self.plot_pattern(int(x), int(y))
         elif self.clicks == 1:
@@ -914,7 +912,8 @@ class BatchController(object):
         """
         data = self.model.batch_model.data
         start_x, stop_x = self._get_x_range()
-        binning = self.model.batch_model.binning[start_x:stop_x]
+        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+        binning = self.model.batch_model.binning
         bkg = self.model.batch_model.bkg
         if data is None:
             return
@@ -924,13 +923,23 @@ class BatchController(object):
         rect = self.rect.rect()
         y1, y2 = sorted((int(rect.top()), int(rect.bottom())))
         x1, x2 = sorted((int(rect.left()), int(rect.right())))
+        y1 += start
+        y2 += start
+        x1 += start_x
+        x2 += start_x
+
+        y1 = max(y1, 0)
+        y2 = min(y2, data.shape[0])
+        x1 = max(x1, start_x)
+        x2 = min(x2, stop_x)
+
         step = int(str(self.widget.batch_widget.step_series_widget.step_txt.text()))
         self.model.overlay_model.reset()
         new_binning = self.convert_x_value(binning[x1:x2], '2th_deg', self.model.current_configuration.integration_unit)
         for i in range(y1, y2, step):
             f_name, pos = self.model.batch_model.get_image_info(i)
             f_name = os.path.basename(f_name)
-            self.model.overlay_model.add_overlay(new_binning, data[i, start_x+x1:start_x+x2], f'{f_name}, {pos}')
+            self.model.overlay_model.add_overlay(new_binning, data[i, x1:x2], f'{f_name}, {pos}')
         separation = self.widget.integration_control_widget.overlay_control_widget.waterfall_separation_msb.value()
         self.model.overlay_model.overlay_waterfall(separation)
 
@@ -938,6 +947,9 @@ class BatchController(object):
         """
         Plot raw image, diffraction pattern and draw lines on the heatmap plot based on given x and y
         """
+        img = self.model.batch_model.data
+        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
+            return
         self.plot_image(int(y))
         self.plot_pattern(int(x), int(y))
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
