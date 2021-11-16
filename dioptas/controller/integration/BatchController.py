@@ -871,8 +871,6 @@ class BatchController(object):
         Process mouse click
         """
         y += int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        self.widget.batch_widget.step_series_widget.slider.setValue(y)
-        self.widget.batch_widget.step_series_widget.pos_txt.setText(str(int(y)))
         if self.widget.batch_widget.waterfall_btn.isChecked():
             self.process_waterfall(x, y)
         else:
@@ -948,8 +946,12 @@ class BatchController(object):
         Plot raw image, diffraction pattern and draw lines on the heatmap plot based on given x and y
         """
         img = self.model.batch_model.data
-        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
+        if img is None:
             return
+        x = min(max(x, 0), img.shape[1])
+        y = min(max(y, 0), img.shape[0]-1)
+        self.widget.batch_widget.step_series_widget.slider.setValue(y)
+        self.widget.batch_widget.step_series_widget.pos_txt.setText(str(int(y)))
         self.plot_image(int(y))
         self.plot_pattern(int(x), int(y))
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
