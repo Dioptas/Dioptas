@@ -531,7 +531,12 @@ class BatchController(object):
             return
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         tth = x * scale + binning[0]
-        z = img[int(y), int(x)]
+
+        bkg = self.model.batch_model.bkg
+        if self.widget.batch_widget.background_btn.isChecked() and bkg is not None:
+            z = img[int(y), int(x)] - bkg[int(y), int(x)]
+        else:
+            z = img[int(y), int(x)]
 
         self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
         self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.setText(f'2θ:{tth:.1f}')
