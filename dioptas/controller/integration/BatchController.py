@@ -559,6 +559,7 @@ class BatchController(object):
             self.widget.batch_widget.waterfall_btn.hide()
             self.widget.batch_widget.phases_btn.hide()
             self.widget.batch_widget.autoscale_btn.hide()
+            self.widget.batch_widget.integrate_btn.show()
         elif self.widget.batch_widget.view_3d_btn.isChecked():
             n_img = self.model.batch_model.n_img
             if n_img is None:
@@ -585,6 +586,7 @@ class BatchController(object):
             self.widget.batch_widget.waterfall_btn.hide()
             self.widget.batch_widget.phases_btn.hide()
             self.widget.batch_widget.autoscale_btn.hide()
+            self.widget.batch_widget.integrate_btn.hide()
             self.plot_batch()
         else:
             n_img = self.model.batch_model.n_img
@@ -609,6 +611,7 @@ class BatchController(object):
             self.widget.batch_widget.waterfall_btn.show()
             self.widget.batch_widget.phases_btn.show()
             self.widget.batch_widget.autoscale_btn.show()
+            self.widget.batch_widget.integrate_btn.hide()
             self.plot_batch()
 
     def filename_txt_changed(self):
@@ -1130,6 +1133,7 @@ class BatchController(object):
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
+        self.widget.batch_widget.step_raw_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
         self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img - 1)
         self.widget.batch_widget.step_series_widget.start_txt.setValue(0)
         self.widget.batch_widget.view_2d_btn.setChecked(True)
