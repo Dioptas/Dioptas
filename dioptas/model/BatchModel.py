@@ -212,24 +212,26 @@ class BatchModel(QtCore.QObject):
         y = np.arange(self.n_img)[None, :].repeat(self.binning.shape[0], axis=0).flatten()
         np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
 
-    def integrate_raw_data(self, num_points, start, stop, step, use_all=False, callback_fn=None):
+    def integrate_raw_data(self, num_points, start, stop, step, use_all=False, callback_fn=None,
+                           use_mask=False):
         """
         Integrate images from given file
 
         :param num_points: Numbers of radial bins
-        :param start: Start image index fro integration
-        :param stop: Stop image index fro integration
+        :param start: Start image index from integration
+        :param stop: Stop image index from integration
         :param step: Step along images to integrate
         :param use_all: Use all images. If False use only images, that were already integrated.
         :param callback_fn: callback function which is called each iteration with the current image number as parameter,
                             if it returns False the integration will be aborted.
+        :param use_mask: use mask if True
         """
         intensity_data = []
         binning_data = []
         pos_map = []
         image_counter = 0
         current_file = ''
-        if self.mask_model.mode:
+        if use_mask:
             if self.mask_model.filename != '':
                 self.used_mask = self.mask_model.filename
             mask = self.mask_model.get_mask()
