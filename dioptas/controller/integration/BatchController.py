@@ -780,7 +780,7 @@ class BatchController(object):
         if self.widget.batch_widget.view_2d_btn.isChecked():
             self.widget.batch_widget.img_view.plot_image(data[start:stop + 1, start_x:stop_x], True,
                                                          [start_x, stop_x])
-            self.update_y_axis()
+            self.update_axes_range()
             self.update_linear_region()
 
         if self.widget.batch_widget.view_3d_btn.isChecked():
@@ -1138,7 +1138,8 @@ class BatchController(object):
 
         self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
                                                   self.widget.batch_widget.view_f_btn.isChecked(),
-                                                  callback_fn=callback_fn)
+                                                  callback_fn=callback_fn,
+                                                  use_mask=self.model.use_mask)
 
         progress_dialog.close()
         self.show_metadata_info()
