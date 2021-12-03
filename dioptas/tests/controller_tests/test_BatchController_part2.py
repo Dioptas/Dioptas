@@ -87,8 +87,7 @@ class BatchControllerTest(QtTest):
         self.assertTrue(self.model.batch_model.binning is None)
         self.assertTrue(self.model.batch_model.raw_available)
 
-        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
+        start, stop, step = self.widget.batch_widget.step_raw_widget.get_image_range()
         frame = str(self.widget.batch_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 19)
         self.assertEqual(start, 0)

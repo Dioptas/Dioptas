@@ -718,6 +718,8 @@ class ImageController(object):
         data_img_item = self.widget.integration_image_widget.cake_view.data_img_item
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
+        if data_img_item.boundingRect().height() == 0:
+            return
 
         height = data_img_item.viewRect().height()
         bottom = data_img_item.viewRect().top()
@@ -734,6 +736,8 @@ class ImageController(object):
 
         data_img_item = self.widget.integration_image_widget.cake_view.data_img_item
         cake_tth = self.model.cake_tth
+        if data_img_item.boundingRect().width() == 0:
+            return
 
         width = data_img_item.viewRect().width()
         left = data_img_item.viewRect().left()

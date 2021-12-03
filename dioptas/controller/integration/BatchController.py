@@ -78,6 +78,7 @@ class BatchController(object):
         self.widget.batch_widget.scale_lin_btn.mouseReleaseEvent = self.change_scale_lin
         self.widget.batch_widget.scale_sqrt_btn.mouseReleaseEvent = self.change_scale_sqrt
         self.widget.batch_widget.background_btn.clicked.connect(self.subtract_background)
+        self.widget.batch_widget.bkg_cut_btn.clicked.connect(lambda: self.plot_batch())
         self.widget.batch_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.batch_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
 
@@ -94,13 +95,11 @@ class BatchController(object):
         self.widget.img_directory_btn.clicked.connect(self.directory_txt_changed)
 
         # image navigation
-        self.widget.batch_widget.step_series_widget.next_btn.clicked.connect(self.load_next_img)
-        self.widget.batch_widget.step_series_widget.previous_btn.clicked.connect(self.load_prev_img)
-        self.widget.batch_widget.step_series_widget.pos_txt.editingFinished.connect(self.load_given_img)
+        self.widget.batch_widget.step_raw_widget.switch_frame.connect(self.switch_frame)
+        self.widget.batch_widget.step_series_widget.switch_frame.connect(self.switch_frame)
         self.widget.batch_widget.step_series_widget.start_txt.valueChanged.connect(self.set_range_img)
         self.widget.batch_widget.step_series_widget.stop_txt.valueChanged.connect(self.set_range_img)
         self.widget.batch_widget.step_series_widget.step_txt.valueChanged.connect(self.process_step)
-        self.widget.batch_widget.step_series_widget.slider.valueChanged.connect(self.process_slider)
 
         # 3D navigation
         self.widget.batch_widget.view3d_f_btn.clicked.connect(self.set_3d_view_f)
@@ -320,9 +319,11 @@ class BatchController(object):
         """
         x = self.convert_x_value(x, self.model.current_configuration.integration_unit, '2th_deg')
         data_img_item = self.widget.batch_widget.img_view.data_img_item
-        binning = self.model.batch_model.binning
-        if binning is None:
+        if self.model.batch_model.binning is None:
             return
+
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
         bound = data_img_item.boundingRect().width()
         h_scale = (np.max(binning) - np.min(binning)) / bound
         h_shift = np.min(binning)
@@ -342,6 +343,10 @@ class BatchController(object):
         self.widget.batch_widget.img_view.bottom_axis_cake.setLabel(u'2θ', '°')
         self.widget.batch_widget.img_view.img_view_box.invertX(False)
         self.update_x_axis()
+        if not self.model.calibration_model.is_calibrated:
+            x = self.widget.batch_widget.img_view.vertical_line.getXPos()
+            y = self.widget.batch_widget.step_series_widget.slider.value()
+            self.plot_pattern(int(x), int(y))
 
     def set_unit_q(self):
         """
@@ -355,6 +360,10 @@ class BatchController(object):
         self.widget.batch_widget.img_view.img_view_box.invertX(False)
         self.widget.batch_widget.img_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
         self.update_x_axis()
+        if not self.model.calibration_model.is_calibrated:
+            x = self.widget.batch_widget.img_view.vertical_line.getXPos()
+            y = self.widget.batch_widget.step_series_widget.slider.value()
+            self.plot_pattern(int(x), int(y))
 
     def set_unit_d(self):
         """
@@ -367,17 +376,20 @@ class BatchController(object):
         self.model.current_configuration.integration_unit = 'd_A'
         self.widget.batch_widget.img_view.bottom_axis_cake.setLabel('d', 'A')
         self.update_x_axis()
+        if not self.model.calibration_model.is_calibrated:
+            x = self.widget.batch_widget.img_view.vertical_line.getXPos()
+            y = self.widget.batch_widget.step_series_widget.slider.value()
+            self.plot_pattern(int(x), int(y))
 
     def toggle_show_phases(self):
         """
         Show and hide phases
         """
-        if str(self.widget.batch_widget.phases_btn.text()) == 'Show Phases':
+        if self.widget.batch_widget.phases_btn.isChecked():
             self.widget.batch_widget.img_view.show_all_visible_cake_phases(
                 self.widget.phase_widget.phase_show_cbs)
             self.widget.batch_widget.phases_btn.setText('Hide Phases')
-            self.model.enabled_phases_in_cake.emit()
-        elif str(self.widget.batch_widget.phases_btn.text()) == 'Hide Phases':
+        else:
             self.widget.batch_widget.img_view.hide_all_cake_phases()
             self.widget.batch_widget.phases_btn.setText('Show Phases')
 
@@ -391,7 +403,7 @@ class BatchController(object):
             return
 
         if bkg is None:
-            self.widget.show_error_msg("Background is not jet calculated. Calculate background.")
+            self.widget.show_error_msg("Background is not yet calculated. Calculate background.")
             self.widget.batch_widget.background_btn.setChecked(False)
             return
 
@@ -407,11 +419,20 @@ class BatchController(object):
         """
         Extract background from batch data
         """
-        progress_dialog = self.widget.get_progress_dialog("Integrating multiple images.", "Abort Integration",
-                                                          self.model.batch_model.n_img)
+        if self.model.batch_model.n_img is None:
+            return
+        progress_dialog = self.create_progress_dialog("Integrating multiple images.", "Abort Integration",
+                                                      self.model.batch_model.n_img)
+
+        def callback_fn(current_index):
+            if progress_dialog.wasCanceled():
+                return False
+            progress_dialog.setValue(current_index)
+            QtWidgets.QApplication.processEvents()
+            return ~progress_dialog.wasCanceled()
 
         parameters = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_parameters()
-        self.model.batch_model.extract_background(parameters, progress_dialog)
+        self.model.batch_model.extract_background(parameters, callback_fn)
         progress_dialog.close()
 
     def set_hard_minimum(self, ev, scale):
@@ -472,17 +493,6 @@ class BatchController(object):
             self.widget.batch_widget.img_view.vertical_line.setVisible(True)
             self.widget.batch_widget.img_view.horizontal_line.setVisible(True)
 
-    def process_slider(self):
-        """
-        Draw image if set values of image navigation widget if slider get changed
-        """
-        y = self.widget.batch_widget.step_series_widget.slider.value()
-        x = self.widget.batch_widget.img_view.vertical_line.getXPos()
-        self.load_single_image(x, y)
-        if self.widget.batch_widget.view_3d_btn.isChecked():
-            self.widget.batch_widget.surf_view.g_translate = y
-            self.plot_batch()
-
     def set_range_img(self):
         """
         Set start and stop value in the navigation widget
@@ -500,39 +510,12 @@ class BatchController(object):
         self.widget.batch_widget.step_series_widget.pos_validator.setRange(start, stop)
         self.plot_batch()
 
-    def load_next_img(self):
-        """
-        Load next image in the batch
-        """
-        step = int(str(self.widget.batch_widget.step_series_widget.step_txt.text()))
-        stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
-        pos = int(str(self.widget.batch_widget.step_series_widget.pos_txt.text()))
-        y = pos + step
-        if y > stop:
-            return
+    def switch_frame(self, y):
         x = self.widget.batch_widget.img_view.vertical_line.getXPos()
         self.load_single_image(x, y)
-
-    def load_prev_img(self):
-        """
-        Load previous image in the batch
-        """
-        step = int(str(self.widget.batch_widget.step_series_widget.step_txt.text()))
-        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        pos = int(str(self.widget.batch_widget.step_series_widget.pos_txt.text()))
-        y = pos - step
-        if y < start:
-            return
-        x = self.widget.batch_widget.img_view.vertical_line.getXPos()
-        self.load_single_image(x, y)
-
-    def load_given_img(self):
-        """
-        Load image given in the text box
-        """
-        pos = int(str(self.widget.batch_widget.step_series_widget.pos_txt.text()))
-        x = self.widget.batch_widget.img_view.vertical_line.getXPos()
-        self.load_single_image(x, pos)
+        if self.widget.batch_widget.view_3d_btn.isChecked():
+            self.widget.batch_widget.surf_view.g_translate = y
+            self.plot_batch()
 
     def show_img_mouse_position(self, x, y):
         """
@@ -548,7 +531,12 @@ class BatchController(object):
             return
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         tth = x * scale + binning[0]
-        z = img[int(y), int(x)]
+
+        bkg = self.model.batch_model.bkg
+        if self.widget.batch_widget.background_btn.isChecked() and bkg is not None:
+            z = img[int(y), int(x)] - bkg[int(y), int(x)]
+        else:
+            z = img[int(y), int(x)]
 
         self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.setText(f'Img: {int(y):.0f}')
         self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.setText(f'2θ:{tth:.1f}')
@@ -565,13 +553,21 @@ class BatchController(object):
             self.widget.batch_widget.left_control_widget.hide()
             n_img_all = self.model.batch_model.n_img_all
             if n_img_all is not None:
-                self.set_navigation_range((0, n_img_all - 1), (0, n_img_all - 1))
+                self.set_navigation_raw((0, n_img_all-1))
+            self.widget.batch_widget.step_raw_widget.show()
+            self.widget.batch_widget.step_series_widget.hide()
+            self.widget.batch_widget.waterfall_btn.hide()
+            self.widget.batch_widget.phases_btn.hide()
+            self.widget.batch_widget.autoscale_btn.hide()
+            self.widget.batch_widget.integrate_btn.show()
         elif self.widget.batch_widget.view_3d_btn.isChecked():
             n_img = self.model.batch_model.n_img
             if n_img is None:
                 self.widget.batch_widget.view_f_btn.setChecked(True)
                 return
-            self.set_navigation_range((0, n_img - 1), (0, n_img - 1))
+            self.widget.batch_widget.step_raw_widget.hide()
+            self.widget.batch_widget.step_series_widget.show()
+            self.set_navigation_range((0, n_img - 1))
 
             y = self.widget.batch_widget.step_series_widget.slider.value()
             self.widget.batch_widget.surf_view.g_translate = y
@@ -587,13 +583,19 @@ class BatchController(object):
             self.widget.batch_widget.tth_btn.hide()
             self.widget.batch_widget.q_btn.hide()
             self.widget.batch_widget.d_btn.hide()
+            self.widget.batch_widget.waterfall_btn.hide()
+            self.widget.batch_widget.phases_btn.hide()
+            self.widget.batch_widget.autoscale_btn.hide()
+            self.widget.batch_widget.integrate_btn.hide()
             self.plot_batch()
         else:
             n_img = self.model.batch_model.n_img
             if n_img is None:
                 self.widget.batch_widget.view_f_btn.setChecked(True)
                 return
-            self.set_navigation_range((0, n_img - 1), (0, n_img - 1))
+            self.widget.batch_widget.step_raw_widget.hide()
+            self.widget.batch_widget.step_series_widget.show()
+            self.set_navigation_range((0, n_img - 1))
 
             self.widget.batch_widget.file_view_widget.hide()
             self.widget.batch_widget.img_pg_layout.show()
@@ -606,6 +608,10 @@ class BatchController(object):
             self.widget.batch_widget.tth_btn.show()
             self.widget.batch_widget.q_btn.show()
             self.widget.batch_widget.d_btn.show()
+            self.widget.batch_widget.waterfall_btn.show()
+            self.widget.batch_widget.phases_btn.show()
+            self.widget.batch_widget.autoscale_btn.show()
+            self.widget.batch_widget.integrate_btn.hide()
             self.plot_batch()
 
     def filename_txt_changed(self):
@@ -657,11 +663,11 @@ class BatchController(object):
             return
         self.model.working_directories['batch'] = os.path.dirname(filenames[0])
         self.widget.batch_widget.load_btn.setToolTip(f"Load raw/proc data ({os.path.dirname(filenames[0])})")
+        self.reset_view()
         if self.is_proc(filenames[0]):
             self.model.batch_model.reset_data()
             self.load_proc_data(filenames[0])
             self.load_raw_data(self.model.batch_model.files)
-            self.model.enabled_phases_in_cake.emit()
             self.widget.batch_widget.view_2d_btn.setChecked(True)
             self.change_view()
             self.plot_batch()
@@ -673,9 +679,19 @@ class BatchController(object):
             self.widget.batch_widget.view_f_btn.setChecked(True)
             self.change_view()
 
-        n_img_all = self.model.batch_model.n_img_all
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img_all)
-        self.plot_image(0)
+        self.load_single_image(1, 0)
+
+    def reset_view(self):
+        """
+        Set few view buttons to un-checked.
+        This brings batch-widget to initial state
+        """
+        self.widget.batch_widget.background_btn.setChecked(False)
+        self.widget.batch_widget.waterfall_btn.setChecked(False)
+        self.widget.batch_widget.phases_btn.setChecked(False)
+
+        self.waterfall_mode()
+        self.toggle_show_phases()
 
     def is_proc(self, filename):
         """
@@ -724,6 +740,7 @@ class BatchController(object):
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
+        self.widget.batch_widget.step_raw_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
 
     def show_metadata_info(self):
         """
@@ -748,20 +765,23 @@ class BatchController(object):
         bkg = self.model.batch_model.bkg
         if data is None:
             return
-        if self.widget.batch_widget.background_btn.isChecked():
+        if self.widget.batch_widget.background_btn.isChecked() and bkg is not None:
             data = data - bkg
         if self.min_val.get('current', None) is not None:
             data[data < self.min_val['current']] = self.min_val['current']
         data = self.scale(data)
 
+        start_x, stop_x = self._get_x_range()
         if stop is None:
             stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
         if start is None:
             start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
 
         if self.widget.batch_widget.view_2d_btn.isChecked():
-            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1], True)
-            self.update_y_axis()
+            self.widget.batch_widget.img_view.plot_image(data[start:stop + 1, start_x:stop_x], True,
+                                                         [start_x, stop_x])
+            self.update_axes_range()
+            self.update_linear_region()
 
         if self.widget.batch_widget.view_3d_btn.isChecked():
             step = int(str(self.widget.batch_widget.step_series_widget.step_txt.text()))
@@ -769,8 +789,45 @@ class BatchController(object):
             if step < step_min:
                 step = step_min
                 self.widget.batch_widget.step_series_widget.step_txt.setValue(step)
-            self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step], start, step)
-            self.update_3d_axis(data[start:stop + 1:step])
+            self.widget.batch_widget.surf_view.plot_surface(data[start:stop + 1:step, start_x:stop_x],
+                                                            start, step)
+            self.update_3d_axis(data[start:stop + 1:step, start_x:stop_x])
+
+        self.model.enabled_phases_in_cake.emit()
+
+    def _get_x_range(self):
+        """
+        Return bin-x range of the batch plot
+        """
+        if self.model.batch_model.data is None:
+            return 0, 0
+        start_x = 0
+        stop_x = self.model.batch_model.data.shape[1]
+        if self.widget.batch_widget.bkg_cut_btn.isChecked():
+            bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+            if bkg_roi is not None:
+                bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
+                                     '2th_deg')
+                binning = self.model.batch_model.binning
+                scale = (binning[-1] - binning[0]) / binning.shape[0]
+                start_x = (bkg_roi[0] - binning[0]) / scale
+                stop_x = (bkg_roi[1] - binning[0]) / scale
+        return int(start_x), int(stop_x)
+
+    def update_linear_region(self):
+        """
+        Update linear region of 2D-view to background roi
+        """
+        bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+        if self.model.batch_model.binning is not None and bkg_roi is not None:
+            bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
+                                           '2th_deg')
+            start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+            binning = self.model.batch_model.binning[start_x: stop_x]
+            scale = (binning[-1] - binning[0]) / binning.shape[0]
+            x_min_bin = (bkg_roi[0] - binning[0]) / scale
+            x_max_bin = (bkg_roi[1] - binning[0]) / scale
+            self.widget.batch_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
 
     def save_data(self):
         """
@@ -814,9 +871,6 @@ class BatchController(object):
         Process mouse click
         """
         y += int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        img = self.model.batch_model.data
-        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
-            return
         if self.widget.batch_widget.waterfall_btn.isChecked():
             self.process_waterfall(x, y)
         else:
@@ -841,7 +895,8 @@ class BatchController(object):
             self.clicks += 1
             if self.rect is not None:
                 self.widget.batch_widget.img_view.img_view_box.removeItem(self.rect)
-            self.rect = self.widget.batch_widget.img_view.draw_rectangle(x, y)
+            start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+            self.rect = self.widget.batch_widget.img_view.draw_rectangle(x, y-start)
             self.widget.batch_widget.img_view.mouse_moved.connect(self.rect.set_size)
             self.plot_pattern(int(x), int(y))
         elif self.clicks == 1:
@@ -854,10 +909,28 @@ class BatchController(object):
         Create waterfall plot based on position and size of rectangle
         """
         data = self.model.batch_model.data
+        start_x, stop_x = self._get_x_range()
+        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
         binning = self.model.batch_model.binning
+        bkg = self.model.batch_model.bkg
+        if data is None:
+            return
+        if self.widget.batch_widget.background_btn.isChecked():
+            data = data - bkg
+
         rect = self.rect.rect()
         y1, y2 = sorted((int(rect.top()), int(rect.bottom())))
         x1, x2 = sorted((int(rect.left()), int(rect.right())))
+        y1 += start
+        y2 += start
+        x1 += start_x
+        x2 += start_x
+
+        y1 = max(y1, 0)
+        y2 = min(y2, data.shape[0])
+        x1 = max(x1, start_x)
+        x2 = min(x2, stop_x)
+
         step = int(str(self.widget.batch_widget.step_series_widget.step_txt.text()))
         self.model.overlay_model.reset()
         new_binning = self.convert_x_value(binning[x1:x2], '2th_deg', self.model.current_configuration.integration_unit)
@@ -872,6 +945,13 @@ class BatchController(object):
         """
         Plot raw image, diffraction pattern and draw lines on the heatmap plot based on given x and y
         """
+        img = self.model.batch_model.data
+        if img is None:
+            return
+        x = min(max(x, 0), img.shape[1])
+        y = min(max(y, 0), img.shape[0]-1)
+        self.widget.batch_widget.step_series_widget.slider.setValue(y)
+        self.widget.batch_widget.step_series_widget.pos_txt.setText(str(int(y)))
         self.plot_image(int(y))
         self.plot_pattern(int(x), int(y))
         start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
@@ -883,7 +963,7 @@ class BatchController(object):
         """
         img = self.model.batch_model.data
         binning = self.model.batch_model.binning
-        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
+        if img is None or x > img.shape[1]-1 or x < 0 or y > img.shape[0]-1 or y < 0:
             return
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         tth = x * scale + binning[0]
@@ -906,9 +986,6 @@ class BatchController(object):
         f_name, pos = self.model.batch_model.get_image_info(y, self.widget.batch_widget.view_f_btn.isChecked())
         self.widget.batch_widget.setWindowTitle(f"Batch widget. {f_name} - {pos}")
         self.model.current_configuration.auto_integrate_pattern = True
-
-        self.widget.batch_widget.step_series_widget.pos_txt.setText(str(y))
-        self.widget.batch_widget.step_series_widget.slider.setValue(y)
         self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(f'Img: {y:.0f}')
 
     def update_axes_range(self):
@@ -926,7 +1003,8 @@ class BatchController(object):
             return
 
         surf_view = self.widget.batch_widget.surf_view
-        binning = self.model.batch_model.binning
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
 
         size = surf_view.pg_layout.pixelSize(np.array([0, 0, 0]))
         space = round(size * binning.shape[0] * 0.3, 2)
@@ -942,7 +1020,8 @@ class BatchController(object):
             return
 
         data_img_item = self.widget.batch_widget.img_view.data_img_item
-        binning = self.model.batch_model.binning
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
 
         width = data_img_item.viewRect().width()
         left = data_img_item.viewRect().left()
@@ -1006,11 +1085,9 @@ class BatchController(object):
             return
 
         y = self.widget.batch_widget.step_series_widget.slider.value()
-        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        self.widget.batch_widget.img_view.horizontal_line.setValue(y - start)
-
-        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
+        self.widget.batch_widget.view_f_btn.isChecked()
+        start, stop, step = self.widget.batch_widget.step_series_widget.get_image_range()
+        self.widget.batch_widget.img_view.horizontal_line.setValue(y-start)
 
         data_img_item = self.widget.batch_widget.img_view.data_img_item
         img_data = self.model.batch_model.data[start:stop + 1]
@@ -1043,9 +1120,10 @@ class BatchController(object):
         else:
             num_points = None
 
-        step = int(str(self.widget.batch_widget.step_series_widget.step_txt.text()))
-        stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
-        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
+        if self.widget.batch_widget.view_f_btn.isChecked():
+            start, stop, step = self.widget.batch_widget.step_raw_widget.get_image_range()
+        else:
+            start, stop, step = self.widget.batch_widget.step_series_widget.get_image_range()
 
         self.model.img_model.blockSignals(True)
         n_int = (stop - start) / step
@@ -1060,19 +1138,21 @@ class BatchController(object):
 
         self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
                                                   self.widget.batch_widget.view_f_btn.isChecked(),
-                                                  callback_fn=callback_fn)
+                                                  callback_fn=callback_fn,
+                                                  use_mask=self.model.use_mask)
 
         progress_dialog.close()
         self.show_metadata_info()
 
         self.model.img_model.blockSignals(False)
-        self.model.enabled_phases_in_cake.emit()
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
+        self.widget.batch_widget.step_raw_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")
         self.widget.batch_widget.step_series_widget.stop_txt.setValue(n_img - 1)
         self.widget.batch_widget.step_series_widget.start_txt.setValue(0)
         self.widget.batch_widget.view_2d_btn.setChecked(True)
+        self.reset_view()
         self.change_view()
         self.widget.batch_widget.img_view.auto_range()
 
@@ -1094,26 +1174,25 @@ class BatchController(object):
         QtWidgets.QApplication.processEvents()
         return progress_dialog
 
-    def set_navigation_range(self, all_range, nav_range):
+    def set_navigation_raw(self, raw_range=(0, 0)):
+        self.widget.batch_widget.step_raw_widget.start_txt.setRange(*raw_range)
+        self.widget.batch_widget.step_raw_widget.stop_txt.setRange(*raw_range)
+        self.widget.batch_widget.step_raw_widget.stop_txt.setValue(raw_range[1])
+        self.widget.batch_widget.step_raw_widget.slider.setRange(*raw_range)
+        self.widget.batch_widget.step_raw_widget.pos_validator.setRange(*raw_range)
+
+    def set_navigation_range(self, all_range):
         """
         Set start and stop positions as well as range of navigation widget
         """
-        if all_range is not None:
-            self.widget.batch_widget.step_series_widget.start_txt.setRange(*all_range)
-            self.widget.batch_widget.step_series_widget.stop_txt.setRange(*all_range)
+        self.widget.batch_widget.step_series_widget.start_txt.setRange(*all_range)
+        self.widget.batch_widget.step_series_widget.stop_txt.setRange(*all_range)
 
-        if nav_range is not None:
-            start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-            stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
+        self.widget.batch_widget.step_series_widget.slider.setRange(*all_range)
+        self.widget.batch_widget.step_series_widget.pos_validator.setRange(*all_range)
 
-            start = min(max(nav_range[0], start), nav_range[1])
-            stop = max(min(nav_range[1], stop), nav_range[0])
-
-            self.widget.batch_widget.step_series_widget.slider.setRange(start, stop)
-            self.widget.batch_widget.step_series_widget.pos_validator.setRange(start, stop)
-
-            self.widget.batch_widget.step_series_widget.start_txt.setValue(start)
-            self.widget.batch_widget.step_series_widget.stop_txt.setValue(stop)
+        self.widget.batch_widget.step_series_widget.start_txt.setValue(all_range[0])
+        self.widget.batch_widget.step_series_widget.stop_txt.setValue(all_range[1])
 
     def update_gui(self):
         """

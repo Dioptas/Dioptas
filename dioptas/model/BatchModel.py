@@ -134,7 +134,10 @@ class BatchModel(QtCore.QObject):
             self.files = data_file['processed/process/files'][()].astype('U')
             self.pos_map = data_file['processed/process/pos_map'][()]
 
-            self.used_calibration = str(data_file['processed/process/cal_file'][()])
+            if isinstance(data_file['processed/process/cal_file'][()], bytes):
+                self.used_calibration = str(data_file['processed/process/cal_file'][()].decode("utf-8"))
+            else:
+                self.used_calibration = str(data_file['processed/process/cal_file'][()])
             if os.path.isfile(self.used_calibration):
                 self.calibration_model.load(self.used_calibration)
 
@@ -209,24 +212,26 @@ class BatchModel(QtCore.QObject):
         y = np.arange(self.n_img)[None, :].repeat(self.binning.shape[0], axis=0).flatten()
         np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
 
-    def integrate_raw_data(self, num_points, start, stop, step, use_all=False, callback_fn=None):
+    def integrate_raw_data(self, num_points, start, stop, step, use_all=False, callback_fn=None,
+                           use_mask=False):
         """
         Integrate images from given file
 
         :param num_points: Numbers of radial bins
-        :param start: Start image index fro integration
-        :param stop: Stop image index fro integration
+        :param start: Start image index from integration
+        :param stop: Stop image index from integration
         :param step: Step along images to integrate
         :param use_all: Use all images. If False use only images, that were already integrated.
         :param callback_fn: callback function which is called each iteration with the current image number as parameter,
                             if it returns False the integration will be aborted.
+        :param use_mask: use mask if True
         """
         intensity_data = []
         binning_data = []
         pos_map = []
         image_counter = 0
         current_file = ''
-        if self.mask_model.mode:
+        if use_mask:
             if self.mask_model.filename != '':
                 self.used_mask = self.mask_model.filename
             mask = self.mask_model.get_mask()
@@ -272,9 +277,10 @@ class BatchModel(QtCore.QObject):
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = np.array(intensity_data)
+        self.bkg = None
         self.n_img = self.data.shape[0]
 
-    def extract_background(self, parameters, progress_dialog=None):
+    def extract_background(self, parameters, callback_fn=None):
         """
         Subtract background calculated with respect of given parameters
         """
@@ -282,11 +288,9 @@ class BatchModel(QtCore.QObject):
         bkg = np.zeros(self.data.shape)
         for i, y in enumerate(self.data):
 
-            if progress_dialog is not None:
-                if progress_dialog.wasCanceled():
+            if callback_fn is not None:
+                if not callback_fn(i):
                     break
-                progress_dialog.setValue(i)
-
             bkg[i] = extract_background(self.binning, y, *parameters)
         self.bkg = bkg
 

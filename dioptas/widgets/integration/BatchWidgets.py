@@ -130,6 +130,8 @@ class BatchWidget(QtWidgets.QWidget):
         self.unit_btn_group.addButton(self.q_btn)
         self.unit_btn_group.addButton(self.d_btn)
         self.background_btn = CheckableFlatButton('bg')
+        self.bkg_cut_btn = CheckableFlatButton('T')
+        self.bkg_cut_btn.setToolTip("Trim data to show only region where background is calculated")
         self.view3d_f_btn.hide()
         self.view3d_s_btn.hide()
         self.view3d_t_btn.hide()
@@ -161,6 +163,7 @@ class BatchWidget(QtWidgets.QWidget):
         self._right_control_layout.addWidget(self.scale_log_btn)
         self._right_control_layout.addSpacerItem(VerticalSpacerItem())
         self._right_control_layout.addWidget(self.background_btn)
+        self._right_control_layout.addWidget(self.bkg_cut_btn)
         self.right_control_widget.setLayout(self._right_control_layout)
 
         self._central_layout.addWidget(self.right_control_widget)
@@ -225,12 +228,15 @@ class BatchWidget(QtWidgets.QWidget):
 
         # Sliding and positioning
         self.step_series_widget = StepBatchWidget()
+        self.step_raw_widget = StepBatchWidget()
+        self.step_raw_widget.hide()
         self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)
 
         self._positioning_layout = QtWidgets.QHBoxLayout()
         self._positioning_layout.setSpacing(0)
         self._positioning_layout.setContentsMargins(4, 4, 4, 4)
         self._positioning_layout.addWidget(self.step_series_widget)
+        self._positioning_layout.addWidget(self.step_raw_widget)
         self._positioning_layout.addSpacerItem(HorizontalSpacerItem())
         self._positioning_layout.addWidget(self.mouse_pos_widget)
 
