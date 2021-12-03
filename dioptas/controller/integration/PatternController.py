@@ -290,6 +290,8 @@ class PatternController(object):
             return
         if np.min(pattern_x) < old_x_axis_range[0] or np.max(pattern_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
+            if new_x_axis_range[0] is None or np.isnan(new_x_axis_range[0]):
+                return
             self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
 
     def pattern_auto_range_btn_click_callback(self):
@@ -315,9 +317,11 @@ class PatternController(object):
 
         :param x: x value of batch plot
         """
-        binning = self.model.batch_model.binning
-        if binning is None:
+        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        if self.model.batch_model.binning is None:
             return
+        binning = self.model.batch_model.binning[start_x: stop_x]
+
         if self.widget.batch_widget.waterfall_btn.isChecked():
             return
         scale = (binning[-1] - binning[0]) / binning.shape[0]

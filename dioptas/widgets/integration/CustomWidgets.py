@@ -275,6 +275,7 @@ class StepBatchWidget(QtWidgets.QWidget):
         slider
         fields: step, min, max, current 
     """
+    switch_frame = QtCore.Signal(int)
 
     iteration_name = ''
     def __init__(self):
@@ -333,9 +334,11 @@ class StepBatchWidget(QtWidgets.QWidget):
 
         self.pos_txt = QtWidgets.QLineEdit()
         self.pos_validator = QtGui.QIntValidator(1, 1)
+        self.pos_txt.setText('0')
         self.pos_txt.setValidator(self.pos_validator)
         self.pos_txt.setToolTip('Currently loaded frame')
         self.pos_label = QtWidgets.QLabel('Frame:')
+        self.pos_label.setToolTip("Number of frames: integrated/raw")
         self.pos_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom)
 
         self._pos_layout = QtWidgets.QVBoxLayout()
@@ -344,6 +347,50 @@ class StepBatchWidget(QtWidgets.QWidget):
         self._layout.addLayout(self._pos_layout)
 
         self.pos_txt.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Maximum)
+
+        self.next_btn.clicked.connect(self.process_next_img)
+        self.previous_btn.clicked.connect(self.process_prev_img)
+        self.pos_txt.editingFinished.connect(self.process_pos_img)
+        self.slider.sliderReleased.connect(self.process_slider)
+
+    def process_next_img(self):
+        step = self.step_txt.value()
+        stop = self.stop_txt.value()
+        pos = int(self.pos_txt.text())
+        y = pos + step
+        if y > stop:
+            return
+        self.pos_txt.setText(str(y))
+        self.slider.setValue(y)
+        self.switch_frame.emit(y)
+
+    def process_prev_img(self):
+        step = self.step_txt.value()
+        start = self.start_txt.value()
+        pos = int(self.pos_txt.text())
+        y = pos - step
+        if y < start:
+            return
+        self.pos_txt.setText(str(y))
+        self.slider.setValue(y)
+        self.switch_frame.emit(y)
+
+    def process_pos_img(self):
+        y = int(self.pos_txt.text())
+        self.pos_txt.setText(str(y))
+        self.slider.setValue(y)
+        self.switch_frame.emit(y)
+
+    def process_slider(self):
+        y = self.slider.value()
+        self.pos_txt.setText(str(y))
+        self.switch_frame.emit(y)
+
+    def get_image_range(self):
+        step = self.step_txt.value()
+        stop = self.stop_txt.value()
+        start = self.start_txt.value()
+        return start, stop, step
 
 
 class FileViewWidget(QtWidgets.QWidget):
@@ -405,8 +452,10 @@ class FileViewWidget(QtWidgets.QWidget):
         if file_path is None:
             file_path = 'undefined'
         self.cal_file.setText(f"<span style='background: #3C3C3C; color: white;' >Calibration file:</span> {file_path}")
+        self.cal_file.setToolTip("Calibration used for integration")
 
     def set_mask_file(self, file_path):
         if file_path is None:
             file_path = 'undefined'
         self.mask_file.setText(f"<span style='background: #3C3C3C; color: white;' >Mask file:</span> {file_path}")
+        self.mask_file.setToolTip("Mask used for integration")
