@@ -1,3 +1,11 @@
+0.5.4 (under development)
+-------------------------
+
+Buf Fixes:
+    - fixes the error appearing when clicking into the cake image in the integration window
+
+
+
 0.5.3a (stable 10/10/2021)
 --------------------------
 

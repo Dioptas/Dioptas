@@ -178,10 +178,7 @@ class ImageControllerTest(QtTest):
         self.assertFalse(np.array_equal(old_data, new_data))
 
     def test_changing_cake_integral_width(self):
-        file_name = os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif')
-        self.model.img_model.load(file_name)
-        calibration_file_name = os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.poni')
-        self.model.calibration_model.load(calibration_file_name)
+        self.load_pilatus1M_image_and_calibration()
         click_button(self.widget.integration_image_widget.mode_btn)
         self.controller.img_mouse_click(100, 300)
 
@@ -189,6 +186,11 @@ class ImageControllerTest(QtTest):
         self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.setValue(3)
         self.controller.img_mouse_click(100, 300)
         self.assertFalse(np.array_equal(x, self.widget.cake_widget.cake_integral_item.xData))
+
+    def test_clicking_cake_image(self):
+        self.load_pilatus1M_image_and_calibration()
+        click_button(self.widget.integration_image_widget.mode_btn)
+        self.widget.integration_image_widget.img_view.mouse_left_clicked.emit(30, 40)
 
     def test_loading_series_karabo_file_shows_correct_gui(self):
         from dioptas.model.loader.KaraboLoader import karabo_installed
@@ -241,3 +243,12 @@ class ImageControllerTest(QtTest):
 
         file_widget.sources_cb.setCurrentIndex(2)
         self.assertEqual(file_widget.sources_cb.currentText(), self.model.img_model.sources[2])
+
+    # UTILITY functions
+    ########################
+
+    def load_pilatus1M_image_and_calibration(self):
+        file_name = os.path.join(unittest_data_path, 'CeO2_Pilatus1M.tif')
+        self.model.img_model.load(file_name)
+        calibration_file_name = os.path.join(unittest_data_path, 'CeO2_Pilatus1M.poni')
+        self.model.calibration_model.load(calibration_file_name)
