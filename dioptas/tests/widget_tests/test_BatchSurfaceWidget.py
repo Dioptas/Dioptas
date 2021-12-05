@@ -32,7 +32,7 @@ class SurfaceView(QtTest):
         raw_files = self.model.batch_model.files
         raw_files = [os.path.join(os.path.dirname(filename), os.path.basename(f)) for f in raw_files]
         self.model.batch_model.set_image_files(raw_files)
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(self.model.batch_model.n_img - 1)
+        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(self.model.batch_model.n_img - 1)
 
     def set_stylesheet(self):
         with open(os.path.join(resources_path, "style", "stylesheet.qss")) as file:
@@ -42,4 +42,8 @@ class SurfaceView(QtTest):
     def test_surface_widget(self):
         self.widget.batch_widget.show()
         click_button(self.widget.batch_widget.view_3d_btn)
+        self.app.exec_()
+
+    def test_batch_widget_design(self):
+        self.widget.batch_widget.raise_widget()
         self.app.exec_()
