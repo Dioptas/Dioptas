@@ -533,6 +533,7 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
         self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
         self.x_bin_range = [0, None]  # Range of shown bins
+        self.pg_layout.removeItem(self.pg_layout.getItem(1, 2)) # remove the right LUT
 
     def plot_image(self, img_data, auto_level=False, x_bin_range=[0, None]):
         self.x_bin_range = x_bin_range

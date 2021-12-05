@@ -2,7 +2,7 @@ from ....model.util.HelperModule import get_partial_index
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.DioptasModel import DioptasModel
-from ....widgets.integration import IntegrationWidget
+from ....widgets.integration import BatchWidget
 from ....widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 
@@ -16,13 +16,13 @@ class PhaseInBatchController(object):
         :param batch_widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
 
-        :type batch_widget: IntegrationWidget
+        :type batch_widget: BatchWidget
         :type dioptas_model: DioptasModel
         """
         self.model = dioptas_model
         self.phase_model = self.model.phase_model
         self.batch_widget = batch_widget
-        self.batch_view_widget = batch_widget.img_view  # type: IntegrationImgWidget
+        self.batch_view_widget = batch_widget.stack_plot_widget.img_view  # type: IntegrationImgWidget
 
         self.connect()
 
