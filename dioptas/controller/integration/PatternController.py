@@ -64,7 +64,7 @@ class PatternController(object):
         # Gui subscriptions
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
-        self.widget.batch_widget.img_view.mouse_left_clicked.connect(self.batch_left_click)
+        self.widget.batch_widget.stack_plot_widget.img_view.mouse_left_clicked.connect(self.batch_left_click)
         self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
     def create_gui_signals(self):
@@ -89,9 +89,9 @@ class PatternController(object):
         self.widget.pattern_tth_btn.clicked.connect(self.set_unit_tth)
         self.widget.pattern_q_btn.clicked.connect(self.set_unit_q)
         self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
-        self.widget.batch_widget.tth_btn.clicked.connect(self.set_unit_tth)
-        self.widget.batch_widget.q_btn.clicked.connect(self.set_unit_q)
-        self.widget.batch_widget.d_btn.clicked.connect(self.set_unit_d)
+        self.widget.batch_widget.options_widget.tth_btn.clicked.connect(self.set_unit_tth)
+        self.widget.batch_widget.options_widget.q_btn.clicked.connect(self.set_unit_q)
+        self.widget.batch_widget.options_widget.d_btn.clicked.connect(self.set_unit_d)
 
         # quick actions
         self.widget.qa_save_pattern_btn.clicked.connect(self.save_pattern)
@@ -317,12 +317,12 @@ class PatternController(object):
 
         :param x: x value of batch plot
         """
-        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
         if self.model.batch_model.binning is None:
             return
         binning = self.model.batch_model.binning[start_x: stop_x]
 
-        if self.widget.batch_widget.waterfall_btn.isChecked():
+        if self.widget.batch_widget.control_widget.waterfall_btn.isChecked():
             return
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         pos = x * scale + binning[0]
