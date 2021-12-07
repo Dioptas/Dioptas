@@ -559,7 +559,7 @@ class BatchController(object):
         elif self.widget.batch_widget.mode_widget.view_3d_btn.isChecked():
             n_img = self.model.batch_model.n_img
             if n_img is None:
-                self.widget.batch_widget.view_f_btn.setChecked(True)
+                self.widget.batch_widget.mode_widget.view_f_btn.setChecked(True)
                 return
             self.set_navigation_range((0, n_img - 1))
             self.widget.batch_widget.activate_surface_view()
@@ -567,7 +567,7 @@ class BatchController(object):
         else:
             n_img = self.model.batch_model.n_img
             if n_img is None:
-                self.widget.batch_widget.view_f_btn.setChecked(True)
+                self.widget.batch_widget.mode_widget.view_f_btn.setChecked(True)
                 return
             self.set_navigation_range((0, n_img - 1))
             self.widget.batch_widget.activate_stack_plot()
@@ -980,22 +980,25 @@ class BatchController(object):
         if self.model.batch_model.binning is None:
             return
 
-        data_img_item = self.widget.batch_widget.stack_plot_widget.img_view.data_img_item
+        img_view_rect = self.widget.batch_widget.stack_plot_widget.img_view.img_view_rect()
         start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
         binning = self.model.batch_model.binning[start_x: stop_x]
 
-        width = data_img_item.viewRect().width()
-        left = data_img_item.viewRect().left()
+        width = img_view_rect.width()
+        left = img_view_rect.left()
+
         h_scale = (np.max(binning) - np.min(binning)) / binning.shape[0]
         h_shift = binning[0]
         min_tth = h_scale * left + h_shift
         max_tth = h_scale * (left + width) + h_shift
+
         if self.model.current_configuration.integration_unit == 'q_A^-1':
             ticks = [self.get_ticks(max_tth, min_tth, 'q_A^-1', '2th_deg')]
         elif self.model.current_configuration.integration_unit == 'd_A':
             ticks = [self.get_ticks(min_tth, max_tth, 'd_A', '2th_deg')]
         else:
             ticks = None
+
         self.widget.batch_widget.stack_plot_widget.img_view.bottom_axis_cake.setRange(min_tth, max_tth)
         self.widget.batch_widget.stack_plot_widget.img_view.bottom_axis_cake.setTicks(ticks)
 
@@ -1046,24 +1049,24 @@ class BatchController(object):
             return
 
         y = self.widget.batch_widget.position_widget.step_series_widget.slider.value()
-        self.widget.batch_widget.mode_widget.view_f_btn.isChecked()
         start, stop, step = self.widget.batch_widget.position_widget.step_series_widget.get_image_range()
         self.widget.batch_widget.stack_plot_widget.img_view.horizontal_line.setValue(y - start)
 
+        img_view_box = self.widget.batch_widget.stack_plot_widget.img_view.img_view_box
         data_img_item = self.widget.batch_widget.stack_plot_widget.img_view.data_img_item
         img_data = self.model.batch_model.data[start:stop + 1]
 
-        height = data_img_item.viewRect().height()
-        bottom = data_img_item.viewRect().top()
+        height = img_view_box.viewRect().height()
+        bottom = img_view_box.viewRect().top()
         bound = data_img_item.boundingRect().height()
 
         if bound == 0:
             return
         v_scale = img_data.shape[0] / bound
-        min_azi = v_scale * bottom + start
-        max_azi = v_scale * (bottom + height) + start
+        min_y = v_scale * bottom + start
+        max_y = v_scale * (bottom + height) + start
 
-        self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.setRange(min_azi, max_azi)
+        self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.setRange(min_y, max_y)
 
     def integrate(self):
         """
@@ -1160,11 +1163,11 @@ class BatchController(object):
         Apply integration unit from current_configuration
         """
         if self.model.current_configuration.integration_unit == '2th_deg':
-            self.widget.batch_widget.tth_btn.setChecked(True)
+            self.widget.batch_widget.options_widget.tth_btn.setChecked(True)
             self.set_unit_tth()
         elif self.model.current_configuration.integration_unit == 'd_A':
-            self.widget.batch_widget.d_btn.setChecked(True)
+            self.widget.batch_widget.options_widget.d_btn.setChecked(True)
             self.set_unit_d()
         elif self.model.current_configuration.integration_unit == 'q_A^-1':
-            self.widget.batch_widget.q_btn.setChecked(True)
+            self.widget.batch_widget.options_widget.q_btn.setChecked(True)
             self.set_unit_q()

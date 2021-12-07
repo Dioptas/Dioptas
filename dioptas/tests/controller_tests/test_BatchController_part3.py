@@ -1,15 +1,17 @@
 import os
 import gc
 import unittest
+from unittest.mock import MagicMock
 
 import numpy as np
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BatchController import BatchController
+from ...controller.integration.PatternController import PatternController
+from ...controller.integration.phase.PhaseController import PhaseController
 from ...model.DioptasModel import DioptasModel
-from dioptas.controller.integration.phase.PhaseController import PhaseController
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
@@ -27,6 +29,7 @@ class BatchControllerTest(QtTest):
             dioptas_model=self.model)
 
         self.phase_controller = PhaseController(self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
 
         # Load existing proc+raw data
         filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
@@ -42,27 +45,40 @@ class BatchControllerTest(QtTest):
         del self.model
         del self.widget
         gc.collect()
-        gc.garbage
 
-    @unittest.skip("Axes need to be worked on!")
     def test_set_unit(self):
         self.widget.batch_widget.activate_stack_plot()
         bottom_axis = self.widget.batch_widget.stack_plot_widget.img_view.bottom_axis_cake
 
+        class DummyViewRect(object):
+            _width = 3500
+            _left = 5
+
+            def width(self):
+                return self._width
+
+            def left(self):
+                return self._left
+
+        self.widget.batch_widget.stack_plot_widget.img_view.img_view_rect = MagicMock(return_value=DummyViewRect())
+
         self.controller.set_unit_tth()
         self.assertEqual(self.model.current_configuration.integration_unit, '2th_deg')
-        self.assertAlmostEqual(bottom_axis.range[0], 8.660802, places=2)
-        self.assertAlmostEqual(bottom_axis.range[1], 26.74354, places=2)
+        self.assertIsNone(bottom_axis._tickLevels)
+        self.assertAlmostEqual(bottom_axis.range[0], 9.7129, places=2)
+
+        click_button(self.widget.batch_widget.options_widget.q_btn)
+        self.assertIsNotNone(bottom_axis._tickLevels)
+        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 22.092006, places=2)
+
+        self.controller.set_unit_tth()
+        self.assertEqual(self.model.current_configuration.integration_unit, '2th_deg')
+        self.assertIsNone(bottom_axis._tickLevels)
 
         self.controller.set_unit_d()
         self.assertTrue(self.widget.integration_pattern_widget.d_btn.isChecked())
         self.assertEqual(self.model.current_configuration.integration_unit, 'd_A')
-        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 9.467504, places=2)
-
-        self.controller.set_unit_q()
-        self.assertTrue(self.widget.integration_pattern_widget.q_btn.isChecked())
-        self.assertEqual(self.model.current_configuration.integration_unit, 'q_A^-1')
-        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 24.43931, places=2)
+        self.assertAlmostEqual(bottom_axis._tickLevels[0][0][0], 10.484, places=2)
 
     def test_show_phases(self):
         # Load phases
@@ -110,7 +126,6 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.widget.batch_widget.surface_widget.surface_view.axis.ticks[0].text, '9.69')
         self.assertEqual(self.widget.batch_widget.surface_widget.surface_view.back_grid.spacing(), [10.0, 1000., 1])
 
-    @unittest.skip("stack plot axis needs to be worked on")
     def test_update_y_axis(self):
         self.widget.batch_widget.activate_stack_plot()
         self.widget.batch_widget.position_widget.step_series_widget.slider.setValue(15)
@@ -119,11 +134,12 @@ class BatchControllerTest(QtTest):
 
         self.controller.update_y_axis()
         self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[0],
-                               2.898080396, places=2)
+                               2.904, places=2)
         self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[1],
                                30.3251324, places=2)
 
     @unittest.skip("needs to be worked on, why is the number of images different?")
+    # TODO: Fix test
     def test_integrate(self):
         self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(5)
         self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(28)

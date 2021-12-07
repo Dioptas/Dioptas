@@ -266,6 +266,12 @@ class ImgWidget(QtCore.QObject):
         self.img_view_box.autoRange()
         self._max_range = True
 
+    def img_view_rect(self):
+        """
+        :rtype: QtCore.QRectF
+        """
+        return self.img_view_box.viewRect()
+
 
 class CalibrationCakeWidget(ImgWidget):
     def __init__(self, pg_layout, orientation='vertical'):
