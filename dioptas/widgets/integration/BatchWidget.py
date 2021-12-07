@@ -4,12 +4,18 @@ from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget, ColorButton
 
 from ..plot_widgets.ImgWidget import IntegrationBatchWidget
-from ..plot_widgets.SurfaceWidget import SurfaceWidget
 from .CustomWidgets import MouseCurrentAndClickedWidget
 from ..CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, LabelAlignRight
 
 from . import CLICKED_COLOR
 from ... import icons_path
+
+try:
+    from ..plot_widgets.SurfaceWidget import SurfaceWidget
+    open_gl = True
+except ModuleNotFoundError:
+    open_gl = False
+
 
 
 class BatchWidget(QtWidgets.QWidget):
@@ -38,7 +44,8 @@ class BatchWidget(QtWidgets.QWidget):
         # central
         self.file_view_widget = BatchFileViewWidget()
         self.stack_plot_widget = BatchStackWidget()
-        self.surface_widget = BatchSurfaceWidget()
+        if open_gl:
+            self.surface_widget = BatchSurfaceWidget()
         self.options_widget = BatchOptionsWidget()
 
         # bottom
@@ -61,7 +68,8 @@ class BatchWidget(QtWidgets.QWidget):
 
         self._central_layout.addWidget(self.file_view_widget)
         self._central_layout.addWidget(self.stack_plot_widget)
-        self._central_layout.addWidget(self.surface_widget)
+        if open_gl:
+            self._central_layout.addWidget(self.surface_widget)
         self._central_layout.addWidget(self.options_widget)
 
         self._frame_layout.addLayout(self._top_layout)
@@ -93,11 +101,15 @@ class BatchWidget(QtWidgets.QWidget):
             """
         )
 
+    def sizeHint(self):
+        return QtCore.QSize(900, 600)
+
     def activate_files_view(self):
         self.mode_widget.view_f_btn.setChecked(True)
 
         self.file_view_widget.show()
-        self.surface_widget.hide()
+        if open_gl:
+            self.surface_widget.hide()
         self.stack_plot_widget.hide()
         self.options_widget.hide()
 
@@ -116,7 +128,8 @@ class BatchWidget(QtWidgets.QWidget):
         self.file_view_widget.hide()
         self.stack_plot_widget.show()
         self.options_widget.show()
-        self.surface_widget.hide()
+        if open_gl:
+            self.surface_widget.hide()
         self.control_widget.waterfall_btn.show()
         self.control_widget.phases_btn.show()
         self.control_widget.autoscale_btn.show()
@@ -209,7 +222,8 @@ class BatchFileViewWidget(QtWidgets.QWidget):
     def set_cal_file(self, file_path):
         if file_path is None:
             file_path = 'undefined'
-        self.cal_file_lbl.setText(f"<span style='background: #3C3C3C; color: white;' >Calibration file:</span> {file_path}")
+        self.cal_file_lbl.setText(
+            f"<span style='background: #3C3C3C; color: white;' >Calibration file:</span> {file_path}")
         self.cal_file_lbl.setToolTip("Calibration used for integration")
 
     def set_mask_file(self, file_path):
@@ -256,8 +270,8 @@ class BatchModeWidget(QtWidgets.QWidget):
 
         self.view_f_btn = CheckableFlatButton("Files")
         self.view_2d_btn = CheckableFlatButton("2D")
-        self.view_2d_btn.setChecked(True)
         self.view_3d_btn = CheckableFlatButton("3D")
+
         self.unit_view_group = QtWidgets.QButtonGroup()
         self.unit_view_group.addButton(self.view_2d_btn)
         self.unit_view_group.addButton(self.view_3d_btn)
@@ -265,9 +279,44 @@ class BatchModeWidget(QtWidgets.QWidget):
 
         self._layout.addWidget(self.view_f_btn)
         self._layout.addWidget(self.view_2d_btn)
-        self._layout.addWidget(self.view_3d_btn)
+        if open_gl:  # hide 3d plot when now opengl is present
+            self._layout.addWidget(self.view_3d_btn)
 
         self.setLayout(self._layout)
+        self.style_widgets()
+
+    def style_widgets(self):
+        self._layout.setSpacing(0)
+        self._layout.setContentsMargins(0,0,0,0)
+
+        mode_btn_height = 35
+        mode_btn_width = 65
+
+        mode_btns = [self.view_f_btn, self.view_2d_btn, self.view_3d_btn]
+
+        for btn in mode_btns:
+            btn.setMinimumWidth(mode_btn_width)
+            btn.setMaximumWidth(mode_btn_width)
+
+            btn.setMinimumHeight(mode_btn_height)
+            btn.setMaximumHeight(mode_btn_height)
+
+        self.view_f_btn.setObjectName("file_btn")
+
+        self.setStyleSheet("""
+            QPushButton {
+               font: normal 12px;
+                border-radius: 0px;
+            }
+            
+            #file_btn {
+                border-radius: 0px;
+                border-top-left-radius: 8px;
+                border-bottom-left-radius: 8px;
+            }
+            
+        """)
+
 
 
 class BatchStackWidget(QtWidgets.QWidget):
