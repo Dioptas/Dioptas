@@ -23,10 +23,11 @@ import os
 
 import numpy as np
 import h5py
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtCore
 from pyqtgraph import makeQImage
 
 from ...widgets.UtilityWidgets import open_files_dialog, save_file_dialog
+from ...widgets.integration.BatchWidget import open_gl
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
@@ -73,7 +74,6 @@ class BatchController(object):
         self.widget.batch_widget.control_widget.phases_btn.clicked.connect(self.toggle_show_phases)
         self.widget.batch_widget.mode_widget.view_f_btn.clicked.connect(self.change_view)
         self.widget.batch_widget.mode_widget.view_2d_btn.clicked.connect(self.change_view)
-        self.widget.batch_widget.mode_widget.view_3d_btn.clicked.connect(self.change_view)
         self.widget.batch_widget.options_widget.scale_log_btn.mouseReleaseEvent = self.change_scale_log
         self.widget.batch_widget.options_widget.scale_lin_btn.mouseReleaseEvent = self.change_scale_lin
         self.widget.batch_widget.options_widget.scale_sqrt_btn.mouseReleaseEvent = self.change_scale_sqrt
@@ -101,21 +101,23 @@ class BatchController(object):
         self.widget.batch_widget.position_widget.step_series_widget.stop_txt.valueChanged.connect(self.set_range_img)
         self.widget.batch_widget.position_widget.step_series_widget.step_txt.valueChanged.connect(self.process_step)
 
-        # 3D navigation
-        surface_navigation_widget = self.widget.batch_widget.surface_widget.control_widget
-        surface_navigation_widget.view3d_f_btn.clicked.connect(self.set_3d_view_f)
-        surface_navigation_widget.view3d_s_btn.clicked.connect(self.set_3d_view_s)
-        surface_navigation_widget.view3d_t_btn.clicked.connect(self.set_3d_view_t)
-        surface_navigation_widget.view3d_i_btn.clicked.connect(self.set_3d_view_i)
-        surface_navigation_widget.scale_x_btn.clicked.connect(self.pressed_button_x)
-        surface_navigation_widget.scale_y_btn.clicked.connect(self.pressed_button_y)
-        surface_navigation_widget.scale_z_btn.clicked.connect(self.pressed_button_z)
-        surface_navigation_widget.scale_s_btn.clicked.connect(self.pressed_button_s)
-        surface_navigation_widget.trim_h_btn.clicked.connect(self.pressed_button_h)
-        surface_navigation_widget.trim_l_btn.clicked.connect(self.pressed_button_l)
-        surface_navigation_widget.move_g_btn.clicked.connect(self.pressed_button_g)
-        surface_navigation_widget.move_m_btn.mouseReleaseEvent = self.pressed_button_m
-        surface_navigation_widget.m_color_btn.sigColorChanged.connect(self.set_marker_color)
+        # Surface widget signals
+        if open_gl:
+            self.widget.batch_widget.mode_widget.view_3d_btn.clicked.connect(self.change_view)
+            surface_navigation_widget = self.widget.batch_widget.surface_widget.control_widget
+            surface_navigation_widget.view3d_f_btn.clicked.connect(self.set_3d_view_f)
+            surface_navigation_widget.view3d_s_btn.clicked.connect(self.set_3d_view_s)
+            surface_navigation_widget.view3d_t_btn.clicked.connect(self.set_3d_view_t)
+            surface_navigation_widget.view3d_i_btn.clicked.connect(self.set_3d_view_i)
+            surface_navigation_widget.scale_x_btn.clicked.connect(self.pressed_button_x)
+            surface_navigation_widget.scale_y_btn.clicked.connect(self.pressed_button_y)
+            surface_navigation_widget.scale_z_btn.clicked.connect(self.pressed_button_z)
+            surface_navigation_widget.scale_s_btn.clicked.connect(self.pressed_button_s)
+            surface_navigation_widget.trim_h_btn.clicked.connect(self.pressed_button_h)
+            surface_navigation_widget.trim_l_btn.clicked.connect(self.pressed_button_l)
+            surface_navigation_widget.move_g_btn.clicked.connect(self.pressed_button_g)
+            surface_navigation_widget.move_m_btn.mouseReleaseEvent = self.pressed_button_m
+            surface_navigation_widget.m_color_btn.sigColorChanged.connect(self.set_marker_color)
 
         self.widget.batch_widget.stack_plot_widget.img_view.img_view_box.sigRangeChanged.connect(self.update_axes_range)
         self.model.configuration_selected.connect(self.update_gui)
@@ -130,8 +132,9 @@ class BatchController(object):
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
 
         # 3D
-        self.widget.batch_widget.surface_widget.pg_layout.wheelEvent = self.wheel_event_3d
-        self.widget.batch_widget.surface_widget.pg_layout.keyPressEvent = self.key_pressed_3d
+        if open_gl:
+            self.widget.batch_widget.surface_widget.pg_layout.wheelEvent = self.wheel_event_3d
+            self.widget.batch_widget.surface_widget.pg_layout.keyPressEvent = self.key_pressed_3d
 
     def show_batch_frame(self):
         self.widget.batch_widget.raise_widget()
@@ -807,9 +810,9 @@ class BatchController(object):
         name, ext = os.path.splitext(filename)
         if filename != '':
             if ext == '.png':
-                if self.widget.batch_widget.view_2d_btn.isChecked():
+                if self.widget.batch_widget.mode_widget.view_2d_btn.isChecked():
                     self.widget.batch_widget.stack_plot_widget.img_view.save_img(filename)
-                if self.widget.batch_widget.view_3d_btn.isChecked():
+                if self.widget.batch_widget.mode_widget.view_3d_btn.isChecked():
                     d = self.widget.batch_widget.surface_widget.surface_view.pg_layout.renderToArray((1000, 1000))
                     makeQImage(d).save(filename)
             elif ext == '.nxs':
