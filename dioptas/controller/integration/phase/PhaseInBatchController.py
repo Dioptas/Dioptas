@@ -93,7 +93,7 @@ class PhaseInBatchController(object):
         self.batch_view_widget.set_cake_phase_color(ind, self.model.phase_model.phase_colors[ind])
 
     def update_phase_visible(self, ind):
-        if self.phase_model.phase_visible[ind] and self.batch_widget.phases_btn.isChecked():
+        if self.phase_model.phase_visible[ind] and self.batch_widget.control_widget.phases_btn.isChecked():
             self.batch_view_widget.show_cake_phase(ind)
         else:
             self.batch_view_widget.hide_cake_phase(ind)
@@ -112,7 +112,7 @@ class PhaseInBatchController(object):
             return 0, 0
         start_x = 0
         stop_x = self.model.batch_model.data.shape[1]
-        if self.batch_widget.bkg_cut_btn.isChecked():
+        if self.batch_widget.options_widget.bkg_cut_btn.isChecked():
             bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
             if bkg_roi is not None:
                 binning = self.model.batch_model.binning

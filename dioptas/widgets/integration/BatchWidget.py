@@ -94,6 +94,8 @@ class BatchWidget(QtWidgets.QWidget):
         )
 
     def activate_files_view(self):
+        self.mode_widget.view_f_btn.setChecked(True)
+
         self.file_view_widget.show()
         self.surface_widget.hide()
         self.stack_plot_widget.hide()
@@ -109,6 +111,7 @@ class BatchWidget(QtWidgets.QWidget):
     def activate_stack_plot(self):
         # self.position_widget.step_raw_widget.hide()
         # self.position_widget.step_series_widget.show()
+        self.mode_widget.view_2d_btn.setChecked(True)
 
         self.file_view_widget.hide()
         self.stack_plot_widget.show()
@@ -122,6 +125,8 @@ class BatchWidget(QtWidgets.QWidget):
     def activate_surface_view(self):
         # self.position_widget.step_raw_widget.hide()
         # self.position_widget.step_series_widget.show()
+
+        self.mode_widget.view_3d_btn.setChecked(True)
 
         y = self.position_widget.step_series_widget.slider.value()
         self.surface_widget.surface_view.g_translate = y
