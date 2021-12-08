@@ -715,15 +715,16 @@ class ImageController(object):
             self.update_cake_x_axis()
 
     def update_cake_azimuth_axis(self):
-        data_img_item = self.widget.integration_image_widget.cake_view.data_img_item
+        img_view_rect = self.widget.integration_image_widget.cake_view.img_view_rect()
+        img_bounding_rect = self.widget.integration_image_widget.cake_view.img_bounding_rect()
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
-        if data_img_item.boundingRect().height() == 0:
+        if img_bounding_rect.height() == 0:
             return
 
-        height = data_img_item.viewRect().height()
-        bottom = data_img_item.viewRect().top()
-        v_scale = (cake_azi[-1] - cake_azi[0]) / data_img_item.boundingRect().height()
+        height = img_view_rect.height()
+        bottom = img_view_rect.top()
+        v_scale = (cake_azi[-1] - cake_azi[0]) / img_bounding_rect.height()
         v_shift = np.min(cake_azi[0])
         min_azi = v_scale * bottom + v_shift
         max_azi = v_scale * (bottom + height) + v_shift
@@ -734,14 +735,16 @@ class ImageController(object):
         if self.model.cake_tth is None:
             return
 
-        data_img_item = self.widget.integration_image_widget.cake_view.data_img_item
+        img_view_rect = self.widget.integration_image_widget.cake_view.img_view_rect()
+        img_bounding_rect = self.widget.integration_image_widget.cake_view.img_bounding_rect()
+
         cake_tth = self.model.cake_tth
-        if data_img_item.boundingRect().width() == 0:
+        if img_bounding_rect.width() == 0:
             return
 
-        width = data_img_item.viewRect().width()
-        left = data_img_item.viewRect().left()
-        h_scale = (np.max(cake_tth) - np.min(cake_tth)) / data_img_item.boundingRect().width()
+        width = img_view_rect.width()
+        left = img_view_rect.left()
+        h_scale = (np.max(cake_tth) - np.min(cake_tth)) / img_bounding_rect.width()
         h_shift = np.min(cake_tth)
         min_tth = h_scale * left + h_shift
         max_tth = h_scale * (left + width) + h_shift

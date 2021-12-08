@@ -272,6 +272,12 @@ class ImgWidget(QtCore.QObject):
         """
         return self.img_view_box.viewRect()
 
+    def img_bounding_rect(self):
+        """
+        :rtype: QtCore.QRectF
+        """
+        return self.data_img_item.boundingRect()
+
 
 class CalibrationCakeWidget(ImgWidget):
     def __init__(self, pg_layout, orientation='vertical'):
