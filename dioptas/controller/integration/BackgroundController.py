@@ -168,7 +168,7 @@ class BackgroundController(object):
             self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
             if self.model.batch_model.binning is not None:
-                start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+                start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
                 binning = self.model.batch_model.binning[start_x: stop_x]
 
                 bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
@@ -176,7 +176,7 @@ class BackgroundController(object):
                 scale = (binning[-1] - binning[0]) / binning.shape[0]
                 x_min_bin = (bkg_roi[0] - binning[0]) / scale
                 x_max_bin = (bkg_roi[1] - binning[0]) / scale
-                self.widget.batch_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
+                self.widget.batch_widget.stack_plot_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
 
     def bkg_pattern_inspect_btn_toggled_callback(self, checked):
         self.widget.bkg_pattern_inspect_btn.blockSignals(True)
@@ -194,8 +194,8 @@ class BackgroundController(object):
             self.widget.bkg_pattern_x_min_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
             self.widget.bkg_pattern_x_max_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
 
-            self.widget.batch_widget.img_view.show_linear_region()
-            self.widget.batch_widget.img_view.linear_region_item.sigRegionChanged.connect(
+            self.widget.batch_widget.stack_plot_widget.img_view.show_linear_region()
+            self.widget.batch_widget.stack_plot_widget.img_view.linear_region_item.sigRegionChanged.connect(
                 self.bkg_batch_linear_region_callback
             )
 
@@ -205,10 +205,10 @@ class BackgroundController(object):
                 self.bkg_pattern_linear_region_callback
             )
 
-            self.widget.batch_widget.img_view.linear_region_item.sigRegionChanged.disconnect(
+            self.widget.batch_widget.stack_plot_widget.img_view.linear_region_item.sigRegionChanged.disconnect(
                 self.bkg_batch_linear_region_callback
             )
-            self.widget.batch_widget.img_view.hide_linear_region()
+            self.widget.batch_widget.stack_plot_widget.img_view.hide_linear_region()
 
             self.widget.bkg_pattern_x_min_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
             self.widget.bkg_pattern_x_max_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
@@ -234,11 +234,11 @@ class BackgroundController(object):
         self.bkg_pattern_parameters_changed()
 
     def bkg_batch_linear_region_callback(self):
-        x_min, x_max = self.widget.batch_widget.img_view.get_linear_region()
+        x_min, x_max = self.widget.batch_widget.stack_plot_widget.img_view.get_linear_region()
 
         if self.model.batch_model.binning is None:
             return
-        start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+        start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
         binning = self.model.batch_model.binning[start_x: stop_x]
         scale = (binning[-1] - binning[0]) / binning.shape[0]
         x_min_tth = x_min * scale + binning[0]
@@ -255,14 +255,14 @@ class BackgroundController(object):
         self.widget.pattern_widget.set_linear_region(*bkg_roi)
 
         if self.model.batch_model.binning is not None:
-            start_x, stop_x = self.widget.batch_widget.img_view.x_bin_range
+            start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
             binning = self.model.batch_model.binning[start_x: stop_x]
             bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
                                            '2th_deg')
             scale = (binning[-1] - binning[0]) / binning.shape[0]
             x_min_bin = int((bkg_roi[0] - binning[0]) / scale)
             x_max_bin = int((bkg_roi[1] - binning[0]) / scale)
-            self.widget.batch_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
+            self.widget.batch_widget.stack_plot_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
         self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
     def update_bkg_image_widgets(self):
