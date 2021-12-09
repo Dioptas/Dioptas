@@ -12,10 +12,10 @@ from ... import icons_path
 
 try:
     from ..plot_widgets.SurfaceWidget import SurfaceWidget
+
     open_gl = True
 except ModuleNotFoundError:
     open_gl = False
-
 
 
 class BatchWidget(QtWidgets.QWidget):
@@ -113,16 +113,16 @@ class BatchWidget(QtWidgets.QWidget):
         self.stack_plot_widget.hide()
         self.options_widget.hide()
 
-        # self.position_widget.step_raw_widget.show()
-        # self.position_widget.step_series_widget.hide()
+        self.position_widget.step_raw_widget.show()
+        self.position_widget.step_series_widget.hide()
         self.control_widget.waterfall_btn.hide()
         self.control_widget.phases_btn.hide()
         self.control_widget.autoscale_btn.hide()
         self.control_widget.integrate_btn.show()
 
     def activate_stack_plot(self):
-        # self.position_widget.step_raw_widget.hide()
-        # self.position_widget.step_series_widget.show()
+        self.position_widget.step_raw_widget.hide()
+        self.position_widget.step_series_widget.show()
         self.mode_widget.view_2d_btn.setChecked(True)
 
         self.file_view_widget.hide()
@@ -136,8 +136,8 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.integrate_btn.hide()
 
     def activate_surface_view(self):
-        # self.position_widget.step_raw_widget.hide()
-        # self.position_widget.step_series_widget.show()
+        self.position_widget.step_raw_widget.hide()
+        self.position_widget.step_series_widget.show()
 
         self.mode_widget.view_3d_btn.setChecked(True)
 
@@ -287,7 +287,7 @@ class BatchModeWidget(QtWidgets.QWidget):
 
     def style_widgets(self):
         self._layout.setSpacing(0)
-        self._layout.setContentsMargins(0,0,0,0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         mode_btn_height = 35
         mode_btn_width = 65
@@ -316,7 +316,6 @@ class BatchModeWidget(QtWidgets.QWidget):
             }
             
         """)
-
 
 
 class BatchStackWidget(QtWidgets.QWidget):
