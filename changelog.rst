@@ -1,10 +1,25 @@
 0.5.4 (under development)
 -------------------------
 
+New features:
+    - made openGL dependency for Batch widget addition optional. --> this means executables are now working properly
+      under Mac OS X again
+    - Batch waterfall plot is now possible with background subtraction enabled
+    - Batch heatmap can now be trimmed along x axis (new T Button) - region of trimming is synchronized with the
+      main Dioptas background controls
+    - improvements on Batch widget interface - buttons are now only visible when necessary, added more tooltips,
+      slightly redesigned gui, improved background calculation with d-spacing as axis unit
+
+
 Buf Fixes:
     - fixes the error appearing when clicking into the cake image in the integration window
-
-
+    - fixes axes not updating when zooming in and out in cake widget and batch widget
+    - fixes background subtraction as shown in contour plot of Batch widget (2D view) and in waterfall/overlays 1D
+      representation of the main Dioptas window
+    - fixes switching between x-axis units (2th, d-spacing, Q) in Batch widget
+    - fixes intensity estimation in Batch widget (lower right corner) when background subtraction is activated.
+    - fixes issues with representation of phases inside the contour plot of Batch widget, e.g. resetting of the
+      "Show Phases" button state upon file information reloading, updating position of the phases upon user input, etc
 
 0.5.3a (stable 10/10/2021)
 --------------------------
