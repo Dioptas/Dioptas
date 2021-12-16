@@ -12,6 +12,7 @@ New features:
 
 
 Buf Fixes:
+    - fixes issue with mask button toggle when in cake mode
     - fixes the error appearing when clicking into the cake image in the integration window
     - fixes axes not updating when zooming in and out in cake widget and batch widget
     - fixes background subtraction as shown in contour plot of Batch widget (2D view) and in waterfall/overlays 1D

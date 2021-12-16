@@ -154,6 +154,21 @@ class ImageControllerTest(QtTest):
         self.assertFalse(self.widget.img_roi_btn.isChecked())
         self.assertFalse(self.widget.img_widget.roi in self.widget.img_widget.img_view_box.addedItems)
 
+    def test_mask_button_checking_in_image_mode(self):
+        click_button(self.widget.img_mask_btn)
+        self.assertTrue(self.widget.img_mask_btn.isChecked())
+        click_button(self.widget.img_mask_btn)
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
+
+    def test_mask_button_checking_in_cake_mode(self):
+        self.load_pilatus1M_image_and_calibration()
+        click_button(self.widget.integration_image_widget.mode_btn)
+
+        click_button(self.widget.img_mask_btn)
+        self.assertTrue(self.widget.img_mask_btn.isChecked())
+        click_button(self.widget.img_mask_btn)
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
+
     def test_adding_images(self):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
             return_value=[os.path.join(unittest_data_path, 'image_001.tif')])
