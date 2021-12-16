@@ -230,7 +230,8 @@ class ImageController(object):
         self.widget.cake_widget.mouse_left_clicked.connect(self.img_mouse_click)
         self.widget.cake_widget.mouse_moved.connect(self.show_img_mouse_position)
 
-        self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_mouse_click)
+        self.model.clicked_tth_changed.connect(self.set_cake_line_position)
+        self.model.clicked_tth_changed.connect(self.set_image_line_position)
 
     def load_file(self, *args, **kwargs):
         filename = kwargs.get('filename', None)
@@ -853,16 +854,19 @@ class ImageController(object):
             if self.widget.img_mode == 'Cake':
                 self.plot_cake_integral()
 
-            # calculate right unit for the position line the pattern widget
-            if self.widget.pattern_q_btn.isChecked():
-                pos = 4 * np.pi * np.sin(np.deg2rad(tth) / 2) / self.model.calibration_model.wavelength / 1e10
-            elif self.widget.pattern_tth_btn.isChecked():
-                pos = tth
-            elif self.widget.pattern_d_btn.isChecked():
-                pos = self.model.calibration_model.wavelength / (2 * np.sin(np.deg2rad(tth) / 2)) * 1e10
-            else:
-                pos = 0
-            self.widget.pattern_widget.set_pos_line(pos)
+            self.model.clicked_tth_changed.emit(tth)
+            self.model.clicked_azi_changed.emit(azi);
+
+            # # calculate right unit for the position line the pattern widget
+            # if self.widget.pattern_q_btn.isChecked():
+            #     pos = 4 * np.pi * np.sin(np.deg2rad(tth) / 2) / self.model.calibration_model.wavelength / 1e10
+            # elif self.widget.pattern_tth_btn.isChecked():
+            #     pos = tth
+            # elif self.widget.pattern_d_btn.isChecked():
+            #     pos = self.model.calibration_model.wavelength / (2 * np.sin(np.deg2rad(tth) / 2)) * 1e10
+            # else:
+            #     pos = 0
+            # self.widget.pattern_widget.set_pos_line(pos)
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
         self.widget.click_d_lbl.setText(self.widget.mouse_d_lbl.text())
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
@@ -891,18 +895,12 @@ class ImageController(object):
         self.widget.click_y_lbl.setText(self.widget.mouse_y_lbl.text())
         self.widget.click_int_lbl.setText(self.widget.mouse_int_lbl.text())
 
-    def pattern_mouse_click(self, x, y):
-        if self.model.calibration_model.is_calibrated:
-            if self.widget.img_mode == 'Cake':
-                self.set_cake_line_position(x)
-            elif self.widget.img_mode == 'Image':
-                self.set_image_line_position(x)
+    def set_cake_line_position(self, tth):
+        if self.model.cake_tth is None:
+            return
 
-    def set_cake_line_position(self, x):
-        x = self._convert_to_tth(x)
-
-        upper_ind = np.where(self.model.cake_tth > x)[0]
-        lower_ind = np.where(self.model.cake_tth < x)[0]
+        upper_ind = np.where(self.model.cake_tth > tth)[0]
+        lower_ind = np.where(self.model.cake_tth < tth)[0]
 
         if len(upper_ind) == 0 or len(lower_ind) == 0:
             self.widget.cake_widget.plot_cake_integral(np.array([]), np.array([]))
@@ -910,23 +908,15 @@ class ImageController(object):
             return
 
         spacing = self.model.cake_tth[upper_ind[0]] - self.model.cake_tth[lower_ind[-1]]
-        new_pos = lower_ind[-1] + (x - self.model.cake_tth[lower_ind[-1]]) / spacing + 0.5
+        new_pos = lower_ind[-1] + (tth - self.model.cake_tth[lower_ind[-1]]) / spacing + 0.5
         self.widget.cake_widget.vertical_line.setValue(new_pos)
         self.widget.cake_widget.activate_vertical_line()
-        self.plot_cake_integral(x)
+        self.plot_cake_integral(tth)
 
-    def set_image_line_position(self, x):
-        x = self._convert_to_tth(x)
-
+    def set_image_line_position(self, tth):
+        print('set_image_line_position', tth)
         self.widget.img_widget.set_circle_line(
-            self.model.calibration_model.get_two_theta_array(), np.deg2rad(x))
-
-    def _convert_to_tth(self, x):
-        if self.model.integration_unit == 'q_A^-1':
-            return self.convert_x_value(x, 'q_A^-1', '2th_deg')
-        elif self.model.integration_unit == 'd_A':
-            return self.convert_x_value(x, 'd_A', '2th_deg')
-        return x
+            self.model.calibration_model.get_two_theta_array(), np.deg2rad(tth))
 
     def set_iteration_mode_number(self):
         self.model.img_model.set_file_iteration_mode('number')

@@ -60,6 +60,12 @@ class DioptasModel(object):
         self.cake_changed = Signal()
         self.enabled_phases_in_cake = Signal()
 
+        self.clicked_tth = 0
+        self.clicked_azi = 0
+
+        self.clicked_tth_changed = Signal()
+        self.clicked_azi_changed = Signal()
+
         self.connect_models()
 
     def add_configuration(self):

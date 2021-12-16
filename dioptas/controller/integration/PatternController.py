@@ -64,6 +64,7 @@ class PatternController(object):
         # Gui subscriptions
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+        self.model.clicked_tth_changed.connect(self.set_line_position)
         self.widget.batch_widget.stack_plot_widget.img_view.mouse_left_clicked.connect(self.batch_left_click)
         self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
@@ -330,14 +331,16 @@ class PatternController(object):
         self.pattern_left_click(pos, y)
 
     def pattern_left_click(self, x, y):
-        self.set_line_position(x)
+        tth_clicked = self.convert_x_value(x, self.model.current_configuration.integration_unit, '2th_deg')
+        self.model.clicked_tth_changed.emit(tth_clicked)
 
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
         self.widget.click_d_lbl.setText(self.widget.mouse_d_lbl.text())
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
 
-    def set_line_position(self, x):
+    def set_line_position(self, tth):
+        x = self.convert_x_value(tth, '2th_deg', self.model.current_configuration.integration_unit)
         self.widget.pattern_widget.set_pos_line(x)
 
     def show_pattern_mouse_position(self, x, _):
