@@ -187,6 +187,7 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
                    height: 22 px;
                }
                """)
+        self.sources_widget.hide()
 
 
 class StepWidget(QtWidgets.QWidget):
