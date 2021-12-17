@@ -65,7 +65,6 @@ class PatternController(object):
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
         self.model.clicked_tth_changed.connect(self.set_line_position)
-        self.widget.batch_widget.stack_plot_widget.img_view.mouse_left_clicked.connect(self.batch_left_click)
         self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
     def create_gui_signals(self):
@@ -312,24 +311,6 @@ class PatternController(object):
         wavelength = self.model.calibration_model.wavelength
         return convert_units(value, wavelength, previous_unit, new_unit)
 
-    def batch_left_click(self, x, y):
-        """
-        Plot dashed line on pattern, image and cake view, which mouse clicked on batch plot.
-
-        :param x: x value of batch plot
-        """
-        start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
-        if self.model.batch_model.binning is None:
-            return
-        binning = self.model.batch_model.binning[start_x: stop_x]
-
-        if self.widget.batch_widget.control_widget.waterfall_btn.isChecked():
-            return
-        scale = (binning[-1] - binning[0]) / binning.shape[0]
-        pos = x * scale + binning[0]
-        pos = self.convert_x_value(pos, '2th_deg', self.model.current_configuration.integration_unit)
-        self.pattern_left_click(pos, y)
-
     def pattern_left_click(self, x, y):
         tth_clicked = self.convert_x_value(x, self.model.current_configuration.integration_unit, '2th_deg')
         self.model.clicked_tth_changed.emit(tth_clicked)
@@ -395,7 +376,7 @@ class PatternController(object):
                 new_pos = pos - step
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
-            self.widget.pattern_widget.mouse_left_clicked.emit(new_pos, 0)
+            self.model.clicked_tth_changed.emit(new_pos)
 
     def update_gui(self):
         if self.model.current_configuration.integration_unit == '2th_deg':
