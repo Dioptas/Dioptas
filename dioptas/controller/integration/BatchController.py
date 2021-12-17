@@ -26,6 +26,7 @@ import h5py
 from qtpy import QtWidgets, QtCore
 from pyqtgraph import makeQImage
 
+from ...model.util.HelperModule import get_partial_value, get_partial_index
 from ...widgets.UtilityWidgets import open_files_dialog, save_file_dialog
 from ...widgets.integration.BatchWidget import open_gl
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -129,7 +130,7 @@ class BatchController(object):
         self.widget.batch_widget.stack_plot_widget.img_view.mouse_moved.connect(self.show_img_mouse_position)
         self.widget.batch_widget.stack_plot_widget.img_view.mouse_left_clicked.connect(self.img_mouse_click)
 
-        self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+        self.model.clicked_tth_changed.connect(self.update_vertical_line_pos)
 
         # 3D
         if open_gl:
@@ -318,24 +319,19 @@ class BatchController(object):
 
         self.plot_batch()
 
-    def pattern_left_click(self, x, y):
-        """
-        Update position of vertical line
-
-        :param x: Position of vertical line on pattern plot in current_configuration units
-        """
-        x = self.convert_x_value(x, self.model.current_configuration.integration_unit, '2th_deg')
-        data_img_item = self.widget.batch_widget.stack_plot_widget.img_view.data_img_item
+    def update_vertical_line_pos(self, tth):
         if self.model.batch_model.binning is None:
             return
 
         start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
         binning = self.model.batch_model.binning[start_x: stop_x]
-        bound = data_img_item.boundingRect().width()
-        h_scale = (np.max(binning) - np.min(binning)) / bound
-        h_shift = np.min(binning)
-        pos = (x - h_shift) / h_scale
+        pos = get_partial_index(binning, tth)
 
+        if pos is None:
+            self.widget.batch_widget.stack_plot_widget.img_view.deactivate_vertical_line()
+            return
+
+        self.widget.batch_widget.stack_plot_widget.img_view.activate_vertical_line()
         self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.setValue(pos)
 
     def set_unit_tth(self):
@@ -837,7 +833,13 @@ class BatchController(object):
         if self.widget.batch_widget.control_widget.waterfall_btn.isChecked():
             self.process_waterfall(x, y)
         else:
-            self.load_single_image(x, y)
+
+            start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
+            binning = self.model.batch_model.binning[start_x: stop_x]
+            tth = get_partial_value(binning, x - 0.5)
+            if tth is not None:
+                self.model.clicked_tth_changed.emit(tth)
+                self.load_single_image(x, y)
 
     def img_autoscale_btn_clicked(self):
         self.widget.batch_widget.stack_plot_widget.img_view.auto_level()

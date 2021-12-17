@@ -914,7 +914,6 @@ class ImageController(object):
         self.plot_cake_integral(tth)
 
     def set_image_line_position(self, tth):
-        print('set_image_line_position', tth)
         self.widget.img_widget.set_circle_line(
             self.model.calibration_model.get_two_theta_array(), np.deg2rad(tth))
 

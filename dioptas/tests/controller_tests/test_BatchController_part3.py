@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import numpy as np
 
 from ..utility import QtTest, click_button
+from ...model.util.HelperModule import get_partial_value
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BatchController import BatchController
@@ -137,6 +138,43 @@ class BatchControllerTest(QtTest):
                                2.904, places=2)
         self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[1],
                                30.3251324, places=2)
+
+    def test_click_in_2d_widget_sends_clicked_change(self):
+        self.model.clicked_tth_changed.emit = MagicMock()
+        self.widget.batch_widget.stack_plot_widget.img_view.mouse_left_clicked.emit(20, 10)
+        self.model.clicked_tth_changed.emit.assert_called_once_with(
+            get_partial_value(self.model.batch_model.binning, 20 - 0.5))
+
+    def test_click_in_2d_widget_out_of_range_does_not_send_clicked_change(self):
+        self.model.clicked_tth_changed.emit = MagicMock()
+        self.widget.batch_widget.stack_plot_widget.img_view.mouse_left_clicked.emit(-1, 10)
+        self.model.clicked_tth_changed.emit.assert_not_called()
+
+
+    def test_clicked_tth_change_signal_changes_line_pos(self):
+        self.controller.plot_batch()
+
+        # in plot range
+        self.model.clicked_tth_changed.emit(12)
+        new_line_pos = self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.pos()[0]
+        self.assertAlmostEqual(12, get_partial_value(self.model.batch_model.binning, new_line_pos))
+
+        #  lower than range
+        self.model.clicked_tth_changed.emit(8)
+        self.assertFalse(self.widget.batch_widget.stack_plot_widget.img_view.vertical_line in
+                         self.widget.batch_widget.stack_plot_widget.img_view.img_view_box.addedItems)
+
+        # in range again
+        self.model.clicked_tth_changed.emit(12)
+        self.assertTrue(self.widget.batch_widget.stack_plot_widget.img_view.vertical_line in
+                        self.widget.batch_widget.stack_plot_widget.img_view.img_view_box.addedItems)
+        new_line_pos = self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.pos()[0]
+        self.assertAlmostEqual(12, get_partial_value(self.model.batch_model.binning, new_line_pos))
+
+        # larger than range
+        self.model.clicked_tth_changed.emit(35)
+        self.assertFalse(self.widget.batch_widget.stack_plot_widget.img_view.vertical_line in
+                         self.widget.batch_widget.stack_plot_widget.img_view.img_view_box.addedItems)
 
     @unittest.skip("needs to be worked on, why is the number of images different?")
     # TODO: Fix test
