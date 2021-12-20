@@ -26,8 +26,9 @@ Requirements
 
     * pyopencl (increasing pyFAI integration speed)
     * fftw3 (increasing pyFAI instegration speed)
+    * pyopengl and pyopengl-accelerate (for 3D view of batch integrated patterns)
 
-It is known to run on Windows, Mac and Linux. For optimal usage on a windows machine it should be run with 64 bit
+It is known to run on Windows, Mac and Linux. For optimal usage on a Windows machine it should be run with 64 bit
 python. When used with 32 bit Dioptas occasionally crashes because of limited memory allocation possibilities.
 
 Installation
