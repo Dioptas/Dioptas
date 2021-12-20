@@ -22,18 +22,34 @@ import os
 import numpy as np
 
 from ..utility import QtTest
-from ...model.util.HelperModule import get_partial_index, FileNameIterator
+from ...model.util.HelperModule import get_partial_index, FileNameIterator, get_partial_value
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data', 'FileIterator')
 
 
 class HelperModuleTest(QtTest):
-    def test_get_partial_ind(self):
+    def test_get_partial_index(self):
         data = np.arange(0, 10, 1)
         value = 2.5
         self.assertEqual(get_partial_index(data, value), 2.5)
         self.assertEqual(get_partial_index(data, data[4]), 4)
+
+    def test_get_partial_index_out_of_range(self):
+        data = np.arange(0, 10, 1)
+        self.assertIsNone(get_partial_index(data, -1))
+        self.assertIsNone(get_partial_index(data, 11))
+
+    def test_get_partial_value(self):
+        data = np.arange(2, 11, 2)
+        self.assertEqual(get_partial_value(data, 1.5), 5)
+        self.assertEqual(get_partial_value(data, 0.3), 2+0.3*2)
+
+    def test_get_partial_value_out_of_range(self):
+        data = np.arange(2, 11, 2)
+        self.assertIsNone(get_partial_value(data, -1))
+        self.assertIsNone(get_partial_value(data, 10))
+
 
     def test_get_next_filename(self):
         filename = os.path.join(data_path, "dummy1_1.txt")

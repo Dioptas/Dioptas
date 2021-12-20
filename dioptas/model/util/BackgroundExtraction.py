@@ -56,7 +56,7 @@ def extract_background(x, y, smooth_width=0.1, iterations=50, cheb_order=50):
     """
     smooth_points = int((float(smooth_width) / (x[1] - x[0])))
 
-    y_smooth = smooth_bruckner(y, smooth_points, iterations)
+    y_smooth = smooth_bruckner(y, abs(smooth_points), iterations)
     # get cheb input parameters
     x_cheb = 2. * (x - x[0]) / (x[-1] - x[0]) - 1.
     cheb_parameters = np.polynomial.chebyshev.chebfit(x_cheb,

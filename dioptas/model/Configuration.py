@@ -294,11 +294,15 @@ class Configuration(object):
         :param old_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
         :param new_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
         """
-        self.pattern_model.pattern.auto_background_subtraction_parameters = \
-            convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
+        par_0 = convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
                           self.calibration_model.wavelength,
                           old_unit,
-                          new_unit), \
+                          new_unit)
+        # Value of 0.1 let background subtraction algorithm work without crash.
+        if np.isnan(par_0):
+            par_0 = 0.1
+        self.pattern_model.pattern.auto_background_subtraction_parameters = \
+            par_0, \
             self.pattern_model.pattern.auto_background_subtraction_parameters[1], \
             self.pattern_model.pattern.auto_background_subtraction_parameters[2]
 

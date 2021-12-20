@@ -192,6 +192,8 @@ class Pattern(QtCore.QObject):
                       (x <= np.max(self.auto_background_subtraction_roi))
                 x = x[ind]
                 y = y[ind]
+                if len(x) == 0:
+                    return
                 self.auto_background_subtraction_roi = [np.min(x), np.max(x)]
             else:
                 self.auto_background_subtraction_roi = [np.min(x), np.max(x)]

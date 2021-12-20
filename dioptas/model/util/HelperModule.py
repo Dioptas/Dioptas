@@ -323,6 +323,9 @@ def get_partial_value(array, ind):
     :param array: list or numpy array
     :param ind: float index for which to get value
     """
+    if ind < 0 or ind > len(array):
+        return None
+
     step = array[int(np.floor(ind)) + 1] - array[int(np.floor(ind))]
     value = array[int(np.floor(ind))] + (ind - np.floor(ind)) * step
     return value

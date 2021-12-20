@@ -36,7 +36,7 @@ class BatchControllerTest(QtTest):
         raw_files = self.model.batch_model.files
         raw_files = [os.path.join(os.path.dirname(filename), os.path.basename(f)) for f in raw_files]
         self.model.batch_model.set_image_files(raw_files)
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(self.model.batch_model.n_img - 1)
+        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(self.model.batch_model.n_img - 1)
 
     def tearDown(self):
         del self.phase_controller
@@ -47,34 +47,27 @@ class BatchControllerTest(QtTest):
         gc.garbage
 
     def test_set_range_img(self):
-        self.widget.batch_widget.step_series_widget.start_txt.setValue(25)
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(50)
+        self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(25)
+        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(50)
 
         self.controller.set_range_img()
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 25)
+        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.slider.value(), 25)
 
-        self.widget.batch_widget.step_series_widget.start_txt.setValue(5)
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(20)
+        self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(5)
+        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(20)
         self.controller.set_range_img()
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 20)
+        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.slider.value(), 20)
 
     def test_show_img_mouse_position(self):
+        self.widget.batch_widget.activate_stack_plot()
         self.controller.show_img_mouse_position(10, 15)
 
-        self.assertEqual(self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.text(), 'Img: 15')
-        self.assertEqual(self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.text(), '2θ:9.7')
-        self.assertEqual(self.widget.batch_widget.mouse_pos_widget.cur_pos_widget.int_lbl.text(), '0.1')
-
-    def test_directory_txt_changed(self):
-        test_raw_folder = os.path.join(unittest_data_path, 'lambda_temp')
-        shutil.copytree(os.path.join(unittest_data_path, 'lambda'),
-                        test_raw_folder)
-
-        self.widget.img_directory_txt.setText(test_raw_folder)
-        self.controller.directory_txt_changed()
-        self.assertTrue(test_raw_folder in self.model.batch_model.files[0])
-
-        shutil.rmtree(test_raw_folder)
+        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.text(),
+                         'Img: 15')
+        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.text(),
+                         '2θ: 9.7')
+        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.int_lbl.text(),
+                         'I: 0.1')
 
     def test_load_raw_data(self):
         files = [os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs'),
@@ -87,9 +80,8 @@ class BatchControllerTest(QtTest):
         self.assertTrue(self.model.batch_model.binning is None)
         self.assertTrue(self.model.batch_model.raw_available)
 
-        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.widget.batch_widget.step_series_widget.pos_label.text())
+        start, stop, step = self.widget.batch_widget.position_widget.step_raw_widget.get_image_range()
+        frame = str(self.widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 19)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(None/20):")
@@ -104,54 +96,60 @@ class BatchControllerTest(QtTest):
         self.controller.load_data()
 
         self.assertTrue(self.model.batch_model.data is not None)
-        self.assertTrue(self.model.batch_model.raw_available)
+        # self.assertTrue(self.model.batch_model.raw_available)
         self.assertEqual(self.model.batch_model.data.shape[0], 50)
         self.assertEqual(self.model.batch_model.data.shape[1],
                          self.model.batch_model.binning.shape[0])
         self.assertEqual(self.model.batch_model.data.shape[0],
                          self.model.batch_model.n_img)
-        start = int(str(self.widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 49)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(50/50):")
 
-        self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 0')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 0)
+        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(),
+                         'Img: 0')
+        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.slider.value(), 0)
 
-        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs')
-        self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 0")
+        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs').split(
+            '/')[-1].split('\\')[-1]
+        self.assertTrue(filename in self.widget.batch_widget.windowTitle())
         # self.assertEqual(self.model.calibration_model.calibration_name, 'L2')
 
     def test_plot_batch_2d(self):
-        self.widget.batch_widget.step_series_widget.start_txt.setValue(10)
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(40)
-        self.widget.batch_widget.view_2d_btn.setChecked(True)
+        self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(10)
+        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(40)
+        self.widget.batch_widget.activate_stack_plot()
+
         self.controller.plot_batch()
-        self.assertEqual(self.widget.batch_widget.img_view.img_data.shape, (31, 4038))
-        self.assertTrue(self.widget.batch_widget.img_view._max_range)
-        self.assertEqual(self.widget.batch_widget.img_view.horizontal_line.value(), 0)
-        self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[0], 7.28502051, places=1)
-        self.assertAlmostEqual(self.widget.batch_widget.img_view.left_axis_cake.range[1], 42.7116293, places=1)
+        self.assertEqual(self.widget.batch_widget.stack_plot_widget.img_view.img_data.shape, (31, 4038))
+        self.assertTrue(self.widget.batch_widget.stack_plot_widget.img_view._max_range)
+        self.assertEqual(self.widget.batch_widget.stack_plot_widget.img_view.horizontal_line.value(), 0)
+        self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[0], 7.28502051,
+                               places=1)
+        self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[1], 42.7116293,
+                               places=1)
 
     def test_plot_batch_3d(self):
-        self.widget.batch_widget.step_series_widget.start_txt.setValue(10)
-        self.widget.batch_widget.step_series_widget.stop_txt.setValue(40)
-        self.widget.batch_widget.view_3d_btn.setChecked(True)
+        self.widget.batch_widget.activate_surface_view()
+        self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(10)
+        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(40)
         self.controller.plot_batch()
 
-        self.assertEqual(self.widget.batch_widget.step_series_widget.step_txt.value(), 1)
-        self.assertEqual(self.widget.batch_widget.surf_view.data.shape, (31, 4038))
+        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.step_txt.value(), 1)
+        self.assertEqual(self.widget.batch_widget.surface_widget.surface_view.data.shape, (31, 4038))
         # self.assertEqual(len(self.widget.batch_widget.surf_view.axis.ticks), 1) --> currently axis is not implemented
 
     def test_img_mouse_click(self):
         # Test only image loading. Waterfall is already tested
         self.controller.img_mouse_click(10, 15)
 
-        self.assertEqual(self.widget.batch_widget.surf_view.g_translate, 0)
-        self.assertEqual(self.widget.batch_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(), 'Img: 15')
-        self.assertEqual(self.widget.batch_widget.step_series_widget.slider.value(), 15)
+        self.assertEqual(self.widget.batch_widget.surface_widget.surface_view.g_translate, 0)
+        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(),
+                         'Img: 15')
+        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.slider.value(), 15)
 
         filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
         self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
