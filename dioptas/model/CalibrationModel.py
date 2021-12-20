@@ -470,6 +470,9 @@ class CalibrationModel(object):
         :return: cake_azimuth_pixel, intensity
         """
         tth_partial_index = get_partial_index(self.cake_tth, tth)
+        if tth_partial_index is None:
+            return [], []
+
         tth_center = tth_partial_index + 0.5
         left = tth_center - 0.5 * bins
         right = tth_center + 0.5 * bins

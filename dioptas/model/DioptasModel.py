@@ -60,6 +60,14 @@ class DioptasModel(object):
         self.cake_changed = Signal()
         self.enabled_phases_in_cake = Signal()
 
+        self.clicked_tth = 0
+        self.clicked_azi = 0
+
+        self.clicked_tth_changed = Signal()
+        self.clicked_azi_changed = Signal()
+        self.clicked_tth_changed.connect(self.update_clicked_tth)
+        self.clicked_azi_changed.connect(self.update_clicked_azi)
+
         self.connect_models()
 
     def add_configuration(self):
@@ -575,3 +583,9 @@ class DioptasModel(object):
             attr = getattr(self, member)
             if isinstance(attr, Signal):
                 attr.blocked = block
+
+    def update_clicked_tth(self, tth):
+        self.clicked_tth = tth
+
+    def update_clicked_azi(self, azi):
+        self.clicked_azi = azi
