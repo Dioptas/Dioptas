@@ -129,7 +129,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
 
         # create label with same color
         label = LabelItem()
-        label.setAttr('color', str(color_str[1:]))
+        label.setAttr('color', color_str)
         label.setAttr('justify', self.label_alignment)
         label.setText(name)
 

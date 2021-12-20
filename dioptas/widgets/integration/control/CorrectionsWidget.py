@@ -70,7 +70,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.cbn_param_tw = ListTableWidget()
         self.cbn_param_tw.setColumnCount(3)
 
-        self.cbn_param_tw.horizontalHeader().setResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.cbn_param_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.cbn_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 
         cbn_parameters = [
@@ -132,7 +132,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.oiadac_param_tw = ListTableWidget()
         self.oiadac_param_tw.setColumnCount(3)
 
-        self.oiadac_param_tw.horizontalHeader().setResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.oiadac_param_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.oiadac_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 
         self.detector_thickness_txt = NumberTextField('40')

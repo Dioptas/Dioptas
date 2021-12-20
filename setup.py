@@ -8,7 +8,7 @@ ext_modules = cythonize('dioptas/model/util/smooth_bruckner_cython.pyx')
 version = versioneer.get_version()
 
 if version == "0+unknown":
-    version = "0.5.3a"
+    version = "0.5.4"
 
 setup(
     name='dioptas',
@@ -19,8 +19,8 @@ setup(
     author_email="clemens.prescher@gmail.com",
     url='https://github.com/Dioptas/Dioptas/',
     install_requires=['cython', 'extra_data', 'future', 'h5py', 'hdf5plugin', 'lmfit', 'pandas', 'pycifrw',
-                      'python-dateutil', 'pyinstaller', 'pyqt5', 'pyfai', 'pyepics', 'pyopengl', 'pyopengl-accelerate',
-                      'pyqtgraph', 'qtpy', 'scikit-image', 'sharedmem', 'watchdog', ],
+                      'python-dateutil', 'pyinstaller', 'pyqt5', 'pyfai', 'pyepics', 'pyqtgraph', 'qtpy',
+                      'scikit-image', 'sharedmem', 'watchdog'],
     description='GUI program for reduction and exploration of 2D X-ray diffraction data',
     classifiers=['Intended Audience :: Science/Research',
                  'Operating System :: OS Independent',

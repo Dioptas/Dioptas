@@ -49,6 +49,7 @@ jobs:
         xvfb-run -a py.test dioptas/tests/controller_tests/test_BackgroundController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_BatchController_part1.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_BatchController_part2.py
+        xvfb-run -a py.test dioptas/tests/controller_tests/test_BatchController_part3.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_CalibrationController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_ConfigurationController.py
         xvfb-run -a py.test dioptas/tests/controller_tests/test_CorrectionController.py

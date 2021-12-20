@@ -119,9 +119,9 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setHorizontalHeaderLabels(['', '', 'Name', 'Scale', 'Offset'])
         self.overlay_tw.horizontalHeader().setVisible(True)
         self.overlay_tw.horizontalHeader().setStretchLastSection(False)
-        self.overlay_tw.horizontalHeader().setResizeMode(2, QtWidgets.QHeaderView.Stretch)
-        self.overlay_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        self.overlay_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
 
         self.overlay_tw.setColumnWidth(0, 20)
         self.overlay_tw.setColumnWidth(1, 25)

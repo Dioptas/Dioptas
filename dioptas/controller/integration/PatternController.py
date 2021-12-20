@@ -64,7 +64,7 @@ class PatternController(object):
         # Gui subscriptions
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
-        self.widget.batch_widget.img_view.mouse_left_clicked.connect(self.batch_left_click)
+        self.model.clicked_tth_changed.connect(self.set_line_position)
         self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
     def create_gui_signals(self):
@@ -89,9 +89,9 @@ class PatternController(object):
         self.widget.pattern_tth_btn.clicked.connect(self.set_unit_tth)
         self.widget.pattern_q_btn.clicked.connect(self.set_unit_q)
         self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
-        self.widget.batch_widget.tth_btn.clicked.connect(self.set_unit_tth)
-        self.widget.batch_widget.q_btn.clicked.connect(self.set_unit_q)
-        self.widget.batch_widget.d_btn.clicked.connect(self.set_unit_d)
+        self.widget.batch_widget.options_widget.tth_btn.clicked.connect(self.set_unit_tth)
+        self.widget.batch_widget.options_widget.q_btn.clicked.connect(self.set_unit_q)
+        self.widget.batch_widget.options_widget.d_btn.clicked.connect(self.set_unit_d)
 
         # quick actions
         self.widget.qa_save_pattern_btn.clicked.connect(self.save_pattern)
@@ -290,6 +290,8 @@ class PatternController(object):
             return
         if np.min(pattern_x) < old_x_axis_range[0] or np.max(pattern_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
+            if new_x_axis_range[0] is None or np.isnan(new_x_axis_range[0]):
+                return
             self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
 
     def pattern_auto_range_btn_click_callback(self):
@@ -309,31 +311,17 @@ class PatternController(object):
         wavelength = self.model.calibration_model.wavelength
         return convert_units(value, wavelength, previous_unit, new_unit)
 
-    def batch_left_click(self, x, y):
-        """
-        Plot dashed line on pattern, image and cake view, which mouse clicked on batch plot.
-
-        :param x: x value of batch plot
-        """
-        binning = self.model.batch_model.binning
-        if binning is None:
-            return
-        if self.widget.batch_widget.waterfall_btn.isChecked():
-            return
-        scale = (binning[-1] - binning[0]) / binning.shape[0]
-        pos = x * scale + binning[0]
-        pos = self.convert_x_value(pos, '2th_deg', self.model.current_configuration.integration_unit)
-        self.pattern_left_click(pos, y)
-
     def pattern_left_click(self, x, y):
-        self.set_line_position(x)
+        tth_clicked = self.convert_x_value(x, self.model.current_configuration.integration_unit, '2th_deg')
+        self.model.clicked_tth_changed.emit(tth_clicked)
 
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
         self.widget.click_d_lbl.setText(self.widget.mouse_d_lbl.text())
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
 
-    def set_line_position(self, x):
+    def set_line_position(self, tth):
+        x = self.convert_x_value(tth, '2th_deg', self.model.current_configuration.integration_unit)
         self.widget.pattern_widget.set_pos_line(x)
 
     def show_pattern_mouse_position(self, x, _):
@@ -388,7 +376,7 @@ class PatternController(object):
                 new_pos = pos - step
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
-            self.widget.pattern_widget.mouse_left_clicked.emit(new_pos, 0)
+            self.model.clicked_tth_changed.emit(new_pos)
 
     def update_gui(self):
         if self.model.current_configuration.integration_unit == '2th_deg':

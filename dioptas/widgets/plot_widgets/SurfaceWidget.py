@@ -25,7 +25,6 @@ from pyqtgraph.opengl import GLViewWidget, GLGridItem
 from pyqtgraph import GraphicsLayoutWidget
 
 from .HistogramLUTItem import HistogramLUTItem
-from .Custom3DAxis import Custom3DAxis, CustomAxis
 
 
 class SurfaceWidget(QtWidgets.QWidget):
@@ -165,12 +164,3 @@ class SurfaceWidget(QtWidgets.QWidget):
         colors[:, int(self.marker):int(self.marker) + self.marker_size, :3] = self.marker_color
         colors[self.g_pos, :, :3] = self.marker_color
         return colors
-
-
-if __name__ == "__main__":
-    from pyqtgraph.Qt import QtCore, QtGui
-    import pyqtgraph.opengl as gl
-
-    app = QtGui.QApplication([])
-    w = SurfaceWidget()
-    w.show()
