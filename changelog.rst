@@ -22,6 +22,7 @@ Buf Fixes:
     - fixes issues with representation of phases inside the contour plot of Batch widget, e.g. resetting of the
       "Show Phases" button state upon file information reloading, updating position of the phases upon user input, etc
     - sources selection box is not shown in pattern control widget anymore
+    - tth/q/d vertical green line position is now correctly synchronized between image, cake, pattern and batch widget
 
 0.5.3a (stable 10/10/2021)
 --------------------------

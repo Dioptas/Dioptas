@@ -29,6 +29,7 @@ from ..utility import QtTest, click_button, click_checkbox
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
 
+from ...model.util.HelperModule import get_partial_value
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.ImageController import ImageController
 from ...model.DioptasModel import DioptasModel
@@ -206,6 +207,27 @@ class ImageControllerTest(QtTest):
         self.load_pilatus1M_image_and_calibration()
         click_button(self.widget.integration_image_widget.mode_btn)
         self.widget.integration_image_widget.img_view.mouse_left_clicked.emit(30, 40)
+
+    def test_click_image_sends_tth_changed_signal(self):
+        self.load_pilatus1M_image_and_calibration()
+        self.model.clicked_tth_changed.emit = MagicMock()
+        self.widget.integration_image_widget.img_view.mouse_left_clicked.emit(600, 400)
+        self.model.clicked_tth_changed.emit.assert_called()
+
+    def test_click_cake_sends_tth_changed_signal(self):
+        self.load_pilatus1M_image_and_calibration()
+        self.model.clicked_tth_changed.emit = MagicMock()
+        click_button(self.widget.integration_image_widget.mode_btn)
+        self.widget.integration_image_widget.cake_view.mouse_left_clicked.emit(1100, 50)
+        self.model.clicked_tth_changed.emit.assert_called_once_with(get_partial_value(self.model.cake_tth, 1100-0.5))
+
+    def test_clicked_tth_changed(self):
+        self.load_pilatus1M_image_and_calibration()
+        self.widget.integration_image_widget.img_view.mouse_left_clicked.emit(600, 400)
+        before_circle_data = self.widget.integration_image_widget.img_view.circle_plot_items[0].getData()
+        self.model.clicked_tth_changed.emit(10)
+        after_circle_data = self.widget.integration_image_widget.img_view.circle_plot_items[0].getData()
+        self.assertFalse(np.array_equal(before_circle_data, after_circle_data))
 
     def test_loading_series_karabo_file_shows_correct_gui(self):
         from dioptas.model.loader.KaraboLoader import karabo_installed
