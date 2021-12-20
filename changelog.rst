@@ -1,4 +1,4 @@
-0.5.4 (under development)
+0.5.4 (stable 20.12.2021)
 -------------------------
 
 New features:
