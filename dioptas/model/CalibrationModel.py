@@ -745,7 +745,6 @@ class CalibrationModel(object):
         :return:
             tuple of index 1 and 2
         """
-
         tth_ind = find_contours(self.pattern_geometry.ttha, tth)
         if len(tth_ind) == 0:
             return []
