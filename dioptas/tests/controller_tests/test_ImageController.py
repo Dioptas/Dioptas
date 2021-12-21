@@ -219,7 +219,7 @@ class ImageControllerTest(QtTest):
         self.model.clicked_tth_changed.emit = MagicMock()
         click_button(self.widget.integration_image_widget.mode_btn)
         self.widget.integration_image_widget.cake_view.mouse_left_clicked.emit(1100, 50)
-        self.model.clicked_tth_changed.emit.assert_called_once_with(get_partial_value(self.model.cake_tth, 1100-0.5))
+        self.model.clicked_tth_changed.emit.assert_called_once_with(get_partial_value(self.model.cake_tth, 1100 - 0.5))
 
     def test_clicked_tth_changed(self):
         self.load_pilatus1M_image_and_calibration()
@@ -228,6 +228,14 @@ class ImageControllerTest(QtTest):
         self.model.clicked_tth_changed.emit(10)
         after_circle_data = self.widget.integration_image_widget.img_view.circle_plot_items[0].getData()
         self.assertFalse(np.array_equal(before_circle_data, after_circle_data))
+
+    def test_circle_scatter_is_activated_correctly(self):
+        self.model.clicked_tth_changed.emit(10)
+        self.assertFalse(self.widget.img_widget.circle_plot_items[0] in self.widget.img_widget.img_view_box.addedItems)
+
+        self.load_pilatus1M_image_and_calibration()
+        self.model.clicked_tth_changed.emit(10)
+        self.assertTrue(self.widget.img_widget.circle_plot_items[0] in self.widget.img_widget.img_view_box.addedItems)
 
     def test_loading_series_karabo_file_shows_correct_gui(self):
         from dioptas.model.loader.KaraboLoader import karabo_installed
