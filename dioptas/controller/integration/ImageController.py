@@ -668,16 +668,14 @@ class ImageController(object):
     def _update_image_line_pos(self):
         if not self.model.calibration_model.is_calibrated:
             return
-        cur_tth = self.model.clicked_tth
-        self.widget.img_widget.set_circle_line(
-            self.model.calibration_model.get_two_theta_array(), cur_tth / 180 * np.pi)
+        self.set_image_line_position(self.model.clicked_tth)
 
     def _update_image_mouse_click_pos(self):
-        if self.model.calibration_model.is_calibrated:
+        if not self.model.calibration_model.is_calibrated:
             return
 
-        tth = np.deg2rad(self.clicked_tth)
-        azi = np.deg2rad(self.clicked_azi)
+        tth = np.deg2rad(self.model.clicked_tth)
+        azi = np.deg2rad(self.model.clicked_azi)
 
         new_pos = self.model.calibration_model.get_pixel_ind(tth, azi)
         if len(new_pos) == 0:
@@ -821,8 +819,6 @@ class ImageController(object):
                 y = np.array([y])
                 tth = np.rad2deg(self.model.calibration_model.get_two_theta_img(x, y))
                 azi = np.rad2deg(self.model.calibration_model.get_azi_img(x, y))
-                self.widget.img_widget.set_circle_line(self.model.calibration_model.get_two_theta_array(),
-                                                       np.deg2rad(tth))
             else:  # in the case of whatever
                 tth = 0
                 azi = 0
@@ -834,18 +830,8 @@ class ImageController(object):
                 self.plot_cake_integral()
 
             self.model.clicked_tth_changed.emit(tth)
-            self.model.clicked_azi_changed.emit(azi);
+            self.model.clicked_azi_changed.emit(azi)
 
-            # # calculate right unit for the position line the pattern widget
-            # if self.widget.pattern_q_btn.isChecked():
-            #     pos = 4 * np.pi * np.sin(np.deg2rad(tth) / 2) / self.model.calibration_model.wavelength / 1e10
-            # elif self.widget.pattern_tth_btn.isChecked():
-            #     pos = tth
-            # elif self.widget.pattern_d_btn.isChecked():
-            #     pos = self.model.calibration_model.wavelength / (2 * np.sin(np.deg2rad(tth) / 2)) * 1e10
-            # else:
-            #     pos = 0
-            # self.widget.pattern_widget.set_pos_line(pos)
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
         self.widget.click_d_lbl.setText(self.widget.mouse_d_lbl.text())
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
@@ -889,8 +875,11 @@ class ImageController(object):
         self.plot_cake_integral(tth)
 
     def set_image_line_position(self, tth):
-        self.widget.img_widget.set_circle_line(
-            self.model.calibration_model.get_two_theta_array(), np.deg2rad(tth))
+        if not self.model.calibration_model.is_calibrated:
+            self.widget.img_widget.deactivate_circle_scatter()
+            return
+        self.widget.img_widget.activate_circle_scatter()
+        self.widget.img_widget.set_circle_line(self.model.calibration_model.get_two_theta_array(), np.deg2rad(tth))
 
     def set_iteration_mode_number(self):
         self.model.img_model.set_file_iteration_mode('number')
