@@ -85,7 +85,7 @@ class PatternModel(object):
         Saves the current data pattern.
         :param filename: where to save
         :param header: you can specify any specific header
-        :param subtract_background: whether or not the background set will be used for saving or not
+        :param subtract_background: whether the background set will be used for saving or not
         """
         self.pattern.save(filename, header, subtract_background, self.unit)
 

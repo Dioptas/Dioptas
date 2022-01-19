@@ -341,9 +341,17 @@ class CalibrationModelTest(QtTest):
         _, y4 = self.calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step, bins=2)
         self.assertTrue(np.array_equal(y4, cake_partial))
 
-        cake_partial = (0.5 * cake_img[:, 29] + cake_img[:, 30] + 0.5 * cake_img[:, 31])/2
+        cake_partial = (0.5 * cake_img[:, 29] + cake_img[:, 30] + 0.5 * cake_img[:, 31]) / 2
         _, y5 = self.calibration_model.cake_integral(cake_tth[30], bins=2)
         self.assertTrue(np.array_equal(y5, cake_partial))
+
+    def test_transforms_without_predefined_detector(self):
+        self.img_model.load(os.path.join(data_path, 'image_001.tif'))
+        self.calibration_model.rotate_detector_p90()
+        self.calibration_model.rotate_detector_m90()
+        self.calibration_model.flip_detector_horizontally()
+        self.calibration_model.img_model.flip_img_horizontally()
+        self.calibration_model.flip_detector_horizontally()
 
     def test_load_detector_list(self):
         names, classes = get_available_detectors()

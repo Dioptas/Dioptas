@@ -96,6 +96,8 @@ class CalibrationModel(object):
 
         self.peak_search_algorithm = None
 
+        self.img_model.img_changed.connect(self.update_detector_shape)
+
         self.detector_reset = Signal()
 
     def find_peaks_automatic(self, x, y, peak_ind):
@@ -282,6 +284,10 @@ class CalibrationModel(object):
         self.detector.pixel1 = self.orig_pixel1
         self.detector.pixel2 = self.orig_pixel2
         self.set_supersampling()
+
+    def update_detector_shape(self):
+        self.detector.shape = self.img_model.img_data.shape[::-1]
+        self.detector.max_shape = self.img_model.img_data.shape[::-1]
 
     def set_fixed_values(self, fixed_values):
         """
@@ -535,7 +541,7 @@ class CalibrationModel(object):
 
     def load(self, filename):
         """
-        Loads a calibration file and and sets all the calibration parameter.
+        Loads a calibration file andsets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
         self.pattern_geometry = GeometryRefinement(wavelength=0.3344e-10, detector=self.detector,
@@ -553,6 +559,7 @@ class CalibrationModel(object):
         self.calibration_name = get_base_name(filename)
         self.filename = filename
         self.is_calibrated = True
+        self.update_detector_shape()
         self.create_cake_geometry()
         self.set_supersampling()
 
@@ -596,6 +603,7 @@ class CalibrationModel(object):
     def reset_detector(self):
         self.detector_mode = DetectorModes.CUSTOM
         self.detector = Detector(pixel1=self.orig_pixel1, pixel2=self.orig_pixel2)
+        self.update_detector_shape()
         self.pattern_geometry.detector = self.detector
         if self.cake_geometry:
             self.cake_geometry.detector = self.detector
@@ -824,7 +832,7 @@ class CalibrationModel(object):
     def _save_original_detector_definition(self):
         """
         Saves the state of the detector to _original_detector if not done yet. Used for restoration upon resetting
-        the transfromations.
+        the transformations.
         """
         if self._original_detector is None:
             self._original_detector = deepcopy(self.detector)
@@ -858,7 +866,7 @@ class CalibrationModel(object):
             self.detector.MODULE_GAP = (self.detector.MODULE_GAP[1], self.detector.MODULE_GAP[0])
 
     def _reset_detector_mask(self):
-        """resets and recalculates the mask. Transforamtions to shape and module size have to be performed before."""
+        """resets and recalculates the mask. Transformations to shape and module size have to be performed before."""
         self.detector._mask = False
 
 
