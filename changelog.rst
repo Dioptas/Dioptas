@@ -1,3 +1,10 @@
+0.5.4a (under development)
+--------------------------
+
+Bugfixes:
+    - fixed issue with image transformations (rotations and flips)
+
+
 0.5.4 (stable 20.12.2021)
 -------------------------
 
