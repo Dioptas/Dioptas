@@ -130,7 +130,8 @@ QLineEdit  {
     border-radius: 2px;
     background: #F1F1F1;
     color: black;
-    height: 18 px;
+    height: 18px;
+    font-size: 12px;
 }
 
 QLineEdit::focus{
