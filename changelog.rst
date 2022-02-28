@@ -4,6 +4,7 @@
 Bugfixes:
     - fixed issue with image transformations (rotations and flips)
     - fix issues with font size on some high dpi settings in white text boxes
+    - improve resize behavior (dragging the splitter) in the integration view
 
 
 0.5.4 (stable 20.12.2021)
