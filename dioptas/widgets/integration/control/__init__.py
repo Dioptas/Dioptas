@@ -37,8 +37,8 @@ class IntegrationControlWidget(QtWidgets.QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(5)
 
-        self.tab_widget_1 = QtWidgets.QTabWidget()
-        self.tab_widget_2 = QtWidgets.QTabWidget()
+        self.tab_widget_1 = TabWidgetMinSize()
+        self.tab_widget_2 = TabWidgetMinSize()
 
         self.img_control_widget = ImageWidget()
         self.pattern_control_widget = PatternWidget()
@@ -53,6 +53,8 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
         self.horizontal_splitter.addWidget(self.tab_widget_1)
         self.horizontal_splitter.addWidget(self.tab_widget_2)
+        self.horizontal_splitter.setCollapsible(0, False)
+        self.horizontal_splitter.setCollapsible(1, False)
 
         self.vertical_splitter = QtWidgets.QSplitter()
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -64,7 +66,7 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
         self.current_layout = None
 
-        self.orientation = QtCore.Qt.Horizontal # other value is QtCore.Qt.Horizontal
+        self.orientation = QtCore.Qt.Horizontal  # other value is QtCore.Qt.Horizontal
 
         self.tab_widget_1.addTab(self.img_control_widget, 'Image')
         self.tab_widget_1.addTab(self.pattern_control_widget, 'Pattern')
@@ -74,7 +76,15 @@ class IntegrationControlWidget(QtWidgets.QWidget):
         self.tab_widget_1.addTab(self.background_control_widget, 'Bkg')
         self.tab_widget_1.addTab(self.integration_options_widget, 'X')
 
-        self.horizontal_layout_2()
+        self.tab_widget_1.setCurrentIndex(0)
+
+    def update_tab_widget_1_sizes(self):
+        for i in range(self.tab_widget_1.count()):
+            self.tab_widget_1.widget(i).setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+        self.tab_widget_1.currentWidget().setSizePolicy(QtWidgets.QSizePolicy.Preferred,
+                                                        QtWidgets.QSizePolicy.Preferred)
+        self.tab_widget_1.currentWidget().resize(self.tab_widget_1.currentWidget().minimumSizeHint())
+        self.tab_widget_1.currentWidget().adjustSize()
 
     def horizontal_layout_1(self):
         self.current_layout = 1
@@ -104,6 +114,9 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
         self.horizontal_splitter.addWidget(self.overlay_control_widget)
         self.horizontal_splitter.addWidget(self.phase_control_widget)
+
+        self.horizontal_splitter.setCollapsible(2, False)
+        self.horizontal_splitter.setCollapsible(3, False)
 
         self.overlay_control_widget.show()
         self.phase_control_widget.show()
@@ -149,3 +162,21 @@ class IntegrationControlWidget(QtWidgets.QWidget):
         self.update_layout(True)
 
 
+class TabWidgetMinSize(QtWidgets.QTabWidget):
+    def __init__(self):
+        super(TabWidgetMinSize, self).__init__()
+        self.currentChanged.connect(self.update_sizes)
+
+    def update_sizes(self):
+        for i in range(self.count()):
+            self.widget(i).setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+
+        if self.currentWidget() is not None:
+            self.currentWidget().setSizePolicy(QtWidgets.QSizePolicy.Preferred,
+                                               QtWidgets.QSizePolicy.Preferred)
+            self.currentWidget().resize(self.currentWidget().minimumSizeHint())
+            self.currentWidget().adjustSize()
+
+    def setCurrentIndex(self, p_int):
+        self.update_sizes()
+        super(TabWidgetMinSize, self).setCurrentIndex(p_int)
