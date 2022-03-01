@@ -22,6 +22,7 @@ import unittest
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
 import os
+import shutil
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -37,6 +38,10 @@ class QtTest(unittest.TestCase):
 def delete_if_exists(data_path):
     if os.path.exists(data_path):
         os.remove(data_path)
+
+def delete_folder_if_exists(data_path):
+    if os.path.exists(data_path):
+        shutil.rmtree(data_path)
 
 
 def click_button(widget):

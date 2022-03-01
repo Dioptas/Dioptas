@@ -57,6 +57,7 @@ class CalibrationModel(object):
         self.points_index = []
 
         self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
+        self.detector.shape = (2048, 2048)
         self.detector_mode = DetectorModes.CUSTOM
         self._original_detector = None  # used for saving original state before rotating or flipping
         self.pattern_geometry = GeometryRefinement(detector=self.detector, wavelength=0.3344e-10,
@@ -96,7 +97,7 @@ class CalibrationModel(object):
 
         self.peak_search_algorithm = None
 
-        self.img_model.img_changed.connect(self.update_detector_shape)
+        self.img_model.img_changed.connect(self._check_detector_and_image_shape)
 
         self.detector_reset = Signal()
 
@@ -559,7 +560,6 @@ class CalibrationModel(object):
         self.calibration_name = get_base_name(filename)
         self.filename = filename
         self.is_calibrated = True
-        self.update_detector_shape()
         self.create_cake_geometry()
         self.set_supersampling()
 
@@ -602,7 +602,7 @@ class CalibrationModel(object):
 
     def reset_detector(self):
         self.detector_mode = DetectorModes.CUSTOM
-        self.detector = Detector(pixel1=self.orig_pixel1, pixel2=self.orig_pixel2)
+        self.detector = Detector(pixel1=self.detector.pixel1, pixel2=self.detector.pixel2)
         self.update_detector_shape()
         self.pattern_geometry.detector = self.detector
         if self.cake_geometry:
