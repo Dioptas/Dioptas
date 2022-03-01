@@ -19,7 +19,7 @@ jobs:
       uses: s-weigand/setup-conda@v1
 
     - name: switch to python=3.8 and install pip
-      run: conda install python=3.8 pip -y
+      run: conda install python=3.10 pip -y
 
     - name: Install Pip Dependencies
       run: |
