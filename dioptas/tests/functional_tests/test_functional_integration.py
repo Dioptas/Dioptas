@@ -410,7 +410,7 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(data_path, 'Test_spec.nxs')])
-        click_button(self.integration_widget.batch_widget.load_btn)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
 
         self.assertEqual(self.model.batch_model.data.shape[0], 20)
         self.assertEqual(self.model.batch_model.data.shape[1],
@@ -505,7 +505,7 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.model.working_directories['image'] = os.path.join(data_path, 'lambda')
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(data_path, 'Test_missing_raw.nxs')])
-        click_button(self.integration_widget.batch_widget.load_btn)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
         self.assertEqual(self.model.batch_model.n_img_all, 20)
         self.assertTrue(self.model.batch_model.raw_available)
         self.assertEqual(os.path.basename(self.model.batch_model.calibration_model.filename),
@@ -542,7 +542,7 @@ class BatchIntegrationFunctionalTest(QtTest):
     def test_show_phases(self):
 
         self.model.phase_model.add_jcpds(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
-        click_button(self.integration_widget.batch_widget.phases_btn)
+        click_button(self.integration_widget.batch_widget.control_widget.phases_btn)
 
         self.assertEqual(len(self.integration_widget.batch_widget.img_view.phases), 1)
         self.assertEqual(len(self.integration_widget.batch_widget.img_view.phases[0].line_items), 27)
