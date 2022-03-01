@@ -255,8 +255,8 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setColumnWidth(1, 25)
         self.overlay_tw.setRowHeight(current_rows, 25)
 
-        self.overlay_tw.horizontalHeader().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        self.overlay_tw.horizontalHeader().setResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
 
         self.select_overlay(current_rows)
         self.overlay_tw.blockSignals(False)
