@@ -38,6 +38,7 @@ class NewFileInDirectoryWatcherTest(unittest.TestCase):
         if os.path.exists(os.path.join(unittest_data_path, 'image_003.tif')):
             os.remove(os.path.join(unittest_data_path, 'image_003.tif'))
 
+    @unittest.skip('inotify Limit does not allow to run this on CI')
     def test_getting_callback_for_new_file(self):
         def callback_fcn(filepath):
             self.assertEqual(filepath, os.path.abspath(os.path.join(unittest_data_path, 'image_003.tif')))
@@ -52,6 +53,7 @@ class NewFileInDirectoryWatcherTest(unittest.TestCase):
 
         self.directory_watcher.deactivate()
 
+    @unittest.skip('inotify Limit does not allow to run this on CI')
     def test_filename_is_emitted_with_full_file_available(self):
         original_path = os.path.join(unittest_data_path, 'image_001.tif')
         destination_path = os.path.join(unittest_data_path, 'image_003.tif')
