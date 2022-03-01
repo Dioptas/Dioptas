@@ -188,7 +188,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.reflection_table_view.setShowGrid(False)
         self.reflection_table_view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.reflection_table_view.setItemDelegate(TextDoubleDelegate())
-        self.reflection_table_view.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.reflection_table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         self.eos_gb.setMaximumWidth(200)
         self.eos_gb.setStyleSheet("""
@@ -198,7 +198,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         """)
 
         self.reflection_table_view.verticalHeader().setDefaultSectionSize(20)
-        self.reflection_table_view.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.reflection_table_view.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
