@@ -372,7 +372,7 @@ class BatchIntegrationFunctionalTest(QtTest):
         del self.model
         gc.collect()
 
-        delete_folder_if_exists(os.path.join(data_path, 'lambda_temp'))
+        # delete_folder_if_exists(os.path.join(data_path, 'lambda_temp'))
 
     def test_data_is_ok(self):
         self.assertTrue(self.model.batch_model.data is not None)
@@ -467,66 +467,63 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         # Create tmp raw data
         import shutil
+        import tempfile
 
-        shutil.copytree(os.path.join(data_path, 'lambda'),
-                        os.path.join(data_path, 'lambda_temp'))
-        # Integrate tmp data. Save proc. Delete tmp data.
-        files = [os.path.join(data_path, 'lambda_temp/testasapo1_1009_00002_m1_part00000.nxs'),
-                 os.path.join(data_path, 'lambda_temp/testasapo1_1009_00002_m1_part00001.nxs')]
+        with tempfile.TemporaryDirectory() as tempdir:
+            shutil.copytree(os.path.join(data_path, 'lambda'),
+                            os.path.join(tempdir, 'lambda_test'))
+            # Integrate tmp data. Save proc. Delete tmp data.
+            files = [os.path.join(tempdir, 'lambda_test', 'testasapo1_1009_00002_m1_part00000.nxs'),
+                     os.path.join(tempdir, 'lambda_test', 'testasapo1_1009_00002_m1_part00001.nxs')]
 
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
-        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
+            QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
+            click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
 
-        self.integration_controller.batch_controller.integrate()
-        self.save_pattern(os.path.join(data_path, f'Test_missing_raw.nxs'))
+            self.integration_controller.batch_controller.integrate()
+            self.save_pattern(os.path.join(tempdir, 'lambda_test', f'Test_missing_raw.nxs'))
 
-        delete_folder_if_exists(os.path.join(data_path, 'lambda_temp'))
-        # Load proc data with missing raw data
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
-                                                           [os.path.join(data_path, 'Test_missing_raw.nxs')])
-        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
-        self.assertTrue(self.model.batch_model.raw_available is False)
-        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
-        self.assertEqual(stop, 19)
-        self.assertEqual(start, 0)
-        self.assertEqual(frame, "Frame(20/20):")
+            # Load proc data with missing raw data
+            QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                               [os.path.join(tempdir, 'lambda_test',
+                                                                             'Test_missing_raw.nxs')])
+            click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
+            self.assertTrue(self.model.batch_model.raw_available)
+            start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+            stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+            frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+            self.assertEqual(stop, 19)
+            self.assertEqual(start, 0)
+            self.assertEqual(frame, "Frame(20/20):")
 
-        # Pattern widget is still working
-        self.integration_controller.batch_controller.img_mouse_click(5, 15)
-        x1, y1 = self.model.pattern.data
-        y = self.model.batch_model.data[15]
-        x = self.model.batch_model.binning
-        self.assertTrue(np.array_equal(y1, y))
-        self.assertTrue(np.array_equal(x1, x))
+            # Pattern widget is still working
+            self.integration_controller.batch_controller.img_mouse_click(5, 15)
+            x1, y1 = self.model.pattern.data
+            y = self.model.batch_model.data[15]
+            x = self.model.batch_model.binning
+            self.assertTrue(np.array_equal(y1, y))
+            self.assertTrue(np.array_equal(x1, x))
 
-        # Fix raw data path
-        self.model.working_directories['image'] = os.path.join(data_path, 'lambda')
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
-                                                           [os.path.join(data_path, 'Test_missing_raw.nxs')])
-        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
-        self.assertEqual(self.model.batch_model.n_img_all, 20)
-        self.assertTrue(self.model.batch_model.raw_available)
-        self.assertEqual(os.path.basename(self.model.batch_model.calibration_model.filename),
-                         'L2.poni')
-        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
-        self.assertEqual(stop, 19)
-        self.assertEqual(start, 0)
-        self.assertEqual(frame, "Frame(20/20):")
-
-        # Cleanup
-        os.remove(os.path.join(data_path, f'Test_missing_raw.nxs'))
+            # Fix raw data path
+            self.model.working_directories['image'] = os.path.join(data_path, 'lambda')
+            QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                               [os.path.join(tempdir, 'lambda_test',
+                                                                             'Test_missing_raw.nxs')])
+            click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
+            self.assertEqual(self.model.batch_model.n_img_all, 20)
+            self.assertTrue(self.model.batch_model.raw_available)
+            self.assertEqual(os.path.basename(self.model.batch_model.calibration_model.filename),
+                             'L2.poni')
+            start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+            stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+            frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+            self.assertEqual(stop, 19)
+            self.assertEqual(start, 0)
+            self.assertEqual(frame, "Frame(20/20):")
 
     def test_create_waterfall(self):
-
-        self.integration_widget.batch_widget.control_widget.waterfall_btn.setChecked(True)
-        self.integration_controller.batch_controller.waterfall_mode()
-
-        # Nothing should happen if click outside of data range
-        self.integration_controller.batch_controller.img_mouse_click(-10, 5)
+        click_button(self.integration_widget.batch_widget.mode_widget.view_2d_btn)
+        click_button(self.integration_widget.batch_widget.control_widget.waterfall_btn)
+        QtWidgets.QApplication.processEvents()
 
         # Create waterfall
         self.integration_controller.batch_controller.img_mouse_click(5, 5)
@@ -540,14 +537,16 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.assertEqual(len(self.model.overlay_model.overlays), 5)
 
     def test_show_phases(self):
+        click_button(self.integration_widget.batch_widget.mode_widget.view_2d_btn)
 
         self.model.phase_model.add_jcpds(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
         click_button(self.integration_widget.batch_widget.control_widget.phases_btn)
 
-        self.assertEqual(len(self.integration_widget.batch_widget.img_view.phases), 1)
-        self.assertEqual(len(self.integration_widget.batch_widget.img_view.phases[0].line_items), 27)
+        self.assertEqual(len(self.integration_widget.batch_widget.stack_plot_widget.img_view.phases), 1)
+        self.assertEqual(len(self.integration_widget.batch_widget.stack_plot_widget.img_view.phases[0].line_items), 27)
 
-        last_line_position = self.integration_widget.batch_widget.img_view.phases[0].line_items[-1].getPos()
+        last_line_position = self.integration_widget.batch_widget.stack_plot_widget. \
+            img_view.phases[0].line_items[-1].getPos()
         self.assertGreater(last_line_position[0], 1000)
 
     def test_change_view(self):
@@ -572,7 +571,6 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.assertEqual(frame, "Frame(7/20):")
 
     def test_change_unit(self):
-
         self.integration_controller.batch_controller.img_mouse_click(5, 15)
         x1, y1 = self.model.pattern.data
         y = self.model.batch_model.data[15]
