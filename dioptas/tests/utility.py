@@ -50,7 +50,7 @@ def click_button(widget):
 
 def click_checkbox(checkbox_widget):
     QTest.mouseClick(checkbox_widget, QtCore.Qt.LeftButton,
-                     pos=QtCore.QPoint(2, checkbox_widget.height() / 2.0))
+                     pos=QtCore.QPoint(2, int(checkbox_widget.height() / 2.0)))
 
 
 def enter_value_into_text_field(text_field, value):
