@@ -315,10 +315,10 @@ class IntegrationWidget(QtWidgets.QWidget):
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         progress_dialog.move(
-            self.pattern_widget.pg_layout.x() + self.pattern_widget.pg_layout.size().width() / 2.0 - \
-            progress_dialog.size().width() / 2.0,
-            self.pattern_widget.pg_layout.y() + self.pattern_widget.pg_layout.size().height() / 2.0 -
-            progress_dialog.size().height() / 2.0)
+            int(self.pattern_widget.pg_layout.x() + self.pattern_widget.pg_layout.size().width() / 2.0 -
+                progress_dialog.size().width() / 2.0),
+            int(self.pattern_widget.pg_layout.y() + self.pattern_widget.pg_layout.size().height() / 2.0 -
+                progress_dialog.size().height() / 2.0))
         progress_dialog.show()
         return progress_dialog
 
