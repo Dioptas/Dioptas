@@ -1126,11 +1126,11 @@ class BatchController(object):
         self.widget.batch_widget.stack_plot_widget.img_view.auto_range()
 
     def create_progress_dialog(self, text_str, abort_str, end_value):
-        progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, end_value,
+        progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, int(end_value),
                                                     self.widget.batch_widget)
         # progress_dialog.setParent(self.widget.batch_widget)
 
-        progress_dialog.move(int(self.widget.batch_widget.x() + self.widget.batch_widget.size().width() / 2.0 - \
+        progress_dialog.move(int(self.widget.batch_widget.x() + self.widget.batch_widget.size().width() / 2.0 -
                                  progress_dialog.size().width() / 2.0),
                              int(self.widget.batch_widget.y() + self.widget.batch_widget.size().height() / 2.0 -
                                  progress_dialog.size().height() / 2.0))
