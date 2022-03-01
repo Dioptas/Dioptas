@@ -6,8 +6,9 @@ from ..utility import QtTest, MockMouseEvent
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BatchController import BatchController
+from ...controller.integration.phase.PhaseController import PhaseController
+from ...controller.integration.PatternController import PatternController
 from ...model.DioptasModel import DioptasModel
-from dioptas.controller.integration.phase.PhaseController import PhaseController
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
@@ -25,6 +26,7 @@ class BatchControllerTest(QtTest):
             dioptas_model=self.model)
 
         self.phase_controller = PhaseController(self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
 
         # Load existing proc+raw data
         filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
@@ -125,9 +127,11 @@ class BatchControllerTest(QtTest):
         self.widget.batch_widget.activate_stack_plot()
         self.controller.change_view()
         self.assertEqual(self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos(), 0)
-        self.controller.pattern_left_click(15, None)
-        self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos(),
-                               1310.94006, places=3)
+        self.pattern_controller.pattern_left_click(15, None)
+        first_pos = self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos()
+        self.pattern_controller.pattern_left_click(16, None)
+        second_pos = self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos()
+        self.assertNotEqual(first_pos, second_pos)
 
     def test_subtract_background(self):
         self.widget.batch_widget.activate_stack_plot()
