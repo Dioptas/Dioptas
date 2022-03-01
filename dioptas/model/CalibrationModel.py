@@ -225,7 +225,7 @@ class CalibrationModel(object):
         tth_calibrant_list = self.calibrant.get_2th()
         if ring_index >= len(tth_calibrant_list):
             raise NotEnoughSpacingsInCalibrant()
-        tth_calibrant = np.float(tth_calibrant_list[ring_index])
+        tth_calibrant = float(tth_calibrant_list[ring_index])
 
         # get the calculated two theta values for the whole image
         tth_array = self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)

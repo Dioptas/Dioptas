@@ -66,7 +66,7 @@ class ImageControllerTest(QtTest):
 
         # enable autoprocessing:
         QTest.mouseClick(self.widget.autoprocess_cb, QtCore.Qt.LeftButton,
-                         pos=QtCore.QPoint(2, self.widget.autoprocess_cb.height() / 2.0))
+                         pos=QtCore.QPoint(2, int(self.widget.autoprocess_cb.height() / 2.0)))
 
         self.assertFalse(self.model.configurations[0].img_model._directory_watcher.signalsBlocked())
 
