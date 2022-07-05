@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ from ..utility import QtTest, click_button, click_checkbox
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
 
+from ...model.util.HelperModule import get_partial_value
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.ImageController import ImageController
 from ...model.DioptasModel import DioptasModel
@@ -65,11 +66,9 @@ class ImageControllerTest(QtTest):
 
         # enable autoprocessing:
         QTest.mouseClick(self.widget.autoprocess_cb, QtCore.Qt.LeftButton,
-                         pos=QtCore.QPoint(2, self.widget.autoprocess_cb.height() / 2.0))
+                         pos=QtCore.QPoint(2, int(self.widget.autoprocess_cb.height() / 2.0)))
 
         self.assertFalse(self.model.configurations[0].img_model._directory_watcher.signalsBlocked())
-        self.assertFalse(
-            self.model.configurations[0].img_model._directory_watcher._file_system_watcher.signalsBlocked())
 
         self.assertTrue(self.widget.autoprocess_cb.isChecked())
         self.assertTrue(self.model.img_model.autoprocess)
@@ -77,8 +76,7 @@ class ImageControllerTest(QtTest):
         shutil.copy2(os.path.join(unittest_data_path, 'image_001.tif'),
                      os.path.join(unittest_data_path, 'image_003.tif'))
 
-        self.model.configurations[0].img_model._directory_watcher._file_system_watcher.directoryChanged.emit(
-            unittest_data_path)
+        self.model.img_model._directory_watcher.file_added.emit(os.path.join(unittest_data_path, 'image_003.tif'))
 
         self.assertEqual('image_003.tif', str(self.widget.img_filename_txt.text()))
 
@@ -136,9 +134,9 @@ class ImageControllerTest(QtTest):
         click_button(self.widget.img_mask_btn)
 
         self.model.select_configuration(0)
-        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image-first_mask), 0)
+        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image - first_mask), 0)
         self.model.select_configuration(1)
-        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image-second_mask), 0)
+        self.assertEqual(np.sum(self.widget.img_widget.mask_img_item.image - second_mask), 0)
 
     def test_configuration_selected_updates_mask_transparency(self):
         self.model.mask_model.add_mask(os.path.join(unittest_data_path, 'test.mask'))
@@ -156,6 +154,21 @@ class ImageControllerTest(QtTest):
         self.model.add_configuration()
         self.assertFalse(self.widget.img_roi_btn.isChecked())
         self.assertFalse(self.widget.img_widget.roi in self.widget.img_widget.img_view_box.addedItems)
+
+    def test_mask_button_checking_in_image_mode(self):
+        click_button(self.widget.img_mask_btn)
+        self.assertTrue(self.widget.img_mask_btn.isChecked())
+        click_button(self.widget.img_mask_btn)
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
+
+    def test_mask_button_checking_in_cake_mode(self):
+        self.load_pilatus1M_image_and_calibration()
+        click_button(self.widget.integration_image_widget.mode_btn)
+
+        click_button(self.widget.img_mask_btn)
+        self.assertTrue(self.widget.img_mask_btn.isChecked())
+        click_button(self.widget.img_mask_btn)
+        self.assertFalse(self.widget.img_mask_btn.isChecked())
 
     def test_adding_images(self):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
@@ -179,3 +192,108 @@ class ImageControllerTest(QtTest):
         self.controller.filename_txt_changed()
         new_data = self.model.img_data
         self.assertFalse(np.array_equal(old_data, new_data))
+
+    def test_changing_cake_integral_width(self):
+        self.load_pilatus1M_image_and_calibration()
+        click_button(self.widget.integration_image_widget.mode_btn)
+        self.controller.img_mouse_click(100, 300)
+
+        x = self.widget.cake_widget.cake_integral_item.xData
+        self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.setValue(3)
+        self.controller.img_mouse_click(100, 300)
+        self.assertFalse(np.array_equal(x, self.widget.cake_widget.cake_integral_item.xData))
+
+    def test_clicking_cake_image(self):
+        self.load_pilatus1M_image_and_calibration()
+        click_button(self.widget.integration_image_widget.mode_btn)
+        self.widget.integration_image_widget.img_view.mouse_left_clicked.emit(30, 40)
+
+    def test_click_image_sends_tth_changed_signal(self):
+        self.load_pilatus1M_image_and_calibration()
+        self.model.clicked_tth_changed.emit = MagicMock()
+        self.widget.integration_image_widget.img_view.mouse_left_clicked.emit(600, 400)
+        self.model.clicked_tth_changed.emit.assert_called()
+
+    def test_click_cake_sends_tth_changed_signal(self):
+        self.load_pilatus1M_image_and_calibration()
+        self.model.clicked_tth_changed.emit = MagicMock()
+        click_button(self.widget.integration_image_widget.mode_btn)
+        self.widget.integration_image_widget.cake_view.mouse_left_clicked.emit(1100, 50)
+        self.model.clicked_tth_changed.emit.assert_called_once_with(get_partial_value(self.model.cake_tth, 1100 - 0.5))
+
+    def test_clicked_tth_changed(self):
+        self.load_pilatus1M_image_and_calibration()
+        self.widget.integration_image_widget.img_view.mouse_left_clicked.emit(600, 400)
+        before_circle_data = self.widget.integration_image_widget.img_view.circle_plot_items[0].getData()
+        self.model.clicked_tth_changed.emit(10)
+        after_circle_data = self.widget.integration_image_widget.img_view.circle_plot_items[0].getData()
+        self.assertFalse(np.array_equal(before_circle_data, after_circle_data))
+
+    def test_circle_scatter_is_activated_correctly(self):
+        self.model.clicked_tth_changed.emit(10)
+        self.assertFalse(self.widget.img_widget.circle_plot_items[0] in self.widget.img_widget.img_view_box.addedItems)
+
+        self.load_pilatus1M_image_and_calibration()
+        self.model.clicked_tth_changed.emit(10)
+        self.assertTrue(self.widget.img_widget.circle_plot_items[0] in self.widget.img_widget.img_view_box.addedItems)
+
+    def test_loading_series_karabo_file_shows_correct_gui(self):
+        from dioptas.model.loader.KaraboLoader import karabo_installed
+        if not karabo_installed:
+            return
+        filename = os.path.join(unittest_data_path, 'karabo_epix.h5')
+        file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
+        self.widget.show()
+        self.assertFalse(file_widget.step_series_widget.isVisible())
+        self.model.img_model.load(filename)
+        self.assertTrue(file_widget.step_series_widget.isVisible())
+
+    def test_fileinfo_and_move_button_visibility(self):
+        from dioptas.model.loader.KaraboLoader import karabo_installed
+        if not karabo_installed:
+            return
+        filename = os.path.join(unittest_data_path, 'image_001.tif')
+        self.widget.show()
+        self.model.img_model.load(filename)
+        self.assertFalse(self.widget.file_info_btn.isVisible())
+        self.assertFalse(self.widget.file_info_btn.isVisible())
+
+        filename = os.path.join(unittest_data_path, 'TransferCorrection', 'original.tif')
+        self.model.img_model.load(filename)
+        self.assertTrue(self.widget.file_info_btn.isVisible())
+        self.assertTrue(self.widget.file_info_btn.isVisible())
+
+    def test_sources_for_hdf5_files(self):
+        file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
+        self.widget.show()
+        self.assertFalse(file_widget.sources_widget.isVisible())
+
+        # load file with different sources
+        filename = os.path.join(unittest_data_path, 'hdf5_dataset', 'ma4500_demoh5.h5')
+        self.model.img_model.load(filename)
+        self.assertTrue(file_widget.sources_widget.isVisible())
+
+        # load file without sources
+        filename = os.path.join(unittest_data_path, 'image_001.tif')
+        self.model.img_model.load(filename)
+        self.assertFalse(file_widget.sources_widget.isVisible())
+
+    def test_sources_are_updated_in_sources_combobox(self):
+        file_widget = self.widget.integration_control_widget.img_control_widget.file_widget
+        filename = os.path.join(unittest_data_path, 'hdf5_dataset', 'ma4500_demoh5.h5')
+        self.model.img_model.load(filename)
+
+        self.assertGreater(file_widget.sources_cb.count(), 0)
+        self.assertEqual(file_widget.sources_cb.count(), len(self.model.img_model.sources))
+
+        file_widget.sources_cb.setCurrentIndex(2)
+        self.assertEqual(file_widget.sources_cb.currentText(), self.model.img_model.sources[2])
+
+    # UTILITY functions
+    ########################
+
+    def load_pilatus1M_image_and_calibration(self):
+        file_name = os.path.join(unittest_data_path, 'CeO2_Pilatus1M.tif')
+        self.model.img_model.load(file_name)
+        calibration_file_name = os.path.join(unittest_data_path, 'CeO2_Pilatus1M.poni')
+        self.model.calibration_model.load(calibration_file_name)

@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ import numpy as np
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
 
-from ..utility import QtTest, click_button
+from ..utility import QtTest, click_button, enter_value_into_text_field
 
 from ...model.util import jcpds
 from ...model.DioptasModel import DioptasModel
@@ -81,12 +81,24 @@ class JcpdsEditorFunctionalTest(QtTest):
         QtWidgets.QApplication.processEvents()
 
     def get_reflection_table_value(self, row, col):
-        item = self.jcpds_widget.reflection_table.item(row, col)
-        return float(str(item.text()))
+        value = self.jcpds_widget.reflection_table_model.data(
+            self.jcpds_widget.reflection_table_model.index(row, col))
+        return float(value)
 
     def insert_reflection_table_value(self, row, col, value):
-        item = self.jcpds_widget.reflection_table.item(row, col)
-        item.setText(str(value))
+        # get click position
+        x_pos = self.jcpds_widget.reflection_table_view.columnViewportPosition(col) + 3
+        y_pos = self.jcpds_widget.reflection_table_view.rowViewportPosition(row) + 10
+
+        # enter the correct cell
+        viewport = self.jcpds_widget.reflection_table_view.viewport()
+        QTest.mouseClick(viewport, QtCore.Qt.LeftButton, pos=QtCore.QPoint(x_pos, y_pos))
+        QTest.mouseDClick(viewport, QtCore.Qt.LeftButton, pos=QtCore.QPoint(x_pos, y_pos))
+
+        # update the value
+        QTest.keyClicks(viewport.focusWidget(), str(value))
+        QTest.keyPress(viewport.focusWidget(), QtCore.Qt.Key_Enter)
+        QtWidgets.QApplication.processEvents()
 
     def get_phase_line_position(self, phase_ind, line_ind):
         return self.main_controller.integration_controller.widget.pattern_widget.phases[phase_ind]. \
@@ -107,7 +119,9 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.model.calibration_model.pattern_geometry.wavelength = 0.31
 
         self.jcpds_controller = JcpdsEditorController(IntegrationWidget(), self.model)
+        self.jcpds_controller.active = True
         self.jcpds_widget = self.jcpds_controller.jcpds_widget
+        self.jcpds_widget.raise_widget()
         self.jcpds_controller.show_phase(self.phase_model.phases[0])
         self.jcpds = self.jcpds_controller.jcpds_phase
 
@@ -268,13 +282,14 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.model.calibration_model.pattern_geometry.wavelength = 0.31
 
         self.jcpds_controller = JcpdsEditorController(IntegrationWidget(), self.model)
+        self.jcpds_controller.active = True
         self.jcpds_widget = self.jcpds_controller.jcpds_widget
         self.jcpds_controller.show_phase(self.phase_model.phases[0])
         self.jcpds = self.jcpds_controller.jcpds_phase
 
         # he sees that there are 13 reflections predefined in the table
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 13)
 
         # he checks if the values are correct:
 
@@ -285,16 +300,16 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # then he decides to change the lattice parameter and sees that the values in the table are changing:
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 4)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 13)
         self.assertEqual(self.get_reflection_table_value(1, 4), 2)
 
         # After playing with the lattice parameter he sets it back to the original value and looks at the reflections
         # He thinks that he doesn't need the sixth reflection because it any way has to low intensity
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 4.0786)
-        self.jcpds_widget.reflection_table.selectRow(5)
+        self.jcpds_widget.reflection_table_view.selectRow(5)
         QTest.mouseClick(self.jcpds_widget.reflections_delete_btn, QtCore.Qt.LeftButton)
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 12)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 12)
         self.assertAlmostEqual(self.get_reflection_table_value(5, 4), 0.9358, delta=0.0002)
         self.assertEqual(len(self.jcpds.reflections), 12)
 
@@ -304,7 +319,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         QtWidgets.QApplication.processEvents()
 
         self.assertEqual(len(self.jcpds.reflections), 13)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 13)
         self.assertEqual(self.jcpds_widget.get_selected_reflections()[0], 12)
 
         self.assertEqual(self.get_reflection_table_value(12, 0), 0)  # h
@@ -334,13 +349,13 @@ class JcpdsEditorFunctionalTest(QtTest):
         # then she decides that everybody should screw with the table and clears it:
 
         QTest.mouseClick(self.jcpds_widget.reflections_clear_btn, QtCore.Qt.LeftButton)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 0)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 0)
         self.assertEqual(len(self.jcpds.reflections), 0)
         self.assertEqual(len(self.jcpds_widget.get_selected_reflections()), 0)
 
         # he finds this phase much more promising and wants to give it a new name
-        self.enter_value_into_text_field(self.jcpds_widget.comments_txt,
-                                         'HAHA this is a phase you will never see in your pattern')
+        enter_value_into_text_field(self.jcpds_widget.comments_txt,
+                                    'HAHA this is a phase you will never see in your pattern')
         self.assertEqual(self.jcpds.params['comments'][0], 'HAHA this is a phase you will never see in your pattern')
 
         # then he sees the save_as button and is happy to save his non-sense for later users
@@ -350,7 +365,6 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # he decides to change the lattice parameter and then reload the file to see if everything is ok
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 10)
-
         click_button(self.jcpds_widget.reload_file_btn)
 
         self.assertEqual(float(str(self.jcpds_widget.lattice_a_sb.text()).replace(',', '.')), 4.0786)
@@ -459,7 +473,7 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # then he increases the pressure and sees the line moving, but he realizes that the equation of state may 
         # be wrong so he decides to change the parameters in the jcpds-editor
-        self.main_controller.integration_controller.widget.phase_widget.pressure_sbs[0].setValue(10)
+        self.main_controller.integration_controller.widget.phase_widget.pressure_sbs[0].setValue(30)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 120)
@@ -478,19 +492,18 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 10.234e-5)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dalphadT_txt, 10.234e-6)
+        self.enter_value_into_text_field(self.jcpds_widget.eos_dalphadT_txt, 10.234e-8)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         self.enter_value_into_text_field(self.jcpds_widget.eos_dKdT_txt, 1.2e-4)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 1.3e-6)
+        self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 1.3e-5)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
     def test_connection_between_main_gui_and_jcpds_editor_reflections(self):
         # Erwin loads Dioptas with a previous calibration and image file then he adds several phases and looks into the
         # jcpds editor for the first phase. He sees that everything seems to be correct
-
         self.main_controller = MainController(use_settings=False)
         self.main_controller.model.calibration_model.integrate_1d = self.model.calibration_model.integrate_1d
 
@@ -517,7 +530,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
         QtWidgets.QApplication.processEvents()
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 13)
         self.assertEqual(len(self.jcpds_phase.reflections), 13)
         self.assertEqual(len(self.jcpds_in_spec.line_items), 13)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 13)
@@ -528,7 +541,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # adding the reflection
         QTest.mouseClick(self.jcpds_widget.reflections_add_btn, QtCore.Qt.LeftButton)
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 14)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 14)
         self.assertEqual(len(self.jcpds_phase.reflections), 14)
         self.assertEqual(len(self.jcpds_in_spec.line_items), 14)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 14)
@@ -536,17 +549,18 @@ class JcpdsEditorFunctionalTest(QtTest):
         # putting reasonable values into the reflection
         self.insert_reflection_table_value(13, 0, 1)
         self.insert_reflection_table_value(13, 3, 90)
+        print(self.get_phase_line_position(0, 13))
         self.assertAlmostEqual(self.get_phase_line_position(0, 13), self.convert_d_to_twotheta(4.0786, 0.31),
                                delta=0.0005)
 
         # he looks through the reflection and sees that one is actually forbidden. Who has added this reflection to the
         # file? He decides to delete it
 
-        self.jcpds_widget.reflection_table.selectRow(5)
+        self.jcpds_widget.reflection_table_view.selectRow(5)
 
         QTest.mouseClick(self.jcpds_widget.reflections_delete_btn, QtCore.Qt.LeftButton)
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 13)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 13)
         self.assertEqual(len(self.jcpds_phase.reflections), 13)
         self.assertEqual(len(self.jcpds_in_spec.line_items), 13)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 13)
@@ -555,7 +569,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         # up from sketch...
 
         QTest.mouseClick(self.jcpds_widget.reflections_clear_btn, QtCore.Qt.LeftButton)
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 0)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 0)
         self.assertEqual(len(self.jcpds_phase.reflections), 0)
         self.assertEqual(len(self.jcpds_in_spec.line_items), 0)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 0)
@@ -567,7 +581,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         QTest.mouseClick(self.jcpds_widget.reflections_add_btn, QtCore.Qt.LeftButton)
         QTest.mouseClick(self.jcpds_widget.reflections_add_btn, QtCore.Qt.LeftButton)
 
-        self.assertEqual(self.jcpds_widget.reflection_table.rowCount(), 4)
+        self.assertEqual(self.jcpds_widget.reflection_table_model.rowCount(), 4)
         self.assertEqual(len(self.jcpds_phase.reflections), 4)
         self.assertEqual(len(self.jcpds_in_spec.line_items), 4)
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 4)
@@ -621,6 +635,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.jcpds_widget = self.jcpds_editor_controller.jcpds_widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = self.main_controller.integration_controller.widget.pattern_widget.phases[0]
+        self.jcpds_widget.raise_widget()
 
         self.phase_controller.phase_widget.phase_tw.selectRow(0)
         QTest.mouseClick(self.phase_controller.phase_widget.edit_btn, QtCore.Qt.LeftButton)
@@ -630,13 +645,13 @@ class JcpdsEditorFunctionalTest(QtTest):
         # also d0, d, two_theta0, two_theta, q0 and q
         # however, the zero values and non-zero values are all the same
 
-        self.assertEqual(10, self.jcpds_widget.reflection_table.columnCount())
+        self.assertEqual(10, self.jcpds_widget.reflection_table_model.columnCount())
         for row_ind in range(13):
-            self.assertEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 6))
-            self.assertAlmostEqual(self.get_reflection_table_value(row_ind, 5),
+            self.assertEqual(self.get_reflection_table_value(row_ind, 4), self.get_reflection_table_value(row_ind, 5))
+            self.assertAlmostEqual(self.get_reflection_table_value(row_ind, 6),
                                    self.convert_d_to_twotheta(self.jcpds_phase.reflections[row_ind].d0, 0.31),
                                    delta=0.0001)
-            self.assertEqual(self.get_reflection_table_value(row_ind, 5), self.get_reflection_table_value(row_ind, 7))
+            self.assertEqual(self.get_reflection_table_value(row_ind, 8), self.get_reflection_table_value(row_ind, 9))
 
         # he further realizes that there are two sets of lattice parameters in the display, but both still show the same
         # values...
@@ -654,11 +669,11 @@ class JcpdsEditorFunctionalTest(QtTest):
         for row_ind in range(13):
             self.assertNotEqual(self.get_reflection_table_value(row_ind, 4),
                                 self.get_reflection_table_value(row_ind, 5))
-            self.assertNotAlmostEqual(self.get_reflection_table_value(row_ind, 6),
+            self.assertNotAlmostEqual(self.get_reflection_table_value(row_ind, 7),
                                       self.convert_d_to_twotheta(self.jcpds_phase.reflections[row_ind].d0, 0.31),
                                       delta=0.0001)
-            self.assertNotEqual(self.get_reflection_table_value(row_ind, 6),
-                                self.get_reflection_table_value(row_ind, 7))
+            self.assertNotEqual(self.get_reflection_table_value(row_ind, 8),
+                                self.get_reflection_table_value(row_ind, 9))
 
         self.assertNotEqual(float(self.jcpds_widget.lattice_eos_a_txt.text()), self.jcpds_widget.lattice_a_sb.value())
         self.assertNotEqual(float(self.jcpds_widget.lattice_eos_b_txt.text()), self.jcpds_widget.lattice_b_sb.value())

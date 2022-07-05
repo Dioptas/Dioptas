@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,14 +56,17 @@ class OptionsController(object):
         self.options_widget.cake_azimuth_min_txt.editingFinished.connect(self.cake_azimuth_range_changed)
         self.options_widget.cake_azimuth_max_txt.editingFinished.connect(self.cake_azimuth_range_changed)
 
+        self.options_widget.oned_full_toggle_btn.toggled.connect(self.oned_full_toggled_btn_changed)
         self.options_widget.cake_full_toggle_btn.toggled.connect(self.cake_full_toggled_btn_changed)
+        self.options_widget.oned_azimuth_min_txt.editingFinished.connect(self.oned_azimuth_range_changed)
+        self.options_widget.oned_azimuth_max_txt.editingFinished.connect(self.oned_azimuth_range_changed)
 
     def correct_solid_angle_cb_clicked(self):
         self.model.current_configuration.correct_solid_angle = self.options_widget.correct_solid_angle_cb.isChecked()
 
     def update_gui(self):
         self.options_widget.blockSignals(True)
-        self.options_widget.correct_solid_angle_cb.setChecked(self.model.current_configuration.correct_solid_angle)
+        self.options_widget.correct_solid_angle_cb.setChecked(int(self.model.current_configuration.correct_solid_angle))
         self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))
 
         self.options_widget.cake_azimuth_points_sb.setValue(self.model.current_configuration.cake_azimuth_points)
@@ -107,4 +110,24 @@ class OptionsController(object):
         self.integration_widget.cake_shift_azimuth_sl.setDisabled(True)
         self.integration_widget.cake_shift_azimuth_sl.setValue(0)
 
+    def oned_azimuth_range_changed(self):
+        range_min = float(self.options_widget.oned_azimuth_min_txt.text())
+        range_max = float(self.options_widget.oned_azimuth_max_txt.text())
+        self.model.current_configuration.oned_azimuth_range = (range_min, range_max)
 
+    def oned_full_toggled_btn_changed(self):
+        if self.options_widget.oned_full_toggle_btn.isChecked():
+            self.enable_full_oned_range()
+            self.model.current_configuration.oned_azimuth_range = None
+
+        elif not self.options_widget.oned_full_toggle_btn.isChecked():
+            self.disable_full_oned_range()
+            self.oned_azimuth_range_changed()
+
+    def enable_full_oned_range(self):
+        self.options_widget.oned_azimuth_min_txt.setDisabled(True)
+        self.options_widget.oned_azimuth_max_txt.setDisabled(True)
+
+    def disable_full_oned_range(self):
+        self.options_widget.oned_azimuth_min_txt.setDisabled(False)
+        self.options_widget.oned_azimuth_max_txt.setDisabled(False)

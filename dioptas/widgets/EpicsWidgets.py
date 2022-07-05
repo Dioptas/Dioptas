@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -141,15 +141,15 @@ class MotorsSetup(QtWidgets.QWidget):
         grid.addWidget(self.reread_config_btn, 5, 0)
 
         self.setLayout(grid)
-
-
         self.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
+
+    def raise_widget(self):
+        self.show()
         self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.activateWindow()
+        self.raise_()
 
     def return_motor_names(self):
         return str(self.hor_motor_txt.text()), str(self.ver_motor_txt.text()), str(self.focus_motor_txt.text()), str(
             self.omega_motor_txt.text())
-
-

@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,14 +20,15 @@
 
 import gc
 import os
-import unittest
 
-from ..utility import QtTest, click_button, delete_if_exists
+from ..utility import QtTest, click_button, delete_if_exists, delete_folder_if_exists
 
 import numpy as np
 
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
+
+import h5py
 
 from mock import MagicMock
 
@@ -37,6 +38,7 @@ from ...controller.integration import IntegrationController
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, 'data')
+jcpds_path = os.path.join(data_path, 'jcpds')
 
 
 class IntegrationMockFunctionalTest(QtTest):
@@ -61,6 +63,7 @@ class IntegrationMockFunctionalTest(QtTest):
     def tearDown(self):
         del self.integration_pattern_controller
         del self.integration_controller
+        del self.integration_widget
         self.model.delete_configurations()
         del self.model
         gc.collect()
@@ -74,9 +77,24 @@ class IntegrationMockFunctionalTest(QtTest):
         QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
         QtWidgets.QApplication.processEvents()
 
+    def test_1D_integration_with_azimuth_limits(self):
+        # Edith wants to perform 1D integration within a certain range of azimuthal angles. She sees there is an option
+        # in the X tab and deselects the Full Range button, enabling the text edits and then manually inputs -100, 80
+        self.assertFalse(self.integration_widget.oned_azimuth_min_txt.isEnabled())
+        self.assertFalse(self.integration_widget.oned_azimuth_max_txt.isEnabled())
+        self.integration_widget.oned_full_range_btn.setChecked(False)
+        self.assertTrue(self.integration_widget.oned_azimuth_min_txt.isEnabled())
+        self.assertTrue(self.integration_widget.oned_azimuth_max_txt.isEnabled())
+
+        self.enter_value_into_text_field(self.integration_widget.oned_azimuth_min_txt, -100)
+        self.enter_value_into_text_field(self.integration_widget.oned_azimuth_max_txt, 80)
+
+        self.model.calibration_model.integrate_1d.assert_called_with(mask=None, num_points=None, unit='2th_deg',
+                                                                     azi_range=(-100, 80))
+
     def test_changing_number_of_integration_bins(self):
         # Edith wants to change the number of integration bins in order to see the effect of binning onto her line
-        # shape. She sees that there is an option in the X tab and deselects automatic and sees that the sbinbox
+        # shape. She sees that there is an option in the X tab and deselects automatic and sees that the spinbox
         # becomes editable.
         self.assertFalse(self.integration_widget.bin_count_txt.isEnabled())
         self.integration_widget.automatic_binning_cb.setChecked(False)
@@ -88,12 +106,12 @@ class IntegrationMockFunctionalTest(QtTest):
         self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
         self.model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
-                                                                     mask=None, unit='2th_deg')
+                                                                     azi_range=None, mask=None, unit='2th_deg')
 
         # then she decides that having an automatic estimation may probably be better and changes back to automatic.
         # immediately the number is restored and the image looks like when she started
         self.integration_widget.automatic_binning_cb.setChecked(True)
-        self.model.calibration_model.integrate_1d.assert_called_with(num_points=None,
+        self.model.calibration_model.integrate_1d.assert_called_with(num_points=None, azi_range=None,
                                                                      mask=None, unit='2th_deg')
 
     def test_changing_supersampling_amount_integrating_to_cake_with_mask(self):
@@ -108,24 +126,11 @@ class IntegrationMockFunctionalTest(QtTest):
         px1 = self.model.calibration_model.pattern_geometry.pixel1
         px2 = self.model.calibration_model.pattern_geometry.pixel2
 
-        img_shape = self.model.img_data.shape
-
         self.integration_widget.supersampling_sb.setValue(2)
         self.assertEqual(self.model.calibration_model.pattern_geometry.pixel1, 0.5 * px1)
         self.assertEqual(self.model.calibration_model.pattern_geometry.pixel2, 0.5 * px2)
-        self.assertEqual(self.model.calibration_model.cake_geometry.pixel1, px1)
-        self.assertEqual(self.model.calibration_model.cake_geometry.pixel2, px2)
-
-        # img data has doubled dimensions
-        self.assertEqual(self.model.img_data.shape[0], 2 * img_shape[0])
-        self.assertEqual(self.model.img_data.shape[1], 2 * img_shape[1])
-        # but plot should still be the same:
-        self.assertEqual(self.integration_widget.img_widget.img_data.shape[0], img_shape[0])
-        self.assertEqual(self.integration_widget.img_widget.img_data.shape[1], img_shape[1])
-
-        self.model.mask_model.mask_below_threshold(self.model.img_model._img_data, 100)
-        QTest.mouseClick(self.integration_widget.img_mask_btn, QtCore.Qt.LeftButton)
-        QTest.mouseClick(self.integration_widget.img_mode_btn, QtCore.Qt.LeftButton)
+        self.assertEqual(self.model.calibration_model.cake_geometry.pixel1, 0.5 * px1)
+        self.assertEqual(self.model.calibration_model.cake_geometry.pixel2, 0.5 * px2)
 
     def test_saving_image(self):
         # the widget has to be shown to be able to save the image:
@@ -145,7 +150,6 @@ class IntegrationMockFunctionalTest(QtTest):
 
         # Tests if the pattern save procedures is are working for all file-endings
         def save_test_for_size_and_delete(self):
-
             def save_pattern(filename):
                 QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
                 click_button(self.integration_widget.qa_save_pattern_btn)
@@ -333,3 +337,260 @@ class IntegrationFunctionalTest(QtTest):
         self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
         self.integration_image_controller.img_mouse_click(1840, 500)
         self.model.select_configuration(0)
+
+    def test_azimuthal_plot_shows_same_independent_of_unit(self):
+        click_button(self.integration_widget.img_mode_btn)
+        self.integration_image_controller.img_mouse_click(600, 150)
+        x1, y1 = self.integration_widget.cake_widget.cake_integral_item.getData()
+        click_button(self.integration_widget.pattern_q_btn)
+        self.integration_image_controller.img_mouse_click(600, 150)
+        x2, y2 = self.integration_widget.cake_widget.cake_integral_item.getData()
+        self.assertAlmostEqual(np.nansum((x1 - x2) ** 2), 0)
+        self.assertAlmostEqual(np.nansum((y1 - y2) ** 2), 0)
+
+
+class BatchIntegrationFunctionalTest(QtTest):
+    def setUp(self):
+        self.model = DioptasModel()
+
+        self.integration_widget = IntegrationWidget()
+        self.integration_controller = IntegrationController(widget=self.integration_widget,
+                                                            dioptas_model=self.model)
+        self.model.calibration_model.load(os.path.join(data_path, 'lambda/L2.poni'))
+
+        files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'),
+                 os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')]
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
+
+        self.integration_controller.batch_controller.integrate()
+
+    def tearDown(self):
+        del self.integration_widget
+        del self.integration_controller
+        del self.model
+        gc.collect()
+
+        # delete_folder_if_exists(os.path.join(data_path, 'lambda_temp'))
+
+    def test_data_is_ok(self):
+        self.assertTrue(self.model.batch_model.data is not None)
+        self.assertEqual(self.model.batch_model.data.shape[0], 20)
+        self.assertEqual(self.model.batch_model.data.shape[1],
+                         self.model.batch_model.binning.shape[0])
+        self.assertEqual(self.model.batch_model.data.shape[0],
+                         self.model.batch_model.n_img)
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(stop, 19)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(20/20):")
+
+    def save_pattern(self, filename):
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
+        click_button(self.integration_widget.batch_widget.file_control_widget.save_btn)
+
+    def test_save_data(self):
+        for ext in ['nxs', 'csv', 'png']:
+            self.save_pattern(os.path.join(data_path, f'Test_spec.{ext}'))
+            self.assertTrue(os.path.exists(os.path.join(data_path, f'Test_spec.{ext}')))
+            self.assertGreater(os.stat(os.path.join(data_path, f'Test_spec.{ext}')).st_size, 1)
+            os.remove(os.path.join(data_path, f'Test_spec.{ext}'))
+
+        self.save_pattern(os.path.join(data_path, 'Test_spec.dat'))
+        for i in range(20):
+            self.assertTrue(os.path.exists(os.path.join(data_path, f'Test_spec_{i}.dat')))
+            self.assertGreater(os.stat(os.path.join(data_path, f'Test_spec_{i}.dat')).st_size, 1)
+            os.remove(os.path.join(data_path, f'Test_spec_{i}.dat'))
+
+    def test_save_load_reintegrate(self):
+        self.save_pattern(os.path.join(data_path, 'Test_spec.nxs'))
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'Test_spec.nxs')])
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
+
+        self.assertEqual(self.model.batch_model.data.shape[0], 20)
+        self.assertEqual(self.model.batch_model.data.shape[1],
+                         self.model.batch_model.binning.shape[0])
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(stop, 19)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(20/20):")
+
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_controller.batch_controller.integrate()
+        self.assertEqual(self.model.batch_model.data.shape[0], 10)
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(stop, 9)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(10/20):")
+
+    def test_integrate_with_parameters(self):
+
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(1)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(4)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(15)
+        self.integration_controller.batch_controller.integrate()
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(self.model.batch_model.data.shape[0], 12)
+        self.assertEqual(stop, 11)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(12/20):")
+
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(0)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(11)
+        self.integration_controller.batch_controller.integrate()
+        self.assertEqual(self.model.batch_model.data.shape[0], 6)
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(stop, 5)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(6/20):")
+
+    def test_load_missing_raw(self):
+        """
+        Load processed data, while raw data not available.
+
+        Fix error by giving correct path to raw data
+        """
+
+        # Create tmp raw data
+        import shutil
+
+        shutil.copytree(os.path.join(data_path, 'lambda'),
+                        os.path.join(data_path, 'lambda_temp'))
+        # Integrate tmp data. Save proc. Delete tmp data.
+        files = [os.path.join(data_path, 'lambda_temp/testasapo1_1009_00002_m1_part00000.nxs'),
+                 os.path.join(data_path, 'lambda_temp/testasapo1_1009_00002_m1_part00001.nxs')]
+
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
+
+        self.integration_controller.batch_controller.integrate()
+        self.save_pattern(os.path.join(data_path, f'Test_missing_raw.nxs'))
+
+        delete_folder_if_exists(os.path.join(data_path, 'lambda_temp'))
+        # Load proc data with missing raw data
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'Test_missing_raw.nxs')])
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
+        self.assertTrue(self.model.batch_model.raw_available is False)
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(stop, 19)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(20/20):")
+
+        # Pattern widget is still working
+        self.integration_controller.batch_controller.img_mouse_click(5, 15)
+        x1, y1 = self.model.pattern.data
+        y = self.model.batch_model.data[15]
+        x = self.model.batch_model.binning
+        self.assertTrue(np.array_equal(y1, y))
+        self.assertTrue(np.array_equal(x1, x))
+
+        # Fix raw data path
+        self.model.working_directories['image'] = os.path.join(data_path, 'lambda')
+        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
+                                                           [os.path.join(data_path, 'Test_missing_raw.nxs')])
+        click_button(self.integration_widget.batch_widget.load_btn)
+        self.assertEqual(self.model.batch_model.n_img_all, 20)
+        self.assertTrue(self.model.batch_model.raw_available)
+        self.assertEqual(os.path.basename(self.model.batch_model.calibration_model.filename),
+                         'L2.poni')
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(stop, 19)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(20/20):")
+
+        # Cleanup
+        os.remove(os.path.join(data_path, f'Test_missing_raw.nxs'))
+
+
+    def test_create_waterfall(self):
+        click_button(self.integration_widget.batch_widget.mode_widget.view_2d_btn)
+        click_button(self.integration_widget.batch_widget.control_widget.waterfall_btn)
+        QtWidgets.QApplication.processEvents()
+
+        # Create waterfall
+        self.integration_controller.batch_controller.img_mouse_click(5, 5)
+        self.integration_controller.batch_controller.rect.set_size(10, 15)
+        self.integration_controller.batch_controller.img_mouse_click(10, 15)
+        self.assertEqual(len(self.model.overlay_model.overlays), 10)
+
+        # edit waterfall
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_controller.batch_controller.process_step()
+        self.assertEqual(len(self.model.overlay_model.overlays), 5)
+
+    def test_show_phases(self):
+        click_button(self.integration_widget.batch_widget.mode_widget.view_2d_btn)
+
+        self.model.phase_model.add_jcpds(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
+        click_button(self.integration_widget.batch_widget.control_widget.phases_btn)
+
+        self.assertEqual(len(self.integration_widget.batch_widget.stack_plot_widget.img_view.phases), 1)
+        self.assertEqual(len(self.integration_widget.batch_widget.stack_plot_widget.img_view.phases[0].line_items), 27)
+
+        last_line_position = self.integration_widget.batch_widget.stack_plot_widget. \
+            img_view.phases[0].line_items[-1].getPos()
+        self.assertGreater(last_line_position[0], 1000)
+
+    def test_change_view(self):
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(0)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(12)
+        self.integration_controller.batch_controller.integrate()
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(stop, 6)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(7/20):")
+
+        self.integration_widget.batch_widget.mode_widget.view_f_btn.setChecked(True)
+        self.integration_controller.batch_controller.change_view()
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
+        self.assertEqual(stop, 6)
+        self.assertEqual(start, 0)
+        self.assertEqual(frame, "Frame(7/20):")
+
+    def test_change_unit(self):
+        self.integration_controller.batch_controller.img_mouse_click(5, 15)
+        x1, y1 = self.model.pattern.data
+        y = self.model.batch_model.data[15]
+        x = self.model.batch_model.binning
+        self.assertTrue(np.array_equal(y1, y))
+        self.assertTrue(np.array_equal(x1, x))
+        self.assertGreater(x1[-1], x1[0])
+
+        click_button(self.integration_widget.batch_widget.options_widget.q_btn)
+        x2, y2 = self.model.pattern.data
+        self.assertLess(np.max(x2), np.max(x1))
+        self.assertGreater(x2[-1], x2[0])
+
+        click_button(self.integration_widget.batch_widget.options_widget.d_btn)
+        x3, y3 = self.model.pattern.data
+        self.assertGreater(x3[0], x3[-1])
+
+        click_button(self.integration_widget.batch_widget.options_widget.tth_btn)
+        x4, y4 = self.model.pattern.data
+        self.assertTrue(np.array_equal(x1[:3000], x4[:3000]))
+        # can not be tested for full array, due trimming of zeros of the individual pattern during integration after
+        # changing of the unit

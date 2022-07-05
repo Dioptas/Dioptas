@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -301,14 +301,14 @@ def get_partial_index(array, value):
     :return: partial index
     """
     try:
-        upper_ind = np.where(array > value)
-        lower_ind = np.where(array < value)
+        upper_ind = np.where(array >= value)[0]
+        lower_ind = np.where(array < value)[0]
     except TypeError:
         return None
 
     try:
-        spacing = array[upper_ind[0][0]] - array[lower_ind[-1][-1]]
-        new_pos = lower_ind[-1][-1] + (value - array[lower_ind[-1][-1]]) / spacing
+        spacing = array[upper_ind[0]] - array[lower_ind[-1]]
+        new_pos = lower_ind[-1] + (value - array[lower_ind[-1]]) / spacing
     except IndexError:
         return None
 
@@ -323,6 +323,9 @@ def get_partial_value(array, ind):
     :param array: list or numpy array
     :param ind: float index for which to get value
     """
+    if ind < 0 or ind > len(array):
+        return None
+
     step = array[int(np.floor(ind)) + 1] - array[int(np.floor(ind))]
     value = array[int(np.floor(ind))] + (ind - np.floor(ind)) * step
     return value

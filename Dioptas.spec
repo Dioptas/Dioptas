@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
 block_cipher = None
 
 import sys
+pristine_sys_module = list(sys.modules.keys())
 import os
-
 
 folder = os.getcwd()
 
@@ -30,6 +30,39 @@ from distutils.sysconfig import get_python_lib
 from sys import platform as _platform
 
 site_packages_path = get_python_lib()
+
+
+def get_libs(module_name, pristine=None, sieve=True):
+    """Track new modules which were imported
+    :param module_name: name of the module
+    :param pristine: list of modules previously loaded. By default, use all newly loaded
+    :param sieve: set to a string to sieve out on that string, module_name by default
+    :return: list of newly loaded modules
+    """
+    if pristine is None:
+        pristine = list(sys.modules.keys())
+    __import__(module_name)
+    new = [i for i in sys.modules if i not in pristine]
+    if sieve:
+        if isinstance(sieve, str):
+            module = sieve
+        else:
+            module = module_name
+        new = [i for i in new if i.startswith(module)]
+    return new
+
+
+binaries = []
+
+fabio_hiddenimports = get_libs("fabio")
+pyFAI_hiddenimports = get_libs("pyFAI.azimuthalIntegrator", sieve="pyFAI")
+
+pyqtgraph_hiddenimports = [
+    "pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5",
+    "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5",
+    "pyqtgraph.imageview.ImageViewTemplate_pyqt5"
+]
+
 import pyFAI
 import matplotlib
 import lib2to3
@@ -38,57 +71,23 @@ pyFAI_path = os.path.dirname(pyFAI.__file__)
 matplotlib_path = os.path.dirname(matplotlib.__file__)
 lib2to3_path = os.path.dirname(lib2to3.__file__)
 
-
 extra_datas = [
     ("dioptas/resources", "dioptas/resources"),
     (os.path.join(pyFAI_path, "resources"), "pyFAI/resources"),
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
-]
-
-binaries = []
-
-fabio_hiddenimports = [
-   "fabio.edfimage",
-   "fabio.adscimage",
-   "fabio.tifimage",
-   "fabio.marccdimage",
-   "fabio.mar345image",
-   "fabio.fit2dmaskimage",
-   "fabio.brukerimage",
-   "fabio.bruker100image",
-   "fabio.pnmimage",
-   "fabio.GEimage",
-   "fabio.OXDimage",
-   "fabio.dm3image",
-   "fabio.HiPiCimage",
-   "fabio.pilatusimage",
-   "fabio.fit2dspreadsheetimage",
-   "fabio.kcdimage",
-   "fabio.cbfimage",
-   "fabio.xsdimage",
-   "fabio.binaryimage",
-   "fabio.pixiimage",
-   "fabio.raxisimage",
-   "fabio.numpyimage",
-   "fabio.eigerimage",
-   "fabio.hdf5image",
-   "fabio.fit2dimage",
-   "fabio.speimage",
-   "fabio.jpegimage",
-   "fabio.jpeg2kimage",
-   "fabio.mpaimage",
-   "fabio.mrcimage"
+    (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), os.path.join('hdf5plugin', 'plugins'))
 ]
 
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
              binaries=binaries,
              datas=extra_datas,
-             hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'skimage._shared.geometry',
-                            'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy', 'pywt._extensions._cwt'] +
-                            fabio_hiddenimports,
+             hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
+                            'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
+                            'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
+                           fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=['PyQt4', 'PySide', 'pyepics'],
@@ -108,33 +107,31 @@ a.binaries = [x for x in a.binaries if not x[0].startswith("libQtDesigner")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("PySide")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
 
-
 exclude_datas = [
     "IPython",
-#   "matplotlib",
-#   "mpl-data", #needs to be included
-#   "_MEI",
-#   "docutils",
-#   "pytz",
-#   "lib",
-   "include",
-   "sphinx",
-#   ".py",
-   "tests",
-   "skimage",
-   "alabaster",
-   "boto",
-   "jsonschema",
-   "babel",
-   "idlelib",
-   "requests",
-   "qt4_plugins",
-   "qt5_plugins"
+    #   "matplotlib",
+    #   "mpl-data", #needs to be included
+    #   "_MEI",
+    #   "docutils",
+    #   "pytz",
+    #   "lib",
+    "include",
+    "sphinx",
+    #   ".py",
+    "tests",
+    "skimage",
+    "alabaster",
+    "boto",
+    "jsonschema",
+    "babel",
+    "idlelib",
+    "requests",
+    "qt4_plugins",
+    "qt5_plugins"
 ]
 
 for exclude_data in exclude_datas:
     a.datas = [x for x in a.datas if exclude_data not in x[0]]
-
 
 platform = ''
 
@@ -155,7 +152,11 @@ else:
     platform += "32"
 
 # getting the current version of Dioptas
-from dioptas import __version__
+try:
+    with open(os.path.join('dioptas', '__version__'), 'r') as fp:
+        __version__ = fp.readline()
+except FileNotFoundError:
+    from dioptas import __version__
 
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)

@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ class CorrectionController(object):
     def transfer_load_original_btn_clicked(self):
         filename = open_file_dialog(self.widget, caption="Load Original Image File",
                                     directory=self.model.working_directories['image'])
-        if filename is not '':
+        if filename != '':
             self.widget.transfer_original_filename_lbl.setText(os.path.basename(filename))
             self.model.img_model.transfer_correction.load_original_image(filename)
             self.model.img_model.enable_transfer_function()
@@ -98,7 +98,7 @@ class CorrectionController(object):
     def transfer_load_response_btn_clicked(self):
         filename = open_file_dialog(self.widget, caption="Load Response Image File",
                                     directory=self.model.working_directories['image'])
-        if filename is not '':
+        if filename != '':
             self.widget.transfer_response_filename_lbl.setText(os.path.basename(filename))
             self.model.img_model.transfer_correction.load_response_image(filename)
             self.model.img_model.enable_transfer_function()

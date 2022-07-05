@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,7 +71,6 @@ pyfai_params = OrderedDict({
     'detector': 'Detector',
     'pixel1': 7.9e-05,
     'pixel2': 7.9e-05,
-    'max_shape': None,
     'dist': 0.196711580484,
     'poni1': 0.0813975852141,
     'poni2': 0.0820662115429,
@@ -96,11 +95,11 @@ class ProjectSaveLoadTest(QtTest):
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.chi'))
         delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
-        self.model.calibration_model.cake_geometry.reset()
+        delete_if_exists(config_file_path)
+        if self.model.calibration_model.cake_geometry is not None:
+            self.model.calibration_model.cake_geometry.reset()
         self.model.calibration_model.pattern_geometry.reset()
         self.model.disconnect_models()
-        self.model.disconnect()
-        self.model.deleteLater()
 
         self.config_widget.deleteLater()
         self.widget.integration_widget.deleteLater()
@@ -186,7 +185,8 @@ class ProjectSaveLoadTest(QtTest):
             saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
             if 'splineFile' in saved_pyfai_params:
                 del saved_pyfai_params['splineFile']
-            print(saved_pyfai_params)
+            if 'max_shape' in saved_pyfai_params:
+                del saved_pyfai_params['max_shape']
             self.assertDictEqual(saved_pyfai_params, pyfai_params)
 
     ####################################################################################################################
@@ -216,7 +216,7 @@ class ProjectSaveLoadTest(QtTest):
         self.model.mask_model.set_mask(self.mask_data)
 
     ####################################################################################################################
-    def test_with_image_transformations(self):
+    def test_image_rotation(self):
         img_filename = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
         with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                           np.ones((1001,)))):
@@ -225,6 +225,22 @@ class ProjectSaveLoadTest(QtTest):
 
         img_data = fabio.open(img_filename).data[::-1]
         img_data = rotate_matrix_m90(img_data)
+
+        self.assertNotEqual(img_data.shape, self.model.img_model.untransformed_raw_img_data.shape)
+        self.assertEqual(np.sum(img_data - self.model.img_model.img_data), 0)
+
+    def rotate_image_p90(self):
+        click_button(self.widget.calibration_widget.rotate_p90_btn)
+
+    ####################################################################################################################
+    def test_with_image_transformations(self):
+        img_filename = os.path.join(data_path, 'CeO2_Pilatus1M.tif')
+        with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
+                                                                          np.ones((1001,)))):
+            self.load_image(img_filename)
+        self.save_and_load_configuration(self.image_transformations)
+
+        img_data = fabio.open(img_filename).data[::-1]
         img_data = rotate_matrix_m90(img_data)
         img_data = np.fliplr(img_data)
         img_data = rotate_matrix_p90(img_data)
@@ -238,7 +254,6 @@ class ProjectSaveLoadTest(QtTest):
         self.assertEqual(np.sum(img_data - self.model.img_data), 0)
 
     def image_transformations(self):
-        click_button(self.widget.calibration_widget.rotate_m90_btn)
         click_button(self.widget.calibration_widget.rotate_m90_btn)
         click_button(self.widget.calibration_widget.invert_horizontal_btn)
         click_button(self.widget.calibration_widget.rotate_p90_btn)
@@ -327,6 +342,7 @@ class ProjectSaveLoadTest(QtTest):
                          os.path.basename(self.original_filename))
 
     def transfer_correction_settings(self):
+        self.model.calibration_model.detector_reset.emit = MagicMock()
         self.original_filename = os.path.join(data_path, 'TransferCorrection', 'original.tif')
         self.response_filename = os.path.join(data_path, 'TransferCorrection', 'response.tif')
         correction_widget = self.widget.integration_widget.integration_control_widget.corrections_control_widget
@@ -429,11 +445,12 @@ class ProjectSaveLoadTest(QtTest):
         self.save_and_load_configuration(self.prepare_file_browsing)
         with patch.object(CalibrationModel, 'integrate_1d', return_value=(np.linspace(0, 20, 1001),
                                                                           np.ones((1001,)))):
-            click_button(self.widget.integration_widget.next_img_btn)
+            click_button(self.widget.integration_widget.img_step_file_widget.next_btn)
             self.assertEqual(str(self.widget.integration_widget.img_filename_txt.text()),
                              'image_002.tif')
 
     def prepare_file_browsing(self):
+        self.model.calibration_model.detector_reset.emit = MagicMock()
         self.load_image(os.path.join(data_path, 'image_001.tif'))
 
     ####################################################################################################################
@@ -446,6 +463,7 @@ class ProjectSaveLoadTest(QtTest):
                          'f4mnew.spline')
 
     def prepare_distortion_correction_test(self):
+        self.model.calibration_model.detector_reset.emit = MagicMock()
         self.model.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
 
         self.model.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
@@ -459,3 +477,85 @@ class ProjectSaveLoadTest(QtTest):
         self.model.calibration_model.calibrate()
 
         _, y1 = self.model.calibration_model.integrate_1d()
+
+    ####################################################################################################################
+    def test_series_loading(self):
+        from dioptas.model.loader.KaraboLoader import karabo_installed
+        if not karabo_installed:
+            return
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_series_file)
+        self.assertTrue(self.model.img_model.series_max > 1)
+
+    def prepare_series_file(self):
+        self.model.img_model.load(os.path.join(data_path, 'karabo_epix.h5'))
+        self.assertTrue(self.model.img_model.series_max > 1)
+
+    ####################################################################################################################
+    def test_using_predefined_detector(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_load_predefined_detector_test,
+                                         intermediate_function=self.disable_calibration_check)
+        from pyFAI import detectors
+        self.assertIsInstance(self.model.calibration_model.detector, detectors.PilatusCdTe1M)
+        self.assertEqual(self.model.calibration_model.orig_pixel1, 172e-6)
+        self.assertEqual(self.model.calibration_model.orig_pixel2, 172e-6)
+
+        detector_gb = self.widget.calibration_widget.calibration_control_widget.calibration_parameters_widget. \
+            detector_gb
+        self.assertEqual(self.widget.calibration_widget.detectors_cb.currentText(), 'Pilatus CdTe 1M')
+        self.assertEqual(float(detector_gb.pixel_width_txt.text()), 172)
+        self.assertEqual(float(detector_gb.pixel_height_txt.text()), 172)
+
+        self.assertFalse(detector_gb.pixel_width_txt.isEnabled())
+        self.assertFalse(detector_gb.pixel_height_txt.isEnabled())
+
+    def prepare_load_predefined_detector_test(self):
+        self.widget.calibration_widget.detectors_cb.setCurrentIndex(
+            self.widget.calibration_widget.detectors_cb.findText('Pilatus CdTe 1M')
+        )
+
+    ###################################################################################################################
+    def test_using_loaded_nexus_detector(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_using_loaded_nexus_detector_test,
+                                         intermediate_function=self.disable_calibration_check)
+
+        from ...model.CalibrationModel import DetectorModes
+        from pyFAI import detectors
+
+        self.assertEqual(self.model.calibration_model.detector_mode, DetectorModes.NEXUS)
+        self.assertIsInstance(self.model.calibration_model.detector, detectors.NexusDetector)
+
+    def prepare_using_loaded_nexus_detector_test(self):
+        self.model.img_model._img_data = np.ones((1048, 1032))
+        self.model.calibration_model.load_detector_from_file(os.path.join(data_path, 'detector.h5'))
+
+    ###################################################################################################
+    def test_using_predefined_detector_and_rotate(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_using_predefined_detector_and_rotate,
+                                         intermediate_function=self.disable_calibration_check)
+        self.assertEqual(self.model.calibration_model.detector.shape, (981, 1043))
+
+    def prepare_using_predefined_detector_and_rotate(self):
+        self.widget.calibration_widget.detectors_cb.setCurrentIndex(
+            self.widget.calibration_widget.detectors_cb.findText('Pilatus CdTe 1M')
+        )
+        click_button(self.widget.calibration_widget.rotate_p90_btn)
+        self.assertEqual(self.model.calibration_model.detector.shape, (981, 1043))
+
+    ###################################################################################################
+    def test_using_detector_and_calibration(self):
+        self.check_calibration = False
+        self.save_and_load_configuration(self.prepare_using_detector_and_calibration,
+                                         intermediate_function=self.disable_calibration_check)
+
+        self.assertAlmostEqual(self.model.calibration_model.detector.pixel1, 172e-6)
+
+    def prepare_using_detector_and_calibration(self):
+        self.model.calibration_model.detector_reset.emit = MagicMock()
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.model.img_model.load(os.path.join(data_path, 'image_001.tif'))
+
+        self.assertAlmostEqual(self.model.calibration_model.detector.pixel1, 172e-6)

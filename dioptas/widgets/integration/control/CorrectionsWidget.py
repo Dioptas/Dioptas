@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.cbn_param_tw = ListTableWidget()
         self.cbn_param_tw.setColumnCount(3)
 
-        self.cbn_param_tw.horizontalHeader().setResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.cbn_param_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.cbn_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 
         cbn_parameters = [
@@ -97,7 +97,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         name_item = QtWidgets.QTableWidgetItem(name + ':')
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        name_item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        name_item.setTextAlignment(int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter))
         tw.setItem(new_row_ind, 0, name_item)
 
         value_item = NumberTextField('{:g}'.format(value))
@@ -105,7 +105,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         unit_item = QtWidgets.QTableWidgetItem(unit)
         unit_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
-        unit_item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        unit_item.setTextAlignment(int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter))
         tw.setItem(new_row_ind, 2, unit_item)
 
         tw.resizeColumnToContents(0)
@@ -132,7 +132,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.oiadac_param_tw = ListTableWidget()
         self.oiadac_param_tw.setColumnCount(3)
 
-        self.oiadac_param_tw.horizontalHeader().setResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.oiadac_param_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.oiadac_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 
         self.detector_thickness_txt = NumberTextField('40')

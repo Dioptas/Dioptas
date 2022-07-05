@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,6 +41,9 @@ class ImgModelTest(QtTest):
     def tearDown(self):
         del self.img_model
 
+    def test_load_karabo_nexus_file(self):
+        self.img_model.load(os.path.join(data_path, 'karabo_epix.h5'))
+
     def perform_transformations_tests(self):
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)
         self.img_model.rotate_img_m90()
@@ -51,7 +54,7 @@ class ImgModelTest(QtTest):
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)
         self.img_model.flip_img_vertically()
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertEqual(np.sum(np.absolute(self.img_model.img_data)), 0)
 
     def test_load_emits_signal(self):
@@ -77,13 +80,6 @@ class ImgModelTest(QtTest):
 
         self.img_model.load_next_file()
         self.assertEqual(np.sum(self.img_model.img_data), 0)
-
-    def test_background_subtraction_with_supersampling(self):
-        self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
-
-        self.img_model.set_supersampling(2)
-        self.img_model.set_supersampling(3)
-        self.img_model.load_next_file()
 
     def test_background_subtraction_with_transformation(self):
         self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
@@ -112,25 +108,6 @@ class ImgModelTest(QtTest):
         self.assertEqual(np.sum(np.flipud(original_img_background_subtracted) - flipped_img_background_subtracted), 0)
 
         self.img_model.load(os.path.join(data_path, 'image_002.tif'))
-        self.perform_transformations_tests()
-
-    def test_background_subtraction_with_supersampling_and_image_transformation(self):
-        self.img_model.load_background(os.path.join(data_path, 'image_002.tif'))
-        self.img_model.load(os.path.join(data_path, 'image_002.tif'))
-
-        self.img_model.set_supersampling(2)
-        self.assertEqual(self.img_model.img_data.shape, (4096, 4096))
-
-        self.perform_transformations_tests()
-
-        self.img_model.set_supersampling(3)
-        self.assertEqual(self.img_model.img_data.shape, (6144, 6144))
-
-        self.perform_transformations_tests()
-
-        self.img_model.load(os.path.join(data_path, 'image_002.tif'))
-        self.assertEqual(self.img_model.img_data.shape, (6144, 6144))
-
         self.perform_transformations_tests()
 
     def test_background_scaling_and_offset(self):
@@ -167,16 +144,6 @@ class ImgModelTest(QtTest):
 
         self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
         self.assertEqual(self.img_model._background_data, None)
-
-    def test_absorption_correction_with_supersampling(self):
-        original_image = np.copy(self.img_model._img_data)
-        dummy_correction = DummyCorrection(self.img_model.img_data.shape, 0.6)
-
-        self.img_model.add_img_correction(dummy_correction, "Dummy 1")
-        self.assertAlmostEqual(np.sum(original_image / 0.6), np.sum(self.img_model.img_data), places=4)
-
-        self.img_model.set_supersampling(2)
-        self.img_model.img_data
 
     def test_absorption_correction_with_different_image_sizes(self):
         dummy_correction = DummyCorrection(self.img_model.img_data.shape, 0.4)
@@ -250,22 +217,22 @@ class ImgModelTest(QtTest):
     def test_reset_img_transformation(self):
         pre_transformed_data = self.img_model.img_data
         self.img_model.rotate_img_m90()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
         pre_transformed_data = self.img_model.img_data
         self.img_model.rotate_img_p90()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
         pre_transformed_data = self.img_model.img_data
         self.img_model.flip_img_horizontally()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
         pre_transformed_data = self.img_model.img_data
         self.img_model.flip_img_vertically()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
         pre_transformed_data = self.img_model.img_data
@@ -276,7 +243,7 @@ class ImgModelTest(QtTest):
         self.img_model.rotate_img_m90()
         self.img_model.rotate_img_m90()
         self.img_model.flip_img_horizontally()
-        self.img_model.reset_img_transformations()
+        self.img_model.reset_transformations()
         self.assertTrue(np.array_equal(self.img_model.img_data, pre_transformed_data))
 
     def test_loading_a_tagged_tif_file_and_retrieving_info_string(self):
@@ -286,6 +253,15 @@ class ImgModelTest(QtTest):
     def test_loading_spe_file(self):
         self.img_model.load(os.path.join(spe_path, 'CeO2_PI_CCD_Mo.SPE'))
         self.assertEqual(self.img_model.img_data.shape, (1042, 1042))
+
+    def test_loading_ESRF_hdf5_file(self):
+        self.img_model.load(os.path.join(data_path, 'hdf5_dataset', 'ma4500_demoh5.h5'))
+        self.assertEqual(self.img_model.img_data.shape, (2048, 2048))
+
+        img1 = self.img_model.img_data
+        self.img_model.select_source(self.img_model.sources[2])
+        img2 = self.img_model.img_data
+        self.assertNotEqual(np.sum(img1-img2), 0)
 
     def test_summing_files(self):
         data1 = np.copy(self.img_model._img_data).astype(np.uint32)

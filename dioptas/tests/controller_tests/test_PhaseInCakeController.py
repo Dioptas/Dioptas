@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,56 +68,56 @@ class PhaseInCakeControllerTest(QtTest):
     # Tests
     #######################
     def test_loading_a_phase(self):
-        self.assertEqual(len(self.widget.img_widget.phases), 0)
+        self.assertEqual(len(self.widget.cake_widget.phases), 0)
         self.load_phase('ar.jcpds')
 
-        self.assertEqual(len(self.widget.img_widget.phases), 1)
+        self.assertEqual(len(self.widget.cake_widget.phases), 1)
 
     def test_loading_many_phases(self):
         self.load_phases()
-        self.assertEqual(len(self.widget.img_widget.phases), 6)
+        self.assertEqual(len(self.widget.cake_widget.phases), 6)
 
     def test_remove_phase(self):
         self.load_phases()
-        self.assertEqual(len(self.widget.img_widget.phases), 6)
+        self.assertEqual(len(self.widget.cake_widget.phases), 6)
         self.model.phase_model.del_phase(3)
-        self.assertEqual(len(self.widget.img_widget.phases), 5)
+        self.assertEqual(len(self.widget.cake_widget.phases), 5)
 
     def test_changing_pressure(self):
         self.load_phase('ar.jcpds')
-        first_line_position = self.widget.img_widget.phases[0].line_items[0].getPos()
+        first_line_position = self.widget.cake_widget.phases[0].line_items[0].getPos()
         self.model.phase_model.set_pressure(0, 4)
         self.assertNotEqual(first_line_position,
-                            self.widget.img_widget.phases[0].line_items[0].getPos())
+                            self.widget.cake_widget.phases[0].line_items[0].getPos())
 
     def test_changing_temperature_and_pressure(self):
         self.load_phase('pt.jcpds')
         self.model.phase_model.set_pressure(0, 100)
-        first_line_position = self.widget.img_widget.phases[0].line_items[0].getPos()
+        first_line_position = self.widget.cake_widget.phases[0].line_items[0].getPos()
         self.model.phase_model.set_temperature(0, 3000)
         self.assertNotEqual(first_line_position,
-                            self.widget.img_widget.phases[0].line_items[0].getPos())
+                            self.widget.cake_widget.phases[0].line_items[0].getPos())
 
     def test_changing_color(self):
         self.load_phase('pt.jcpds')
-        green_value = self.widget.img_widget.phases[0].line_items[0].pen.color().green()
+        green_value = self.widget.cake_widget.phases[0].line_items[0].pen.color().green()
         self.model.phase_model.set_color(0, (230, 22, 0))
         self.assertNotEqual(green_value,
-                            self.widget.img_widget.phases[0].line_items[0].pen.color().green())
+                            self.widget.cake_widget.phases[0].line_items[0].pen.color().green())
 
     def test_reflection_added(self):
         self.load_phase("pt.jcpds")
-        num_line_items = len(self.widget.img_widget.phases[0].line_items)
+        num_line_items = len(self.widget.cake_widget.phases[0].line_items)
 
         self.model.phase_model.add_reflection(0)
-        self.assertEqual(len(self.widget.img_widget.phases[0].line_items),
+        self.assertEqual(len(self.widget.cake_widget.phases[0].line_items),
                          num_line_items + 1)
 
     def test_delete_reflection(self):
         self.load_phase("pt.jcpds")
-        num_line_items = len(self.widget.img_widget.phases[0].line_items)
+        num_line_items = len(self.widget.cake_widget.phases[0].line_items)
         self.model.phase_model.delete_reflection(0, 0)
-        self.assertEqual(len(self.widget.img_widget.phases[0].line_items),
+        self.assertEqual(len(self.widget.cake_widget.phases[0].line_items),
                          num_line_items - 1)
 
     def test_reload_phase(self):
@@ -126,5 +126,5 @@ class PhaseInCakeControllerTest(QtTest):
 
     def test_phases_are_not_shown_in_img_mode(self):
         self.load_phase('au_Anderson.jcpds')
-        cake_phase = self.widget.img_widget.phases[0]
+        cake_phase = self.widget.cake_widget.phases[0]
         self.assertFalse(cake_phase.visible)

@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -87,8 +87,8 @@ class JcpdsEditorController(QtCore.QObject):
 
         # Phase Model signals
         self.phase_model.phase_changed.connect(self.phase_changed)
-        self.phase_model.reflection_added.connect(self.reflection_added)
-        self.phase_model.reflection_deleted.connect(self.reflection_deleted)
+        self.phase_model.reflection_added.connect(self.update_reflection_table)
+        self.phase_model.reflection_deleted.connect(self.update_reflection_table)
 
         # Information fields
         self.jcpds_widget.comments_txt.editingFinished.connect(self.comments_changed)
@@ -147,12 +147,13 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.reflections_add_btn.clicked.connect(self.reflections_add_btn_click)
         self.jcpds_widget.reflections_delete_btn.clicked.connect(self.reflections_delete_btn_click)
         self.jcpds_widget.reflections_clear_btn.clicked.connect(self.reflections_clear_btn_click)
-        self.jcpds_widget.reflection_table.cellChanged.connect(self.reflection_table_changed)
+        self.jcpds_widget.reflection_table_model.reflection_edited.connect(self.reflection_table_changed)
 
         # Table Widgets events
-        self.jcpds_widget.reflection_table.keyPressEvent = self.reflection_table_key_pressed
-        self.jcpds_widget.reflection_table.verticalScrollBar().valueChanged.connect(self.reflection_table_scrolled)
-        self.jcpds_widget.reflection_table.horizontalHeader().sectionClicked.connect(self.horizontal_header_clicked)
+        self.jcpds_widget.reflection_table_view.keyPressEvent = self.reflection_table_key_pressed
+        self.jcpds_widget.reflection_table_view.verticalScrollBar().valueChanged.connect(self.reflection_table_scrolled)
+        self.jcpds_widget.reflection_table_view.horizontalHeader().sectionClicked.connect(
+            self.horizontal_header_clicked)
         #
         # Button fields
         self.jcpds_widget.reload_file_btn.clicked.connect(self.reload_file_btn_clicked)
@@ -172,8 +173,9 @@ class JcpdsEditorController(QtCore.QObject):
             self.show_phase(self.model.phase_model.phases[row])
 
     def phase_changed(self, ind):
-        self.jcpds_widget.show_jcpds(self.phase_model.phases[ind],
-                                     wavelength=self.model.calibration_model.wavelength*1e10)
+        if self.active and self.phase_ind == ind:
+            self.jcpds_widget.show_jcpds(self.phase_model.phases[ind],
+                                         wavelength=self.model.calibration_model.wavelength * 1e10)
 
     def update_filename(self):
         self.jcpds_widget.filename_txt.setText(self.jcpds_phase.filename)
@@ -227,58 +229,68 @@ class JcpdsEditorController(QtCore.QObject):
     def reflections_delete_btn_click(self):
         rows = self.jcpds_widget.get_selected_reflections()
         self.phase_model.delete_multiple_reflections(self.phase_ind, rows)
+        if self.jcpds_widget.reflection_table_model.rowCount() >= min(rows) + 1:
+            self.jcpds_widget.reflection_table_view.selectRow(min(rows))
+        else:
+            self.jcpds_widget.reflection_table_view.selectRow(
+                self.jcpds_widget.reflection_table_model.rowCount() - 1)
 
     def reflections_add_btn_click(self):
         self.phase_model.add_reflection(self.phase_ind)
+        self.jcpds_widget.reflection_table_view.selectRow(self.jcpds_widget.reflection_table_model.rowCount() - 1)
 
     def reflections_clear_btn_click(self):
         self.phase_model.clear_reflections(self.phase_ind)
 
-    def reflection_added(self, phase_ind):
+    def reflection_table_changed(self, row, column, value):
+        if value != '':
+            value = float(value)
+            reflection = self.phase_model.phases[self.phase_ind].reflections[row]
+            if column == 0:  # h
+                reflection.h = value
+            elif column == 1:  # k
+                reflection.k = value
+            elif column == 2:  # l
+                reflection.l = value
+            elif column == 3:  # intensity
+                reflection.intensity = value
+            self.phase_model.update_reflection(self.phase_ind, row, reflection)
+            self.jcpds_widget.reflection_table_model.update_reflection_data(
+                self.phase_model.phases[self.phase_ind].reflections)
+
+    def update_reflection_table(self, phase_ind, *_):
         if phase_ind != self.phase_ind:
             return
-        self.jcpds_widget.add_reflection_to_table(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
-        self.jcpds_widget.reflection_table.selectRow(self.jcpds_widget.reflection_table.rowCount() - 1)
-
-    def reflection_deleted(self, phase_ind, reflection_ind):
-        if phase_ind != self.phase_ind:
-            return
-        self.jcpds_widget.remove_reflection_from_table(reflection_ind)
-        self.jcpds_widget.reflection_table.resizeColumnsToContents()
-        self.jcpds_widget.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
-
-    def reflection_table_changed(self, row, _):
-        reflection = jcpds_reflection(
-            h=float(self.jcpds_widget.reflection_table.item(row, 0).text()),
-            k=float(self.jcpds_widget.reflection_table.item(row, 1).text()),
-            l=float(self.jcpds_widget.reflection_table.item(row, 2).text()),
-            intensity=float(self.jcpds_widget.reflection_table.item(row, 3).text()),
-            d=float(self.jcpds_widget.reflection_table.item(row, 4).text()),
-        )
-        self.phase_model.update_reflection(self.phase_ind, row, reflection)
+        self.jcpds_widget.reflection_table_model.update_reflection_data(self.phase_model.phases[phase_ind].reflections)
 
     def reflection_table_key_pressed(self, key_press_event):
         if key_press_event == QtGui.QKeySequence.Copy:
-            res = ''
-            selection_ranges = self.jcpds_widget.reflection_table.selectedRanges()
-            for range_ind in range(len(selection_ranges)):
-                if range_ind > 0:
-                    res += '\n'
-                for row_ind in range(int(selection_ranges[range_ind].rowCount())):
-                    if row_ind > 0:
-                        res += '\n'
-                    for col_ind in range(selection_ranges[range_ind].columnCount()):
-                        if col_ind > 0:
-                            res += '\t'
-                        res += str(self.jcpds_widget.reflection_table.item(
-                            selection_ranges[range_ind].topRow() + row_ind,
-                            selection_ranges[range_ind].leftColumn() + col_ind).text())
-            QtWidgets.QApplication.clipboard().setText(res)
+            select = self.jcpds_widget.reflection_table_view.selectionModel()
+            if not select.hasSelection():
+                return # nothing selected
+
+            lines = []
+            if self.jcpds_widget.reflection_table_model.wavelength is None:
+                lines.append('\t'.join(self.jcpds_widget.reflection_table_model.header_labels)) # Header
+                for item in select.selectedRows():
+                    line = '{:.0f}\t{:.0f}\t{:.0f}\t{:.2f}\t{:.4f}\t{:.4f}'.format(
+                        *self.jcpds_widget.reflection_table_model.reflection_data[item.row(), :]
+                    )
+                    lines.append(line)
+            else:
+                lines.append('\t'.join(self.jcpds_widget.reflection_table_model.header_labels)) # Header
+                for item in select.selectedRows():
+                    line = '{:.0f}\t{:.0f}\t{:.0f}\t{:.2f}\t{:.4f}\t{:.4f}\t{:.4f}\t{:.4f}\t{:.4f}\t{:.4f}'.format(
+                        *self.jcpds_widget.reflection_table_model.reflection_data[item.row(), :]
+                    )
+                    lines.append(line)
+            QtWidgets.QApplication.clipboard().setText('\n'.join(lines))
+
         elif key_press_event == QtGui.QKeySequence.SelectAll:
-            self.jcpds_widget.reflection_table.selectAll()
+            self.jcpds_widget.reflection_table_view.selectAll()
 
     def reflection_table_scrolled(self):
-        self.jcpds_widget.reflection_table.resizeColumnsToContents()
+        self.jcpds_widget.reflection_table_view.resizeColumnsToContents()
 
     def horizontal_header_clicked(self, ind):
         if self.previous_header_item_index_sorted == ind:
@@ -300,7 +312,7 @@ class JcpdsEditorController(QtCore.QObject):
             self.jcpds_phase.sort_reflections_by_d(not reversed_toggle)
 
         self.jcpds_widget.show_jcpds(self.jcpds_phase, wavelength=self.model.calibration_model.wavelength * 1e10)
-        self.jcpds_widget.reflection_table.resizeColumnsToContents()
+        self.jcpds_widget.reflection_table_view.resizeColumnsToContents()
 
         if self.previous_header_item_index_sorted == ind:
             self.previous_header_item_index_sorted = None
@@ -322,13 +334,13 @@ class JcpdsEditorController(QtCore.QObject):
 
     def export_table_data(self, filename):
         fp = open(filename, 'w', encoding='utf-8')
-        for col in range(self.jcpds_widget.reflection_table.columnCount()):
-            fp.write(self.jcpds_widget.reflection_table.horizontalHeaderItem(col).text() + '\t')
+        for col in range(self.jcpds_widget.reflection_table_model.columnCount()):
+            fp.write(self.jcpds_widget.reflection_table_model.header_labels[col] + '\t')
         fp.write('\n')
-        for row in range(self.jcpds_widget.reflection_table.rowCount()):
+        for row in range(self.jcpds_widget.reflection_table_model.rowCount()):
             line = ''
-            for col in range(self.jcpds_widget.reflection_table.columnCount()):
-                line = line + self.jcpds_widget.reflection_table.item(row, col).text() + '\t'
+            for col in range(self.jcpds_widget.reflection_table_model.columnCount()):
+                line = line + self.jcpds_widget.reflection_table_model.index(row, col).data() + '\t'
             line = line + '\n'
             fp.write(line)
         fp.close()

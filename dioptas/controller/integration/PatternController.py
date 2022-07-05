@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,6 +68,7 @@ class PatternController(object):
         # Gui subscriptions
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+        self.model.clicked_tth_changed.connect(self.set_line_position)
         self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
     def create_gui_signals(self):
@@ -92,6 +93,9 @@ class PatternController(object):
         self.widget.pattern_tth_btn.clicked.connect(self.set_unit_tth)
         self.widget.pattern_q_btn.clicked.connect(self.set_unit_q)
         self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
+        self.widget.batch_widget.options_widget.tth_btn.clicked.connect(self.set_unit_tth)
+        self.widget.batch_widget.options_widget.q_btn.clicked.connect(self.set_unit_q)
+        self.widget.batch_widget.options_widget.d_btn.clicked.connect(self.set_unit_d)
 
         # quick actions
         self.widget.qa_save_pattern_btn.clicked.connect(self.save_pattern)
@@ -162,7 +166,7 @@ class PatternController(object):
 
     def supersampling_changed(self, value):
         self.model.calibration_model.set_supersampling(value)
-        self.model.img_model.set_supersampling(value)
+        self.model.img_model.img_changed.emit()
 
     def save_pattern(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
@@ -172,7 +176,7 @@ class PatternController(object):
                          img_filename + '.xy'),
             ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;png (*.png);;svg (*.svg)'))
 
-        if filename is not '':
+        if filename != '':
             if filename.endswith('.png'):
                 self.widget.pattern_widget.save_png(filename)
             elif filename.endswith('.svg'):
@@ -186,7 +190,7 @@ class PatternController(object):
             filename = open_file_dialog(self.widget, caption="Load Pattern",
                                         directory=self.model.working_directories['pattern'])
 
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['pattern'] = os.path.dirname(filename)
             self.widget.pattern_filename_txt.setText(os.path.basename(filename))
             self.widget.pattern_directory_txt.setText(os.path.dirname(filename))
@@ -227,7 +231,7 @@ class PatternController(object):
             self.widget,
             "Please choose the default directory for autosaved .",
             self.model.working_directories['pattern'])
-        if directory is not '':
+        if directory != '':
             self.model.working_directories['pattern'] = str(directory)
             self.widget.pattern_directory_txt.setText(directory)
 
@@ -294,8 +298,12 @@ class PatternController(object):
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.pattern_plot.viewRange()[0]
         pattern_x = self.model.pattern.data[0]
+        if len(pattern_x) < 1:
+            return
         if np.min(pattern_x) < old_x_axis_range[0] or np.max(pattern_x) > old_x_axis_range[1]:
             new_x_axis_range = self.convert_x_value(np.array(old_x_axis_range), previous_unit, new_unit)
+            if new_x_axis_range[0] is None or np.isnan(new_x_axis_range[0]):
+                return
             self.widget.pattern_widget.pattern_plot.setRange(xRange=new_x_axis_range, padding=0)
 
     def pattern_auto_range_btn_click_callback(self):
@@ -316,7 +324,8 @@ class PatternController(object):
         return convert_units(value, wavelength, previous_unit, new_unit)
 
     def pattern_left_click(self, x, y):
-        self.set_line_position(x)
+        tth_clicked = self.convert_x_value(x, self.model.current_configuration.integration_unit, '2th_deg')
+        self.model.clicked_tth_changed.emit(tth_clicked)
 
         self.widget.click_tth_lbl.setText(self.widget.mouse_tth_lbl.text())
         self.widget.click_d_lbl.setText(self.widget.mouse_d_lbl.text())
@@ -329,38 +338,9 @@ class PatternController(object):
         except RuntimeWarning:
             self.model.map_model.wavelength = 3.344e-11
 
-    def set_line_position(self, x):
+    def set_line_position(self, tth):
+        x = self.convert_x_value(tth, '2th_deg', self.model.current_configuration.integration_unit)
         self.widget.pattern_widget.set_pos_line(x)
-        if self.model.calibration_model.is_calibrated:
-            self.update_image_widget_line_position()
-
-    def get_line_tth(self):
-        x = self.widget.pattern_widget.get_pos_line()
-        if self.integration_unit == 'q_A^-1':
-            x = self.convert_x_value(x, 'q_A^-1', '2th_deg')
-        elif self.integration_unit == 'd_A':
-            x = self.convert_x_value(x, 'd_A', '2th_deg')
-        return x
-
-    def update_image_widget_line_position(self):
-        tth = self.get_line_tth()
-        if self.widget.img_mode_btn.text() == 'Image':  # cake mode, button shows always opposite
-            self.set_cake_line_position(tth)
-        else:  # image mode
-            self.set_image_line_position(tth)
-
-    def set_cake_line_position(self, tth):
-        upper_ind = np.where(self.model.cake_tth > tth)
-        lower_ind = np.where(self.model.cake_tth < tth)
-        spacing = self.model.cake_tth[upper_ind[0][0]] - self.model.cake_tth[
-            lower_ind[-1][-1]]
-        new_pos = lower_ind[-1][-1] + (tth - self.model.cake_tth[lower_ind[-1][-1]]) / spacing + 0.5
-        self.widget.img_widget.vertical_line.setValue(new_pos)
-
-    def set_image_line_position(self, tth):
-        if self.model.calibration_model.is_calibrated:
-            self.widget.img_widget.set_circle_line(
-                self.model.calibration_model.get_two_theta_array(), tth / 180 * np.pi)
 
     def show_pattern_mouse_position(self, x, _):
         tth_str, d_str, q_str, azi_str = self.get_position_strings(x)
@@ -414,14 +394,7 @@ class PatternController(object):
                 new_pos = pos - step
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
-            self.set_line_position(new_pos)
-            self.update_image_widget_line_position()
-
-            tth_str, d_str, q_str, azi_str = self.get_position_strings(new_pos)
-            self.widget.click_tth_lbl.setText(tth_str)
-            self.widget.click_d_lbl.setText(d_str)
-            self.widget.click_q_lbl.setText(q_str)
-            self.widget.click_azi_lbl.setText(azi_str)
+            self.model.clicked_tth_changed.emit(new_pos)
 
     def update_gui(self):
         if self.model.current_configuration.integration_unit == '2th_deg':
