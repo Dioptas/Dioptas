@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,13 +42,13 @@ class PhaseInCakeController(object):
         self.model = dioptas_model
         self.phase_model = self.model.phase_model
         self.integration_widget = integration_widget
-        self.img_view_widget = integration_widget.integration_image_widget.img_view  # type: IntegrationImgWidget
+        self.cake_view_widget = integration_widget.integration_image_widget.cake_view  # type: IntegrationImgWidget
 
         self.connect()
 
     def connect(self):
         self.phase_model.phase_added.connect(self.add_phase_plot)
-        self.model.phase_model.phase_removed.connect(self.img_view_widget.del_cake_phase)
+        self.model.phase_model.phase_removed.connect(self.cake_view_widget.del_cake_phase)
 
         self.phase_model.phase_changed.connect(self.update_phase_lines)
         self.phase_model.phase_changed.connect(self.update_phase_color)
@@ -95,25 +95,25 @@ class PhaseInCakeController(object):
     def add_phase_plot(self):
         cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(-1, False)
 
-        self.img_view_widget.add_cake_phase(cake_line_positions, cake_line_intensities,
-                                            self.phase_model.phase_colors[-1])
+        self.cake_view_widget.add_cake_phase(cake_line_positions, cake_line_intensities,
+                                             self.phase_model.phase_colors[-1])
 
     def update_phase_lines(self, ind):
         cake_line_positions, cake_line_intensities = self.get_phase_position_and_intensities(ind)
-        self.img_view_widget.update_phase_intensities(ind, cake_line_positions, cake_line_intensities)
+        self.cake_view_widget.update_phase_intensities(ind, cake_line_positions, cake_line_intensities)
 
     def update_phase_color(self, ind):
-        self.img_view_widget.set_cake_phase_color(ind, self.model.phase_model.phase_colors[ind])
+        self.cake_view_widget.set_cake_phase_color(ind, self.model.phase_model.phase_colors[ind])
 
     def update_phase_visible(self, ind):
         if self.phase_model.phase_visible[ind] and self.integration_widget.img_mode == 'Cake' and \
                 self.integration_widget.img_phases_btn.isChecked():
-            self.img_view_widget.show_cake_phase(ind)
+            self.cake_view_widget.show_cake_phase(ind)
         else:
-            self.img_view_widget.hide_cake_phase(ind)
+            self.cake_view_widget.hide_cake_phase(ind)
 
     def reflection_added(self, ind):
-        self.img_view_widget.phases[ind].add_line()
+        self.cake_view_widget.phases[ind].add_line()
 
     def reflection_deleted(self, phase_ind, reflection_ind):
-        self.img_view_widget.phases[phase_ind].delete_line(reflection_ind)
+        self.cake_view_widget.phases[phase_ind].delete_line(reflection_ind)

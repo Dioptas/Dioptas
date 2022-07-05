@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,11 +23,9 @@ import os
 from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
-from ...plot_widgets.ImgWidget import IntegrationImgWidget
-from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem
+from ...plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationCakeWidget
+from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, SaveIconButton
 from ..CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
-from .... import icons_path
-
 from .. import CLICKED_COLOR
 
 
@@ -44,7 +42,11 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_view = IntegrationImgWidget(self.img_pg_layout, orientation='horizontal')
+        self.cake_pg_layout = GraphicsLayoutWidget()
+        self.cake_view = IntegrationCakeWidget(self.cake_pg_layout, orientation='horizontal')
         self._frame_layout.addWidget(self.img_pg_layout)
+        self._frame_layout.addWidget(self.cake_pg_layout)
+        self.cake_pg_layout.hide()
 
         self.position_and_unit_widget = QtWidgets.QWidget()
         self.position_and_unit_widget.setObjectName('img_position_and_unit_widget')
@@ -66,7 +68,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self._control_layout.setContentsMargins(6, 6, 6, 6)
         self._control_layout.setSpacing(6)
 
-        self.save_image_btn = FlatButton()
+        self.save_image_btn = SaveIconButton()
         self.save_image_btn.setToolTip("Save Image")
 
         self.roi_btn = CheckableFlatButton('ROI')
@@ -116,6 +118,5 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.phases_btn.setVisible(False)
         self.position_and_unit_widget.hide()
 
-        self.save_image_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
         self.save_image_btn.setIconSize(QtCore.QSize(13, 13))
-        self.save_image_btn.setMaximumWidth(25)
+        self.save_image_btn.setWidth(25)

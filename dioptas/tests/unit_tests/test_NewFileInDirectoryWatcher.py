@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,16 +20,17 @@
 
 import os
 import shutil
+import unittest
+import time
 
 from mock import MagicMock
 
-from ..utility import QtTest
 from ...model.util.NewFileWatcher import NewFileInDirectoryWatcher
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 
-class NewFileInDirectoryWatcherTest(QtTest):
+class NewFileInDirectoryWatcherTest(unittest.TestCase):
     def setUp(self):
         self.directory_watcher = NewFileInDirectoryWatcher(path=None)
 
@@ -37,8 +38,10 @@ class NewFileInDirectoryWatcherTest(QtTest):
         if os.path.exists(os.path.join(unittest_data_path, 'image_003.tif')):
             os.remove(os.path.join(unittest_data_path, 'image_003.tif'))
 
+    @unittest.skip('inotify Limit does not allow to run this on CI')
     def test_getting_callback_for_new_file(self):
-        callback_fcn = MagicMock()
+        def callback_fcn(filepath):
+            self.assertEqual(filepath, os.path.abspath(os.path.join(unittest_data_path, 'image_003.tif')))
 
         self.directory_watcher.path = unittest_data_path
         self.directory_watcher.file_added.connect(callback_fcn)
@@ -48,5 +51,23 @@ class NewFileInDirectoryWatcherTest(QtTest):
         shutil.copy2(os.path.join(unittest_data_path, 'image_001.tif'),
                      os.path.join(unittest_data_path, 'image_003.tif'))
 
-        self.directory_watcher._file_system_watcher.directoryChanged.emit('test')
-        callback_fcn.assert_called_with(os.path.join(unittest_data_path, 'image_003.tif'))
+        self.directory_watcher.deactivate()
+
+    @unittest.skip('inotify Limit does not allow to run this on CI')
+    def test_filename_is_emitted_with_full_file_available(self):
+        original_path = os.path.join(unittest_data_path, 'image_001.tif')
+        destination_path = os.path.join(unittest_data_path, 'image_003.tif')
+        original_filesize = os.stat(original_path).st_size
+
+        def callback_fcn(filepath):
+            filesize = os.stat(filepath).st_size
+            self.assertEqual(filesize, original_filesize)
+
+        self.directory_watcher.path = unittest_data_path
+        self.directory_watcher.file_added.connect(callback_fcn)
+        self.directory_watcher.file_types.add('.tif')
+        self.directory_watcher.activate()
+
+        shutil.copy2(original_path, destination_path)
+
+        self.directory_watcher.deactivate()

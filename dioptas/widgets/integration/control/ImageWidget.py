@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@ class ImageWidget(QtWidgets.QWidget):
         self.file_info_btn = FlatButton('File Info')
         self.move_btn = FlatButton('Position')
         self.map_2D_btn = FlatButton('2D Map')
+        self.batch_btn = FlatButton('Batch view')
 
         self.batch_mode_widget = QtWidgets.QWidget()
         self.batch_mode_lbl = LabelAlignRight("Batch Mode:")
@@ -57,6 +58,8 @@ class ImageWidget(QtWidgets.QWidget):
         self._batch_layout.addWidget(self.batch_mode_integrate_rb)
         self._batch_layout.addWidget(self.batch_mode_add_rb)
         self._batch_layout.addWidget(self.batch_mode_image_save_rb)
+        self._batch_layout.addItem(HorizontalSpacerItem())
+        self._batch_layout.addWidget(self.batch_btn)
         self._batch_layout.addItem(HorizontalSpacerItem())
         self.batch_mode_widget.setLayout(self._batch_layout)
         self._layout.addWidget(self.batch_mode_widget)

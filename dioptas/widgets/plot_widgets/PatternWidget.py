@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -362,7 +362,7 @@ class PatternWidget(QtCore.QObject):
                 self.auto_range = True
             else:
                 self.auto_range = False
-                self.view_box.scaleBy(2)
+                self.view_box.scaleBy((2, 2))
             self.emit_sig_range_changed()
         elif ev.button() == QtCore.Qt.LeftButton:
             pos = self.view_box.mapFromScene(ev.pos())
@@ -431,13 +431,14 @@ class PatternWidget(QtCore.QObject):
             if self.auto_range is not True:
                 view_range = np.array(self.view_box.viewRange())
                 curve_data = self.plot_item.getData()
-                x_range = np.max(curve_data[0]) - np.min(curve_data[0])
-                y_range = np.max(curve_data[1]) - np.min(curve_data[1])
-                if (view_range[0][1] - view_range[0][0]) >= x_range and \
-                        (view_range[1][1] - view_range[1][0]) >= y_range:
-                    self.auto_range = True
-                else:
-                    self.auto_range = False
+                self.auto_range = False
+                if len(curve_data[0]) > 2:
+                    x_range = np.max(curve_data[0]) - np.min(curve_data[0])
+                    y_range = np.max(curve_data[1]) - np.min(curve_data[1])
+                    if (view_range[0][1] - view_range[0][0]) >= x_range and \
+                            (view_range[1][1] - view_range[1][0]) >= y_range:
+                        self.auto_range = True
+                if not self.auto_range:
                     pg.ViewBox.wheelEvent(self.view_box, ev)
             self.emit_sig_range_changed()
 
@@ -530,7 +531,7 @@ class PhasePlot(object):
                                              x=[positions[ind], positions[ind]])
 
     def update_visibilities(self, pattern_range):
-        if self.visible:
+        if self.visible and pattern_range[0] is not None:
             for ind, line_item in enumerate(self.line_items):
                 data = line_item.getData()
                 position = data[0][0]

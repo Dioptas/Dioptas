@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -94,7 +94,7 @@ class BackgroundController(object):
             self.widget, "Load an image background file",
             self.model.working_directories['image'])
 
-        if filename is not None and filename is not '':
+        if filename is not None and filename != '':
             self.widget.bkg_image_filename_lbl.setText("Loading File")
             try:
                 self.model.img_model.load_background(filename)
@@ -162,10 +162,21 @@ class BackgroundController(object):
             self.background_widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
             self.background_widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
 
-            self.widget.pattern_widget.bkg_roi.blockSignals(True)
-            self.widget.pattern_widget.set_bkg_roi(
-                *self.model.pattern_model.pattern.auto_background_subtraction_roi)
-            self.widget.pattern_widget.bkg_roi.blockSignals(False)
+            self.widget.pattern_widget.linear_region_item.blockSignals(True)
+            bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+            self.widget.pattern_widget.set_linear_region(*bkg_roi)
+            self.widget.pattern_widget.linear_region_item.blockSignals(False)
+
+            if self.model.batch_model.binning is not None:
+                start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
+                binning = self.model.batch_model.binning[start_x: stop_x]
+
+                bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
+                                                 '2th_deg')
+                scale = (binning[-1] - binning[0]) / binning.shape[0]
+                x_min_bin = (bkg_roi[0] - binning[0]) / scale
+                x_max_bin = (bkg_roi[1] - binning[0]) / scale
+                self.widget.batch_widget.stack_plot_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
 
     def bkg_pattern_inspect_btn_toggled_callback(self, checked):
         self.widget.bkg_pattern_inspect_btn.blockSignals(True)
@@ -182,11 +193,22 @@ class BackgroundController(object):
             )
             self.widget.bkg_pattern_x_min_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
             self.widget.bkg_pattern_x_max_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
+
+            self.widget.batch_widget.stack_plot_widget.img_view.show_linear_region()
+            self.widget.batch_widget.stack_plot_widget.img_view.linear_region_item.sigRegionChanged.connect(
+                self.bkg_batch_linear_region_callback
+            )
+
         else:
             self.widget.pattern_widget.hide_bkg_roi()
             self.widget.pattern_widget.bkg_roi.sigRegionChanged.disconnect(
                 self.bkg_pattern_linear_region_callback
             )
+
+            self.widget.batch_widget.stack_plot_widget.img_view.linear_region_item.sigRegionChanged.disconnect(
+                self.bkg_batch_linear_region_callback
+            )
+            self.widget.batch_widget.stack_plot_widget.img_view.hide_linear_region()
 
             self.widget.bkg_pattern_x_min_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
             self.widget.bkg_pattern_x_max_txt.editingFinished.disconnect(self.update_bkg_pattern_linear_region)
@@ -199,7 +221,7 @@ class BackgroundController(object):
             os.path.join(self.model.working_directories['pattern'],
                          img_filename + '.xy'), ('Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye)'))
 
-        if filename is not '':
+        if filename != '':
             self.model.current_configuration.save_background_pattern(filename)
 
     def bkg_pattern_as_overlay_btn_callback(self):
@@ -211,10 +233,37 @@ class BackgroundController(object):
         self.widget.bkg_pattern_x_max_txt.setText('{:.3f}'.format(x_max))
         self.bkg_pattern_parameters_changed()
 
+    def bkg_batch_linear_region_callback(self):
+        x_min, x_max = self.widget.batch_widget.stack_plot_widget.img_view.get_linear_region()
+
+        if self.model.batch_model.binning is None:
+            return
+        start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
+        binning = self.model.batch_model.binning[start_x: stop_x]
+        scale = (binning[-1] - binning[0]) / binning.shape[0]
+        x_min_tth = x_min * scale + binning[0]
+        x_max_tth = x_max * scale + binning[0]
+        x_min_val = self.convert_x_value(x_min_tth, '2th_deg', self.model.current_configuration.integration_unit)
+        x_max_val = self.convert_x_value(x_max_tth, '2th_deg', self.model.current_configuration.integration_unit)
+        self.widget.bkg_pattern_x_min_txt.setText('{:.3f}'.format(x_min_val))
+        self.widget.bkg_pattern_x_max_txt.setText('{:.3f}'.format(x_max_val))
+        self.bkg_pattern_parameters_changed()
+
     def update_bkg_pattern_linear_region(self):
-        self.widget.pattern_widget.bkg_roi.blockSignals(True)
-        self.widget.pattern_widget.set_bkg_roi(*self.widget.get_bkg_pattern_roi())
-        self.widget.pattern_widget.bkg_roi.blockSignals(False)
+        self.widget.pattern_widget.linear_region_item.blockSignals(True)
+        bkg_roi = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_roi()
+        self.widget.pattern_widget.set_linear_region(*bkg_roi)
+
+        if self.model.batch_model.binning is not None:
+            start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
+            binning = self.model.batch_model.binning[start_x: stop_x]
+            bkg_roi = self.convert_x_value(np.array(bkg_roi), self.model.current_configuration.integration_unit,
+                                           '2th_deg')
+            scale = (binning[-1] - binning[0]) / binning.shape[0]
+            x_min_bin = int((bkg_roi[0] - binning[0]) / scale)
+            x_max_bin = int((bkg_roi[1] - binning[0]) / scale)
+            self.widget.batch_widget.stack_plot_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
+        self.widget.pattern_widget.linear_region_item.blockSignals(False)
 
     def update_bkg_image_widgets(self):
         self.update_background_image_filename()
@@ -235,3 +284,27 @@ class BackgroundController(object):
         self.update_bkg_gui_parameters()
         self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)
         self.widget.bkg_pattern_inspect_btn.setChecked(False)
+
+    def convert_x_value(self, value, previous_unit, new_unit):
+        wavelength = self.model.calibration_model.wavelength
+        if previous_unit == '2th_deg':
+            tth = value
+        elif previous_unit == 'q_A^-1':
+            tth = np.arcsin(
+                value * 1e10 * wavelength / (4 * np.pi)) * 360 / np.pi
+        elif previous_unit == 'd_A':
+            tth = 2 * np.arcsin(wavelength / (2 * value * 1e-10)) * 180 / np.pi
+        else:
+            tth = 0
+
+        if new_unit == '2th_deg':
+            res = tth
+        elif new_unit == 'q_A^-1':
+            res = 4 * np.pi * \
+                  np.sin(tth / 360 * np.pi) / \
+                  wavelength / 1e10
+        elif new_unit == 'd_A':
+            res = wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+        else:
+            res = 0
+        return res

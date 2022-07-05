@@ -1,3 +1,106 @@
+0.5.4a (under development)
+--------------------------
+
+Bugfixes:
+    - fixed issue with image transformations (rotations and flips)
+    - fix issues with font size on some high dpi settings in white text boxes
+    - improve resize behavior (dragging the splitter) in the integration view
+
+
+0.5.4 (stable 20.12.2021)
+-------------------------
+
+New features:
+    - made openGL dependency for Batch widget addition optional. --> this means executables are now working properly
+      under Mac OS X again
+    - Batch waterfall plot is now possible with background subtraction enabled
+    - Batch heatmap can now be trimmed along x axis (new T Button) - region of trimming is synchronized with the
+      main Dioptas background controls
+    - improvements on Batch widget interface - buttons are now only visible when necessary, added more tooltips,
+      slightly redesigned gui, improved background calculation with d-spacing as axis unit
+
+
+Buf Fixes:
+    - fixes issue with mask button toggle when in cake mode
+    - fixes the error appearing when clicking into the cake image in the integration window
+    - fixes axes not updating when zooming in and out in cake widget and batch widget
+    - fixes background subtraction as shown in contour plot of Batch widget (2D view) and in waterfall/overlays 1D
+      representation of the main Dioptas window
+    - fixes switching between x-axis units (2th, d-spacing, Q) in Batch widget
+    - fixes intensity estimation in Batch widget (lower right corner) when background subtraction is activated.
+    - fixes issues with representation of phases inside the contour plot of Batch widget, e.g. resetting of the
+      "Show Phases" button state upon file information reloading, updating position of the phases upon user input, etc
+    - sources selection box is not shown in pattern control widget anymore
+    - tth/q/d vertical green line position is now correctly synchronized between image, cake, pattern and batch widget
+
+0.5.3a (stable 10/10/2021)
+--------------------------
+
+New features:
+    - pip package has now the correct dependencies
+
+Bug Fixes:
+    - small bug fixes for batch integration (checks whether calibration or mask is loaded)
+
+0.5.3 (stable 10/04/2021)
+-------------------------
+
+New features:
+    - added a batch integration view (thanks to hard work of Mikhail Karnevskiy @ DESY). Here you can batch integrate
+      your collection series and interact with a contour or 3D plot of the integrated patterns -> this also includes
+      visualization of phases lines
+    - reading ESRF hdf5 data files is now possible
+    - combined patterns from multiple configurations can now be saved as a file (save button on the upper right)
+
+Bug Fixes:
+    - no longer remove integrated intensities below 0, instead now only values with equal to 0 are removed
+      (this should fix all the issues with background corrected images)
+    - reimplemented the automatic file recognition algorithm of the autoprocess integration function. This should now
+      work much more reliable also on network drives and linux systems
+    - QT high dpi scaling is now only activated for Windows and Mac OS X -> Disabling it on Linux fixes the display bugs
+      encountered here and it is usable with low and high dpi screens (it was not working correctly)
+
+0.5.2 (stable 11/26/2020)
+-------------------------
+
+New features:
+    - Added an azimuthal histogram for the cake view, please check the X-Tab in the integration view to change the
+      integration bins in 2 theta direction
+    - Azimuthal range for 1d integration can now be set in the X-Tab
+
+Bug Fixes:
+    - fix calibration algorithm, which was currently failing most of the time for difficult geometries. It should now
+      work correctly again as in 0.5.0
+    - fix display bug which was showing horizontal scroll bar in "calibration parameters" on some linux systems
+    - disable QT high dpi mode for Linux platforms, which was causing very tiny font sizes. It is working correctly
+      without it
+    - fixed pixel width/height definition in the detector calibration definition (it was applied interchanged)
+
+0.5.1 (stable 05/05/2020)
+-------------------------
+
+New features:
+    - Phase lines can now be shown in the Cake Widget. Intensity is shown as thickness and opacity of the lines.
+    - Phase line parameters can now be copied out of the jcpds widget by using ctrl+c and used directly in your
+      preferred table/text editor
+    - Added a Detector Groupbox in the Calibration Widget. Predefined Detectors can now be loaded as well as Nexus
+      Detector files. This enables to load e.g. Nexus detector h5 files which include positions for each pixel.
+      (distortion correction and also useful for combined detector modules not adjacent to each other).
+    - Added a Continuous Delivery Pipelines, which automatically create executables for all operating systems
+      (Thanks to Github Actions)
+
+Bug Fixes:
+    - having parameters fixed during calibration works now correctly
+    - the refine button now also works without automatic refinement and with just a calibration loaded from a file
+    - reading trigonal rhombic cif files works now correctly
+    - setting the dk/dT parameter now changes the Bulk Modulus of a phase. This parameter was previously ignored.
+    - entering the range for the automatic background subtraction works now correctly
+    - the motor setup widget is now not showing anymore after starting Dioptas on OS X
+    - fixed double logarithm for the intensity distribution display histogram
+    - (re)loading of a project with image transformations should now work correctly
+    - loading cif files with the newer '_space_group_IT_number' representation work now correctly
+    - green line in cake widget is now shown correctly upon reloading dioptas
+
 0.5.0 (stable 03/05/2019)
 -------------------------
 

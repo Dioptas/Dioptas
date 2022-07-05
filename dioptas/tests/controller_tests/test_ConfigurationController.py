@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,16 +20,17 @@
 
 import os
 import unittest
+from mock import MagicMock
 import gc
 
 import numpy as np
 
+from ..utility import QtTest, delete_if_exists, click_button, enter_value_into_text_field
 
-from qtpy import QtWidgets, QtCore
-from qtpy.QtTest import QTest
+from qtpy import QtWidgets
 
 from ...controller.ConfigurationController import ConfigurationController
-from ...model.DioptasModel import DioptasModel
+from ...model.DioptasModel import DioptasModel, Pattern
 from ...widgets.ConfigurationWidget import ConfigurationWidget
 
 unittest_path = os.path.dirname(__file__)
@@ -37,24 +38,7 @@ data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
-def click_button(widget):
-    QTest.mouseClick(widget, QtCore.Qt.LeftButton)
-
-
-def enter_value_into_text_field(text_field, value):
-    text_field.setText('')
-    QTest.keyClicks(text_field, str(value))
-    QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
-    QtWidgets.QApplication.processEvents()
-
-
-class ConfigurationControllerTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QtWidgets.QApplication.instance()
-        if cls.app is None:
-            cls.app = QtWidgets.QApplication([])
-
+class ConfigurationControllerTest(QtTest):
     def setUp(self):
         self.config_widget = ConfigurationWidget()
         self.model = DioptasModel()
@@ -65,6 +49,7 @@ class ConfigurationControllerTest(unittest.TestCase):
         )
 
     def tearDown(self):
+        delete_if_exists(os.path.join(data_path, "combined_pattern.xy"))
         del self.model
         del self.config_widget
         del self.config_controller
@@ -205,3 +190,30 @@ class ConfigurationControllerTest(unittest.TestCase):
 
         self.assertEqual(self.model.configurations[1].img_model.filename,
                          os.path.abspath(os.path.join(data_path, "FileIterator", "run1", "image_1.tif")))
+
+    def test_save_combined_pattern(self):
+        # prepare two patterns
+        x1 = np.linspace(0, 10)
+        y1 = np.ones(x1.shape)
+        pattern1 = Pattern(x1, y1)
+
+        x2 = np.linspace(7, 15)
+        y2 = np.ones(x2.shape) * 2
+        pattern2 = Pattern(x2, y2)
+
+        self.model.pattern_model.pattern = pattern1
+        self.model.add_configuration()
+        self.model.pattern_model.pattern = pattern2
+
+        self.model.combine_patterns = True
+
+        # click the button
+        file_path = os.path.join(data_path, 'combined_pattern.xy')
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=file_path)
+        click_button(self.config_widget.saved_combined_patterns_btn)
+
+        # load and check that it worked
+        saved_pattern = Pattern().load(file_path)
+        x3, y3 = saved_pattern.data
+        self.assertLess(np.min(x3), 7)
+        self.assertGreater(np.max(x3), 10)

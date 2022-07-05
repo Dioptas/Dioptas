@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ def extract_background(x, y, smooth_width=0.1, iterations=50, cheb_order=50):
     """
     smooth_points = int((float(smooth_width) / (x[1] - x[0])))
 
-    y_smooth = smooth_bruckner(y, smooth_points, iterations)
+    y_smooth = smooth_bruckner(y, abs(smooth_points), iterations)
     # get cheb input parameters
     x_cheb = 2. * (x - x[0]) / (x[-1] - x[0]) - 1.
     cheb_parameters = np.polynomial.chebyshev.chebfit(x_cheb,

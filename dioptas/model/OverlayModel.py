@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,31 +18,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import logging
 
 from copy import copy
-from qtpy import QtCore
 import numpy as np
 
-from .util.HelperModule import FileNameIterator, get_base_name
 from .util import Pattern
+from .util import Signal
 
 logger = logging.getLogger(__name__)
 
 
-class OverlayModel(QtCore.QObject):
+class OverlayModel(object):
     """
     Main Overlay Pattern Handling Model. (Was previously included in the PatternModel),
     """
 
-    overlay_changed = QtCore.Signal(int)  # changed index
-    overlay_added = QtCore.Signal()
-    overlay_removed = QtCore.Signal(int)  # removed index
-
     def __init__(self):
         super(OverlayModel, self).__init__()
         self.overlays = []
+
+        self.overlay_changed = Signal(int)  # changed index
+        self.overlay_added = Signal()
+        self.overlay_removed = Signal(int)  # removed index
 
     def add_overlay(self, x, y, name=''):
         """

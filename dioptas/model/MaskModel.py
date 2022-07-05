@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ from collections import deque
 import numpy as np
 import skimage.draw
 from PIL import Image
-from qtpy import QtGui, QtCore
+from qtpy import QtCore
 from math import sqrt, atan2, cos, sin
 
 from .util.cosmics import cosmicsimage
@@ -32,7 +32,6 @@ from .util.cosmics import cosmicsimage
 class MaskModel(object):
     def __init__(self, mask_dimension=(2048, 2048)):
         self.mask_dimension = mask_dimension
-        self.supersampling_factor = 1
         self.reset_dimension()
         self.filename = ''
         self.mode = True
@@ -53,19 +52,6 @@ class MaskModel(object):
             self._undo_deque = deque(maxlen=50)
             self._redo_deque = deque(maxlen=50)
 
-    def set_supersampling(self, factor=None):
-        if factor is None:
-            self.supersampling_factor = 1
-        else:
-            self.supersampling_factor = factor
-
-        if self.supersampling_factor != 1:
-            self._mask_data_supersampled = np.zeros((self._mask_data.shape[0] * factor,
-                                                     self._mask_data.shape[1] * factor))
-            for row in range(factor):
-                for col in range(factor):
-                    self._mask_data_supersampled[row::factor, col::factor] = self._mask_data
-
     @property
     def roi_mask(self):
         if self.roi is not None:
@@ -77,30 +63,16 @@ class MaskModel(object):
                 y1 = 0
             roi_mask[int(x1):int(x2), int(y1):int(y2)] = 0
 
-            if self.supersampling_factor == None or self.supersampling_factor == 1:
-                return roi_mask
-            else:
-                factor = self.supersampling_factor
-                roi_mask_supersampled = np.zeros((self._mask_data.shape[0] * factor,
-                                                  self._mask_data.shape[1] * factor))
-                for row in range(factor):
-                    for col in range(factor):
-                        roi_mask_supersampled[row::factor, col::factor] = roi_mask
-                return roi_mask_supersampled
+            return roi_mask
+
         else:
             return None
 
     def get_mask(self):
-        if self.supersampling_factor == 1:
-            if self.roi is None:
-                return self._mask_data
-            elif self.roi is not None:
-                return np.logical_or(self._mask_data, self.roi_mask)
-        else:
-            if self.roi is None:
-                return self._mask_data_supersampled
-            else:
-                return np.logical_or(self._mask_data_supersampled, self.roi_mask)
+        if self.roi is None:
+            return self._mask_data
+        elif self.roi is not None:
+            return np.logical_or(self._mask_data, self.roi_mask)
 
     def get_img(self):
         return self._mask_data
@@ -308,17 +280,17 @@ class MaskModel(object):
         xc, yc = c.x(), c.y()
         # if (xa == xb and ya == yb) or (xa == xc and ya == yc) or (xb == xc and yb == yc):
         #     return None
-        mid_ab_x = (xa + xb)/2.0
-        mid_ab_y = (ya + yb)/2.0
-        mid_bc_x = (xb + xc)/2.0
-        mid_bc_y = (yb + yc)/2.0
-        slope_ab = (yb - ya)/(xb - xa)
-        slope_bc = (yc - yb)/(xc - xb)
-        slope_p_ab = -1.0/slope_ab
-        slope_p_bc = -1.0/slope_bc
+        mid_ab_x = (xa + xb) / 2.0
+        mid_ab_y = (ya + yb) / 2.0
+        mid_bc_x = (xb + xc) / 2.0
+        mid_bc_y = (yb + yc) / 2.0
+        slope_ab = (yb - ya) / (xb - xa)
+        slope_bc = (yc - yb) / (xc - xb)
+        slope_p_ab = -1.0 / slope_ab
+        slope_p_bc = -1.0 / slope_bc
         b_p_ab = mid_ab_y - slope_p_ab * mid_ab_x
         b_p_bc = mid_bc_y - slope_p_bc * mid_bc_x
-        x0 = (b_p_bc - b_p_ab)/(slope_p_ab - slope_p_bc)
+        x0 = (b_p_bc - b_p_ab) / (slope_p_ab - slope_p_bc)
         y0 = slope_p_ab * x0 + b_p_ab
         self.center_for_arc = QtCore.QPointF(x0, y0)
         return self.center_for_arc

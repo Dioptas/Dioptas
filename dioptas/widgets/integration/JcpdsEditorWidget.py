@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -145,13 +145,15 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
 
         self.reflections_gb = QtWidgets.QGroupBox('Reflections')
         self._reflection_layout = QtWidgets.QGridLayout()
-        self.reflection_table = QtWidgets.QTableWidget()
-        self.reflection_table.setColumnCount(10)
+        self.reflection_table_view = QtWidgets.QTableView()
+        self.reflection_table_model = ReflectionTableModel()
+        self.reflection_table_view.setModel(self.reflection_table_model)
+        # self.reflection_table.setColumnCount(10)
         self.reflections_add_btn = FlatButton('Add')
         self.reflections_delete_btn = FlatButton('Delete')
         self.reflections_clear_btn = FlatButton('Clear')
 
-        self._reflection_layout.addWidget(self.reflection_table, 0, 0, 1, 3)
+        self._reflection_layout.addWidget(self.reflection_table_view, 0, 0, 1, 3)
         self._reflection_layout.addWidget(self.reflections_add_btn, 1, 0)
         self._reflection_layout.addWidget(self.reflections_delete_btn, 1, 1)
         self._reflection_layout.addWidget(self.reflections_clear_btn, 1, 2)
@@ -183,14 +185,10 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.lattice_length_step_txt.setMaximumWidth(60)
         self.lattice_ratio_step_txt.setMaximumWidth(60)
 
-        self.reflection_table.setHorizontalHeaderLabels(
-            ['h', 'k', 'l', 'Intensity', 'd0', u"2θ_0", 'd', u"2θ", 'Q0', 'Q']
-        )
-        self.reflection_table.setItemDelegate(TextDoubleDelegate(self))
-        self.reflection_table.setShowGrid(False)
-        self.reflection_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.reflection_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.reflection_table.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.reflection_table_view.setShowGrid(False)
+        self.reflection_table_view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.reflection_table_view.setItemDelegate(TextDoubleDelegate())
+        self.reflection_table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         self.eos_gb.setMaximumWidth(200)
         self.eos_gb.setStyleSheet("""
@@ -199,11 +197,8 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             }
         """)
 
-        reflections_horizontal_header_item = self.reflection_table.horizontalHeaderItem(1)
-        reflections_horizontal_header_item.setSizeHint(QtCore.QSize(20, 24))
-
-        self.reflection_table.verticalHeader().setDefaultSectionSize(20)
-        # self.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.reflection_table_view.verticalHeader().setDefaultSectionSize(20)
+        self.reflection_table_view.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setAttribute(QtCore.Qt.WA_MacAlwaysShowToolWindow)
@@ -221,11 +216,26 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             layout.addWidget(QtWidgets.QLabel(unit), x, y + 2)
 
     def show_jcpds(self, jcpds_phase, wavelength=None):
-        self.blockAllSignals(True)
+        self.update_name(jcpds_phase)
+        self.update_lattice_parameters(jcpds_phase)
+        self.update_eos_parameters(jcpds_phase)
+        self.reflection_table_model.update_reflection_data(jcpds_phase.reflections,
+                                                           wavelength)
 
+    def update_eos_parameters(self, jcpds_phase):
+        self.eos_K_txt.setText(str(jcpds_phase.params['k0']))
+        self.eos_Kp_txt.setText(str(jcpds_phase.params['k0p']))
+        self.eos_alphaT_txt.setText(str(jcpds_phase.params['alpha_t0']))
+        self.eos_dalphadT_txt.setText(str(jcpds_phase.params['d_alpha_dt']))
+        self.eos_dKdT_txt.setText(str(jcpds_phase.params['dk0dt']))
+        self.eos_dKpdT_txt.setText(str(jcpds_phase.params['dk0pdt']))
+
+    def update_name(self, jcpds_phase):
         self.filename_txt.setText(jcpds_phase.filename)
         self.comments_txt.setText("/n".join(jcpds_phase.params['comments']))
 
+    def update_lattice_parameters(self, jcpds_phase):
+        self.blockAllSignals(True)
         self.symmetry_cb.setCurrentIndex(self.symmetries.index(jcpds_phase.params['symmetry'].lower()))
         self.update_spinbox_enable(jcpds_phase.params['symmetry'])
 
@@ -268,37 +278,6 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             self.lattice_beta_sb.setValue(jcpds_phase.params['beta0'])
         if not self.lattice_gamma_sb.hasFocus():
             self.lattice_gamma_sb.setValue(jcpds_phase.params['gamma0'])
-
-        self.eos_K_txt.setText(str(jcpds_phase.params['k0']))
-        self.eos_Kp_txt.setText(str(jcpds_phase.params['k0p']))
-        self.eos_alphaT_txt.setText(str(jcpds_phase.params['alpha_t0']))
-        self.eos_dalphadT_txt.setText(str(jcpds_phase.params['d_alpha_dt']))
-        self.eos_dKdT_txt.setText(str(jcpds_phase.params['dk0dt']))
-        self.eos_dKpdT_txt.setText(str(jcpds_phase.params['dk0pdt']))
-
-        # update reflections:
-        self.reflection_table.clearContents()
-        self.reflection_table.setRowCount(0)
-        for reflection in jcpds_phase.reflections:
-            if wavelength is None:
-                self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
-                                             reflection.intensity, reflection.d0, reflection.d)
-            else:
-                two_theta0 = convert_d_to_two_theta(reflection.d0, wavelength)
-                two_theta = convert_d_to_two_theta(reflection.d, wavelength)
-                if reflection.d0 > 0:
-                    q0 = 2.0 * np.pi / reflection.d0
-                    q = 2.0 * np.pi / reflection.d
-                else:
-                    q = 0
-                    q0 = 0
-                self.add_reflection_to_table(reflection.h, reflection.k, reflection.l,
-                                             reflection.intensity, reflection.d0, reflection.d,
-                                             two_theta0, two_theta, q0, q)
-        if wavelength is None:
-            self.reflection_table.setColumnCount(6)
-        else:
-            self.reflection_table.setColumnCount(10)
 
         self.blockAllSignals(False)
 
@@ -413,7 +392,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             print('Unknown symmetry: {0}.'.format(symmetry))
 
     def get_selected_reflections(self):
-        selected = self.reflection_table.selectionModel().selectedRows()
+        selected = self.reflection_table_view.selectionModel().selectedRows()
         try:
             row = []
             for element in selected:
@@ -422,60 +401,14 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
             row = None
         return row
 
-    def add_reflection_to_table(self, h=0., k=0., l=0., intensity=0., d0=0., d=0., two_theta_0=None,
-                                two_theta=None, q0=None, q=None):
-        self.reflection_table.blockSignals(True)
-        new_row_ind = int(self.reflection_table.rowCount())
-        self.reflection_table.setRowCount(new_row_ind + 1)
-
-        self.reflection_table.setItem(new_row_ind, 0, CenteredQTableWidgetItem(str('{0:g}'.format(h))))
-        self.reflection_table.setItem(new_row_ind, 1, CenteredQTableWidgetItem(str('{0:g}'.format(k))))
-        self.reflection_table.setItem(new_row_ind, 2, CenteredQTableWidgetItem(str('{0:g}'.format(l))))
-        self.reflection_table.setItem(new_row_ind, 3, CenteredQTableWidgetItem(str('{0:g}'.format(intensity))))
-        if two_theta is None or two_theta_0 is None:
-            self.reflection_table.setItem(new_row_ind, 4,
-                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d0))))
-            self.reflection_table.setItem(new_row_ind, 5, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d))))
-        else:
-            self.reflection_table.setItem(new_row_ind, 4,
-                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d0))))
-            self.reflection_table.setItem(new_row_ind, 5,
-                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(two_theta_0))))
-            self.reflection_table.setItem(new_row_ind, 6, CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(d))))
-            self.reflection_table.setItem(new_row_ind, 7,
-                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(two_theta))))
-
-        if q0 is None or q is None:
-            pass
-        else:
-            self.reflection_table.setItem(new_row_ind, 8,
-                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(q0))))
-            self.reflection_table.setItem(new_row_ind, 9,
-                                          CenteredNonEditableQTableWidgetItem(str('{0:.4f}'.format(q))))
-
-        self.reflection_table.resizeColumnsToContents()
-        self.reflection_table.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
-        self.reflection_table.blockSignals(False)
-
-    def remove_reflection_from_table(self, ind):
-        self.reflection_table.blockSignals(True)
-        self.reflection_table.removeRow(ind)
-        self.reflection_table.blockSignals(False)
-
 
 class NoRectDelegate(QtWidgets.QItemDelegate):
-    def __init__(self, parent):
-        super(NoRectDelegate, self).__init__(parent)
-
     def drawFocus(self, painter, option, rect):
         option.state &= ~QtWidgets.QStyle.State_HasFocus
         QtWidgets.QItemDelegate.drawFocus(self, painter, option, rect)
 
 
-class TextDoubleDelegate(QtWidgets.QStyledItemDelegate):
-    def __init__(self, parent):
-        super(TextDoubleDelegate, self).__init__(parent)
-
+class TextDoubleDelegate(NoRectDelegate):
     def createEditor(self, parent, _, model):
         self.editor = QtWidgets.QLineEdit(parent)
         self.editor.setFrame(False)
@@ -483,61 +416,90 @@ class TextDoubleDelegate(QtWidgets.QStyledItemDelegate):
         self.editor.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         return self.editor
 
-    def setEditorData(self, parent, index):
-        value = index.model().data(index, QtCore.Qt.EditRole)
-        if value != '':
-            self.editor.setText("{0:g}".format(float(str(value))))
 
-    def setModelData(self, parent, model, index):
-        value = self.editor.text()
-        model.setData(index, value, QtCore.Qt.EditRole)
+class ReflectionTableModel(QtCore.QAbstractTableModel):
+    reflection_edited = QtCore.Signal(int, int, str)  # row, column, value
 
-    def updateEditorGeometry(self, editor, option, _):
-        editor.setGeometry(option.rect)
+    def __init__(self, reflections=None, wavelength=None):
+        super(ReflectionTableModel, self).__init__()
+        self.wavelength = wavelength
+        if reflections is not None:
+            self.reflections = reflections
+            self.update_reflection_data(reflections)
+        else:
+            self.reflections = []
+        self.header_labels = ['h', 'k', 'l', 'Intensity', 'd0', 'd', u"2θ_0", u"2θ", 'Q0', 'Q']
 
+    def rowCount(self, *_):
+        return len(self.reflections)
 
-class CenteredQTableWidgetItem(QtWidgets.QTableWidgetItem):
-    def __init__(self, value):
-        super(CenteredQTableWidgetItem, self).__init__(value)
-        self.setTextAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+    def columnCount(self, *_):
+        return 10
 
-    def __gt__(self, other):
-        return float(str(self.text()) > float(str(other.text())))
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        col = index.column()
+        if role == QtCore.Qt.TextAlignmentRole:
+            return QtCore.Qt.AlignCenter
+        if role == QtCore.Qt.DisplayRole:
+            if col < 4:
+                format_str = '{0:g}'
+            else:
+                format_str = '{0:.4f}'
+            return format_str.format(self.reflection_data[index.row(), index.column()])
+        else:
+            return QtCore.QVariant()
 
-    def __lt__(self, other):
-        return float(str(self.text())) < float(str(other.text()))
+    def setData(self, index, value, role):
+        self.reflection_edited.emit(index.row(), index.column(), value)
+        return True
 
-    def __ge__(self, other):
-        return float(str(self.text()) >= float(str(other.text())))
+    def update_reflection_data(self, reflections, wavelength=None):
+        if wavelength is None:
+            wavelength = self.wavelength
+        else:
+            self.wavelength = wavelength
 
-    def __le__(self, other):
-        return float(str(self.text())) <= float(str(other.text()))
+        cur_row_num = self.rowCount()
+        row_diff = len(reflections) - cur_row_num
+        if row_diff < 0:
+            self.beginRemoveRows(QtCore.QModelIndex(), cur_row_num + row_diff, cur_row_num - 1)
+        elif row_diff > 0:
+            self.beginInsertRows(QtCore.QModelIndex(), cur_row_num, cur_row_num + row_diff - 1)
 
-    def __eq__(self, other):
-        return float(str(self.text())) == float(str(other.text()))
+        self.reflections = reflections
+        self.reflection_data = np.zeros((len(reflections), self.columnCount()))
+        for i, refl in enumerate(reflections):
+            self.reflection_data[i, 0] = refl.h
+            self.reflection_data[i, 1] = refl.k
+            self.reflection_data[i, 2] = refl.l
+            self.reflection_data[i, 3] = refl.intensity
+            self.reflection_data[i, 4] = refl.d0
+            self.reflection_data[i, 5] = refl.d
 
-    def __ne__(self, other):
-        return float(str(self.text())) != float(str(other.text()))
+        if wavelength is not None:
+            self.reflection_data[:, 6] = convert_d_to_two_theta(self.reflection_data[:, 4], wavelength)  # two_theta0
+            self.reflection_data[:, 7] = convert_d_to_two_theta(self.reflection_data[:, 5], wavelength)  # two_theta
+            valid_ind = np.where(self.reflection_data[:, 4] > 0)
+            self.reflection_data[valid_ind, 8] = 2.0 * np.pi / self.reflection_data[valid_ind, 4]  # q0
+            self.reflection_data[valid_ind, 9] = 2.0 * np.pi / self.reflection_data[valid_ind, 5]  # q
 
+        if row_diff < 0:
+            self.endRemoveRows()
+        elif row_diff > 0:
+            self.endInsertRows()
 
-class CenteredNonEditableQTableWidgetItem(CenteredQTableWidgetItem):
-    def __init__(self, value):
-        super(CenteredNonEditableQTableWidgetItem, self).__init__(value)
-        self.setFlags(self.flags() & ~QtCore.Qt.ItemIsEditable)
+        self.modelReset.emit()
 
+    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int = ...):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self.header_labels[section]
+        if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
+            return section + 1
 
-if __name__ == '__main__':
-    app = QtWidgets.QApplication([])
-    from ...model.util.jcpds import jcpds
-    import os
-
-    test_phase = jcpds()
-    path = os.path.join(os.path.dirname(__file__), '../../')
-    path = os.path.join(path, 'tests', 'data', 'jcpds', 'ag.jcpds')
-    print(os.path.abspath(path))
-    test_phase.load_file(path)
-    widget = JcpdsEditorWidget(None)
-    widget.show_jcpds(test_phase, 0.31)
-    widget.show()
-    widget.raise_()
-    app.exec_()
+    def flags(self, index):
+        col = index.column()
+        ans = QtCore.QAbstractTableModel.flags(self, index)
+        if col <= 3:
+            return QtCore.Qt.ItemIsEditable | ans
+        else:
+            return ans

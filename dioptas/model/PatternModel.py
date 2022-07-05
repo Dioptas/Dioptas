@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,16 +20,15 @@
 
 import logging
 
-from qtpy import QtCore
-
 from math import sqrt
+from .util import Signal
 from .util.HelperModule import FileNameIterator, get_base_name
 from .util import Pattern
 
 logger = logging.getLogger(__name__)
 
 
-class PatternModel(QtCore.QObject):
+class PatternModel(object):
     """
     Main Pattern handling class. Supporting:
         - setting background pattern
@@ -38,7 +37,6 @@ class PatternModel(QtCore.QObject):
 
     all changes to the internal data throw a pattern_changed signal.
     """
-    pattern_changed = QtCore.Signal()
 
     def __init__(self):
         super(PatternModel, self).__init__()
@@ -50,6 +48,8 @@ class PatternModel(QtCore.QObject):
         self.file_name_iterator = FileNameIterator()
 
         self._background_pattern = None
+
+        self.pattern_changed = Signal()
 
     def set_pattern(self, x, y, filename='', unit=''):
         """
@@ -85,85 +85,17 @@ class PatternModel(QtCore.QObject):
         Saves the current data pattern.
         :param filename: where to save
         :param header: you can specify any specific header
-        :param subtract_background: whether or not the background set will be used for saving or not
+        :param subtract_background: whether the background set will be used for saving or not
         """
-        if subtract_background:
-            x, y = self.pattern.data
-        else:
-            x, y = self.pattern._original_x, self.pattern._original_y
+        self.pattern.save(filename, header, subtract_background, self.unit)
 
-        file_handle = open(filename, 'w')
-        num_points = len(x)
-
-        if filename.endswith('.chi'):
-            if header is None or header == '':
-                file_handle.write(filename + '\n')
-                file_handle.write(self.unit + '\n\n')
-                file_handle.write("       {0}\n".format(num_points))
-            else:
-                file_handle.write(header)
-            for ind in range(num_points):
-                file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
-        elif filename.endswith('.fxye'):
-                factor = 100
-                if 'CONQ' in header:
-                    factor = 1
-                header = header.replace('NUM_POINTS', '{0:.6g}'.format(num_points))
-                header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor * x[0]))
-                header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor * (x[1] - x[0])))
-
-                file_handle.write(header)
-                file_handle.write('\n')
-                for ind in range(num_points):
-                    file_handle.write(
-                        '\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor * x[ind], y[ind], sqrt(abs(y[ind]))))
-        else:
-            if header is not None:
-                file_handle.write(header)
-                file_handle.write('\n')
-            for ind in range(num_points):
-                file_handle.write('{0:.9E}  {1:.9E}\n'.format(x[ind], y[ind]))
-        file_handle.close()
-
-    def save_background_as_pattern(self, filename, header=None):
+    def save_auto_background_as_pattern(self, filename, header=None):
         """
-                Saves the current data pattern.
-                :param filename: where to save
-                :param header: you can specify any specific header
+        Saves the current automatic extracted background data pattern to file
+        :param filename: where to save
+        :param header: you can specify any specific header
         """
-        x, y = self.pattern.auto_background_pattern.data
-
-        file_handle = open(filename, 'w')
-        num_points = len(x)
-
-        if filename.endswith('.chi'):
-            if header is None or header == '':
-                file_handle.write(filename + '\n')
-                file_handle.write(self.unit + '\n\n')
-                file_handle.write("       {0}\n".format(num_points))
-            else:
-                file_handle.write(header)
-            for ind in range(num_points):
-                file_handle.write(' {0:.7E}  {1:.7E}\n'.format(x[ind], y[ind]))
-        elif filename.endswith('.fxye'):
-            factor = 100
-            if 'CONQ' in header:
-                factor = 1
-            header = header.replace('NUM_POINTS', '{0:.6g}'.format(num_points))
-            header = header.replace('MIN_X_VAL', '{0:.6g}'.format(factor * x[0]))
-            header = header.replace('STEP_X_VAL', '{0:.6g}'.format(factor * (x[1] - x[0])))
-
-            file_handle.write(header)
-            file_handle.write('\n')
-            for ind in range(num_points):
-                file_handle.write('\t{0:.6g}\t{1:.6g}\t{2:.6g}\n'.format(factor * x[ind], y[ind], sqrt(abs(y[ind]))))
-        else:
-            if header is not None:
-                file_handle.write(header)
-                file_handle.write('\n')
-            for ind in range(num_points):
-                file_handle.write('{0:.9E}  {1:.9E}\n'.format(x[ind], y[ind]))
-        file_handle.close()
+        self.pattern.auto_background_pattern.save(filename, header, unit=self.unit)
 
     def get_pattern(self):
         return self.pattern

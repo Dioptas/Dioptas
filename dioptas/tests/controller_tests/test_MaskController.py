@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -62,26 +62,6 @@ class MaskControllerTest(QtTest):
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
         click_button(self.mask_widget.save_mask_btn)
         self.assertTrue(os.path.exists(filename))
-
-    def test_loading_and_saving_with_super_sampling(self):
-        self.model.mask_model.set_supersampling(2)
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'test.mask'))
-        click_button(self.mask_widget.load_mask_btn)
-
-        self.assertEqual(self.model.mask_model.get_mask().shape[0], 4096)
-        self.assertEqual(self.model.mask_model.get_mask().shape[1], 4096)
-
-        self.assertEqual(self.model.mask_model.get_img().shape[0], 2048)
-        self.assertEqual(self.model.mask_model.get_img().shape[1], 2048)
-
-        self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
-
-        filename = os.path.join(unittest_data_path, 'dummy.mask')
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
-        click_button(self.mask_widget.save_mask_btn)
-        self.assertAlmostEqual(self.get_file_size(filename),
-                               self.get_file_size(os.path.join(unittest_data_path, 'test.mask')),
-                               delta=1000)
 
     def test_grow_and_shrinking(self):
         self.model.mask_model.mask_ellipse(100, 100, 20, 20)

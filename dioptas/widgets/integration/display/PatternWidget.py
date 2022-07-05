@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,8 @@ from qtpy import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets import PatternWidget
-from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem
+from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, \
+    SaveIconButton
 from .... import icons_path
 
 
@@ -40,7 +41,7 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self._top_control_layout = QtWidgets.QHBoxLayout()
         self._top_control_layout.setContentsMargins(8, 8, 0, 0)
 
-        self.save_pattern_btn = FlatButton()
+        self.save_pattern_btn = SaveIconButton()
         self.save_pattern_btn.setToolTip("Save Pattern")
         self.as_overlay_btn = FlatButton('As Overlay')
         self.as_bkg_btn = FlatButton('As Bkg')
@@ -116,17 +117,18 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self.antialias_btn.setChecked(True)
         self.auto_range_btn.setChecked(True)
 
-        self.setStyleSheet("""
-            #pattern_frame, #pattern_right_control_widget, QLabel {
-                background: black;
-                color: yellow;
-            }
-            #pattern_right_control_widget QPushButton{
-                padding: 0px;
-	            padding-right: 1px;
-	            border-radius: 3px;
-            }
-	    """)
+        self.setStyleSheet(
+            """
+                #pattern_frame, #pattern_right_control_widget, QLabel {
+                    background: black;
+                    color: yellow;
+                }
+                #pattern_right_control_widget QPushButton{
+                    padding: 0px;
+                    padding-right: 1px;
+                    border-radius: 3px;
+                }
+            """)
 
         right_controls_button_width = 25
         self.tth_btn.setMaximumWidth(right_controls_button_width)
@@ -137,6 +139,5 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self.antialias_btn.setMaximumWidth(right_controls_button_width)
         self.auto_range_btn.setMaximumWidth(right_controls_button_width)
 
-        self.save_pattern_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
         self.save_pattern_btn.setIconSize(QtCore.QSize(13, 13))
         self.save_pattern_btn.setMaximumWidth(right_controls_button_width)

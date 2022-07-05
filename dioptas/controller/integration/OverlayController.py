@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -259,7 +259,7 @@ class OverlayController(object):
         background or unset if it already. Any other overlay which was set before as bkg will
         """
         cur_ind = self.overlay_widget.get_selected_overlay_row()
-        if cur_ind is -1:  # no overlay selected
+        if cur_ind == -1:  # no overlay selected
             self.overlay_widget.set_as_bkg_btn.setChecked(False)
             return
 

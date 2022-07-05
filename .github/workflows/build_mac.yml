@@ -1,0 +1,75 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CD_MACOS
+
+on: [push]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build_macos:
+    # The type of runner that the job will run on
+    runs-on: macos-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+
+    - name: Use Miniconda
+      uses: s-weigand/setup-conda@v1
+
+    - name: switch to python=3.8 and install pip
+      run: conda install python=3.10 pip -y
+
+    - name: Install Pip Dependencies
+      run: |
+        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics \
+                    pyinstaller cython watchdog h5py hdf5plugin pyqtgraph sharedmem \
+                    cython
+    - name: Update Pyinstaller Hooks
+      run: |
+        pip uninstall pyinstaller-hooks-contrib -y
+        git clone https://github.com/pyinstaller/pyinstaller-hooks-contrib.git
+        cd pyinstaller-hooks-contrib
+        python setup.py install
+        cd ..
+
+    - name: Compile Smooth Bruckner
+      run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
+
+    - name: Run Dioptas from source to test and create version file
+      run: python Dioptas.py test
+
+    - name: Run PyInstaller
+      run: bash create_executable.sh
+
+#    - name: Clean Up Executable Folder
+#      run: |
+#        cd dist/Dioptas*
+#        cd Contents/MacOS
+#        rm QtQuick QtQml QtQmlmodels QtNetwork QtWebSockets
+#        rm -r imageio matplotlib
+
+    - name: Run Dioptas Executable
+      run: |
+        cd dist/Dioptas*
+        cd Contents/MacOS
+        ./run_dioptas test
+
+    - name: Compress App
+      run: |
+        cd dist
+        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
+        echo $DIOPTAS_FOLDER
+        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
+        du -sh $DIOPTAS_FOLDER.zip
+
+    - name: Upload Compressed App to Dropbox
+      env:
+        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+      run: |
+        pip install dropbox
+        cd dist
+        export compressedFile=$(ls | grep .zip)
+        export targetFile='/develop/macos/'$compressedFile
+        python ../scripts/dropbox_upload.py $compressedFile $targetFile

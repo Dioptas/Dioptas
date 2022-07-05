@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -375,7 +375,7 @@ class MaskController(object):
                                                  img_filename + '.mask'),
                                     filter='Mask (*.mask)')
 
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['mask'] = os.path.dirname(filename)
             self.model.mask_model.save_mask(filename)
 
@@ -383,7 +383,7 @@ class MaskController(object):
         filename = open_file_dialog(self.widget, caption="Load mask data",
                                     directory=self.model.working_directories['mask'], filter='*.mask')
 
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['mask'] = os.path.dirname(filename)
             if self.model.mask_model.load_mask(filename):
                 self.plot_mask()
@@ -396,7 +396,7 @@ class MaskController(object):
         filename = open_file_dialog(self.widget, caption="Add mask data",
                                     directory=self.model.working_directories['mask'], filter='*.mask')
 
-        if filename is not '':
+        if filename != '':
             self.model.working_directories['mask'] = os.path.dirname(filename)
             if self.model.mask_model.add_mask(filename):
                 self.plot_mask()

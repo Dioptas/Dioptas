@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 import os
 import json
+import datetime
 from sys import platform as _platform
 
 from qtpy import QtWidgets, QtCore
@@ -45,6 +46,7 @@ class MainController(object):
 
         self.use_settings = use_settings
         self.widget = MainWidget()
+        self.old_hist_levels = [None, None, None]
 
         # create data
         if settings_directory == 'default':
@@ -134,20 +136,21 @@ class MainController(object):
 
         # get the old view range
         old_view_range = None
-        old_hist_levels = None
         if old_index == 0:  # calibration tab
             old_view_range = self.widget.calibration_widget.img_widget.img_view_box.targetRange()
             old_hist_levels = self.widget.calibration_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
+            self.old_hist_levels[0] = old_hist_levels
         elif old_index == 1:  # mask tab
             old_view_range = self.widget.mask_widget.img_widget.img_view_box.targetRange()
             old_hist_levels = self.widget.mask_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
+            self.old_hist_levels[1] = old_hist_levels
         elif old_index == 2:
             old_view_range = self.widget.integration_widget.img_widget.img_view_box.targetRange()
             old_hist_levels = self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
+            self.old_hist_levels[2] = old_hist_levels
 
-        # update the GUI
+            # update the GUI
         if ind == 2:  # integration tab
-            self.model.mask_model.set_supersampling()
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
             self.integration_controller.widget.wavelength_lbl.setText(
@@ -164,13 +167,22 @@ class MainController(object):
             else:
                 self.model.pattern_changed.emit()
             self.widget.integration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
-            self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.setLevels(*old_hist_levels)
-            self.widget.integration_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
+            if self.old_hist_levels[2]:
+                self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.setLevels(
+                    *(self.old_hist_levels[2]))
+                self.widget.integration_widget.img_widget.img_histogram_LUT_vertical.setLevels(
+                    *(self.old_hist_levels[2]))
+            else:
+                self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.setLevels(*old_hist_levels)
+                self.widget.integration_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
         elif ind == 1:  # mask tab
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
             self.widget.mask_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
-            self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
+            if self.old_hist_levels[1]:
+                self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.setLevels(*(self.old_hist_levels[1]))
+            else:
+                self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
         elif ind == 0:  # calibration tab
             self.calibration_controller.plot_mask()
             try:
@@ -178,7 +190,11 @@ class MainController(object):
             except (TypeError, AttributeError):
                 pass
             self.widget.calibration_widget.img_widget.set_range(x_range=old_view_range[0], y_range=old_view_range[1])
-            self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
+            if self.old_hist_levels[0]:
+                self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.setLevels(
+                    *(self.old_hist_levels[0]))
+            else:
+                self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.setLevels(*old_hist_levels)
 
     def update_title(self):
         """
@@ -188,24 +204,25 @@ class MainController(object):
         img_filename = os.path.basename(self.model.img_model.filename)
         pattern_filename = os.path.basename(self.model.pattern.filename)
         calibration_name = self.model.calibration_model.calibration_name
+        year = datetime.datetime.now().year
         str = 'Dioptas ' + __version__
-        if img_filename is '' and pattern_filename is '':
-            self.widget.setWindowTitle(str + u' - © 2019 C. Prescher')
-            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © 2019 C. Prescher')
+        if img_filename == '' and pattern_filename == '':
+            self.widget.setWindowTitle(str + u' - © {} C. Prescher'.format(year))
+            self.widget.integration_widget.img_frame.setWindowTitle(str + u' - © {} C. Prescher'.format(year))
             return
 
-        if img_filename is not '' or pattern_filename is not '':
+        if img_filename != '' or pattern_filename != '':
             str += ' - ['
-        if img_filename is not '':
+        if img_filename != '':
             str += img_filename
-        elif img_filename is '' and pattern_filename is not '':
+        elif img_filename == '' and pattern_filename != '':
             str += pattern_filename
         if not img_filename == pattern_filename:
             str += ', ' + pattern_filename
         if calibration_name is not None:
             str += ', calibration: ' + calibration_name
         str += ']'
-        str += u' - © 2019 C. Prescher'
+        str += u' - © {} C. Prescher'.format(year)
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 

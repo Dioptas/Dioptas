@@ -3,7 +3,7 @@
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
-# Copyright (C) 2019 DESY, Hamburg, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,26 +20,26 @@
 
 import os
 import numpy as np
-from qtpy import QtCore
 
 from copy import deepcopy
 
 import h5py
 
+from .util import Signal
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 from .util import Pattern
 from .util.calc import convert_units
-from . import ImgModel, CalibrationModel, MaskModel, PatternModel
+from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
+from .CalibrationModel import DetectorModes
 
 
-class Configuration(QtCore.QObject):
+class Configuration(object):
     """
     The configuration class contains a working combination of an ImgModel, PatternModel, MaskModel and CalibrationModel.
     It does handles the core data manipulation of Dioptas.
     The management of multiple Configurations is done by the DioptasModel.
     """
-    cake_changed = QtCore.Signal()
 
     def __init__(self, working_directories=None):
         super(Configuration, self).__init__()
@@ -47,11 +47,12 @@ class Configuration(QtCore.QObject):
         self.img_model = ImgModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
+        self.batch_model = BatchModel(self.calibration_model, self.mask_model)
         self.pattern_model = PatternModel()
 
         if working_directories is None:
             self.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"), 'pattern': '',
-                                        'overlay': '', 'phase': ''}
+                                        'overlay': '', 'phase': '', 'batch': os.path.expanduser("~")}
         else:
             self.working_directories = working_directories
 
@@ -61,6 +62,7 @@ class Configuration(QtCore.QObject):
 
         self._integration_rad_points = None
         self._integration_unit = '2th_deg'
+        self._oned_azimuth_range = None
 
         self._cake_azimuth_points = 360
         self._cake_azimuth_range = None
@@ -71,6 +73,7 @@ class Configuration(QtCore.QObject):
         self.auto_save_integrated_pattern = False
         self.integrated_patterns_file_formats = ['.xy']
 
+        self.cake_changed = Signal()
         self._connect_signals()
 
     def _connect_signals(self):
@@ -87,15 +90,13 @@ class Configuration(QtCore.QObject):
         """
         if self.calibration_model.is_calibrated:
             if self.use_mask:
-                if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
-                    self.mask_model.set_supersampling(self.img_model.supersampling_factor)
                 mask = self.mask_model.get_mask()
             elif self.mask_model.roi is not None:
                 mask = self.mask_model.roi_mask
             else:
                 mask = None
 
-            x, y = self.calibration_model.integrate_1d(mask=mask, unit=self.integration_unit,
+            x, y = self.calibration_model.integrate_1d(azi_range=self.oned_azimuth_range, mask=mask, unit=self.integration_unit,
                                                        num_points=self.integration_rad_points)
 
             self.pattern_model.set_pattern(x, y, self.img_model.filename, unit=self.integration_unit)  #
@@ -110,8 +111,6 @@ class Configuration(QtCore.QObject):
         Integrates the image in the ImageModel to a Cake.
         """
         if self.use_mask:
-            if self.mask_model.supersampling_factor != self.img_model.supersampling_factor:
-                self.mask_model.set_supersampling(self.img_model.supersampling_factor)
             mask = self.mask_model.get_mask()
         elif self.mask_model.roi is not None:
             mask = self.mask_model.roi_mask
@@ -129,6 +128,7 @@ class Configuration(QtCore.QObject):
         """
         Saves the current integrated pattern. The format depends on the file ending. Possible file formats:
             [*.xy, *.chi, *.dat, *.fxye]
+        :param filename: where to save the file
         :param subtract_background: flat whether the pattern should be saved with or without subtracted background
         """
         if filename is None:
@@ -152,9 +152,9 @@ class Configuration(QtCore.QObject):
             filename = self.img_model.filename
 
         if filename.endswith('.xy'):
-            self.pattern_model.save_background_as_pattern(filename, header=self._create_xy_header())
+            self.pattern_model.save_auto_background_as_pattern(filename, header=self._create_xy_header())
         elif filename.endswith('.fxye'):
-            self.pattern_model.save_background_as_pattern(filename, header=self._create_fxye_header(filename))
+            self.pattern_model.save_auto_background_as_pattern(filename, header=self._create_fxye_header(filename))
         else:
             self.pattern_model.save_pattern(filename)
 
@@ -246,6 +246,16 @@ class Configuration(QtCore.QObject):
             self.integrate_image_2d()
 
     @property
+    def oned_azimuth_range(self):
+        return self._oned_azimuth_range
+
+    @oned_azimuth_range.setter
+    def oned_azimuth_range(self, new_value):
+        self._oned_azimuth_range = new_value
+        if self.auto_integrate_pattern:
+            self.integrate_image_1d()
+
+    @property
     def integration_unit(self):
         return self._integration_unit
 
@@ -286,11 +296,15 @@ class Configuration(QtCore.QObject):
         :param old_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
         :param new_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
         """
-        self.pattern_model.pattern.auto_background_subtraction_parameters = \
-            convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
+        par_0 = convert_units(self.pattern_model.pattern.auto_background_subtraction_parameters[0],
                           self.calibration_model.wavelength,
                           old_unit,
-                          new_unit), \
+                          new_unit)
+        # Value of 0.1 let background subtraction algorithm work without crash.
+        if np.isnan(par_0):
+            par_0 = 0.1
+        self.pattern_model.pattern.auto_background_subtraction_parameters = \
+            par_0, \
             self.pattern_model.pattern.auto_background_subtraction_parameters[1], \
             self.pattern_model.pattern.auto_background_subtraction_parameters[2]
 
@@ -403,7 +417,7 @@ class Configuration(QtCore.QObject):
                 working_directories_gp.attrs[key] = self.working_directories[key]
         except TypeError:
             self.working_directories = {'calibration': '', 'mask': '', 'image': '', 'pattern': '', 'overlay': '',
-                                        'phase': ''}
+                                        'phase': '', 'batch': ''}
             for key in self.working_directories:
                 working_directories_gp.attrs[key] = self.working_directories[key]
 
@@ -416,11 +430,11 @@ class Configuration(QtCore.QObject):
         image_group.attrs['background_offset'] = self.img_model.background_offset
         image_group.attrs['background_scaling'] = self.img_model.background_scaling
         if self.img_model.has_background():
-            background_data = self.img_model.background_data
-            # remove image transformations
-            for transformation in reversed(self.img_model.img_transformations):
-                background_data = transformation(background_data)
+            background_data = self.img_model.untransformed_background_data
             image_group.create_dataset('background_data', background_data.shape, 'f', background_data)
+
+        image_group.attrs['series_max'] = self.img_model.series_max
+        image_group.attrs['series_pos'] = self.img_model.series_pos
 
         # image corrections
         corrections_group = image_group.create_group('corrections')
@@ -443,10 +457,7 @@ class Configuration(QtCore.QObject):
 
         # the actual image
         image_group.attrs['filename'] = self.img_model.filename
-        current_raw_image = np.copy(self.img_model.raw_img_data)
-        # remove image transformations
-        for transformation in reversed(self.img_model.img_transformations):
-            current_raw_image = transformation(current_raw_image)
+        current_raw_image = self.img_model.untransformed_raw_img_data
 
         raw_image_data = image_group.create_dataset('raw_image_data', current_raw_image.shape, dtype='f')
         raw_image_data[...] = current_raw_image
@@ -468,6 +479,15 @@ class Configuration(QtCore.QObject):
         current_mask = self.mask_model.get_mask()
         mask_data = mask_group.create_dataset('data', current_mask.shape, dtype=bool)
         mask_data[...] = current_mask
+
+        # save detector information
+        detector_group = f.create_group('detector')
+        detector_mode = self.calibration_model.detector_mode
+        detector_group.attrs['detector_mode'] = detector_mode.value
+        if detector_mode == DetectorModes.PREDEFINED:
+            detector_group.attrs['detector_name'] = self.calibration_model.detector.name
+        elif detector_mode == DetectorModes.NEXUS:
+            detector_group.attrs['nexus_filename'] =self.calibration_model.detector.filename
 
         # save calibration model
         calibration_group = f.create_group('calibration_model')
@@ -584,6 +604,18 @@ class Configuration(QtCore.QObject):
         except KeyError:
             pass
 
+        # load detector definition
+        try:
+            detector_mode = f.get('detector').attrs['detector_mode']
+            if detector_mode == DetectorModes.PREDEFINED.value:
+                detector_name = f.get('detector').attrs['detector_name']
+                self.calibration_model.load_detector(detector_name)
+            elif detector_mode == DetectorModes.NEXUS.value:
+                nexus_filename = f.get('detector').attrs['nexus_filename']
+                self.calibration_model.load_detector_from_file(nexus_filename)
+        except AttributeError: # to ensure backwards compatibility
+            pass
+
         # load img_model
         self.img_model._img_data = np.copy(f.get('image_model').get('raw_image_data')[...])
         filename = f.get('image_model').attrs['filename']
@@ -599,6 +631,12 @@ class Configuration(QtCore.QObject):
         self.img_model.autoprocess_changed.emit()
         self.img_model.factor = f.get('image_model').attrs['factor']
 
+        try:
+            self.img_model.series_max = f.get('image_model').attrs['series_max']
+            self.img_model.series_pos = f.get('image_model').attrs['series_pos']
+        except KeyError:
+            pass
+
         if f.get('image_model').attrs['has_background']:
             self.img_model.background_data = np.copy(f.get('image_model').get('background_data')[...])
             self.img_model.background_filename = f.get('image_model').attrs['background_filename']
@@ -610,6 +648,7 @@ class Configuration(QtCore.QObject):
         transformation_list = []
         for key, transformation in transformation_group.attrs.items():
             transformation_list.append(transformation)
+        self.calibration_model.load_transformations_string_list(transformation_list)
         self.img_model.load_transformations_string_list(transformation_list)
 
         # load roi data
