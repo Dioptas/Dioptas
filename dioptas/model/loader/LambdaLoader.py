@@ -23,6 +23,22 @@ import h5py
 import re
 
 
+def first(array):
+    """  get first element if the only
+
+    :param array: numpy array
+    :type array: :class:`numpy.ndarray`
+    :returns: first element of the array
+    :type array: :obj:`any`
+    """
+    try:
+        if isinstance(array, np.ndarray) and len(array) == 1:
+            return array[0]
+    except Exception:
+        pass
+    return array[...]
+
+
 class LambdaImage:
     def __init__(self, filename=None, file_list=None):
         """
@@ -48,7 +64,7 @@ class LambdaImage:
 
         for identifier in detector_identifiers:
             try:
-                if nx_file[identifier[0]][0] == identifier[1]:
+                if first(nx_file[identifier[0]]) == identifier[1]:
                     break
             except KeyError:
                 pass
@@ -98,4 +114,3 @@ class LambdaImage:
                 image_nr]
 
         return image[::-1]
-
