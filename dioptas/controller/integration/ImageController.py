@@ -214,7 +214,7 @@ class ImageController(object):
 
         self.widget.qa_save_img_btn.clicked.connect(self.save_img)
         self.widget.load_calibration_btn.clicked.connect(self.load_calibration)
-        self.connect_click_function(self.widget.set_wavelnegth_btn, self.set_wavelength)
+        self.widget.set_wavelnegth_btn.clicked.connect(self.set_wavelength)
 
         # signals
         self.widget.change_view_btn.clicked.connect(self.change_view_btn_clicked)
