@@ -69,5 +69,5 @@ jobs:
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_functional_integration.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_img_bg.py
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_save_and_load_project.py
+    #    QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_save_and_load_project.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_userinterface.py
