@@ -96,6 +96,9 @@ class ProjectSaveLoadTest(QtTest):
         delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.chi'))
         delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
         delete_if_exists(config_file_path)
+        self.resetState()
+
+    def resetState(self):
         if self.model.calibration_model.cake_geometry is not None:
             self.model.calibration_model.cake_geometry.reset()
         self.model.calibration_model.pattern_geometry.reset()
@@ -126,6 +129,7 @@ class ProjectSaveLoadTest(QtTest):
         del self.model
         gc.collect()
 
+
     def load_image(self, file_name):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[file_name])
         click_button(self.controller.integration_controller.widget.load_img_btn)  # load file
@@ -146,6 +150,7 @@ class ProjectSaveLoadTest(QtTest):
                 self.model.reset()
                 self.model.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"),
                                                   'pattern': '', 'overlay': '', 'phase': ''}
+                self.resetState()
                 self.setUp()
                 if intermediate_function:
                     intermediate_function()
@@ -159,6 +164,7 @@ class ProjectSaveLoadTest(QtTest):
             self.model.reset()
             self.model.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"),
                                               'pattern': '', 'overlay': '', 'phase': ''}
+            self.resetState()
             self.setUp()
             if intermediate_function:
                 intermediate_function()
