@@ -52,8 +52,8 @@ class UserInterFaceTest(QtTest):
         self.integration_widget = self.controller.widget.integration_widget
 
         self.integration_controller = self.controller.integration_controller
-        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
 
         self.integration_pattern_controller = self.integration_controller.pattern_controller
         self.integration_image_controller = self.integration_controller.image_controller
