@@ -3,9 +3,7 @@ import os
 import numpy as np
 
 from ..utility import QtTest, delete_if_exists
-from ...model.CalibrationModel import CalibrationModel
-from ...model.ImgModel import ImgModel
-from ...model.MaskModel import MaskModel
+from ...model.Configuration import Configuration
 from ...model.BatchModel import BatchModel
 
 import gc
@@ -20,21 +18,20 @@ cal_file = os.path.join(data_path, 'lambda/L2.poni')
 
 class BatchModelTest(QtTest):
     def setUp(self):
-        self.img_model = ImgModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.calibration_model.load(cal_file)
-        self.mask_model = MaskModel()
-        self.mask_model.mode = False
-        self.batch_model = BatchModel(self.calibration_model, self.mask_model)
+        self.configuration = Configuration()
+        self.configuration.calibration_model.load(cal_file)
+        self.configuration.mask_model.mode = False
+        self.batch_model = BatchModel(self.configuration)
         self.batch_model.set_image_files(files)
 
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'detector_with_spline.h5'))
         delete_if_exists(os.path.join(data_path, "test_save_proc.nxs"))
-        del self.img_model
-        del self.calibration_model.pattern_geometry
-        del self.calibration_model
-        del self.mask_model
+        del self.configuration.img_model
+        del self.configuration.calibration_model.pattern_geometry
+        del self.configuration.calibration_model
+        del self.configuration.mask_model
+        del self.configuration
         del self.batch_model
         gc.collect()
 
@@ -66,7 +63,7 @@ class BatchModelTest(QtTest):
     def test_load_image(self):
         index = 10
         self.batch_model.load_image(index, use_all=True)
-        self.assertEqual(self.img_model.img_data.shape, (1833, 1556))
+        self.assertEqual(self.configuration.img_model.img_data.shape, (1833, 1556))
 
     def test_saving_loading(self):
         num_points = 1500

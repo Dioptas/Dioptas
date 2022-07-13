@@ -20,10 +20,11 @@ from qtpy import QtCore
 import numpy as np
 import re
 
+from .BatchModel import BatchModel
 from .util.Pattern import Pattern
 
 
-class MapModel(QtCore.QObject):
+class MapModel(BatchModel):
     """
     Model for 2D maps from multiple pattern.
     """
@@ -32,8 +33,8 @@ class MapModel(QtCore.QObject):
     map_problem = QtCore.Signal()
     roi_problem = QtCore.Signal()
 
-    def __init__(self):
-        super(MapModel, self).__init__()
+    def __init__(self, configuration):
+        super(MapModel, self).__init__(configuration)
 
         self.map = Map()
         self.theta_center = 5.9
@@ -42,13 +43,32 @@ class MapModel(QtCore.QObject):
         self.rois = []
         self.roi_math = ''
 
+        self.possible_dimensions = []
+        self.dimension_index = 0
+
         # Background for image
         self.bg_image = np.zeros([1920, 1200])
 
     def reset(self):
+        self.reset_data()
         self.map.reset()
         self.reset_rois()
+        self.possible_dimensions = []
         self.map_cleared.emit()
+
+    def load_img_map(self, filenames, callback_fn=None):
+        self.set_image_files(filenames)
+        self.integrate_raw_data(0, len(filenames), 1, use_all=True, callback_fn=callback_fn)
+
+        self.configuration.img_model.blockSignals(True)
+
+        for n in range(self.data.shape[0]):
+            self.add_map_point(None, Pattern(self.binning, self.data[n, :]), img_filename=filenames[n])
+
+        self.possible_dimensions = find_possible_dimensions(self.data.shape[0])
+        self.map.set_manual_positions(0, 0, 1, 1, self.possible_dimensions[0][0], self.possible_dimensions[0][1], True)
+
+        self.configuration.img_model.blockSignals(False)
 
     def add_map_point(self, pattern_filename, pattern, position=None, img_filename=None):
         """
@@ -199,7 +219,7 @@ class Map:
         return sorted(self.points, key=lambda point: [int(t) if t.isdigit() else t.lower() for t in
                                                       re.split('(\\d+)', point.pattern_filename)])
 
-    def add_manual_positions(self, min_x, min_y, diff_x, diff_y, num_x, num_y, is_hor_first):
+    def set_manual_positions(self, min_x, min_y, diff_x, diff_y, num_x, num_y, is_hor_first):
         """
         Args:
             min_x: Horizontal minimum position
@@ -337,7 +357,7 @@ class Roi:
 
     def ind_in_roi(self, x_array):
         """
-        Gets the indices of an numpy array which are in the ROI
+        Gets the indices of a numpy array which are in the ROI
         :param x_array: a numpy array
         :return: list of indices
         """
@@ -350,3 +370,16 @@ class Roi:
     @property
     def range(self):
         return self.end - self.start
+
+
+def find_possible_dimensions(num_points):
+    dimension_pairs = []
+    for n in range(1, int(np.floor(np.sqrt(num_points + 1))) + 1):
+        if num_points % n == 0:
+            dim1 = n
+            dim2 = num_points // n
+            dimension_pairs.append((dim1, dim2))
+            if dim1 != dim2:
+                dimension_pairs.append((dim2, dim1))
+    dimension_pairs.sort(key=lambda x: ((x[0]+x[1])/2 - np.sqrt(num_points)) ** 2)
+    return dimension_pairs

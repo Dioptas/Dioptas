@@ -46,7 +46,6 @@ class DioptasModel(object):
 
         self._overlay_model = OverlayModel()
         self._phase_model = PhaseModel()
-        self.map_model = MapModel()
 
         self._combine_patterns = False
         self._combine_cakes = False
@@ -314,6 +313,13 @@ class DioptasModel(object):
         :rtype: BatchModel
         """
         return self.configurations[self.configuration_ind].batch_model
+
+    @property
+    def map_model(self):
+        """
+        :rtype: MapModel
+        """
+        return self.configurations[self.configuration_ind].map_model
 
     @property
     def use_mask(self):
