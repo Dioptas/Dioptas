@@ -332,7 +332,7 @@ class PatternController(object):
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
 
-        self.model.map_model.theta_center = self.get_line_tth()  # MAP2D
+        self.model.map_model.theta_center = tth_clicked
         try:
             self.model.map_model.wavelength = self.model.calibration_model.wavelength
         except RuntimeWarning:

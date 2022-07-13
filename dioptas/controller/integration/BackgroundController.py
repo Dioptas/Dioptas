@@ -162,10 +162,10 @@ class BackgroundController(object):
             self.background_widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
             self.background_widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
 
-            self.widget.pattern_widget.linear_region_item.blockSignals(True)
+            self.widget.pattern_widget.bkg_roi.blockSignals(True)
             bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
-            self.widget.pattern_widget.set_linear_region(*bkg_roi)
-            self.widget.pattern_widget.linear_region_item.blockSignals(False)
+            self.widget.pattern_widget.set_bkg_roi(*bkg_roi)
+            self.widget.pattern_widget.bkg_roi.blockSignals(False)
 
             if self.model.batch_model.binning is not None:
                 start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range

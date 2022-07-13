@@ -133,39 +133,27 @@ class MapController(object):
                 if not self.model.calibration_model.is_calibrated:
                     self.widget.show_error_msg("Can not integrate multiple images without calibration.")
                     return
-                working_directory = self._get_map_working_directory()
-                if working_directory is '':
-                    return
 
                 self.map_model.map_uses_patterns = False
+                self.model.blockSignals()
 
-                self.model.blockSignals(True)
                 progress_dialog = self.widget.get_progress_dialog("Integrating multiple files.", "Abort Integration",
                                                                   len(filenames))
 
-                for ind, filename in enumerate(filenames):
-                    base_filename = os.path.basename(filename)
-
-                    progress_dialog.setValue(ind)
-                    progress_dialog.setLabelText("Integrating: " + base_filename)
-
-                    self.model.img_model.blockSignals(True)
-                    self.model.img_model.load(filename)
-                    self.model.img_model.blockSignals(False)
-
-                    pattern_path = self._integrate_and_save_pattern(working_directory, base_filename)
-                    self.map_model.add_map_point(pattern_path,
-                                                 self.model.pattern,
-                                                 (self.model.img_model.motors_info['Horizontal'],
-                                                  self.model.img_model.motors_info['Vertical']),
-                                                 img_filename=filename)
-
-                    QtWidgets.QApplication.processEvents()
+                def callback_fn(current_index):
                     if progress_dialog.wasCanceled():
-                        self.map_model.reset()
-                        break
+                        return False
+                    progress_dialog.setValue(current_index)
+                    QtWidgets.QApplication.processEvents()
+                    return ~progress_dialog.wasCanceled()
 
-                progress_dialog.close()
+                self.map_model.load_img_map(filenames, callback_fn)
+
+                    # self.map_model.add_map_point(pattern_path,
+                    #                              self.model.pattern,
+                    #                              (self.model.img_model.motors_info['Horizontal'],
+                    #                               self.model.img_model.motors_info['Vertical']),
+                    #                              img_filename=filename)
                 self.model.blockSignals(False)
                 self.model.img_changed.emit()
                 self.model.pattern_changed.emit()
@@ -215,19 +203,24 @@ class MapController(object):
 
         if pattern_filename:
             self.model.pattern_model.load_pattern(pattern_filename)
+            self.model.current_configuration.auto_integrate_pattern = False
 
         if img_filename:
-            self.model.current_configuration.auto_integrate_pattern = False
             self.model.img_model.load(img_filename)
+
+        if pattern_filename:
             self.model.current_configuration.auto_integrate_pattern = True
 
     def map_mouse_moved(self, x, y):
         try:
             position = self.map_model.map.position_from_xy(x, y)
             self.map_widget.map_pos_lbl.setText("{} {}".format(*position))
-            filename, _ = self.map_model.map.filenames_from_position(position)
-            if filename:
-                self.map_widget.map_filename_lbl.setText("{}".format(os.path.basename(filename)))
+            pattern_filename, img_filename = self.map_model.map.filenames_from_position(position)
+            if pattern_filename:
+                self.map_widget.map_filename_lbl.setText("{}".format(os.path.basename(pattern_filename)))
+            elif img_filename:
+                self.map_widget.map_filename_lbl.setText("{}".format(os.path.basename(img_filename)))
+
         except AttributeError:
             pass
 

@@ -22,7 +22,9 @@ import os
 import numpy as np
 import random
 
-from ...model.MapModel import MapModel, Map, Pattern, Roi
+from ...model import ImgModel, CalibrationModel, MaskModel
+from ...model.Configuration import Configuration
+from ...model.MapModel import MapModel, Map, Pattern, Roi, find_possible_dimensions
 from ..utility import unittest_data_path
 
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
@@ -140,7 +142,7 @@ class MapTest(unittest.TestCase):
         num_x = 3
         num_y = 3
 
-        self.map.add_manual_positions(min_x, min_y, diff_x, diff_y, num_x,
+        self.map.set_manual_positions(min_x, min_y, diff_x, diff_y, num_x,
                                       num_y, is_hor_first=True)
         self.assertAlmostEqual(self.map.points[0].position[0], 0.2)
         self.assertAlmostEqual(self.map.points[0].position[1], -0.15)
@@ -151,7 +153,7 @@ class MapTest(unittest.TestCase):
 
         self.assertTrue(self.map.all_positions_defined())
 
-        self.map.add_manual_positions(min_x, min_y, diff_x, diff_y, num_x,
+        self.map.set_manual_positions(min_x, min_y, diff_x, diff_y, num_x,
                                       num_y, is_hor_first=False)
         self.assertAlmostEqual(self.map.points[0].position[0], 0.2)
         self.assertAlmostEqual(self.map.points[0].position[1], -0.15)
@@ -202,6 +204,19 @@ class MapTest(unittest.TestCase):
         self.assertEqual(self.map.filenames_from_position((0, -0.004)),
                          (map_pattern_file_paths[1], None))
 
+    def test_find_possible_dimensions(self):
+        self.assertEqual(find_possible_dimensions(9), [(3, 3), (1, 9), (9, 1)])
+        self.assertEqual(find_possible_dimensions(12), [(3, 4), (4, 3), (2, 6), (6, 2), (1, 12), (12, 1)])
+        self.assertEqual(find_possible_dimensions(24),
+                         [(4, 6), (6, 4), (3, 8), (8, 3), (2, 12), (12, 2), (1, 24), (24, 1)])
+        self.assertEqual(find_possible_dimensions(100),
+                         [(10, 10), (5, 20), (20, 5), (4, 25), (25, 4), (2, 50), (50, 2), (1, 100), (100, 1)])
+
+        self.assertEqual(find_possible_dimensions(40 ** 2),
+                         [(40, 40), (32, 50), (50, 32), (25, 64), (64, 25), (20, 80), (80, 20), (16, 100), (100, 16),
+                          (10, 160), (160, 10), (8, 200), (200, 8), (5, 320), (320, 5), (4, 400), (400, 4), (2, 800),
+                          (800, 2), (1, 1600), (1600, 1)])
+
 
 class RoiTest(unittest.TestCase):
     def setUp(self):
@@ -229,7 +244,8 @@ class RoiTest(unittest.TestCase):
 
 class MapModelTest(unittest.TestCase):
     def setUp(self):
-        self.map_model = MapModel()
+        self.configuration = Configuration()
+        self.map_model = MapModel(self.configuration)
         self.img = np.zeros((10, 10))
 
         self.maxDiff = None  # to enable large comparisons
@@ -279,3 +295,16 @@ class MapModelTest(unittest.TestCase):
         self.map_model.add_roi(7, 9, 'A')
         self.map_model.calculate_map_data()
 
+    def test_load_images(self):
+        self.configuration.img_model.load(map_img_file_paths[0])
+        self.configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+        self.map_model.load_img_map(map_img_file_paths)
+        self.assertEqual(self.map_model.data.shape[0], len(map_pattern_file_paths))
+        self.assertEqual(len(self.map_model.map.points), len(map_pattern_file_paths))
+        self.assertEqual(self.map_model.possible_dimensions, [(3, 3), (1, 9), (9, 1)])
+        self.assertTrue(self.map_model.map.all_positions_defined())
+
+        self.map_model.add_roi(4, 6, "interactive")
+        self.map_model.calculate_map_data()
+
+        print(self.map_model.map.filenames_from_position((1, 1)))
