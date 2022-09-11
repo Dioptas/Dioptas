@@ -844,10 +844,11 @@ class ImageController(object):
     def update_mouse_position_labels(self, x, y, intensity):
         x_pos_string = 'X:  %4d' % x
         y_pos_string = 'Y:  %4d' % y
-        if intensity is None:
-            int_string = 'I:'
-        else:
+
+        try:
             int_string = 'I:   %5d' % intensity
+        except (ValueError, TypeError, OverflowError):
+            int_string = 'I:'
 
         self.widget.mouse_x_lbl.setText(x_pos_string)
         self.widget.mouse_y_lbl.setText(y_pos_string)
