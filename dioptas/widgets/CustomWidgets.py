@@ -52,6 +52,16 @@ class LabelAlignRight(QtWidgets.QLabel):
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
+class LabelExpandable(QtWidgets.QLineEdit):
+    def __init__(self, *args, **kwargs):
+        super(LabelExpandable, self).__init__(*args, **kwargs)
+        self.setStyleSheet("""
+            color: #F1F1F1;
+            background: #3C3C3C;
+        """)
+        self.setReadOnly(True)
+
+
 class CleanLooksComboBox(QtWidgets.QComboBox):
     cleanlooks = QtWidgets.QStyleFactory.create('motif')
 

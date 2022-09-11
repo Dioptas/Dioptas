@@ -175,4 +175,3 @@ class BatchControllerTest(QtTest):
 
     def test_normalize(self):
         click_button(self.widget.batch_widget.control_widget.normalize_btn)
-        
