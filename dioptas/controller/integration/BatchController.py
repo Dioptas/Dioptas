@@ -82,6 +82,7 @@ class BatchController(object):
         self.widget.batch_widget.options_widget.bkg_cut_btn.clicked.connect(lambda: self.plot_batch())
         self.widget.batch_widget.control_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.batch_widget.control_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
+        self.widget.batch_widget.control_widget.normalize_btn.clicked.connect(self.normalize_btn_clicked)
 
         # set unit of x axis
         self.widget.batch_widget.options_widget.tth_btn.clicked.connect(self.set_unit_tth)
@@ -843,6 +844,10 @@ class BatchController(object):
 
     def img_autoscale_btn_clicked(self):
         self.widget.batch_widget.stack_plot_widget.img_view.auto_level()
+
+    def normalize_btn_clicked(self):
+        self.model.batch_model.normalize()
+        self.plot_batch()
 
     def process_waterfall(self, x, y):
         """
