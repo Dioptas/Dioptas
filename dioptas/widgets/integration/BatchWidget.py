@@ -118,6 +118,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.hide()
         self.control_widget.phases_btn.hide()
         self.control_widget.autoscale_btn.hide()
+        self.control_widget.normalize_btn.hide()
         self.control_widget.integrate_btn.show()
 
     def activate_stack_plot(self):
@@ -133,6 +134,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.show()
         self.control_widget.phases_btn.show()
         self.control_widget.autoscale_btn.show()
+        self.control_widget.normalize_btn.show()
         self.control_widget.integrate_btn.hide()
 
     def activate_surface_view(self):
@@ -152,6 +154,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.hide()
         self.control_widget.phases_btn.hide()
         self.control_widget.autoscale_btn.hide()
+        self.control_widget.normalize_btn.hide()
         self.control_widget.integrate_btn.hide()
 
     def raise_widget(self):
@@ -521,6 +524,7 @@ class BatchControlWidget(QtWidgets.QWidget):
 
         self.phases_btn = CheckableFlatButton('Show Phases')
         self.autoscale_btn = FlatButton("AutoScale")
+        self.normalize_btn = FlatButton("Normalize")
 
         self._layout = QtWidgets.QHBoxLayout()
 
@@ -534,6 +538,7 @@ class BatchControlWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.waterfall_btn)
         self._layout.addWidget(self.phases_btn)
         self._layout.addWidget(self.autoscale_btn)
+        self._layout.addWidget(self.normalize_btn)
 
         self._layout.addSpacerItem(HorizontalSpacerItem())
 

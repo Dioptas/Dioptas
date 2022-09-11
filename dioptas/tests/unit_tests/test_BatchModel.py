@@ -94,3 +94,13 @@ class BatchModelTest(QtTest):
         self.batch_model.integrate_raw_data(num_points=1000, start=5, stop=10, step=2, use_all=True)
         self.batch_model.extract_background(parameters=(0.1, 150, 50))
         self.assertEqual(self.batch_model.bkg.shape[0], 3)
+
+    def test_normalize(self):
+        self.batch_model.reset_data()
+        self.batch_model.data = np.ones((3, 5))
+        for i in range(self.batch_model.data.shape[0]):
+            self.batch_model.data[i] *= np.random.random()
+
+        self.batch_model.normalize()
+        self.assertEqual(self.batch_model.data.shape, self.batch_model.data.shape)
+        self.assertEqual(0, np.sum(np.diff(self.batch_model.data[:, 1])))

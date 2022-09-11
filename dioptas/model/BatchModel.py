@@ -294,6 +294,13 @@ class BatchModel(QtCore.QObject):
             bkg[i] = extract_background(self.binning, y, *parameters)
         self.bkg = bkg
 
+    def normalize(self, range_ind=(10, 30)):
+        if self.data is None:
+            return
+        average_intensities = np.mean(self.data[:, range_ind[0]:range_ind[1]], axis=1)
+        factors = average_intensities[0] / average_intensities
+        self.data = (self.data.T * factors).T
+
     def get_image_info(self, index, use_all=False):
         """
         Get filename and image position in the file
