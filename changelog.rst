@@ -1,10 +1,16 @@
 0.5.4a (under development)
 --------------------------
 
+New features:
+    - added a normalize button to the batch widget, which will normalize all batch integrated patterns
+      to the starting area
+
+
 Bugfixes:
     - fixed issue with image transformations (rotations and flips)
     - fix issues with font size on some high dpi settings in white text boxes
     - improve resize behavior (dragging the splitter) in the integration view
+    - fixed issue with resizing batch widget when filepaths were longt
 
 
 0.5.4 (stable 20.12.2021)
