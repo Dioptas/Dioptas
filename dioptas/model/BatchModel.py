@@ -1,5 +1,6 @@
 import logging
 import os
+import pathlib
 
 import h5py
 import numpy as np
@@ -7,6 +8,7 @@ from qtpy import QtCore
 from PIL import Image
 
 from .util import extract_background
+from .util.HelperModule import FileNameIterator
 
 logger = logging.getLogger(__name__)
 
@@ -330,3 +332,31 @@ class BatchModel(QtCore.QObject):
             return
         filename, pos = self.get_image_info(index, use_all)
         self.calibration_model.img_model.load(filename, pos)
+
+    def get_next_folder_filenames(self):
+        """
+        Loads all files from the next folder with similar file-endings.
+        """
+        iterator = FileNameIterator(self.files[0])
+        files = []
+        next_file_path = iterator.get_next_folder()
+        if next_file_path is not None:
+            next_folder_path = pathlib.Path(next_file_path).parent
+            for file in os.listdir(next_folder_path):
+                if file.endswith(pathlib.Path(self.files[0]).suffix):
+                    files.append(os.path.join(next_folder_path, file))
+        return files
+
+    def get_previous_folder_filenames(self):
+        """
+        Loads all files from the previous folder with similar file-endings.
+        """
+        iterator = FileNameIterator(self.files[0])
+        files = []
+        previous_file_path = iterator.get_previous_folder()
+        if previous_file_path is not None:
+            previous_folder_path = pathlib.Path(previous_file_path).parent
+            for file in os.listdir(previous_folder_path):
+                if file.endswith(pathlib.Path(self.files[0]).suffix):
+                    files.append(os.path.join(previous_folder_path, file))
+        return files

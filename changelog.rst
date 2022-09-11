@@ -1,17 +1,18 @@
-0.5.4a (under development)
+0.5.5 (under development)
 --------------------------
 
 New features:
     - added a normalize button to the batch widget, which will normalize all batch integrated patterns
       to the starting area
     - batch integration starts immediate after selecting the files
+    - added browsing between folders in batch widget
 
 
 Bugfixes:
     - fixed issue with image transformations (rotations and flips)
     - fix issues with font size on some high dpi settings in white text boxes
     - improve resize behavior (dragging the splitter) in the integration view
-    - fixed issue with resizing batch widget when filepaths were longt
+    - fixed issue with resizing batch widget when filepaths were long
 
 
 0.5.4 (stable 20.12.2021)
