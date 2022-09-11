@@ -256,6 +256,12 @@ class BatchFileControlWidget(QtWidgets.QWidget):
         self.load_btn.setIconSize(QtCore.QSize(13, 13))
         self.load_btn.setMaximumWidth(25)
 
+        self.load_previous_folder_btn = FlatButton('<')
+        self.load_previous_folder_btn.setToolTip("Load files in previous folder")
+
+        self.load_next_folder_btn = FlatButton('>')
+        self.load_next_folder_btn.setToolTip("Loads files in next folder")
+
         self.save_btn = FlatButton()
         self.save_btn.setToolTip("Save data")
         self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
@@ -268,6 +274,8 @@ class BatchFileControlWidget(QtWidgets.QWidget):
 
     def create_layout(self):
         self._layout.addWidget(self.load_btn)
+        self._layout.addWidget(self.load_previous_folder_btn)
+        self._layout.addWidget(self.load_next_folder_btn)
         self._layout.addWidget(self.save_btn)
         self._layout.addWidget(self.folder_lbl)
 
