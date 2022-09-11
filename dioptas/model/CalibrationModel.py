@@ -57,7 +57,7 @@ class CalibrationModel(object):
         self.points_index = []
 
         self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
-        self.detector.shape = (2048, 2048)
+        # self.detector.shape = (2048, 2048)
         self.detector_mode = DetectorModes.CUSTOM
         self._original_detector = None  # used for saving original state before rotating or flipping
         self.pattern_geometry = GeometryRefinement(detector=self.detector, wavelength=0.3344e-10,
@@ -287,8 +287,8 @@ class CalibrationModel(object):
         self.set_supersampling()
 
     def update_detector_shape(self):
-        self.detector.shape = self.img_model.img_data.shape[::-1]
-        self.detector.max_shape = self.img_model.img_data.shape[::-1]
+        self.detector.shape = self.img_model.img_data.shape
+        self.detector.max_shape = self.img_model.img_data.shape
 
     def set_fixed_values(self, fixed_values):
         """
@@ -343,6 +343,8 @@ class CalibrationModel(object):
             if self.detector.shape != self.img_model.img_data.shape:
                 self.reset_detector()
                 self.detector_reset.emit()
+        else:
+            self.reset_detector()
 
     def _prepare_integration_mask(self, mask):
         if mask is None:

@@ -991,7 +991,7 @@ class ImageController(object):
         elif not self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Cake':
             self.activate_image_mode()
         elif self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Cake':
-            self.set_cake_line_position(self.mode.clicked_tth)
+            self.set_cake_line_position(self.model.clicked_tth)
             self._update_cake_mouse_click_pos()
         elif not self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Image':
             self._update_image_line_pos()
