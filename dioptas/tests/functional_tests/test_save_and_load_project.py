@@ -71,7 +71,6 @@ pyfai_params = OrderedDict({
     'detector': 'Detector',
     'pixel1': 7.9e-05,
     'pixel2': 7.9e-05,
-    'max_shape': None,
     'dist': 0.196711580484,
     'poni1': 0.0813975852141,
     'poni2': 0.0820662115429,
@@ -97,6 +96,9 @@ class ProjectSaveLoadTest(QtTest):
         delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.chi'))
         delete_if_exists(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
         delete_if_exists(config_file_path)
+        self.resetState()
+
+    def resetState(self):
         if self.model.calibration_model.cake_geometry is not None:
             self.model.calibration_model.cake_geometry.reset()
         self.model.calibration_model.pattern_geometry.reset()
@@ -127,6 +129,7 @@ class ProjectSaveLoadTest(QtTest):
         del self.model
         gc.collect()
 
+
     def load_image(self, file_name):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[file_name])
         click_button(self.controller.integration_controller.widget.load_img_btn)  # load file
@@ -147,6 +150,7 @@ class ProjectSaveLoadTest(QtTest):
                 self.model.reset()
                 self.model.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"),
                                                   'pattern': '', 'overlay': '', 'phase': ''}
+                self.resetState()
                 self.setUp()
                 if intermediate_function:
                     intermediate_function()
@@ -160,6 +164,7 @@ class ProjectSaveLoadTest(QtTest):
             self.model.reset()
             self.model.working_directories = {'calibration': '', 'mask': '', 'image': os.path.expanduser("~"),
                                               'pattern': '', 'overlay': '', 'phase': ''}
+            self.resetState()
             self.setUp()
             if intermediate_function:
                 intermediate_function()
@@ -186,6 +191,8 @@ class ProjectSaveLoadTest(QtTest):
             saved_pyfai_params, _ = self.model.calibration_model.get_calibration_parameter()
             if 'splineFile' in saved_pyfai_params:
                 del saved_pyfai_params['splineFile']
+            if 'max_shape' in saved_pyfai_params:
+                del saved_pyfai_params['max_shape']
             self.assertDictEqual(saved_pyfai_params, pyfai_params)
 
     ####################################################################################################################
@@ -341,6 +348,7 @@ class ProjectSaveLoadTest(QtTest):
                          os.path.basename(self.original_filename))
 
     def transfer_correction_settings(self):
+        self.model.calibration_model.detector_reset.emit = MagicMock()
         self.original_filename = os.path.join(data_path, 'TransferCorrection', 'original.tif')
         self.response_filename = os.path.join(data_path, 'TransferCorrection', 'response.tif')
         correction_widget = self.widget.integration_widget.integration_control_widget.corrections_control_widget
@@ -448,6 +456,7 @@ class ProjectSaveLoadTest(QtTest):
                              'image_002.tif')
 
     def prepare_file_browsing(self):
+        self.model.calibration_model.detector_reset.emit = MagicMock()
         self.load_image(os.path.join(data_path, 'image_001.tif'))
 
     ####################################################################################################################
@@ -460,6 +469,7 @@ class ProjectSaveLoadTest(QtTest):
                          'f4mnew.spline')
 
     def prepare_distortion_correction_test(self):
+        self.model.calibration_model.detector_reset.emit = MagicMock()
         self.model.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
 
         self.model.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
@@ -524,6 +534,7 @@ class ProjectSaveLoadTest(QtTest):
         self.assertIsInstance(self.model.calibration_model.detector, detectors.NexusDetector)
 
     def prepare_using_loaded_nexus_detector_test(self):
+        self.model.img_model._img_data = np.ones((1048, 1032))
         self.model.calibration_model.load_detector_from_file(os.path.join(data_path, 'detector.h5'))
 
     ###################################################################################################
@@ -549,6 +560,7 @@ class ProjectSaveLoadTest(QtTest):
         self.assertAlmostEqual(self.model.calibration_model.detector.pixel1, 172e-6)
 
     def prepare_using_detector_and_calibration(self):
+        self.model.calibration_model.detector_reset.emit = MagicMock()
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'image_001.tif'))
 
