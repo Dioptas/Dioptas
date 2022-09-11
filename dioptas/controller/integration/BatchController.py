@@ -640,6 +640,7 @@ class BatchController(object):
             self.change_view()
 
         self.load_single_image(1, 0)
+        self.integrate()
 
     def reset_view(self):
         """

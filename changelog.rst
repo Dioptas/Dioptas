@@ -4,6 +4,7 @@
 New features:
     - added a normalize button to the batch widget, which will normalize all batch integrated patterns
       to the starting area
+    - batch integration starts immediate after selecting the files
 
 
 Bugfixes:
