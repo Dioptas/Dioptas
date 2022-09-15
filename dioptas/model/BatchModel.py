@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import pathlib
 
 import h5py
@@ -250,7 +251,7 @@ class BatchModel(QtCore.QObject):
                 current_file = file_index
                 self.calibration_model.img_model.load(self.files[file_index])
 
-            self.calibration_model.img_model.load_series_img(pos+1)
+            self.calibration_model.img_model.load_series_img(pos + 1)
             binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
                                                                      mask=mask)
             image_counter += 1
@@ -337,26 +338,40 @@ class BatchModel(QtCore.QObject):
         """
         Loads all files from the next folder with similar file-endings.
         """
-        iterator = FileNameIterator(self.files[0])
+        next_folder_path = iterate_folder(self.files[0], 1)
         files = []
-        next_file_path = iterator.get_next_folder()
-        if next_file_path is not None:
-            next_folder_path = pathlib.Path(next_file_path).parent
+        if next_folder_path is not None and os.path.exists(next_folder_path):
             for file in os.listdir(next_folder_path):
                 if file.endswith(pathlib.Path(self.files[0]).suffix):
                     files.append(os.path.join(next_folder_path, file))
-        return files
+        return files[:self.n_img_all]
 
     def get_previous_folder_filenames(self):
         """
         Loads all files from the previous folder with similar file-endings.
         """
-        iterator = FileNameIterator(self.files[0])
+        previous_folder_path = iterate_folder(self.files[0], -1)
         files = []
-        previous_file_path = iterator.get_previous_folder()
-        if previous_file_path is not None:
-            previous_folder_path = pathlib.Path(previous_file_path).parent
+        if previous_folder_path is not None and os.path.exists(previous_folder_path):
             for file in os.listdir(previous_folder_path):
                 if file.endswith(pathlib.Path(self.files[0]).suffix):
                     files.append(os.path.join(previous_folder_path, file))
-        return files
+        return files[:self.n_img_all]
+
+
+def iterate_folder(path, step):
+    directory_str, file_str = os.path.split(path)
+    pattern = re.compile(r'\d+')
+    match_iterator = pattern.finditer(directory_str)
+    new_directory_str = None
+    for ind, match in enumerate(reversed(list(match_iterator))):
+        number_span = match.span()
+        left_ind = number_span[0]
+        right_ind = number_span[1]
+        number = int(directory_str[left_ind:right_ind]) + step
+        new_directory_str = "{left_str}{number:0{len}}{right_str}".format(
+            left_str=directory_str[:left_ind],
+            number=number,
+            len=right_ind - left_ind,
+            right_str=directory_str[right_ind:])
+    return new_directory_str
