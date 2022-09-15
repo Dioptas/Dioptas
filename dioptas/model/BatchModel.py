@@ -338,7 +338,8 @@ class BatchModel(QtCore.QObject):
         """
         Loads all files from the next folder with similar file-endings.
         """
-        next_folder_path = iterate_folder(self.files[0], 1)
+        folder_path, _ = os.path.split(self.files[0])
+        next_folder_path = iterate_folder(folder_path, 1)
         files = []
         if next_folder_path is not None and os.path.exists(next_folder_path):
             for file in os.listdir(next_folder_path):
@@ -350,7 +351,8 @@ class BatchModel(QtCore.QObject):
         """
         Loads all files from the previous folder with similar file-endings.
         """
-        previous_folder_path = iterate_folder(self.files[0], -1)
+        folder_path, _ = os.path.split(self.files[0])
+        previous_folder_path = iterate_folder(folder_path, -1)
         files = []
         if previous_folder_path is not None and os.path.exists(previous_folder_path):
             for file in os.listdir(previous_folder_path):
@@ -359,19 +361,18 @@ class BatchModel(QtCore.QObject):
         return files[:self.n_img_all]
 
 
-def iterate_folder(path, step):
-    directory_str, file_str = os.path.split(path)
+def iterate_folder(folder_path, step):
     pattern = re.compile(r'\d+')
-    match_iterator = pattern.finditer(directory_str)
+    match_iterator = pattern.finditer(folder_path)
     new_directory_str = None
-    for ind, match in enumerate(reversed(list(match_iterator))):
+    for ind, match in enumerate(list(match_iterator)):
         number_span = match.span()
         left_ind = number_span[0]
         right_ind = number_span[1]
-        number = int(directory_str[left_ind:right_ind]) + step
+        number = int(folder_path[left_ind:right_ind]) + step
         new_directory_str = "{left_str}{number:0{len}}{right_str}".format(
-            left_str=directory_str[:left_ind],
+            left_str=folder_path[:left_ind],
             number=number,
             len=right_ind - left_ind,
-            right_str=directory_str[right_ind:])
+            right_str=folder_path[right_ind:])
     return new_directory_str

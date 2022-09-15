@@ -6,7 +6,7 @@ from ..utility import QtTest, delete_if_exists
 from ...model.CalibrationModel import CalibrationModel
 from ...model.ImgModel import ImgModel
 from ...model.MaskModel import MaskModel
-from ...model.BatchModel import BatchModel
+from ...model.BatchModel import BatchModel, iterate_folder
 
 import gc
 
@@ -104,3 +104,14 @@ class BatchModelTest(QtTest):
         self.batch_model.normalize()
         self.assertEqual(self.batch_model.data.shape, self.batch_model.data.shape)
         self.assertEqual(0, np.sum(np.diff(self.batch_model.data[:, 1])))
+
+    def test_iterate_folder(self):
+        self.assertEqual(iterate_folder("r001", 1), "r002")
+        self.assertEqual(iterate_folder("r009", 1), "r010")
+        self.assertEqual(iterate_folder("r009", -1), "r008")
+
+        self.assertEqual(iterate_folder("test/r009", -1), "test/r008")
+        self.assertEqual("exp/0250/test/r002", iterate_folder("exp/0250/test/r001", 1))
+        self.assertEqual("exp234/02321/test/r100", iterate_folder("exp234/02321/test/r099", 1))
+        self.assertEqual("exp234/02321/test/r1000", iterate_folder("exp234/02321/test/r999", 1))
+
