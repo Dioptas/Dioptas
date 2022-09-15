@@ -345,6 +345,7 @@ class BatchModel(QtCore.QObject):
             for file in os.listdir(next_folder_path):
                 if file.endswith(pathlib.Path(self.files[0]).suffix):
                     files.append(os.path.join(next_folder_path, file))
+        files = sorted(files)
         return files[:self.n_img_all]
 
     def get_previous_folder_filenames(self):
@@ -358,6 +359,7 @@ class BatchModel(QtCore.QObject):
             for file in os.listdir(previous_folder_path):
                 if file.endswith(pathlib.Path(self.files[0]).suffix):
                     files.append(os.path.join(previous_folder_path, file))
+        files = sorted(files)
         return files[:self.n_img_all]
 
 
