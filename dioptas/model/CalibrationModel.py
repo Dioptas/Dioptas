@@ -252,9 +252,10 @@ class CalibrationModel(object):
 
         keep = int(np.ceil(np.sqrt(size2)))
         try:
+            old_stdout = sys.stdout
             sys.stdout = DummyStdOut
             res = self.peak_search_algorithm.peaks_from_area(mask2, Imin=mean - std, keep=keep)
-            sys.stdout = sys.__stdout__
+            sys.stdout = old_stdout
         except IndexError:
             res = []
 
