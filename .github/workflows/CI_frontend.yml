@@ -20,7 +20,7 @@ jobs:
 
     - name: Use Python Dependency Cache
       id: pip-cache
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-c3
@@ -45,11 +45,7 @@ jobs:
     - name: Run tests
       shell: bash -l {0}
       run: |
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/unit_tests
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_BackgroundController.py
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_BatchController_part1.py
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_BatchController_part2.py
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_BatchController_part3.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_CalibrationController.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_ConfigurationController.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_CorrectionController.py
@@ -65,8 +61,3 @@ jobs:
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_PhaseController.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_PhaseInCakeController.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_PhaseInPatternController.py
-
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_functional_integration.py
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_img_bg.py
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_userinterface.py
