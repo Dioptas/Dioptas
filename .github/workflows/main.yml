@@ -40,7 +40,7 @@ jobs:
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph \
-                    mock pytest
+                    mock pytest setuptools_scm
 
     - name: Run tests
       shell: bash -l {0}
