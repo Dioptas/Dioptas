@@ -36,6 +36,222 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
+class CalibrationModelTestWithIntegration(QtTest):
+    def setUp(self) -> None:
+        self.img_model = ImgModel()
+        self.calibration_model = CalibrationModel(self.img_model)
+
+    def tearDown(self):
+        delete_if_exists(os.path.join(data_path, 'detector_with_spline.h5'))
+        del self.img_model
+        if hasattr(self.calibration_model, 'cake_geometry'):
+            del self.calibration_model.cake_geometry
+        del self.calibration_model.pattern_geometry
+        del self.calibration_model
+        gc.collect()
+
+    def load_pilatus_1M(self):
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+
+    def load_pilatus_1M_with_calibration(self):
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.load_pilatus_1M()
+
+    def load_LaB6_40keV_with_calibration(self):
+        self.img_model.load(os.path.join(data_path, 'image_001.tif'))
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+
+    def test_integration_with_supersampling(self):
+        self.load_pilatus_1M_with_calibration()
+        x1, y1 = self.calibration_model.integrate_1d()
+
+        self.calibration_model.set_supersampling(2)
+        x2, y2 = self.calibration_model.integrate_1d()
+
+        self.assertGreater(len(y2), len(y1))
+        y1_2_interp = np.interp(x2, x1, y1)
+
+        self.assertAlmostEqual(np.mean((y2 - y1_2_interp)), 0, places=2)
+
+    def test_get_pixel_ind(self):
+        self.load_LaB6_40keV_with_calibration()
+
+        self.calibration_model.integrate_1d(1000)
+
+        tth_array = self.calibration_model.pattern_geometry.ttha
+        azi_array = self.calibration_model.pattern_geometry.chia
+
+        for i in range(100):
+            ind1 = np.random.randint(0, 2024)
+            ind2 = np.random.randint(0, 2024)
+
+            tth = tth_array[ind1, ind2]
+            azi = azi_array[ind1, ind2]
+
+            result_ind1, result_ind2 = self.calibration_model.get_pixel_ind(tth, azi)
+
+            self.assertAlmostEqual(ind1, result_ind1, places=3)
+            self.assertAlmostEqual(ind2, result_ind2, places=3)
+
+    def test_use_different_image_sizes_for_1d_integration(self):
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.calibration_model.integrate_1d()
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.calibration_model.integrate_1d()
+
+    def test_use_different_image_sizes_for_2d_integration(self):
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.calibration_model.integrate_2d()
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.calibration_model.integrate_2d()
+
+    def test_correct_solid_angle(self):
+        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        _, y1 = self.calibration_model.integrate_1d()
+        self.calibration_model.correct_solid_angle = False
+        _, y2 = self.calibration_model.integrate_1d()
+        self.assertNotEqual(np.sum(y1), np.sum(y2))
+
+    def test_distortion_correction(self):
+        self.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
+
+        self.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
+        self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
+        self.calibration_model.start_values['dist'] = 300e-3
+        self.calibration_model.detector.pixel1 = 50e-6
+        self.calibration_model.detector.pixel2 = 50e-6
+        self.calibration_model.start_values['wavelength'] = 0.1e-10
+
+        self.calibration_model.calibrate()
+
+        _, y1 = self.calibration_model.integrate_1d()
+
+        self.calibration_model.load_distortion(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
+        self.calibration_model.calibrate()
+
+        _, y2 = self.calibration_model.integrate_1d()
+        self.assertNotAlmostEqual(y1[100], y2[100])
+
+    def test_cake_integral(self):
+        self.load_pilatus_1M_with_calibration()
+        self.calibration_model.integrate_2d(azimuth_points=360)
+
+        cake_tth = self.calibration_model.cake_tth
+        cake_img = self.calibration_model.cake_img
+        cake_step = cake_tth[31] - cake_tth[30]
+
+        # directly selecting value in the tth array
+        _, y1 = self.calibration_model.cake_integral(cake_tth[30])
+        self.assertTrue(np.array_equal(y1, self.calibration_model.cake_img[:, 30]))
+
+        # selecting exactly in between two points
+        cake_partial = 0.5 * cake_img[:, 30] + 0.5 * cake_img[:, 31]
+        _, y2 = self.calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step)
+        self.assertTrue(np.array_equal(y2, cake_partial))
+
+        # selecting points somewhere in between
+        cake_partial = 0.3 * cake_img[:, 30] + 0.7 * cake_img[:, 31]
+        _, y3 = self.calibration_model.cake_integral(cake_tth[30] + 0.7 * cake_step)
+        self.assertTrue(np.array_equal(y3, cake_partial))
+
+        # test with larger binsize of 2
+        cake_partial = 0.5 * cake_img[:, 30] + 0.5 * cake_img[:, 31]
+        _, y4 = self.calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step, bins=2)
+        self.assertTrue(np.array_equal(y4, cake_partial))
+
+        cake_partial = (0.5 * cake_img[:, 29] + cake_img[:, 30] + 0.5 * cake_img[:, 31]) / 2
+        _, y5 = self.calibration_model.cake_integral(cake_tth[30], bins=2)
+        self.assertTrue(np.array_equal(y5, cake_partial))
+
+    def test_integration_with_predefined_detector(self):
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+        self.assertTrue(len(self.calibration_model.tth) > 0)
+
+    def test_integration_with_rotated_predefined_detector(self):
+        self.load_pilatus_1M_with_calibration()
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        x1, y1 = self.calibration_model.integrate_1d()
+
+        # rotate m90
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+        self.calibration_model.integrate_1d()
+
+        # rotate p90
+        self.calibration_model.rotate_detector_p90()
+        self.img_model.rotate_img_p90()
+        x2, y2 = self.calibration_model.integrate_1d()
+
+        self.assertEqual(len(x1), len(x2))
+        self.assertAlmostEqual(float(np.sum((y1 - y2) ** 2)), 0)
+
+    def test_integration_with_rotation(self):
+        self.load_pilatus_1M_with_calibration()
+        self.calibration_model.integrate_1d()
+
+        # rotate m90
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+        self.calibration_model.integrate_1d()
+
+    def test_integration_with_rotation_and_reset(self):
+        self.load_pilatus_1M_with_calibration()
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        x1, y1 = self.calibration_model.integrate_1d()
+
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+        self.calibration_model.rotate_detector_p90()
+        self.img_model.rotate_img_p90()
+
+        self.calibration_model.reset_transformations()
+        self.img_model.reset_transformations()
+
+        x2, y2 = self.calibration_model.integrate_1d()
+
+        self.assertEqual(len(x1), len(x2))
+        self.assertAlmostEqual(float(np.sum((y1 - y2) ** 2)), 0)
+
+        self.calibration_model.rotate_detector_p90()
+        self.img_model.rotate_img_p90()
+        self.calibration_model.integrate_1d()
+
+    def test_integration_with_transformation_and_change_detector_to_custom(self):
+        self.load_pilatus_1M_with_calibration()
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        x1, y1 = self.calibration_model.integrate_1d()
+
+        self.calibration_model.rotate_detector_m90()
+        self.img_model.rotate_img_m90()
+
+    def test_change_detector_after_loading_image_with_different_shapes_integrate_1d(self):
+        self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.calibration_model.integrate_1d()
+
+        callback_function = MagicMock()
+        self.calibration_model.detector_reset.connect(callback_function)
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        self.calibration_model.integrate_1d()
+        callback_function.assert_called_once()
+
+    def test_change_detector_after_loading_image_with_different_shapes_integrate_2d(self):
+        self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
+        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
+        self.calibration_model.integrate_1d()
+
+        callback_function = MagicMock()
+        self.calibration_model.detector_reset.connect(callback_function)
+        self.calibration_model.load_detector('Pilatus CdTe 1M')
+        self.calibration_model.integrate_2d()
+        callback_function.assert_called_once()
+
+
 class CalibrationModelTest(QtTest):
     def setUp(self):
         self.img_model = ImgModel()
@@ -134,20 +350,6 @@ class CalibrationModelTest(QtTest):
         self.assertAlmostEqual(super_poni1, self.calibration_model.pattern_geometry.poni1, places=3)
         self.assertAlmostEqual(super_poni2, self.calibration_model.pattern_geometry.poni2, places=3)
 
-    def test_integration_with_supersampling(self):
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.load_pilatus_1M()
-
-        x1, y1 = self.calibration_model.integrate_1d()
-
-        self.calibration_model.set_supersampling(2)
-        x2, y2 = self.calibration_model.integrate_1d()
-
-        self.assertGreater(len(y2), len(y1))
-        y1_2_interp = np.interp(x2, x1, y1)
-
-        self.assertAlmostEqual(np.mean((y2 - y1_2_interp)), 0, places=2)
-
     def test_calibration1(self):
         self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
         self.calibration_model.find_peaks_automatic(1179.6, 1129.4, 0)
@@ -210,67 +412,6 @@ class CalibrationModelTest(QtTest):
             for key, value in fixed_values.items():
                 self.assertEqual(getattr(self.calibration_model.pattern_geometry, key), value)
 
-    def test_get_pixel_ind(self):
-        self.img_model.load(os.path.join(data_path, 'image_001.tif'))
-        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
-
-        self.calibration_model.integrate_1d(1000)
-
-        tth_array = self.calibration_model.pattern_geometry.ttha
-        azi_array = self.calibration_model.pattern_geometry.chia
-
-        for i in range(100):
-            ind1 = np.random.randint(0, 2024)
-            ind2 = np.random.randint(0, 2024)
-
-            tth = tth_array[ind1, ind2]
-            azi = azi_array[ind1, ind2]
-
-            result_ind1, result_ind2 = self.calibration_model.get_pixel_ind(tth, azi)
-
-            self.assertAlmostEqual(ind1, result_ind1, places=3)
-            self.assertAlmostEqual(ind2, result_ind2, places=3)
-
-    def test_use_different_image_sizes_for_1d_integration(self):
-        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
-        self.calibration_model.integrate_1d()
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.calibration_model.integrate_1d()
-
-    def test_use_different_image_sizes_for_2d_integration(self):
-        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
-        self.calibration_model.integrate_2d()
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.calibration_model.integrate_2d()
-
-    def test_correct_solid_angle(self):
-        self.calibration_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        _, y1 = self.calibration_model.integrate_1d()
-        self.calibration_model.correct_solid_angle = False
-        _, y2 = self.calibration_model.integrate_1d()
-        self.assertNotEqual(np.sum(y1), np.sum(y2))
-
-    def test_distortion_correction(self):
-        self.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
-
-        self.calibration_model.find_peaks_automatic(1025.1, 1226.8, 0)
-        self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
-        self.calibration_model.start_values['dist'] = 300e-3
-        self.calibration_model.detector.pixel1 = 50e-6
-        self.calibration_model.detector.pixel2 = 50e-6
-        self.calibration_model.start_values['wavelength'] = 0.1e-10
-
-        self.calibration_model.calibrate()
-
-        _, y1 = self.calibration_model.integrate_1d()
-
-        self.calibration_model.load_distortion(os.path.join(data_path, 'distortion', 'f4mnew.spline'))
-        self.calibration_model.calibrate()
-
-        _, y2 = self.calibration_model.integrate_1d()
-        self.assertNotAlmostEqual(y1[100], y2[100])
-
     def test_get_two_theta_img_with_distortion(self):
         self.img_model.load(os.path.join(data_path, 'distortion', 'CeO2_calib.edf'))
 
@@ -312,38 +453,6 @@ class CalibrationModelTest(QtTest):
 
         self.calibration_model.integrate_2d(azimuth_points=200)
         self.assertEqual(len(self.calibration_model.cake_azi), 200)
-
-    def test_cake_integral(self):
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.calibration_model.integrate_2d(azimuth_points=360)
-
-        cake_tth = self.calibration_model.cake_tth
-        cake_img = self.calibration_model.cake_img
-        cake_step = cake_tth[31] - cake_tth[30]
-
-        # directly selecting value in the tth array
-        _, y1 = self.calibration_model.cake_integral(cake_tth[30])
-        self.assertTrue(np.array_equal(y1, self.calibration_model.cake_img[:, 30]))
-
-        # selecting exactly in between two points
-        cake_partial = 0.5 * cake_img[:, 30] + 0.5 * cake_img[:, 31]
-        _, y2 = self.calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step)
-        self.assertTrue(np.array_equal(y2, cake_partial))
-
-        # selecting points somewhere in between
-        cake_partial = 0.3 * cake_img[:, 30] + 0.7 * cake_img[:, 31]
-        _, y3 = self.calibration_model.cake_integral(cake_tth[30] + 0.7 * cake_step)
-        self.assertTrue(np.array_equal(y3, cake_partial))
-
-        # test with larger binsize of 2
-        cake_partial = 0.5 * cake_img[:, 30] + 0.5 * cake_img[:, 31]
-        _, y4 = self.calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step, bins=2)
-        self.assertTrue(np.array_equal(y4, cake_partial))
-
-        cake_partial = (0.5 * cake_img[:, 29] + cake_img[:, 30] + 0.5 * cake_img[:, 31]) / 2
-        _, y5 = self.calibration_model.cake_integral(cake_tth[30], bins=2)
-        self.assertTrue(np.array_equal(y5, cake_partial))
 
     def test_transforms_without_predefined_detector(self):
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))
@@ -399,75 +508,6 @@ class CalibrationModelTest(QtTest):
         self.assertIsInstance(self.calibration_model.detector, detectors.Detector)
         self.assertIsInstance(self.calibration_model.pattern_geometry.detector, detectors.Detector)
 
-    def test_integration_with_predefined_detector(self):
-        self.calibration_model.load_detector('Pilatus CdTe 1M')
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.assertTrue(len(self.calibration_model.tth) > 0)
-
-    def test_integration_with_rotated_predefined_detector(self):
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.calibration_model.load_detector('Pilatus CdTe 1M')
-        x1, y1 = self.calibration_model.integrate_1d()
-
-        # rotate m90
-        self.calibration_model.rotate_detector_m90()
-        self.img_model.rotate_img_m90()
-        self.calibration_model.integrate_1d()
-
-        # rotate p90
-        self.calibration_model.rotate_detector_p90()
-        self.img_model.rotate_img_p90()
-        x2, y2 = self.calibration_model.integrate_1d()
-
-        self.assertEqual(len(x1), len(x2))
-        self.assertAlmostEqual(float(np.sum((y1 - y2) ** 2)), 0)
-
-    def test_integration_with_rotation(self):
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.calibration_model.integrate_1d()
-
-        # rotate m90
-        self.calibration_model.rotate_detector_m90()
-        self.img_model.rotate_img_m90()
-        self.calibration_model.integrate_1d()
-
-    def test_integration_with_rotation_and_reset(self):
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.calibration_model.load_detector('Pilatus CdTe 1M')
-        x1, y1 = self.calibration_model.integrate_1d()
-
-        self.calibration_model.rotate_detector_m90()
-        self.img_model.rotate_img_m90()
-        self.calibration_model.rotate_detector_m90()
-        self.img_model.rotate_img_m90()
-        self.calibration_model.rotate_detector_p90()
-        self.img_model.rotate_img_p90()
-
-        self.calibration_model.reset_transformations()
-        self.img_model.reset_transformations()
-
-        x2, y2 = self.calibration_model.integrate_1d()
-
-        self.assertEqual(len(x1), len(x2))
-        self.assertAlmostEqual(float(np.sum((y1 - y2) ** 2)), 0)
-
-        self.calibration_model.rotate_detector_p90()
-        self.img_model.rotate_img_p90()
-        self.calibration_model.integrate_1d()
-
-    def test_integration_with_transformation_and_change_detector_to_custom(self):
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.calibration_model.load_detector('Pilatus CdTe 1M')
-        x1, y1 = self.calibration_model.integrate_1d()
-
-        self.calibration_model.rotate_detector_m90()
-        self.img_model.rotate_img_m90()
-
     def test_load_detector_from_file(self):
         self.calibration_model.load_detector_from_file(os.path.join(data_path, 'detector.h5'))
         self.assertAlmostEqual(self.calibration_model.orig_pixel1, 100e-6)
@@ -494,25 +534,3 @@ class CalibrationModelTest(QtTest):
         callback_function = MagicMock()
         self.calibration_model.detector_reset.connect(callback_function)
         self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
-
-    def test_change_detector_after_loading_image_with_different_shapes_integrate_1d(self):
-        self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.calibration_model.integrate_1d()
-
-        callback_function = MagicMock()
-        self.calibration_model.detector_reset.connect(callback_function)
-        self.calibration_model.load_detector('Pilatus CdTe 1M')
-        self.calibration_model.integrate_1d()
-        callback_function.assert_called_once()
-
-    def test_change_detector_after_loading_image_with_different_shapes_integrate_2d(self):
-        self.img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
-        self.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-        self.calibration_model.integrate_1d()
-
-        callback_function = MagicMock()
-        self.calibration_model.detector_reset.connect(callback_function)
-        self.calibration_model.load_detector('Pilatus CdTe 1M')
-        self.calibration_model.integrate_2d()
-        callback_function.assert_called_once()
