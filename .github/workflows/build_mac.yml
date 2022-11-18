@@ -25,7 +25,7 @@ jobs:
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics \
                     pyinstaller cython watchdog h5py hdf5plugin pyqtgraph sharedmem \
-                    cython
+                    cython setuptools_scm
     - name: Update Pyinstaller Hooks
       run: |
         pip uninstall pyinstaller-hooks-contrib -y
