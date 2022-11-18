@@ -39,6 +39,7 @@ def delete_if_exists(data_path):
     if os.path.exists(data_path):
         os.remove(data_path)
 
+
 def delete_folder_if_exists(data_path):
     if os.path.exists(data_path):
         shutil.rmtree(data_path)

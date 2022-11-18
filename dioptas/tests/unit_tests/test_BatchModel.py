@@ -7,8 +7,10 @@ from ...model.CalibrationModel import CalibrationModel
 from ...model.ImgModel import ImgModel
 from ...model.MaskModel import MaskModel
 from ...model.BatchModel import BatchModel, iterate_folder
+from ...model.util.Pattern import Pattern
 
 import gc
+from mock import MagicMock
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -27,6 +29,10 @@ class BatchModelTest(QtTest):
         self.mask_model.mode = False
         self.batch_model = BatchModel(self.calibration_model, self.mask_model)
         self.batch_model.set_image_files(files)
+
+        pattern = Pattern().load(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
+        self.calibration_model.integrate_1d = MagicMock(return_value=(pattern.x,
+                                                                            pattern.y))
 
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'detector_with_spline.h5'))
