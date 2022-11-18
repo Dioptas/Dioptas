@@ -97,13 +97,12 @@ class BatchModelTest(QtTest):
 
     def test_normalize(self):
         self.batch_model.reset_data()
-        self.batch_model.data = np.ones((3, 5))
+        self.batch_model.data = np.ones((3, 80))
         for i in range(self.batch_model.data.shape[0]):
             self.batch_model.data[i] *= np.random.random()
 
         self.batch_model.normalize()
-        self.assertEqual(self.batch_model.data.shape, self.batch_model.data.shape)
-        self.assertEqual(0, np.sum(np.diff(self.batch_model.data[:, 1])))
+        self.assertAlmostEqual(0, np.sum(np.diff(self.batch_model.data[:, 1])))
 
     def test_iterate_folder(self):
         self.assertEqual(iterate_folder("r001", 1), "r002")
