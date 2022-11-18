@@ -20,15 +20,15 @@
 
 import os
 import numpy as np
+import unittest
 
-from ..utility import QtTest
 from ...model.util.HelperModule import get_partial_index, FileNameIterator, get_partial_value
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data', 'FileIterator')
 
 
-class HelperModuleTest(QtTest):
+class HelperModuleTest(unittest.TestCase):
     def test_get_partial_index(self):
         data = np.arange(0, 10, 1)
         value = 2.5

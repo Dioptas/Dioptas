@@ -21,12 +21,13 @@
 import os
 
 import numpy as np
+import unittest
 from mock import MagicMock
 
 from pyFAI import detectors
 from pyFAI.detectors import Detector
 
-from ..utility import QtTest, delete_if_exists
+from ..utility import delete_if_exists
 from ...model.CalibrationModel import CalibrationModel, get_available_detectors, DetectorModes, DetectorShapeError
 from ...model.ImgModel import ImgModel
 from ... import calibrants_path
@@ -36,7 +37,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class CalibrationModelTestWithIntegration(QtTest):
+class CalibrationModelTestWithIntegration(unittest.TestCase):
     def setUp(self) -> None:
         self.img_model = ImgModel()
         self.calibration_model = CalibrationModel(self.img_model)
@@ -252,7 +253,7 @@ class CalibrationModelTestWithIntegration(QtTest):
         callback_function.assert_called_once()
 
 
-class CalibrationModelTest(QtTest):
+class CalibrationModelTest(unittest.TestCase):
     def setUp(self):
         self.img_model = ImgModel()
         self.calibration_model = CalibrationModel(self.img_model)

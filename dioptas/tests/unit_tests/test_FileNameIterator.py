@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import unittest
 
 from ..utility import QtTest
 from ...model.util.HelperModule import FileNameIterator
@@ -27,7 +28,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class FileNameIteratorTest(QtTest):
+class FileNameIteratorTest(unittest.TestCase):
     def setUp(self):
         self.filename_iterator = FileNameIterator()
 

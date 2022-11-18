@@ -1,8 +1,9 @@
 import os
+import unittest
 
 import numpy as np
 
-from ..utility import QtTest, delete_if_exists
+from ..utility import delete_if_exists
 from ...model.CalibrationModel import CalibrationModel
 from ...model.ImgModel import ImgModel
 from ...model.MaskModel import MaskModel
@@ -20,7 +21,7 @@ files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'
 cal_file = os.path.join(data_path, 'lambda/L2.poni')
 
 
-class BatchModelTest(QtTest):
+class BatchModelTest(unittest.TestCase):
     def setUp(self):
         self.img_model = ImgModel()
         self.calibration_model = CalibrationModel(self.img_model)
