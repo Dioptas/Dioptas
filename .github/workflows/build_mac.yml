@@ -37,7 +37,10 @@ jobs:
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
 
-    - name: Run Dioptas from source to test and create version file
+    - name: Create a Version File
+      run: python -m setuptools_scm
+
+    - name: Run Dioptas from source to test
       run: python Dioptas.py test
 
     - name: Run PyInstaller
