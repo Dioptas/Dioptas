@@ -68,7 +68,7 @@ class SpeFile(object):
         header (version 2) or in the xml-footer for the experimental parameters"""
         self._read_size()
         self._read_datatype()
-        self.xml_offset = self._read_at(678, 1, np.long)
+        self.xml_offset = self._read_at(678, 1, int)
         if self.xml_offset == [0]:  # means that there is no XML present, hence it is a pre 3.0 version of the SPE
             # file
             self._read_parameter_from_header()
