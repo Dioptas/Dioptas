@@ -16,6 +16,7 @@ def unixpath(d):
     "unix path"
     return d.replace('\\', '/')
 
+
 def winpath(d):
     "ensure path uses windows delimiters"
     if d.startswith('//'):
@@ -23,9 +24,11 @@ def winpath(d):
     d = d.replace('/', '\\')
     return d
 
+
 nativepath = unixpath
 if os.name == 'nt':
     nativepath = winpath
+
 
 def fix_anacondapy_pythonw(script):
     """fix shebang line for scripts using anaconda python
@@ -46,15 +49,18 @@ def fix_anacondapy_pythonw(script):
         fh.write("".join(lines[1:]))
         fh.close()
 
+
 HAS_PWD = True
 try:
     import pwd
 except ImportError:
     HAS_PWD = False
 
+
 def get_homedir():
     "determine home directory"
     home = None
+
     def check(method, s):
         "check that os.path.expanduser / expandvars gives a useful result"
         try:
@@ -74,7 +80,7 @@ def get_homedir():
         home = check(os.path.expanduser, '~')
 
     # try the common environmental variables
-    if home is  None:
+    if home is None:
         for var in ('$HOME', '$HOMEPATH', '$USERPROFILE', '$ALLUSERSPROFILE'):
             home = check(os.path.expandvars, var)
             if home is not None:
@@ -92,6 +98,7 @@ def get_homedir():
     if home is None:
         home = os.path.abspath('.')
     return nativepath(home)
+
 
 ##  Desktop/Larch folder
 homedir = get_homedir()
@@ -151,11 +158,12 @@ osascript -e 'tell application "Terminal" to do script "'${{PY}}\ ${{SCRIPT}}'"'
         fout.write(text.format(**opts))
         fout.write("\n")
 
-    os.chmod(script_name, 493) ## = octal 755 / rwxr-xr-x
+    os.chmod(script_name, 493)  ## = octal 755 / rwxr-xr-x
     if icon is not None:
         icon_dest = os.path.join(dest, 'Contents', 'Resources', name + '.icns')
         icon_src = os.path.join(icon_path, icon + '.icns')
         shutil.copy(icon_src, icon_dest)
+
 
 def make_shortcut_windows(name, script, description='',
                           icon_path='.', icon=None, in_terminal=False):
@@ -165,7 +173,7 @@ def make_shortcut_windows(name, script, description='',
     pyexe = os.path.join(sys.prefix, 'python.exe')  # could be pythonw?
     if in_terminal:
         pyexe = os.path.join(sys.prefix, 'python.exe')
-    target = os.path.join(sys.prefix, 'Scripts', script)
+    target = os.path.join(sys.prefix, '../scripts', script)
 
     # add several checks for valid ways to run each script, including
     # accounting for Anaconda's automagic renaming and creation of exes.
@@ -188,7 +196,7 @@ def make_shortcut_windows(name, script, description='',
         target = target_bat
 
     shortcut = Dispatch('WScript.Shell').CreateShortCut(
-        os.path.join(desktop, name) +  '.lnk')
+        os.path.join(desktop, name) + '.lnk')
     shortcut.Targetpath = target
     shortcut.WorkingDirectory = homedir
     shortcut.WindowStyle = 0
