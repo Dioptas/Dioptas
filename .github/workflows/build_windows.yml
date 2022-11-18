@@ -24,13 +24,13 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~\AppData\Local\pip\Cache
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-v1
+        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-v3
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-pip-c3
         
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas numpy==1.19.3 python-dateutil h5py cython scikit-image pyqt5 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem setuptools_scm
+        pip install pycifrw pandas numpy python-dateutil h5py cython scikit-image pyqt5 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem setuptools_scm
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas\model\util\smooth_bruckner_cython.pyx
