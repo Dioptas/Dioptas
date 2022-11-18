@@ -12,13 +12,13 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: git fetch --prune --unshallow
 
     - name: Use Miniconda
       uses: s-weigand/setup-conda@v1
 
-    - name: switch to python=3.8 and install pip
+    - name: switch to python=3.10 and install pip
       run: conda install python=3.10 pip -y
 
     - name: Install Pip Dependencies
