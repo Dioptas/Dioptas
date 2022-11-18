@@ -17,7 +17,7 @@ jobs:
     - name: Setup Python 3.6
       uses: actions/setup-python@v1
       with:
-        python-version: 3.6
+        python-version: 3.8
 
     - name: Use Python Dependency Cache
       id: pip-cache
@@ -46,7 +46,10 @@ jobs:
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
 
-    - name: Run Dioptas from source to test and create version file
+    - name: Create a Version File
+      run: python -m setuptools_scm
+
+    - name: Run Dioptas from source to test
       run: xvfb-run python Dioptas.py test
         
     - name: Run PyInstaller
