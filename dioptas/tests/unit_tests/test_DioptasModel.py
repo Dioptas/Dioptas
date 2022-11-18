@@ -19,10 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import unittest
+
 import numpy as np
 from mock import MagicMock
 
-from ..utility import QtTest, delete_if_exists
+from ..utility import delete_if_exists
 from ...model.DioptasModel import DioptasModel
 from ...model.util import Pattern
 
@@ -30,7 +32,7 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class DioptasModelTest(QtTest):
+class DioptasModelTest(unittest.TestCase):
     def setUp(self):
         self.model = DioptasModel()
 

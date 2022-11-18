@@ -45,4 +45,4 @@ jobs:
     - name: Run tests
       shell: bash -l {0}
       run: |
-        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/unit_tests
+        py.test dioptas/tests/unit_tests
