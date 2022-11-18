@@ -41,7 +41,7 @@ jobs:
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin \
-                    pyqtgraph==0.12 sharedmem setuptools_scm
+                    pyqtgraph sharedmem setuptools_scm
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
