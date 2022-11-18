@@ -23,8 +23,13 @@ from __future__ import absolute_import
 import sys
 from sys import platform as _platform
 from qtpy import QtWidgets, QtCore
-from .version import get_version
-__version__ = get_version()
+
+try:
+    from .version import __version__
+except ModuleNotFoundError:
+    from setuptools_scm import get_version
+
+    __version__ = get_version(root='..', relative_to=__file__)
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
@@ -52,4 +57,8 @@ def main():
         if sys.argv[1] == 'test':
             controller = MainController(use_settings=False)
             controller.show_window()
+        elif sys.argv[1].startswith('makeshortcut'):
+            make_shortcut('Dioptas', 'dioptas.py', description='Dioptas 2D XRD {}'.format(__version__),
+                          icon_path=icons_path, icon='icon')
     del app
+
