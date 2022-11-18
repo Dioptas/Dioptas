@@ -1,12 +1,11 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CD_LINUX
+name: CI
 
-on: [push]
+on: [push, pull_request]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build_linux:
+  test:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -15,13 +14,13 @@ jobs:
     - uses: actions/checkout@v3
     - run: git fetch --prune --unshallow
     - name: Setup Python 3.9
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v3
       with:
         python-version: '3.9'
 
     - name: Use Python Dependency Cache
       id: pip-cache
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-c3
@@ -41,44 +40,12 @@ jobs:
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph \
-                    sharedmem setuptools_scm
+                    mock pytest setuptools_scm
 
-    - name: Compile Smooth Bruckner
-      run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
-
-    - name: Create a Version File
-      run: python -m setuptools_scm
-
-    - name: Run Dioptas from source to test
-      run: xvfb-run python Dioptas.py test
-        
-    - name: Run PyInstaller
-      run: bash create_executable.sh
-
-    - name: Clean Up Executable Folder
+    - name: Run tests
+      shell: bash -l {0}
       run: |
-        cd dist/Dioptas*
-        rm libQt5Quick.so.5 libQt5Qml.so.5 libQt5Network.so.5 libcrypto.so.1.1 libsqlite3.so.0
-        rm -r imageio
-
-    - name: Run Dioptas
-      run: |
-        cd dist/Dioptas*
-        xvfb-run ./Dioptas test
-
-    - name: Compress Executable
-      run: |
-        cd dist
-        export DIOPTAS_FOLDER=$(ls | grep Dioptas)
-        tar -zcvf $DIOPTAS_FOLDER.tar.gz $DIOPTAS_FOLDER
-        du -sh $DIOPTAS_FOLDER.tar.gz
-
-    - name: Upload Compressed App to Dropbox
-      env:
-        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-      run: |
-        pip install dropbox
-        cd dist
-        export compressedFile=$(ls | grep .tar.gz)
-        export targetFile='/develop/linux/'$compressedFile
-        python ../scripts/dropbox_upload.py $compressedFile $targetFile
+        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_functional_integration.py
+        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
+        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_img_bg.py
+        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/functional_tests/test_userinterface.py
