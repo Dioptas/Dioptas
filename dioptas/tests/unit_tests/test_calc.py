@@ -1,10 +1,10 @@
 import numpy as np
+import unittest
 
-from ..utility import QtTest
 from ...model.util.calc import trim_trailing_zeros
 
 
-class HelperModuleTest(QtTest):
+class HelperModuleTest(unittest.TestCase):
     def test_trim_trailing_zeros(self):
         x = np.linspace(0, 20)
         y = np.ones_like(x)

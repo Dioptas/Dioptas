@@ -183,7 +183,7 @@ class CbnCorrection(ImgCorrectionInterface):
                                     np.sin(azi) * np.sin(two_theta)])
 
         # angle between diffraction vector and diamond anvil cell vector based on dot product:
-        tt = np.arccos(dot_product(dac_vector, diffraction_vec) / \
+        tt = np.arccos(dot_product(dac_vector, diffraction_vec) /
                        (vector_len(dac_vector) * vector_len(diffraction_vec)))
 
         # calculate path through diamond its absorption

@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 import os
 import gc
 import unittest
@@ -58,14 +58,15 @@ class IntegrationBackgroundControllerTest(QtTest):
 
     def test_pattern_bkg_toggle_inspect_button(self):
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
-        self.widget.bkg_pattern_gb.setChecked(True)
-        self.widget.bkg_pattern_inspect_btn.toggle()
+        click_button(self.widget.qa_bkg_pattern_btn)
+        click_button(self.widget.qa_bkg_pattern_inspect_btn)
         x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
         self.assertGreater(len(x_bkg), 0)
 
-        self.widget.bkg_pattern_inspect_btn.toggle()
+        click_button(self.widget.qa_bkg_pattern_inspect_btn)
         x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
-        self.assertEqual(len(x_bkg), 0)
+        self.assertIsNone(x_bkg)
+        self.assertIsNone(y_bkg)
 
     def test_pattern_bkg_inspect_btn_is_untoggled_when_disabling_pattern_gb(self):
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
@@ -73,7 +74,8 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.widget.bkg_pattern_inspect_btn.toggle()
         self.widget.bkg_pattern_gb.setChecked(False)
         x_bkg, y_bkg = self.widget.pattern_widget.bkg_item.getData()
-        self.assertEqual(len(x_bkg), 0)
+        self.assertIsNone(x_bkg)
+        self.assertIsNone(y_bkg)
 
     def test_pattern_bkg_linear_region_changes_txt_fields(self):
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))

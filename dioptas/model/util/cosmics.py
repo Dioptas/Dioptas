@@ -55,7 +55,6 @@ Ideas for future improvements :
 Malte Tewes, January 2010
 """
 
-
 __version__ = '0.4'
 
 import os
@@ -63,7 +62,6 @@ import numpy as np
 import math
 import scipy.signal as signal
 import scipy.ndimage as ndimage
-
 
 # We define the laplacian kernel to be used
 laplkernel = np.array([[0.0, -1.0, 0.0], [-1.0, 4.0, -1.0], [0.0, -1.0, 0.0]])
@@ -75,6 +73,8 @@ dilstruct[0, 0] = 0
 dilstruct[0, 4] = 0
 dilstruct[4, 0] = 0
 dilstruct[4, 4] = 0
+
+
 # So this dilstruct looks like :
 # 01110
 #   11111
@@ -165,14 +165,14 @@ class cosmicsimage:
             print()
             "Labeling mask pixels ..."
         # We morphologicaly dilate the mask to generously connect "sparse" cosmics :
-        #dilstruct = np.ones((5,5))
+        # dilstruct = np.ones((5,5))
         dilmask = ndimage.morphology.binary_dilation(
             self.mask, structure=dilstruct, iterations=1, mask=None, output=None, border_value=0, origin=0,
             brute_force=False)
         # origin = 0 means center
         (labels, n) = ndimage.measurements.label(dilmask)
         # print "Number of cosmic ray hits : %i" % n
-        #tofits(labels, "labels.fits", verbose = False)
+        # tofits(labels, "labels.fits", verbose = False)
         slicecouplelist = ndimage.measurements.find_objects(labels)
         # Now we have a huge list of couples of numpy slice objects giving a frame around each object
         # For plotting purposes, we want to transform this into the center of
@@ -289,7 +289,7 @@ class cosmicsimage:
         # That's it.
         if verbose:
             print(
-            "Cleaning done")
+                "Cleaning done")
 
         # FYI, that's how the LACosmic cleaning looks in iraf :
         """
@@ -331,7 +331,7 @@ class cosmicsimage:
 
         # We build a smoothed version of the image to look for large stars and
         # their support :
-        m5 = ndimage.filters.median_filter(
+        m5 = ndimage.median_filter(
             self.rawarray, size=5, mode='mirror')
         # We look where this is above half the satlevel
         largestruct = m5 > (self.satlevel / 2.0)
@@ -347,7 +347,7 @@ class cosmicsimage:
         # I haven't found a better solution then the double loop
 
         # We dilate the satpixels alone, to ensure connectivity in glitchy regions and to add a safety margin around them.
-        #dilstruct = np.array([[0,1,0], [1,1,1], [0,1,0]])
+        # dilstruct = np.array([[0,1,0], [1,1,1], [0,1,0]])
 
         dilsatpixels = ndimage.morphology.binary_dilation(
             satpixels, structure=dilstruct, iterations=2, mask=None, output=None, border_value=0, origin=0,
@@ -356,7 +356,7 @@ class cosmicsimage:
 
         # We label these :
         (dilsatlabels, nsat) = ndimage.measurements.label(dilsatpixels)
-        #tofits(dilsatlabels, "test.fits")
+        # tofits(dilsatlabels, "test.fits")
 
         if verbose:
             print()
@@ -457,7 +457,7 @@ class cosmicsimage:
             "Creating noise model ..."
 
         # We build a custom noise map, so to compare the laplacian to
-        m5 = ndimage.filters.median_filter(
+        m5 = ndimage.median_filter(
             self.cleanarray, size=5, mode='mirror')
         # We keep this m5, as I will use it later for the interpolation.
         m5clipped = m5.clip(min=0.00001)  # As we will take the sqrt
@@ -473,7 +473,7 @@ class cosmicsimage:
         # This s is called sigmap in the original lacosmic.cl
 
         # We remove the large structures (s prime) :
-        sp = s - ndimage.filters.median_filter(s, size=5, mode='mirror')
+        sp = s - ndimage.median_filter(s, size=5, mode='mirror')
 
         if verbose:
             print()
@@ -506,9 +506,9 @@ class cosmicsimage:
             "Building fine structure image ..."
 
         # We build the fine structure image :
-        m3 = ndimage.filters.median_filter(
+        m3 = ndimage.median_filter(
             self.cleanarray, size=3, mode='mirror')
-        m37 = ndimage.filters.median_filter(m3, size=7, mode='mirror')
+        m37 = ndimage.median_filter(m3, size=7, mode='mirror')
         f = m3 - m37
         # In the article that's it, but in lacosmic.cl f is divided by the noise...
         # Ok I understand why, it depends on if you use sp/f or L+/f as criterion.
@@ -572,7 +572,7 @@ class cosmicsimage:
         # Now the replacement of the cosmics...
         # we outsource this to the function clean(), as for some purposes the cleaning might not even be needed.
         # Easy way without masking would be :
-        #self.cleanarray[finalsel] = m5[finalsel]
+        # self.cleanarray[finalsel] = m5[finalsel]
 
         # We find how many cosmics are not yet known :
         newmask = np.logical_and(np.logical_not(self.mask), finalsel)
@@ -600,7 +600,7 @@ class cosmicsimage:
         if verbose :
             print "Finding holes ..."
 
-        m3 = ndimage.filters.median_filter(self.cleanarray, size=3, mode='mirror')
+        m3 = ndimage.median_filter(self.cleanarray, size=3, mode='mirror')
         h = (m3 - self.cleanarray).clip(min=0.0)
         
         tofits("h.fits", h)
@@ -618,7 +618,7 @@ class cosmicsimage:
         
         tofits("lplus.fits", lplus)
         
-        m5 = ndimage.filters.median_filter(self.cleanarray, size=5, mode='mirror')
+        m5 = ndimage.median_filter(self.cleanarray, size=5, mode='mirror')
         m5clipped = m5.clip(min=0.00001)
         noise = (1.0/self.gain) * np.sqrt(self.gain*m5clipped + self.readnoise*self.readnoise)
  
@@ -626,7 +626,7 @@ class cosmicsimage:
         # This s is called sigmap in the original lacosmic.cl
         
         # We remove the large structures (s prime) :
-        sp = s - ndimage.filters.median_filter(s, size=5, mode='mirror')
+        sp = s - ndimage.median_filter(s, size=5, mode='mirror')
         
         holes = sp > self.sigclip   
         """
@@ -718,7 +718,7 @@ def subsample(a):  # this is more a generic function then a method ...
     slices = [slice(0, old, float(old) / new)
               for old, new in zip(a.shape, newshape)]
     coordinates = np.mgrid[slices]
-    #choose the biggest smaller integer index
+    # choose the biggest smaller integer index
     indices = coordinates.astype('i')
     return a[tuple(indices)]
 

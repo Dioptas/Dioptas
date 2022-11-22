@@ -58,7 +58,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
         self.vertical_splitter.addWidget(self.integration_control_widget)
         self.vertical_splitter.addWidget(self.integration_pattern_widget)
-        self.vertical_splitter.setStretchFactor(1, 99999)
+        self.vertical_splitter.setStretchFactor(0, 1)
+        self.vertical_splitter.setStretchFactor(1, 10)
 
         self.vertical_splitter_left = QtWidgets.QSplitter(self)
         self.vertical_splitter_left.setOrientation(QtCore.Qt.Vertical)
@@ -68,7 +69,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
         self.horizontal_splitter.addWidget(self.vertical_splitter_left)
         self.horizontal_splitter.addWidget(self.vertical_splitter)
-        self.horizontal_splitter.addWidget(self.vertical_splitter)
+        # self.horizontal_splitter.addWidget(self.vertical_splitter)
 
         self._layout.addWidget(self.horizontal_splitter, 10)
         self._layout.addWidget(self.integration_status_widget, 0)
@@ -314,10 +315,10 @@ class IntegrationWidget(QtWidgets.QWidget):
         progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         progress_dialog.move(
-            self.pattern_widget.pg_layout.x() + self.pattern_widget.pg_layout.size().width() / 2.0 - \
-            progress_dialog.size().width() / 2.0,
-            self.pattern_widget.pg_layout.y() + self.pattern_widget.pg_layout.size().height() / 2.0 -
-            progress_dialog.size().height() / 2.0)
+            int(self.pattern_widget.pg_layout.x() + self.pattern_widget.pg_layout.size().width() / 2.0 -
+                progress_dialog.size().width() / 2.0),
+            int(self.pattern_widget.pg_layout.y() + self.pattern_widget.pg_layout.size().height() / 2.0 -
+                progress_dialog.size().height() / 2.0))
         progress_dialog.show()
         return progress_dialog
 

@@ -12,30 +12,33 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: git fetch --prune --unshallow
-    - name: Setup Python 3.7
-      uses: actions/setup-python@v2
+    - name: Setup Python 3.10
+      uses: actions/setup-python@v3
       with:
-        python-version: 3.7
+        python-version: '3.10'
 
     - name: Use Python Dependency Cache
       id: pip-cache
       uses: actions/cache@v1
       with:
         path: ~\AppData\Local\pip\Cache
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-v1
+        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-v3
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-pip-c3
         
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas numpy==1.19.3 python-dateutil h5py cython scikit-image pyqt5 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem
+        pip install pycifrw pandas numpy python-dateutil h5py cython scikit-image pyqt5 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem setuptools_scm
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas\model\util\smooth_bruckner_cython.pyx
 
-    - name: Run Dioptas from source to test and create version file
+    - name: Create a Version File
+      run: python -m setuptools_scm
+
+    - name: Run Dioptas from source to test
       run: python Dioptas.py test
 
     - name: Run PyInstaller

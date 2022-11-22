@@ -24,7 +24,6 @@ import os
 
 import numpy as np
 
-from ..utility import QtTest
 from ...model.ImgModel import ImgModel, BackgroundDimensionWrongException
 from ...model.util.ImgCorrection import DummyCorrection
 
@@ -33,7 +32,7 @@ data_path = os.path.join(unittest_path, '../data')
 spe_path = os.path.join(data_path, 'spe')
 
 
-class ImgModelTest(QtTest):
+class ImgModelTest(unittest.TestCase):
     def setUp(self):
         self.img_model = ImgModel()
         self.img_model.load(os.path.join(data_path, 'image_001.tif'))

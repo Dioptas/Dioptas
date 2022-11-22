@@ -261,12 +261,12 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.assertNotEqual(old_volume, volume)
 
         # He sees that the equation of state parameters in the file are not correct and enters new values:
-        self.enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 200)
-        self.enter_value_into_text_field(self.jcpds_widget.eos_Kp_txt, 5)
-        self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, .23e-5)
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dalphadT_txt, .1e-6)
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dKdT_txt, 0.003)
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 0.1e-5)
+        enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 200)
+        enter_value_into_text_field(self.jcpds_widget.eos_Kp_txt, 5)
+        enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, .23e-5)
+        enter_value_into_text_field(self.jcpds_widget.eos_dalphadT_txt, .1e-6)
+        enter_value_into_text_field(self.jcpds_widget.eos_dKdT_txt, 0.003)
+        enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 0.1e-5)
 
         self.assertAlmostEqual(self.jcpds.params['k0'], 200)
         self.assertAlmostEqual(self.jcpds.params['k0p0'], 5)
@@ -476,29 +476,29 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.main_controller.integration_controller.widget.phase_widget.pressure_sbs[0].setValue(30)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 120)
+        enter_value_into_text_field(self.jcpds_widget.eos_K_txt, 120)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_Kp_txt, 6)
+        enter_value_into_text_field(self.jcpds_widget.eos_Kp_txt, 6)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         # he decides to change temperature value and play with all equation of state parameters
-        self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 6.234e-5)
+        enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 6.234e-5)
         self.assertEqual(self.phase_controller.model.phase_model.phases[2].params['alpha_t0'], 6.234e-5)
 
         self.main_controller.integration_controller.widget.phase_widget.temperature_sbs[0].setValue(1300)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 10.234e-5)
+        enter_value_into_text_field(self.jcpds_widget.eos_alphaT_txt, 10.234e-5)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dalphadT_txt, 10.234e-8)
+        enter_value_into_text_field(self.jcpds_widget.eos_dalphadT_txt, 10.234e-8)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dKdT_txt, 1.2e-4)
+        enter_value_into_text_field(self.jcpds_widget.eos_dKdT_txt, 1.2e-4)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
-        self.enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 1.3e-5)
+        enter_value_into_text_field(self.jcpds_widget.eos_dKpdT_txt, 1.3e-5)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
     def test_connection_between_main_gui_and_jcpds_editor_reflections(self):

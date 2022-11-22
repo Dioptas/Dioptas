@@ -3,7 +3,7 @@ import gc
 import shutil
 from mock import MagicMock
 
-from ..utility import QtTest
+from ..utility import QtTest, click_button
 
 from qtpy import QtWidgets, QtGui
 
@@ -172,3 +172,6 @@ class BatchControllerTest(QtTest):
         self.assertEqual(self.model.overlay_model.overlays[0].name,
                          'testasapo1_1009_00002_m1_part00002.nxs, 4')
         self.assertEqual(self.model.overlay_model.overlays[0]._pattern_x.shape, (10,))
+
+    def test_normalize(self):
+        click_button(self.widget.batch_widget.control_widget.normalize_btn)
