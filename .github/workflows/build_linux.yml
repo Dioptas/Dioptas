@@ -16,7 +16,7 @@ jobs:
     - run: git fetch --prune --unshallow
 
     - name: Use Miniconda
-      uses: s-weigand/setup-conda@v2
+      uses: s-weigand/setup-conda@v1
 
     - name: switch to python=3.9 and install pip
       run: conda install python=3.9 pip -y
