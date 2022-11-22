@@ -1,5 +1,5 @@
-0.5.5 (under development)
---------------------------
+0.5.5 (stable 22.11.2022)
+-------------------------
 
 New features:
     - added a normalize button to the batch widget, which will normalize all batch integrated patterns
