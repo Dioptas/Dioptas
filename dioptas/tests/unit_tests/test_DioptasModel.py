@@ -37,6 +37,8 @@ class DioptasModelTest(unittest.TestCase):
         self.model = DioptasModel()
 
     def tearDown(self):
+        self.calibration_model.pattern_geometry.reset()
+        self.calibration_model.cake_geometry.reset()
         delete_if_exists(os.path.join(data_path, 'empty.dio'))
         delete_if_exists(os.path.join(data_path, 'combined_pattern.xy'))
 
