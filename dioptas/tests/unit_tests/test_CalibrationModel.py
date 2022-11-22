@@ -45,7 +45,8 @@ class CalibrationModelTestWithIntegration(unittest.TestCase):
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'detector_with_spline.h5'))
         self.calibration_model.pattern_geometry.reset()
-        self.calibration_model.cake_geometry.reset()
+        if self.calibration_model.cake_geometry is not None:
+            self.calibration_model.cake_geometry.reset()
         del self.img_model
         if hasattr(self.calibration_model, 'cake_geometry'):
             del self.calibration_model.cake_geometry
