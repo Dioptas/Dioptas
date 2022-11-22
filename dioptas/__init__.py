@@ -43,7 +43,7 @@ if _platform != "linux" or _platform != "linux2":  # does not work correctly on 
 
 def main():
     app = QtWidgets.QApplication([])
-    # sys.excepthook = excepthook
+    sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
 
     if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
