@@ -3,7 +3,7 @@
 
 New features:
     - added a normalize button to the batch widget, which will normalize all batch integrated patterns
-      to the starting area
+      to the starting area (i.e. the first 10-30 values of the pattern)
     - batch integration starts immediate after selecting the files
     - added browsing between folders in batch widget
 
