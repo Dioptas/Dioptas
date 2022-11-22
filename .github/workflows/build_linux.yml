@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: git fetch --prune --unshallow
-    - name: Setup Python 3.8
+    - name: Setup Python 3.9
       uses: actions/setup-python@v3
       with:
         python-version: '3.8'
@@ -40,7 +40,7 @@ jobs:
     - name: Install Pip Dependencies
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 cython future qtpy pyfai lmfit \
-                    pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin \
+                    pyepics extra_data pyinstaller==5.5 watchdog pyopengl pyopengl-accelerate h5py hdf5plugin \
                     pyqtgraph sharedmem setuptools_scm
 
     - name: Compile Smooth Bruckner
