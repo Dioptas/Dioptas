@@ -1,14 +1,17 @@
 import os
+import unittest
 
 import numpy as np
 
-from ..utility import QtTest, delete_if_exists
+from ..utility import delete_if_exists
 from ...model.CalibrationModel import CalibrationModel
 from ...model.ImgModel import ImgModel
 from ...model.MaskModel import MaskModel
-from ...model.BatchModel import BatchModel
+from ...model.BatchModel import BatchModel, iterate_folder
+from ...model.util.Pattern import Pattern
 
 import gc
+from mock import MagicMock
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -18,7 +21,7 @@ files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'
 cal_file = os.path.join(data_path, 'lambda/L2.poni')
 
 
-class BatchModelTest(QtTest):
+class BatchModelTest(unittest.TestCase):
     def setUp(self):
         self.img_model = ImgModel()
         self.calibration_model = CalibrationModel(self.img_model)
@@ -27,6 +30,10 @@ class BatchModelTest(QtTest):
         self.mask_model.mode = False
         self.batch_model = BatchModel(self.calibration_model, self.mask_model)
         self.batch_model.set_image_files(files)
+
+        pattern = Pattern().load(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
+        self.calibration_model.integrate_1d = MagicMock(return_value=(pattern.x,
+                                                                            pattern.y))
 
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'detector_with_spline.h5'))
@@ -94,3 +101,23 @@ class BatchModelTest(QtTest):
         self.batch_model.integrate_raw_data(num_points=1000, start=5, stop=10, step=2, use_all=True)
         self.batch_model.extract_background(parameters=(0.1, 150, 50))
         self.assertEqual(self.batch_model.bkg.shape[0], 3)
+
+    def test_normalize(self):
+        self.batch_model.reset_data()
+        self.batch_model.data = np.ones((3, 80))
+        for i in range(self.batch_model.data.shape[0]):
+            self.batch_model.data[i] *= np.random.random()
+
+        self.batch_model.normalize()
+        self.assertAlmostEqual(0, np.sum(np.diff(self.batch_model.data[:, 1])))
+
+    def test_iterate_folder(self):
+        self.assertEqual(iterate_folder("r001", 1), "r002")
+        self.assertEqual(iterate_folder("r009", 1), "r010")
+        self.assertEqual(iterate_folder("r009", -1), "r008")
+
+        self.assertEqual(iterate_folder("test/r009", -1), "test/r008")
+        self.assertEqual("exp/0250/test/r002", iterate_folder("exp/0250/test/r001", 1))
+        self.assertEqual("exp234/02321/test/r100", iterate_folder("exp234/02321/test/r099", 1))
+        self.assertEqual("exp234/02321/test/r1000", iterate_folder("exp234/02321/test/r999", 1))
+

@@ -550,6 +550,9 @@ class ImgModel(object):
             background subtraction. in case you want the raw data without corrections, please use the
             raw_img_data property.
         """
+        # if self._img_data is None:
+        #     return None
+
         if self._background_data is None and not self._img_corrections.has_items():
             return self._img_data * self.factor
 

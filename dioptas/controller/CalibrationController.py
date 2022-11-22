@@ -532,9 +532,9 @@ class CalibrationController(object):
 
         # get options
         algorithm = str(self.widget.options_peaksearch_algorithm_cb.currentText())
-        delta_tth = np.float(self.widget.options_delta_tth_txt.text())
-        intensity_min_factor = np.float(self.widget.options_intensity_mean_factor_sb.value())
-        intensity_max = np.float(self.widget.options_intensity_limit_txt.text())
+        delta_tth = float(self.widget.options_delta_tth_txt.text())
+        intensity_min_factor = float(self.widget.options_intensity_mean_factor_sb.value())
+        intensity_max = float(self.widget.options_intensity_limit_txt.text())
 
         self.model.calibration_model.setup_peak_search_algorithm(algorithm)
 

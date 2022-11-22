@@ -21,6 +21,7 @@
 block_cipher = None
 
 import sys
+pristine_sys_module = list(sys.modules.keys())
 import os
 
 folder = os.getcwd()
@@ -29,6 +30,40 @@ from distutils.sysconfig import get_python_lib
 from sys import platform as _platform
 
 site_packages_path = get_python_lib()
+
+
+def get_libs(module_name, pristine=None, sieve=True):
+    """Track new modules which were imported
+    :param module_name: name of the module
+    :param pristine: list of modules previously loaded. By default, use all newly loaded
+    :param sieve: set to a string to sieve out on that string, module_name by default
+    :return: list of newly loaded modules
+    """
+    if pristine is None:
+        pristine = list(sys.modules.keys())
+    __import__(module_name)
+    new = [i for i in sys.modules if i not in pristine]
+    if sieve:
+        if isinstance(sieve, str):
+            module = sieve
+        else:
+            module = module_name
+        new = [i for i in new if i.startswith(module)]
+    return new
+
+
+binaries = []
+
+fabio_hiddenimports = get_libs("fabio")
+pyFAI_hiddenimports = get_libs("pyFAI.azimuthalIntegrator", sieve="pyFAI")
+pyqtgraph_hiddenimports = get_libs("pyqtgraph", sieve="pyqtgraph")
+
+pyqtgraph_hiddenimports += [
+    "pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5",
+    "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5",
+    "pyqtgraph.imageview.ImageViewTemplate_pyqt5"
+]
+
 import pyFAI
 import matplotlib
 import lib2to3
@@ -46,47 +81,6 @@ extra_datas = [
     (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), os.path.join('hdf5plugin', 'plugins'))
 ]
 
-binaries = []
-
-fabio_hiddenimports = [
-    "fabio.edfimage",
-    "fabio.adscimage",
-    "fabio.tifimage",
-    "fabio.marccdimage",
-    "fabio.mar345image",
-    "fabio.fit2dmaskimage",
-    "fabio.brukerimage",
-    "fabio.bruker100image",
-    "fabio.pnmimage",
-    "fabio.GEimage",
-    "fabio.OXDimage",
-    "fabio.dm3image",
-    "fabio.HiPiCimage",
-    "fabio.pilatusimage",
-    "fabio.fit2dspreadsheetimage",
-    "fabio.kcdimage",
-    "fabio.cbfimage",
-    "fabio.xsdimage",
-    "fabio.binaryimage",
-    "fabio.pixiimage",
-    "fabio.raxisimage",
-    "fabio.numpyimage",
-    "fabio.eigerimage",
-    "fabio.hdf5image",
-    "fabio.fit2dimage",
-    "fabio.speimage",
-    "fabio.jpegimage",
-    "fabio.jpeg2kimage",
-    "fabio.mpaimage",
-    "fabio.mrcimage"
-]
-
-pyqtgraph_hiddenimports = [
-    "pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5",
-    "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5",
-    "pyqtgraph.imageview.ImageViewTemplate_pyqt5"
-]
-
 a = Analysis(['Dioptas.py'],
              pathex=[folder],
              binaries=binaries,
@@ -94,7 +88,7 @@ a = Analysis(['Dioptas.py'],
              hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
                             'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
                             'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
-                           fabio_hiddenimports + pyqtgraph_hiddenimports,
+                           fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=['PyQt4', 'PySide'],

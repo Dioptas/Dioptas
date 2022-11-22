@@ -69,7 +69,10 @@ class BatchController(object):
         self.widget.batch_widget.closeEvent = self.close_batch_frame
 
         self.widget.batch_widget.file_control_widget.load_btn.clicked.connect(self.load_data)
+        self.widget.batch_widget.file_control_widget.load_previous_folder_btn.clicked.connect(self.load_previous_folder)
+        self.widget.batch_widget.file_control_widget.load_next_folder_btn.clicked.connect(self.load_next_folder)
         self.widget.batch_widget.file_control_widget.save_btn.clicked.connect(self.save_data)
+
         self.widget.batch_widget.control_widget.integrate_btn.clicked.connect(self.integrate)
         self.widget.batch_widget.control_widget.waterfall_btn.clicked.connect(self.waterfall_mode)
         self.widget.batch_widget.control_widget.phases_btn.clicked.connect(self.toggle_show_phases)
@@ -82,6 +85,7 @@ class BatchController(object):
         self.widget.batch_widget.options_widget.bkg_cut_btn.clicked.connect(lambda: self.plot_batch())
         self.widget.batch_widget.control_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.batch_widget.control_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
+        self.widget.batch_widget.control_widget.normalize_btn.clicked.connect(self.normalize_btn_clicked)
 
         # set unit of x axis
         self.widget.batch_widget.options_widget.tth_btn.clicked.connect(self.set_unit_tth)
@@ -620,6 +624,10 @@ class BatchController(object):
                                       )
         if len(filenames) == 0:
             return
+        else:
+            self._load_data(filenames)
+
+    def _load_data(self, filenames):
         self.model.working_directories['batch'] = os.path.dirname(filenames[0])
         self.widget.batch_widget.file_control_widget.folder_lbl.setText(os.path.dirname(filenames[0]))
         self.reset_view()
@@ -639,6 +647,17 @@ class BatchController(object):
             self.change_view()
 
         self.load_single_image(1, 0)
+        self.integrate()
+
+    def load_previous_folder(self):
+        filenames = self.model.batch_model.get_previous_folder_filenames()
+        if len(filenames) > 0:
+            self._load_data(filenames)
+
+    def load_next_folder(self):
+        filenames = self.model.batch_model.get_next_folder_filenames()
+        if len(filenames) > 0:
+            self._load_data(filenames)
 
     def reset_view(self):
         """
@@ -843,6 +862,10 @@ class BatchController(object):
 
     def img_autoscale_btn_clicked(self):
         self.widget.batch_widget.stack_plot_widget.img_view.auto_level()
+
+    def normalize_btn_clicked(self):
+        self.model.batch_model.normalize()
+        self.plot_batch()
 
     def process_waterfall(self, x, y):
         """
@@ -1126,11 +1149,11 @@ class BatchController(object):
         self.widget.batch_widget.stack_plot_widget.img_view.auto_range()
 
     def create_progress_dialog(self, text_str, abort_str, end_value):
-        progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, end_value,
+        progress_dialog = QtWidgets.QProgressDialog(text_str, abort_str, 0, int(end_value),
                                                     self.widget.batch_widget)
         # progress_dialog.setParent(self.widget.batch_widget)
 
-        progress_dialog.move(int(self.widget.batch_widget.x() + self.widget.batch_widget.size().width() / 2.0 - \
+        progress_dialog.move(int(self.widget.batch_widget.x() + self.widget.batch_widget.size().width() / 2.0 -
                                  progress_dialog.size().width() / 2.0),
                              int(self.widget.batch_widget.y() + self.widget.batch_widget.size().height() / 2.0 -
                                  progress_dialog.size().height() / 2.0))

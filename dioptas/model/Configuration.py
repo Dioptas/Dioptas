@@ -646,8 +646,8 @@ class Configuration(object):
         transformation_list = []
         for key, transformation in transformation_group.attrs.items():
             transformation_list.append(transformation)
-        self.img_model.load_transformations_string_list(transformation_list)
         self.calibration_model.load_transformations_string_list(transformation_list)
+        self.img_model.load_transformations_string_list(transformation_list)
 
         # load roi data
         if f.get('image_model').attrs['has_roi']:

@@ -57,6 +57,7 @@ class CalibrationModel(object):
         self.points_index = []
 
         self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
+        # self.detector.shape = (2048, 2048)
         self.detector_mode = DetectorModes.CUSTOM
         self._original_detector = None  # used for saving original state before rotating or flipping
         self.pattern_geometry = GeometryRefinement(detector=self.detector, wavelength=0.3344e-10,
@@ -95,6 +96,8 @@ class CalibrationModel(object):
         self.cake_azi = None
 
         self.peak_search_algorithm = None
+
+        self.img_model.img_changed.connect(self._check_detector_and_image_shape)
 
         self.detector_reset = Signal()
 
@@ -222,7 +225,7 @@ class CalibrationModel(object):
         tth_calibrant_list = self.calibrant.get_2th()
         if ring_index >= len(tth_calibrant_list):
             raise NotEnoughSpacingsInCalibrant()
-        tth_calibrant = np.float(tth_calibrant_list[ring_index])
+        tth_calibrant = float(tth_calibrant_list[ring_index])
 
         # get the calculated two theta values for the whole image
         tth_array = self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)
@@ -249,9 +252,10 @@ class CalibrationModel(object):
 
         keep = int(np.ceil(np.sqrt(size2)))
         try:
+            old_stdout = sys.stdout
             sys.stdout = DummyStdOut
             res = self.peak_search_algorithm.peaks_from_area(mask2, Imin=mean - std, keep=keep)
-            sys.stdout = sys.__stdout__
+            sys.stdout = old_stdout
         except IndexError:
             res = []
 
@@ -282,6 +286,10 @@ class CalibrationModel(object):
         self.detector.pixel1 = self.orig_pixel1
         self.detector.pixel2 = self.orig_pixel2
         self.set_supersampling()
+
+    def update_detector_shape(self):
+        self.detector.shape = self.img_model.img_data.shape
+        self.detector.max_shape = self.img_model.img_data.shape
 
     def set_fixed_values(self, fixed_values):
         """
@@ -336,6 +344,8 @@ class CalibrationModel(object):
             if self.detector.shape != self.img_model.img_data.shape:
                 self.reset_detector()
                 self.detector_reset.emit()
+        else:
+            self.reset_detector()
 
     def _prepare_integration_mask(self, mask):
         if mask is None:
@@ -535,7 +545,7 @@ class CalibrationModel(object):
 
     def load(self, filename):
         """
-        Loads a calibration file and and sets all the calibration parameter.
+        Loads a calibration file andsets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
         self.pattern_geometry = GeometryRefinement(wavelength=0.3344e-10, detector=self.detector,
@@ -595,7 +605,8 @@ class CalibrationModel(object):
 
     def reset_detector(self):
         self.detector_mode = DetectorModes.CUSTOM
-        self.detector = Detector(pixel1=self.orig_pixel1, pixel2=self.orig_pixel2)
+        self.detector = Detector(pixel1=self.detector.pixel1, pixel2=self.detector.pixel2)
+        self.update_detector_shape()
         self.pattern_geometry.detector = self.detector
         if self.cake_geometry:
             self.cake_geometry.detector = self.detector
@@ -824,7 +835,7 @@ class CalibrationModel(object):
     def _save_original_detector_definition(self):
         """
         Saves the state of the detector to _original_detector if not done yet. Used for restoration upon resetting
-        the transfromations.
+        the transformations.
         """
         if self._original_detector is None:
             self._original_detector = deepcopy(self.detector)
@@ -836,7 +847,8 @@ class CalibrationModel(object):
         """
         :param transform_function: function pointer which will affect the dx, dy and pixel corners of the detector
         """
-        self.detector._pixel_corners = np.ascontiguousarray(transform_function(self.detector.get_pixel_corners()))
+        if self.detector._pixel_corners is not None:
+            self.detector._pixel_corners = np.ascontiguousarray(transform_function(self.detector.get_pixel_corners()))
 
     def _swap_pixel_size(self):
         """swaps the pixel sizes"""
@@ -858,7 +870,7 @@ class CalibrationModel(object):
             self.detector.MODULE_GAP = (self.detector.MODULE_GAP[1], self.detector.MODULE_GAP[0])
 
     def _reset_detector_mask(self):
-        """resets and recalculates the mask. Transforamtions to shape and module size have to be performed before."""
+        """resets and recalculates the mask. Transformations to shape and module size have to be performed before."""
         self.detector._mask = False
 
 

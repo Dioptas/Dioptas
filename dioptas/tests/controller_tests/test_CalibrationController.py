@@ -277,3 +277,13 @@ class TestCalibrationController(QtTest):
         QTest.mouseClick(self.widget.load_calibration_btn, QtCore.Qt.LeftButton)
         self.widget.get_pyFAI_parameter()  # would cause error if GUI not updated
         self.widget.get_fit2d_parameter()  # would cause error if GUI not updated
+
+    def test_detector_rotation_does_not_emit_reset_detector_signal(self):
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
+        click_button(self.widget.load_img_btn)
+        self.model.calibration_model.detector_reset.emit = MagicMock()
+
+        click_button(self.widget.rotate_m90_btn)
+        self.model.calibration_model.detector_reset.emit.assert_not_called()
+
