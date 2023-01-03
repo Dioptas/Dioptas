@@ -360,7 +360,7 @@ class CalibrationController(object):
         if self.widget.automatic_peak_search_rb.isChecked():
             points = self.model.calibration_model.find_peaks_automatic(x, y, peak_ind - 1)
         else:
-            search_size = np.int(self.widget.search_size_sb.value())
+            search_size = int(self.widget.search_size_sb.value())
             points = self.model.calibration_model.find_peak(x, y, search_size, peak_ind - 1)
         if len(points):
             self.plot_points(points)
