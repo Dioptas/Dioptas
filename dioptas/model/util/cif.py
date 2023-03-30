@@ -346,7 +346,16 @@ class CifPhase(object):
         self.beta = convert_cif_number_to_float(cif_dictionary['_cell_angle_beta'])
         self.gamma = convert_cif_number_to_float(cif_dictionary['_cell_angle_gamma'])
 
-        self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
+        vol_calc_base = self.a * self.b * self.c
+        vol_calc_p1 = np.cos(self.alpha) * np.cos(self.beta) * np.cos(self.gamma)
+        vol_calc_p2 = np.cos(self.alpha)**2 + np.cos(self.beta)**2 + np.cos(self.gamma)**2
+        volume_calc = vol_calc_base * np.sqrt(1 + 2 * vol_calc_p1 - vol_calc_p2)
+        if '_cell_volume' in cif_dictionary.keys():
+            self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
+            if abs(volume_calc - self.volume) > 0.001:
+                self.volume = volume_calc
+        else:
+            self.volume = volume_calc
 
         if '_symmetry_space_group_name_h-m' in cif_dictionary.keys():
             self.space_group = cif_dictionary['_symmetry_space_group_name_h-m']
