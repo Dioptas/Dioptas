@@ -216,7 +216,7 @@ class ImgWidget(QtCore.QObject):
         dif = pos - lastPos
         dif *= -1
         ## Ignore axes if mouse is disabled
-        mouseEnabled = np.array(self.img_view_box.state['mouseEnabled'], dtype=np.float)
+        mouseEnabled = np.array(self.img_view_box.state['mouseEnabled'], dtype=float)
         mask = mouseEnabled.copy()
         if axis is not None:
             mask[1 - axis] = 0.0
