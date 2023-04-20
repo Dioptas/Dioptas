@@ -1,3 +1,9 @@
+0.5.6 (stable 23.11.2022)
+--------------------------
+
+Removed image files from pypi distribution.
+
+
 0.5.5 (stable 22.11.2022)
 -------------------------
 
