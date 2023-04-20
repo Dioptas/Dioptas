@@ -1,3 +1,13 @@
+0.5.7 (under development)
+-------------------------
+
+New features:
+   - upgrading dependency pyqt5 to pyqt6 which should work better for high dpi screens
+
+Bugfixes:
+   - fix numpy float conversion issue due to deprecated numpy.float
+
+
 0.5.6 (stable 23.11.2022)
 --------------------------
 
