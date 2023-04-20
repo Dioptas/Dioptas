@@ -32,7 +32,7 @@ jobs:
 
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 cython future qtpy pyfai lmfit \
+        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt6 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller==5.5 watchdog pyopengl pyopengl-accelerate h5py hdf5plugin \
                     pyqtgraph sharedmem setuptools_scm
 
