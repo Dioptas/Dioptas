@@ -264,7 +264,8 @@ class CalibrationModelTest(unittest.TestCase):
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, 'detector_with_spline.h5'))
         self.calibration_model.pattern_geometry.reset()
-        self.calibration_model.cake_geometry.reset()
+        if self.calibration_model.cake_geometry:
+            self.calibration_model.cake_geometry.reset()
         del self.img_model
         if hasattr(self.calibration_model, 'cake_geometry'):
             del self.calibration_model.cake_geometry
@@ -377,8 +378,6 @@ class CalibrationModelTest(unittest.TestCase):
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'LaB6.D'))
         self.calibration_model.calibrate()
 
-        print(self.calibration_model.detector.pixel1)
-
         self.assertGreater(self.calibration_model.pattern_geometry.poni1, 0)
         self.assertAlmostEqual(self.calibration_model.pattern_geometry.dist, 0.500, delta=0.01)
         self.assertGreater(self.calibration_model.cake_geometry.poni1, 0)
@@ -392,6 +391,8 @@ class CalibrationModelTest(unittest.TestCase):
         self.calibration_model.set_pixel_size((172e-6, 172e-6))
         self.calibration_model.set_calibrant(os.path.join(calibrants_path, 'CeO2.D'))
         self.calibration_model.calibrate()
+
+
 
         self.assertGreater(self.calibration_model.pattern_geometry.poni1, 0)
         self.assertAlmostEqual(self.calibration_model.pattern_geometry.dist, 0.208, delta=0.005)
