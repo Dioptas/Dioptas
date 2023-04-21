@@ -45,4 +45,20 @@ jobs:
     - name: Run tests
       shell: bash -l {0}
       run: |
-        py.test dioptas/tests/unit_tests
+        py.test dioptas/tests/unit_tests/test_background_extraction.py
+        py.test dioptas/tests/unit_tests/test_BatchModel.py
+        py.test dioptas/tests/unit_tests/test_calc.py
+        py.test dioptas/tests/unit_tests/test_CalibrationModel.py
+        py.test dioptas/tests/unit_tests/test_cif.py
+        py.test dioptas/tests/unit_tests/test_DioptasModel.py
+        py.test dioptas/tests/unit_tests/test_FileNameIterator.py
+        py.test dioptas/tests/unit_tests/test_HelperModule.py
+        py.test dioptas/tests/unit_tests/test_ImgCorrections.py
+        py.test dioptas/tests/unit_tests/test_ImgModel.py
+        py.test dioptas/tests/unit_tests/test_Jcpds.py
+        py.test dioptas/tests/unit_tests/test_MaskModel.py
+        py.test dioptas/tests/unit_tests/test_NewFileInDirectoryWatcher.py
+        py.test dioptas/tests/unit_tests/test_OverlayModel.py
+        py.test dioptas/tests/unit_tests/test_Pattern.py
+        py.test dioptas/tests/unit_tests/test_PatternModel.py
+        py.test dioptas/tests/unit_tests/test_PhaseModel.py
