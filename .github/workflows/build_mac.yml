@@ -18,8 +18,8 @@ jobs:
     - name: Use Miniconda
       uses: s-weigand/setup-conda@v1
 
-    - name: switch to python=3.10 and install pip
-      run: conda install python=3.10 pip -y
+    - name: switch to python=3.11 and install pip
+      run: conda install python=3.11 pip -y
 
     - name: Install Pip Dependencies
       run: |
