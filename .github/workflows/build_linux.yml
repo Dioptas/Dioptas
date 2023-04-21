@@ -19,8 +19,8 @@ jobs:
     - name: Use Miniconda
       uses: s-weigand/setup-conda@v1
 
-    - name: switch to python=3.11 and install pip
-      run: conda install python=3.11 pip -y
+    - name: switch to python=3.10 and install pip
+      run: conda install python=3.10 pip -y
 
     - name: Install Apt Dependencies
       run: |
@@ -37,6 +37,8 @@ jobs:
         pip install pycifrw pandas python-dateutil h5py scikit-image==0.19.3 pyqt6 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin \
                     pyqtgraph sharedmem setuptools_scm
+      # we have to use scikit-image==0.19.3 because of a new loading mechanism in 0.20.0 which does currently not work
+      # with pyinstaller
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
