@@ -51,11 +51,6 @@ jobs:
     - name: Run PyInstaller
       run: bash create_executable.sh
 
-    - name: Clean Up Executable Folder
-      run: |
-        cd dist/Dioptas*
-        rm -r imageio
-
     - name: Run Dioptas
       run: |
         cd dist/Dioptas*
