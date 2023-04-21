@@ -2,7 +2,7 @@
 
 name: CI_backend
 
-on: []
+on: [push, pull_request]
 
 jobs:
   test:
