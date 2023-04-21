@@ -9,7 +9,8 @@ jobs:
   build_linux:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
+    env:
+      DISPLAY: :99.0
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - uses: actions/checkout@v3
@@ -46,7 +47,7 @@ jobs:
       run: python -m setuptools_scm
 
     - name: Run Dioptas from source to test
-      run: xvfb-run python Dioptas.py test
+      run: xvfb-run -e /dev/stdout python Dioptas.py test
         
     - name: Run PyInstaller
       run: bash create_executable.sh
