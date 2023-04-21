@@ -39,7 +39,7 @@ jobs:
     - name: Install Pip Dependencies
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt6 cython future qtpy pyfai lmfit \
-                    pyepics extra_data pyinstaller watchdog h5py hdf5plugin pyqtgraph \
+                    pyepics extra_data pyinstaller pyopengl watchdog h5py hdf5plugin pyqtgraph \
                     mock pytest setuptools_scm
 
     - name: Run tests
