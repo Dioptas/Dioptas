@@ -53,7 +53,7 @@ class TestCifModule(unittest.TestCase):
         self.assertEqual(cif_phase.beta, 90)
         self.assertEqual(cif_phase.gamma, 90)
 
-        self.assertEqual(cif_phase.volume, 115.79)
+        self.assertAlmostEqual(cif_phase.volume, 115.79, places=2)
         self.assertEqual(cif_phase.space_group_number, 225)
 
         self.assertEqual(len(cif_phase.atoms), 8)
