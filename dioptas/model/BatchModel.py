@@ -372,6 +372,8 @@ def iterate_folder(folder_path, step):
         left_ind = number_span[0]
         right_ind = number_span[1]
         number = int(folder_path[left_ind:right_ind]) + step
+        if number < 0:
+            number = 0
         new_directory_str = "{left_str}{number:0{len}}{right_str}".format(
             left_str=folder_path[:left_ind],
             number=number,
