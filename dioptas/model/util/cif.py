@@ -346,7 +346,13 @@ class CifPhase(object):
         self.beta = convert_cif_number_to_float(cif_dictionary['_cell_angle_beta'])
         self.gamma = convert_cif_number_to_float(cif_dictionary['_cell_angle_gamma'])
 
-        self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
+        volume_calc = calculate_cell_volume(self.a, self.b, self.c, self.alpha, self.beta, self.gamma)
+        if '_cell_volume' in cif_dictionary.keys():
+            self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
+            if abs(volume_calc - self.volume) > 0.001:
+                self.volume = volume_calc
+        else:
+            self.volume = volume_calc
 
         if '_symmetry_space_group_name_h-m' in cif_dictionary.keys():
             self.space_group = cif_dictionary['_symmetry_space_group_name_h-m']
@@ -566,3 +572,21 @@ def number_between(num, num_low, num_high):
 
 def convert_cif_number_to_float(cif_number):
     return float(cif_number.split('(')[0])
+
+
+def calculate_cell_volume(a, b, c, alpha, beta, gamma, rad=False):
+    """
+    Calculates the cell volume using formula: 
+    V = a*b*c*sqrt(1 + 2*cos(alpha)*cos(beta)*cos(gamma)-cos^2(alpha)-cos^2(beta)-cos^2(gamma))
+    When rad is True, treat alpha, beta, gamma as in radians; otherwise degrees. Default is false (degrees).
+    """
+    if not rad:
+        alpha = np.deg2rad(alpha)
+        beta = np.deg2rad(beta)
+        gamma = np.deg2rad(gamma)
+
+    vol_calc_base = a * b * c
+    vol_calc_p1 = np.cos(alpha) * np.cos(beta) * np.cos(gamma)
+    vol_calc_p2 = np.cos(alpha)**2 + np.cos(beta)**2 + np.cos(gamma)**2
+    volume_calc = vol_calc_base * np.sqrt(1 + 2 * vol_calc_p1 - vol_calc_p2)
+    return volume_calc
