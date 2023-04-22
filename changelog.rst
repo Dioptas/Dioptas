@@ -2,10 +2,16 @@
 -------------------------
 
 New features:
-   - upgrading dependency pyqt5 to pyqt6 which should work better for high dpi screens
+    - upgrading dependency pyqt5 to pyqt6 which should work better for high dpi screens
+    - added a new "integrate" button to the batch widget, which will integrate all patterns in the batch widget
+    - now compatible with python 3.11, whenever possible the created executables will be compatible are compiled with
+      python 3.11
+
 
 Bugfixes:
-   - fix numpy float conversion issue due to deprecated numpy.float
+    - fix numpy float conversion issue due to deprecated numpy.float
+    - reading cif files with missing volume tag will now work correctly and the volume will be calculated from cell
+      parameters (PR #140, thanks to @ScottNotFound)
 
 
 0.5.6 (stable 23.11.2022)

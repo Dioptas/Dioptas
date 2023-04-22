@@ -22,6 +22,7 @@ from __future__ import division, unicode_literals
 
 import os
 import itertools
+
 try:
     from urllib import pathname2url
 except ImportError:
@@ -346,13 +347,11 @@ class CifPhase(object):
         self.beta = convert_cif_number_to_float(cif_dictionary['_cell_angle_beta'])
         self.gamma = convert_cif_number_to_float(cif_dictionary['_cell_angle_gamma'])
 
-        volume_calc = calculate_cell_volume(self.a, self.b, self.c, self.alpha, self.beta, self.gamma)
         if '_cell_volume' in cif_dictionary.keys():
             self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
-            if abs(volume_calc - self.volume) > 0.001:
-                self.volume = volume_calc
         else:
-            self.volume = volume_calc
+            self.volume = calculate_cell_volume(self.a, self.b, self.c,
+                                                np.deg2rad(self.alpha), np.deg2rad(self.beta), np.deg2rad(self.gamma))
 
         if '_symmetry_space_group_name_h-m' in cif_dictionary.keys():
             self.space_group = cif_dictionary['_symmetry_space_group_name_h-m']
@@ -389,7 +388,8 @@ class CifPhase(object):
         self._atom_y = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_y']]
         self._atom_z = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_z']]
         if '_atom_site_occupancy' in cif_dictionary.keys():
-            self._atom_occupancy = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_occupancy']]
+            self._atom_occupancy = [float(convert_cif_number_to_float(s)) for s in
+                                    cif_dictionary['_atom_site_occupancy']]
         else:
             self._atom_occupancy = [1] * len(self._atom_labels)
 
@@ -536,10 +536,10 @@ class CifPhase(object):
             self.comments += self.cif_dictionary['_chemical_formula_sum'].replace(" ", "")
 
         if self.cif_dictionary.get('_symmetry_space_group_name_H-M'):
-            if self.comments=='':
+            if self.comments == '':
                 self.comments += self.cif_dictionary.get('_symmetry_space_group_name_H-M').replace(" ", "")
             else:
-                self.comments+= ', ' +self.cif_dictionary.get('_symmetry_space_group_name_H-M').replace(" ", "")
+                self.comments += ', ' + self.cif_dictionary.get('_symmetry_space_group_name_H-M').replace(" ", "")
 
         if self.cif_dictionary.get('_chemical_name_structure_type'):
             self.comments += ' - '
@@ -557,15 +557,15 @@ class CifPhase(object):
                 self.comments += ', amcsd '
             else:
                 self.comments += 'amcsd '
-            self.comments+= self.cif_dictionary['_database_code_amcsd']
+            self.comments += self.cif_dictionary['_database_code_amcsd']
 
 
-def number_between(num, num_low, num_high):
+def number_between(number, low, high):
     """
-    Tests if a number is in between num_low and num_high, whereby num_low and num_high are included  [num_low, num_high]
+    Tests if a number is in between low and high, whereby low and high are included  [low, high]
     :return: Boolean result for the result
     """
-    if num_low <= num <= num_high:
+    if low <= number <= high:
         return True
     return False
 
@@ -574,19 +574,20 @@ def convert_cif_number_to_float(cif_number):
     return float(cif_number.split('(')[0])
 
 
-def calculate_cell_volume(a, b, c, alpha, beta, gamma, rad=False):
+def calculate_cell_volume(a, b, c, alpha, beta, gamma):
     """
     Calculates the cell volume using formula: 
     V = a*b*c*sqrt(1 + 2*cos(alpha)*cos(beta)*cos(gamma)-cos^2(alpha)-cos^2(beta)-cos^2(gamma))
-    When rad is True, treat alpha, beta, gamma as in radians; otherwise degrees. Default is false (degrees).
-    """
-    if not rad:
-        alpha = np.deg2rad(alpha)
-        beta = np.deg2rad(beta)
-        gamma = np.deg2rad(gamma)
 
-    vol_calc_base = a * b * c
-    vol_calc_p1 = np.cos(alpha) * np.cos(beta) * np.cos(gamma)
-    vol_calc_p2 = np.cos(alpha)**2 + np.cos(beta)**2 + np.cos(gamma)**2
-    volume_calc = vol_calc_base * np.sqrt(1 + 2 * vol_calc_p1 - vol_calc_p2)
-    return volume_calc
+    :param a: lattice parameter a
+    :param b: lattice parameter b
+    :param c: lattice parameter c
+    :param alpha: lattice angle alpha in radians
+    :param beta: lattice angle beta in radians
+    :param gamma: lattice angle gamma in radians
+    :return: cell volume
+    """
+    base = a * b * c
+    part1 = np.cos(alpha) * np.cos(beta) * np.cos(gamma)
+    part2 = np.cos(alpha) ** 2 + np.cos(beta) ** 2 + np.cos(gamma) ** 2
+    return base * np.sqrt(1 + 2 * part1 - part2)
