@@ -938,7 +938,7 @@ class BatchController(object):
             return
         x = min(max(x, 0), img.shape[1])
         y = min(max(y, 0), img.shape[0] - 1)
-        self.widget.batch_widget.position_widget.step_series_widget.slider.setValue(y)
+        self.widget.batch_widget.position_widget.step_series_widget.slider.setValue(int(y))
         self.widget.batch_widget.position_widget.step_series_widget.pos_txt.setText(str(int(y)))
         self.plot_image(int(y))
         self.plot_pattern(int(x), int(y))
