@@ -2,6 +2,8 @@
 -------------------------
 
 New features:
+    - saving in batch window will now also save auto backgroundground corrected patterns, if enabled in the pattern
+      widget
     - upgrading dependency pyqt5 to pyqt6 which should work better for high dpi screens
     - added a new "integrate" button to the batch widget, which will integrate all patterns in the batch widget
     - now compatible with python 3.11, whenever possible the created executables will be compatible are compiled with
