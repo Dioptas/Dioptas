@@ -17,87 +17,78 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-import unittest
+
 import numpy as np
+from pytest import approx
 
 from ...model.util import extract_background
 from ...model.util.PeakShapes import gaussian
 
 
-class TestBackgroundExtraction(unittest.TestCase):
+def test_simple_linear_background_with_single_peak():
+    """ We produce a Gaussian peak on a linear background, and test if the background subtraction algorithm
+    can find the correct background.
     """
-    Tests the Background extraction module in the model.util package
+
+    peaks = [[10, 3, 0.1]]
+
+    x, y_data, y_bkg = generate_pattern(peaks)
+
+    # combination
+    y_measurement = y_data + y_bkg
+
+    y_extracted_bkg = extract_background(x, y_measurement, 1)
+    assert np.sum(y_data - (y_measurement - y_extracted_bkg)) == approx(0, abs=1e-7)
+
+
+def test_simple_linear_background_with_multiple_peaks():
+    """ We produce several Gaussian peaks on top of a linear background and test if the background subtraction
+    algorithm can find the correct background.
     """
-    def test_simple_linear_background_with_single_peak(self):
-        """
-        Here we produce a Gaussian peak on a linear background, and test if the background subtraction algorithm
-        can find the correct background.
-        """
+    peaks = [
+        [10, 3, 0.05],
+        [12, 6, 0.05],
+        [12, 9, 0.05],
+    ]
 
-        # Gaussian
-        x = np.linspace(0, 25, 2500)
-        y_data = gaussian(x, 10, 3, 0.1)
+    x, y_data, y_bkg = generate_pattern(peaks)
 
-        # linear background
-        y_bkg = x * 0.4 + 5.0
+    # combination
+    y_measurement = y_data + y_bkg
 
-        # combination
-        y_measurement = y_data + y_bkg
-
-        y_extracted_bkg = extract_background(x, y_measurement, 1)
-        self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
-
-    def test_simple_linear_background_with_multiple_peaks(self):
-        """
-        Here we produce several Gaussian peaks on top of a linear background and test if the background subtraction
-        algorithm can find the correct background.
-        """
-
-        # produce peaks
-        x = np.linspace(0, 24, 2500)
-        y_data = np.zeros(x.shape)
-
-        peaks = [
-            [10, 3, 0.05],
-            [12, 6, 0.05],
-            [12, 9, 0.05],
-        ]
-        for peak in peaks:
-            y_data += gaussian(x, peak[0], peak[1], peak[2])
+    y_extracted_bkg = extract_background(x, y_measurement, 0.3)
+    assert np.sum(y_data - (y_measurement - y_extracted_bkg)) == approx(0, abs=1e-7)
 
 
-        # linear background
-        y_bkg = x * 0.4 + 5.0
+def test_simple_linear_background_with_multiple_close_peaks():
+    """ We produce several close overlapping peaks on top of a linear background and check whether the background
+    algorithm finds the correct background
+    """
 
-        # combination
-        y_measurement = y_data + y_bkg
+    peaks = [
+        [10, 3, 0.1],
+        [12, 3.1, 0.1],
+        [12, 3.4, 0.1],
+    ]
+    x, y_data, y_bkg = generate_pattern(peaks)
 
-        y_extracted_bkg = extract_background(x, y_measurement, 0.3)
-        self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
+    # combination
+    y_measurement = y_data + y_bkg
 
-    def test_simple_linear_background_with_multiple_close_peaks(self):
-        """
-        Here we produce several close overlapping peaks on top of a linear background and check whether the background
-        algorithm finds the correct background
-        """
+    y_extracted_bkg = extract_background(x, y_measurement, 1)
+    assert np.sum(y_data - (y_measurement - y_extracted_bkg)) == approx(0, abs=1e-7)
 
-        # produce peaks
-        x = np.linspace(0, 24, 2500)
-        y_data = np.zeros(x.shape)
 
-        peaks = [
-            [10, 3, 0.1],
-            [12, 3.1, 0.1],
-            [12, 3.4, 0.1],
-        ]
-        for peak in peaks:
-            y_data += gaussian(x, peak[0], peak[1], peak[2])
+def generate_pattern(peaks):
+    """ Generates a pattern with the given peaks. Peaks is a list of lists, where each list contains the
+    parameters of a single peak. The parameters are [position, width, intensity]
+    """
+    x = np.linspace(0, 24, 2500)
+    y_data = np.zeros(x.shape)
 
-        # background
-        y_bkg = x * 0.4 + 5.0
+    for peak in peaks:
+        y_data += gaussian(x, peak[0], peak[1], peak[2])
 
-        # combination
-        y_measurement = y_data + y_bkg
+    y_bkg = x * 0.4 + 5.0
 
-        y_extracted_bkg = extract_background(x, y_measurement, 1)
-        self.assertAlmostEqual(np.sum(y_data - (y_measurement - y_extracted_bkg)), 0)
+    return x, y_data, y_bkg

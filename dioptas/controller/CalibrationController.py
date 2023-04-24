@@ -360,7 +360,7 @@ class CalibrationController(object):
         if self.widget.automatic_peak_search_rb.isChecked():
             points = self.model.calibration_model.find_peaks_automatic(x, y, peak_ind - 1)
         else:
-            search_size = np.int(self.widget.search_size_sb.value())
+            search_size = int(self.widget.search_size_sb.value())
             points = self.model.calibration_model.find_peak(x, y, search_size, peak_ind - 1)
         if len(points):
             self.plot_points(points)
@@ -532,9 +532,9 @@ class CalibrationController(object):
 
         # get options
         algorithm = str(self.widget.options_peaksearch_algorithm_cb.currentText())
-        delta_tth = np.float(self.widget.options_delta_tth_txt.text())
-        intensity_min_factor = np.float(self.widget.options_intensity_mean_factor_sb.value())
-        intensity_max = np.float(self.widget.options_intensity_limit_txt.text())
+        delta_tth = float(self.widget.options_delta_tth_txt.text())
+        intensity_min_factor = float(self.widget.options_intensity_mean_factor_sb.value())
+        intensity_max = float(self.widget.options_intensity_limit_txt.text())
 
         self.model.calibration_model.setup_peak_search_algorithm(algorithm)
 

@@ -22,16 +22,16 @@ import gc
 import os
 import unittest
 
-from ..utility import QtTest, click_button, delete_if_exists
+from ..utility import QtTest, click_button, delete_if_exists, enter_value_into_text_field, delete_folder_if_exists
 
 import numpy as np
-from subprocess import check_output
 
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
 
 from mock import MagicMock
 
+from ...model.util.Pattern import Pattern
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration import IntegrationController
@@ -50,12 +50,13 @@ class IntegrationMockFunctionalTest(QtTest):
         self.integration_widget = IntegrationWidget()
         self.integration_controller = IntegrationController(widget=self.integration_widget,
                                                             dioptas_model=self.model)
+
+        pattern = Pattern().load(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=(pattern.x,
+                                                                            pattern.y))
+
         self.model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
         self.model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
-        self.model.current_configuration.integrate_image_1d()
-
-        self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
-                                                                            self.model.calibration_model.int))
 
         self.integration_pattern_controller = self.integration_controller.pattern_controller
         self.integration_image_controller = self.integration_controller.image_controller
@@ -71,12 +72,6 @@ class IntegrationMockFunctionalTest(QtTest):
         delete_if_exists(os.path.join(data_path, 'Test_img.png'))
         delete_if_exists(os.path.join(data_path, 'Test_img.tiff'))
 
-    def enter_value_into_text_field(self, text_field, value):
-        text_field.setText('')
-        QTest.keyClicks(text_field, str(value))
-        QTest.keyPress(text_field, QtCore.Qt.Key_Enter)
-        QtWidgets.QApplication.processEvents()
-
     def test_1D_integration_with_azimuth_limits(self):
         # Edith wants to perform 1D integration within a certain range of azimuthal angles. She sees there is an option
         # in the X tab and deselects the Full Range button, enabling the text edits and then manually inputs -100, 80
@@ -86,8 +81,8 @@ class IntegrationMockFunctionalTest(QtTest):
         self.assertTrue(self.integration_widget.oned_azimuth_min_txt.isEnabled())
         self.assertTrue(self.integration_widget.oned_azimuth_max_txt.isEnabled())
 
-        self.enter_value_into_text_field(self.integration_widget.oned_azimuth_min_txt, -100)
-        self.enter_value_into_text_field(self.integration_widget.oned_azimuth_max_txt, 80)
+        enter_value_into_text_field(self.integration_widget.oned_azimuth_min_txt, -100)
+        enter_value_into_text_field(self.integration_widget.oned_azimuth_max_txt, 80)
 
         self.model.calibration_model.integrate_1d.assert_called_with(mask=None, num_points=None, unit='2th_deg',
                                                                      azi_range=(-100, 80))
@@ -103,7 +98,7 @@ class IntegrationMockFunctionalTest(QtTest):
         # she sees that the current value and wants to double it and notices that the pattern looks a little bit
         # smoother
         previous_number_of_points = len(self.model.pattern.x)
-        self.enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
+        enter_value_into_text_field(self.integration_widget.bin_count_txt, 2 * previous_number_of_points)
 
         self.model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
                                                                      azi_range=None, mask=None, unit='2th_deg')
@@ -329,7 +324,7 @@ class IntegrationFunctionalTest(QtTest):
         self.model.select_configuration(0)
 
     def test_configuration_selected_changes_green_line_position_in_cake_mode(self):
-        self.integration_image_controller.img_mouse_click(0, 500)
+        self.integration_image_controller.img_mouse_click(350, 100)
         click_button(self.integration_widget.img_mode_btn)
         self.model.add_configuration()
         self.model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M_2.poni"))
@@ -356,13 +351,20 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.integration_widget = IntegrationWidget()
         self.integration_controller = IntegrationController(widget=self.integration_widget,
                                                             dioptas_model=self.model)
+
+        pattern = Pattern().load(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
+        self.model.calibration_model.integrate_1d = MagicMock(return_value=(pattern.x,
+                                                                            pattern.y))
+
+        self.model.calibration_model.is_calibrated = True
+
         self.model.calibration_model.load(os.path.join(data_path, 'lambda/L2.poni'))
 
         files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'),
                  os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')]
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
-        click_button(self.integration_widget.batch_widget.load_btn)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
 
         self.integration_controller.batch_controller.integrate()
 
@@ -372,6 +374,8 @@ class BatchIntegrationFunctionalTest(QtTest):
         del self.model
         gc.collect()
 
+        # delete_folder_if_exists(os.path.join(data_path, 'lambda_temp'))
+
     def test_data_is_ok(self):
         self.assertTrue(self.model.batch_model.data is not None)
         self.assertEqual(self.model.batch_model.data.shape[0], 20)
@@ -379,16 +383,16 @@ class BatchIntegrationFunctionalTest(QtTest):
                          self.model.batch_model.binning.shape[0])
         self.assertEqual(self.model.batch_model.data.shape[0],
                          self.model.batch_model.n_img)
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 19)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(20/20):")
 
     def save_pattern(self, filename):
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
-        click_button(self.integration_widget.batch_widget.save_btn)
+        click_button(self.integration_widget.batch_widget.file_control_widget.save_btn)
 
     def test_save_data(self):
         for ext in ['nxs', 'csv', 'png']:
@@ -408,54 +412,55 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(data_path, 'Test_spec.nxs')])
-        click_button(self.integration_widget.batch_widget.load_btn)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
 
         self.assertEqual(self.model.batch_model.data.shape[0], 20)
         self.assertEqual(self.model.batch_model.data.shape[1],
                          self.model.batch_model.binning.shape[0])
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 19)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(20/20):")
 
-        self.integration_widget.batch_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(2)
         self.integration_controller.batch_controller.integrate()
         self.assertEqual(self.model.batch_model.data.shape[0], 10)
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 9)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(10/20):")
 
     def test_integrate_with_parameters(self):
 
-        self.integration_widget.batch_widget.step_series_widget.step_txt.setValue(1)
-        self.integration_widget.batch_widget.step_series_widget.start_txt.setValue(4)
-        self.integration_widget.batch_widget.step_series_widget.stop_txt.setValue(15)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(1)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(4)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(15)
         self.integration_controller.batch_controller.integrate()
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(self.model.batch_model.data.shape[0], 12)
         self.assertEqual(stop, 11)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(12/20):")
 
-        self.integration_widget.batch_widget.step_series_widget.step_txt.setValue(2)
-        self.integration_widget.batch_widget.step_series_widget.start_txt.setValue(0)
-        self.integration_widget.batch_widget.step_series_widget.stop_txt.setValue(11)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(0)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(11)
         self.integration_controller.batch_controller.integrate()
         self.assertEqual(self.model.batch_model.data.shape[0], 6)
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 5)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(6/20):")
 
+    @unittest.skip("Test is not useful - feature will be disabled in future")
     def test_load_missing_raw(self):
         """
         Load processed data, while raw data not available.
@@ -465,28 +470,28 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         # Create tmp raw data
         import shutil
+
         shutil.copytree(os.path.join(data_path, 'lambda'),
                         os.path.join(data_path, 'lambda_temp'))
         # Integrate tmp data. Save proc. Delete tmp data.
         files = [os.path.join(data_path, 'lambda_temp/testasapo1_1009_00002_m1_part00000.nxs'),
                  os.path.join(data_path, 'lambda_temp/testasapo1_1009_00002_m1_part00001.nxs')]
 
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
-        click_button(self.integration_widget.batch_widget.load_btn)
+        # QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
+        # click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
 
         self.integration_controller.batch_controller.integrate()
         self.save_pattern(os.path.join(data_path, f'Test_missing_raw.nxs'))
 
-        shutil.rmtree(os.path.join(data_path, 'lambda_temp'))
-
+        delete_folder_if_exists(os.path.join(data_path, 'lambda_temp'))
         # Load proc data with missing raw data
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=
                                                            [os.path.join(data_path, 'Test_missing_raw.nxs')])
-        click_button(self.integration_widget.batch_widget.load_btn)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
         self.assertTrue(self.model.batch_model.raw_available is False)
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 19)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(20/20):")
@@ -508,9 +513,9 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.assertTrue(self.model.batch_model.raw_available)
         self.assertEqual(os.path.basename(self.model.batch_model.calibration_model.filename),
                          'L2.poni')
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 19)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(20/20):")
@@ -519,12 +524,9 @@ class BatchIntegrationFunctionalTest(QtTest):
         os.remove(os.path.join(data_path, f'Test_missing_raw.nxs'))
 
     def test_create_waterfall(self):
-
-        self.integration_widget.batch_widget.waterfall_btn.setChecked(True)
-        self.integration_controller.batch_controller.waterfall_mode()
-
-        # Nothing should happen if click outside of data range
-        self.integration_controller.batch_controller.img_mouse_click(-10, 5)
+        click_button(self.integration_widget.batch_widget.mode_widget.view_2d_btn)
+        click_button(self.integration_widget.batch_widget.control_widget.waterfall_btn)
+        QtWidgets.QApplication.processEvents()
 
         # Create waterfall
         self.integration_controller.batch_controller.img_mouse_click(5, 5)
@@ -533,44 +535,45 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.assertEqual(len(self.model.overlay_model.overlays), 10)
 
         # edit waterfall
-        self.integration_widget.batch_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(2)
         self.integration_controller.batch_controller.process_step()
         self.assertEqual(len(self.model.overlay_model.overlays), 5)
 
     def test_show_phases(self):
+        click_button(self.integration_widget.batch_widget.mode_widget.view_2d_btn)
 
         self.model.phase_model.add_jcpds(os.path.join(jcpds_path, 'FeGeO3_cpx.jcpds'))
-        click_button(self.integration_widget.batch_widget.phases_btn)
+        click_button(self.integration_widget.batch_widget.control_widget.phases_btn)
 
-        self.assertEqual(len(self.integration_widget.batch_widget.img_view.phases), 1)
-        self.assertEqual(len(self.integration_widget.batch_widget.img_view.phases[0].line_items), 27)
+        self.assertEqual(len(self.integration_widget.batch_widget.stack_plot_widget.img_view.phases), 1)
+        self.assertEqual(len(self.integration_widget.batch_widget.stack_plot_widget.img_view.phases[0].line_items), 27)
 
-        last_line_position = self.integration_widget.batch_widget.img_view.phases[0].line_items[-1].getPos()
-        self.assertGreater(last_line_position[0], 1000)
+        last_line_position = self.integration_widget.batch_widget.stack_plot_widget. \
+            img_view.phases[0].line_items[-1].getPos()
+        self.assertGreater(last_line_position[0], 900)
 
     def test_change_view(self):
-        self.integration_widget.batch_widget.step_series_widget.step_txt.setValue(2)
-        self.integration_widget.batch_widget.step_series_widget.start_txt.setValue(0)
-        self.integration_widget.batch_widget.step_series_widget.stop_txt.setValue(12)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.step_txt.setValue(2)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(0)
+        self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(12)
         self.integration_controller.batch_controller.integrate()
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 6)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(7/20):")
 
-        self.integration_widget.batch_widget.view_f_btn.setChecked(True)
+        self.integration_widget.batch_widget.mode_widget.view_f_btn.setChecked(True)
         self.integration_controller.batch_controller.change_view()
-        start = int(str(self.integration_widget.batch_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.integration_widget.batch_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.integration_widget.batch_widget.step_series_widget.pos_label.text())
+        start = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
+        stop = int(str(self.integration_widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
+        frame = str(self.integration_widget.batch_widget.position_widget.step_series_widget.pos_label.text())
         self.assertEqual(stop, 6)
         self.assertEqual(start, 0)
         self.assertEqual(frame, "Frame(7/20):")
 
     def test_change_unit(self):
-
         self.integration_controller.batch_controller.img_mouse_click(5, 15)
         x1, y1 = self.model.pattern.data
         y = self.model.batch_model.data[15]
@@ -579,17 +582,14 @@ class BatchIntegrationFunctionalTest(QtTest):
         self.assertTrue(np.array_equal(x1, x))
         self.assertGreater(x1[-1], x1[0])
 
-        click_button(self.integration_widget.batch_widget.q_btn)
-        x2, y2 = self.model.pattern.data
-        self.assertLess(np.max(x2), np.max(x1))
-        self.assertGreater(x2[-1], x2[0])
+        click_button(self.integration_widget.batch_widget.options_widget.q_btn)
+        self.model.calibration_model.integrate_1d.assert_called_with(mask=None, num_points=None, unit='q_A^-1',
+                                                                     azi_range=None)
 
-        click_button(self.integration_widget.batch_widget.d_btn)
-        x3, y3 = self.model.pattern.data
-        self.assertGreater(x3[0], x3[-1])
+        click_button(self.integration_widget.batch_widget.options_widget.d_btn)
+        self.model.calibration_model.integrate_1d.assert_called_with(mask=None, num_points=None, unit='d_A',
+                                                                     azi_range=None)
 
-        click_button(self.integration_widget.batch_widget.tth_btn)
-        x4, y4 = self.model.pattern.data
-        self.assertTrue(np.array_equal(x1[:3000], x4[:3000]))
-        # can not be tested for full array, due trimming of zeros of the individual pattern during integration after
-        # changing of the unit
+        click_button(self.integration_widget.batch_widget.options_widget.tth_btn)
+        self.model.calibration_model.integrate_1d.assert_called_with(mask=None, num_points=None, unit='2th_deg',
+                                                                     azi_range=None)

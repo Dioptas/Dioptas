@@ -1,5 +1,4 @@
-include versioneer.py
-include dioptas/_version.py
-
+recursive-include * *.pyx
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+recursive-exclude * *.tiff *.tif *.h5 *.SPE *.mask *.nxs *.edf
