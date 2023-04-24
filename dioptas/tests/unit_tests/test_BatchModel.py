@@ -88,16 +88,16 @@ def test_load_image(batch_model, img_model):
     assert img_model.img_data.shape == (1833, 1556)
 
 
-def test_saving_loading(batch_model):
+def test_saving_loading(batch_model, tmp_path):
     num_points = 1500
     start = 2
     stop = 18
     step = 2
 
     batch_model.integrate_raw_data(num_points, start, stop, step, use_all=True)
-    batch_model.save_proc_data(os.path.join(data_path, "test_save_proc.nxs"))
+    batch_model.save_proc_data(os.path.join(tmp_path, "test_save_proc.nxs"))
     batch_model.reset_data()
-    batch_model.load_proc_data(os.path.join(data_path, "test_save_proc.nxs"))
+    batch_model.load_proc_data(os.path.join(tmp_path, "test_save_proc.nxs"))
 
     assert batch_model.data.shape[0] == 8
     assert batch_model.n_img == 8
