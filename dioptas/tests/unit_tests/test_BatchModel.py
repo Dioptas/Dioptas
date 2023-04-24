@@ -1,10 +1,8 @@
 import os
 import pytest
-import gc
 
 import numpy as np
 
-from ..utility import delete_if_exists
 from ...model.CalibrationModel import CalibrationModel
 from ...model.ImgModel import ImgModel
 from ...model.MaskModel import MaskModel

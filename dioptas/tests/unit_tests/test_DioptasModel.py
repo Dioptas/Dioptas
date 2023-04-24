@@ -20,13 +20,11 @@
 
 import os
 import gc
-import unittest
 
 import numpy as np
 import pytest
 from mock import MagicMock
 
-from ..utility import delete_if_exists
 from ...model.DioptasModel import DioptasModel
 from ...model.util import Pattern
 

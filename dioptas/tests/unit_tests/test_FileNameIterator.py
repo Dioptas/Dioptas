@@ -19,11 +19,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import unittest
 
 import pytest
 
-from ..utility import QtTest
 from ...model.util.HelperModule import FileNameIterator
 
 unittest_path = os.path.dirname(__file__)
