@@ -305,15 +305,13 @@ class PatternWidget(QtCore.QObject):
         self.pattern_plot.getAxis('bottom').setPen('k')
         self.pattern_plot.getAxis('left').setPen('k')
         self.plot_item.setPen('k')
-        self.legend.legendItems[0][1].setAttr('color', '000')
-        self.legend.legendItems[0][1].setText(self.legend.legendItems[0][1].text)
+        self.legend.legendItems[0][1].setText(self.legend.legendItems[0][1].text, color="#000")
 
     def _norm_color(self):
         self.pattern_plot.getAxis('bottom').setPen('w')
         self.pattern_plot.getAxis('left').setPen('w')
         self.plot_item.setPen('w')
-        self.legend.legendItems[0][1].setAttr('color', 'FFF')
-        self.legend.legendItems[0][1].setText(self.legend.legendItems[0][1].text)
+        self.legend.legendItems[0][1].setText(self.legend.legendItems[0][1].text, color="#FFF")
 
     def mouseMoved(self, pos):
         pos = self.plot_item.mapFromScene(pos)

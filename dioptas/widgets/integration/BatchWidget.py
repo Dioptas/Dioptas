@@ -5,7 +5,7 @@ from pyqtgraph import GraphicsLayoutWidget, ColorButton
 
 from ..plot_widgets.ImgWidget import IntegrationBatchWidget
 from .CustomWidgets import MouseCurrentAndClickedWidget
-from ..CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, LabelAlignRight
+from ..CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, LabelAlignRight, LabelExpandable
 
 from . import CLICKED_COLOR
 from ... import icons_path
@@ -102,7 +102,7 @@ class BatchWidget(QtWidgets.QWidget):
         )
 
     def sizeHint(self):
-        return QtCore.QSize(900, 600)
+        return QtCore.QSize(800, 600)
 
     def activate_files_view(self):
         self.mode_widget.view_f_btn.setChecked(True)
@@ -118,6 +118,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.hide()
         self.control_widget.phases_btn.hide()
         self.control_widget.autoscale_btn.hide()
+        self.control_widget.normalize_btn.hide()
         self.control_widget.integrate_btn.show()
 
     def activate_stack_plot(self):
@@ -133,6 +134,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.show()
         self.control_widget.phases_btn.show()
         self.control_widget.autoscale_btn.show()
+        self.control_widget.normalize_btn.show()
         self.control_widget.integrate_btn.hide()
 
     def activate_surface_view(self):
@@ -152,6 +154,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.hide()
         self.control_widget.phases_btn.hide()
         self.control_widget.autoscale_btn.hide()
+        self.control_widget.normalize_btn.hide()
         self.control_widget.integrate_btn.hide()
 
     def raise_widget(self):
@@ -166,8 +169,8 @@ class BatchFileViewWidget(QtWidgets.QWidget):
     Widget to show raw files, calibration and mask files
 
     Widget contains:
-        QTLine: calibration file
-        QTLine: mask file
+        QLine: calibration file
+        QLine: mask file
         QTreeView: raw files
     """
 
@@ -177,11 +180,11 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         super(BatchFileViewWidget, self).__init__()
 
         self._layout = QtWidgets.QVBoxLayout()
+        self._file_lbl_widget = QtWidgets.QWidget()
+        self._file_lbl_layout = QtWidgets.QGridLayout()
 
-        self.cal_file_lbl = QtWidgets.QLabel(
-            '<span style="background: #3C3C3C; color: white;" >Calibration file:</span> undefined')
-        self.mask_file_lbl = QtWidgets.QLabel(
-            '<span style="background: #3C3C3C; color: white;" >Mask file:</span> undefined')
+        self.cal_file_lbl = LabelExpandable('undefined')
+        self.mask_file_lbl = LabelExpandable('undefined')
 
         self.treeView = QtWidgets.QTreeView()
         self.treeView.setObjectName('treeView')
@@ -194,16 +197,25 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         self.create_layout()
 
     def create_layout(self):
-        self._layout.addWidget(self.cal_file_lbl)
-        self._layout.addWidget(self.mask_file_lbl)
+        self._file_lbl_layout.addWidget(LabelAlignRight("Calibration File:"), 0, 0)
+        self._file_lbl_layout.addWidget(self.cal_file_lbl, 0, 1)
+        self._file_lbl_layout.addItem(HorizontalSpacerItem(), 0, 2)
+
+        self._file_lbl_layout.addWidget(LabelAlignRight("Mask File:"), 1, 0)
+        self._file_lbl_layout.addWidget(self.mask_file_lbl, 1, 1)
+
+        self._file_lbl_widget.setLayout(self._file_lbl_layout)
+        self._layout.addWidget(self._file_lbl_widget)
         self._layout.addWidget(self.treeView)
         self.setLayout(self._layout)
 
     def style_widgets(self):
+        self._file_lbl_layout.setContentsMargins(5, 3, 5, 2)
+        self._file_lbl_layout.setSpacing(0)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
         self.setStyleSheet("""
-            #treeView, QLabel {
+            #treeView {
                 background: black;
                 color: yellow;
             }
@@ -222,14 +234,13 @@ class BatchFileViewWidget(QtWidgets.QWidget):
     def set_cal_file(self, file_path):
         if file_path is None:
             file_path = 'undefined'
-        self.cal_file_lbl.setText(
-            f"<span style='background: #3C3C3C; color: white;' >Calibration file:</span> {file_path}")
+        self.cal_file_lbl.setText(file_path)
         self.cal_file_lbl.setToolTip("Calibration used for integration")
 
     def set_mask_file(self, file_path):
         if file_path is None:
             file_path = 'undefined'
-        self.mask_file_lbl.setText(f"<span style='background: #3C3C3C; color: white;' >Mask file:</span> {file_path}")
+        self.mask_file_lbl.setText(file_path)
         self.mask_file_lbl.setToolTip("Mask used for integration")
 
 
@@ -237,6 +248,7 @@ class BatchFileControlWidget(QtWidgets.QWidget):
     def __init__(self):
         super(BatchFileControlWidget, self).__init__()
         self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
 
         self.load_btn = FlatButton()
         self.load_btn.setToolTip("Load raw/proc data")
@@ -244,21 +256,28 @@ class BatchFileControlWidget(QtWidgets.QWidget):
         self.load_btn.setIconSize(QtCore.QSize(13, 13))
         self.load_btn.setMaximumWidth(25)
 
+        self.load_previous_folder_btn = FlatButton('<')
+        self.load_previous_folder_btn.setToolTip("Load files in previous folder")
+
+        self.load_next_folder_btn = FlatButton('>')
+        self.load_next_folder_btn.setToolTip("Loads files in next folder")
+
         self.save_btn = FlatButton()
         self.save_btn.setToolTip("Save data")
         self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
         self.save_btn.setIconSize(QtCore.QSize(13, 13))
         self.save_btn.setMaximumWidth(25)
 
-        self.folder_lbl = QtWidgets.QLabel("...")
+        self.folder_lbl = LabelExpandable("...")
 
         self.create_layout()
 
     def create_layout(self):
         self._layout.addWidget(self.load_btn)
+        self._layout.addWidget(self.load_previous_folder_btn)
+        self._layout.addWidget(self.load_next_folder_btn)
         self._layout.addWidget(self.save_btn)
         self._layout.addWidget(self.folder_lbl)
-        self._layout.addSpacerItem(HorizontalSpacerItem())
 
         self.setLayout(self._layout)
 
@@ -521,6 +540,7 @@ class BatchControlWidget(QtWidgets.QWidget):
 
         self.phases_btn = CheckableFlatButton('Show Phases')
         self.autoscale_btn = FlatButton("AutoScale")
+        self.normalize_btn = FlatButton("Normalize")
 
         self._layout = QtWidgets.QHBoxLayout()
 
@@ -534,6 +554,7 @@ class BatchControlWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.waterfall_btn)
         self._layout.addWidget(self.phases_btn)
         self._layout.addWidget(self.autoscale_btn)
+        self._layout.addWidget(self.normalize_btn)
 
         self._layout.addSpacerItem(HorizontalSpacerItem())
 

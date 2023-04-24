@@ -34,7 +34,7 @@ class BatchIntegrationFunctionalTest(QtTest):
                  os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')]
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
-        click_button(self.integration_widget.batch_widget.load_btn)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
 
         self.integration_controller.batch_controller.integrate()
 
@@ -61,7 +61,7 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         proc_file = os.path.join(data_path, 'tmp/testasapo1_1009_00002_v-01.nxs')
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[proc_file])
-        click_button(self.integration_widget.batch_widget.load_btn)
+        click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
 
         self.assertEqual(self.model.batch_model.data.shape[0], 50)
         self.assertEqual(self.model.batch_model.data.shape[1],

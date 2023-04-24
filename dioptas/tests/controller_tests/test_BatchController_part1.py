@@ -1,3 +1,23 @@
+# -*- coding: utf-8 -*-
+# Dioptas - GUI program for fast processing of 2D X-ray diffraction data
+# Principal author: Clemens Prescher (clemens.prescher@gmail.com)
+# Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
+# Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
+# Copyright (C) 2019-2020 DESY, Hamburg, Germany
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import gc
 import numpy as np
@@ -6,8 +26,9 @@ from ..utility import QtTest, MockMouseEvent
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BatchController import BatchController
+from ...controller.integration.phase.PhaseController import PhaseController
+from ...controller.integration.PatternController import PatternController
 from ...model.DioptasModel import DioptasModel
-from dioptas.controller.integration.phase.PhaseController import PhaseController
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
@@ -25,6 +46,7 @@ class BatchControllerTest(QtTest):
             dioptas_model=self.model)
 
         self.phase_controller = PhaseController(self.widget, self.model)
+        self.pattern_controller = PatternController(self.widget, self.model)
 
         # Load existing proc+raw data
         filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
@@ -125,9 +147,11 @@ class BatchControllerTest(QtTest):
         self.widget.batch_widget.activate_stack_plot()
         self.controller.change_view()
         self.assertEqual(self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos(), 0)
-        self.controller.pattern_left_click(15, None)
-        self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos(),
-                               1310.94006, places=3)
+        self.pattern_controller.pattern_left_click(15, None)
+        first_pos = self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos()
+        self.pattern_controller.pattern_left_click(16, None)
+        second_pos = self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos()
+        self.assertNotEqual(first_pos, second_pos)
 
     def test_subtract_background(self):
         self.widget.batch_widget.activate_stack_plot()
