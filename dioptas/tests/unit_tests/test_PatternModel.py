@@ -23,7 +23,7 @@ from pytest import approx
 import os
 import numpy as np
 
-from ...model.PatternModel import Pattern, PatternModel
+from ...model.PatternModel import PatternModel
 from ...model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
