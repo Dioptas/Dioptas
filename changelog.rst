@@ -10,10 +10,11 @@ Bugfixes:
 -------------------------
 
 New features:
-    - upgrading dependency pyqt5 to pyqt6 which should work better for high dpi screens
-    - added a new "integrate" button to the batch widget, which will integrate all patterns in the batch widget
-    - now compatible with python 3.11, whenever possible the created executables will be compatible are compiled with
-      python 3.11
+    - saving in batch window will now also save background subtracted patterns, if enabled in the pattern widget
+    - upgraded dependency pyqt5 to pyqt6 which should result in improvements for high dpi screens
+    - added a new "integrate" button to the batch widget, which will integrate all images in the batch widget
+    - now compatible with python 3.11, whenever possible the created executables are compiled with python 3.11
+    - dropping support for python 3.6, 3.7 and 3.8 and focussing on compatibility with python 3.9, 3.10 and 3.11
 
 
 Bugfixes:
