@@ -11,7 +11,7 @@ Clemens Prescher (clemens.prescher@gmail.com)
 
 Requirements
 ------------
-    * python 3.7+
+    * python 3.9+
 
 It is known to run on Windows, Mac and Linux. For optimal usage on a Windows machine it should be run with 64 bit
 python. When used with 32 bit Dioptas occasionally crashes because of limited memory allocation possibilities.
