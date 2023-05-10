@@ -261,31 +261,32 @@ class HistogramLUTItem(GraphicsWidget):
         self.update()
 
     def imageChanged(self, autoRange=False, img_data=None):
+        if img_data is None:
+            img_data = self.imageItem.image
+            if img_data is None:
+                return
 
-        if img_data is not None:
-            hist = np.histogram(img_data, bins=3000)
-            hist_x, hist_y = hist[1][:-1], hist[0]
-        else:
-            hist_x, hist_y = list(self.imageItem.getHistogram(bins=3000))
-
-        if hist_x is None:
+        log_data = np.log(img_data)
+        log_data = log_data[np.isfinite(log_data)]
+        if log_data.size == 0:
+            self.hist_x = np.array([0.])
+            self.hist_y = np.array([0.])
             return
 
-        hist_x, hist_y = np.array(hist_x), np.array(hist_y)
+        hist, bin_edges = np.histogram(log_data, bins=3000)
 
-        hist_x = hist_x[np.where(hist_y>0)]
-        hist_y = hist_y[np.where(hist_y>0)]
+        mask_nonzero = hist > 0
+        left_edges_nonzero = bin_edges[:-1][mask_nonzero]
+        hist_nonzero = hist[mask_nonzero]
 
-        self.hist_x = hist_x
-        self.hist_y = hist_y
+        self.hist_x = np.exp(left_edges_nonzero)
+        self.hist_y = hist_nonzero
 
-        hist_y_log = np.log(hist_y[1:])
-        hist_x_log = np.log(hist_x[1:])
-
+        log_hist_nonzero = np.log(hist_nonzero)
         if self.orientation == 'horizontal':
-            self.plot.setData(hist_x_log, hist_y_log)
+            self.plot.setData(left_edges_nonzero, log_hist_nonzero)
         elif self.orientation == 'vertical':
-            self.plot.setData(hist_y_log, hist_x_log)
+            self.plot.setData(log_hist_nonzero, left_edges_nonzero)
 
     def getLevels(self):
         return self.region.getRegion()
