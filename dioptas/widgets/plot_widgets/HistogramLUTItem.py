@@ -20,6 +20,7 @@
 
 from __future__ import absolute_import
 
+import pathlib
 from qtpy import QtWidgets, QtCore
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
@@ -31,6 +32,9 @@ from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
+from ..CustomWidgets import FlatButton
+from ... import style_path
+
 
 __all__ = ['HistogramLUTItem']
 
@@ -85,7 +89,10 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset('grey')
 
-        resetButton = QtWidgets.QToolButton()
+        resetButton = FlatButton()
+        resetButton.setStyleSheet(
+            pathlib.Path(style_path, "stylesheet.qss").read_text()
+        )
         resetButton.setIcon(
             QtWidgets.QApplication.instance().style().standardIcon(
                 QtWidgets.QStyle.SP_BrowserReload
