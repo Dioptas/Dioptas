@@ -69,10 +69,17 @@ class SurfaceWidget(QtWidgets.QWidget):
         self.img_histogram_LUT_horizontal.sigLevelsChanged.connect(self.update_color)
         self.img_histogram_LUT_horizontal.sigLevelChangeFinished.connect(self.update_color)
         self.img_histogram_LUT_horizontal.sigLookupTableChanged.connect(self.update_color)
+        self.img_histogram_LUT_horizontal.sigResetClicked.connect(self._reset_clicked)
 
         self.lut_pg_layout.addItem(self.img_histogram_LUT_horizontal, 0, 1)
 
         self.setLayout(self._layout)
+
+    def _reset_clicked(self):
+        if self.data is not None:
+            self.img_histogram_LUT_horizontal.setLevels(
+                np.nanmin(self.data), np.nanmax(self.data)
+            )
 
     def create_graphics(self):
         self.back_grid = GLGridItem()

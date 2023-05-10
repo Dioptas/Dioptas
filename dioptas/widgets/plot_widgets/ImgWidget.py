@@ -58,8 +58,10 @@ class ImgWidget(QtCore.QObject):
         self.img_view_box.addItem(self.data_img_item)
 
         self.img_histogram_LUT_horizontal = HistogramLUTItem(self.data_img_item)
+        self.img_histogram_LUT_horizontal.sigResetClicked.connect(self.auto_level)
         self.pg_layout.addItem(self.img_histogram_LUT_horizontal, row=0, col=1)
         self.img_histogram_LUT_vertical = HistogramLUTItem(self.data_img_item, orientation='vertical')
+        self.img_histogram_LUT_vertical.sigResetClicked.connect(self.auto_level)
         self.pg_layout.addItem(self.img_histogram_LUT_vertical, row=1, col=2)
 
     def create_mouse_click_item(self):
