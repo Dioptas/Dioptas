@@ -60,6 +60,7 @@ class HistogramLUTItem(GraphicsWidget):
     sigLookupTableChanged = QtCore.Signal(object)
     sigLevelsChanged = QtCore.Signal(object)
     sigLevelChangeFinished = QtCore.Signal(object)
+    sigResetClicked = QtCore.Signal()
 
     def __init__(self, image=None, fillHistogram=False, orientation='horizontal', autoLevel=None):
         """
@@ -84,6 +85,19 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset('grey')
 
+        resetButton = QtWidgets.QToolButton()
+        resetButton.setIcon(
+            QtWidgets.QApplication.instance().style().standardIcon(
+                QtWidgets.QStyle.SP_BrowserReload
+            )
+        )
+        resetButton.setIconSize(QtCore.QSize(15, 15))
+        resetButton.setToolTip("Rescale colormap range")
+        resetButton.clicked.connect(self.sigResetClicked)
+
+        proxy = QtWidgets.QGraphicsProxyWidget()
+        proxy.setWidget(resetButton)
+
         if orientation == 'horizontal':
             self.vb.setMouseEnabled(x=True, y=False)
             self.vb.setMaximumHeight(30)
@@ -92,6 +106,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
             self.layout.addItem(self.vb, 1, 0)
             self.layout.addItem(self.gradient, 0, 0)
+            self.layout.addItem(proxy, 1, 1)
             self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
             self.vb.setFlag(self.gradient.ItemStacksBehindParent)
         elif orientation == 'vertical':
@@ -102,6 +117,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
             self.layout.addItem(self.gradient, 0, 1)
+            self.layout.addItem(proxy, 1, 0)
 
         self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
         self.vb.setFlag(self.gradient.ItemStacksBehindParent)
