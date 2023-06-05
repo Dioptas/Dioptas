@@ -1,3 +1,10 @@
+0.5.8 (under development)
+-------------------------
+
+Bugfixes:
+    - cosmic removal is now working again
+
+
 0.5.7 (stable 24.04.2023)
 -------------------------
 
