@@ -2,6 +2,8 @@
 -------------------------
 
 Bugfixes:
+    - fix issues with type of the radial bin number being float instead of int -> this caused issues with the
+      integration of cake when setting a manual radial bin number
     - cosmic removal is now working again
 
 
