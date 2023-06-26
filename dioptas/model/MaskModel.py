@@ -232,8 +232,10 @@ class MaskModel(object):
         self.update_deque()
         self._mask_data = mask_data
 
-    def save_mask(self, filename):
+    def save_mask(self, filename, flipud: bool=False):
         im_array = np.int8(self.get_img())
+        if flipud:
+            im_array = np.flipud(im_array)
 
         if filename.endswith('.npy'):
             np.save(filename, im_array)
@@ -251,18 +253,23 @@ class MaskModel(object):
 
         self.filename = filename
 
-    def _load_mask(self, filename):
+    def _load_mask(self, filename, flipud: bool):
         if filename.endswith('.npy'):
-            return np.load(filename)
+            data = np.load(filename)
         elif filename.endswith('.edf'):
-            return fabio.open(filename).data
-        try:
-            return np.array(Image.open(filename))
-        except IOError:
-            return np.loadtxt(filename)
+            data = fabio.open(filename).data
+        else:
+            try:
+                data = np.array(Image.open(filename))
+            except IOError:
+                data = np.loadtxt(filename)
 
-    def load_mask(self, filename):
-        data = self._load_mask(filename)
+        if flipud:
+            data = np.flipud(data)
+        return data
+
+    def load_mask(self, filename, flipud: bool=False):
+        data = self._load_mask(filename, flipud)
 
         if self.mask_dimension == data.shape:
             self.filename = filename
@@ -272,8 +279,8 @@ class MaskModel(object):
             return True
         return False
 
-    def add_mask(self, filename):
-        data = self._load_mask(filename)
+    def add_mask(self, filename, flipud: bool=False):
+        data = self._load_mask(filename, flipud)
 
         if self.get_mask().shape == data.shape:
             self._add_mask(data)
