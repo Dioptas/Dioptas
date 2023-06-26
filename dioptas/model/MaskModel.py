@@ -244,11 +244,14 @@ class MaskModel(object):
 
         self.filename = filename
 
-    def load_mask(self, filename):
+    def _load_mask(self, filename):
         try:
-            data = np.array(Image.open(filename))
+            return np.array(Image.open(filename))
         except IOError:
-            data = np.loadtxt(filename)
+            return np.loadtxt(filename)
+
+    def load_mask(self, filename):
+        data = self._load_mask(filename)
 
         if self.mask_dimension == data.shape:
             self.filename = filename
@@ -259,10 +262,7 @@ class MaskModel(object):
         return False
 
     def add_mask(self, filename):
-        try:
-            data = np.array(Image.open(filename))
-        except IOError:
-            data = np.loadtxt(filename)
+        data = self._load_mask(filename)
 
         if self.get_mask().shape == data.shape:
             self._add_mask(data)
