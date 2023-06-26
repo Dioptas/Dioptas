@@ -33,6 +33,12 @@ from ..model.DioptasModel import DioptasModel
 
 
 class MaskController(object):
+
+    _MASK_FILTERS = ';;'.join([
+        'Mask (*.mask)',
+        'Vertically flipped mask (*.npy *.edf)',
+    ])
+
     def __init__(self, widget, dioptas_model):
         """
         :param widget: Reference to a MaskView object
@@ -373,19 +379,22 @@ class MaskController(object):
         filename = save_file_dialog(self.widget, "Save mask data",
                                     os.path.join(self.model.working_directories['mask'],
                                                  img_filename + '.mask'),
-                                    filter='Mask (*.mask)')
+                                    filter=self._MASK_FILTERS)
 
         if filename != '':
+            flipud = not filename.endswith('.mask')
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            self.model.mask_model.save_mask(filename)
+            self.model.mask_model.save_mask(filename, flipud)
 
     def load_mask_btn_click(self):
         filename = open_file_dialog(self.widget, caption="Load mask data",
-                                    directory=self.model.working_directories['mask'], filter='*.mask')
+                                    directory=self.model.working_directories['mask'],
+                                    filter=self._MASK_FILTERS)
 
         if filename != '':
+            flipud = not filename.endswith('.mask')
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            if self.model.mask_model.load_mask(filename):
+            if self.model.mask_model.load_mask(filename, flipud):
                 self.plot_mask()
             else:
                 QtWidgets.QMessageBox.critical(self.widget, 'Error',
@@ -394,11 +403,13 @@ class MaskController(object):
 
     def add_mask_btn_click(self):
         filename = open_file_dialog(self.widget, caption="Add mask data",
-                                    directory=self.model.working_directories['mask'], filter='*.mask')
+                                    directory=self.model.working_directories['mask'],
+                                    filter=self._MASK_FILTERS)
 
         if filename != '':
+            flipud = not filename.endswith('.mask')
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            if self.model.mask_model.add_mask(filename):
+            if self.model.mask_model.add_mask(filename, flipud):
                 self.plot_mask()
             else:
                 QtWidgets.QMessageBox.critical(self.widget, 'Error',
