@@ -20,6 +20,7 @@
 
 from collections import deque
 
+import fabio
 import numpy as np
 import skimage.draw
 from PIL import Image
@@ -233,18 +234,28 @@ class MaskModel(object):
 
     def save_mask(self, filename):
         im_array = np.int8(self.get_img())
-        im = Image.fromarray(im_array)
-        try:
-            im.save(filename, "tiff", compression="tiff_deflate")
-        except OSError:
+
+        if filename.endswith('.npy'):
+            np.save(filename, im_array)
+        elif filename.endswith('.edf'):
+            fabio.edfimage.EdfImage(im_array).write(filename)
+        else:
+            im = Image.fromarray(im_array)
             try:
-                im.save(filename, "tiff", compression="tiff_adobe_deflate")
-            except IOError:
-                im.save(filename, "tiff")
+                im.save(filename, "tiff", compression="tiff_deflate")
+            except OSError:
+                try:
+                    im.save(filename, "tiff", compression="tiff_adobe_deflate")
+                except IOError:
+                    im.save(filename, "tiff")
 
         self.filename = filename
 
     def _load_mask(self, filename):
+        if filename.endswith('.npy'):
+            return np.load(filename)
+        elif filename.endswith('.edf'):
+            return fabio.open(filename).data
         try:
             return np.array(Image.open(filename))
         except IOError:
