@@ -101,18 +101,23 @@ def test_shrink_mask(mask_model):
     assert np.sum(mask_model._mask_data) == 0
 
 
-def test_saving_and_loading(mask_model, tmp_path):
+@pytest.mark.parametrize("flipud", [False, True])
+@pytest.mark.parametrize("extension", [".mask", ".npy", ".edf"])
+def test_saving_and_loading(mask_model, tmp_path, extension, flipud):
     mask_model.mask_ellipse(1024, 1024, 100, 100)
     mask_model.set_dimension((2048, 2048))
 
     mask_array = np.copy(mask_model.get_img())
 
-    filename = os.path.join(tmp_path, 'dummy.mask')
+    filename = os.path.join(tmp_path, f"dummy{extension}")
 
-    mask_model.save_mask(filename)
-    mask_model.load_mask(filename)
+    mask_model.save_mask(filename, flipud)
+    mask_model.load_mask(filename, flipud)
 
     assert np.array_equal(mask_array, mask_model.get_img())
+
+    mask_model.load_mask(filename, not flipud)
+    assert np.array_equal(mask_array, np.flipud(mask_model.get_img()))
 
 
 def test_use_roi(mask_model):
@@ -124,11 +129,13 @@ def test_use_roi(mask_model):
                                     [1, 1, 1]]))
 
 
-def test_save_mask(mask_model, tmp_path):
+@pytest.mark.parametrize("extension", [".mask", ".npy", ".edf"])
+def test_save_mask(mask_model, tmp_path, extension):
     mask_model.mask_below_threshold(np.zeros(shape=(10, 10)), 1)
-    mask_model.save_mask(os.path.join(tmp_path, "test_save.mask"))
+    filename = os.path.join(tmp_path, f"test_save{extension}")
+    mask_model.save_mask(filename)
 
-    assert os.path.exists(os.path.join(tmp_path, "test_save.mask"))
+    assert os.path.exists(filename)
 
 
 def test_find_center_of_circle_from_three_points(mask_model):
