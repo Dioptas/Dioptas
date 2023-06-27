@@ -33,6 +33,9 @@ from ...widgets.MaskWidget import MaskWidget
 
 
 class MaskControllerTest(QtTest):
+
+    MASK_EXTENSIONS = ".mask", ".npy", ".edf"
+
     def setUp(self):
 
         self.model = DioptasModel()
@@ -42,7 +45,8 @@ class MaskControllerTest(QtTest):
         self.mask_controller = MaskController(self.mask_widget, self.model)
 
     def tearDown(self):
-        delete_if_exists(os.path.join(unittest_data_path, 'dummy.mask'))
+        for extension in self.MASK_EXTENSIONS:
+            delete_if_exists(os.path.join(unittest_data_path, f'dummy{extension}'))
         del self.model
         self.mask_widget.close()
         del self.mask_widget
@@ -57,11 +61,14 @@ class MaskControllerTest(QtTest):
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'test.mask'))
         click_button(self.mask_widget.load_mask_btn)
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
-        filename = os.path.join(unittest_data_path, 'dummy.mask')
 
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
-        click_button(self.mask_widget.save_mask_btn)
-        self.assertTrue(os.path.exists(filename))
+        for extension in self.MASK_EXTENSIONS:
+            with self.subTest(extension=extension):
+                filename = os.path.join(unittest_data_path, f'dummy{extension}')
+
+                QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
+                click_button(self.mask_widget.save_mask_btn)
+                self.assertTrue(os.path.exists(filename))
 
     def test_grow_and_shrinking(self):
         self.model.mask_model.mask_ellipse(100, 100, 20, 20)
