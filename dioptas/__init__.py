@@ -22,14 +22,9 @@ from __future__ import absolute_import
 
 import sys
 from sys import platform as _platform
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets
 
-try:
-    from .version import __version__
-except ModuleNotFoundError:
-    from setuptools_scm import get_version
-
-    __version__ = get_version(root='..', relative_to=__file__)
+__version__ = "0.5.7-post.10+2d770547"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
