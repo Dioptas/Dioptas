@@ -24,6 +24,8 @@ version.py
 
 log.txt
 .idea
+.eggs
+*.venv*
 releases
 cache
 _build/
