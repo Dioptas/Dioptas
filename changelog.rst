@@ -5,6 +5,8 @@ Bugfixes:
     - fix issues with type of the radial bin number being float instead of int -> this caused issues with the
       integration of cake when setting a manual radial bin number
     - cosmic removal is now working again
+    - fixes issue with auto peak number increasing while the checkbox for it was unchecked
+    - no more error message when mouse is hovering over the cake image at 0 indices of the image
 
 
 0.5.7 (stable 24.04.2023)
