@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dioptas"
-version = "0.5.7"
+version = "0.5.7-post.10+2d770547"
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
 authors = ["Clemens Prescher <clemens.prescher@gmail.com>"]
 license = "GPL-3.0"
@@ -18,15 +18,28 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Information Analysis',
 ]
 
-build = "dioptas/model/util/smooth_bruckner_build.py"
+include = ["dioptas/model/util/*.pyd"]  # Compiled extensions
+exclude = ["dioptas/tests/*"] # Exclude tests from package
+
+[tool.poetry.build]
+script = "build.py"
+generate-setup-file = false
 
 [tool.poetry.scripts]
 dioptas = "dioptas:main"
 
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+pattern = "default-unprefixed"
+style = "semver"
+
+[tool.poetry-dynamic-versioning.substitution]
+files = ["dioptas/__init__.py"]
+
 
 [tool.poetry.dependencies]
 python = "^3.8"
-Cython = "^0.29.35"
 EXtra-data = "^1.13.0"
 future = "^0.18.3"
 h5py = "^3.9.0"
@@ -45,10 +58,13 @@ watchdog = "^3.0.0"
 pyopengl = "^3.1.7"
 pyopengl-accelerate = "^3.1.7"
 
+[tool.poetry.dev-dependencies]
+cython = "^0.29.35"
+
 [tool.poetry.group.test.dependencies]
 pytest = "^6.2.5"
 pytest-qt = "*"
 
 [build-system]
-requires = ["poetry-core", "cython", "setuptools"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core", "cython", "setuptools", "poetry-dynamic-versioning"]
+build-backend = ["poetry.core.masonry.api", "poetry_dynamic_versioning.backend"]
