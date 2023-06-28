@@ -232,7 +232,12 @@ class MaskModel(object):
         self.update_deque()
         self._mask_data = mask_data
 
-    def save_mask(self, filename, flipud: bool=False):
+    def save_mask(self, filename: str, flipud: bool = False):
+        """Save current mask to file
+
+        :param filename: Path of the file to write
+        :param flipud: True to apply a vertical flip before saving the mask
+        """
         im_array = np.int8(self.get_img())
         if flipud:
             im_array = np.flipud(im_array)
@@ -253,7 +258,13 @@ class MaskModel(object):
 
         self.filename = filename
 
-    def _load_mask(self, filename, flipud: bool):
+    @staticmethod
+    def read_mask_file(filename: str, flipud: bool = False) -> np.ndarray:
+        """Load an image mask from file.
+
+        :param filename: Path to the file to read
+        :param flipud: True to apply a vertical flip to the mask
+        """
         if filename.endswith('.npy'):
             data = np.load(filename)
         elif filename.endswith('.edf'):
@@ -268,8 +279,13 @@ class MaskModel(object):
             data = np.flipud(data)
         return data
 
-    def load_mask(self, filename, flipud: bool=False):
-        data = self._load_mask(filename, flipud)
+    def load_mask(self, filename: str, flipud: bool = False):
+        """Load mask from file and replace the current one
+
+        :param filename: Path to the file to read
+        :param flipud: True to apply a vertical flip to the loaded mask
+        """
+        data = self.read_mask_file(filename, flipud)
 
         if self.mask_dimension == data.shape:
             self.filename = filename
@@ -279,8 +295,13 @@ class MaskModel(object):
             return True
         return False
 
-    def add_mask(self, filename, flipud: bool=False):
-        data = self._load_mask(filename, flipud)
+    def add_mask(self, filename: str, flipud: bool = False):
+        """Combine mask loaded from file with the current one
+
+        :param filename: Path to the file to read
+        :param flipud: True to apply a vertical flip to the loaded mask
+        """
+        data = self.read_mask_file(filename, flipud)
 
         if self.get_mask().shape == data.shape:
             self._add_mask(data)
