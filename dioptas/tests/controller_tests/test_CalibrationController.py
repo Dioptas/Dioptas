@@ -29,7 +29,7 @@ import numpy as np
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
 
-from ..utility import QtTest, unittest_data_path, click_button, delete_if_exists
+from ..utility import QtTest, unittest_data_path, click_button, click_checkbox, delete_if_exists
 from ...model.DioptasModel import DioptasModel
 from ...controller.CalibrationController import CalibrationController, get_available_detectors
 from ...widgets.CalibrationWidget import CalibrationWidget
@@ -175,6 +175,28 @@ class TestCalibrationController(QtTest):
 
         calibration_parameter = self.model.calibration_model.get_calibration_parameter()[0]
         self.assertAlmostEqual(calibration_parameter['dist'], .1968, places=3)
+
+    def test_searching_peaks_automatic_increase(self):
+        self.mock_integrate_functions()
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
+        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.search_peaks(1179.6, 1129.4)
+        self.controller.search_peaks(1268.5, 1119.8)
+        self.assertEqual(3, self.widget.peak_num_sb.value())
+
+    def test_searching_peaks_manual_index_assignment(self):
+        self.mock_integrate_functions()
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(unittest_data_path, 'LaB6_40keV_MarCCD.tif'))
+        QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+
+        click_checkbox(self.widget.automatic_peak_num_inc_cb)
+        self.assertFalse(self.widget.automatic_peak_num_inc_cb.isChecked())
+
+        self.controller.search_peaks(1179.6, 1129.4)
+        self.controller.search_peaks(1268.5, 1119.8)
+        self.assertEqual(1, self.widget.peak_num_sb.value())
 
     def test_splines(self):
         self.mock_integrate_functions()
