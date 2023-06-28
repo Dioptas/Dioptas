@@ -1,3 +1,27 @@
+0.5.8 (under development)
+-------------------------
+
+Bugfixes:
+    - cosmic removal is now working again
+
+
+0.5.7 (stable 24.04.2023)
+-------------------------
+
+New features:
+    - saving in batch window will now also save background subtracted patterns, if enabled in the pattern widget
+    - upgraded dependency pyqt5 to pyqt6 which should result in improvements for high dpi screens
+    - added a new "integrate" button to the batch widget, which will integrate all images in the batch widget
+    - now compatible with python 3.11, whenever possible the created executables are compiled with python 3.11
+    - dropping support for python 3.6, 3.7 and 3.8 and focussing on compatibility with python 3.9, 3.10 and 3.11
+
+
+Bugfixes:
+    - fix numpy float conversion issue due to deprecated numpy.float
+    - reading cif files with missing volume tag will now work correctly and the volume will be calculated from cell
+      parameters (PR #140, thanks to @ScottNotFound)
+
+
 0.5.6 (stable 23.11.2022)
 --------------------------
 

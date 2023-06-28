@@ -18,14 +18,18 @@ jobs:
     - name: Use Miniconda
       uses: s-weigand/setup-conda@v1
 
-    - name: switch to python=3.10 and install pip
-      run: conda install python=3.10 pip -y
+    - name: switch to python=3.11 and install pip
+      run: conda install python=3.11 pip -y
+
 
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 future qtpy pyfai lmfit pyepics \
+        pip install pycifrw pandas python-dateutil h5py scikit-image==0.19.3 pyqt6 future qtpy pyfai lmfit pyepics \
                     pyinstaller cython watchdog h5py hdf5plugin pyqtgraph sharedmem \
                     cython setuptools_scm
+      # we have to use scikit-image==0.19.3 because of a new loading mechanism in 0.20.0 which does currently not work
+      # with pyinstaller
+
     - name: Update Pyinstaller Hooks
       run: |
         pip uninstall pyinstaller-hooks-contrib -y

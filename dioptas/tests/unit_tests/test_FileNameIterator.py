@@ -19,87 +19,88 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import unittest
 
-from ..utility import QtTest
+import pytest
+
 from ...model.util.HelperModule import FileNameIterator
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-class FileNameIteratorTest(unittest.TestCase):
-    def setUp(self):
-        self.filename_iterator = FileNameIterator()
+@pytest.fixture
+def filename_iterator():
+    return FileNameIterator()
 
-    def test_get_next_filename_with_existent_file(self):
-        filename = 'image_001.tif'
-        self.filename_iterator.update_filename(os.path.join(data_path, filename))
-        new_filename = os.path.basename(self.filename_iterator.get_next_filename())
-        self.assertEqual(new_filename, 'image_002.tif')
 
-    def test_get_next_filename_with_non_existent_file(self):
-        filename = 'image_002.tif'
-        self.filename_iterator.update_filename(os.path.join(data_path, filename))
-        self.assertEqual(self.filename_iterator.get_next_filename(), None)
+def test_get_next_filename_with_existent_file(filename_iterator):
+    filename = 'image_001.tif'
+    filename_iterator.update_filename(os.path.join(data_path, filename))
+    new_filename = os.path.basename(filename_iterator.get_next_filename())
+    assert new_filename == 'image_002.tif'
 
-    def test_get_next_filename_with_larger_Step(self):
-        filename = 'image_000.tif'
-        self.filename_iterator.update_filename(os.path.join(data_path, filename))
-        new_filename = os.path.basename(self.filename_iterator.get_next_filename(step=2))
-        self.assertEqual(new_filename, 'image_002.tif')
 
-    def test_get_next_filename_with_two_numbers_in_name(self):
-        filename1 = 'image_001w_001.tif'
-        filename2 = 'image_002w_001.tif'
-        file_path1 = os.path.join(data_path, filename1)
-        file_path2 = os.path.join(data_path, filename2)
+def test_get_next_filename_with_non_existent_file(filename_iterator):
+    filename = 'image_002.tif'
+    filename_iterator.update_filename(os.path.join(data_path, filename))
+    assert filename_iterator.get_next_filename() is None
 
-        open(file_path1, "w")
-        open(file_path2, "w")
 
-        self.filename_iterator.update_filename(file_path1)
-        new_filename = self.filename_iterator.get_next_filename()
-        self.assertEqual(os.path.abspath(new_filename),
-                         os.path.abspath(file_path2))
+def test_get_next_filename_with_larger_Step(filename_iterator):
+    filename = 'image_000.tif'
+    filename_iterator.update_filename(os.path.join(data_path, filename))
+    new_filename = os.path.basename(filename_iterator.get_next_filename(step=2))
+    assert new_filename == 'image_002.tif'
 
-        os.remove(file_path1)
-        os.remove(file_path2)
 
-        filename1 = 'image_003w_001.tif'
-        filename2 = 'image_003w_002.tif'
-        filename3 = 'image_004w_001.tif'
+def test_get_next_filename_with_two_numbers_in_name(filename_iterator, tmp_path):
+    filename1 = 'image_001w_001.tif'
+    filename2 = 'image_002w_001.tif'
+    file_path1 = os.path.join(tmp_path, filename1)
+    file_path2 = os.path.join(tmp_path, filename2)
 
-        file_path1 = os.path.join(data_path, filename1)
-        file_path2 = os.path.join(data_path, filename2)
-        file_path3 = os.path.join(data_path, filename3)
+    open(file_path1, "w")
+    open(file_path2, "w")
 
-        open(file_path1, "w")
-        open(file_path2, "w")
-        open(file_path3, "w")
+    filename_iterator.update_filename(file_path1)
+    new_filename = filename_iterator.get_next_filename()
+    assert os.path.abspath(new_filename) == os.path.abspath(file_path2)
 
-        self.filename_iterator.update_filename(file_path1)
-        new_filename = self.filename_iterator.get_next_filename()
-        self.assertEqual(os.path.abspath(new_filename),
-                         os.path.abspath(file_path2))
+    os.remove(file_path1)
+    os.remove(file_path2)
 
-        os.remove(file_path1)
-        os.remove(file_path2)
-        os.remove(file_path3)
+    filename1 = 'image_003w_001.tif'
+    filename2 = 'image_003w_002.tif'
+    filename3 = 'image_004w_001.tif'
 
-    def test_get_previous_filename_with_existent_file(self):
-        filename = 'image_002.tif'
-        self.filename_iterator.update_filename(os.path.join(data_path, filename))
-        new_filename = os.path.basename(self.filename_iterator.get_previous_filename())
-        self.assertEqual(new_filename, 'image_001.tif')
+    file_path1 = os.path.join(tmp_path, filename1)
+    file_path2 = os.path.join(tmp_path, filename2)
+    file_path3 = os.path.join(tmp_path, filename3)
 
-    def test_get_previous_filename_with_non_existent_file(self):
-        filename = 'image_001.tif'
-        self.filename_iterator.update_filename(os.path.join(data_path, filename))
-        self.assertEqual(self.filename_iterator.get_previous_filename(), None)
+    open(file_path1, "w")
+    open(file_path2, "w")
+    open(file_path3, "w")
 
-    def test_get_previous_filename_with_larger_Step(self):
-        filename = 'image_003.tif'
-        self.filename_iterator.update_filename(os.path.join(data_path, filename))
-        new_filename = os.path.basename(self.filename_iterator.get_previous_filename(step=2))
-        self.assertEqual(new_filename, 'image_001.tif')
+    filename_iterator.update_filename(file_path1)
+    new_filename = filename_iterator.get_next_filename()
+    assert os.path.abspath(new_filename) == os.path.abspath(file_path2)
+
+
+def test_get_previous_filename_with_existent_file(filename_iterator):
+    filename = 'image_002.tif'
+    filename_iterator.update_filename(os.path.join(data_path, filename))
+    new_filename = os.path.basename(filename_iterator.get_previous_filename())
+    assert new_filename == 'image_001.tif'
+
+
+def test_get_previous_filename_with_non_existent_file(filename_iterator):
+    filename = 'image_001.tif'
+    filename_iterator.update_filename(os.path.join(data_path, filename))
+    assert filename_iterator.get_previous_filename() is None
+
+
+def test_get_previous_filename_with_larger_Step(filename_iterator):
+    filename = 'image_003.tif'
+    filename_iterator.update_filename(os.path.join(data_path, filename))
+    new_filename = os.path.basename(filename_iterator.get_previous_filename(step=2))
+    assert new_filename == 'image_001.tif'

@@ -36,10 +36,6 @@ from .excepthook import excepthook
 from ._desktop_shortcuts import make_shortcut
 from .controller.MainController import MainController
 
-# Enable scaling for high DPI displays
-if _platform != "linux" or _platform != "linux2":  # does not work correctly on linux
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-
 
 def main():
     app = QtWidgets.QApplication([])

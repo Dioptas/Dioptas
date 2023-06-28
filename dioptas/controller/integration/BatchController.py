@@ -841,7 +841,17 @@ class BatchController(object):
                 for y in range(img_data.shape[0]):
                     pattern_y = img_data[int(y)]
                     self.model.pattern_model.set_pattern(pattern_x, pattern_y)
-                    self.model.current_configuration.save_pattern(f"{name}_{y}{ext}", subtract_background=True)
+                    self.model.current_configuration.save_pattern(f"{name}_{y:03d}{ext}")
+
+                    if self.model.pattern_model.pattern.auto_background_subtraction:
+                        bkg_directory = os.path.join(os.path.dirname(filename), 'bkg_subtracted')
+                        if not os.path.exists(bkg_directory):
+                            os.mkdir(bkg_directory)
+                        bkg_subtracted_name = os.path.join(bkg_directory, os.path.basename(name))
+
+                        self.model.pattern_model.pattern.recalculate_pattern()
+                        self.model.current_configuration.save_pattern(f"{bkg_subtracted_name}_{y:03d}{ext}",
+                                                                      subtract_background=True)
                 self.model.img_model.blockSignals(False)
 
     def img_mouse_click(self, x, y):
@@ -938,7 +948,7 @@ class BatchController(object):
             return
         x = min(max(x, 0), img.shape[1])
         y = min(max(y, 0), img.shape[0] - 1)
-        self.widget.batch_widget.position_widget.step_series_widget.slider.setValue(y)
+        self.widget.batch_widget.position_widget.step_series_widget.slider.setValue(int(y))
         self.widget.batch_widget.position_widget.step_series_widget.pos_txt.setText(str(int(y)))
         self.plot_image(int(y))
         self.plot_pattern(int(x), int(y))

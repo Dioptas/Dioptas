@@ -113,7 +113,7 @@ class CalibrationModel(object):
         :return:
             array of points found
         """
-        massif = Massif(self.img_model.img_data)
+        massif = Massif(self.img_model.img_data, median_prefilter=False)
         cur_peak_points = massif.find_peaks((int(np.round(x)), int(np.round(y))), stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
@@ -186,7 +186,7 @@ class CalibrationModel(object):
         """
 
         if algorithm == 'Massif':
-            self.peak_search_algorithm = Massif(self.img_model.img_data)
+            self.peak_search_algorithm = Massif(self.img_model.img_data, median_prefilter=False)
         elif algorithm == 'Blob':
             if mask is not None:
                 self.peak_search_algorithm = BlobDetection(self.img_model.img_data * mask)
