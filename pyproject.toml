@@ -18,6 +18,8 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Information Analysis',
 ]
 
+build = "dioptas/model/util/smooth_bruckner_build.py"
+
 [tool.poetry.scripts]
 dioptas = "dioptas:main"
 
@@ -40,10 +42,13 @@ QtPy = "^2.3.1"
 scikit-image = "^0.21.0"
 sharedmem = "^0.3.8"
 watchdog = "^3.0.0"
+pyopengl = "^3.1.7"
+pyopengl-accelerate = "^3.1.7"
 
-[tool.poetry.group.dev.dependencies]
+[tool.poetry.group.test.dependencies]
 pytest = "^6.2.5"
+pytest-qt = "*"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core", "cython", "setuptools"]
 build-backend = "poetry.core.masonry.api"
