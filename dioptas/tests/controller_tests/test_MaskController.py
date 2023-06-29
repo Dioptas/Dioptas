@@ -33,9 +33,6 @@ from ...widgets.MaskWidget import MaskWidget
 
 
 class MaskControllerTest(QtTest):
-
-    MASK_EXTENSIONS = ".mask", ".npy", ".edf"
-
     def setUp(self):
 
         self.model = DioptasModel()
@@ -45,8 +42,7 @@ class MaskControllerTest(QtTest):
         self.mask_controller = MaskController(self.mask_widget, self.model)
 
     def tearDown(self):
-        for extension in self.MASK_EXTENSIONS:
-            delete_if_exists(os.path.join(unittest_data_path, f'dummy{extension}'))
+        delete_if_exists(os.path.join(unittest_data_path, 'dummy.mask'))
         del self.model
         self.mask_widget.close()
         del self.mask_widget
@@ -58,17 +54,26 @@ class MaskControllerTest(QtTest):
         return stat_info.st_size
 
     def test_loading_and_saving_mask_files(self):
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'test.mask'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=(
+            os.path.join(unittest_data_path, 'test.mask'),
+            MaskController.DEFAULT_MASK_FILTER,
+        ))
         click_button(self.mask_widget.load_mask_btn)
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
 
-        for extension in self.MASK_EXTENSIONS:
-            with self.subTest(extension=extension):
-                filename = os.path.join(unittest_data_path, f'dummy{extension}')
+        dialog_results = (
+            ('.mask', MaskController.DEFAULT_MASK_FILTER),
+            ('.npy', MaskController.FLIPUD_MASK_FILTER),
+            ('.edf', MaskController.FLIPUD_MASK_FILTER)
 
-                QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
+        )
+        for extension, selected_filter in dialog_results:
+            with self.subTest(extension=extension, selected_filter=selected_filter):
+                filename = os.path.join(unittest_data_path, f'dummy{extension}')
+                QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=(filename, selected_filter))
                 click_button(self.mask_widget.save_mask_btn)
                 self.assertTrue(os.path.exists(filename))
+                delete_if_exists(filename)
 
     def test_grow_and_shrinking(self):
         self.model.mask_model.mask_ellipse(100, 100, 20, 20)
