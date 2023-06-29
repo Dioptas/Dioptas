@@ -104,7 +104,10 @@ class MaskControllerTest(QtTest):
         self.assertTrue(np.array_equal(previous_mask, self.model.mask_model._mask_data))
 
     def test_select_configuration_updating_mask(self):
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'test.mask'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=(
+            os.path.join(unittest_data_path, 'test.mask'),
+            MaskController.DEFAULT_MASK_FILTER,
+        ))
         click_button(self.mask_widget.load_mask_btn)
         first_mask = self.model.mask_model.get_img()
         self.model.add_configuration()
@@ -117,7 +120,10 @@ class MaskControllerTest(QtTest):
         self.assertEqual(np.sum(self.mask_widget.img_widget.mask_img_item.image-second_mask), 0)
 
     def test_select_configuration_updating_mask_transparency(self):
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'test.mask'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=(
+            os.path.join(unittest_data_path, 'test.mask'),
+            MaskController.DEFAULT_MASK_FILTER,
+        ))
         click_button(self.mask_widget.load_mask_btn)
         self.model.add_configuration()
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
