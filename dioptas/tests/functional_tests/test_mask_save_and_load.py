@@ -30,6 +30,7 @@ from qtpy.QtTest import QTest
 
 from ..utility import click_button, unittest_data_path
 from ...controller.MainController import MainController
+from ...controller.MaskController import MaskController
 
 
 @pytest.fixture(scope="session")
@@ -64,11 +65,11 @@ def load_image_and_mask(
     main_controller: MainController,
     img_filename: str,
     mask_filename: str,
-    flipud: bool,
+    dialog_filter: str,
 ):
     """Sequence: Load image and mask from file and save the mask to file
 
-    If flipud is True, checks that the loaded mask is flipped compared to the reference one.
+    dialog_filter is the format option selected in the mask controller load/save dialogs.
     """
     # Load image
     click_button(main_controller.widget.calibration_mode_btn)
@@ -87,17 +88,17 @@ def load_image_and_mask(
 
     # Load mask
     click_button(main_controller.widget.mask_mode_btn)
-    QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=mask_filename)
+    QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=(mask_filename, dialog_filter))
     click_button(main_controller.mask_controller.widget.load_mask_btn)
 
     current_mask = main_controller.model.mask_model.get_mask()
-    if flipud:
+    if dialog_filter == MaskController.FLIPUD_MASK_FILTER:
         assert np.array_equal(np.flipud(ref_mask), current_mask)
     else:
         assert np.array_equal(ref_mask, current_mask)
 
     # Save mask
-    QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=mask_filename)
+    QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=(mask_filename, dialog_filter))
     click_button(main_controller.mask_controller.widget.save_mask_btn)
     assert os.path.isfile(mask_filename)
 
@@ -116,41 +117,28 @@ def load_image_and_mask(
     "image_001.tif",
     "karabo_epix.h5",
 ])
-def test_load_save_mask_as_tiff(main_controller, qapp, tmp_path, img_filename):
+def test_load_save_mask_as_tiff(main_controller, tmp_path, img_filename):
     """Test *.mask mask load/save"""
     load_image_and_mask(
         main_controller,
         os.path.join(unittest_data_path, img_filename),
-        str(tmp_path / f"ref_mask.mask"),
-        flipud=False,
-    )
-
-
-@pytest.mark.parametrize("mask_ext", [".npy", ".edf"])
-@pytest.mark.parametrize("img_filename", [
-    "spe/CeO2_PI_CCD_Mo.SPE",
-    "karabo_epix.h5",
-])
-def test_load_save_unflipped_mask(main_controller, qapp, tmp_path, img_filename, mask_ext):
-    """Test *.edf mask load/save on images that are not flipped when loaded"""
-    load_image_and_mask(
-        main_controller,
-        os.path.join(unittest_data_path, img_filename),
-        str(tmp_path / f"ref_mask{mask_ext}"),
-        flipud=False,
+        str(tmp_path / "ref_mask.mask"),
+        dialog_filter=MaskController.DEFAULT_MASK_FILTER,
     )
 
 
 @pytest.mark.parametrize("mask_ext", [".npy", ".edf"])
 @pytest.mark.parametrize("img_filename", [
     "lambda/testasapo1_1009_00002_m1_part00000.nxs",
+    "spe/CeO2_PI_CCD_Mo.SPE",
     "image_001.tif",
+    "karabo_epix.h5",
 ])
-def test_load_save_flipped_mask(main_controller, qapp, tmp_path, img_filename, mask_ext):
-    """Test *.edf mask load/save on images that are flipped when loaded"""
+def test_load_save_flipped_mask(main_controller, tmp_path, img_filename, mask_ext):
+    """Test load/save flipped mask"""
     load_image_and_mask(
         main_controller,
         os.path.join(unittest_data_path, img_filename),
         str(tmp_path / f"ref_mask{mask_ext}"),
-        flipud=True,
+        dialog_filter=MaskController.FLIPUD_MASK_FILTER
     )
