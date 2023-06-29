@@ -34,8 +34,7 @@ contain an app folder which can be double-clicked for starting. Please accept th
 In order to make changes to the source code yourself or always get the latest development versions you need to install
 the required python packages on your machine.
 
-The easiest way to install the all the dependencies for Dioptas is to use the pip package manager with python 
-version newer than 3.7.
+The easiest way to install the all the dependencies for Dioptas is to use the pip package manager:
 
 ```bash
 pip install dioptas
@@ -51,8 +50,34 @@ in the commandline.
 Running the Program from source
 -------------------------------
 
-You can start the program by running the Dioptas.py script in the dioptas folder:
+The easiest way to create a working environment for Dioptas is to use the poetry package manager. A new environment is 
+created by running:
 
 ```bash
-python Dioptas.py
+poetry install
+```
+
+This will create a new environment with all the required packages. The environment can be activated by running:
+
+```bash 
+poetry shell
+```
+
+Afterward the program can be started by running:
+
+```bash
+dioptas
+```
+
+In order to run the program without activating the environment, the program can be started by running:
+
+```bash
+poetry run dioptas
+```
+
+In case you want to run the Dioptas from source without poetry, you need to install the required packages yourself. 
+The packages are listed in the file `pyproject.toml`. The program can then be started by running:
+
+```bash
+python run.py
 ```
