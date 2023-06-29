@@ -34,9 +34,9 @@ from ..model.DioptasModel import DioptasModel
 
 class MaskController(object):
 
-    _DEFAULT_MASK_FILTER = 'Mask (*.mask)'
-    _FLIPUD_MASK_FILTER = 'Vertically flipped mask (*.npy *.edf)'
-    _MASK_FILTERS = ';;'.join([_DEFAULT_MASK_FILTER, _FLIPUD_MASK_FILTER])
+    DEFAULT_MASK_FILTER = 'Mask (*.mask)'
+    FLIPUD_MASK_FILTER = 'Vertically flipped mask (*.npy *.edf)'
+    MASK_FILTERS = ';;'.join([DEFAULT_MASK_FILTER, FLIPUD_MASK_FILTER])
 
     def __init__(self, widget, dioptas_model):
         """
@@ -380,10 +380,10 @@ class MaskController(object):
             caption="Save mask data",
             directory=os.path.join(self.model.working_directories['mask'],
                                    img_filename + '.mask'),
-            filter=self._MASK_FILTERS)
+            filter=self.MASK_FILTERS)
 
         if filename != '':
-            flipud = selected_filter == self._FLIPUD_MASK_FILTER
+            flipud = selected_filter == self.FLIPUD_MASK_FILTER
             self.model.working_directories['mask'] = os.path.dirname(filename)
             self.model.mask_model.save_mask(filename, flipud)
 
@@ -392,10 +392,10 @@ class MaskController(object):
             self.widget,
             caption="Load mask data",
             directory=self.model.working_directories['mask'],
-            filter=self._MASK_FILTERS)
+            filter=self.MASK_FILTERS)
 
         if filename != '':
-            flipud = selected_filter == self._FLIPUD_MASK_FILTER
+            flipud = selected_filter == self.FLIPUD_MASK_FILTER
             self.model.working_directories['mask'] = os.path.dirname(filename)
             if self.model.mask_model.load_mask(filename, flipud):
                 self.plot_mask()
@@ -409,10 +409,10 @@ class MaskController(object):
             self.widget,
             caption="Add mask data",
             directory=self.model.working_directories['mask'],
-            filter=self._MASK_FILTERS)
+            filter=self.MASK_FILTERS)
 
         if filename != '':
-            flipud = selected_filter == self._FLIPUD_MASK_FILTER
+            flipud = selected_filter == self.FLIPUD_MASK_FILTER
             self.model.working_directories['mask'] = os.path.dirname(filename)
             if self.model.mask_model.add_mask(filename, flipud):
                 self.plot_mask()
