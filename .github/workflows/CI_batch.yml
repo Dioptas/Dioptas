@@ -48,3 +48,4 @@ jobs:
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_BatchController_part1.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_BatchController_part2.py
         QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_BatchController_part3.py
+        QT_QPA_PLATFORM=offscreen py.test dioptas/tests/controller_tests/test_BatchController_part4.py
