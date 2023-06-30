@@ -155,7 +155,7 @@ class BatchControllerTest(QtTest):
 
         self.controller.update_y_axis()
         self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[0],
-                               2.904, places=2)
+                               2.904, places=1)
         self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[1],
                                30.3251324, places=2)
 

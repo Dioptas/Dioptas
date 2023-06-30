@@ -647,7 +647,9 @@ class BatchController(object):
             self.change_view()
 
         self.load_single_image(1, 0)
-        self.integrate()
+
+        if self.model.calibration_model.is_calibrated:
+            self.integrate()
 
     def load_previous_folder(self):
         filenames = self.model.batch_model.get_previous_folder_filenames()

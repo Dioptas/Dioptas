@@ -88,7 +88,3 @@ class TestEpicsController(QtTest):
         caput.assert_any_call('13IDD:m81.VAL', 0.1)
         caput.assert_any_call('13IDD:m83.VAL', 0.02)
         caput.assert_any_call('13IDD:m82.VAL', 0.05)
-
-
-if __name__ == '__main__':
-    unittest.main()
