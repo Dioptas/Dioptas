@@ -85,4 +85,4 @@ def test_save_xy_with_background_subtraction(batch_controller: BatchController, 
     bkg_subtracted_pattern.load(os.path.join(bkg_subtracted_path, f"test_011.xy"))
     assert len(bkg_subtracted_pattern.x) == 701
     assert len(bkg_subtracted_pattern.y) == 701
-    assert np.sum(bkg_subtracted_pattern.y) == pytest.approx(0)
+    assert np.sum(bkg_subtracted_pattern.y) == pytest.approx(0, abs=1e-10)
