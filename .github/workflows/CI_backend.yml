@@ -30,7 +30,7 @@ jobs:
     - name: Install Apt Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install python3-opengl
+        sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
 
     - name: Install Pip Dependencies
       run: |
