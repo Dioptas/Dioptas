@@ -30,7 +30,10 @@ jobs:
     - name: Install Apt Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
+        sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0 libxkbcommon-x11-dev libxcb-xinerama0  \
+          libxcb-keysyms1-dev libxcb-image0-dev \
+          libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-shape0-dev \
+          libxcb-randr0-dev libxcb-render-util0-dev
 
     - name: Install Pip Dependencies
       run: |
