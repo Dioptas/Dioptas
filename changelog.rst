@@ -8,6 +8,7 @@ Bugfixes:
     - fixes issue with auto peak number increasing while the checkbox for it was unchecked
     - no more error message when mouse is hovering over the cake image at 0 indices of the image
     - changing the color of an overlay or phase item is now working correctly again
+    - the mask is now correctly reset when batch integration is started with images of different shape
 
 
 0.5.7 (stable 24.04.2023)
