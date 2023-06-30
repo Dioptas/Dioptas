@@ -24,7 +24,7 @@ import sys
 from sys import platform as _platform
 from qtpy import QtWidgets
 
-__version__ = "0.5.7-post.10+2d770547"
+__version__ = "0.5.8-dev-alpha"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
