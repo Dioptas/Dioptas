@@ -63,8 +63,8 @@ class MaskControllerTest(QtTest):
 
         dialog_results = (
             ('.mask', MaskController.DEFAULT_MASK_FILTER),
-            ('.npy', MaskController.FLIPUD_MASK_FILTER),
-            ('.edf', MaskController.FLIPUD_MASK_FILTER)
+            ('.npy', f"{MaskController.FLIPUD_MASK_FILTER_PREFIX} (*.npy)"),
+            ('.edf', f"{MaskController.FLIPUD_MASK_FILTER_PREFIX} (*.edf)")
 
         )
         for extension, selected_filter in dialog_results:
