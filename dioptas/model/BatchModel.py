@@ -252,6 +252,8 @@ class BatchModel(QtCore.QObject):
                 self.calibration_model.img_model.load(self.files[file_index])
 
             self.calibration_model.img_model.load_series_img(pos + 1)
+            self.mask_model.set_dimension(self.calibration_model.img_model.img_data.shape)
+
             binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
                                                                      mask=mask)
             image_counter += 1
