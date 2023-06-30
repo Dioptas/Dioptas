@@ -315,7 +315,7 @@ class BatchController(object):
                     f'2θ:{tth:.1f}')
                 self.widget.pattern_widget.set_pos_line(tth)
         else:
-            if ev.modifiers() & QtCore.Qt.ControlModifier:
+            if ev.modifiers() == QtCore.Qt.ControlModifier:
                 layout.opts['fov'] *= 0.999 ** delta
             else:
                 layout.opts['distance'] *= 0.999 ** delta
@@ -443,7 +443,7 @@ class BatchController(object):
         progress_dialog.close()
 
     def set_hard_minimum(self, ev, scale):
-        if ev.button() & QtCore.Qt.RightButton:
+        if ev.button() == QtCore.Qt.RightButton:
             val, ok = QtWidgets.QInputDialog.getDouble(self.widget.integration_image_widget, 'Edit minimal value',
                                                        'value:', decimals=3,
                                                        value=self.min_val[scale])
