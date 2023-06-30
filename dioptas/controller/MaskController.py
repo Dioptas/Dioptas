@@ -35,8 +35,7 @@ from ..model.DioptasModel import DioptasModel
 class MaskController(object):
 
     DEFAULT_MASK_FILTER = 'Mask (*.mask)'
-    FLIPUD_MASK_FILTER = 'Vertically flipped mask (*.npy *.edf)'
-    MASK_FILTERS = ';;'.join([DEFAULT_MASK_FILTER, FLIPUD_MASK_FILTER])
+    FLIPUD_MASK_FILTER_PREFIX = 'Vertically flipped mask'
 
     def __init__(self, widget, dioptas_model):
         """
@@ -380,10 +379,14 @@ class MaskController(object):
             caption="Save mask data",
             directory=os.path.join(self.model.working_directories['mask'],
                                    img_filename + '.mask'),
-            filter=self.MASK_FILTERS)
+            filter=';;'.join([
+                self.DEFAULT_MASK_FILTER,
+                f"{self.FLIPUD_MASK_FILTER_PREFIX} (*.npy)",
+                f"{self.FLIPUD_MASK_FILTER_PREFIX} (*.edf)",
+            ]))
 
         if filename != '':
-            flipud = selected_filter == self.FLIPUD_MASK_FILTER
+            flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
             self.model.mask_model.save_mask(filename, flipud)
 
@@ -392,10 +395,13 @@ class MaskController(object):
             self.widget,
             caption="Load mask data",
             directory=self.model.working_directories['mask'],
-            filter=self.MASK_FILTERS)
+            filter=';;'.join([
+                self.DEFAULT_MASK_FILTER,
+                f"{self.FLIPUD_MASK_FILTER_PREFIX} (*.npy *.edf)",
+            ]))
 
         if filename != '':
-            flipud = selected_filter == self.FLIPUD_MASK_FILTER
+            flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
             if self.model.mask_model.load_mask(filename, flipud):
                 self.plot_mask()
@@ -409,10 +415,13 @@ class MaskController(object):
             self.widget,
             caption="Add mask data",
             directory=self.model.working_directories['mask'],
-            filter=self.MASK_FILTERS)
+            filter=';;'.join([
+                self.DEFAULT_MASK_FILTER,
+                f"{self.FLIPUD_MASK_FILTER_PREFIX} (*.npy *.edf)",
+            ]))
 
         if filename != '':
-            flipud = selected_filter == self.FLIPUD_MASK_FILTER
+            flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
             if self.model.mask_model.add_mask(filename, flipud):
                 self.plot_mask()
