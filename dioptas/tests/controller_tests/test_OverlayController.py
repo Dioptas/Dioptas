@@ -363,7 +363,7 @@ class OverlayControllerTest(QtTest):
         for ind, cb in enumerate(self.overlay_widget.show_cbs):
             self.assertTrue(cb.isChecked())
 
-    def test_change_color_of_overlay(self):
+    def test_change_overlay_color(self):
         """
         We are setting color of overlay 3 to color of overlay 1
         """

@@ -20,8 +20,7 @@
 
 import os
 
-import numpy as np
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 from ....model.PhaseModel import PhaseLoadError
 from ....model.util.HelperModule import get_base_name
@@ -245,7 +244,7 @@ class PhaseController(object):
             temperature_sb.setSingleStep(self.phase_widget.temperature_step_msb.value())
 
     def color_btn_clicked(self, ind, button):
-        previous_color = button.palette().color(1)
+        previous_color = button.palette().color(QtGui.QPalette.Button)
         new_color = QtWidgets.QColorDialog.getColor(previous_color, self.integration_widget)
         if new_color.isValid():
             color = new_color.toRgb()
