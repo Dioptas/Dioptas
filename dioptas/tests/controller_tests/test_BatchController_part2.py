@@ -19,178 +19,145 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import gc
+import pytest
 from mock import MagicMock
 
-from ..utility import QtTest, click_button
+from ..utility import click_button
 
 from qtpy import QtWidgets, QtGui
 
-from ...widgets.integration import IntegrationWidget
 from ...widgets.plot_widgets.ImgWidget import MyRectangle
-from ...controller.integration.BatchController import BatchController
-from ...model.DioptasModel import DioptasModel
-from dioptas.controller.integration.phase.PhaseController import PhaseController
 
-unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
-jcpds_path = os.path.join(unittest_data_path, 'jcpds')
+from .test_BatchController_part1 import *
 
 
-class BatchControllerTest(QtTest):
-    def setUp(self):
-        self.working_dir = {'image': ''}
+def test_set_range_img(batch_widget, batch_controller, load_proc_data):
+    batch_widget.position_widget.step_series_widget.start_txt.setValue(25)
+    batch_widget.position_widget.step_series_widget.stop_txt.setValue(50)
 
-        self.widget = IntegrationWidget()
-        self.model = DioptasModel()
+    batch_controller.set_range_img()
+    assert batch_widget.position_widget.step_series_widget.slider.value() == 25
 
-        self.controller = BatchController(
-            widget=self.widget,
-            dioptas_model=self.model)
+    batch_widget.position_widget.step_series_widget.start_txt.setValue(5)
+    batch_widget.position_widget.step_series_widget.stop_txt.setValue(20)
+    batch_controller.set_range_img()
+    assert batch_widget.position_widget.step_series_widget.slider.value() == 20
 
-        self.phase_controller = PhaseController(self.widget, self.model)
 
-        # Load existing proc+raw data
-        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
-        self.model.batch_model.load_proc_data(filename)
-        raw_files = self.model.batch_model.files
-        raw_files = [os.path.join(os.path.dirname(filename), os.path.basename(f)) for f in raw_files]
-        self.model.batch_model.set_image_files(raw_files)
-        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(self.model.batch_model.n_img - 1)
+def test_show_img_mouse_position(batch_widget, batch_controller, load_proc_data):
+    batch_widget.activate_stack_plot()
+    batch_controller.show_img_mouse_position(10, 15)
 
-    def tearDown(self):
-        del self.phase_controller
-        del self.controller
-        del self.model
-        del self.widget
-        gc.collect()
-        gc.garbage
+    assert batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.text() == 'Img: 15'
+    assert batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.text() == '2θ: 9.7'
+    assert batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.int_lbl.text() == 'I: 0.1'
 
-    def test_set_range_img(self):
-        self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(25)
-        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(50)
 
-        self.controller.set_range_img()
-        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.slider.value(), 25)
+def test_load_raw_data(batch_widget, batch_controller, batch_model, load_proc_data):
+    files = [os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs'),
+             os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')]
 
-        self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(5)
-        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(20)
-        self.controller.set_range_img()
-        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.slider.value(), 20)
+    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
+    batch_controller.load_data()
 
-    def test_show_img_mouse_position(self):
-        self.widget.batch_widget.activate_stack_plot()
-        self.controller.show_img_mouse_position(10, 15)
+    assert batch_model.data is None
+    assert batch_model.binning is None
+    assert batch_model.raw_available
 
-        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.text(),
-                         'Img: 15')
-        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.text(),
-                         '2θ: 9.7')
-        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.int_lbl.text(),
-                         'I: 0.1')
+    start, stop, step = batch_widget.position_widget.step_raw_widget.get_image_range()
+    frame = str(batch_widget.position_widget.step_series_widget.pos_label.text())
+    assert stop == 19
+    assert start == 0
+    assert frame == "Frame(None/20):"
 
-    def test_load_raw_data(self):
-        files = [os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs'),
-                 os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')]
+    assert batch_widget.file_view_widget.tree_model.columnCount() == 2
+    assert (batch_model.files == files).all()
 
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
-        self.controller.load_data()
 
-        self.assertTrue(self.model.batch_model.data is None)
-        self.assertTrue(self.model.batch_model.binning is None)
-        self.assertTrue(self.model.batch_model.raw_available)
+def test_load_proc_data(batch_widget, batch_controller, batch_model, dioptas_model, load_proc_data):
+    filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
+    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[filename])
+    dioptas_model.working_directories['image'] = os.path.join(unittest_data_path, 'lambda')
+    batch_controller.load_data()
 
-        start, stop, step = self.widget.batch_widget.position_widget.step_raw_widget.get_image_range()
-        frame = str(self.widget.batch_widget.position_widget.step_series_widget.pos_label.text())
-        self.assertEqual(stop, 19)
-        self.assertEqual(start, 0)
-        self.assertEqual(frame, "Frame(None/20):")
+    assert batch_model.data is not None
+    # self.assertTrue(self.model.batch_model.raw_available)
+    assert batch_model.data.shape[0] == 50
+    assert batch_model.data.shape[1] == batch_model.binning.shape[0]
+    assert batch_model.data.shape[0] == batch_model.n_img
+    start = int(str(batch_widget.position_widget.step_series_widget.start_txt.text()))
+    stop = int(str(batch_widget.position_widget.step_series_widget.stop_txt.text()))
+    frame = str(batch_widget.position_widget.step_series_widget.pos_label.text())
+    assert stop == 49
+    assert start == 0
+    assert frame == "Frame(50/50):"
 
-        self.assertEqual(self.widget.batch_widget.file_view_widget.tree_model.columnCount(), 2)
-        self.assertTrue((self.model.batch_model.files == files).all())
+    assert batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text() == 'Img: 0'
+    assert batch_widget.position_widget.step_series_widget.slider.value() == 0
 
-    def test_load_proc_data(self):
-        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
-        QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[filename])
-        self.model.working_directories['image'] = os.path.join(unittest_data_path, 'lambda')
-        self.controller.load_data()
+    filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs').split(
+        '/')[-1].split('\\')[-1]
+    assert filename in batch_widget.windowTitle()
 
-        self.assertTrue(self.model.batch_model.data is not None)
-        # self.assertTrue(self.model.batch_model.raw_available)
-        self.assertEqual(self.model.batch_model.data.shape[0], 50)
-        self.assertEqual(self.model.batch_model.data.shape[1],
-                         self.model.batch_model.binning.shape[0])
-        self.assertEqual(self.model.batch_model.data.shape[0],
-                         self.model.batch_model.n_img)
-        start = int(str(self.widget.batch_widget.position_widget.step_series_widget.start_txt.text()))
-        stop = int(str(self.widget.batch_widget.position_widget.step_series_widget.stop_txt.text()))
-        frame = str(self.widget.batch_widget.position_widget.step_series_widget.pos_label.text())
-        self.assertEqual(stop, 49)
-        self.assertEqual(start, 0)
-        self.assertEqual(frame, "Frame(50/50):")
 
-        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(),
-                         'Img: 0')
-        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.slider.value(), 0)
+def test_plot_batch_2d(batch_widget, batch_controller, batch_model, load_proc_data):
+    batch_widget.position_widget.step_series_widget.start_txt.setValue(10)
+    batch_widget.position_widget.step_series_widget.stop_txt.setValue(40)
+    batch_widget.activate_stack_plot()
 
-        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs').split(
-            '/')[-1].split('\\')[-1]
-        self.assertTrue(filename in self.widget.batch_widget.windowTitle())
-        # self.assertEqual(self.model.calibration_model.calibration_name, 'L2')
+    batch_controller.plot_batch()
+    assert batch_widget.stack_plot_widget.img_view.img_data.shape == (31, 4038)
+    assert batch_widget.stack_plot_widget.img_view._max_range
+    assert batch_widget.stack_plot_widget.img_view.horizontal_line.value() == 0
+    assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[0] == pytest.approx(7.28502051, 0.01)
+    assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[1] == pytest.approx(42.7116293, 0.01)
 
-    def test_plot_batch_2d(self):
-        self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(10)
-        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(40)
-        self.widget.batch_widget.activate_stack_plot()
 
-        self.controller.plot_batch()
-        self.assertEqual(self.widget.batch_widget.stack_plot_widget.img_view.img_data.shape, (31, 4038))
-        self.assertTrue(self.widget.batch_widget.stack_plot_widget.img_view._max_range)
-        self.assertEqual(self.widget.batch_widget.stack_plot_widget.img_view.horizontal_line.value(), 0)
-        self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[0], 7.28502051,
-                               places=1)
-        self.assertAlmostEqual(self.widget.batch_widget.stack_plot_widget.img_view.left_axis_cake.range[1], 42.7116293,
-                               places=1)
+def test_plot_batch_3d(batch_widget, batch_controller, batch_model, load_proc_data):
+    batch_widget.activate_surface_view()
+    batch_widget.position_widget.step_series_widget.start_txt.blockSignals(True)
+    batch_widget.position_widget.step_series_widget.stop_txt.blockSignals(True)
+    batch_widget.position_widget.step_series_widget.start_txt.setValue(10)
+    batch_widget.position_widget.step_series_widget.stop_txt.setValue(40)
+    batch_widget.position_widget.step_series_widget.start_txt.blockSignals(False)
+    batch_widget.position_widget.step_series_widget.stop_txt.blockSignals(False)
+    batch_controller.plot_batch()
 
-    def test_plot_batch_3d(self):
-        self.widget.batch_widget.activate_surface_view()
-        self.widget.batch_widget.position_widget.step_series_widget.start_txt.setValue(10)
-        self.widget.batch_widget.position_widget.step_series_widget.stop_txt.setValue(40)
-        self.controller.plot_batch()
+    assert batch_widget.position_widget.step_series_widget.step_txt.value() == 1
+    assert batch_widget.surface_widget.surface_view.data.shape == (31, 4038)
 
-        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.step_txt.value(), 1)
-        self.assertEqual(self.widget.batch_widget.surface_widget.surface_view.data.shape, (31, 4038))
-        # self.assertEqual(len(self.widget.batch_widget.surf_view.axis.ticks), 1) --> currently axis is not implemented
 
-    def test_img_mouse_click(self):
-        # Test only image loading. Waterfall is already tested
-        self.controller.img_mouse_click(10, 15)
+def test_img_mouse_click(batch_widget, batch_controller, batch_model, load_proc_data):
+    # Test only image loading. Waterfall is already tested
+    batch_controller.img_mouse_click(10, 15)
 
-        self.assertEqual(self.widget.batch_widget.surface_widget.surface_view.g_translate, 0)
-        self.assertEqual(self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text(),
-                         'Img: 15')
-        self.assertEqual(self.widget.batch_widget.position_widget.step_series_widget.slider.value(), 15)
+    assert batch_widget.surface_widget.surface_view.g_translate == 0
+    assert batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text() == 'Img: 15'
+    assert batch_widget.position_widget.step_series_widget.slider.value() == 15
 
-        filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
-        self.assertEqual(self.widget.batch_widget.windowTitle(), f"Batch widget. {filename} - 5")
+    filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
+    assert batch_widget.windowTitle() == f"Batch widget. {filename} - 5"
 
-    def test_process_waterfall(self):
-        self.controller.process_waterfall(5, 7)
-        self.assertEqual(self.controller.rect.rect().left(), 5)
-        self.assertEqual(self.controller.rect.rect().bottom(), 7)
-        self.assertEqual(self.controller.clicks, 1)
 
-        self.controller.process_waterfall(10, 17)
-        self.assertEqual(self.controller.clicks, 0)
+def test_process_waterfall(batch_controller, load_proc_data):
+    batch_controller.process_waterfall(5, 7)
+    assert batch_controller.rect.rect().left() == 5
+    assert batch_controller.rect.rect().bottom() == 7
+    assert batch_controller.clicks == 1
 
-    def test_plot_waterfall(self):
-        self.controller.rect = MyRectangle(5, 7, 10, 17, QtGui.QColor(255, 0, 0, 150))
+    batch_controller.process_waterfall(10, 17)
+    assert batch_controller.clicks == 0
 
-        self.controller.plot_waterfall()
 
-        self.assertEqual(len(self.model.overlay_model.overlays), 17)
-        self.assertEqual(self.model.overlay_model.overlays[0].name,
-                         'testasapo1_1009_00002_m1_part00002.nxs, 4')
-        self.assertEqual(self.model.overlay_model.overlays[0]._pattern_x.shape, (10,))
+def test_plot_waterfall(batch_controller, dioptas_model, load_proc_data):
+    batch_controller.rect = MyRectangle(5, 7, 10, 17, QtGui.QColor(255, 0, 0, 150))
 
-    def test_normalize(self):
-        click_button(self.widget.batch_widget.control_widget.normalize_btn)
+    batch_controller.plot_waterfall()
+
+    assert len(dioptas_model.overlay_model.overlays) == 17
+    assert dioptas_model.overlay_model.overlays[0].name == 'testasapo1_1009_00002_m1_part00002.nxs, 4'
+    assert dioptas_model.overlay_model.overlays[0]._pattern_x.shape == (10,)
+
+
+def test_normalize(batch_widget, batch_controller, load_proc_data):
+    click_button(batch_widget.control_widget.normalize_btn)

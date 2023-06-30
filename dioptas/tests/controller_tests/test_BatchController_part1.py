@@ -33,6 +33,9 @@ from ...model.DioptasModel import DioptasModel
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
 
+__all__ = ['integration_widget', 'dioptas_model', 'batch_model', 'batch_controller', 'phase_controller',
+           'pattern_controller', 'batch_widget', 'load_proc_data', 'jcpds_path', 'unittest_data_path']
+
 
 @pytest.fixture
 def integration_widget(qtbot):
