@@ -67,4 +67,4 @@ pytest-qt = "*"
 
 [build-system]
 requires = ["poetry-core", "cython", "setuptools", "poetry-dynamic-versioning"]
-build-backend = ["poetry.core.masonry.api", "poetry_dynamic_versioning.backend"]
+build-backend = "poetry_dynamic_versioning.backend"
