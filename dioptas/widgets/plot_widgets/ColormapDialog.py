@@ -19,8 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import pathlib
+
 from qtpy import QtGui, QtCore, QtWidgets
 import pyqtgraph.graphicsItems.GradientEditorItem
+
+from ... import style_path
 
 
 class ColormapDialog(QtWidgets.QDialog):
@@ -35,6 +39,9 @@ class ColormapDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Colormap configuration")
+        self.setStyleSheet(
+            pathlib.Path(style_path, "stylesheet.qss").read_text()
+        )
 
         layout = QtWidgets.QFormLayout(self)
 
