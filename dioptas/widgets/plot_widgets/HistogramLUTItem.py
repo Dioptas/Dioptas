@@ -307,6 +307,7 @@ class HistogramLUTItem(GraphicsWidget):
 
         widget.setCurrentGradient(self.gradient.saveState())
         widget.setRange(*self.getExpLevels())
+        widget.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
         widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
         widget.sigRangeChanged.connect(self.setLevels)
         button = self.sender()
