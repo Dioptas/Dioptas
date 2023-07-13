@@ -21,7 +21,7 @@
 from __future__ import absolute_import
 
 import pathlib
-from qtpy import QtWidgets, QtCore
+from qtpy import QtCore, QtGui, QtWidgets
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
 from pyqtgraph.graphicsItems.GradientEditorItem import *
@@ -34,7 +34,7 @@ import pyqtgraph as pg
 import numpy as np
 from .ColormapDialog import ColormapDialog
 from ..CustomWidgets import FlatButton
-from ... import style_path
+from ... import icons_path, style_path
 
 
 __all__ = ['HistogramLUTItem']
@@ -89,12 +89,14 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset('grey')
 
-        configurationButton = FlatButton('C')
+        configurationButton = FlatButton()
+        configurationButton.setWidth(30)
+        configurationButton.setHeight(30)
         configurationButton.setStyleSheet(
             pathlib.Path(style_path, "stylesheet.qss").read_text()
         )
-        configurationButton.setSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        configurationButton.setIcon(
+            QtGui.QIcon(str(pathlib.Path(icons_path) / "settings.png")))
         configurationButton.setToolTip("Configure colormap")
         configurationButton.clicked.connect(self._configurationButtonClicked)
 
@@ -109,7 +111,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
             self.layout.addItem(self.vb, 1, 0)
             self.layout.addItem(self.gradient, 0, 0)
-            self.layout.addItem(proxy, 0, 1, 2, 1)
+            self.layout.addItem(proxy, 0, 1)
             self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
             self.vb.setFlag(self.gradient.ItemStacksBehindParent)
         elif orientation == 'vertical':
@@ -120,7 +122,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
             self.layout.addItem(self.gradient, 0, 1)
-            self.layout.addItem(proxy, 1, 0, 1, 2)
+            self.layout.addItem(proxy, 1, 1)
 
         self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
         self.vb.setFlag(self.gradient.ItemStacksBehindParent)
