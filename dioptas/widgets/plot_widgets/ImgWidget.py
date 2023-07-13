@@ -30,6 +30,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
 from .PatternWidget import ModifiedLinearRegionItem
+from . import utils
 
 
 class ImgWidget(QtCore.QObject):
@@ -133,20 +134,7 @@ class ImgWidget(QtCore.QObject):
 
     def auto_level(self):
         hist_x, hist_y = self.img_histogram_LUT_horizontal.hist_x, self.img_histogram_LUT_horizontal.hist_y
-
-        hist_y_cumsum = np.cumsum(hist_y)
-        hist_y_sum = np.sum(hist_y)
-
-        max_ind = np.where(hist_y_cumsum < (0.996 * hist_y_sum))
-        min_level = np.mean(hist_x[:2])
-
-        if len(max_ind[0]):
-            max_level = hist_x[max_ind[0][-1]]
-        else:
-            max_level = 0.5 * np.max(hist_x)
-
-        if len(hist_x[hist_x > 0]) > 0:
-            min_level = max(min_level, np.nanmin(hist_x[hist_x > 0]))
+        min_level, max_level = utils.auto_level(hist_x, hist_y)
         self.img_histogram_LUT_vertical.setLevels(min_level, max_level)
         self.img_histogram_LUT_horizontal.setLevels(min_level, max_level)
 
