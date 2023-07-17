@@ -29,6 +29,7 @@ from skimage.measure import find_contours
 from qtpy import QtCore, QtWidgets, QtGui
 
 from .HistogramLUTItem import HistogramLUTItem
+from .NormalizedImageItem import NormalizedImageItem
 from .PatternWidget import ModifiedLinearRegionItem
 from . import utils
 
@@ -55,7 +56,7 @@ class ImgWidget(QtCore.QObject):
     def create_graphics(self):
         self.img_view_box = self.pg_layout.addViewBox(row=1, col=1)  # type: ViewBox
 
-        self.data_img_item = pg.ImageItem()
+        self.data_img_item = NormalizedImageItem()
         self.img_view_box.addItem(self.data_img_item)
 
         self.img_histogram_LUT_horizontal = HistogramLUTItem(self.data_img_item)
