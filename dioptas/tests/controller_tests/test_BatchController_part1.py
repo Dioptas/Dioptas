@@ -24,29 +24,14 @@ import pytest
 
 from ..utility import MockMouseEvent
 
-from ...widgets.integration import IntegrationWidget
 from ...controller.integration.BatchController import BatchController
-from ...controller.integration.phase.PhaseController import PhaseController
-from ...controller.integration.PatternController import PatternController
-from ...model.DioptasModel import DioptasModel
+from . import *
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
 
 __all__ = ['integration_widget', 'dioptas_model', 'batch_model', 'batch_controller', 'phase_controller',
            'pattern_controller', 'batch_widget', 'load_proc_data', 'jcpds_path', 'unittest_data_path']
-
-
-@pytest.fixture
-def integration_widget(qtbot):
-    widget = IntegrationWidget()
-    return widget
-
-
-@pytest.fixture
-def dioptas_model():
-    model = DioptasModel()
-    return model
 
 
 @pytest.fixture
@@ -57,16 +42,6 @@ def batch_model(dioptas_model):
 @pytest.fixture
 def batch_controller(integration_widget, dioptas_model):
     return BatchController(integration_widget, dioptas_model)
-
-
-@pytest.fixture
-def phase_controller(integration_widget, dioptas_model):
-    return PhaseController(integration_widget, dioptas_model)
-
-
-@pytest.fixture
-def pattern_controller(integration_widget, dioptas_model):
-    return PatternController(integration_widget, dioptas_model)
 
 
 @pytest.fixture
