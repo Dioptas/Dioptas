@@ -18,11 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import pytest
+import os
 
 from dioptas.controller.integration import PhaseController, PatternController
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.widgets.integration import IntegrationWidget
 
+
+data_path = os.path.join(os.path.dirname(__file__), '../data')
 
 @pytest.fixture
 def dioptas_model():
