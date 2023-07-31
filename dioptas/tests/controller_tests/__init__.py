@@ -17,3 +17,30 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import pytest
+
+from dioptas.controller.integration import PhaseController, PatternController
+from dioptas.model.DioptasModel import DioptasModel
+from dioptas.widgets.integration import IntegrationWidget
+
+
+@pytest.fixture
+def dioptas_model():
+    model = DioptasModel()
+    return model
+
+
+@pytest.fixture
+def phase_controller(integration_widget, dioptas_model):
+    return PhaseController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def pattern_controller(integration_widget, dioptas_model):
+    return PatternController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def integration_widget(qtbot):
+    widget = IntegrationWidget()
+    return widget
