@@ -308,6 +308,14 @@ class HistogramLUTItem(GraphicsWidget):
         dialog.setRange(*self.getExpLevels())
         dialog.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
         dialog.sigRangeChanged.connect(self.setLevels)
+        button = self.sender()
+        if self.orientation == 'horizontal':
+            position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, 0))
+        else:  # vertical
+            dialog.adjustSize()  # For retrieving dialog size
+            position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, button.height())) - \
+                QtCore.QPoint(0, dialog.frameGeometry().height())
+        dialog.move(position)
         dialog.exec()
 
     def _configurationGradientChanged(self, gradient: dict):
