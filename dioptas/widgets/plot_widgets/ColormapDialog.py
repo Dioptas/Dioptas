@@ -44,6 +44,7 @@ class ColormapDialog(QtWidgets.QDialog):
         )
 
         layout = QtWidgets.QFormLayout(self)
+        layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
 
         self._gradientComboBox = QtWidgets.QComboBox(self)
         for name, gradient in pyqtgraph.graphicsItems.GradientEditorItem.Gradients.items():
