@@ -32,7 +32,7 @@ from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
-from .ColormapDialog import ColormapDialog
+from .ColormapPopup import ColormapPopup
 from ..CustomWidgets import FlatButton
 from ... import icons_path, style_path
 
@@ -303,20 +303,21 @@ class HistogramLUTItem(GraphicsWidget):
         pass
 
     def _configurationButtonClicked(self):
-        dialog = ColormapDialog()
-        dialog.setCurrentGradient(self.gradient.saveState())
-        dialog.setRange(*self.getExpLevels())
-        dialog.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
-        dialog.sigRangeChanged.connect(self.setLevels)
+        widget = ColormapPopup(parent=self.scene().views()[0])
+
+        widget.setCurrentGradient(self.gradient.saveState())
+        widget.setRange(*self.getExpLevels())
+        widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
+        widget.sigRangeChanged.connect(self.setLevels)
         button = self.sender()
         if self.orientation == 'horizontal':
             position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, 0))
         else:  # vertical
-            dialog.adjustSize()  # For retrieving dialog size
+            widget.adjustSize()  # For retrieving dialog size
             position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, button.height())) - \
-                QtCore.QPoint(0, dialog.frameGeometry().height())
-        dialog.move(position)
-        dialog.exec()
+                QtCore.QPoint(0, widget.frameGeometry().height())
+        widget.move(position)
+        widget.show()
 
     def _configurationGradientChanged(self, gradient: dict):
         self.gradient.restoreState(gradient)

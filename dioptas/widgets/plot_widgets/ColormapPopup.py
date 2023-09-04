@@ -27,7 +27,7 @@ import pyqtgraph.graphicsItems.GradientEditorItem
 from ... import style_path
 
 
-class ColormapDialog(QtWidgets.QDialog):
+class ColormapPopup(QtWidgets.QFrame):
     """Dialog providing control over the currently used colormap"""
 
     sigCurrentGradientChanged = QtCore.Signal(dict)
@@ -39,12 +39,20 @@ class ColormapDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Colormap configuration")
+        self.setWindowFlags(QtCore.Qt.Popup)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setStyleSheet(
             pathlib.Path(style_path, "stylesheet.qss").read_text()
         )
+        self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
+        self.setLineWidth(2)
 
-        layout = QtWidgets.QFormLayout(self)
-        layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        frameLayout = QtWidgets.QVBoxLayout(self)
+        frameLayout.setContentsMargins(3, 3, 3, 3)
+        groupbox = QtWidgets.QGroupBox("Colormap", self)
+        frameLayout.addWidget(groupbox)
+
+        layout = QtWidgets.QFormLayout(groupbox)
 
         self._gradientComboBox = QtWidgets.QComboBox(self)
         for name, gradient in pyqtgraph.graphicsItems.GradientEditorItem.Gradients.items():
@@ -67,9 +75,9 @@ class ColormapDialog(QtWidgets.QDialog):
         buttonBox = QtWidgets.QDialogButtonBox(parent=self)
         buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Close)
         closeButton = buttonBox.button(QtWidgets.QDialogButtonBox.Close)
-        closeButton.clicked.connect(self.accept)
+        closeButton.clicked.connect(self.close)
         closeButton.setAutoDefault(False)
-        layout.addRow(buttonBox)
+        frameLayout.addWidget(buttonBox)
 
     def _gradientComboBoxCurrentIndexChanged(self, index: int):
         if index < 0:

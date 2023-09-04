@@ -25,69 +25,69 @@ from qtpy.QtTest import QSignalSpy, QTest
 
 import pyqtgraph.graphicsItems.GradientEditorItem
 
-from ...widgets.plot_widgets.ColormapDialog import ColormapDialog
+from ...widgets.plot_widgets.ColormapPopup import ColormapPopup
 
 
 @pytest.fixture
-def colormapDialog(qapp):
-    """Fixture providing an instance of a ColormapDialog"""
-    dialog = ColormapDialog()
-    dialog.show()
-    QTest.qWaitForWindowExposed(dialog)
+def colormapPopup(qapp):
+    """Fixture providing an instance of a ColormapPopup"""
+    widget = ColormapPopup()
+    widget.show()
+    QTest.qWaitForWindowExposed(widget)
     try:
-        yield dialog
+        yield widget
     finally:
-        dialog.accept()
+        widget.close()
         qapp.processEvents()
 
 
-def testRange(colormapDialog):
+def testRange(colormapPopup):
     """"Test getRange, setRange and sigRangeChanged"""
-    assert colormapDialog.getRange() == (1, 1)
+    assert colormapPopup.getRange() == (1, 1)
 
-    signalSpy = QSignalSpy(colormapDialog.sigRangeChanged)
+    signalSpy = QSignalSpy(colormapPopup.sigRangeChanged)
 
-    colormapDialog.setRange(100, 1000)
+    colormapPopup.setRange(100, 1000)
     assert len(signalSpy) == 1
     assert signalSpy[0] == [100, 1000]
-    assert colormapDialog.getRange() == (100, 1000)
+    assert colormapPopup.getRange() == (100, 1000)
 
-    colormapDialog.setRange(2000, 1000)
+    colormapPopup.setRange(2000, 1000)
     assert len(signalSpy) == 2
     assert signalSpy[1] == [1000, 2000]
-    assert colormapDialog.getRange() == (1000, 2000)
+    assert colormapPopup.getRange() == (1000, 2000)
 
 
-def testCurrentGradient(colormapDialog):
+def testCurrentGradient(colormapPopup):
     """Test getCurrentGradient, setCurrentGradient and sigCurrentGradientChanged"""
     for firstName, firstGradient in pyqtgraph.graphicsItems.GradientEditorItem.Gradients.items():
         break
-    gradient = colormapDialog.getCurrentGradient()
+    gradient = colormapPopup.getCurrentGradient()
     assert gradient == firstGradient
-    assert colormapDialog._gradientComboBox.currentText() == firstName.capitalize()
+    assert colormapPopup._gradientComboBox.currentText() == firstName.capitalize()
  
-    signalSpy = QSignalSpy(colormapDialog.sigCurrentGradientChanged)
+    signalSpy = QSignalSpy(colormapPopup.sigCurrentGradientChanged)
     viridisGradient = pyqtgraph.graphicsItems.GradientEditorItem.Gradients['viridis']
-    colormapDialog.setCurrentGradient(viridisGradient)
-    gradient = colormapDialog.getCurrentGradient()
+    colormapPopup.setCurrentGradient(viridisGradient)
+    gradient = colormapPopup.getCurrentGradient()
     assert gradient == viridisGradient
-    assert colormapDialog._gradientComboBox.currentText() == 'Viridis'
+    assert colormapPopup._gradientComboBox.currentText() == 'Viridis'
     assert len(signalSpy) == 1
     assert signalSpy[0] == [viridisGradient]
 
 
-def testCustomGradient(colormapDialog):
+def testCustomGradient(colormapPopup):
     """Test setCurrentGradient with a custom gradient"""
-    signalSpy = QSignalSpy(colormapDialog.sigCurrentGradientChanged)
+    signalSpy = QSignalSpy(colormapPopup.sigCurrentGradientChanged)
 
     customGradient = {
         'mode': 'rgb',
         'ticks': [(0.0, (0, 0, 0, 255)), (1.0, (0, 0, 0, 255))],
     }
-    colormapDialog.setCurrentGradient(customGradient)
-    gradient = colormapDialog.getCurrentGradient()
+    colormapPopup.setCurrentGradient(customGradient)
+    gradient = colormapPopup.getCurrentGradient()
     assert gradient == customGradient
-    assert colormapDialog._gradientComboBox.currentText() == 'Custom'
+    assert colormapPopup._gradientComboBox.currentText() == 'Custom'
     assert len(signalSpy) == 1
     assert signalSpy[0] == [customGradient]
 
@@ -95,9 +95,9 @@ def testCustomGradient(colormapDialog):
         'mode': 'rgb',
         'ticks': [(0.0, (255, 255, 255, 255)), (1.0, (255, 255, 255, 255))],
     }
-    colormapDialog.setCurrentGradient(customGradient2)
-    gradient = colormapDialog.getCurrentGradient()
+    colormapPopup.setCurrentGradient(customGradient2)
+    gradient = colormapPopup.getCurrentGradient()
     assert gradient == customGradient2
-    assert colormapDialog._gradientComboBox.currentText() == 'Custom'
+    assert colormapPopup._gradientComboBox.currentText() == 'Custom'
     assert len(signalSpy) == 2
     assert signalSpy[1] == [customGradient2]
