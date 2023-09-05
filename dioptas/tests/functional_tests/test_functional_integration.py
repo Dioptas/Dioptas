@@ -403,9 +403,10 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         self.save_pattern(os.path.join(data_path, 'Test_spec.dat'))
         for i in range(20):
-            self.assertTrue(os.path.exists(os.path.join(data_path, f'Test_spec_{i}.dat')))
-            self.assertGreater(os.stat(os.path.join(data_path, f'Test_spec_{i}.dat')).st_size, 1)
-            os.remove(os.path.join(data_path, f'Test_spec_{i}.dat'))
+            filepath = os.path.join(data_path, f'Test_spec_{i:03d}.dat')
+            self.assertTrue(os.path.exists(filepath))
+            self.assertGreater(os.stat(filepath).st_size, 1)
+            os.remove(filepath)
 
     def test_save_load_reintegrate(self):
         self.save_pattern(os.path.join(data_path, 'Test_spec.nxs'))
