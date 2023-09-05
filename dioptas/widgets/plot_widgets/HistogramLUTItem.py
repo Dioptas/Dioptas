@@ -33,6 +33,7 @@ import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
 from .ColormapPopup import ColormapPopup
+from .NormalizedImageItem import NormalizedImageItem
 from ..CustomWidgets import FlatButton
 from ... import icons_path, style_path
 
@@ -262,7 +263,7 @@ class HistogramLUTItem(GraphicsWidget):
 
     def imageChanged(self, autoRange=False, img_data=None):
         if img_data is None:
-            img_data = self.imageItem.image
+            img_data = self.imageItem.getData(copy=False)
             if img_data is None:
                 return
 
@@ -307,9 +308,12 @@ class HistogramLUTItem(GraphicsWidget):
         widget = ColormapPopup(parent=self.scene().views()[0])
 
         widget.setCurrentGradient(self.gradient.saveState())
+        if isinstance(self.imageItem, NormalizedImageItem):
+            widget.setCurrentNormalization(self.imageItem.getNormalization())
         widget.setRange(*self.getExpLevels())
         widget.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
         widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
+        widget.sigCurrentNormalizationChanged.connect(self._normalizationChanged)
         widget.sigRangeChanged.connect(self.setLevels)
         button = self.sender()
         if self.orientation == 'horizontal':
@@ -324,6 +328,13 @@ class HistogramLUTItem(GraphicsWidget):
     def _configurationGradientChanged(self, gradient: dict):
         self.gradient.restoreState(gradient)
         self.gradientChanged()
+
+    def _normalizationChanged(self, normalization: str):
+        if isinstance(self.imageItem, NormalizedImageItem):
+            self.imageItem.setNormalization(normalization)
+            sender = self.sender()
+            if isinstance(sender, ColormapPopup):
+                sender.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
 
 
 class LogarithmRegionItem(LinearRegionItem):
