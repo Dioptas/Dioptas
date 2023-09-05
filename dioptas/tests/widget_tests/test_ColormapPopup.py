@@ -29,7 +29,7 @@ from ...widgets.plot_widgets.ColormapPopup import ColormapPopup
 
 
 def testRange(qWidgetFactory):
-    """"Test getRange, setRange and sigRangeChanged"""
+    """Test getRange, setRange and sigRangeChanged"""
     colormapPopup = qWidgetFactory(ColormapPopup)
     assert colormapPopup.getRange() == (1, 1)
 
@@ -91,3 +91,22 @@ def testCustomGradient(qWidgetFactory):
     assert colormapPopup._gradientComboBox.currentText() == 'Custom'
     assert len(signalSpy) == 2
     assert signalSpy[1] == [customGradient2]
+
+
+@pytest.mark.parametrize("normalization", ["log", "sqrt", "arcsinh"])
+def testCurrentNormalization(qWidgetFactory, normalization):
+    """Test getCurrentNormalization, setCurrentNormalization and sigCurrentNormalizationChanged"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
+
+    default_normalization = colormapPopup.getCurrentNormalization()
+    assert default_normalization == "linear"
+    assert colormapPopup._normalizationComboBox.currentText() == "Linear"
+    assert colormapPopup._normalizationComboBox.currentData() == "linear"
+
+    signalSpy = QSignalSpy(colormapPopup.sigCurrentNormalizationChanged)
+    colormapPopup.setCurrentNormalization(normalization)
+    returned_normalization = colormapPopup.getCurrentNormalization()
+    assert returned_normalization == normalization
+    assert colormapPopup._normalizationComboBox.currentData() == normalization
+    assert len(signalSpy) == 1
+    assert signalSpy[0] == [normalization]
