@@ -149,9 +149,14 @@ class NormalizedImageItem(pg.ImageItem):
 
     def getLevels(self):
         levels = super().getLevels()
+        if levels is None:
+            return None
         return self._getNorm().revert(levels)
 
     def setLevels(self, levels, update=True):
+        if levels is None:
+            return super().setLevels(levels, update)
+
         normalizedLevels = self._getNorm().apply(levels)
         return super().setLevels(normalizedLevels, update)
 
