@@ -33,19 +33,6 @@ from ...controller.MainController import MainController
 from ...controller.MaskController import MaskController
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    """Fixture ensuring QApplication is instanciated"""
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    try:
-        yield app
-    finally:
-        if app is not None:
-            app.closeAllWindows()
-
-
 @pytest.fixture
 def main_controller(qapp):
     """Fixture providing a MainController instance"""
