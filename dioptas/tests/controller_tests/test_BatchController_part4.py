@@ -26,7 +26,6 @@ from ...model.util.Pattern import Pattern
 from qtpy import QtWidgets
 
 from ...controller.integration import BatchController
-from .test_BatchController_part1 import *
 
 
 def test_save_xy_without_background_subtraction(batch_controller: BatchController, tmp_path):

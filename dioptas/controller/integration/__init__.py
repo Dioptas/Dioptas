@@ -28,3 +28,4 @@ from .phase.PhaseController import PhaseInPatternController
 from .phase.PhaseInCakeController import PhaseInCakeController
 from .PatternController import PatternController
 from .OptionsController import OptionsController
+from .BatchController import BatchController

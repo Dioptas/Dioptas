@@ -25,17 +25,8 @@ from mock import MagicMock
 
 from qtpy import QtWidgets
 
-from ..utility import QtTest, unittest_data_path, click_button, delete_if_exists
-from ...widgets.integration import IntegrationWidget
-from ...controller.integration.BackgroundController import BackgroundController
-from ...controller.integration.PatternController import PatternController
-from ...model.DioptasModel import DioptasModel
-from . import data_path, integration_widget, dioptas_model, pattern_controller
+from ..utility import unittest_data_path, click_button
 
-
-@pytest.fixture
-def background_controller(integration_widget, dioptas_model, qtbot):
-    return BackgroundController(integration_widget, dioptas_model)
 
 
 def test_configuration_selected_changes_background_image_widgets(background_controller, integration_widget,

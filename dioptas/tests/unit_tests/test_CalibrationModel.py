@@ -44,19 +44,6 @@ def img_model():
     gc.collect()
 
 
-@pytest.fixture
-def calibration_model(img_model):
-    calibration_model = CalibrationModel(img_model)
-    yield calibration_model
-    calibration_model.pattern_geometry.reset()
-    if calibration_model.cake_geometry is not None:
-        calibration_model.cake_geometry.reset()
-        del calibration_model.cake_geometry
-    del calibration_model.pattern_geometry
-    del calibration_model
-    gc.collect()
-
-
 def load_pilatus_1M(img_model):
     img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
