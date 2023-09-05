@@ -20,7 +20,8 @@
 
 from __future__ import absolute_import
 
-from qtpy import QtWidgets, QtCore
+import pathlib
+from qtpy import QtCore, QtGui, QtWidgets
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
 from pyqtgraph.graphicsItems.GradientEditorItem import *
@@ -31,6 +32,10 @@ from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
+from .ColormapPopup import ColormapPopup
+from ..CustomWidgets import FlatButton
+from ... import icons_path, style_path
+
 
 __all__ = ['HistogramLUTItem']
 
@@ -84,6 +89,20 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset('grey')
 
+        configurationButton = FlatButton()
+        configurationButton.setWidth(30)
+        configurationButton.setHeight(30)
+        configurationButton.setStyleSheet(
+            pathlib.Path(style_path, "stylesheet.qss").read_text()
+        )
+        configurationButton.setIcon(
+            QtGui.QIcon(str(pathlib.Path(icons_path) / "settings.png")))
+        configurationButton.setToolTip("Configure colormap")
+        configurationButton.clicked.connect(self._configurationButtonClicked)
+
+        proxy = QtWidgets.QGraphicsProxyWidget()
+        proxy.setWidget(configurationButton)
+
         if orientation == 'horizontal':
             self.vb.setMouseEnabled(x=True, y=False)
             self.vb.setMaximumHeight(30)
@@ -92,6 +111,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
             self.layout.addItem(self.vb, 1, 0)
             self.layout.addItem(self.gradient, 0, 0)
+            self.layout.addItem(proxy, 0, 1)
             self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
             self.vb.setFlag(self.gradient.ItemStacksBehindParent)
         elif orientation == 'vertical':
@@ -102,6 +122,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
             self.layout.addItem(self.gradient, 0, 1)
+            self.layout.addItem(proxy, 1, 1)
 
         self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
         self.vb.setFlag(self.gradient.ItemStacksBehindParent)
@@ -280,6 +301,27 @@ class HistogramLUTItem(GraphicsWidget):
 
     def empty_function(self, *args):
         pass
+
+    def _configurationButtonClicked(self):
+        widget = ColormapPopup(parent=self.scene().views()[0])
+
+        widget.setCurrentGradient(self.gradient.saveState())
+        widget.setRange(*self.getExpLevels())
+        widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
+        widget.sigRangeChanged.connect(self.setLevels)
+        button = self.sender()
+        if self.orientation == 'horizontal':
+            position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, 0))
+        else:  # vertical
+            widget.adjustSize()  # For retrieving dialog size
+            position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, button.height())) - \
+                QtCore.QPoint(0, widget.frameGeometry().height())
+        widget.move(position)
+        widget.show()
+
+    def _configurationGradientChanged(self, gradient: dict):
+        self.gradient.restoreState(gradient)
+        self.gradientChanged()
 
 
 class LogarithmRegionItem(LinearRegionItem):
