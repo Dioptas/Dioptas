@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import pytest
 
 from ..utility import QtTest
 import os
@@ -31,6 +32,40 @@ from ...widgets.integration import IntegrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
+
+
+@pytest.fixture
+def phase_in_cake_controller(integration_widget, dioptas_model):
+    return PhaseInCakeController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def load_phase(phase_in_cake_controller):
+    def _load_phase(filename):
+        phase_in_cake_controller.model.phase_model.add_jcpds(os.path.join(jcpds_path, filename))
+
+    return _load_phase
+
+
+@pytest.fixture
+def load_phases(load_phase):
+    load_phase('ar.jcpds')
+    load_phase('ag.jcpds')
+    load_phase('au_Anderson.jcpds')
+    load_phase('mo.jcpds')
+    load_phase('pt.jcpds')
+    load_phase('re.jcpds')
+
+
+def test_loading_a_phase(load_phase, integration_widget):
+    assert len(integration_widget.cake_widget.phases) == 0
+    load_phase('ar.jcpds')
+    assert len(integration_widget.cake_widget.phases) == 1
+    load_phase('ar.jcpds')
+
+
+def test_loading_many_phases(load_phases, integration_widget):
+    assert len(integration_widget.cake_widget.phases) == 6
 
 
 class PhaseInCakeControllerTest(QtTest):
@@ -67,15 +102,6 @@ class PhaseInCakeControllerTest(QtTest):
 
     # Tests
     #######################
-    def test_loading_a_phase(self):
-        self.assertEqual(len(self.widget.cake_widget.phases), 0)
-        self.load_phase('ar.jcpds')
-
-        self.assertEqual(len(self.widget.cake_widget.phases), 1)
-
-    def test_loading_many_phases(self):
-        self.load_phases()
-        self.assertEqual(len(self.widget.cake_widget.phases), 6)
 
     def test_remove_phase(self):
         self.load_phases()

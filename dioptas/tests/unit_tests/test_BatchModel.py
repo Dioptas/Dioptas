@@ -4,7 +4,6 @@ import pytest
 import numpy as np
 
 from ...model.CalibrationModel import CalibrationModel
-from ...model.ImgModel import ImgModel
 from ...model.MaskModel import MaskModel
 from ...model.BatchModel import BatchModel, iterate_folder
 from ...model.util.Pattern import Pattern
@@ -18,12 +17,6 @@ files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'
          os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')]
 
 cal_file = os.path.join(data_path, 'lambda/L2.poni')
-
-
-@pytest.fixture()
-def img_model():
-    img_model = ImgModel()
-    yield img_model
 
 
 @pytest.fixture()
