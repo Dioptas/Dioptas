@@ -28,21 +28,9 @@ import pyqtgraph.graphicsItems.GradientEditorItem
 from ...widgets.plot_widgets.ColormapPopup import ColormapPopup
 
 
-@pytest.fixture
-def colormapPopup(qapp):
-    """Fixture providing an instance of a ColormapPopup"""
-    widget = ColormapPopup()
-    widget.show()
-    QTest.qWaitForWindowExposed(widget)
-    try:
-        yield widget
-    finally:
-        widget.close()
-        qapp.processEvents()
-
-
-def testRange(colormapPopup):
+def testRange(qWidgetFactory):
     """"Test getRange, setRange and sigRangeChanged"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
     assert colormapPopup.getRange() == (1, 1)
 
     signalSpy = QSignalSpy(colormapPopup.sigRangeChanged)
@@ -58,8 +46,9 @@ def testRange(colormapPopup):
     assert colormapPopup.getRange() == (1000, 2000)
 
 
-def testCurrentGradient(colormapPopup):
+def testCurrentGradient(qWidgetFactory):
     """Test getCurrentGradient, setCurrentGradient and sigCurrentGradientChanged"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
     for firstName, firstGradient in pyqtgraph.graphicsItems.GradientEditorItem.Gradients.items():
         break
     gradient = colormapPopup.getCurrentGradient()
@@ -76,8 +65,9 @@ def testCurrentGradient(colormapPopup):
     assert signalSpy[0] == [viridisGradient]
 
 
-def testCustomGradient(colormapPopup):
+def testCustomGradient(qWidgetFactory):
     """Test setCurrentGradient with a custom gradient"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
     signalSpy = QSignalSpy(colormapPopup.sigCurrentGradientChanged)
 
     customGradient = {
