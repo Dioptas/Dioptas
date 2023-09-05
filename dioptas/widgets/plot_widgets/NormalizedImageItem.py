@@ -174,21 +174,5 @@ class NormalizedImageItem(pg.ImageItem):
             return super().quickMinMax(*args, **kwargs)
 
     def getHistogram(self, *args, **kwargs):
-        if self.__rawImage is None:
-            return super().getHistogram(*args, **kwargs)
-
-        # Filter invalid values for current normalization
-        invalid = self._getNorm().invalid(self.__rawImage)
-        if not np.any(invalid):
-            filteredImage = self.__rawImage
-
-        else:  # Replace invalid values with NaNs
-            dtype = self.__rawImage.dtype
-            if not np.issubdtype(dtype, np.floating):
-                dtype = np.float64
-            filteredImage = np.array(self.__rawImage, copy=True, dtype=dtype)
-
-            filteredImage[invalid] = np.nan
-
-        with self._useAsImage(filteredImage):
+        with self._useAsImage(self.__rawImage):
             return super().getHistogram(*args, **kwargs)
