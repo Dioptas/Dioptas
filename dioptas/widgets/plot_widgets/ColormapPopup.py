@@ -25,6 +25,7 @@ from qtpy import QtGui, QtCore, QtWidgets
 import pyqtgraph.graphicsItems.GradientEditorItem
 
 from . import utils
+from .NormalizedImageItem import NormalizedImageItem
 from ... import style_path
 
 
@@ -67,9 +68,9 @@ class ColormapPopup(QtWidgets.QFrame):
         layout.addRow('Colormap:', self._gradientComboBox)
 
         self._normalizationComboBox = QtWidgets.QComboBox(self)
-        self._normalizationComboBox.addItem("Linear", "linear")
-        self._normalizationComboBox.addItem("Logarithmic", "log")
-        self._normalizationComboBox.addItem("Square root", "sqrt")
+        for normalization in NormalizedImageItem.supportedNormalizations():
+            description = NormalizedImageItem.getNormalizationDescription(normalization).capitalize()
+            self._normalizationComboBox.addItem(description, normalization)
 
         self._normalizationComboBox.setCurrentIndex(0)
         self._normalizationComboBox.currentIndexChanged.connect(self._normalizationComboBoxCurrentIndexChanged)
