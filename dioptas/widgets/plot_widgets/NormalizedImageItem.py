@@ -30,6 +30,15 @@ import pyqtgraph as pg
 class Normalization:
     """Class defining the interface for implementing normalizations"""
 
+    ID = ""
+    """Abbreviation name of the normalization, must be unique among Normalization"""
+
+    SHORTNAME = ""
+    """Short name or symbol to use as e.g., button text"""
+
+    DESCRIPTION = ""
+    """Human-readable name of the normalization"""
+
     @staticmethod
     def apply(data: np.ndarray) -> np.ndarray:
         """Forward conversion of data to normalized data"""
@@ -47,6 +56,10 @@ class Normalization:
 
 
 class LinearNormalization(Normalization):
+    ID = "linear"
+    SHORTNAME = "lin"
+    DESCRIPTION = "linear"
+
     @staticmethod
     def apply(data: np.ndarray) -> np.ndarray:
         return data
@@ -57,6 +70,10 @@ class LinearNormalization(Normalization):
 
 
 class LogNormalization(Normalization):
+    ID = "log"
+    SHORTNAME = ID
+    DESCRIPTION = "logarithmic"
+
     @staticmethod
     def apply(data: np.ndarray) -> np.ndarray:
         return np.log10(data)
@@ -71,6 +88,10 @@ class LogNormalization(Normalization):
 
 
 class SqrtNormalization(Normalization):
+    ID = "sqrt"
+    SHORTNAME = "√"
+    DESCRIPTION = "square root"
+
     @staticmethod
     def apply(data: np.ndarray) -> np.ndarray:
         return np.sqrt(data)
@@ -87,17 +108,29 @@ class SqrtNormalization(Normalization):
 class NormalizedImageItem(pg.ImageItem):
     """pyqtgraph image item with support for data normalization"""
 
-    _NORMALIZATIONS = {
-        "linear": LinearNormalization(),
-        "log": LogNormalization(),
-        "sqrt": SqrtNormalization(),
-    }
+    _NORMALIZATIONS = dict((cls.ID, cls()) for cls in [
+        LinearNormalization, LogNormalization, SqrtNormalization])
     """Dict of normalization name: Normalization instances"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__normalization = "linear"
         self.__rawImage = None
+
+    @classmethod
+    def supportedNormalizations(cls) -> tuple[str]:
+        """Returns list of supported normalization names"""
+        return tuple(cls._NORMALIZATIONS.keys())
+
+    @classmethod
+    def getNormalizationShortname(cls, normalization: str) -> str:
+        """Returns a short string for given normalization name"""
+        return cls._NORMALIZATIONS[normalization].SHORTNAME
+
+    @classmethod
+    def getNormalizationDescription(cls, normalization: str) -> str:
+        """Returns a description string of given normalization name"""
+        return cls._NORMALIZATIONS[normalization].DESCRIPTION
 
     def getData(self, copy: bool = True) -> Optional[np.ndarray]:
         """Returns the image data array
@@ -114,7 +147,7 @@ class NormalizedImageItem(pg.ImageItem):
 
     def setNormalization(self, normalization: str):
         """Set the data normalization to use"""
-        if normalization not in self._NORMALIZATIONS:
+        if normalization not in self.supportedNormalizations():
             raise ValueError(f"Unsupported normalization: {normalization}")
 
         if normalization == self.__normalization:
