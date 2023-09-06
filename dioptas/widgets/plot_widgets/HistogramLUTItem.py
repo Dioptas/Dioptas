@@ -90,6 +90,8 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset('grey')
 
+        self._normalizationLabel = pg.LabelItem("linear")
+
         configurationButton = FlatButton()
         configurationButton.setWidth(30)
         configurationButton.setHeight(30)
@@ -112,6 +114,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
             self.layout.addItem(self.vb, 1, 0)
             self.layout.addItem(self.gradient, 0, 0)
+            self.layout.addItem(self._normalizationLabel, 1, 1)
             self.layout.addItem(proxy, 0, 1)
             self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
             self.vb.setFlag(self.gradient.ItemStacksBehindParent)
@@ -123,6 +126,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
             self.layout.addItem(self.gradient, 0, 1)
+            self.layout.addItem(self._normalizationLabel, 1, 0)
             self.layout.addItem(proxy, 1, 1)
 
         self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
@@ -223,6 +227,8 @@ class HistogramLUTItem(GraphicsWidget):
 
     def setImageItem(self, img):
         self.imageItem = img
+        self._updateNormalizationLabel(
+            img.getNormalization() if isinstance(img, NormalizedImageItem) else "linear")
         img.sigImageChanged.connect(self.imageChanged)
         img.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
         # self.gradientChanged()
@@ -329,7 +335,14 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient.restoreState(gradient)
         self.gradientChanged()
 
+    def _updateNormalizationLabel(self, normalization: str):
+        shortname = NormalizedImageItem.getNormalizationShortname(normalization)
+        description = NormalizedImageItem.getNormalizationDescription(normalization).capitalize()
+        self._normalizationLabel.setText(shortname)
+        self._normalizationLabel.setToolTip(f"{description} colormap normalization")
+
     def _normalizationChanged(self, normalization: str):
+        self._updateNormalizationLabel(normalization)
         if isinstance(self.imageItem, NormalizedImageItem):
             self.imageItem.setNormalization(normalization)
             sender = self.sender()
