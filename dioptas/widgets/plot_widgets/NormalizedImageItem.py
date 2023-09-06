@@ -84,16 +84,6 @@ class SqrtNormalization(Normalization):
         return data < 0.0
 
 
-class ArcsinhNormalization(Normalization):
-    @staticmethod
-    def apply(data: np.ndarray) -> np.ndarray:
-        return np.arcsinh(data)
-
-    @staticmethod
-    def revert(data: np.ndarray) -> np.ndarray:
-        return np.sinh(data)
-
-
 class NormalizedImageItem(pg.ImageItem):
     """pyqtgraph image item with support for data normalization"""
 
@@ -101,7 +91,6 @@ class NormalizedImageItem(pg.ImageItem):
         "linear": LinearNormalization(),
         "log": LogNormalization(),
         "sqrt": SqrtNormalization(),
-        "arcsinh": ArcsinhNormalization(),
     }
     """Dict of normalization name: Normalization instances"""
 

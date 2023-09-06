@@ -70,7 +70,6 @@ class ColormapPopup(QtWidgets.QFrame):
         self._normalizationComboBox.addItem("Linear", "linear")
         self._normalizationComboBox.addItem("Logarithmic", "log")
         self._normalizationComboBox.addItem("Square root", "sqrt")
-        self._normalizationComboBox.addItem("Arcsinh", "arcsinh")
 
         self._normalizationComboBox.setCurrentIndex(0)
         self._normalizationComboBox.currentIndexChanged.connect(self._normalizationComboBoxCurrentIndexChanged)
