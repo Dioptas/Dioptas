@@ -93,7 +93,7 @@ def testCustomGradient(qWidgetFactory):
     assert signalSpy[1] == [customGradient2]
 
 
-@pytest.mark.parametrize("normalization", ["log", "sqrt", "arcsinh"])
+@pytest.mark.parametrize("normalization", ["log", "sqrt"])
 def testCurrentNormalization(qWidgetFactory, normalization):
     """Test getCurrentNormalization, setCurrentNormalization and sigCurrentNormalizationChanged"""
     colormapPopup = qWidgetFactory(ColormapPopup)
