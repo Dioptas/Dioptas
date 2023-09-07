@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import re
 from typing import Optional
 import numpy as np
 
@@ -170,6 +171,7 @@ def auto_level(
         return _minmax_auto_level(filtered_data)
     if mode == "mean3std":
         return _mean3std_auto_level(filtered_data)
-    if mode == "percentile":
-        return _percentile_auto_level(filtered_data, percentile=1.0)
+    match = re.match(r"(?P<value>\d+(\.\d*)?|\.\d+)percentile", mode)
+    if match is not None:
+        return _percentile_auto_level(filtered_data, percentile=float(match["value"]))
     raise ValueError(f"Unsupported mode: {mode}")

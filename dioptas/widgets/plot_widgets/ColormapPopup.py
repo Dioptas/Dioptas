@@ -110,9 +110,16 @@ class ColormapPopup(QtWidgets.QFrame):
         self._autoscaleModeComboBox.addItem("Mean±3 Std", "mean3std")
         self._autoscaleModeComboBox.setItemData(
             2, "Use data mean ± 3 × standard deviation to scale colormap range", QtCore.Qt.ToolTipRole)
-        self._autoscaleModeComboBox.addItem("1-99 Percentile", "percentile")
+        self._autoscaleModeComboBox.addItem("1-99 Percentile", "1percentile")
         self._autoscaleModeComboBox.setItemData(
             3, "Use data 1st and 99th percentile to scale colormap range", QtCore.Qt.ToolTipRole)
+        self._autoscaleModeComboBox.addItem("5-95 Percentile", "5percentile")
+        self._autoscaleModeComboBox.setItemData(
+            4, "Use data 5th and 95th percentile to scale colormap range", QtCore.Qt.ToolTipRole)
+        self._autoscaleModeComboBox.addItem("1-9 Decile", "10percentile")
+        self._autoscaleModeComboBox.setItemData(
+            5, "Use data 10th and 90th percentile to scale colormap range", QtCore.Qt.ToolTipRole)
+
         self._autoscaleModeComboBox.setCurrentIndex(0)
         self._autoscaleModeComboBox.currentIndexChanged.connect(self._autoscaleRequested)
         layout.addRow('Reset mode:', self._autoscaleModeComboBox)
