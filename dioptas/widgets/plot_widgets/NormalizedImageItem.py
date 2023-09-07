@@ -51,13 +51,16 @@ class Normalization:
 
     @staticmethod
     def invalid(data: np.ndarray) -> np.ndarray:
-        """Returns True for data that cannot be normalized"""
+        """Element-wise invalidity test
+
+        Returns a boolean array which is True for data elements that cannot be normalized.
+        """
         return np.zeros(data.shape, dtype=bool)
 
 
 class LinearNormalization(Normalization):
     ID = "linear"
-    SHORTNAME = "lin"
+    SHORTNAME = "⟋"
     DESCRIPTION = "linear"
 
     @staticmethod
@@ -71,7 +74,7 @@ class LinearNormalization(Normalization):
 
 class LogNormalization(Normalization):
     ID = "log"
-    SHORTNAME = ID
+    SHORTNAME = "㏒"
     DESCRIPTION = "logarithmic"
 
     @staticmethod
