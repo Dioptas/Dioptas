@@ -20,9 +20,11 @@
 from __future__ import annotations
 
 import pathlib
+from typing import Optional
 
 from qtpy import QtGui, QtCore, QtWidgets
 import pyqtgraph.graphicsItems.GradientEditorItem
+import numpy as np
 
 from . import utils
 from .NormalizedImageItem import NormalizedImageItem
@@ -44,6 +46,7 @@ class ColormapPopup(QtWidgets.QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._histogram = None
+        self._data = None
         self.setWindowTitle("Colormap configuration")
         self.setWindowFlags(QtCore.Qt.Popup)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -87,11 +90,37 @@ class ColormapPopup(QtWidgets.QFrame):
         self._maxEdit.editingFinished.connect(self._rangeChanged)
         layout.addRow('Max:', self._maxEdit)
 
-        self._autoscaleButton = QtWidgets.QPushButton('Autoscale', self)
-        self._autoscaleButton.clicked.connect(self._autoscaleButtonClicked)
+        reloadIcon = QtWidgets.QApplication.instance().style().standardIcon(
+            QtWidgets.QStyle.SP_BrowserReload
+        )
+        self._autoscaleButton = QtWidgets.QPushButton(reloadIcon, "Reset", self)
+        self._autoscaleButton.setToolTip("Scale colormap range with current mode")
+        self._autoscaleButton.clicked.connect(self._autoscaleRequested)
         self._autoscaleButton.setAutoDefault(False)
         self._autoscaleButton.setEnabled(False)
         layout.addRow('', self._autoscaleButton)
+
+        self._autoscaleModeComboBox = QtWidgets.QComboBox(self)
+        self._autoscaleModeComboBox.addItem("Default", "default")
+        self._autoscaleModeComboBox.setItemData(
+            0, "Use default colormap range autoscale", QtCore.Qt.ToolTipRole)
+        self._autoscaleModeComboBox.addItem("Min/Max", "minmax")
+        self._autoscaleModeComboBox.setItemData(
+            1, "Use data min/max to scale colormap range", QtCore.Qt.ToolTipRole)
+        self._autoscaleModeComboBox.addItem("Mean±3 Std", "mean3std")
+        self._autoscaleModeComboBox.setItemData(
+            2, "Use data mean ± 3 × standard deviation to scale colormap range", QtCore.Qt.ToolTipRole)
+        self._autoscaleModeComboBox.addItem("1-99 Percentile", "percentile")
+        self._autoscaleModeComboBox.setItemData(
+            3, "Use data 1st and 99th percentile to scale colormap range", QtCore.Qt.ToolTipRole)
+        self._autoscaleModeComboBox.setCurrentIndex(0)
+        self._autoscaleModeComboBox.currentIndexChanged.connect(self._autoscaleRequested)
+        layout.addRow('Reset mode:', self._autoscaleModeComboBox)
+
+        self._filterGapsCheckBox = QtWidgets.QCheckBox(self)
+        self._filterGapsCheckBox.setToolTip("Toggle detector gaps value filtering")
+        self._filterGapsCheckBox.toggled.connect(self._autoscaleRequested)
+        layout.addRow('Filter gaps:', self._filterGapsCheckBox)
 
         buttonBox = QtWidgets.QDialogButtonBox(parent=self)
         buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Close)
@@ -100,10 +129,28 @@ class ColormapPopup(QtWidgets.QFrame):
         closeButton.setAutoDefault(False)
         frameLayout.addWidget(buttonBox)
 
-    def setDataHistogram(self, counts: Optional[np.ndarray], bins: Optional[np.ndarray]):
-        """Set histogram of data to use for autoscale"""
-        self._histogram = None if counts is None or bins is None else (counts, bins)
-        self._autoscaleButton.setEnabled(self._histogram is not None)
+    def setData(
+        self,
+        data: Optional[np.ndarray],
+        counts: Optional[np.ndarray],
+        bins: Optional[np.ndarray],
+        copy: bool = True,
+    ):
+        """Set data and histogram to use for autoscale"""
+        if data is None or counts is None or bins is None:
+            self._data = None
+            self._histogram = None
+            self._autoscaleButton.setEnabled(False)
+        else:
+            self._data = np.array(data, copy=copy)
+            self._histogram = np.array(counts, copy=copy), np.array(bins, copy=copy)
+            self._autoscaleButton.setEnabled(True)
+
+    def getData(self, copy: bool = True) -> Optional[np.ndarray]:
+        """Returns data used for autoscale if set else None"""
+        if self._data is None:
+            return None
+        return np.array(self._data, copy=copy)
 
     def getDataHistogram(self) -> Optional[tuple[np.ndarray, np.ndarray]]:
         """Returns histogram of data if set as (counts, bins) else None"""
@@ -180,13 +227,17 @@ class ColormapPopup(QtWidgets.QFrame):
             maximum = minimum
         return minimum, maximum
 
-    def _autoscaleButtonClicked(self):
+    def _autoscaleRequested(self, *args):
+        data = self.getData(copy=False)
         histogram = self.getDataHistogram()
-        if histogram is None:
-            return
-        counts, bins = histogram
-        minimum, maximum = utils.auto_level(bins, counts)
-        self.setRange(minimum, maximum)
+        counts, bins = (None, None) if histogram is None else histogram
+
+        mode = self._autoscaleModeComboBox.currentData()
+        filter_gaps = self._filterGapsCheckBox.isChecked()
+        colormapRange = utils.auto_level(data, bins, counts, mode, filter_gaps)
+        if colormapRange is None:
+             return
+        self.setRange(*colormapRange)
 
     @staticmethod
     def _createQIconFromGradient(gradient: dict) -> QtGui.QIcon:
