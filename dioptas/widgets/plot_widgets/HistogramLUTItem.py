@@ -21,6 +21,8 @@
 from __future__ import absolute_import
 
 import pathlib
+from typing import Optional
+
 from qtpy import QtCore, QtGui, QtWidgets
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
@@ -81,6 +83,7 @@ class HistogramLUTItem(GraphicsWidget):
         self.autoLevel = autoLevel
         self.hist_x = np.array([0.])
         self.hist_y = np.array([0.])
+        self._img_data = None
 
         self.layout = QtWidgets.QGraphicsGridLayout()
         self.setLayout(self.layout)
@@ -270,6 +273,8 @@ class HistogramLUTItem(GraphicsWidget):
         self.update()
 
     def imageChanged(self, autoRange=False, img_data=None):
+        self._img_data = None
+
         if img_data is None:
             img_data = self.imageItem.getData(copy=False)
             if img_data is None:
@@ -299,6 +304,17 @@ class HistogramLUTItem(GraphicsWidget):
         elif self.orientation == 'vertical':
             self.plot.setData(log_hist_nonzero, left_edges_nonzero)
 
+    def getImageData(self, copy: bool = True) -> Optional[np.ndarray]:
+        """Returns currently displayed image data
+
+        :param copy: False to return internal array, do not modify!
+        """
+        if isinstance(self.imageItem, NormalizedImageItem):
+            return self.imageItem.getData(copy=copy)
+        if self._img_data is not None:
+            return np.array(self._img_data, copy=copy)
+        return None
+
     def getLevels(self):
         return self.region.getRegion()
 
@@ -321,7 +337,7 @@ class HistogramLUTItem(GraphicsWidget):
         if isinstance(self.imageItem, NormalizedImageItem):
             widget.setCurrentNormalization(self.imageItem.getNormalization())
         widget.setRange(*self.getExpLevels())
-        widget.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
+        widget.setData(data=self.getImageData(copy=False), counts=self.hist_y, bins=self.hist_x, copy=False)
         widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
         widget.sigCurrentNormalizationChanged.connect(self._normalizationChanged)
         widget.sigRangeChanged.connect(self.setLevels)
@@ -351,7 +367,12 @@ class HistogramLUTItem(GraphicsWidget):
             self.imageItem.setNormalization(normalization)
             sender = self.sender()
             if isinstance(sender, ColormapPopup):
-                sender.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
+                sender.setData(
+                    data=self.getImageData(copy=False),
+                    counts=self.hist_y,
+                    bins=self.hist_x,
+                    copy=False,
+                )
 
 
 class LogarithmRegionItem(LinearRegionItem):
