@@ -18,8 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import weakref
 import pytest
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
+from qtpy.QtTest import QTest
 
 
 @pytest.fixture(scope="session")
@@ -33,3 +35,29 @@ def qapp():
     finally:
         if app is not None:
             app.closeAllWindows()
+
+
+@pytest.fixture
+def qWidgetFactory(qapp):
+    """QWidget factory as fixture
+
+    This fixture provides a function taking a QWidget subclass as argument
+    which returns an instance of this QWidget making sure it is shown first
+    and destroyed once the test is done.
+    """
+    widgets = set()
+
+    def createWidget(cls, *args, **kwargs):
+        widget = cls(*args, **kwargs)
+        widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        widget.show()
+        QTest.qWaitForWindowExposed(widget)
+        widgets.add(widget)
+        return weakref.proxy(widget)
+
+    try:
+        yield createWidget
+    finally:
+        for widget in widgets:
+            widget.close()
+        qapp.processEvents()

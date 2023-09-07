@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Test ColormapDialog widget"""
+"""Test ColormapPopup widget"""
 
 import pytest
 from qtpy import QtCore, QtWidgets
@@ -28,21 +28,9 @@ import pyqtgraph.graphicsItems.GradientEditorItem
 from ...widgets.plot_widgets.ColormapPopup import ColormapPopup
 
 
-@pytest.fixture
-def colormapPopup(qapp):
-    """Fixture providing an instance of a ColormapPopup"""
-    widget = ColormapPopup()
-    widget.show()
-    QTest.qWaitForWindowExposed(widget)
-    try:
-        yield widget
-    finally:
-        widget.close()
-        qapp.processEvents()
-
-
-def testRange(colormapPopup):
-    """"Test getRange, setRange and sigRangeChanged"""
+def testRange(qWidgetFactory):
+    """Test getRange, setRange and sigRangeChanged"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
     assert colormapPopup.getRange() == (1, 1)
 
     signalSpy = QSignalSpy(colormapPopup.sigRangeChanged)
@@ -58,8 +46,9 @@ def testRange(colormapPopup):
     assert colormapPopup.getRange() == (1000, 2000)
 
 
-def testCurrentGradient(colormapPopup):
+def testCurrentGradient(qWidgetFactory):
     """Test getCurrentGradient, setCurrentGradient and sigCurrentGradientChanged"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
     for firstName, firstGradient in pyqtgraph.graphicsItems.GradientEditorItem.Gradients.items():
         break
     gradient = colormapPopup.getCurrentGradient()
@@ -76,8 +65,9 @@ def testCurrentGradient(colormapPopup):
     assert signalSpy[0] == [viridisGradient]
 
 
-def testCustomGradient(colormapPopup):
+def testCustomGradient(qWidgetFactory):
     """Test setCurrentGradient with a custom gradient"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
     signalSpy = QSignalSpy(colormapPopup.sigCurrentGradientChanged)
 
     customGradient = {
@@ -101,3 +91,22 @@ def testCustomGradient(colormapPopup):
     assert colormapPopup._gradientComboBox.currentText() == 'Custom'
     assert len(signalSpy) == 2
     assert signalSpy[1] == [customGradient2]
+
+
+@pytest.mark.parametrize("normalization", ["log", "sqrt"])
+def testCurrentNormalization(qWidgetFactory, normalization):
+    """Test getCurrentNormalization, setCurrentNormalization and sigCurrentNormalizationChanged"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
+
+    default_normalization = colormapPopup.getCurrentNormalization()
+    assert default_normalization == "linear"
+    assert colormapPopup._normalizationComboBox.currentText() == "Linear"
+    assert colormapPopup._normalizationComboBox.currentData() == "linear"
+
+    signalSpy = QSignalSpy(colormapPopup.sigCurrentNormalizationChanged)
+    colormapPopup.setCurrentNormalization(normalization)
+    returned_normalization = colormapPopup.getCurrentNormalization()
+    assert returned_normalization == normalization
+    assert colormapPopup._normalizationComboBox.currentData() == normalization
+    assert len(signalSpy) == 1
+    assert signalSpy[0] == [normalization]
