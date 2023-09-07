@@ -90,7 +90,7 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset('grey')
 
-        self._normalizationLabel = pg.LabelItem("linear")
+        self._normalizationLabel = pg.LabelItem("")
 
         configurationButton = FlatButton()
         configurationButton.setWidth(30)
