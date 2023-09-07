@@ -51,7 +51,10 @@ class Normalization:
 
     @staticmethod
     def invalid(data: np.ndarray) -> np.ndarray:
-        """Returns True for data that cannot be normalized"""
+        """Element-wise invalidity test
+
+        Returns a boolean array which is True for data elements that cannot be normalized.
+        """
         return np.zeros(data.shape, dtype=bool)
 
 
