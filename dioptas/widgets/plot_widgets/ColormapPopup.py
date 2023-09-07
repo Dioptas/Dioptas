@@ -25,6 +25,7 @@ from qtpy import QtGui, QtCore, QtWidgets
 import pyqtgraph.graphicsItems.GradientEditorItem
 
 from . import utils
+from .NormalizedImageItem import NormalizedImageItem
 from ... import style_path
 
 
@@ -33,6 +34,9 @@ class ColormapPopup(QtWidgets.QFrame):
 
     sigCurrentGradientChanged = QtCore.Signal(dict)
     """Signal emitted when the colormap gradient has changed"""
+
+    sigCurrentNormalizationChanged = QtCore.Signal(str)
+    """Signal emitted when the colormap normalization has changed"""
 
     sigRangeChanged = QtCore.Signal(float, float)
     """Signal emitted when the data range has changed"""
@@ -62,6 +66,15 @@ class ColormapPopup(QtWidgets.QFrame):
             self._gradientComboBox.addItem(icon, name.capitalize(), gradient)
         self._gradientComboBox.currentIndexChanged.connect(self._gradientComboBoxCurrentIndexChanged)
         layout.addRow('Colormap:', self._gradientComboBox)
+
+        self._normalizationComboBox = QtWidgets.QComboBox(self)
+        for normalization in NormalizedImageItem.supportedNormalizations():
+            description = NormalizedImageItem.getNormalizationDescription(normalization).capitalize()
+            self._normalizationComboBox.addItem(description, normalization)
+
+        self._normalizationComboBox.setCurrentIndex(0)
+        self._normalizationComboBox.currentIndexChanged.connect(self._normalizationComboBoxCurrentIndexChanged)
+        layout.addRow('Normalization:', self._normalizationComboBox)
 
         layout.addRow(QtWidgets.QLabel('Range:'))
         self._minEdit = QtWidgets.QLineEdit(self)
@@ -102,6 +115,12 @@ class ColormapPopup(QtWidgets.QFrame):
         gradient = self._gradientComboBox.itemData(index, QtCore.Qt.UserRole)
         self.sigCurrentGradientChanged.emit(gradient)
 
+    def _normalizationComboBoxCurrentIndexChanged(self, index: int):
+        if index < 0:
+            return
+        normalization = self._normalizationComboBox.itemData(index, QtCore.Qt.UserRole)
+        self.sigCurrentNormalizationChanged.emit(normalization)
+
     def setCurrentGradient(self, gradient: dict):
         """Set the currently selected gradient
 
@@ -122,6 +141,17 @@ class ColormapPopup(QtWidgets.QFrame):
     def getCurrentGradient(self) -> dict:
         """Returns the currently selected gradient"""
         return self._gradientComboBox.currentData()
+
+    def setCurrentNormalization(self, normalization: str):
+        """Set the currently selected normalization"""
+        index = self._normalizationComboBox.findData(normalization)
+        if index < 0:
+            raise ValueError(f"Unsupported normalization: {normalization}")
+        self._normalizationComboBox.setCurrentIndex(index)
+
+    def getCurrentNormalization(self) -> str:
+        """Returns the currently selected normalization"""
+        return self._normalizationComboBox.currentData()
 
     def _rangeChanged(self):
         minimum, maximum = self.getRange()

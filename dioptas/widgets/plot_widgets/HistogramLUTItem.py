@@ -33,6 +33,7 @@ import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
 from .ColormapPopup import ColormapPopup
+from .NormalizedImageItem import NormalizedImageItem
 from ..CustomWidgets import FlatButton
 from ... import icons_path, style_path
 
@@ -89,6 +90,8 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset('grey')
 
+        self._normalizationLabel = pg.LabelItem("linear")
+
         configurationButton = FlatButton()
         configurationButton.setWidth(30)
         configurationButton.setHeight(30)
@@ -111,6 +114,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
             self.layout.addItem(self.vb, 1, 0)
             self.layout.addItem(self.gradient, 0, 0)
+            self.layout.addItem(self._normalizationLabel, 1, 1)
             self.layout.addItem(proxy, 0, 1)
             self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
             self.vb.setFlag(self.gradient.ItemStacksBehindParent)
@@ -122,6 +126,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
             self.layout.addItem(self.gradient, 0, 1)
+            self.layout.addItem(self._normalizationLabel, 1, 0)
             self.layout.addItem(proxy, 1, 1)
 
         self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
@@ -222,6 +227,8 @@ class HistogramLUTItem(GraphicsWidget):
 
     def setImageItem(self, img):
         self.imageItem = img
+        self._updateNormalizationLabel(
+            img.getNormalization() if isinstance(img, NormalizedImageItem) else "linear")
         img.sigImageChanged.connect(self.imageChanged)
         img.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
         # self.gradientChanged()
@@ -262,7 +269,7 @@ class HistogramLUTItem(GraphicsWidget):
 
     def imageChanged(self, autoRange=False, img_data=None):
         if img_data is None:
-            img_data = self.imageItem.image
+            img_data = self.imageItem.getData(copy=False)
             if img_data is None:
                 return
 
@@ -307,9 +314,12 @@ class HistogramLUTItem(GraphicsWidget):
         widget = ColormapPopup(parent=self.scene().views()[0])
 
         widget.setCurrentGradient(self.gradient.saveState())
+        if isinstance(self.imageItem, NormalizedImageItem):
+            widget.setCurrentNormalization(self.imageItem.getNormalization())
         widget.setRange(*self.getExpLevels())
         widget.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
         widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
+        widget.sigCurrentNormalizationChanged.connect(self._normalizationChanged)
         widget.sigRangeChanged.connect(self.setLevels)
         button = self.sender()
         if self.orientation == 'horizontal':
@@ -324,6 +334,20 @@ class HistogramLUTItem(GraphicsWidget):
     def _configurationGradientChanged(self, gradient: dict):
         self.gradient.restoreState(gradient)
         self.gradientChanged()
+
+    def _updateNormalizationLabel(self, normalization: str):
+        shortname = NormalizedImageItem.getNormalizationShortname(normalization)
+        description = NormalizedImageItem.getNormalizationDescription(normalization).capitalize()
+        self._normalizationLabel.setText(shortname)
+        self._normalizationLabel.setToolTip(f"{description} colormap normalization")
+
+    def _normalizationChanged(self, normalization: str):
+        self._updateNormalizationLabel(normalization)
+        if isinstance(self.imageItem, NormalizedImageItem):
+            self.imageItem.setNormalization(normalization)
+            sender = self.sender()
+            if isinstance(sender, ColormapPopup):
+                sender.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
 
 
 class LogarithmRegionItem(LinearRegionItem):
