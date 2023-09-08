@@ -39,7 +39,6 @@ jobs:
                     mock pytest pytest-xvfb pytest-qt
 
     - name: Run tests
-      shell: bash -l {0}
       run: |
         py.test dioptas/tests/unit_tests/test_background_extraction.py
         py.test dioptas/tests/unit_tests/test_BatchModel.py
