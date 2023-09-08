@@ -78,7 +78,7 @@ class MainController(object):
         self.update_title()
 
         if use_settings:
-            self.load_default_settings()
+            QtCore.QTimer.singleShot(0, self.load_default_settings)
             self.setup_backup_timer()
 
         self.current_tab_index = 0
