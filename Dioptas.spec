@@ -56,8 +56,9 @@ binaries = []
 
 fabio_hiddenimports = get_libs("fabio")
 pyFAI_hiddenimports = get_libs("pyFAI.azimuthalIntegrator", sieve="pyFAI")
+pyqtgraph_hiddenimports = get_libs("pyqtgraph", sieve="pyqtgraph")
 
-pyqtgraph_hiddenimports = [
+pyqtgraph_hiddenimports += [
     "pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5",
     "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5",
     "pyqtgraph.imageview.ImageViewTemplate_pyqt5"

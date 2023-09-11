@@ -751,7 +751,10 @@ class ImageController(object):
 
         if 0 < x < img_shape[1] - 1 and 0 < y < img_shape[0] - 1:
             self.update_mouse_position_labels(x, y, img_data[int(np.floor(y)), int(np.floor(x))])
+        else:
+            self.update_mouse_position_labels(x, y, None)
 
+        if 0.5 < x < img_shape[1] - 0.5 and 0.5 < y < img_shape[0] - 0.5:
             if self.model.calibration_model.is_calibrated:
                 x_temp = x
                 x = np.array([y])
@@ -787,8 +790,6 @@ class ImageController(object):
                 self.widget.img_widget_mouse_d_lbl.setText('d: -')
                 self.widget.img_widget_mouse_q_lbl.setText('Q: -')
                 self.widget.img_widget_mouse_azi_lbl.setText('X: -')
-        else:
-            self.update_mouse_position_labels(x, y, None)
 
     def img_mouse_click(self, x, y):
         if self.widget.img_mode == 'Cake':
@@ -847,10 +848,11 @@ class ImageController(object):
     def update_mouse_position_labels(self, x, y, intensity):
         x_pos_string = 'X:  %4d' % x
         y_pos_string = 'Y:  %4d' % y
-        if intensity is None:
-            int_string = 'I:'
-        else:
+
+        try:
             int_string = 'I:   %5d' % intensity
+        except (ValueError, TypeError, OverflowError):
+            int_string = 'I:'
 
         self.widget.mouse_x_lbl.setText(x_pos_string)
         self.widget.mouse_y_lbl.setText(y_pos_string)
@@ -873,7 +875,7 @@ class ImageController(object):
             self.widget.cake_widget.deactivate_vertical_line()
             return
 
-        self.widget.cake_widget.vertical_line.setValue(pos+0.5)
+        self.widget.cake_widget.vertical_line.setValue(pos + 0.5)
         self.widget.cake_widget.activate_vertical_line()
         self.plot_cake_integral(tth)
 

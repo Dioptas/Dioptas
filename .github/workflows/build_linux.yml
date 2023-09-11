@@ -9,24 +9,18 @@ jobs:
   build_linux:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
+    env:
+      QT_QPA_PLATFORM: offscreen
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: git fetch --prune --unshallow
-    - name: Setup Python 3.6
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.6
 
-    - name: Use Python Dependency Cache
-      id: pip-cache
-      uses: actions/cache@v1
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-c2
-        restore-keys: |
-          ${{ runner.os }}-pip-c2
+    - name: Use Miniconda
+      uses: s-weigand/setup-conda@v1
+
+    - name: switch to python=3.10 and install pip
+      run: conda install python=3.10 pip -y
 
     - name: Install Apt Dependencies
       run: |
@@ -35,33 +29,32 @@ jobs:
         libxkbcommon-dev libfontconfig1-dev libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
         libxi-dev libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev \
         libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-shape0-dev \
-        libxcb-randr0-dev libxcb-render-util0-dev
+        libxcb-randr0-dev libxcb-render-util0-dev libegl1
 
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 cython future qtpy pyfai lmfit \
-                    pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph \
-                    sharedmem
+        pip install pycifrw pandas python-dateutil h5py scikit-image==0.19.3 pyqt6 cython future qtpy pyfai lmfit \
+                    pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin \
+                    pyqtgraph sharedmem setuptools_scm
+      # we have to use scikit-image==0.19.3 because of a new loading mechanism in 0.20.0 which does currently not work
+      # with pyinstaller
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
 
-    - name: Run Dioptas from source to test and create version file
-      run: xvfb-run python Dioptas.py test
+    - name: Create a Version File
+      run: python -m setuptools_scm
+
+    - name: Run Dioptas from source to test
+      run: xvfb-run -e /dev/stdout python Dioptas.py test
         
     - name: Run PyInstaller
       run: bash create_executable.sh
 
-    - name: Clean Up Executable Folder
-      run: |
-        cd dist/Dioptas*
-        rm libQt5Quick.so.5 libQt5Qml.so.5 libQt5Network.so.5 libcrypto.so.1.1 libsqlite3.so.0
-        rm -r imageio
-
     - name: Run Dioptas
       run: |
         cd dist/Dioptas*
-        xvfb-run ./Dioptas test
+        xvfb-run -e /dev/stdout ./Dioptas test
 
     - name: Compress Executable
       run: |

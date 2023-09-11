@@ -18,8 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
 import os
+
+import pytest
 
 from ...model.PhaseModel import PhaseModel
 
@@ -28,72 +29,76 @@ data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
-class PhaseModelTest(unittest.TestCase):
-    def setUp(self):
-        self.phase_model = PhaseModel()
+@pytest.fixture
+def phase_model():
+    return PhaseModel()
 
-    def load_phase(self, filename):
-        self.phase_model.add_jcpds(os.path.join(jcpds_path, filename))
 
-    def test_same_conditions_set_pressure(self):
-        self.load_phase('ar.jcpds')
-        self.load_phase('pt.jcpds')
+def load_phase(phase_model, filename):
+    phase_model.add_jcpds(os.path.join(jcpds_path, filename))
 
-        self.assertEqual(self.phase_model.phases[0].params['pressure'], 0)
-        self.assertEqual(self.phase_model.phases[1].params['pressure'], 0)
-        self.assertTrue(self.phase_model.same_conditions)
 
-        self.phase_model.set_pressure(0, 10)
+def test_same_conditions_set_pressure(phase_model):
+    load_phase(phase_model, 'ar.jcpds')
+    load_phase(phase_model, 'pt.jcpds')
 
-        self.assertEqual(self.phase_model.phases[0].params['pressure'], 10)
-        self.assertEqual(self.phase_model.phases[1].params['pressure'], 10)
+    assert phase_model.phases[0].params['pressure'] == 0
+    assert phase_model.phases[1].params['pressure'] == 0
+    assert phase_model.same_conditions
 
-        self.phase_model.same_conditions = False
-        self.phase_model.set_pressure(1, 5)
-        self.assertEqual(self.phase_model.phases[0].params['pressure'], 10)
-        self.assertEqual(self.phase_model.phases[1].params['pressure'], 5)
+    phase_model.set_pressure(0, 10)
 
-    def test_same_conditions_set_temperature(self):
-        self.load_phase('pt.jcpds')
-        self.load_phase('pt.jcpds')
+    assert phase_model.phases[0].params['pressure'] == 10
+    assert phase_model.phases[1].params['pressure'] == 10
 
-        self.assertEqual(self.phase_model.phases[0].params['temperature'], 298)
-        self.assertEqual(self.phase_model.phases[1].params['temperature'], 298)
-        self.assertTrue(self.phase_model.same_conditions)
+    phase_model.same_conditions = False
+    phase_model.set_pressure(1, 5)
+    assert phase_model.phases[0].params['pressure'] == 10
+    assert phase_model.phases[1].params['pressure'] == 5
 
-        self.phase_model.set_temperature(0, 2000)
 
-        self.assertEqual(self.phase_model.phases[1].params['temperature'], 2000)
-        self.assertEqual(self.phase_model.phases[0].params['temperature'], 2000)
+def test_same_conditions_set_temperature(phase_model: PhaseModel):
+    load_phase(phase_model, 'pt.jcpds')
+    load_phase(phase_model, 'pt.jcpds')
 
-        self.phase_model.same_conditions = False
-        self.phase_model.set_temperature(1, 1500)
-        self.assertEqual(self.phase_model.phases[0].params['temperature'], 2000)
-        self.assertEqual(self.phase_model.phases[1].params['temperature'], 1500)
+    assert phase_model.phases[0].params['temperature'] == 298
+    assert phase_model.phases[1].params['temperature'] == 298
+    assert phase_model.same_conditions
 
-    def test_set_temperature_with_no_thermal_expansion(self):
-        self.load_phase('ar.jcpds')
+    phase_model.set_temperature(1, 2000)
 
-        self.assertEqual(self.phase_model.phases[0].params['temperature'], 298)
-        self.assertFalse(self.phase_model.phases[0].has_thermal_expansion())
+    assert phase_model.phases[0].params['temperature'] == 2000
+    assert phase_model.phases[1].params['temperature'] == 2000
 
-        self.phase_model.set_temperature(0, 2000)
+    phase_model.same_conditions = False
+    phase_model.set_temperature(1, 1500)
+    assert phase_model.phases[0].params['temperature'] == 2000
+    assert phase_model.phases[1].params['temperature'] == 1500
 
-        # since there is no thermal expansion defined the temperature should stay at ambient
-        self.assertEqual(self.phase_model.phases[0].params['temperature'], 298)
 
-    def test_reload_phase(self):
-        self.load_phase('ar.jcpds')
-        num_refl = len(self.phase_model.reflections[0])
-        self.phase_model.delete_reflection(0, 0)
-        self.phase_model.delete_reflection(0, 0)
-        self.phase_model.set_pressure(0, 5)
-        old_a0 = self.phase_model.phases[0].params['a0']
-        self.phase_model.set_param(0, 'a0', 5)
+def test_set_temperature_with_no_thermal_expansion(phase_model):
+    load_phase(phase_model, 'ar.jcpds')
 
-        self.phase_model.reload(0)
+    assert phase_model.phases[0].params['temperature'] == 298
+    assert not phase_model.phases[0].has_thermal_expansion()
 
-        self.assertEqual(len(self.phase_model.reflections[0]), num_refl)
-        self.assertEqual(self.phase_model.phases[0].params['a0'], old_a0)
-        self.assertEqual(self.phase_model.phases[0].params['pressure'], 5)
+    phase_model.set_temperature(0, 2000)
 
+    # since there is no thermal expansion defined the temperature should stay at ambient
+    assert phase_model.phases[0].params['temperature'] == 298
+
+
+def test_reload_phase(phase_model: PhaseModel):
+    load_phase(phase_model, 'ar.jcpds')
+    num_refl = len(phase_model.reflections[0])
+    phase_model.delete_reflection(0, 0)
+    phase_model.delete_reflection(0, 0)
+    phase_model.set_pressure(0, 5)
+    old_a0 = phase_model.phases[0].params['a0']
+    phase_model.set_param(0, 'a0', 5)
+
+    phase_model.reload(0)
+
+    assert len(phase_model.reflections[0]) == num_refl
+    assert phase_model.phases[0].params['a0'] == old_a0
+    assert phase_model.phases[0].params['pressure'] == 5

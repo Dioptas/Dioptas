@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+import pathlib
 
 import h5py
 import numpy as np
@@ -7,6 +9,7 @@ from qtpy import QtCore
 from PIL import Image
 
 from .util import extract_background
+from .util.HelperModule import FileNameIterator
 
 logger = logging.getLogger(__name__)
 
@@ -251,8 +254,11 @@ class BatchModel(QtCore.QObject):
                 current_file = file_index
                 self.configuration.calibration_model.img_model.load(self.files[file_index])
 
-            self.configuration.img_model.load_series_img(pos+1)
-            binning, intensity = self.configuration.integrate_image_1d()
+            self.calibration_model.img_model.load_series_img(pos + 1)
+            self.mask_model.set_dimension(self.calibration_model.img_model.img_data.shape)
+
+            binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
+                                                                     mask=mask)
             image_counter += 1
             pos_map.append((file_index, pos))
             intensity_data.append(intensity)
@@ -298,6 +304,13 @@ class BatchModel(QtCore.QObject):
             bkg[i] = extract_background(self.binning, y, *parameters)
         self.bkg = bkg
 
+    def normalize(self, range_ind=(10, 30)):
+        if self.data is None:
+            return
+        average_intensities = np.mean(self.data[:, range_ind[0]:range_ind[1]], axis=1)
+        factors = average_intensities[0] / average_intensities
+        self.data = (self.data.T * factors).T
+
     def get_image_info(self, index, use_all=False):
         """
         Get filename and image position in the file
@@ -327,3 +340,50 @@ class BatchModel(QtCore.QObject):
             return
         filename, pos = self.get_image_info(index, use_all)
         self.configuration.calibration_model.img_model.load(filename, pos)
+
+    def get_next_folder_filenames(self):
+        """
+        Loads all files from the next folder with similar file-endings.
+        """
+        folder_path, _ = os.path.split(self.files[0])
+        next_folder_path = iterate_folder(folder_path, 1)
+        files = []
+        if next_folder_path is not None and os.path.exists(next_folder_path):
+            for file in os.listdir(next_folder_path):
+                if file.endswith(pathlib.Path(self.files[0]).suffix):
+                    files.append(os.path.join(next_folder_path, file))
+        files = sorted(files)
+        return files[:self.n_img_all]
+
+    def get_previous_folder_filenames(self):
+        """
+        Loads all files from the previous folder with similar file-endings.
+        """
+        folder_path, _ = os.path.split(self.files[0])
+        previous_folder_path = iterate_folder(folder_path, -1)
+        files = []
+        if previous_folder_path is not None and os.path.exists(previous_folder_path):
+            for file in os.listdir(previous_folder_path):
+                if file.endswith(pathlib.Path(self.files[0]).suffix):
+                    files.append(os.path.join(previous_folder_path, file))
+        files = sorted(files)
+        return files[:self.n_img_all]
+
+
+def iterate_folder(folder_path, step):
+    pattern = re.compile(r'\d+')
+    match_iterator = pattern.finditer(folder_path)
+    new_directory_str = None
+    for ind, match in enumerate(list(match_iterator)):
+        number_span = match.span()
+        left_ind = number_span[0]
+        right_ind = number_span[1]
+        number = int(folder_path[left_ind:right_ind]) + step
+        if number < 0:
+            number = 0
+        new_directory_str = "{left_str}{number:0{len}}{right_str}".format(
+            left_str=folder_path[:left_ind],
+            number=number,
+            len=right_ind - left_ind,
+            right_str=folder_path[right_ind:])
+    return new_directory_str

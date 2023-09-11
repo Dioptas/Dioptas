@@ -22,11 +22,15 @@ import unittest
 import gc
 
 import numpy as np
+import pytest
 
 from ...model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
     ObliqueAngleDetectorAbsorptionCorrection
 from ...model.util.ImgCorrection import TransferFunctionCorrection, load_image
 from ..utility import unittest_data_path
+
+from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from ...model.util.ImgCorrection import CbnCorrection
 
 
 class DummyCorrection(ImgCorrectionInterface):
@@ -41,67 +45,64 @@ class DummyCorrection(ImgCorrectionInterface):
         return self._shape
 
 
-class ImgCorrectionsUnitTest(unittest.TestCase):
-    def setUp(self):
-        self.corrections = ImgCorrectionManager()
-
-    def tearDown(self):
-        del self.corrections
-        gc.collect()
-
-    def test_add_first_matrix_and_detect_shape(self):
-        cor = DummyCorrection((2048, 2048))
-
-        self.corrections.add(cor)
-
-        self.assertTrue(np.array_equal(cor.get_data(), self.corrections.get_data()))
-        self.assertEqual(self.corrections.shape, (2048, 2048))
-
-    def test_add_several_corrections(self):
-        cor1 = DummyCorrection((2048, 2048), 2)
-        cor2 = DummyCorrection((2048, 2048), 3)
-        cor3 = DummyCorrection((2048, 2048), 5)
-
-        self.corrections.add(cor1)
-        self.corrections.add(cor2)
-        self.corrections.add(cor3)
-
-        self.assertEqual(np.mean(self.corrections.get_data()), 2 * 3 * 5)
-
-    def test_delete_corrections_without_names(self):
-        self.assertEqual(self.corrections.get_data(), None)
-
-        self.corrections.add(DummyCorrection((2048, 2048), 3))
-        self.corrections.delete()
-        self.assertEqual(self.corrections.get_data(), None)
-
-        self.corrections.add(DummyCorrection((2048, 2048), 2))
-        self.corrections.add(DummyCorrection((2048, 2048), 3))
-
-        self.corrections.delete()
-        self.assertEqual(np.mean(self.corrections.get_data()), 2)
-        self.corrections.delete()
-
-    def test_delete_corrections_with_names(self):
-        # add two corrections and check if both applied
-        self.corrections.add(DummyCorrection((2048, 2048), 3), "cbn Correction")
-        self.corrections.add(DummyCorrection((2048, 2048), 5), "oblique angle Correction")
-        self.assertEqual(np.mean(self.corrections.get_data()), 3 * 5)
-
-        # delete the first by name
-        self.corrections.delete("cbn Correction")
-        self.assertEqual(np.mean(self.corrections.get_data()), 5)
-
-        # trying to delete non existent name will result in KeyError
-        self.assertRaises(KeyError, self.corrections.delete, "blub")
-
-        # just deleting something, when all corrections have a name will not change anything
-        self.corrections.delete()
-        self.assertEqual(np.mean(self.corrections.get_data()), 5)
+@pytest.fixture
+def corrections():
+    return ImgCorrectionManager()
 
 
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
-from ...model.util.ImgCorrection import CbnCorrection
+def test_add_first_matrix_and_detect_shape(corrections):
+    cor = DummyCorrection((2048, 2048))
+
+    corrections.add(cor)
+
+    assert np.array_equal(cor.get_data(), corrections.get_data())
+    assert corrections.shape == (2048, 2048)
+
+
+def test_add_several_corrections(corrections):
+    cor1 = DummyCorrection((2048, 2048), 2)
+    cor2 = DummyCorrection((2048, 2048), 3)
+    cor3 = DummyCorrection((2048, 2048), 5)
+
+    corrections.add(cor1)
+    corrections.add(cor2)
+    corrections.add(cor3)
+
+    assert np.mean(corrections.get_data()) == 2 * 3 * 5
+
+
+def test_delete_corrections_without_names(corrections):
+    assert corrections.get_data() is None
+
+    corrections.add(DummyCorrection((2048, 2048), 3))
+    corrections.delete()
+    assert corrections.get_data() is None
+
+    corrections.add(DummyCorrection((2048, 2048), 2))
+    corrections.add(DummyCorrection((2048, 2048), 3))
+
+    corrections.delete()
+    assert np.mean(corrections.get_data()) == 2
+    corrections.delete()
+
+
+def test_delete_corrections_with_names(corrections):
+    # add two corrections and check if both applied
+    corrections.add(DummyCorrection((2048, 2048), 3), "cbn Correction")
+    corrections.add(DummyCorrection((2048, 2048), 5), "oblique angle Correction")
+    assert np.mean(corrections.get_data()) == 3 * 5
+
+    # delete the first by name
+    corrections.delete("cbn Correction")
+    assert np.mean(corrections.get_data()) == 5
+
+    # trying to delete non-existent name will result in KeyError
+    with pytest.raises(KeyError):
+        corrections.delete("blub")
+
+    # just deleting something, when all corrections have a name will not change anything
+    corrections.delete()
+    assert np.mean(corrections.get_data()) == 5
 
 
 class CbnCorrectionTest(unittest.TestCase):
@@ -345,7 +346,3 @@ class TransferFunctionCorrectionTest(unittest.TestCase):
         transfer_data = self.transfer_correction.get_data()
         self.assertNotEqual(transfer_data, self.original_data)
         self.assertNotEqual(transfer_data, self.response_data)
-
-
-if __name__ == '__main__':
-    unittest.main()

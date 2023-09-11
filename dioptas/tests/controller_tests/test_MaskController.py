@@ -54,14 +54,26 @@ class MaskControllerTest(QtTest):
         return stat_info.st_size
 
     def test_loading_and_saving_mask_files(self):
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'test.mask'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=(
+            os.path.join(unittest_data_path, 'test.mask'),
+            MaskController.DEFAULT_MASK_FILTER,
+        ))
         click_button(self.mask_widget.load_mask_btn)
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
-        filename = os.path.join(unittest_data_path, 'dummy.mask')
 
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filename)
-        click_button(self.mask_widget.save_mask_btn)
-        self.assertTrue(os.path.exists(filename))
+        dialog_results = (
+            ('.mask', MaskController.DEFAULT_MASK_FILTER),
+            ('.npy', f"{MaskController.FLIPUD_MASK_FILTER_PREFIX} (*.npy)"),
+            ('.edf', f"{MaskController.FLIPUD_MASK_FILTER_PREFIX} (*.edf)")
+
+        )
+        for extension, selected_filter in dialog_results:
+            with self.subTest(extension=extension, selected_filter=selected_filter):
+                filename = os.path.join(unittest_data_path, f'dummy{extension}')
+                QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=(filename, selected_filter))
+                click_button(self.mask_widget.save_mask_btn)
+                self.assertTrue(os.path.exists(filename))
+                delete_if_exists(filename)
 
     def test_grow_and_shrinking(self):
         self.model.mask_model.mask_ellipse(100, 100, 20, 20)
@@ -92,7 +104,10 @@ class MaskControllerTest(QtTest):
         self.assertTrue(np.array_equal(previous_mask, self.model.mask_model._mask_data))
 
     def test_select_configuration_updating_mask(self):
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'test.mask'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=(
+            os.path.join(unittest_data_path, 'test.mask'),
+            MaskController.DEFAULT_MASK_FILTER,
+        ))
         click_button(self.mask_widget.load_mask_btn)
         first_mask = self.model.mask_model.get_img()
         self.model.add_configuration()
@@ -105,7 +120,10 @@ class MaskControllerTest(QtTest):
         self.assertEqual(np.sum(self.mask_widget.img_widget.mask_img_item.image-second_mask), 0)
 
     def test_select_configuration_updating_mask_transparency(self):
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(unittest_data_path, 'test.mask'))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=(
+            os.path.join(unittest_data_path, 'test.mask'),
+            MaskController.DEFAULT_MASK_FILTER,
+        ))
         click_button(self.mask_widget.load_mask_btn)
         self.model.add_configuration()
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)

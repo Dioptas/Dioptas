@@ -33,6 +33,10 @@ from ..model.DioptasModel import DioptasModel
 
 
 class MaskController(object):
+
+    DEFAULT_MASK_FILTER = 'Mask (*.mask)'
+    FLIPUD_MASK_FILTER_PREFIX = 'Vertically flipped mask'
+
     def __init__(self, widget, dioptas_model):
         """
         :param widget: Reference to a MaskView object
@@ -370,22 +374,36 @@ class MaskController(object):
 
     def save_mask_btn_click(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
-        filename = save_file_dialog(self.widget, "Save mask data",
-                                    os.path.join(self.model.working_directories['mask'],
-                                                 img_filename + '.mask'),
-                                    filter='Mask (*.mask)')
+        filename, selected_filter = QtWidgets.QFileDialog.getSaveFileName(
+            self.widget,
+            caption="Save mask data",
+            directory=os.path.join(self.model.working_directories['mask'],
+                                   img_filename + '.mask'),
+            filter=';;'.join([
+                self.DEFAULT_MASK_FILTER,
+                f"{self.FLIPUD_MASK_FILTER_PREFIX} (*.npy)",
+                f"{self.FLIPUD_MASK_FILTER_PREFIX} (*.edf)",
+            ]))
 
         if filename != '':
+            flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            self.model.mask_model.save_mask(filename)
+            self.model.mask_model.save_mask(filename, flipud)
 
     def load_mask_btn_click(self):
-        filename = open_file_dialog(self.widget, caption="Load mask data",
-                                    directory=self.model.working_directories['mask'], filter='*.mask')
+        filename, selected_filter = QtWidgets.QFileDialog.getOpenFileName(
+            self.widget,
+            caption="Load mask data",
+            directory=self.model.working_directories['mask'],
+            filter=';;'.join([
+                self.DEFAULT_MASK_FILTER,
+                f"{self.FLIPUD_MASK_FILTER_PREFIX} (*.npy *.edf)",
+            ]))
 
         if filename != '':
+            flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            if self.model.mask_model.load_mask(filename):
+            if self.model.mask_model.load_mask(filename, flipud):
                 self.plot_mask()
             else:
                 QtWidgets.QMessageBox.critical(self.widget, 'Error',
@@ -393,12 +411,19 @@ class MaskController(object):
                                                'the same shape. Mask could not be loaded.')
 
     def add_mask_btn_click(self):
-        filename = open_file_dialog(self.widget, caption="Add mask data",
-                                    directory=self.model.working_directories['mask'], filter='*.mask')
+        filename, selected_filter = QtWidgets.QFileDialog.getOpenFileName(
+            self.widget,
+            caption="Add mask data",
+            directory=self.model.working_directories['mask'],
+            filter=';;'.join([
+                self.DEFAULT_MASK_FILTER,
+                f"{self.FLIPUD_MASK_FILTER_PREFIX} (*.npy *.edf)",
+            ]))
 
         if filename != '':
+            flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            if self.model.mask_model.add_mask(filename):
+            if self.model.mask_model.add_mask(filename, flipud):
                 self.plot_mask()
             else:
                 QtWidgets.QMessageBox.critical(self.widget, 'Error',

@@ -21,7 +21,7 @@
 import os
 
 import numpy as np
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtGui
 from ...widgets.UtilityWidgets import open_files_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -211,7 +211,7 @@ class OverlayController(object):
         :param ind: overlay ind
         :param button: button to color
         """
-        previous_color = button.palette().color(1)
+        previous_color = button.palette().color(QtGui.QPalette.Button)
         new_color = QtWidgets.QColorDialog.getColor(previous_color, self.integration_widget)
         if new_color.isValid():
             color = str(new_color.name())

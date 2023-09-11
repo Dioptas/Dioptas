@@ -1,10 +1,54 @@
-0.5.4a (under development)
+0.5.8 (under development)
+-------------------------
+
+Bugfixes:
+    - fix issues with type of the radial bin number being float instead of int -> this caused issues with the
+      integration of cake when setting a manual radial bin number
+    - cosmic removal is now working again
+    - fixes issue with auto peak number increasing while the checkbox for it was unchecked
+    - no more error message when mouse is hovering over the cake image at 0 indices of the image
+    - changing the color of an overlay or phase item is now working correctly again
+    - the mask is now correctly reset when batch integration is started with images of different shape
+
+
+0.5.7 (stable 24.04.2023)
+-------------------------
+
+New features:
+    - saving in batch window will now also save background subtracted patterns, if enabled in the pattern widget
+    - upgraded dependency pyqt5 to pyqt6 which should result in improvements for high dpi screens
+    - added a new "integrate" button to the batch widget, which will integrate all images in the batch widget
+    - now compatible with python 3.11, whenever possible the created executables are compiled with python 3.11
+    - dropping support for python 3.6, 3.7 and 3.8 and focussing on compatibility with python 3.9, 3.10 and 3.11
+
+
+Bugfixes:
+    - fix numpy float conversion issue due to deprecated numpy.float
+    - reading cif files with missing volume tag will now work correctly and the volume will be calculated from cell
+      parameters (PR #140, thanks to @ScottNotFound)
+
+
+0.5.6 (stable 23.11.2022)
 --------------------------
+
+Removed image files from pypi distribution.
+
+
+0.5.5 (stable 22.11.2022)
+-------------------------
+
+New features:
+    - added a normalize button to the batch widget, which will normalize all batch integrated patterns
+      to the starting area (i.e. the first 10-30 values of the pattern)
+    - batch integration starts immediate after selecting the files
+    - added browsing between folders in batch widget
+
 
 Bugfixes:
     - fixed issue with image transformations (rotations and flips)
     - fix issues with font size on some high dpi settings in white text boxes
     - improve resize behavior (dragging the splitter) in the integration view
+    - fixed issue with resizing batch widget when filepaths were long
 
 
 0.5.4 (stable 20.12.2021)

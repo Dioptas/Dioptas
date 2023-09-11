@@ -20,7 +20,8 @@
 
 from __future__ import absolute_import
 
-from qtpy import QtWidgets, QtCore
+import pathlib
+from qtpy import QtCore, QtGui, QtWidgets
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 from pyqtgraph.graphicsItems.ViewBox import *
 from pyqtgraph.graphicsItems.GradientEditorItem import *
@@ -31,6 +32,11 @@ from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
+from .ColormapPopup import ColormapPopup
+from .NormalizedImageItem import NormalizedImageItem
+from ..CustomWidgets import FlatButton
+from ... import icons_path, style_path
+
 
 __all__ = ['HistogramLUTItem']
 
@@ -84,6 +90,22 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset('grey')
 
+        self._normalizationLabel = pg.LabelItem("")
+
+        configurationButton = FlatButton()
+        configurationButton.setWidth(30)
+        configurationButton.setHeight(30)
+        configurationButton.setStyleSheet(
+            pathlib.Path(style_path, "stylesheet.qss").read_text()
+        )
+        configurationButton.setIcon(
+            QtGui.QIcon(str(pathlib.Path(icons_path) / "settings.png")))
+        configurationButton.setToolTip("Configure colormap")
+        configurationButton.clicked.connect(self._configurationButtonClicked)
+
+        proxy = QtWidgets.QGraphicsProxyWidget()
+        proxy.setWidget(configurationButton)
+
         if orientation == 'horizontal':
             self.vb.setMouseEnabled(x=True, y=False)
             self.vb.setMaximumHeight(30)
@@ -92,6 +114,8 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
             self.layout.addItem(self.vb, 1, 0)
             self.layout.addItem(self.gradient, 0, 0)
+            self.layout.addItem(self._normalizationLabel, 1, 1)
+            self.layout.addItem(proxy, 0, 1)
             self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
             self.vb.setFlag(self.gradient.ItemStacksBehindParent)
         elif orientation == 'vertical':
@@ -102,6 +126,8 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
             self.layout.addItem(self.gradient, 0, 1)
+            self.layout.addItem(self._normalizationLabel, 1, 0)
+            self.layout.addItem(proxy, 1, 1)
 
         self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
         self.vb.setFlag(self.gradient.ItemStacksBehindParent)
@@ -201,6 +227,8 @@ class HistogramLUTItem(GraphicsWidget):
 
     def setImageItem(self, img):
         self.imageItem = img
+        self._updateNormalizationLabel(
+            img.getNormalization() if isinstance(img, NormalizedImageItem) else "linear")
         img.sigImageChanged.connect(self.imageChanged)
         img.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
         # self.gradientChanged()
@@ -240,31 +268,32 @@ class HistogramLUTItem(GraphicsWidget):
         self.update()
 
     def imageChanged(self, autoRange=False, img_data=None):
+        if img_data is None:
+            img_data = self.imageItem.getData(copy=False)
+            if img_data is None:
+                return
 
-        if img_data is not None:
-            hist = np.histogram(img_data, bins=3000)
-            hist_x, hist_y = hist[1][:-1], hist[0]
-        else:
-            hist_x, hist_y = list(self.imageItem.getHistogram(bins=3000))
-
-        if hist_x is None:
+        log_data = np.log(img_data)
+        log_data = log_data[np.isfinite(log_data)]
+        if log_data.size == 0:
+            self.hist_x = np.array([0.])
+            self.hist_y = np.array([0.])
             return
 
-        hist_x, hist_y = np.array(hist_x), np.array(hist_y)
+        hist, bin_edges = np.histogram(log_data, bins=3000)
 
-        hist_x = hist_x[np.where(hist_y>0)]
-        hist_y = hist_y[np.where(hist_y>0)]
+        mask_nonzero = hist > 0
+        left_edges_nonzero = bin_edges[:-1][mask_nonzero]
+        hist_nonzero = hist[mask_nonzero]
 
-        self.hist_x = hist_x
-        self.hist_y = hist_y
+        self.hist_x = np.exp(left_edges_nonzero)
+        self.hist_y = hist_nonzero
 
-        hist_y_log = np.log(hist_y[1:])
-        hist_x_log = np.log(hist_x[1:])
-
+        log_hist_nonzero = np.log(hist_nonzero)
         if self.orientation == 'horizontal':
-            self.plot.setData(hist_x_log, hist_y_log)
+            self.plot.setData(left_edges_nonzero, log_hist_nonzero)
         elif self.orientation == 'vertical':
-            self.plot.setData(hist_y_log, hist_x_log)
+            self.plot.setData(log_hist_nonzero, left_edges_nonzero)
 
     def getLevels(self):
         return self.region.getRegion()
@@ -280,6 +309,45 @@ class HistogramLUTItem(GraphicsWidget):
 
     def empty_function(self, *args):
         pass
+
+    def _configurationButtonClicked(self):
+        widget = ColormapPopup(parent=self.scene().views()[0])
+
+        widget.setCurrentGradient(self.gradient.saveState())
+        if isinstance(self.imageItem, NormalizedImageItem):
+            widget.setCurrentNormalization(self.imageItem.getNormalization())
+        widget.setRange(*self.getExpLevels())
+        widget.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
+        widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
+        widget.sigCurrentNormalizationChanged.connect(self._normalizationChanged)
+        widget.sigRangeChanged.connect(self.setLevels)
+        button = self.sender()
+        if self.orientation == 'horizontal':
+            position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, 0))
+        else:  # vertical
+            widget.adjustSize()  # For retrieving dialog size
+            position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, button.height())) - \
+                QtCore.QPoint(0, widget.frameGeometry().height())
+        widget.move(position)
+        widget.show()
+
+    def _configurationGradientChanged(self, gradient: dict):
+        self.gradient.restoreState(gradient)
+        self.gradientChanged()
+
+    def _updateNormalizationLabel(self, normalization: str):
+        shortname = NormalizedImageItem.getNormalizationShortname(normalization)
+        description = NormalizedImageItem.getNormalizationDescription(normalization).capitalize()
+        self._normalizationLabel.setText(shortname)
+        self._normalizationLabel.setToolTip(f"{description} colormap normalization")
+
+    def _normalizationChanged(self, normalization: str):
+        self._updateNormalizationLabel(normalization)
+        if isinstance(self.imageItem, NormalizedImageItem):
+            self.imageItem.setNormalization(normalization)
+            sender = self.sender()
+            if isinstance(sender, ColormapPopup):
+                sender.setDataHistogram(counts=self.hist_y, bins=self.hist_x)
 
 
 class LogarithmRegionItem(LinearRegionItem):

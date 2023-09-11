@@ -221,7 +221,7 @@ class Configuration(object):
         return self._integration_rad_points
 
     @integration_rad_points.setter
-    def integration_rad_points(self, new_value):
+    def integration_rad_points(self, new_value: int):
         self._integration_rad_points = new_value
         self.integrate_image_1d()
         if self.auto_integrate_cake:
@@ -687,7 +687,7 @@ class Configuration(object):
 
         # load general configuration
         if f.get('general_information').attrs['integration_num_points']:
-            self.integration_rad_points = f.get('general_information').attrs['integration_num_points']
+            self.integration_rad_points = int(f.get('general_information').attrs['integration_num_points'])
 
         # cake parameters:
         self.auto_integrate_cake = f.get('general_information').attrs['auto_integrate_cake']
