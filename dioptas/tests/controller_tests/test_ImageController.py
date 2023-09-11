@@ -79,6 +79,7 @@ class ImageControllerTest(QtTest):
         self.model.img_model._directory_watcher.file_added.emit(os.path.join(unittest_data_path, 'image_003.tif'))
 
         self.assertEqual('image_003.tif', str(self.widget.img_filename_txt.text()))
+        QtWidgets.QApplication.instance().processEvents()
 
     def test_configuration_selected_changes_mask_mode(self):
         self.model.add_configuration()
