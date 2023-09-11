@@ -113,7 +113,7 @@ class CalibrationModel(object):
         :return:
             array of points found
         """
-        massif = Massif(self.img_model.img_data)
+        massif = Massif(self.img_model.img_data, median_prefilter=False)
         cur_peak_points = massif.find_peaks((int(np.round(x)), int(np.round(y))), stdout=DummyStdOut())
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
@@ -186,7 +186,7 @@ class CalibrationModel(object):
         """
 
         if algorithm == 'Massif':
-            self.peak_search_algorithm = Massif(self.img_model.img_data)
+            self.peak_search_algorithm = Massif(self.img_model.img_data, median_prefilter=False)
         elif algorithm == 'Blob':
             if mask is not None:
                 self.peak_search_algorithm = BlobDetection(self.img_model.img_data * mask)
@@ -252,9 +252,10 @@ class CalibrationModel(object):
 
         keep = int(np.ceil(np.sqrt(size2)))
         try:
+            old_stdout = sys.stdout
             sys.stdout = DummyStdOut
             res = self.peak_search_algorithm.peaks_from_area(mask2, Imin=mean - std, keep=keep)
-            sys.stdout = sys.__stdout__
+            sys.stdout = old_stdout
         except IndexError:
             res = []
 
@@ -846,7 +847,8 @@ class CalibrationModel(object):
         """
         :param transform_function: function pointer which will affect the dx, dy and pixel corners of the detector
         """
-        self.detector._pixel_corners = np.ascontiguousarray(transform_function(self.detector.get_pixel_corners()))
+        if self.detector._pixel_corners is not None:
+            self.detector._pixel_corners = np.ascontiguousarray(transform_function(self.detector.get_pixel_corners()))
 
     def _swap_pixel_size(self):
         """swaps the pixel sizes"""

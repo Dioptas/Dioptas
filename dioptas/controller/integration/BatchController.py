@@ -69,7 +69,10 @@ class BatchController(object):
         self.widget.batch_widget.closeEvent = self.close_batch_frame
 
         self.widget.batch_widget.file_control_widget.load_btn.clicked.connect(self.load_data)
+        self.widget.batch_widget.file_control_widget.load_previous_folder_btn.clicked.connect(self.load_previous_folder)
+        self.widget.batch_widget.file_control_widget.load_next_folder_btn.clicked.connect(self.load_next_folder)
         self.widget.batch_widget.file_control_widget.save_btn.clicked.connect(self.save_data)
+
         self.widget.batch_widget.control_widget.integrate_btn.clicked.connect(self.integrate)
         self.widget.batch_widget.control_widget.waterfall_btn.clicked.connect(self.waterfall_mode)
         self.widget.batch_widget.control_widget.phases_btn.clicked.connect(self.toggle_show_phases)
@@ -82,6 +85,7 @@ class BatchController(object):
         self.widget.batch_widget.options_widget.bkg_cut_btn.clicked.connect(lambda: self.plot_batch())
         self.widget.batch_widget.control_widget.calc_bkg_btn.clicked.connect(self.extract_background)
         self.widget.batch_widget.control_widget.autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
+        self.widget.batch_widget.control_widget.normalize_btn.clicked.connect(self.normalize_btn_clicked)
 
         # set unit of x axis
         self.widget.batch_widget.options_widget.tth_btn.clicked.connect(self.set_unit_tth)
@@ -311,7 +315,7 @@ class BatchController(object):
                     f'2θ:{tth:.1f}')
                 self.widget.pattern_widget.set_pos_line(tth)
         else:
-            if ev.modifiers() & QtCore.Qt.ControlModifier:
+            if ev.modifiers() == QtCore.Qt.ControlModifier:
                 layout.opts['fov'] *= 0.999 ** delta
             else:
                 layout.opts['distance'] *= 0.999 ** delta
@@ -439,7 +443,7 @@ class BatchController(object):
         progress_dialog.close()
 
     def set_hard_minimum(self, ev, scale):
-        if ev.button() & QtCore.Qt.RightButton:
+        if ev.button() == QtCore.Qt.RightButton:
             val, ok = QtWidgets.QInputDialog.getDouble(self.widget.integration_image_widget, 'Edit minimal value',
                                                        'value:', decimals=3,
                                                        value=self.min_val[scale])
@@ -620,6 +624,10 @@ class BatchController(object):
                                       )
         if len(filenames) == 0:
             return
+        else:
+            self._load_data(filenames)
+
+    def _load_data(self, filenames):
         self.model.working_directories['batch'] = os.path.dirname(filenames[0])
         self.widget.batch_widget.file_control_widget.folder_lbl.setText(os.path.dirname(filenames[0]))
         self.reset_view()
@@ -639,6 +647,19 @@ class BatchController(object):
             self.change_view()
 
         self.load_single_image(1, 0)
+
+        if self.model.calibration_model.is_calibrated:
+            self.integrate()
+
+    def load_previous_folder(self):
+        filenames = self.model.batch_model.get_previous_folder_filenames()
+        if len(filenames) > 0:
+            self._load_data(filenames)
+
+    def load_next_folder(self):
+        filenames = self.model.batch_model.get_next_folder_filenames()
+        if len(filenames) > 0:
+            self._load_data(filenames)
 
     def reset_view(self):
         """
@@ -822,7 +843,17 @@ class BatchController(object):
                 for y in range(img_data.shape[0]):
                     pattern_y = img_data[int(y)]
                     self.model.pattern_model.set_pattern(pattern_x, pattern_y)
-                    self.model.current_configuration.save_pattern(f"{name}_{y}{ext}", subtract_background=True)
+                    self.model.current_configuration.save_pattern(f"{name}_{y:03d}{ext}")
+
+                    if self.model.pattern_model.pattern.auto_background_subtraction:
+                        bkg_directory = os.path.join(os.path.dirname(filename), 'bkg_subtracted')
+                        if not os.path.exists(bkg_directory):
+                            os.mkdir(bkg_directory)
+                        bkg_subtracted_name = os.path.join(bkg_directory, os.path.basename(name))
+
+                        self.model.pattern_model.pattern.recalculate_pattern()
+                        self.model.current_configuration.save_pattern(f"{bkg_subtracted_name}_{y:03d}{ext}",
+                                                                      subtract_background=True)
                 self.model.img_model.blockSignals(False)
 
     def img_mouse_click(self, x, y):
@@ -843,6 +874,10 @@ class BatchController(object):
 
     def img_autoscale_btn_clicked(self):
         self.widget.batch_widget.stack_plot_widget.img_view.auto_level()
+
+    def normalize_btn_clicked(self):
+        self.model.batch_model.normalize()
+        self.plot_batch()
 
     def process_waterfall(self, x, y):
         """

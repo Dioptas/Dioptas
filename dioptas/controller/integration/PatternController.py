@@ -161,7 +161,7 @@ class PatternController(object):
         if current_value:
             self.model.current_configuration.integration_rad_points = None
         else:
-            self.model.current_configuration.integration_rad_points = float(str(self.widget.bin_count_txt.text()))
+            self.model.current_configuration.integration_rad_points = int(str(self.widget.bin_count_txt.text()))
         self.widget.bin_count_txt.setEnabled(not current_value)
 
     def supersampling_changed(self, value):

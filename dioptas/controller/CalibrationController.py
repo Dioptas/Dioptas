@@ -344,7 +344,7 @@ class CalibrationController(object):
         :param y:
             y-Position for the search
         """
-        x, y = y, x  # indeces for the img array are transposed compared to the mouse position
+        x, y = y, x  # indices for the img array are transposed compared to the mouse position
 
         # convert pixel coord into pixel index
         x, y = int(x), int(y)
@@ -360,11 +360,11 @@ class CalibrationController(object):
         if self.widget.automatic_peak_search_rb.isChecked():
             points = self.model.calibration_model.find_peaks_automatic(x, y, peak_ind - 1)
         else:
-            search_size = np.int(self.widget.search_size_sb.value())
+            search_size = int(self.widget.search_size_sb.value())
             points = self.model.calibration_model.find_peak(x, y, search_size, peak_ind - 1)
         if len(points):
             self.plot_points(points)
-            if self.widget.automatic_peak_num_inc_cb.checkState():
+            if self.widget.automatic_peak_num_inc_cb.isChecked():
                 self.widget.peak_num_sb.setValue(peak_ind + 1)
 
     def plot_points(self, points=None):

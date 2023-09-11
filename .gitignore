@@ -20,14 +20,16 @@ cloc-1.62.pl
 *.coverage
 smooth_bruckner_cython.c
 smooth_bruckner_cython.html
+version.py
 
 log.txt
 .idea
+.eggs
+*.venv*
 releases
 cache
 _build/
 *.logoist
-_version.py
 install.sh
 analysis
 .pytest_cache
@@ -43,6 +45,7 @@ build/
 dist/
 [Bb]in/
 [Oo]bj/
+*.egg-info
 
 # Enable "build/" folder in the NuGet Packages folder since NuGet packages use it for MSBuild targets
 !packages/*/build/

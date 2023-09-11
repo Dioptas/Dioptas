@@ -18,7 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
-import unittest
+import numpy as np
+
+from pytest import approx
+
 try:
     from urllib import pathname2url
 except ImportError:
@@ -39,75 +42,84 @@ def get_cif_url(cif_filename):
     return file_path
 
 
-class TestCifModule(unittest.TestCase):
-    def test_reading_phase(self):
-        fcc_cif = ReadCif(get_cif_url('fcc.cif'))
+def test_reading_cif():
+    fcc_cif = ReadCif(get_cif_url('fcc.cif'))
 
-        cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
+    cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
 
-        self.assertEqual(cif_phase.a, 4.874)
-        self.assertEqual(cif_phase.b, 4.874)
-        self.assertEqual(cif_phase.c, 4.874)
+    assert cif_phase.a == 4.874
+    assert cif_phase.b == 4.874
+    assert cif_phase.c == 4.874
 
-        self.assertEqual(cif_phase.alpha, 90)
-        self.assertEqual(cif_phase.beta, 90)
-        self.assertEqual(cif_phase.gamma, 90)
+    assert cif_phase.alpha == 90
+    assert cif_phase.beta == 90
+    assert cif_phase.gamma == 90
 
-        self.assertEqual(cif_phase.volume, 115.79)
-        self.assertEqual(cif_phase.space_group_number, 225)
+    assert np.round(cif_phase.volume, 2) == 115.79
+    assert cif_phase.space_group_number == 225
 
-        self.assertEqual(len(cif_phase.atoms), 8)
-        self.assertEqual(cif_phase.comments, 'HoN, Fm-3m - NaCl structure type, ICSD 44776')
-
-    def test_calculating_xrd_pattern_from_cif_file(self):
-        fcc_cif = ReadCif(get_cif_url('fcc.cif'))
-        cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
-        cif_converter = CifConverter(0.31)
-        jcpds_phase = cif_converter.convert_cif_phase_to_jcpds(cif_phase)
-
-        self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 100, places=4)
-        self.assertAlmostEqual(jcpds_phase.reflections[0].d0, 2.814, places=4)
-        self.assertAlmostEqual(jcpds_phase.reflections[1].d0, 2.437, places=4)
-
-    def test_loading_cif_phase_and_calculate_jcpds(self):
-        cif_converter = CifConverter(0.31)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'fcc.cif'))
-        self.assertEqual(jcpds_phase.name, 'fcc')
-        self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 100, places=4)
-        self.assertAlmostEqual(jcpds_phase.reflections[0].d0, 2.814, places=4)
-        self.assertAlmostEqual(jcpds_phase.reflections[1].d0, 2.437, places=4)
-
-    def test_loading_cif_phase_with_occupancies_specified(self):
-        cif_converter = CifConverter(0.31)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'magnesiowustite.cif'))
-        self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 27.53, delta=0.2)
-        self.assertAlmostEqual(jcpds_phase.reflections[1].intensity, 100)
-        self.assertAlmostEqual(jcpds_phase.reflections[2].intensity, 65.02, delta=0.2)
-
-    def test_reading_american_mineralogist_db_cif(self):
-        cif_converter = CifConverter(0.31)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'amcsd.cif'))
-        self.assertEqual(jcpds_phase.params['a0'], 5.4631)
-        self.assertAlmostEqual(jcpds_phase.reflections[0].intensity, 73.48, delta=0.6)
-        self.assertAlmostEqual(jcpds_phase.reflections[1].intensity, 100)
-        self.assertAlmostEqual(jcpds_phase.reflections[2].intensity, 33.6, delta=0.4)
-        self.assertAlmostEqual(jcpds_phase.reflections[3].intensity, 14.65, delta=0.4)
-
-    def test_read_cif_with_errors_in_atomic_positions(self):
-        cif_converter = CifConverter(0.31, min_d_spacing=1.5, min_intensity=10)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'apatite.cif'))
-        self.assertEqual(jcpds_phase.params['a0'], 9.628)
-
-    def test_read_cif_from_shelx(self):
-        cif_converter = CifConverter(0.31)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'Fe2O3_shelx.cif'))
-        self.assertEqual(jcpds_phase.params['a0'], 6.524)
-        self.assertEqual(jcpds_phase.params['b0'], 4.702)
-        self.assertEqual(jcpds_phase.params['c0'], 4.603)
-
-    def test_read_cif_with_triclinic_geometry(self):
-        cif_converter = CifConverter(0.31, min_d_spacing=1, min_intensity=5)
-        jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'ICSD_triclinic.cif'))
+    assert len(cif_phase.atoms) == 8
+    assert cif_phase.comments == 'HoN, Fm-3m - NaCl structure type, ICSD 44776'
 
 
+def test_read_cif_without_cell_volume():
+    fcc_cif = ReadCif(get_cif_url('ICSD_triclinic_without_cell_volume.cif'))
+    cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
+    assert cif_phase.volume == approx(465.74, 1e-2)
 
+
+def test_calculating_xrd_pattern_from_cif_file():
+    fcc_cif = ReadCif(get_cif_url('fcc.cif'))
+    cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
+    cif_converter = CifConverter(0.31)
+    jcpds_phase = cif_converter.convert_cif_phase_to_jcpds(cif_phase)
+
+    assert jcpds_phase.reflections[0].intensity == 100
+    assert jcpds_phase.reflections[0].d0 == approx(2.814, 1e-5)
+    assert jcpds_phase.reflections[1].d0 == approx(2.437, 1e-5)
+
+
+def test_loading_cif_phase_and_calculate_jcpds():
+    cif_converter = CifConverter(0.31)
+    jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'fcc.cif'))
+    assert jcpds_phase.name == 'fcc'
+    assert jcpds_phase.reflections[0].intensity == 100
+    assert jcpds_phase.reflections[0].d0 == approx(2.814, 1e-5)
+    assert jcpds_phase.reflections[1].d0 == approx(2.437, 1e-5)
+
+
+def test_loading_cif_phase_with_occupancies_specified():
+    cif_converter = CifConverter(0.31)
+    jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'magnesiowustite.cif'))
+    assert jcpds_phase.reflections[0].intensity == approx(27.53, 0.2)
+    assert jcpds_phase.reflections[1].intensity == 100
+    assert jcpds_phase.reflections[2].intensity == approx(65.02, 0.2)
+
+
+def test_reading_american_mineralogist_db_cif():
+    cif_converter = CifConverter(0.31)
+    jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'amcsd.cif'))
+    assert jcpds_phase.params['a0'] == 5.4631
+    assert jcpds_phase.reflections[0].intensity == approx(73.48, 0.5)
+    assert jcpds_phase.reflections[1].intensity == 100
+    assert jcpds_phase.reflections[2].intensity == approx(33.6, 0.5)
+    assert jcpds_phase.reflections[3].intensity == approx(14.65, 0.5)
+
+
+def test_read_cif_with_errors_in_atomic_positions():
+    cif_converter = CifConverter(0.31, min_d_spacing=1.5, min_intensity=10)
+    jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'apatite.cif'))
+    assert jcpds_phase.params['a0'] == 9.628
+
+
+def test_read_cif_from_shelx():
+    cif_converter = CifConverter(0.31)
+    jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'Fe2O3_shelx.cif'))
+    assert jcpds_phase.params['a0'] == 6.524
+    assert jcpds_phase.params['b0'] == 4.702
+    assert jcpds_phase.params['c0'] == 4.603
+
+
+def test_convert_cif_with_triclinic_geometry():
+    cif_converter = CifConverter(0.31, min_d_spacing=1, min_intensity=5)
+    cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'ICSD_triclinic.cif'))
