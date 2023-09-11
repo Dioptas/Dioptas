@@ -230,7 +230,6 @@ class BatchModel(QtCore.QObject):
         :param use_all: Use all images. If False use only images, that were already integrated.
         :param callback_fn: callback function which is called each iteration with the current image number as parameter,
                             if it returns False the integration will be aborted.
-        :param use_mask: use mask if True
         """
         intensity_data = []
         binning_data = []

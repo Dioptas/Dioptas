@@ -24,7 +24,7 @@ from qtpy import QtWidgets, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
 from ..EpicsWidgets import MoveStageWidget
-from ..MapWidgets import Map2DWidget 
+from ..MapWidgets import Map2DWidget
 from .BatchWidget import BatchWidget
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
@@ -87,7 +87,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self.file_info_widget = FileInfoWidget(self)
         self.move_widget = MoveStageWidget(self)
-        self.map_2D_widget = Map2DWidget(self) 
+        # self.map_2D_widget = Map2DWidget(self)
         self.batch_widget = BatchWidget(self)
 
         self.img_frame_size = QtCore.QSize(400, 500)
