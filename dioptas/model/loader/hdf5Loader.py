@@ -32,15 +32,15 @@ class Hdf5Image:
         self.f = h5py.File(filename, 'r')
         self.image_sources = find_image_sources(self.f)
 
-        self.dataset = self.f[self.image_sources[0]]
-        self.series_max = self.dataset.shape[0]
+        self.__current_source = self.image_sources[0]
+        self.series_max = self.f[self.__current_source].shape[0]
 
     def get_image(self, ind):
-        return self.dataset[ind]
+        return self.f[self.__current_source][ind]
 
     def select_source(self, source):
-        self.dataset = self.f[source]
-        self.series_max = self.dataset.shape[0]
+        self.__current_source = source
+        self.series_max = self.f[source].shape[0]
 
 
 def find_image_sources(hd5_file):
