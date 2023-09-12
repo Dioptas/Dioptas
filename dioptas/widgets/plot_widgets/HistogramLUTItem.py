@@ -79,6 +79,8 @@ class HistogramLUTItem(GraphicsWidget):
         self.percentageLevel = False
         self.orientation = orientation
         self.autoLevel = autoLevel
+        self.hist_x = np.array([0.])
+        self.hist_y = np.array([0.])
 
         self.layout = QtWidgets.QGraphicsGridLayout()
         self.setLayout(self.layout)
@@ -271,6 +273,8 @@ class HistogramLUTItem(GraphicsWidget):
         if img_data is None:
             img_data = self.imageItem.getData(copy=False)
             if img_data is None:
+                self.hist_x = np.array([0.])
+                self.hist_y = np.array([0.])
                 return
 
         log_data = np.log(img_data)
