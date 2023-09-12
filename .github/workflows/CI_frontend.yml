@@ -28,25 +28,17 @@ jobs:
           ${{ runner.os }}-pip-c3
 
     - name: Install Apt Dependencies
-      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install libegl1-mesa libgl1-mesa-glx xserver-xorg-video-dummy libxkbcommon-x11-0 libxkbcommon0 \
-          libxkbcommon-dev libxcb-icccm4 libxcb-image0 libxcb-shm0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
-          libxcb-render0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0 libxcb1 libopengl0
+        sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0 libxkbcommon-x11-dev libxcb-xinerama0  \
+          libxcb-keysyms1-dev libxcb-image0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev \
+          libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-cursor0 libopengl0
 
     - name: Install Pip Dependencies
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt6 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph \
                     mock pytest pytest-xvfb pytest-qt
-
-    - name: Start X server
-      if: runner.os == 'Linux'
-      run: |
-        export DISPLAY=:99.0
-        Xorg -noreset +extension GLX +extension RANDR +extension RENDER -logfile ./99.log -config ./.github/workflows/xorg.conf :99 &
-        sleep 3
 
     - name: Run tests
       run: |
