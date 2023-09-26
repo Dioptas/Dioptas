@@ -50,7 +50,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         """
         :param path: path to folder which will be watched
         :param file_types: list of file types which will be watched for, e.g. ['.tif', '.jpeg']
-        :param activate: whether or not the Watcher will already emit signals
+        :param activate: whether the Watcher will already emit signals
         """
         super(NewFileInDirectoryWatcher, self).__init__()
 
@@ -68,18 +68,20 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         self.event_handler = PatternMatchingEventHandler(self.patterns)
         self.event_handler.on_created = self.on_file_created
 
-        self.active = False
+        self.active = activate
         if activate:
             self.activate()
 
-        self.file_added = Signal(str)  # to be used signal
-
+        self.file_added = Signal(str)  # to be used signal from outside
         self._file_added_qt.connect(self.file_added.emit)
         self.filepath_queue = queue.Queue()
-        self.queue_thread = threading.Thread(target=self.process_events, daemon=True)
-        self.queue_thread.start()
 
     def on_file_created(self, event):
+        """
+        Called when a new file is created in the watched directory. This function will be called by the watchdog
+        event handle. We check whether the file is fully written by observing whether the file size changes. If the
+        file size is not changing within 10ms, we assume that the file is fully written and emit the file_added signal.
+        """
         file_path = os.path.abspath(event.src_path)
         file_size = -1
         while file_size != os.stat(file_path).st_size:
@@ -91,12 +93,15 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
     def activate(self):
         if not self.active:
             self.active = True
+            self.queue_thread = threading.Thread(target=self.process_events, daemon=True)
+            self.queue_thread.start()
             self._start_observing()
 
     def deactivate(self):
         if self.active:
             self.active = False
             self._stop_observing()
+            self.queue_thread.join()
 
     def _start_observing(self):
         self.observer = Observer()
@@ -114,18 +119,18 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
 
     @path.setter
     def path(self, new_path):
-        active = self.active
-        if active:
+        if self.active:
             self._stop_observing()
         self._path = new_path
-        if active:
+        if self.active:
             self._start_observing()
 
     def process_events(self):
-        while True:
+        """continuously check for new files and emit the file_added signal"""
+        while self.active:
             try:
                 file_path = self.filepath_queue.get(False)  # doesn't block
-            except queue.Empty:  # raised when queue is empty
+            except queue.Empty:  # raised when the queue is empty
                 time.sleep(0.05)
                 continue
 
@@ -133,3 +138,8 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
                 self._file_added_qt.emit(file_path)
             else:
                 self.file_added.emit(file_path)
+
+    def __del__(self):
+        """Stop the observer thread when the object is deleted."""
+        self.active = false
+        self.deactivate()
