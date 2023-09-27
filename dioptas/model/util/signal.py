@@ -71,3 +71,10 @@ class Signal:
                     handle()
                 else:
                     handle(*args)
+
+    def clear(self):
+        """
+        Removes all listeners from the Signal.
+        """
+        self.listeners = []
+        self.priority_listeners = []
