@@ -141,5 +141,6 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
 
     def __del__(self):
         """Stop the observer thread when the object is deleted."""
-        self.active = false
         self.deactivate()
+        self.file_added.clear()
+        super(NewFileInDirectoryWatcher, self).__del__()
