@@ -1,5 +1,14 @@
-0.5.8 (under development)
+0.5.8 (stable 29.09.2023)
 -------------------------
+
+New features:
+    - scale menu next to the image color scale (Thanks to @t20100)
+        - can be opened by clicking the gear wheel
+        - allows for manual selection of minimum and maximum values
+        - scaling can be set to logarithmic and square root (default is linear)
+        - extra button to redo the autoscaling
+    - autoscale implementation is now better working with large values (e.g. ESRF Dectris Eiger images)
+      (Thanks to @t20100)
 
 Bugfixes:
     - fix issues with type of the radial bin number being float instead of int -> this caused issues with the
