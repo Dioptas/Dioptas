@@ -71,6 +71,12 @@ jobs:
         zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
         du -sh $DIOPTAS_FOLDER.zip
 
+    - name: Upload Compressed App as Artifact to GitHub
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.DIOPTAS_FOLDER }}
+        path: dist\${{ env.DIOPTAS_FOLDER }}
+
     - name: Upload Compressed App to Dropbox
       env:
         DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}

@@ -57,6 +57,12 @@ jobs:
         tar -zcvf $DIOPTAS_FOLDER.tar.gz $DIOPTAS_FOLDER
         du -sh $DIOPTAS_FOLDER.tar.gz
 
+    - name: Upload Compressed App as Artifact to GitHub
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.DIOPTAS_FOLDER }}
+        path: dist\${{ env.DIOPTAS_FOLDER }}
+
     - name: Upload Compressed App to Dropbox
       env:
         DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
