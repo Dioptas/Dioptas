@@ -26,7 +26,7 @@ jobs:
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image==0.19.3 pyqt6 future qtpy pyfai lmfit pyepics \
                     pyinstaller cython watchdog h5py hdf5plugin pyqtgraph sharedmem \
-                    cython setuptools_scm
+                    cython poetry poetry-dynamic-versioning
       # we have to use scikit-image==0.19.3 because of a new loading mechanism in 0.20.0 which does currently not work
       # with pyinstaller
 
@@ -41,8 +41,8 @@ jobs:
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
 
-    - name: Create a Version File
-      run: python -m setuptools_scm
+    - name: Update the Version
+      run: poetry dynamic-versioning
 
     - name: Run Dioptas from source to test
       run: python run.py test

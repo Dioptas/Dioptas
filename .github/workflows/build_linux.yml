@@ -32,13 +32,13 @@ jobs:
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image==0.19.3 pyqt6 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller pyopengl pyopengl-accelerate watchdog h5py hdf5plugin pyqtgraph \
-                    mock pytest pytest-xvfb pytest-qt setuptools_scm
+                    mock pytest pytest-xvfb pytest-qt poetry poetry-dynamic-versioning
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
 
-    - name: Create a Version File
-      run: python -m setuptools_scm
+    - name: Update the Version
+      run: poetry dynamic-versioning
 
     - name: Run Dioptas from source to test
       run: xvfb-run -e /dev/stdout python run.py test
