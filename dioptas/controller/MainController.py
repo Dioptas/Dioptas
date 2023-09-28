@@ -138,11 +138,11 @@ class MainController(object):
         old_view_range = None
         if old_index == 0:  # calibration tab
             old_view_range = self.widget.calibration_widget.img_widget.img_view_box.targetRange()
-            old_hist_levels = self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.getExpLevels()
+            old_hist_levels = self.widget.calibration_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
             self.old_hist_levels[0] = old_hist_levels
         elif old_index == 1:  # mask tab
             old_view_range = self.widget.mask_widget.img_widget.img_view_box.targetRange()
-            old_hist_levels = self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.getExpLevels()
+            old_hist_levels = self.widget.mask_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
             self.old_hist_levels[1] = old_hist_levels
         elif old_index == 2:
             old_view_range = self.widget.integration_widget.img_widget.img_view_box.targetRange()
