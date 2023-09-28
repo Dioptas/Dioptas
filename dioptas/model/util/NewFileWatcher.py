@@ -68,7 +68,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         self.event_handler = PatternMatchingEventHandler(self.patterns)
         self.event_handler.on_created = self.on_file_created
 
-        self.active = activate
+        self.active = False
         if activate:
             self.activate()
 
