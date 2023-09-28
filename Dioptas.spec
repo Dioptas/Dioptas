@@ -81,7 +81,7 @@ extra_datas = [
     (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), os.path.join('hdf5plugin', 'plugins'))
 ]
 
-a = Analysis(['Dioptas.py'],
+a = Analysis(['run.py'],
              pathex=[folder],
              binaries=binaries,
              datas=extra_datas,
