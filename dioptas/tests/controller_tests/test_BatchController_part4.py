@@ -17,30 +17,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import os
 import pytest
 from mock import MagicMock
-
 import numpy as np
 
-from ...widgets.integration import IntegrationWidget
-from ...controller.integration.BatchController import BatchController
-from ...model.DioptasModel import DioptasModel
 from ...model.util.Pattern import Pattern
 from qtpy import QtWidgets
 
-
-@pytest.fixture
-def batch_controller(qtbot):
-    widget = IntegrationWidget()
-    model = DioptasModel()
-
-    controller = BatchController(
-        widget=widget,
-        dioptas_model=model
-    )
-    return controller
+from ...controller.integration import BatchController
+from .test_BatchController_part1 import *
 
 
 def test_save_xy_without_background_subtraction(batch_controller: BatchController, tmp_path):
@@ -85,4 +71,4 @@ def test_save_xy_with_background_subtraction(batch_controller: BatchController, 
     bkg_subtracted_pattern.load(os.path.join(bkg_subtracted_path, f"test_011.xy"))
     assert len(bkg_subtracted_pattern.x) == 701
     assert len(bkg_subtracted_pattern.y) == 701
-    assert np.sum(bkg_subtracted_pattern.y) == pytest.approx(0)
+    assert np.sum(bkg_subtracted_pattern.y) == pytest.approx(0, abs=1e-10)

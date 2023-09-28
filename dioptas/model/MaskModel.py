@@ -20,6 +20,7 @@
 
 from collections import deque
 
+import fabio
 import numpy as np
 import skimage.draw
 from PIL import Image
@@ -231,24 +232,60 @@ class MaskModel(object):
         self.update_deque()
         self._mask_data = mask_data
 
-    def save_mask(self, filename):
+    def save_mask(self, filename: str, flipud: bool = False):
+        """Save current mask to file
+
+        :param filename: Path of the file to write
+        :param flipud: True to apply a vertical flip before saving the mask
+        """
         im_array = np.int8(self.get_img())
-        im = Image.fromarray(im_array)
-        try:
-            im.save(filename, "tiff", compression="tiff_deflate")
-        except OSError:
+        if flipud:
+            im_array = np.flipud(im_array)
+
+        if filename.endswith('.npy'):
+            np.save(filename, im_array)
+        elif filename.endswith('.edf'):
+            fabio.edfimage.EdfImage(im_array).write(filename)
+        else:
+            im = Image.fromarray(im_array)
             try:
-                im.save(filename, "tiff", compression="tiff_adobe_deflate")
-            except IOError:
-                im.save(filename, "tiff")
+                im.save(filename, "tiff", compression="tiff_deflate")
+            except OSError:
+                try:
+                    im.save(filename, "tiff", compression="tiff_adobe_deflate")
+                except IOError:
+                    im.save(filename, "tiff")
 
         self.filename = filename
 
-    def load_mask(self, filename):
-        try:
-            data = np.array(Image.open(filename))
-        except IOError:
-            data = np.loadtxt(filename)
+    @staticmethod
+    def read_mask_file(filename: str, flipud: bool = False) -> np.ndarray:
+        """Load an image mask from file.
+
+        :param filename: Path to the file to read
+        :param flipud: True to apply a vertical flip to the mask
+        """
+        if filename.endswith('.npy'):
+            data = np.load(filename)
+        elif filename.endswith('.edf'):
+            data = fabio.open(filename).data
+        else:
+            try:
+                data = np.array(Image.open(filename))
+            except IOError:
+                data = np.loadtxt(filename)
+
+        if flipud:
+            data = np.flipud(data)
+        return data
+
+    def load_mask(self, filename: str, flipud: bool = False):
+        """Load mask from file and replace the current one
+
+        :param filename: Path to the file to read
+        :param flipud: True to apply a vertical flip to the loaded mask
+        """
+        data = self.read_mask_file(filename, flipud)
 
         if self.mask_dimension == data.shape:
             self.filename = filename
@@ -258,11 +295,13 @@ class MaskModel(object):
             return True
         return False
 
-    def add_mask(self, filename):
-        try:
-            data = np.array(Image.open(filename))
-        except IOError:
-            data = np.loadtxt(filename)
+    def add_mask(self, filename: str, flipud: bool = False):
+        """Combine mask loaded from file with the current one
+
+        :param filename: Path to the file to read
+        :param flipud: True to apply a vertical flip to the loaded mask
+        """
+        data = self.read_mask_file(filename, flipud)
 
         if self.get_mask().shape == data.shape:
             self._add_mask(data)

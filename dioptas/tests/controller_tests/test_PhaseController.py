@@ -23,7 +23,7 @@ import os
 import gc
 
 import numpy as np
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtTest import QTest
 from mock import MagicMock
 
@@ -31,8 +31,6 @@ from ...controller.integration import PatternController
 from ...controller.integration import PhaseController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
-
-from ..utility import click_button
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -163,7 +161,7 @@ class PhaseControllerTest(QtTest):
 
     def test_temperature_change(self):
         self.load_phases()
-        self.model.phase_model.set_pressure(2, 100) # otherwise the reflections go none
+        self.model.phase_model.set_pressure(2, 100)  # otherwise the reflections go none
 
         temperature = 1500
 
@@ -277,6 +275,25 @@ class PhaseControllerTest(QtTest):
         for ind, cb in enumerate(self.phase_widget.phase_show_cbs):
             self.assertTrue(cb.isChecked())
 
+    def test_change_phase_color(self):
+        """
+        Test that phase color is changed in phase table widget, phase legend and phase line. We assign the color from
+        the second color button to the fourth phase.
+        """
+        self.load_phases()
+        new_color = self.phase_widget.phase_color_btns[1].palette().color(QtGui.QPalette.Button)
+        QtWidgets.QColorDialog.getColor = MagicMock(return_value=new_color)
+        click_button(self.phase_widget.phase_color_btns[3])
+
+        self.assertEqual(self.phase_widget.phase_color_btns[3].palette().color(QtGui.QPalette.Button), new_color)
+
+        self.assertEqual(self.model.phase_model.phase_colors[3], (new_color.red(), new_color.green(), new_color.blue()))
+
+        phase_line_color = self.widget.pattern_widget.phases[3].pen.color()
+        phase_legend_color = self.widget.pattern_widget.phases_legend.legendItems[3][1].opts['color']
+        self.assertEqual(phase_line_color, new_color)
+        self.assertEqual(phase_legend_color, (new_color.red(), new_color.green(), new_color.blue()))
+
     def load_phases(self):
         self.load_phase('ar.jcpds')
         self.load_phase('ag.jcpds')
@@ -287,4 +304,3 @@ class PhaseControllerTest(QtTest):
 
     def load_phase(self, filename):
         self.model.phase_model.add_jcpds(os.path.join(jcpds_path, filename))
-

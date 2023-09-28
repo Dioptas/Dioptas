@@ -1,8 +1,23 @@
-0.5.8 (under development)
+0.5.8 (stable 29.09.2023)
 -------------------------
 
+New features:
+    - scale menu next to the image color scale (Thanks to @t20100)
+        - can be opened by clicking the gear wheel
+        - allows for manual selection of minimum and maximum values
+        - scaling can be set to logarithmic and square root (default is linear)
+        - extra button to redo the autoscaling
+    - autoscale implementation is now better working with large values (e.g. ESRF Dectris Eiger images)
+      (Thanks to @t20100)
+
 Bugfixes:
+    - fix issues with type of the radial bin number being float instead of int -> this caused issues with the
+      integration of cake when setting a manual radial bin number
     - cosmic removal is now working again
+    - fixes issue with auto peak number increasing while the checkbox for it was unchecked
+    - no more error message when mouse is hovering over the cake image at 0 indices of the image
+    - changing the color of an overlay or phase item is now working correctly again
+    - the mask is now correctly reset when batch integration is started with images of different shape
 
 
 0.5.7 (stable 24.04.2023)
