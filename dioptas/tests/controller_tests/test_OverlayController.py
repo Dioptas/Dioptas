@@ -24,7 +24,7 @@ import gc
 from mock import MagicMock
 
 import numpy as np
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtTest import QTest
 
 from ...controller.integration import OverlayController
@@ -362,3 +362,20 @@ class OverlayControllerTest(QtTest):
         self.overlay_controller.overlay_tw_header_section_clicked(0)
         for ind, cb in enumerate(self.overlay_widget.show_cbs):
             self.assertTrue(cb.isChecked())
+
+    def test_change_overlay_color(self):
+        """
+        We are setting color of overlay 3 to color of overlay 1
+        """
+        self.load_overlays()
+        color1 = self.overlay_widget.color_btns[1].palette().color(QtGui.QPalette.Button)
+        QtWidgets.QColorDialog.getColor = MagicMock(return_value=color1)
+        click_button(self.overlay_widget.color_btns[3])
+
+        self.assertEqual(self.overlay_widget.color_btns[3].palette().color(QtGui.QPalette.Button), color1)
+        overlay_plot_color = self.integration_widget.pattern_widget.overlays[3].opts['pen'].color()
+
+        # legend index needs to be one higher since we also have a legend item for the original pattern:
+        legend_color = self.integration_widget.pattern_widget.legend.legendItems[4][1].opts['color']
+        self.assertEqual(overlay_plot_color, color1)
+        self.assertEqual(legend_color, color1.name())
