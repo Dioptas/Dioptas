@@ -57,10 +57,16 @@ jobs:
         tar -zcvf $DIOPTAS_FOLDER.tar.gz $DIOPTAS_FOLDER
         du -sh $DIOPTAS_FOLDER.tar.gz
 
+    - name: Determine Folder Name
+      run: |
+        cd dist
+        echo "folder_name = $(ls | grep Dioptas)" >> $GITHUB_ENV
+
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
       with:
-        path: dist\Dioptas*.tar.gz
+        name: ${{ env.folder_name }}
+        path: dist/${{ env.folder_name }}
 
     - name: Upload Compressed App to Dropbox
       env:
