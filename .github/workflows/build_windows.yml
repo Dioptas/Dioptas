@@ -41,7 +41,7 @@ jobs:
       run: python -m setuptools_scm
 
     - name: Run Dioptas from source to test
-      run: python Dioptas.py test
+      run: python run.py test
 
     - name: Run PyInstaller
       shell: cmd

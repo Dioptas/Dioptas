@@ -46,7 +46,7 @@ jobs:
       run: python -m setuptools_scm
 
     - name: Run Dioptas from source to test
-      run: xvfb-run -e /dev/stdout python Dioptas.py test
+      run: xvfb-run -e /dev/stdout python run.py test
         
     - name: Run PyInstaller
       run: bash create_executable.sh
