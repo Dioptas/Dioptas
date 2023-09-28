@@ -58,3 +58,4 @@ jobs:
         py.test dioptas/tests/unit_tests/test_Pattern.py
         py.test dioptas/tests/unit_tests/test_PatternModel.py
         py.test dioptas/tests/unit_tests/test_PhaseModel.py
+        py.test dioptas/tests/unit_tests/test_Signal.py
