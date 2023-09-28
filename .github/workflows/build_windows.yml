@@ -60,27 +60,29 @@ jobs:
         cd dist\Dioptas*
         echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})" >> $GITHUB_ENV
 
-    - name: Compress App
-      run: |
-        cd dist\Dioptas*
-        $folderName = pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
-        cd ..
-        $zipName = $folderName + '.zip'
-        Compress-Archive $folderName $zipName
-        Write-Host((Get-Item $zipName).length/1MB)
-
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.folder_name }}
         path: dist\Dioptas*
 
-    - name: Upload Compressed App to Dropbox
-      env:
-        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-      run: |
-        pip install dropbox
-        cd dist
-        $zipFile = Resolve-Path ".\Dioptas*.zip" | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
-        $targetFile = '/develop/windows/' + $zipFile
-        python ..\scripts\dropbox_upload.py $zipFile $targetFile
+#     DROPBOX UPLOAD
+#     disabled for now, since we can use the GitHub artifacts
+#    - name: Compress App
+#      run: |
+#        cd dist\Dioptas*
+#        $folderName = pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
+#        cd ..
+#        $zipName = $folderName + '.zip'
+#        Compress-Archive $folderName $zipName
+#        Write-Host((Get-Item $zipName).length/1MB)
+#
+#    - name: Upload Compressed App to Dropbox
+#      env:
+#        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+#      run: |
+#        pip install dropbox
+#        cd dist
+#        $zipFile = Resolve-Path ".\Dioptas*.zip" | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
+#        $targetFile = '/develop/windows/' + $zipFile
+#        python ..\scripts\dropbox_upload.py $zipFile $targetFile
