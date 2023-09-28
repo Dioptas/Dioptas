@@ -62,12 +62,16 @@ jobs:
         Compress-Archive $folderName $zipName
         Write-Host((Get-Item $zipName).length/1MB)
 
-    - name: Upload Compressed App to Dropbox
-      env:
-        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-      run: |
-        pip install dropbox
-        cd dist
-        $zipFile = Resolve-Path ".\Dioptas*.zip" | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
-        $targetFile = '/develop/windows/' + $zipFile
-        python ..\scripts\dropbox_upload.py $zipFile $targetFile
+    - name: Upload Compressed App as Artifact to GitHub
+      uses: actions/upload-artifact@v3
+      with:
+        path: dist\Dioptas*.zip
+#    - name: Upload Compressed App to Dropbox
+#      env:
+#        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+#      run: |
+#        pip install dropbox
+#        cd dist
+#        $zipFile = Resolve-Path ".\Dioptas*.zip" | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
+#        $targetFile = '/develop/windows/' + $zipFile
+#        python ..\scripts\dropbox_upload.py $zipFile $targetFile
