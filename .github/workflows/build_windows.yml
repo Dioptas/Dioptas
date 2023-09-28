@@ -10,7 +10,7 @@ jobs:
     # The type of runner that the job will run on
     runs-on: windows-latest
     env:
-      folder_name: ''
+      folder_name: 'DioptasWin'
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -55,6 +55,11 @@ jobs:
         cd dist\Dioptas*
         Dioptas.exe test
 
+    - name: Determine Folder Name
+      run: |
+        cd dist\Dioptas*
+        echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})" >> $GITHUB_ENV
+
     - name: Compress App
       run: |
         cd dist\Dioptas*
@@ -63,11 +68,6 @@ jobs:
         $zipName = $folderName + '.zip'
         Compress-Archive $folderName $zipName
         Write-Host((Get-Item $zipName).length/1MB)
-
-    - name: Determine Folder Name
-      run: |
-        cd dist\Dioptas*
-        echo "folder_name = $(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})" >> $GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
