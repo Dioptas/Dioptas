@@ -1,7 +1,6 @@
-0.5.8 (stable 29.09.2023)
--------------------------
+# 0.5.8 (stable 29.09.2023)
 
-New features:
+## New features:
     - scale menu next to the image color scale (Thanks to @t20100)
         - can be opened by clicking the gear wheel
         - allows for manual selection of minimum and maximum values
@@ -10,7 +9,7 @@ New features:
     - autoscale implementation is now better working with large values (e.g. ESRF Dectris Eiger images)
       (Thanks to @t20100)
 
-Bugfixes:
+## Bug Fixes:
     - fix issues with type of the radial bin number being float instead of int -> this caused issues with the
       integration of cake when setting a manual radial bin number
     - cosmic removal is now working again
@@ -20,10 +19,9 @@ Bugfixes:
     - the mask is now correctly reset when batch integration is started with images of different shape
 
 
-0.5.7 (stable 24.04.2023)
--------------------------
+# 0.5.7 (stable 24.04.2023)
 
-New features:
+## New features:
     - saving in batch window will now also save background subtracted patterns, if enabled in the pattern widget
     - upgraded dependency pyqt5 to pyqt6 which should result in improvements for high dpi screens
     - added a new "integrate" button to the batch widget, which will integrate all images in the batch widget
@@ -31,39 +29,34 @@ New features:
     - dropping support for python 3.6, 3.7 and 3.8 and focussing on compatibility with python 3.9, 3.10 and 3.11
 
 
-Bugfixes:
+## Bug Fixes:
     - fix numpy float conversion issue due to deprecated numpy.float
     - reading cif files with missing volume tag will now work correctly and the volume will be calculated from cell
       parameters (PR #140, thanks to @ScottNotFound)
 
 
-0.5.6 (stable 23.11.2022)
---------------------------
+# 0.5.6 (stable 23.11.2022)
+    - Removed image files from pypi distribution.
 
-Removed image files from pypi distribution.
+# 0.5.5 (stable 22.11.2022)
 
-
-0.5.5 (stable 22.11.2022)
--------------------------
-
-New features:
+## New Features:
     - added a normalize button to the batch widget, which will normalize all batch integrated patterns
       to the starting area (i.e. the first 10-30 values of the pattern)
     - batch integration starts immediate after selecting the files
     - added browsing between folders in batch widget
 
 
-Bugfixes:
+## Bug Fixes:
     - fixed issue with image transformations (rotations and flips)
     - fix issues with font size on some high dpi settings in white text boxes
     - improve resize behavior (dragging the splitter) in the integration view
     - fixed issue with resizing batch widget when filepaths were long
 
 
-0.5.4 (stable 20.12.2021)
--------------------------
+# 0 .5.4 (stable 20.12.2021)
 
-New features:
+## New Features:
     - made openGL dependency for Batch widget addition optional. --> this means executables are now working properly
       under Mac OS X again
     - Batch waterfall plot is now possible with background subtraction enabled
@@ -73,7 +66,7 @@ New features:
       slightly redesigned gui, improved background calculation with d-spacing as axis unit
 
 
-Buf Fixes:
+## Bug Fixes:
     - fixes issue with mask button toggle when in cake mode
     - fixes the error appearing when clicking into the cake image in the integration window
     - fixes axes not updating when zooming in and out in cake widget and batch widget
@@ -86,26 +79,24 @@ Buf Fixes:
     - sources selection box is not shown in pattern control widget anymore
     - tth/q/d vertical green line position is now correctly synchronized between image, cake, pattern and batch widget
 
-0.5.3a (stable 10/10/2021)
---------------------------
+# 0.5.3a (stable 10/10/2021)
 
-New features:
+## New Features:
     - pip package has now the correct dependencies
 
-Bug Fixes:
+## Bug Fixes:
     - small bug fixes for batch integration (checks whether calibration or mask is loaded)
 
-0.5.3 (stable 10/04/2021)
--------------------------
+# 0.5.3 (stable 10/04/2021)
 
-New features:
+## New Features:
     - added a batch integration view (thanks to hard work of Mikhail Karnevskiy @ DESY). Here you can batch integrate
       your collection series and interact with a contour or 3D plot of the integrated patterns -> this also includes
       visualization of phases lines
     - reading ESRF hdf5 data files is now possible
     - combined patterns from multiple configurations can now be saved as a file (save button on the upper right)
 
-Bug Fixes:
+## Bug Fixes:
     - no longer remove integrated intensities below 0, instead now only values with equal to 0 are removed
       (this should fix all the issues with background corrected images)
     - reimplemented the automatic file recognition algorithm of the autoprocess integration function. This should now
@@ -113,15 +104,14 @@ Bug Fixes:
     - QT high dpi scaling is now only activated for Windows and Mac OS X -> Disabling it on Linux fixes the display bugs
       encountered here and it is usable with low and high dpi screens (it was not working correctly)
 
-0.5.2 (stable 11/26/2020)
--------------------------
+# 0.5.2 (stable 11/26/2020)
 
-New features:
+## New Features:
     - Added an azimuthal histogram for the cake view, please check the X-Tab in the integration view to change the
       integration bins in 2 theta direction
     - Azimuthal range for 1d integration can now be set in the X-Tab
 
-Bug Fixes:
+## Bug Fixes:
     - fix calibration algorithm, which was currently failing most of the time for difficult geometries. It should now
       work correctly again as in 0.5.0
     - fix display bug which was showing horizontal scroll bar in "calibration parameters" on some linux systems
@@ -129,10 +119,9 @@ Bug Fixes:
       without it
     - fixed pixel width/height definition in the detector calibration definition (it was applied interchanged)
 
-0.5.1 (stable 05/05/2020)
--------------------------
+# 0.5.1 (stable 05/05/2020)
 
-New features:
+## New Features:
     - Phase lines can now be shown in the Cake Widget. Intensity is shown as thickness and opacity of the lines.
     - Phase line parameters can now be copied out of the jcpds widget by using ctrl+c and used directly in your
       preferred table/text editor
@@ -142,7 +131,7 @@ New features:
     - Added a Continuous Delivery Pipelines, which automatically create executables for all operating systems
       (Thanks to Github Actions)
 
-Bug Fixes:
+## Bug Fixes:
     - having parameters fixed during calibration works now correctly
     - the refine button now also works without automatic refinement and with just a calibration loaded from a file
     - reading trigonal rhombic cif files works now correctly
@@ -154,10 +143,9 @@ Bug Fixes:
     - loading cif files with the newer '_space_group_IT_number' representation work now correctly
     - green line in cake widget is now shown correctly upon reloading dioptas
 
-0.5.0 (stable 03/05/2019)
--------------------------
+# 0.5.0 (stable 03/05/2019)
 
-New features:
+## New Features:
     - Added the capability of using detector distortion correction defined by spline files generated from Fit2D (please
       see the calibration parameters)
     - PONI and rotation parameters can now be fixed during the calibration
@@ -176,7 +164,7 @@ New features:
     - a button was added to undo the last peak selection in the calibration tab
     - the jcpds editor now also shows q-values for each line
 
-Bug fixes:
+## Bug Fixes:
     - cosmic removal in the mask panel is now working again
     - changing the radial bins in the X tab in the integration view works now correctly again
     - phases with trigonal symmetry should now work correctly
@@ -185,17 +173,14 @@ Bug fixes:
     - loading a *.poni file prior to an image will not result in an error message anymore
 
 
-0.4.1 (stable 12/22/2017)
--------------------------
+# 0.4.1 (stable 12/22/2017)
 
-New features:
-
+## New Features:
     - easier step selection for pressure, temperature in the phases widget and scaling and offset in the overlay widget,
       the steps are now selected by a spinbox which behaves more or less logarithmically (0.1, 1, 5, 10, 50, 100 etc.)
     - the solid angle correction can now be switched off and on (please see the X-tab in the Integration View)
 
-Bugfixes:
-
+## Bug Fixes:
     - Overlays overlays are now recovered in order when opening a previously saved project with more than 10 overlays
     - cif and jcpds now als can handle trigonal symmetry (not only hexagonal)
     - auto zoom for cakes works now correctly when browsing through several files
@@ -203,11 +188,9 @@ Bugfixes:
     - loading new files with automatic background subtraction enabled will now correctly keep the x limits constant
 
 
-0.4.0 (stable 07/26/2017)
--------------------------
+# 0.4.0 (stable 07/26/2017)
 
-New Features:
-
+## New Features:
     - added the possibility to work with multiple detector configurations at the same time (enabled by the C button on  the upper left)
     - all your work (including mutliple configurations) can be saved into project files
     - Dioptas can restore the previous working session on start
@@ -221,8 +204,7 @@ New Features:
     - the cake mode in the integration window now shows azimuth and tth/q axes
     - the cake image can now be shifted in azimuth, to have a better possibility to view features which where before only at the edges
 
-Bugfixes:
-
+## Bug Fixes:
     - fixed issues with changing units when having automatic background subtraction enabled
     - strong zooming into pattern view will not cause an error due to rescaling of the phase lines anymore
     - fixed issue with compromised Dioptas settings files, Dioptas will now start even if the settings can't be loaded
@@ -232,14 +214,15 @@ Bugfixes:
     - fixed the CeO2 calibration file (there was a (9,0,0) reflection, which does not exist, instead at close position here should be a (8, 4, 0) reflection)
 
 
-0.3.1 (stable 4/21/2016)
-------------------------
+# 0.3.1 (stable 4/21/2016)
+
+## New Features:
     - added compatibility for *.spe files (from Princeton instruments).
     - added capability for beamlines using epics and Image Tags to move to the position where the image was collected
     - added a new error Dialog which will popup on any error and show the error message, which then can be send to
     clemens.prescher@gmail.com, so I can fix it
 
-Bugfixes:
+## Bug Fixes:
     - cif files with errors in atomic coordinates can now be loaded too
     - adding AMCSD cif compatibility
     - fixed an error with file paths on windows causing it to not load any cif files
@@ -247,8 +230,9 @@ Bugfixes:
     - fixing bug with fit2d parameter input
     - fixing bug with background image loading
 
-0.3.0 (stable 02/11/2016)
--------------------------
+# 0.3.0 (stable 02/11/2016)
+
+## New Features:
     - It is now possible to load *.cif files in the Phase tab in the integration module. Loading a cif file will
       automatically calculate the intensities of all hkl with a given minimum intensity and minimum d spacing.
     - Dioptas can now load tiff tags and display them in a separate window. This is very practical if the beamline
@@ -269,7 +253,7 @@ Bugfixes:
     - Dioptas has been completely refactored by rewriting almost all of the GUI code, which will make future releases
       much faster, so stay tuned
 
-Bugfixes:
+## Bug Fixes:
     - mar345 files are now correctly loaded
     - autoprocessing of files, i.e. automatically loading newly collected files should now be much more reliable and
       especially the check for new files takes much less network bandwidth
@@ -278,11 +262,12 @@ Bugfixes:
     - calculation of d-spacings for monoclinic space group jcpds is now correct, there was a sign error in the last term
 
 
-0.2.4 (stable 04/13/2015)
--------------------------
+# 0.2.4 (stable 04/13/2015)
+
+## New Features:
     - Gui reorganization in the integration view: (1) autoscale button and transparent mask button are now shown within
       the image view. (2) the quick action buttons save image, save pattern etc. are now shown in the pattern widget
-    - New Feature: automatic background subtraction under BKG tab in the integration window. can also be accessed from
+    - automatic background subtraction under BKG tab in the integration window. can also be accessed from
       the bg button in the pattern widget. By pressing inspect it shows both the original pattern and background
       within the limits for the extraction process. Please adjust the parameters according to your data.
     - File browsing step can now be modified to be different from 1 by entering an integer in the step text field
@@ -290,8 +275,9 @@ Bugfixes:
     - The absorption lengths for the diamond and seat corrections can now be adjusted. (They should be chosen according
       to the energy used for the XRD experiment)
 
-0.2.3 (stable 12/09/2014)
--------------------------
+# 0.2.3 (stable 12/09/2014)
+
+## New Features:
     - Dioptas now saves the calibration when closing and will automatically open after restarting the program
     - mask files are now saved in a compressed tif format which reduces the file size from before 16 Mb to now less than
       40 kb
@@ -303,15 +289,16 @@ Bugfixes:
     - both, cBN seat correction and Oblique Incidence Angle Detector Absorption correction have been moved to a new tab
       ("Cor") in the Integration window
 
-Bugfixes
+## Bug Fixes
     - fixed a bug which was causing Dioptas to crash when auto-processing new files and the rate of new files in the folder
       was faster than Dioptas could process them
     - fixed a bug which was causing the first calibration to fail for images with a different pixel size than 79um
     - fixed a bug which was causing the pixel size not to update when loading a calibration "*.poni" file
     - fixed a bug which was producing NAN intensity values in saved spectra when using masks
 
-0.2.2 (stable 10/22/2014)
--------------------------
+# 0.2.2 (stable 10/22/2014)
+
+## New Features
     - defining an image as background prior to integration has been implemented. The controls can be found in the Bkg
         tab in the integration widget
     - it is now possible to do an absorption correction for cBN seats based on the geometry and rotation of the cell.
@@ -321,13 +308,14 @@ Bugfixes
         view whereby the windows are still connected (the green line). This enables the use of Dioptas over 2 Monitors
         for having a better overview.
 
-Bugfixes
+## Bug Fixes
     - It is now possible to load images with different shapes, after calibration has been done. Although you might wanna
       use a different calibration for different detectors/images.
     - The gui has been updated to look reasonable good also on OS X 10.10 Yosemite.
 
-0.2.1 (stable 09/09/2014)
--------------------------
+# 0.2.1 (stable 09/09/2014)
+
+## New Features
     - in the "X"-tab in the integration widget there are now two new options for integration available
     - it is now possible to change the number of bins for integration in the GUI (under X). After each change to the
         number the pattern will be integrated again automatically, to see the effects of different bin numbers easily.
@@ -343,7 +331,7 @@ Bugfixes
         detector distance, not the fit2d detector distance. The Fit2D detector distance could still vary a little bit
         during the calibration procedure due to the different geometries of Fit2D and pyFAI)
 
-Bugfixes:
+## Bug Fixes:
     - MAC version - fixed a bug which caused the image to be flipped vertically
     - Polarization correction - fixed a bug which either caused the polarization correction to not be applied or being
                                 with the wrong sign. Checked now everything again against Fit2D and should be working
@@ -351,28 +339,26 @@ Bugfixes:
     - Saving the pattern in the vector based .svg format is now working
 
 
-0.2.0 (stable 08/29/2014)
--------------------------
+# 0.2.0 (stable 08/29/2014)
     - Finished the JCPDS editor (pops up when you select a phase and select edit)
     - Fixed several small bugs using jcpds files (triclinic works now)
     - added inverse grey scale to the available image color scales
 
-0.1.5 (stable 08/20/2014)
--------------------------
+# 0.1.5 (stable 08/20/2014)
 
-Bugfixes:
+## Bug Fixes:
     - Fixed the header format of xy files in windows
     - .xy header now correctly shows the polarization factor
     - the temperature step in the user interface for phases now correctly changes the step of the temperature spin box
     - erroneous jcpds files will now give an error messagebox and will be handled correctly - no restart needed anymore
 
-0.1.4 (stable 08/10/2014)
--------------------------
+# 0.1.4 (stable 08/10/2014)
 
-- spectra can now be saved in .xy, .chi and dat format
-- they can be selected for automatic creation of pattern files when loading images
+## New Features:
+    - spectra can now be saved in .xy, .chi and dat format
+    - they can be selected for automatic creation of pattern files when loading images
 
-Bugfixes:
+## Bug Fixes:
     - auto - creation of pattern now also works when the folder was inserted by typing it into the line item.
     - loading a new file was always creating an index by time of all the files, which slowed down the loading of new files
       considerably. - this is now done only once when loading a file from a new folder
@@ -384,9 +370,10 @@ Bugfixes:
       mode should now be almost as fast as only using integration
 
 
-0.1.3 (stable 08/05/2014)
--------------------------
+# 0.1.3 (stable 08/05/2014)
+
+## New Features
     - implemented option to use mask for calibration refinement
 
-Bugfixes:
+## Bug Fixes:
     - fixed a bug when using phase lines which caused the pattern plot to flow
