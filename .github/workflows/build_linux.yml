@@ -56,25 +56,26 @@ jobs:
         cd dist
         echo "folder_name=$(ls | grep Dioptas)" >> $GITHUB_ENV
 
-    - name: Compress Executable
-      run: |
-        cd dist
-        export DIOPTAS_FOLDER=$(ls | grep Dioptas)
-        tar -zcvf $DIOPTAS_FOLDER.tar.gz $DIOPTAS_FOLDER
-        du -sh $DIOPTAS_FOLDER.tar.gz
-
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.folder_name }}
         path: dist/${{ env.folder_name }}
 
-    - name: Upload Compressed App to Dropbox
-      env:
-        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-      run: |
-        pip install dropbox
-        cd dist
-        export compressedFile=$(ls | grep .tar.gz)
-        export targetFile='/develop/linux/'$compressedFile
-        python ../scripts/dropbox_upload.py $compressedFile $targetFile
+#     DROPBOX UPLOAD
+#     disabled for now, since we can use the GitHub artifacts
+#    - name: Compress Executable
+#      run: |
+#        cd dist
+#        export DIOPTAS_FOLDER=$(ls | grep Dioptas)
+#        tar -zcvf $DIOPTAS_FOLDER.tar.gz $DIOPTAS_FOLDER
+#        du -sh $DIOPTAS_FOLDER.tar.gz
+#    - name: Upload Compressed App to Dropbox
+#      env:
+#        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+#      run: |
+#        pip install dropbox
+#        cd dist
+#        export compressedFile=$(ls | grep .tar.gz)
+#        export targetFile='/develop/linux/'$compressedFile
+#        python ../scripts/dropbox_upload.py $compressedFile $targetFile

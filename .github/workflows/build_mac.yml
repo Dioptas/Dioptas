@@ -63,25 +63,33 @@ jobs:
         cd Contents/MacOS
         ./run_dioptas test
 
-    - name: Compress App
+    - name: Determine Folder Name
       run: |
         cd dist
-        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
-        echo $DIOPTAS_FOLDER
-        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
-        du -sh $DIOPTAS_FOLDER.zip
+        echo "folder_name=$(ls | grep Dioptas)" >> $GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
       with:
-        path: dist\Dioptas*.zip
+        name: ${{ env.folder_name }}
+        path: dist/${{ env.folder_name }}
 
-    - name: Upload Compressed App to Dropbox
-      env:
-        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-      run: |
-        pip install dropbox
-        cd dist
-        export compressedFile=$(ls | grep .zip)
-        export targetFile='/develop/macos/'$compressedFile
-        python ../scripts/dropbox_upload.py $compressedFile $targetFile
+#     DROPBOX UPLOAD
+#     disabled for now, since we can use the GitHub artifacts
+#    - name: Compress App
+#      run: |
+#        cd dist
+#        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
+#        echo $DIOPTAS_FOLDER
+#        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
+#        du -sh $DIOPTAS_FOLDER.zip
+
+#    - name: Upload Compressed App to Dropbox
+#      env:
+#        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+#      run: |
+#        pip install dropbox
+#        cd dist
+#        export compressedFile=$(ls | grep .zip)
+#        export targetFile='/develop/macos/'$compressedFile
+#        python ../scripts/dropbox_upload.py $compressedFile $targetFile
