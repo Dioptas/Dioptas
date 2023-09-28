@@ -69,7 +69,7 @@ jobs:
       run: |
         cd dist
         echo "folder_name=$(ls | grep Dioptas)"
-        echo "folder_name=$(ls | grep Dioptas)" >> $GITHUB_ENV
+        echo "folder_name=$(ls | grep Dioptas)" >> $env:GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
