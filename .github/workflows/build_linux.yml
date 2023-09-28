@@ -31,7 +31,7 @@ jobs:
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image pyqt6 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller pyopengl pyopengl-accelerate watchdog h5py hdf5plugin pyqtgraph \
-                    mock pytest pytest-xvfb pytest-qt
+                    mock pytest pytest-xvfb pytest-qt setuptools_scm
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
