@@ -56,7 +56,7 @@ jobs:
 #      run: |
 #        cd dist/Dioptas*
 #        cd Contents/MacOS
-#        rm QtQuick QtQml QtQmlmodels QtNetwork QtWebSockets
+#        rm QtQuick QtQml QtQmlModels QtNetwork QtWebSockets
 #        rm -r imageio matplotlib
 
     - name: Run Dioptas Executable
@@ -68,6 +68,7 @@ jobs:
     - name: Determine Folder Name
       run: |
         cd dist
+        echo "folder_name=$(ls | grep Dioptas)"
         echo "folder_name=$(ls | grep Dioptas)" >> $GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub

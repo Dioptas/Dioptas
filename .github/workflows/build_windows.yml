@@ -29,7 +29,7 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-v3
         restore-keys: |
           ${{ runner.os }}-pip-c3
-        
+
     - name: Install Pip Dependencies
       run: |
         pip install pycifrw pandas numpy python-dateutil h5py cython scikit-image==0.19.3 pyqt6 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem poetry poetry-dynamic-versioning
@@ -58,6 +58,7 @@ jobs:
     - name: Determine Folder Name
       run: |
         cd dist\Dioptas*
+        echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})"
         echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})" >> $GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub
