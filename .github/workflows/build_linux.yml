@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QT_QPA_PLATFORM: offscreen
-      folder_name: ''
+      folder_name: 'DioptasLinux'
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - uses: actions/checkout@v3
@@ -51,17 +51,17 @@ jobs:
         cd dist/Dioptas*
         xvfb-run -e /dev/stdout ./Dioptas test
 
+    - name: Determine Folder Name
+      run: |
+        cd dist
+        echo "folder_name=$(ls | grep Dioptas)" >> $GITHUB_ENV
+
     - name: Compress Executable
       run: |
         cd dist
         export DIOPTAS_FOLDER=$(ls | grep Dioptas)
         tar -zcvf $DIOPTAS_FOLDER.tar.gz $DIOPTAS_FOLDER
         du -sh $DIOPTAS_FOLDER.tar.gz
-
-    - name: Determine Folder Name
-      run: |
-        cd dist
-        echo "folder_name = $(ls | grep Dioptas)" >> $GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
