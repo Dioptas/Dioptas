@@ -59,7 +59,7 @@ jobs:
       run: |
         cd dist\Dioptas*
         echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})"
-        echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})" >> $GITHUB_ENV
+        echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})" >> $env:GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
