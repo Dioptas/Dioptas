@@ -344,5 +344,5 @@ class TransferFunctionCorrectionTest(unittest.TestCase):
         self.transfer_correction.set_img_transformations(img_transformations)
 
         transfer_data = self.transfer_correction.get_data()
-        self.assertNotEqual(transfer_data, self.original_data)
-        self.assertNotEqual(transfer_data, self.response_data)
+        self.assertEqual(transfer_data.shape, tuple(np.flip(self.original_data.shape)))
+        self.assertEqual(transfer_data.shape, tuple(np.flip(self.response_data.shape)))
