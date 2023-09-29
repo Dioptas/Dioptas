@@ -24,29 +24,6 @@ from typing import Optional
 import numpy as np
 
 
-def _auto_level(hist_x: np.ndarray, hist_y: np.ndarray) -> tuple[float, float]:
-    """Compute colormap range from histogram
-
-    :param hist_x: Bin left edges
-    :param hist_y: Histogram count
-    :returns: (min, max)
-    """
-    hist_y_cumsum = np.cumsum(hist_y)
-    hist_y_sum = np.sum(hist_y)
-
-    max_ind = np.where(hist_y_cumsum < (0.996 * hist_y_sum))
-    min_level = np.mean(hist_x[:2])
-
-    if len(max_ind[0]):
-        max_level = hist_x[max_ind[0][-1]]
-    else:
-        max_level = 0.5 * np.max(hist_x)
-
-    if len(hist_x[hist_x > 0]) > 0:
-        min_level = max(min_level, np.nanmin(hist_x[hist_x > 0]))
-    return min_level, max_level
-
-
 def _default_auto_level(data: np.ndarray) -> tuple[float, float]:
     """Compute colormap range from data through histogram
 
@@ -135,43 +112,53 @@ def detector_gap_mask(data: np.ndarray) -> np.ndarray:
     return data != value
 
 
-def auto_level(
-    data: Optional[np.ndarray],
-    hist_x: Optional[np.ndarray],
-    hist_y: Optional[np.ndarray],
-    mode: str = "default",
-    filter_gaps: bool = False,
-) -> Optional[tuple[float, float]]:
-    """Compute colormap range from data
+class AutoLevel:
+    """Handle colormap range autoscale computation.
 
-    :param data: Data from which to compute colormap range
-    :param hist_x: Bin left edges
-    :param hist_y: Histogram count
-    :param mode: Mode of autoscale computation: "default", "minmax", "mean3std"
-    :param filter_gaps: Whether or not to probe and filter gaps
-    :returns: (min, max) or None
-    :raise ValueError: If the mode is not supported
+    This class stores settings: autoscale mode and whether or not to filter dummy value.
+
+    Instances of this class are callable:
+    >>> auto_level = AutoLevel()
+    >>> range_ = auto_level.get_range(data)
     """
-    if data is None:
-        return None
 
-    if filter_gaps:
-        data = data[detector_gap_mask(data)]
+    _MODES = {
+        "default": _default_auto_level,
+        "minmax": _minmax_auto_level,
+        "mean3std": _mean3std_auto_level,
+    }
+    _PERCENTILE_REGEXP = re.compile(r"(?P<value>\d+(\.\d*)?|\.\d+)percentile")
 
-    filtered_data = data[np.isfinite(data)]
-    if filtered_data.size == 0:
-        return None
+    def __init__(self):
+        self.mode: str = "default"
+        """Autoscale mode in 'default', 'minmax', 'mean3std', '%fpercentile'"""
 
-    if mode == "default":
-        if hist_x is None or hist_y is None:
-            return _default_auto_level(filtered_data)
-        else:
-            return _auto_level(hist_x, hist_y)
-    if mode == "minmax":
-        return _minmax_auto_level(filtered_data)
-    if mode == "mean3std":
-        return _mean3std_auto_level(filtered_data)
-    match = re.match(r"(?P<value>\d+(\.\d*)?|\.\d+)percentile", mode)
-    if match is not None:
-        return _percentile_auto_level(filtered_data, percentile=float(match["value"]))
-    raise ValueError(f"Unsupported mode: {mode}")
+        self.filter_dummy: bool = False
+        """Whether or not to filter detector dummy values"""
+
+    def get_range(self, data: Optional[np.ndarray]) -> Optional[tuple[float, float]]:
+        """Returns colormap range from data for current settings
+
+        :param data: Data from which to compute colormap range
+        :returns: (min, max) or None
+        """
+        if data is None:
+            return None
+
+        if self.filter_dummy:
+            data = data[detector_gap_mask(data)]
+
+        filtered_data = data[np.isfinite(data)]
+        if filtered_data.size == 0:
+            return None
+
+        func = self._MODES.get(self.mode, None)
+        if func is not None:
+            return func(filtered_data)
+        match = self._PERCENTILE_REGEXP.match(self.mode)
+        if match is not None:
+            return _percentile_auto_level(filtered_data, percentile=float(match["value"]))
+        raise ValueError(f"Unsupported mode: {self.mode}")
+
+
+auto_level = AutoLevel()

@@ -81,8 +81,6 @@ class HistogramLUTItem(GraphicsWidget):
         self.percentageLevel = False
         self.orientation = orientation
         self.autoLevel = autoLevel
-        self.hist_x = np.array([0.])
-        self.hist_y = np.array([0.])
         self._img_data = None
 
         self.layout = QtWidgets.QGraphicsGridLayout()
@@ -278,15 +276,11 @@ class HistogramLUTItem(GraphicsWidget):
         if img_data is None:
             img_data = self.imageItem.getData(copy=False)
             if img_data is None:
-                self.hist_x = np.array([0.])
-                self.hist_y = np.array([0.])
                 return
 
         log_data = np.log(img_data)
         log_data = log_data[np.isfinite(log_data)]
         if log_data.size == 0:
-            self.hist_x = np.array([0.])
-            self.hist_y = np.array([0.])
             return
 
         hist, bin_edges = np.histogram(log_data, bins=3000)
@@ -294,9 +288,6 @@ class HistogramLUTItem(GraphicsWidget):
         mask_nonzero = hist > 0
         left_edges_nonzero = bin_edges[:-1][mask_nonzero]
         hist_nonzero = hist[mask_nonzero]
-
-        self.hist_x = np.exp(left_edges_nonzero)
-        self.hist_y = hist_nonzero
 
         log_hist_nonzero = np.log(hist_nonzero)
         if self.orientation == 'horizontal':
@@ -337,10 +328,14 @@ class HistogramLUTItem(GraphicsWidget):
         if isinstance(self.imageItem, NormalizedImageItem):
             widget.setCurrentNormalization(self.imageItem.getNormalization())
         widget.setRange(*self.getExpLevels())
-        widget.setData(data=self.getImageData(copy=False), counts=self.hist_y, bins=self.hist_x, copy=False)
+        widget.setData(data=self.getImageData(copy=False), copy=False)
         widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
         widget.sigCurrentNormalizationChanged.connect(self._normalizationChanged)
-        widget.sigRangeChanged.connect(self.setLevels)
+        def rangeChanged(minimum, maximum):
+            self.setLevels(minimum, maximum)
+            # Update displayed range since it can differ from the provided one
+            widget.setRange(*self.getExpLevels())
+        widget.sigRangeChanged.connect(rangeChanged)
         button = self.sender()
         if self.orientation == 'horizontal':
             position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, 0))
@@ -367,12 +362,7 @@ class HistogramLUTItem(GraphicsWidget):
             self.imageItem.setNormalization(normalization)
             sender = self.sender()
             if isinstance(sender, ColormapPopup):
-                sender.setData(
-                    data=self.getImageData(copy=False),
-                    counts=self.hist_y,
-                    bins=self.hist_x,
-                    copy=False,
-                )
+                sender.setData(data=self.getImageData(copy=False), copy=False)
 
 
 class LogarithmRegionItem(LinearRegionItem):
