@@ -134,9 +134,8 @@ class ImgWidget(QtCore.QObject):
             self.auto_range()
 
     def auto_level(self):
-        hist_x, hist_y = self.img_histogram_LUT_horizontal.hist_x, self.img_histogram_LUT_horizontal.hist_y
-        data = self.img_histogram_LUT_horizontal.getImageData(copy=False)
-        colormap_range = utils.auto_level(data, hist_x, hist_y)
+        colormap_range = utils.auto_level.get_range(
+            self.img_histogram_LUT_horizontal.getImageData(copy=False))
         if colormap_range is None:
             return
         self.img_histogram_LUT_vertical.setLevels(*colormap_range)
