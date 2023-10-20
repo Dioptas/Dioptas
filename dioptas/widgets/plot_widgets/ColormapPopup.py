@@ -119,12 +119,6 @@ class ColormapPopup(QtWidgets.QFrame):
         self._resetButtonGroup.buttonClicked.connect(self._autoscaleRequested)
         layout.addRow("Reset mode:", resetModesLayout)
 
-        self._filterGapsCheckBox = QtWidgets.QCheckBox(self)
-        self._filterGapsCheckBox.setToolTip("Toggle detector gaps value filtering")
-        self._filterGapsCheckBox.setChecked(utils.auto_level.filter_dummy)
-        self._filterGapsCheckBox.toggled.connect(self._autoscaleRequested)
-        layout.addRow('Filter gaps:', self._filterGapsCheckBox)
-
         buttonBox = QtWidgets.QDialogButtonBox(parent=self)
         buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Close)
         closeButton = buttonBox.button(QtWidgets.QDialogButtonBox.Close)
@@ -222,7 +216,6 @@ class ColormapPopup(QtWidgets.QFrame):
 
     def _autoscaleRequested(self, *args):
         utils.auto_level.mode = self._getResetMode()
-        utils.auto_level.filter_dummy = self._filterGapsCheckBox.isChecked()
         colormapRange = utils.auto_level.get_range(self.getData(copy=False))
         if colormapRange is None:
              return
