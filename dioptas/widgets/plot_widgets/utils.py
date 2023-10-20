@@ -86,36 +86,10 @@ def _percentile_auto_level(
     return float(lower), float(upper)
 
 
-def detector_gap_mask(data: np.ndarray) -> np.ndarray:
-    """Probe detector gap value and returns mask of pixels not belonging to gaps.
-
-    :param data: 2D image array for which to compute the mask
-    :returns: Mask with True for valid pixels and False for mask
-    """
-    if data.ndim != 2:
-        raise ValueError("2D array only are supported")
-
-    # Find columns with same values
-    equal_columns_mask = np.all(np.equal(data[0], data), axis=0)
-    if not np.any(equal_columns_mask):
-        return np.ones(data.shape, dtype=bool)
-
-    equal_values, counts = np.unique(data[0, equal_columns_mask], return_counts=True)
-    # At least 2 columns and not the whole image
-    mask = np.logical_and(counts > 1, counts < data.shape[1])
-    equal_values = equal_values[mask]
-    counts = counts[mask]
-    if len(equal_values) == 0:
-        return np.ones(data.shape, dtype=bool)
-
-    value = equal_values[np.argmax(counts)]
-    return data != value
-
-
 class AutoLevel:
     """Handle colormap range autoscale computation.
 
-    This class stores settings: autoscale mode and whether or not to filter dummy value.
+    This class stores settings: autoscale mode
 
     Instances of this class are callable:
     >>> auto_level = AutoLevel()
@@ -133,9 +107,6 @@ class AutoLevel:
         self.mode: str = "default"
         """Autoscale mode in 'default', 'minmax', 'mean3std', '%fpercentile'"""
 
-        self.filter_dummy: bool = False
-        """Whether or not to filter detector dummy values"""
-
     def get_range(self, data: Optional[np.ndarray]) -> Optional[tuple[float, float]]:
         """Returns colormap range from data for current settings
 
@@ -144,9 +115,6 @@ class AutoLevel:
         """
         if data is None:
             return None
-
-        if self.filter_dummy:
-            data = data[detector_gap_mask(data)]
 
         filtered_data = data[np.isfinite(data)]
         if filtered_data.size == 0:
