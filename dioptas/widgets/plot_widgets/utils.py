@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import re
 from typing import Optional
+import numbers
 import numpy as np
 
 
@@ -86,6 +87,31 @@ def _percentile_auto_level(
     return float(lower), float(upper)
 
 
+def _find_colums_with_same_value(data: np.ndarray) -> Optional[numbers.Number]:
+    """Find value of columns with same value if any.
+
+    :param data: 2D image array for which to compute the mask
+    :returns: The value or None if not enough colunms with the same value
+    """
+    if data.ndim != 2:
+        raise ValueError("2D array only are supported")
+
+    # Find columns with same values
+    equal_columns_mask = np.all(np.equal(data[0], data), axis=0)
+    if not np.any(equal_columns_mask):
+        return None
+
+    equal_values, counts = np.unique(data[0, equal_columns_mask], return_counts=True)
+    # At least 2 columns and not the whole image
+    mask = np.logical_and(counts > 1, counts < data.shape[1])
+    equal_values = equal_values[mask]
+    counts = counts[mask]
+    if len(equal_values) == 0:
+        return None
+
+    return equal_values[np.argmax(counts)]
+
+
 def detector_gap_mask(data: np.ndarray) -> np.ndarray:
     """Probe detector gap value and returns mask of pixels not belonging to gaps.
 
@@ -95,20 +121,14 @@ def detector_gap_mask(data: np.ndarray) -> np.ndarray:
     if data.ndim != 2:
         raise ValueError("2D array only are supported")
 
-    # Find columns with same values
-    equal_columns_mask = np.all(np.equal(data[0], data), axis=0)
-    if not np.any(equal_columns_mask):
+    # Find columns with same value
+    value = _find_colums_with_same_value(data)
+    if value is None:
+        # Find rows with same value
+        value = _find_colums_with_same_value(np.transpose(data))
+    if value is None:
         return np.ones(data.shape, dtype=bool)
 
-    equal_values, counts = np.unique(data[0, equal_columns_mask], return_counts=True)
-    # At least 2 columns and not the whole image
-    mask = np.logical_and(counts > 1, counts < data.shape[1])
-    equal_values = equal_values[mask]
-    counts = counts[mask]
-    if len(equal_values) == 0:
-        return np.ones(data.shape, dtype=bool)
-
-    value = equal_values[np.argmax(counts)]
     return data != value
 
 
