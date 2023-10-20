@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Test ColormapPopup widget"""
 
+import numpy as np
 import pytest
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QSignalSpy, QTest
@@ -110,3 +111,44 @@ def testCurrentNormalization(qWidgetFactory, normalization):
     assert colormapPopup._normalizationComboBox.currentData() == normalization
     assert len(signalSpy) == 1
     assert signalSpy[0] == [normalization]
+
+
+def testResetMode(qWidgetFactory):
+    """Test reset range and changing reset mode"""
+    colormapPopup = qWidgetFactory(ColormapPopup)
+    colormapPopup.setData(np.arange(101))
+
+    buttons = colormapPopup._resetButtonGroup.buttons()
+    defaultButton, minmaxButton, mean3stdButton, percentileButton = buttons
+
+    assert colormapPopup._resetButtonGroup.checkedButton() == defaultButton
+    mode = colormapPopup._getResetMode()
+    assert mode == "default"
+
+    QTest.mouseClick(colormapPopup._autoscaleButton, QtCore.Qt.LeftButton)
+    range_ = colormapPopup.getRange()
+    assert range_ == (1, 99)
+
+    QTest.mouseClick(minmaxButton, QtCore.Qt.LeftButton)
+    mode = colormapPopup._getResetMode()
+    range_ = colormapPopup.getRange()
+    assert mode == "minmax"
+    assert range_ == (0, 100)
+
+    QTest.mouseClick(percentileButton, QtCore.Qt.LeftButton)
+    mode = colormapPopup._getResetMode()
+    range_ = colormapPopup.getRange()
+    assert mode == "1percentile"
+    assert range_ == (1, 99)
+
+    QTest.mouseClick(mean3stdButton, QtCore.Qt.LeftButton)
+    mode = colormapPopup._getResetMode()
+    range_ = colormapPopup.getRange()
+    assert mode == "mean3std"
+    assert range_ == (0, 100)
+
+    QTest.mouseClick(defaultButton, QtCore.Qt.LeftButton)
+    mode = colormapPopup._getResetMode()
+    range_ = colormapPopup.getRange()
+    assert mode == "default"
+    assert range_ == (1, 99)
