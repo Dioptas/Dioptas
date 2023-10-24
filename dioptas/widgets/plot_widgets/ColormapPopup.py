@@ -107,18 +107,21 @@ class ColormapPopup(QtWidgets.QFrame):
         self._autoscaleButton.setEnabled(False)
         layout.addRow("", self._autoscaleButton)
 
+        resetModeGroupBox = QtWidgets.QGroupBox("Reset Mode", self)
+        layout.addRow(resetModeGroupBox)
+
         self._resetButtonGroup = QtWidgets.QButtonGroup(self)
-        resetModesLayout = QtWidgets.QVBoxLayout()
-        resetModesLayout.setContentsMargins(0, 0, 0, 0)
         for text, (mode, tooltip) in self._RESET_MODES.items():
             radioButton = QtWidgets.QRadioButton(text, self)
             radioButton.setToolTip(tooltip)
             radioButton.setChecked(mode == utils.auto_level.mode)
             self._resetButtonGroup.addButton(radioButton)
-            resetModesLayout.addWidget(radioButton)
+
+        resetModesLayout = QtWidgets.QGridLayout(resetModeGroupBox)
+        for index, radioButton in enumerate(self._resetButtonGroup.buttons()):
+            resetModesLayout.addWidget(radioButton, index // 2, index % 2, QtCore.Qt.AlignLeft)
 
         self._resetButtonGroup.buttonClicked.connect(self._autoscaleRequested)
-        layout.addRow("Reset mode:", resetModesLayout)
 
         buttonBox = QtWidgets.QDialogButtonBox(parent=self)
         buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Close)
