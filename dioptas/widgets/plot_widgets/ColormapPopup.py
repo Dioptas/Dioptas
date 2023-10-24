@@ -64,18 +64,19 @@ class ColormapPopup(QtWidgets.QFrame):
 
         frameLayout = QtWidgets.QVBoxLayout(self)
         frameLayout.setContentsMargins(3, 3, 3, 3)
-        groupbox = QtWidgets.QGroupBox("Colormap", self)
-        frameLayout.addWidget(groupbox)
+        frameLayout.setSpacing(3)
 
-        layout = QtWidgets.QFormLayout(groupbox)
-        layout.setLabelAlignment(QtCore.Qt.AlignRight)
+        colormapGroupBox = QtWidgets.QGroupBox("Colormap", self)
+        frameLayout.addWidget(colormapGroupBox)
+        colormapLayout = QtWidgets.QFormLayout(colormapGroupBox)
+        colormapLayout.setLabelAlignment(QtCore.Qt.AlignRight)
 
         self._gradientComboBox = QtWidgets.QComboBox(self)
         for name, gradient in pyqtgraph.graphicsItems.GradientEditorItem.Gradients.items():
             icon = self._createQIconFromGradient(gradient)
             self._gradientComboBox.addItem(icon, name.capitalize(), gradient)
         self._gradientComboBox.currentIndexChanged.connect(self._gradientComboBoxCurrentIndexChanged)
-        layout.addRow('Colormap:', self._gradientComboBox)
+        colormapLayout.addRow('Colormap:', self._gradientComboBox)
 
         self._normalizationComboBox = QtWidgets.QComboBox(self)
         for normalization in NormalizedImageItem.supportedNormalizations():
@@ -84,18 +85,22 @@ class ColormapPopup(QtWidgets.QFrame):
 
         self._normalizationComboBox.setCurrentIndex(0)
         self._normalizationComboBox.currentIndexChanged.connect(self._normalizationComboBoxCurrentIndexChanged)
-        layout.addRow('Normalization:', self._normalizationComboBox)
+        colormapLayout.addRow('Normalization:', self._normalizationComboBox)
 
-        layout.addRow('Range:', QtWidgets.QWidget())
+        rangeGroupBox = QtWidgets.QGroupBox("Range", self)
+        frameLayout.addWidget(rangeGroupBox)
+        rangeLayout = QtWidgets.QFormLayout(rangeGroupBox)
+        rangeLayout.setLabelAlignment(QtCore.Qt.AlignRight)
+
         self._minEdit = QtWidgets.QLineEdit(self)
         self._minEdit.setValidator(QtGui.QDoubleValidator(1, float('inf'), -1))
         self._minEdit.editingFinished.connect(self._rangeChanged)
-        layout.addRow('Min:', self._minEdit)
+        rangeLayout.addRow('Min:', self._minEdit)
 
         self._maxEdit = QtWidgets.QLineEdit(self)
         self._maxEdit.setValidator(QtGui.QDoubleValidator(1, float('inf'), -1))
         self._maxEdit.editingFinished.connect(self._rangeChanged)
-        layout.addRow('Max:', self._maxEdit)
+        rangeLayout.addRow('Max:', self._maxEdit)
 
         reloadIcon = QtWidgets.QApplication.instance().style().standardIcon(
             QtWidgets.QStyle.SP_BrowserReload
@@ -105,10 +110,11 @@ class ColormapPopup(QtWidgets.QFrame):
         self._autoscaleButton.clicked.connect(self._autoscaleRequested)
         self._autoscaleButton.setAutoDefault(False)
         self._autoscaleButton.setEnabled(False)
-        layout.addRow("", self._autoscaleButton)
+        rangeLayout.addRow("", self._autoscaleButton)
 
         resetModeGroupBox = QtWidgets.QGroupBox("Reset Mode", self)
-        layout.addRow(resetModeGroupBox)
+        frameLayout.addWidget(resetModeGroupBox)
+        resetModesLayout = QtWidgets.QGridLayout(resetModeGroupBox)
 
         self._resetButtonGroup = QtWidgets.QButtonGroup(self)
         for text, (mode, tooltip) in self._RESET_MODES.items():
@@ -117,7 +123,6 @@ class ColormapPopup(QtWidgets.QFrame):
             radioButton.setChecked(mode == utils.auto_level.mode)
             self._resetButtonGroup.addButton(radioButton)
 
-        resetModesLayout = QtWidgets.QGridLayout(resetModeGroupBox)
         for index, radioButton in enumerate(self._resetButtonGroup.buttons()):
             resetModesLayout.addWidget(radioButton, index // 2, index % 2, QtCore.Qt.AlignLeft)
 
