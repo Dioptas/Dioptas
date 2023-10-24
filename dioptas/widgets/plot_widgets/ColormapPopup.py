@@ -68,6 +68,7 @@ class ColormapPopup(QtWidgets.QFrame):
         frameLayout.addWidget(groupbox)
 
         layout = QtWidgets.QFormLayout(groupbox)
+        layout.setLabelAlignment(QtCore.Qt.AlignRight)
 
         self._gradientComboBox = QtWidgets.QComboBox(self)
         for name, gradient in pyqtgraph.graphicsItems.GradientEditorItem.Gradients.items():
@@ -85,7 +86,7 @@ class ColormapPopup(QtWidgets.QFrame):
         self._normalizationComboBox.currentIndexChanged.connect(self._normalizationComboBoxCurrentIndexChanged)
         layout.addRow('Normalization:', self._normalizationComboBox)
 
-        layout.addRow(QtWidgets.QLabel('Range:'))
+        layout.addRow('Range:', QtWidgets.QWidget())
         self._minEdit = QtWidgets.QLineEdit(self)
         self._minEdit.setValidator(QtGui.QDoubleValidator(1, float('inf'), -1))
         self._minEdit.editingFinished.connect(self._rangeChanged)
