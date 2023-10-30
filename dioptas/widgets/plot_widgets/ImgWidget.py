@@ -134,10 +134,12 @@ class ImgWidget(QtCore.QObject):
             self.auto_range()
 
     def auto_level(self):
-        hist_x, hist_y = self.img_histogram_LUT_horizontal.hist_x, self.img_histogram_LUT_horizontal.hist_y
-        min_level, max_level = utils.auto_level(hist_x, hist_y)
-        self.img_histogram_LUT_vertical.setLevels(min_level, max_level)
-        self.img_histogram_LUT_horizontal.setLevels(min_level, max_level)
+        colormap_range = utils.auto_level.get_range(
+            self.img_histogram_LUT_horizontal.getImageData(copy=False))
+        if colormap_range is None:
+            return
+        self.img_histogram_LUT_vertical.setLevels(*colormap_range)
+        self.img_histogram_LUT_horizontal.setLevels(*colormap_range)
 
     def add_scatter_data(self, x, y):
         self.img_scatter_plot_item.addPoints(x=y, y=x)
