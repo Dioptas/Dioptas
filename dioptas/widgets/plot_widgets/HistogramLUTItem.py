@@ -230,8 +230,7 @@ class HistogramLUTItem(GraphicsWidget):
 
     def setImageItem(self, img):
         self.imageItem = img
-        self._updateNormalizationLabel(
-            img.getNormalization() if isinstance(img, NormalizedImageItem) else "linear")
+        self._updateNormalizationLabel(self.getNormalization())
         img.sigImageChanged.connect(self.imageChanged)
         img.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
         # self.gradientChanged()
@@ -318,6 +317,21 @@ class HistogramLUTItem(GraphicsWidget):
         if self.imageItem is not None:
             self.imageItem.setLevels(np.exp(self.region.getRegion()))
 
+    def getNormalization(self) -> str:
+        """Returns the current image normalization"""
+        if isinstance(self.imageItem, NormalizedImageItem):
+            return self.imageItem.getNormalization()
+        return "linear"
+
+    def setNormalization(self, normalization: str):
+        """Set image current normalization
+
+        This has effect only if the associated image item is a NormalizedImageItem.
+        """
+        if isinstance(self.imageItem, NormalizedImageItem):
+            self.imageItem.setNormalization(normalization)
+        self._updateNormalizationLabel(normalization)
+
     def empty_function(self, *args):
         pass
 
@@ -325,8 +339,7 @@ class HistogramLUTItem(GraphicsWidget):
         widget = ColormapPopup(parent=self.scene().views()[0])
 
         widget.setCurrentGradient(self.gradient.saveState())
-        if isinstance(self.imageItem, NormalizedImageItem):
-            widget.setCurrentNormalization(self.imageItem.getNormalization())
+        widget.setCurrentNormalization(self.getNormalization())
         widget.setRange(*self.getExpLevels())
         widget.setData(data=self.getImageData(copy=False), copy=False)
         widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
