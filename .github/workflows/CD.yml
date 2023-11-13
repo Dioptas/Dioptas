@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-tags: true
 
       - name: Install Poetry on macOS and Linux - Fails on windows for some reason
         if: ${{ matrix.os != 'windows-latest' }}
