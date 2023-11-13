@@ -132,7 +132,9 @@ class ColormapPopup(QtWidgets.QFrame):
         self._filterGapsCheckBox.setToolTip("Toggle detector gaps value filtering")
         self._filterGapsCheckBox.setChecked(utils.auto_level.filter_dummy)
         self._filterGapsCheckBox.toggled.connect(self._autoscaleRequested)
-        layout.addRow('Filter gaps:', self._filterGapsCheckBox)
+        nrows = resetModesLayout.rowCount()
+        resetModesLayout.addWidget(QtWidgets.QLabel('Filter gaps:'), nrows, 0, QtCore.Qt.AlignRight)
+        resetModesLayout.addWidget(self._filterGapsCheckBox, nrows, 1, QtCore.Qt.AlignLeft)
 
         buttonBox = QtWidgets.QDialogButtonBox(parent=self)
         buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Close)
