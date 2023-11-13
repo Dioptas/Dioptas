@@ -16,9 +16,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          fetch-tags: true
           fetch-depth: 0
 
       - name: Install Poetry on macOS and Linux - Fails on windows for some reason
@@ -35,8 +34,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'poetry'
 
-      - name: Run Dynamic Versioning
-        run: poetry dynamic-versioning
+      - name: Add Dynamic Versioning Plugin
+        run: |
+          poetry self add poetry-dynamic-versioning[plugin]
 
       - name: Build Package
         run: poetry build
