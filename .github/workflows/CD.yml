@@ -1,0 +1,66 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: CD
+
+on: [push]
+
+jobs:
+  build_package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Poetry on macOS and Linux - Fails on windows for some reason
+        if: ${{ matrix.os != 'windows-latest' }}
+        uses: snok/install-poetry@v1
+
+      - name: Install Poetry on windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: pipx install poetry
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'poetry'
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Build Package
+        run: poetry build
+
+      - name: Upload wheels to artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist/*
+
+  # pypi-publish:
+  #   name: Upload release to PyPI
+  #   needs: build_package
+  #   runs-on: ubuntu-latest
+  #   environment:
+  #     name: pypi
+  #     url: https://pypi.org/p/dioptas/
+  #   permissions:
+  #     id-token: write
+  #   steps:
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: dist
+
+  #     - name: check the dist folder
+  #       run: ls dist
+
+  #     - name: Publish to PyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
