@@ -3,7 +3,9 @@
 
 name: CD
 
-on: [push]
+on:
+  release:
+    types: [ published ]
 
 jobs:
   build_package:
@@ -47,23 +49,23 @@ jobs:
           name: wheels
           path: dist/*
 
-  # pypi-publish:
-  #   name: Upload release to PyPI
-  #   needs: build_package
-  #   runs-on: ubuntu-latest
-  #   environment:
-  #     name: pypi
-  #     url: https://pypi.org/p/dioptas/
-  #   permissions:
-  #     id-token: write
-  #   steps:
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: wheels
-  #         path: dist
+  pypi-publish:
+    name: Upload release to PyPI
+    needs: build_package
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/dioptas/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: wheels
+          path: dist
 
-  #     - name: check the dist folder
-  #       run: ls dist
+      - name: check the dist folder
+        run: ls dist
 
-  #     - name: Publish to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
