@@ -92,3 +92,20 @@ def test_unsupported_autoscale_mode():
     data = np.array([1, 2, 3])
     with pytest.raises(ValueError):
         range_ = auto_level.get_range(data)
+
+
+def test_filter_dummy():
+    auto_level = AutoLevel()
+    auto_level.mode = "minmax"
+    auto_level.filter_dummy = True
+    data = np.array([
+        [ 0,  1,  2,  3,  4],
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1],
+        [ 4,  3,  2,  1,  0],
+    ])
+    range_ = auto_level.get_range(data)
+    assert range_ == (0, 4)
+
+    range_ = auto_level.get_range(np.transpose(data))
+    assert range_ == (0, 4)
