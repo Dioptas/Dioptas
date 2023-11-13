@@ -39,7 +39,7 @@ files = ["dioptas/__init__.py"]
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8, <3.13"
 EXtra-data = "^1.13.0"
 future = "^0.18.3"
 h5py = "^3.9.0"
@@ -57,6 +57,16 @@ sharedmem = "^0.3.8"
 watchdog = "^3.0.0"
 pyopengl = "^3.1.7"
 pyopengl-accelerate = "^3.1.7"
+xypattern = "1.0.4"
+numpy = [
+  { version = "^1.24.0", python = "<3.10" },
+  { version = "^1.26.0", python = ">=3.10" }
+]
+scipy = [
+  { version = "^1.9.3", python = "<3.10" },
+  { version = "^1.11.3", python = ">=3.10" }
+]
+numexpr = "2.8.4"
 
 [tool.poetry.dev-dependencies]
 cython = "^3.0.2"
@@ -64,6 +74,7 @@ cython = "^3.0.2"
 [tool.poetry.group.test.dependencies]
 pytest = "^6.2.5"
 pytest-qt = "*"
+mock = "^5.1.0"
 
 [build-system]
 requires = ["poetry-core", "cython", "setuptools", "poetry-dynamic-versioning"]
