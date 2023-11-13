@@ -32,16 +32,15 @@ jobs:
         sudo apt-get update
         sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0 libxkbcommon-x11-dev libxcb-xinerama0  \
           libxcb-keysyms1-dev libxcb-image0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev \
-          libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev
+          libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-cursor0 libopengl0
 
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt5 cython future qtpy pyfai lmfit \
+        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt6 cython future qtpy pyfai lmfit \
                     pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph \
                     mock pytest pytest-xvfb pytest-qt
 
     - name: Run tests
-      shell: bash -l {0}
       run: |
         py.test dioptas/tests/controller_tests/test_BackgroundController.py
         py.test dioptas/tests/controller_tests/test_CalibrationController.py
