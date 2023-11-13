@@ -153,7 +153,7 @@ class AutoLevel:
         self.mode: str = "default"
         """Autoscale mode in 'default', 'minmax', 'mean3std', '%fpercentile'"""
 
-        self.filter_dummy: bool = False
+        self.filter_dummy: bool = True
         """Whether or not to filter detector dummy values"""
 
     def get_range(self, data: Optional[np.ndarray]) -> Optional[tuple[float, float]]:
