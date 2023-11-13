@@ -1,9 +1,14 @@
 # 0.5.9 (under development)
 
+## New Features
+    - Intensity scaling is now persistent across Calibration, Mask and Integration tab
+    - Additional configuration available  the scaling of images
+
 ## Bug Fixes
     - autoscaling images with detector gaps and large values in them (e.g. ESRF Dectris data) will now automatically ignore
       these gaps 
     - when importing cifs all rhombohedral space groups can now also be in a hexagonal setting (was previously only possible for 167)
+
 
 
 # 0.5.8 (stable 29.09.2023)
