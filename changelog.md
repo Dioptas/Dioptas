@@ -1,4 +1,4 @@
-# 0.5.9 (under development)
+# 0.5.9 (stable 13.11.2023)
 
 ## New Features
     - Intensity scaling is now persistent across Calibration, Mask and Integration tab
