@@ -60,7 +60,7 @@ class Normalization:
 
 class LinearNormalization(Normalization):
     ID = "linear"
-    SHORTNAME = "⟋"
+    SHORTNAME = "lin"
     DESCRIPTION = "linear"
 
     @staticmethod
@@ -74,7 +74,7 @@ class LinearNormalization(Normalization):
 
 class LogNormalization(Normalization):
     ID = "log"
-    SHORTNAME = "㏒"
+    SHORTNAME = "log"
     DESCRIPTION = "logarithmic"
 
     @staticmethod
