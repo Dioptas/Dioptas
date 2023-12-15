@@ -20,7 +20,6 @@
 
 import logging
 import os
-from past.builtins import basestring
 import copy
 
 import numpy as np
@@ -719,7 +718,7 @@ class ImgModel(object):
         :param correction: An Object inheriting the ImgCorrectionInterface.
         :type correction: ImgCorrectionInterface
         :param name: correction can be given a name, to selectively delete or obtain later.
-        :type name: basestring
+        :type name: str
         """
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
@@ -777,7 +776,7 @@ class ImgModel(object):
         useful_keys.sort()
         for key in useful_keys:
             tag = tags[key][0]
-            if isinstance(tag, basestring):
+            if isinstance(tag, str):
                 new_line = str(tag) + "\n"
                 new_line = new_line.replace(":", ":\t", 1)
                 result += new_line
