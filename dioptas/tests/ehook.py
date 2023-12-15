@@ -17,15 +17,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import absolute_import
-
+from io import StringIO
 import sys
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import StringIO
 import traceback
+
 from qtpy import QtWidgets
 
 
