@@ -44,4 +44,4 @@ jobs:
       run: |
         py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
         py.test dioptas/tests/functional_tests/test_img_plots.py
- #       py.test dioptas/tests/functional_tests/test_functional_integration.py
+        py.test dioptas/tests/functional_tests/test_functional_integration.py
