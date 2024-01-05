@@ -175,11 +175,11 @@ def test_change_scale(batch_controller, batch_widget, batch_model, load_proc_dat
 
     batch_controller.change_scale_log(MockMouseEvent())
     assert batch_controller.scale == np.log10
-    assert np.all(batch_widget.stack_plot_widget.img_view.img_data == 2.)
+    assert np.allclose(batch_widget.stack_plot_widget.img_view.img_data, 2.)
 
     batch_controller.change_scale_sqrt(MockMouseEvent())
     assert batch_controller.scale == np.sqrt
-    assert np.all(batch_widget.stack_plot_widget.img_view.img_data == 10.)
+    assert np.allclose(batch_widget.stack_plot_widget.img_view.img_data, 10.)
 
     batch_controller.change_scale_lin(MockMouseEvent())
     assert batch_controller.scale == np.array

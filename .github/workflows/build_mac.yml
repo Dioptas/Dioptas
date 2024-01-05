@@ -9,6 +9,8 @@ jobs:
   build_macos:
     # The type of runner that the job will run on
     runs-on: macos-latest
+    env:
+      folder_name: 'DioptasMac'
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -26,7 +28,7 @@ jobs:
       run: |
         pip install pycifrw pandas python-dateutil h5py scikit-image==0.19.3 pyqt6 future qtpy pyfai lmfit pyepics \
                     pyinstaller cython watchdog h5py hdf5plugin pyqtgraph sharedmem \
-                    cython setuptools_scm
+                    cython poetry poetry-dynamic-versioning
       # we have to use scikit-image==0.19.3 because of a new loading mechanism in 0.20.0 which does currently not work
       # with pyinstaller
 
@@ -41,11 +43,11 @@ jobs:
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
 
-    - name: Create a Version File
-      run: python -m setuptools_scm
+    - name: Update the Version
+      run: poetry dynamic-versioning
 
     - name: Run Dioptas from source to test
-      run: python Dioptas.py test
+      run: python run.py test
 
     - name: Run PyInstaller
       run: bash create_executable.sh
@@ -54,7 +56,7 @@ jobs:
 #      run: |
 #        cd dist/Dioptas*
 #        cd Contents/MacOS
-#        rm QtQuick QtQml QtQmlmodels QtNetwork QtWebSockets
+#        rm QtQuick QtQml QtQmlModels QtNetwork QtWebSockets
 #        rm -r imageio matplotlib
 
     - name: Run Dioptas Executable
@@ -63,20 +65,33 @@ jobs:
         cd Contents/MacOS
         ./run_dioptas test
 
-    - name: Compress App
+    - name: Determine Folder Name
       run: |
         cd dist
-        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
-        echo $DIOPTAS_FOLDER
-        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
-        du -sh $DIOPTAS_FOLDER.zip
+        echo "folder_name=$(ls | grep Dioptas)" >> $env:GITHUB_ENV
 
-    - name: Upload Compressed App to Dropbox
-      env:
-        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-      run: |
-        pip install dropbox
-        cd dist
-        export compressedFile=$(ls | grep .zip)
-        export targetFile='/develop/macos/'$compressedFile
-        python ../scripts/dropbox_upload.py $compressedFile $targetFile
+    - name: Upload Compressed App as Artifact to GitHub
+      uses: actions/upload-artifact@v3
+      with:
+        name: DioptasMac
+        path: dist/Dioptas*
+
+#     DROPBOX UPLOAD
+#     disabled for now, since we can use the GitHub artifacts
+#    - name: Compress App
+#      run: |
+#        cd dist
+#        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
+#        echo $DIOPTAS_FOLDER
+#        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
+#        du -sh $DIOPTAS_FOLDER.zip
+
+#    - name: Upload Compressed App to Dropbox
+#      env:
+#        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+#      run: |
+#        pip install dropbox
+#        cd dist
+#        export compressedFile=$(ls | grep .zip)
+#        export targetFile='/develop/macos/'$compressedFile
+#        python ../scripts/dropbox_upload.py $compressedFile $targetFile

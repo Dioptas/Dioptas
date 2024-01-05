@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
+from __future__ import annotations
 
 from contextlib import contextmanager
 from typing import Optional
@@ -60,7 +60,7 @@ class Normalization:
 
 class LinearNormalization(Normalization):
     ID = "linear"
-    SHORTNAME = "⟋"
+    SHORTNAME = "lin"
     DESCRIPTION = "linear"
 
     @staticmethod
@@ -74,7 +74,7 @@ class LinearNormalization(Normalization):
 
 class LogNormalization(Normalization):
     ID = "log"
-    SHORTNAME = "㏒"
+    SHORTNAME = "log"
     DESCRIPTION = "logarithmic"
 
     @staticmethod

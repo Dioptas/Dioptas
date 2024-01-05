@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dioptas"
-version = "0.0.0" # Will be overwritten by poetry-dynamic-versioning
+version = "0.5.9" # Will be overwritten by poetry-dynamic-versioning
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
 authors = ["Clemens Prescher <clemens.prescher@gmail.com>"]
 license = "GPL-3.0"
@@ -18,7 +18,11 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Information Analysis',
 ]
 
-include = ["dioptas/model/util/*.pyd"]  # Compiled extensions
+include = [
+    # C extensions must be included in the wheel distributions
+    {path = "dioptas/model/util/*.so", format = "wheel"},
+    {path = "dioptas/model/util/*.pyd", format = "wheel"},
+]
 exclude = ["dioptas/tests/*"] # Exclude tests from package
 
 [tool.poetry.build]
@@ -29,7 +33,7 @@ generate-setup-file = false
 dioptas = "dioptas:main"
 
 [tool.poetry-dynamic-versioning]
-enable = true
+enable = false
 vcs = "git"
 pattern = "default-unprefixed"
 style = "semver"
@@ -39,31 +43,42 @@ files = ["dioptas/__init__.py"]
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8, <3.13"
 EXtra-data = "^1.13.0"
 future = "^0.18.3"
-h5py = "^3.9.0"
+h5py = "^3.10.0"
 hdf5plugin = "^4.1.3"
 lmfit = "^1.2.1"
-pandas = "^2.0.2"
+pandas = "^2.1.1"
 psutil = "^5.9.5"
 PyCifRW = "^4.4.5"
 PyQt6 = "^6.5.1"
 pyfai = "^2023.5.0"
 pyqtgraph = "^0.13.3"
 QtPy = "^2.3.1"
-scikit-image = "^0.21.0"
+scikit-image = "^0.22.0"
 sharedmem = "^0.3.8"
 watchdog = "^3.0.0"
 pyopengl = "^3.1.7"
 pyopengl-accelerate = "^3.1.7"
+xypattern = "1.0.4"
+numpy = [
+  { version = "^1.24.0", python = "<3.10" },
+  { version = "^1.26.0", python = ">=3.10" }
+]
+scipy = [
+  { version = "^1.9.3", python = "<3.10" },
+  { version = "^1.11.3", python = ">=3.10" }
+]
+numexpr = "2.8.4"
 
 [tool.poetry.dev-dependencies]
-cython = "^0.29.35"
+cython = "^3.0.4"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^6.2.5"
 pytest-qt = "*"
+mock = "^5.1.0"
 
 [build-system]
 requires = ["poetry-core", "cython", "setuptools", "poetry-dynamic-versioning"]

@@ -25,27 +25,11 @@ import fabio
 import numpy as np
 import pytest
 from PIL import Image
-from qtpy import QtCore, QtWidgets
-from qtpy.QtTest import QTest
+from qtpy import QtWidgets
 
 from ..utility import click_button, unittest_data_path
 from ...controller.MainController import MainController
 from ...controller.MaskController import MaskController
-
-
-@pytest.fixture
-def main_controller(qapp):
-    """Fixture providing a MainController instance"""
-    controller = MainController(use_settings=False)
-    controller.show_window()
-    controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-    QTest.qWaitForWindowExposed(controller.widget)
-    controller.widget.activateWindow()
-    controller.widget.raise_()
-    try:
-        yield controller
-    finally:
-        controller.widget.close()
 
 
 def load_image_and_mask(
@@ -75,7 +59,9 @@ def load_image_and_mask(
 
     # Load mask
     click_button(main_controller.widget.mask_mode_btn)
-    QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=(mask_filename, dialog_filter))
+    QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+        return_value=(mask_filename, dialog_filter)
+    )
     click_button(main_controller.mask_controller.widget.load_mask_btn)
 
     current_mask = main_controller.model.mask_model.get_mask()
@@ -85,7 +71,9 @@ def load_image_and_mask(
         assert np.array_equal(ref_mask, current_mask)
 
     # Save mask
-    QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=(mask_filename, dialog_filter))
+    QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+        return_value=(mask_filename, dialog_filter)
+    )
     click_button(main_controller.mask_controller.widget.save_mask_btn)
     assert os.path.isfile(mask_filename)
 
@@ -98,12 +86,15 @@ def load_image_and_mask(
     assert np.array_equal(ref_mask, saved_mask)
 
 
-@pytest.mark.parametrize("img_filename", [
-    "lambda/testasapo1_1009_00002_m1_part00000.nxs",
-    "spe/CeO2_PI_CCD_Mo.SPE",
-    "image_001.tif",
-    "karabo_epix.h5",
-])
+@pytest.mark.parametrize(
+    "img_filename",
+    [
+        "lambda/testasapo1_1009_00002_m1_part00000.nxs",
+        "spe/CeO2_PI_CCD_Mo.SPE",
+        "image_001.tif",
+        "karabo_epix.h5",
+    ],
+)
 def test_load_save_mask_as_tiff(main_controller, tmp_path, img_filename):
     """Test *.mask mask load/save"""
     load_image_and_mask(
@@ -114,12 +105,15 @@ def test_load_save_mask_as_tiff(main_controller, tmp_path, img_filename):
     )
 
 
-@pytest.mark.parametrize("img_filename", [
-    "lambda/testasapo1_1009_00002_m1_part00000.nxs",
-    "spe/CeO2_PI_CCD_Mo.SPE",
-    "image_001.tif",
-    "karabo_epix.h5",
-])
+@pytest.mark.parametrize(
+    "img_filename",
+    [
+        "lambda/testasapo1_1009_00002_m1_part00000.nxs",
+        "spe/CeO2_PI_CCD_Mo.SPE",
+        "image_001.tif",
+        "karabo_epix.h5",
+    ],
+)
 def test_load_save_flipped_mask_as_npy(main_controller, tmp_path, img_filename):
     """Test load/save flipped mask as npy"""
     load_image_and_mask(
@@ -130,12 +124,15 @@ def test_load_save_flipped_mask_as_npy(main_controller, tmp_path, img_filename):
     )
 
 
-@pytest.mark.parametrize("img_filename", [
-    "lambda/testasapo1_1009_00002_m1_part00000.nxs",
-    "spe/CeO2_PI_CCD_Mo.SPE",
-    "image_001.tif",
-    "karabo_epix.h5",
-])
+@pytest.mark.parametrize(
+    "img_filename",
+    [
+        "lambda/testasapo1_1009_00002_m1_part00000.nxs",
+        "spe/CeO2_PI_CCD_Mo.SPE",
+        "image_001.tif",
+        "karabo_epix.h5",
+    ],
+)
 def test_load_save_flipped_mask_as_edf(main_controller, tmp_path, img_filename):
     """Test load/save flipped mask as edf"""
     load_image_and_mask(
