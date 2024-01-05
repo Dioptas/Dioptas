@@ -9,6 +9,8 @@ jobs:
   build_windows:
     # The type of runner that the job will run on
     runs-on: windows-latest
+    env:
+      folder_name: 'DioptasWin'
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -27,21 +29,21 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-v3
         restore-keys: |
           ${{ runner.os }}-pip-c3
-        
+
     - name: Install Pip Dependencies
       run: |
-        pip install pycifrw pandas numpy python-dateutil h5py cython scikit-image==0.19.3 pyqt6 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem setuptools_scm
+        pip install pycifrw pandas numpy python-dateutil h5py cython scikit-image==0.19.3 pyqt6 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem poetry poetry-dynamic-versioning
       # we have to use scikit-image==0.19.3 because of a new loading mechanism in 0.20.0 which does currently not work
       # with pyinstaller
 
     - name: Compile Smooth Bruckner
       run: cythonize -a -i dioptas\model\util\smooth_bruckner_cython.pyx
 
-    - name: Create a Version File
-      run: python -m setuptools_scm
+    - name: Update the Version
+      run: poetry dynamic-versioning
 
     - name: Run Dioptas from source to test
-      run: python Dioptas.py test
+      run: python run.py test
 
     - name: Run PyInstaller
       shell: cmd
@@ -53,21 +55,35 @@ jobs:
         cd dist\Dioptas*
         Dioptas.exe test
 
-    - name: Compress App
+    - name: Determine Folder Name
       run: |
         cd dist\Dioptas*
-        $folderName = pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
-        cd ..
-        $zipName = $folderName + '.zip'
-        Compress-Archive $folderName $zipName
-        Write-Host((Get-Item $zipName).length/1MB)
+        echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})"
+        echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})" >> $env:GITHUB_ENV
 
-    - name: Upload Compressed App to Dropbox
-      env:
-        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-      run: |
-        pip install dropbox
-        cd dist
-        $zipFile = Resolve-Path ".\Dioptas*.zip" | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
-        $targetFile = '/develop/windows/' + $zipFile
-        python ..\scripts\dropbox_upload.py $zipFile $targetFile
+    - name: Upload Compressed App as Artifact to GitHub
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.folder_name }}
+        path: dist\Dioptas*
+
+#     DROPBOX UPLOAD
+#     disabled for now, since we can use the GitHub artifacts
+#    - name: Compress App
+#      run: |
+#        cd dist\Dioptas*
+#        $folderName = pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
+#        cd ..
+#        $zipName = $folderName + '.zip'
+#        Compress-Archive $folderName $zipName
+#        Write-Host((Get-Item $zipName).length/1MB)
+#
+#    - name: Upload Compressed App to Dropbox
+#      env:
+#        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+#      run: |
+#        pip install dropbox
+#        cd dist
+#        $zipFile = Resolve-Path ".\Dioptas*.zip" | Select-Object | %{$_.ProviderPath.Split("\")[-1]}
+#        $targetFile = '/develop/windows/' + $zipFile
+#        python ..\scripts\dropbox_upload.py $zipFile $targetFile

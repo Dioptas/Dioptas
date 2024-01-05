@@ -66,10 +66,18 @@ class OptionsController(object):
 
     def update_gui(self):
         self.options_widget.blockSignals(True)
-        self.options_widget.correct_solid_angle_cb.setChecked(int(self.model.current_configuration.correct_solid_angle))
-        self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))
 
+        self.options_widget.correct_solid_angle_cb.blockSignals(True)
+        self.options_widget.correct_solid_angle_cb.setChecked(int(self.model.current_configuration.correct_solid_angle))
+        self.options_widget.correct_solid_angle_cb.blockSignals(False)
+
+        self.options_widget.bin_count_txt.blockSignals(True)
+        self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))
+        self.options_widget.bin_count_txt.blockSignals(False)
+
+        self.options_widget.cake_azimuth_points_sb.blockSignals(True)
         self.options_widget.cake_azimuth_points_sb.setValue(self.model.current_configuration.cake_azimuth_points)
+        self.options_widget.cake_azimuth_points_sb.blockSignals(False)
 
         if self.model.current_configuration.cake_azimuth_range is None:
             self.enable_full_cake_range()
@@ -80,6 +88,7 @@ class OptionsController(object):
                 '{}'.format(self.model.current_configuration.cake_azimuth_range[1]))
             self.options_widget.blockSignals(False)
             self.disable_full_cake_range()
+        self.options_widget.blockSignals(False)
 
     def cake_azimuth_range_changed(self):
         range_min = float(self.options_widget.cake_azimuth_min_txt.text())

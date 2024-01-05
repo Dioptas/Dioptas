@@ -78,7 +78,7 @@ class ImageController(object):
         """
         Plots the current image loaded in self.img_data.
         :param auto_scale:
-            Determines if intensities shouldk be auto-scaled. If value is None it will use the parameter saved in the
+            Determines if intensities should be auto-scaled. If value is None it will use the parameter saved in the
             Object (self._auto_scale)
         """
         if auto_scale is None:

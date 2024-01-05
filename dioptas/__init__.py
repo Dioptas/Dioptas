@@ -20,11 +20,20 @@
 
 from __future__ import absolute_import
 
+import os
 import sys
 from sys import platform as _platform
+
+# If QT_API is not set, use PyQt6 by default
+if "QT_API" not in os.environ:
+    try:
+        import PyQt6.QtCore
+    except ImportError:
+        pass
+
 from qtpy import QtWidgets
 
-__version__ = "0.5.8-dev-alpha"
+__version__ = "0.5.9"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook

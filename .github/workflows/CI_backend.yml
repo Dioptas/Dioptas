@@ -39,8 +39,8 @@ jobs:
                     mock pytest pytest-xvfb pytest-qt
 
     - name: Run tests
-      shell: bash -l {0}
       run: |
+        py.test dioptas/tests/unit_tests/test_AutoLevel.py
         py.test dioptas/tests/unit_tests/test_background_extraction.py
         py.test dioptas/tests/unit_tests/test_BatchModel.py
         py.test dioptas/tests/unit_tests/test_calc.py
@@ -58,3 +58,4 @@ jobs:
         py.test dioptas/tests/unit_tests/test_Pattern.py
         py.test dioptas/tests/unit_tests/test_PatternModel.py
         py.test dioptas/tests/unit_tests/test_PhaseModel.py
+        py.test dioptas/tests/unit_tests/test_Signal.py
