@@ -366,7 +366,7 @@ class HistogramLUTItem(GraphicsWidget):
     def _updateNormalizationLabel(self, normalization: str):
         shortname = NormalizedImageItem.getNormalizationShortname(normalization)
         description = NormalizedImageItem.getNormalizationDescription(normalization).capitalize()
-        self._normalizationLabel.setText(shortname)
+        self._normalizationLabel.setText(f"<small>{shortname}</small>")
         self._normalizationLabel.setToolTip(f"{description} colormap normalization")
 
     def _normalizationChanged(self, normalization: str):
