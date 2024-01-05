@@ -18,7 +18,11 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Information Analysis',
 ]
 
-include = ["dioptas/model/util/*.pyd"]  # Compiled extensions
+include = [
+    # C extensions must be included in the wheel distributions
+    {path = "dioptas/model/util/*.so", format = "wheel"},
+    {path = "dioptas/model/util/*.pyd", format = "wheel"},
+]
 exclude = ["dioptas/tests/*"] # Exclude tests from package
 
 [tool.poetry.build]
