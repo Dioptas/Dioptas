@@ -23,6 +23,8 @@ import pytest
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
 
+from dioptas.controller.MainController import MainController
+
 
 @pytest.fixture(scope="session")
 def qapp():
@@ -61,3 +63,18 @@ def qWidgetFactory(qapp):
         for widget in widgets:
             widget.close()
         qapp.processEvents()
+
+
+@pytest.fixture
+def main_controller(qapp):
+    """Fixture providing a MainController instance"""
+    controller = MainController(use_settings=False)
+    controller.show_window()
+    controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+    QTest.qWaitForWindowExposed(controller.widget)
+    controller.widget.activateWindow()
+    controller.widget.raise_()
+    try:
+        yield controller
+    finally:
+        controller.widget.close()
