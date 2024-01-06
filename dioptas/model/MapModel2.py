@@ -20,9 +20,12 @@
 import os.path
 
 import numpy as np
-from qtpy import QtCore
+from dioptas.model.util.signal import Signal
 
-from .Configuration import Configuration
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .Configuration import Configuration
+
 
 
 class MapPointInfo:
@@ -34,10 +37,11 @@ class MapPointInfo:
         self.frame_index = frame_index
 
 
-class MapModel2(QtCore.QObject):
-    map_changed = QtCore.Signal()
+class MapModel2():
+    map_changed = Signal()
+    filenames_changed = Signal()
 
-    def __init__(self, configuration: Configuration):
+    def __init__(self, configuration: "Configuration"):
         """
         Creates a new map-model. The configuration specified will serve as
         integrator for the processed files.
@@ -77,6 +81,9 @@ class MapModel2(QtCore.QObject):
         self.map_changed.emit()
 
     def integrate(self):
+        if not self.configuration.is_calibrated:
+            raise ValueError("Configuration is not calibrated")
+
         self.pattern_x = []
         self.pattern_intensities = []
         self.point_infos = []
