@@ -105,6 +105,7 @@ class MainController(object):
         self.widget.calibration_mode_btn.toggled.connect(self.widget.calibration_widget.setVisible)
         self.widget.mask_mode_btn.toggled.connect(self.widget.mask_widget.setVisible)
         self.widget.integration_mode_btn.toggled.connect(self.widget.integration_widget.setVisible)
+        self.widget.map_mode_btn.toggled.connect(self.widget.map_widget.setVisible)
 
         self.widget.mode_btn_group.buttonToggled.connect(self.tab_changed)
 
@@ -127,6 +128,8 @@ class MainController(object):
             ind = 1
         elif self.widget.integration_mode_btn.isChecked():
             ind = 2
+        elif self.widget.map_mode_btn.isChecked():
+            ind = 3
         else:
             return
 
@@ -150,6 +153,7 @@ class MainController(object):
             old_view_range = self.widget.integration_widget.img_widget.img_view_box.targetRange()
             old_hist_levels = self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
             normalization = self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.getNormalization()
+
 
             # update the GUI
         if ind == 2:  # integration tab

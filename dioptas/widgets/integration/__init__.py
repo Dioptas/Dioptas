@@ -24,7 +24,6 @@ from qtpy import QtWidgets, QtCore
 
 from ..UtilityWidgets import FileInfoWidget
 from ..EpicsWidgets import MoveStageWidget
-from ..MapWidgets import Map2DWidget
 from .BatchWidget import BatchWidget
 
 from .CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
