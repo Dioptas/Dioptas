@@ -91,5 +91,9 @@ def test_map(main_controller):
 
     # He clicks on individual points of the map and sees that the corresponding image and pattern
     # is shown in the right side of the GUI.
+    map_widget.map_plot_widget.mouse_left_clicked.emit(2, 0)
+    loaded_filename = main_controller.model.current_configuration.img_model.filename
+    assert loaded_filename == map_img_file_paths[2]
+    assert map_widget.control_widget.file_list.currentRow() == 2
 
     # He clicks into the Pattern and realizes that the map is updating depending on where he clicks.

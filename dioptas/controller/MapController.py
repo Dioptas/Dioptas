@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+import numpy as np
 
 from dioptas.model import DioptasModel
 from dioptas.widgets.MapWidget import MapWidget
@@ -37,6 +37,9 @@ class MapController(object):
         self.widget.control_widget.load_btn.clicked.connect(self.load_btn_clicked)
         self.widget.control_widget.file_list.currentRowChanged.connect(
             self.map_model.select_point_by_index
+        )
+        self.widget.map_plot_widget.mouse_left_clicked.connect(
+            self.map_point_selected
         )
 
         self.map_model.filenames_changed.connect(self.update_file_list)
@@ -73,3 +76,11 @@ class MapController(object):
         self.widget.pattern_plot_widget.plot_data(
             self.model.pattern.x, self.model.pattern.y
         )
+    
+    def map_point_selected(self, x, y):
+        print(x, y)
+        x, y = np.floor(x), np.floor(y)
+        self.map_model.select_point(x, y)
+        ind = self.map_model.get_point_index(x, y)
+        self.widget.control_widget.file_list.setCurrentRow(ind)
+

@@ -122,17 +122,19 @@ class MapModel2:
     def get_point_info(self, row_index: float, column_index: float) -> MapPointInfo:
         if self.dimension is None:
             return None
-        ind = column_index + self.dimension[1] * row_index
+        ind = self.get_point_index(row_index, column_index)
         return self.point_infos[ind]
 
-    def select_point(self, row_index: float, column_index: float):
-        point_info = self.get_point_info(row_index, column_index)
-        if point_info is None:
+    def get_point_index(self, row_index: int, column_index: int) -> int:
+        if self.dimension is None:
+            return None
+        return int(column_index + self.dimension[1] * row_index)
+
+    def select_point(self, row_index: int, column_index: int):
+        point_ind = self.get_point_index(row_index, column_index)
+        if point_ind is None:
             return
-        self.configuration.img_model.load(
-            point_info.filepath,
-            point_info.frame_index,
-        )
+        self.select_point_by_index(point_ind)
 
     def select_point_by_index(self, index: int):
         if index < 0 or index >= len(self.point_infos):
