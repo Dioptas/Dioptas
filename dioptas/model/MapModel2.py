@@ -23,9 +23,9 @@ import numpy as np
 from dioptas.model.util.signal import Signal
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from .Configuration import Configuration
-
 
 
 class MapPointInfo:
@@ -37,7 +37,7 @@ class MapPointInfo:
         self.frame_index = frame_index
 
 
-class MapModel2():
+class MapModel2:
     map_changed = Signal()
     filenames_changed = Signal()
 
@@ -59,20 +59,22 @@ class MapModel2():
         self.possible_dimensions = None
         self.map = None
 
-    def create_map(self, filenames: list[str]):
+    def load(self, filenames: list[str]):
         self.filenames = filenames
+        self.filenames_changed.emit()
+
         self.integrate()
 
         if self.window is None:
             self.window = get_center_window(self.pattern_x)
 
         self.window_intensities = get_window_intensities(
-            self.pattern_x,
-            self.pattern_intensities,
-            self.window
+            self.pattern_x, self.pattern_intensities, self.window
         )
 
-        self.possible_dimensions = find_possible_dimensions(len(self.window_intensities))
+        self.possible_dimensions = find_possible_dimensions(
+            len(self.window_intensities)
+        )
 
         if self.dimension is None or self.dimension not in self.possible_dimensions:
             self.dimension = self.possible_dimensions[0]
@@ -81,7 +83,7 @@ class MapModel2():
         self.map_changed.emit()
 
     def integrate(self):
-        if not self.configuration.is_calibrated:
+        if not self.configuration.calibration_model.is_calibrated:
             raise ValueError("Configuration is not calibrated")
 
         self.pattern_x = []
@@ -96,11 +98,7 @@ class MapModel2():
                 self.pattern_x = x
             else:
                 _, y = self.configuration.integrate_image_1d()
-            self.point_infos.append(
-                MapPointInfo(
-                    os.path.basename(filename),
-                    frame_ind
-                ))
+            self.point_infos.append(MapPointInfo(os.path.basename(filename), frame_ind))
 
             self.pattern_intensities.append(y)
         self.pattern_intensities = np.array(self.pattern_intensities)
@@ -108,9 +106,7 @@ class MapModel2():
     def set_window(self, window: tuple[float, float]):
         self.window = window
         self.window_intensities = get_window_intensities(
-            self.pattern_x,
-            self.pattern_intensities,
-            self.window
+            self.pattern_x, self.pattern_intensities, self.window
         )
         self.map = create_map(self.window_intensities, self.dimension)
         self.map_changed.emit()
@@ -136,7 +132,10 @@ def get_center_window(x, window_range=3) -> list[float, float]:
     """
     window_center = x[int(len(x) / 2)]
     x_step = np.mean(np.diff(x))
-    return [window_center - window_range * x_step, window_center + window_range * x_step]
+    return [
+        window_center - window_range * x_step,
+        window_center + window_range * x_step,
+    ]
 
 
 def ind_in_window(x_array, window: (float, float)) -> np.ndarray:
@@ -149,7 +148,9 @@ def ind_in_window(x_array, window: (float, float)) -> np.ndarray:
     return np.where((x_array > window[0]) & (x_array < window[1]))[0]
 
 
-def get_window_intensities(pattern_x, intensities, window: (float, float)) -> np.ndarray:
+def get_window_intensities(
+    pattern_x, intensities, window: (float, float)
+) -> np.ndarray:
     """
     Estimates the intensities inside the specified window
     :param pattern_x: a numpy array of x values from the pattern

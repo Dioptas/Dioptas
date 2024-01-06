@@ -25,7 +25,7 @@ def map_model(configuration: Configuration) -> MapModel2:
 
 def test_create_map(map_model: MapModel2, configuration: Configuration):
     configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
-    map_model.create_map(map_img_file_paths)
+    map_model.load(map_img_file_paths)
     assert map_model.filenames == map_img_file_paths
     assert len(map_model.pattern_intensities) == len(map_img_file_paths)
     assert map_model.dimension == (3, 3)
@@ -34,7 +34,7 @@ def test_create_map(map_model: MapModel2, configuration: Configuration):
 
 def test_set_dimensions(map_model: MapModel2, configuration: Configuration):
     configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
-    map_model.create_map(map_img_file_paths[:6])
+    map_model.load(map_img_file_paths[:6])
     assert len(map_model.pattern_intensities) == 6
     assert map_model.dimension == (2, 3)
     assert map_model.map.shape == (2, 3)
@@ -50,7 +50,7 @@ def test_set_dimensions(map_model: MapModel2, configuration: Configuration):
 
 def test_set_wrong_dimensions(map_model: MapModel2, configuration: Configuration):
     configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
-    map_model.create_map(map_img_file_paths[:6])
+    map_model.load(map_img_file_paths[:6])
     assert len(map_model.pattern_intensities) == 6
     assert map_model.dimension == (2, 3)
     assert map_model.map.shape == (2, 3)
@@ -62,7 +62,7 @@ def test_set_wrong_dimensions(map_model: MapModel2, configuration: Configuration
 
 def test_set_different_window(map_model: MapModel2, configuration: Configuration):
     configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
-    map_model.create_map(map_img_file_paths[:6])
+    map_model.load(map_img_file_paths[:6])
 
     map_model.set_window((15, 16))
     assert map_model.window_intensities.all() > 0
@@ -73,7 +73,7 @@ def test_set_different_window(map_model: MapModel2, configuration: Configuration
 
 def test_get_point_information(map_model: MapModel2, configuration: Configuration):
     configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
-    map_model.create_map(map_img_file_paths[:6])
+    map_model.load(map_img_file_paths[:6])
 
     assert map_model.dimension == (2, 3)
     for i in range(6):

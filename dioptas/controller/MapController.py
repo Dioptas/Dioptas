@@ -37,6 +37,7 @@ class MapController(object):
         self.widget.control_widget.load_btn.clicked.connect(self.load_btn_clicked)
 
         self.map_model.filenames_changed.connect(self.update_file_list)
+        self.map_model.map_changed.connect(self.update_map)
 
     def load_btn_clicked(self):
         filenames = open_files_dialog(
@@ -45,7 +46,7 @@ class MapController(object):
             self.model.working_directories["image"],
         )
         try:
-            self.map_model.create_map(filenames)
+            self.map_model.load(filenames)
         except ValueError as e:
             self.update_file_list()
 
@@ -53,3 +54,6 @@ class MapController(object):
         self.widget.control_widget.file_list.clear()
         self.widget.control_widget.file_list.addItems(self.map_model.filenames)
         self.widget.control_widget.file_list.setCurrentRow(0)
+
+    def update_map(self):
+        self.widget.map_plot_widget.plot_image(self.map_model.map, auto_level=True)
