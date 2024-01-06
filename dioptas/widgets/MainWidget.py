@@ -141,6 +141,7 @@ class MainWidget(QtWidgets.QWidget):
 
         self.mask_widget.setVisible(False)
         self.integration_widget.setVisible(False)
+        self.map_widget.setVisible(False)
 
         self._inner_layout.addWidget(self.main_frame)
         self._outer_layout.addLayout(self._inner_layout)

@@ -27,11 +27,14 @@ from ..utility import click_button
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, "data")
+map_img_path = os.path.join(data_path, 'map')
+map_pattern_path = os.path.join(data_path, 'map', 'xy')
+map_img_file_names = [f for f in os.listdir(map_img_path) if os.path.isfile(os.path.join(map_img_path, f))]
+map_img_file_paths = [os.path.join(map_img_path, filename) for filename in map_img_file_names]
 
 
-def mock_open_filename(filepath):
-    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[filepath])
-    QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=filepath)
+def mock_open_filenames(filepaths):
+    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=filepaths)
 
 
 def test_map(main_controller):
@@ -43,14 +46,29 @@ def test_map(main_controller):
     # is a mode on the left side which is called "Map".
     main_controller.model.current_configuration.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
 
-    # He clicks on the map mode and sees that there is a button to load his files.
+    # He clicks on the map mode and sees a beautiful gui with 2 image views and one pattern view.
 
     click_button(main_controller.widget.map_mode_btn)
     assert main_controller.widget.map_widget.isVisible()
 
+    map_widget = main_controller.widget.map_widget
 
+    assert map_widget.map_pg_layout.isVisible()
+    assert map_widget.img_pg_layout.isVisible()
+    assert map_widget.pattern_pg_layout.isVisible()
+
+    # He realizes that there is also a control widget on the rightside which allows him to load
+    # images. He clicks on the load button and load a list of files.
+
+    assert map_widget.control_widget.isVisible()
+    mock_open_filenames(map_img_file_paths)
+
+    click_button(map_widget.control_widget.load_btn)
     # The loading of the files generates a list of files in the GUI. Further, it automatically
     # generates a map of something on the left side of the GUI.
+
+    assert map_widget.control_widget.file_list.count() == len(map_img_file_names)
+    assert map_widget.map_plot_widget.img_item.image is not None
 
     # He clicks on individual points of the map and sees that the corresponding image and pattern
     # is shown in the right side of the GUI.
