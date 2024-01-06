@@ -425,7 +425,7 @@ QFrame#main_frame {
    border-bottom-right-radius: 8px;
 }
 
-#integration_mode_btn {
+#map_mode_btn {
    border-top-left-radius:8px;
    border-bottom-left-radius: 8px;
 }
