@@ -26,8 +26,16 @@ from .ConfigurationWidget import ConfigurationWidget
 from .CalibrationWidget import CalibrationWidget
 from .MaskWidget import MaskWidget
 from .integration import IntegrationWidget
-from .CustomWidgets import RotatedCheckableFlatButton, VerticalSpacerItem, CheckableFlatButton, FlatButton, \
-    SaveIconButton, OpenIconButton, ResetIconButton
+from .MapWidget import MapWidget
+from .CustomWidgets import (
+    RotatedCheckableFlatButton,
+    VerticalSpacerItem,
+    CheckableFlatButton,
+    FlatButton,
+    SaveIconButton,
+    OpenIconButton,
+    ResetIconButton,
+)
 
 from .. import style_path, icons_path
 
@@ -52,36 +60,46 @@ class MainWidget(QtWidgets.QWidget):
         self._mode_layout.setContentsMargins(10, 0, 0, 0)
         self._mode_layout.setSpacing(0)
 
-        self.show_configuration_menu_btn = CheckableFlatButton('C')
+        self.show_configuration_menu_btn = CheckableFlatButton("C")
         self.save_btn = SaveIconButton()
         self.load_btn = OpenIconButton()
         self.reset_btn = ResetIconButton()
 
         self.mode_btn_group = QtWidgets.QButtonGroup()
-        self.calibration_mode_btn = RotatedCheckableFlatButton('Calibration', self)
-        self.calibration_mode_btn.setObjectName('calibration_mode_btn')
+        self.calibration_mode_btn = RotatedCheckableFlatButton("Calibration", self)
+        self.calibration_mode_btn.setObjectName("calibration_mode_btn")
         self.calibration_mode_btn.setChecked(True)
-        self.mask_mode_btn = RotatedCheckableFlatButton('Mask', self)
-        self.mask_mode_btn.setObjectName('mask_mode_btn')
-        self.integration_mode_btn = RotatedCheckableFlatButton('Integration', self)
-        self.integration_mode_btn.setObjectName('integration_mode_btn')
+        self.mask_mode_btn = RotatedCheckableFlatButton("Mask", self)
+        self.mask_mode_btn.setObjectName("mask_mode_btn")
+        self.integration_mode_btn = RotatedCheckableFlatButton("Integration", self)
+        self.integration_mode_btn.setObjectName("integration_mode_btn")
+        self.map_mode_btn = RotatedCheckableFlatButton("Map", self)
+        self.map_mode_btn.setObjectName("map_mode_btn")
 
         self.mode_btn_group.addButton(self.calibration_mode_btn)
         self.mode_btn_group.addButton(self.mask_mode_btn)
         self.mode_btn_group.addButton(self.integration_mode_btn)
+        self.mode_btn_group.addButton(self.map_mode_btn)
 
         self._menu_layout.addWidget(self.show_configuration_menu_btn)
         self._menu_layout.addSpacerItem(
-            QtWidgets.QSpacerItem(15, 15, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed))
+            QtWidgets.QSpacerItem(
+                15, 15, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+            )
+        )
         self._menu_layout.addWidget(self.load_btn)
         self._menu_layout.addWidget(self.save_btn)
         self._menu_layout.addSpacerItem(
-            QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed))
+            QtWidgets.QSpacerItem(
+                10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+            )
+        )
         self._menu_layout.addWidget(self.reset_btn)
 
         self._mode_layout.addWidget(self.calibration_mode_btn)
         self._mode_layout.addWidget(self.mask_mode_btn)
         self._mode_layout.addWidget(self.integration_mode_btn)
+        self._mode_layout.addWidget(self.map_mode_btn)
 
         self._left_layout.addLayout(self._menu_layout)
         self._left_layout.addSpacerItem(VerticalSpacerItem())
@@ -114,10 +132,12 @@ class MainWidget(QtWidgets.QWidget):
         self.calibration_widget = CalibrationWidget(self)
         self.mask_widget = MaskWidget(self)
         self.integration_widget = IntegrationWidget(self)
+        self.map_widget = MapWidget(self)
 
         self._layout_main_frame.addWidget(self.calibration_widget)
         self._layout_main_frame.addWidget(self.mask_widget)
         self._layout_main_frame.addWidget(self.integration_widget)
+        self._layout_main_frame.addWidget(self.map_widget)
 
         self.mask_widget.setVisible(False)
         self.integration_widget.setVisible(False)
@@ -131,7 +151,7 @@ class MainWidget(QtWidgets.QWidget):
         self.style_widgets()
         self.add_tooltips()
 
-        self.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, 'icon.svg')))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, "icon.svg")))
 
     def set_stylesheet(self):
         file = open(os.path.join(style_path, "stylesheet.qss"))
@@ -141,27 +161,37 @@ class MainWidget(QtWidgets.QWidget):
 
     def set_system_dependent_stylesheet(self):
         from sys import platform
+
         if platform == "darwin":
             self.tabWidget.setStyleSheet(
-                "QDoubleSpinBox, QSpinBox {padding-right: -8px;}")
+                "QDoubleSpinBox, QSpinBox {padding-right: -8px;}"
+            )
         else:
             self.tabWidget.setStyleSheet(
-                "QDoubleSpinBox, QSpinBox {padding-right: -3px;}")
+                "QDoubleSpinBox, QSpinBox {padding-right: -3px;}"
+            )
 
     def style_widgets(self):
         mode_btn_width = 27
-        mode_btn_height = 130
+        mode_btn_height = 110
         self.calibration_mode_btn.setMaximumWidth(mode_btn_width)
         self.mask_mode_btn.setMaximumWidth(mode_btn_width)
         self.integration_mode_btn.setMaximumWidth(mode_btn_width)
+        self.map_mode_btn.setMaximumWidth(mode_btn_width)
 
         self.calibration_mode_btn.setMinimumHeight(mode_btn_height)
         self.mask_mode_btn.setMinimumHeight(mode_btn_height)
         self.integration_mode_btn.setMinimumHeight(mode_btn_height)
+        self.map_mode_btn.setMinimumHeight(mode_btn_height)
 
         button_height = 30
         button_width = 30
-        adjust_height_btns = [self.show_configuration_menu_btn, self.save_btn, self.load_btn, self.reset_btn]
+        adjust_height_btns = [
+            self.show_configuration_menu_btn,
+            self.save_btn,
+            self.load_btn,
+            self.reset_btn,
+        ]
         for btn in adjust_height_btns:
             btn.setHeight(button_height)
             btn.setWidth(button_width)
@@ -172,6 +202,6 @@ class MainWidget(QtWidgets.QWidget):
             btn.setIconSize(icon_size)
 
     def add_tooltips(self):
-        self.load_btn.setToolTip('Open Project')
-        self.save_btn.setToolTip('Save Project')
-        self.reset_btn.setToolTip('Reset Project')
+        self.load_btn.setToolTip("Open Project")
+        self.save_btn.setToolTip("Save Project")
+        self.reset_btn.setToolTip("Reset Project")

@@ -26,8 +26,6 @@ from qtpy import QtWidgets, QtCore
 from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 from ...model.util.calc import convert_units
 
-from .MapController import MapController
-
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
@@ -51,8 +49,6 @@ class PatternController(object):
 
         self.widget = widget
         self.model = dioptas_model
-
-        self.map_controller = MapController(self.model.working_directories, self.widget, self.model)
 
         self.integration_unit = '2th_deg'
         self.autocreate_pattern = False
