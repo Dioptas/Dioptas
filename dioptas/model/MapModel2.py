@@ -134,6 +134,15 @@ class MapModel2:
             point_info.frame_index,
         )
 
+    def select_point_by_index(self, index: int):
+        if index < 0 or index >= len(self.point_infos):
+            return
+        point_info = self.point_infos[index]
+        self.configuration.img_model.load(
+            point_info.filepath,
+            point_info.frame_index,
+        )
+
 
 def get_center_window(x, window_range=3) -> list[float, float]:
     """

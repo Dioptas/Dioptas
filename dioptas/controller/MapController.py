@@ -35,6 +35,9 @@ class MapController(object):
 
     def create_signals(self):
         self.widget.control_widget.load_btn.clicked.connect(self.load_btn_clicked)
+        self.widget.control_widget.file_list.currentRowChanged.connect(
+            self.map_model.select_point_by_index
+        )
 
         self.map_model.filenames_changed.connect(self.update_file_list)
         self.map_model.map_changed.connect(self.update_map)
