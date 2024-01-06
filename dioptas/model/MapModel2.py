@@ -32,8 +32,9 @@ class MapPointInfo:
     filename: str
     frame_index: int
 
-    def __init__(self, filename, frame_index):
-        self.filename = filename
+    def __init__(self, filepath, frame_index):
+        self.filepath = filepath
+        self.filename = os.path.basename(filepath)
         self.frame_index = frame_index
 
 
@@ -98,7 +99,7 @@ class MapModel2:
                 self.pattern_x = x
             else:
                 _, y = self.configuration.integrate_image_1d()
-            self.point_infos.append(MapPointInfo(os.path.basename(filename), frame_ind))
+            self.point_infos.append(MapPointInfo(filename, frame_ind))
 
             self.pattern_intensities.append(y)
         self.pattern_intensities = np.array(self.pattern_intensities)
@@ -119,8 +120,19 @@ class MapModel2:
         self.map_changed.emit()
 
     def get_point_info(self, row_index: float, column_index: float) -> MapPointInfo:
+        if self.dimension is None:
+            return None
         ind = column_index + self.dimension[1] * row_index
         return self.point_infos[ind]
+
+    def select_point(self, row_index: float, column_index: float):
+        point_info = self.get_point_info(row_index, column_index)
+        if point_info is None:
+            return
+        self.configuration.img_model.load(
+            point_info.filepath,
+            point_info.frame_index,
+        )
 
 
 def get_center_window(x, window_range=3) -> list[float, float]:

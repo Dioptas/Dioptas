@@ -38,6 +38,8 @@ class MapController(object):
 
         self.map_model.filenames_changed.connect(self.update_file_list)
         self.map_model.map_changed.connect(self.update_map)
+        self.model.img_changed.connect(self.update_image)
+        self.model.pattern_changed.connect(self.update_pattern)
 
     def load_btn_clicked(self):
         filenames = open_files_dialog(
@@ -47,6 +49,7 @@ class MapController(object):
         )
         try:
             self.map_model.load(filenames)
+            self.map_model.select_point(0, 0)
         except ValueError as e:
             self.update_file_list()
 
@@ -57,3 +60,13 @@ class MapController(object):
 
     def update_map(self):
         self.widget.map_plot_widget.plot_image(self.map_model.map, auto_level=True)
+
+    def update_image(self):
+        self.widget.img_plot_widget.plot_image(
+            self.model.img_model.img_data, auto_level=True
+        )
+
+    def update_pattern(self):
+        self.widget.pattern_plot_widget.plot_data(
+            self.model.pattern.x, self.model.pattern.y
+        )

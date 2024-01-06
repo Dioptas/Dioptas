@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pytest
 from qtpy import QtWidgets, QtCore
 from qtpy.QtTest import QTest
@@ -99,6 +100,19 @@ def test_loading_files_plots_map(map_controller: MapController, map_model: MapMo
     assert plot_widget.img_data.shape == map_model.map.shape
     assert plot_widget.data_img_item.image is not None
 
+
+def test_loading_files_also_plots_first_image(map_controller: MapController, map_model: MapModel2):
+    load_calibration(map_controller)
+    assert map_controller.model.current_configuration.is_calibrated == True
+    mock_open_filenames(map_img_file_paths)
+    map_controller.load_btn_clicked()
+
+    plot_widget = map_controller.widget.img_plot_widget
+
+    assert plot_widget.img_data is not None
+    assert plot_widget.img_data.shape == map_model.configuration.img_model.img_data.shape
+    assert np.array_equal(plot_widget.img_data, map_model.configuration.img_model.img_data)
+    assert plot_widget.data_img_item.image is not None
 
 
 def test_click_load_shows_error_if_not_calibrated(map_controller):
