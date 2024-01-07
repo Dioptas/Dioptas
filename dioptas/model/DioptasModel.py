@@ -316,7 +316,7 @@ class DioptasModel(object):
         return self.configurations[self.configuration_ind].batch_model
 
     @property
-    def map_model(self):
+    def map_model(self) -> MapModel2:
         """
         :rtype: MapModel2
         """
