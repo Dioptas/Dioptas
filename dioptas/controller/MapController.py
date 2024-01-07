@@ -67,7 +67,7 @@ class MapController(object):
         self.widget.control_widget.file_list.setCurrentRow(0)
 
     def update_map(self):
-        self.widget.map_plot_widget.plot_image(self.map_model.map, auto_level=True)
+        self.widget.map_plot_widget.plot_image(self.map_model.map.T, auto_level=True)
 
     def update_image(self):
         self.widget.img_plot_widget.plot_image(
@@ -80,7 +80,6 @@ class MapController(object):
         )
 
     def map_point_selected(self, x, y):
-        print(x, y)
         x, y = np.floor(x), np.floor(y)
         self.map_model.select_point(x, y)
         ind = self.map_model.get_point_index(x, y)
