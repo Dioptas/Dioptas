@@ -76,10 +76,16 @@ def test_click_load_fills_file_list_without_calibration(
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
 
-    assert map_model.filenames == map_img_file_paths
+    assert map_model.filepaths == map_img_file_paths
     assert map_controller.widget.control_widget.file_list.count() == len(
         map_img_file_paths
     )
+
+    file_list_strings = [
+        map_controller.widget.control_widget.file_list.item(i).text()
+        for i in range(map_controller.widget.control_widget.file_list.count())
+    ]
+    assert file_list_strings == map_img_file_names 
 
 
 def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
@@ -88,7 +94,7 @@ def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
 
-    assert map_model.filenames == map_img_file_paths
+    assert map_model.filepaths == map_img_file_paths
     assert map_controller.widget.control_widget.file_list.count() == len(
         map_img_file_paths
     )
@@ -144,12 +150,16 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
 
+    current_img = map_controller.widget.map_plot_widget.img_data.copy()
+
     # select second file in file list
     map_controller.widget.control_widget.file_list.setCurrentRow(1)
     assert (
         map_controller.model.current_configuration.img_model.filename
         == map_img_file_paths[1]
     )
+
+    assert not np.array_equal(map_controller.widget.map_plot_widget.img_data, current_img)
 
 
 def test_click_in_map_image_will_update_gui(map_controller):
@@ -158,7 +168,7 @@ def test_click_in_map_image_will_update_gui(map_controller):
     map_controller.load_btn_clicked()
 
     # select second file in file list
-    map_controller.widget.map_plot_widget.mouse_left_clicked.emit(0, 2)
+    map_controller.widget.map_plot_widget.mouse_left_clicked.emit(2, 2)
     assert (
         map_controller.model.current_configuration.img_model.filename
         == map_img_file_paths[2]
@@ -208,7 +218,7 @@ def test_changing_configuration_updates_gui(map_controller, dioptas_model):
         map_controller.widget.control_widget.file_list.item(i).text()
         for i in range(map_controller.widget.control_widget.file_list.count())
     ]
-    assert items_text == map_img_file_paths
+    assert items_text == map_img_file_names
 
     dioptas_model.select_configuration(1)
     assert np.array_equal(map_controller.widget.map_plot_widget.img_data, map_config1)
@@ -217,4 +227,4 @@ def test_changing_configuration_updates_gui(map_controller, dioptas_model):
         map_controller.widget.control_widget.file_list.item(i).text()
         for i in range(map_controller.widget.control_widget.file_list.count())
     ]
-    assert items_text == list(reversed(map_img_file_paths))
+    assert items_text == list(reversed(map_img_file_names))

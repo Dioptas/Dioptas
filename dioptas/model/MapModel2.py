@@ -40,7 +40,7 @@ class MapPointInfo:
 
 class MapModel2:
     map_changed = Signal()
-    filenames_changed = Signal()
+    filepaths_changed = Signal()
 
     def __init__(self, configuration: "Configuration"):
         """
@@ -50,7 +50,7 @@ class MapModel2:
         """
         super().__init__()
         self.configuration = configuration
-        self.filenames = None
+        self.filepaths = None
         self.point_infos = []
         self.pattern_intensities = None
         self.pattern_x = None
@@ -60,9 +60,9 @@ class MapModel2:
         self.possible_dimensions = None
         self.map = None
 
-    def load(self, filenames: list[str]):
-        self.filenames = filenames
-        self.filenames_changed.emit()
+    def load(self, filepaths: list[str]):
+        self.filepaths = filepaths
+        self.filepaths_changed.emit()
 
         self.integrate()
 
@@ -91,7 +91,7 @@ class MapModel2:
         self.pattern_intensities = []
         self.point_infos = []
 
-        for ind, filename in enumerate(self.filenames):
+        for ind, filename in enumerate(self.filepaths):
             self.configuration.img_model.load(filename)
             frame_ind = 0  # currently we are not handling multi frames yet
             if ind == 0:
