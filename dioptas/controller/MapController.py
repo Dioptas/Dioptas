@@ -29,14 +29,13 @@ class MapController(object):
     def __init__(self, widget: MapWidget, dioptas_model: DioptasModel):
         self.widget = widget
         self.model = dioptas_model
-        self.map_model = dioptas_model.map_model
 
         self.create_signals()
 
     def create_signals(self):
         self.widget.control_widget.load_btn.clicked.connect(self.load_btn_clicked)
         self.widget.control_widget.file_list.currentRowChanged.connect(
-            self.map_model.select_point_by_index
+            self.model.map_model.select_point_by_index
         )
         self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
         self.widget.pattern_plot_widget.mouse_left_clicked.connect(self.pattern_clicked)
@@ -44,10 +43,12 @@ class MapController(object):
             self.pattern_roi_changed
         )
 
-        self.map_model.filenames_changed.connect(self.update_file_list)
-        self.map_model.map_changed.connect(self.update_map)
+        self.model.map_model.filenames_changed.connect(self.update_file_list)
+        self.model.map_model.map_changed.connect(self.update_map)
         self.model.img_changed.connect(self.update_image)
         self.model.pattern_changed.connect(self.update_pattern)
+
+        self.model.configuration_selected.connect(self.configuration_selected)
 
     def load_btn_clicked(self):
         filenames = open_files_dialog(
@@ -56,23 +57,35 @@ class MapController(object):
             self.model.working_directories["image"],
         )
         try:
-            self.map_model.load(filenames)
-            self.map_model.select_point(0, 0)
+            self.model.map_model.load(filenames)
+            self.model.map_model.select_point(0, 0)
         except ValueError as e:
             self.update_file_list()
 
     def update_file_list(self):
         self.widget.control_widget.file_list.clear()
-        self.widget.control_widget.file_list.addItems(self.map_model.filenames)
+        if self.model.map_model.filenames is None:
+            return 
+        self.widget.control_widget.file_list.addItems(self.model.map_model.filenames)
         self.widget.control_widget.file_list.setCurrentRow(0)
 
     def update_map(self):
-        self.widget.map_plot_widget.plot_image(self.map_model.map.T, auto_level=True)
+        if self.model.map_model.map is None:
+            # clear image
+            self.widget.map_plot_widget.plot_image(np.array([[],[]])) 
+        else:
+            self.widget.map_plot_widget.plot_image(
+                self.model.map_model.map.T, auto_level=True
+            )
 
     def update_image(self):
-        self.widget.img_plot_widget.plot_image(
-            self.model.img_model.img_data, auto_level=True
-        )
+        if self.model.img_model.img_data is None:
+            # clear image
+            self.widget.img_plot_widget.plot_image(np.array([[],[]])) 
+        else:
+            self.widget.img_plot_widget.plot_image(
+                self.model.img_model.img_data, auto_level=True
+            )
 
     def update_pattern(self):
         self.widget.pattern_plot_widget.plot_data(
@@ -81,8 +94,8 @@ class MapController(object):
 
     def map_point_selected(self, x, y):
         x, y = np.floor(x), np.floor(y)
-        self.map_model.select_point(x, y)
-        ind = self.map_model.get_point_index(x, y)
+        self.model.map_model.select_point(x, y)
+        ind = self.model.map_model.get_point_index(x, y)
         self.widget.control_widget.file_list.setCurrentRow(ind)
 
     def pattern_clicked(self, x, _):
@@ -90,4 +103,10 @@ class MapController(object):
 
     def pattern_roi_changed(self, interactive_roi):
         region = interactive_roi.getRegion()
-        self.map_model.set_window(region)
+        self.model.map_model.set_window(region)
+
+    def configuration_selected(self):
+        self.update_file_list()
+        self.update_map()
+        self.update_image()
+        self.update_pattern()
