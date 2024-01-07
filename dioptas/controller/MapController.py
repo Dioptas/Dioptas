@@ -65,23 +65,23 @@ class MapController(object):
     def update_file_list(self):
         self.widget.control_widget.file_list.clear()
         if self.model.map_model.filenames is None:
-            return 
+            return
         self.widget.control_widget.file_list.addItems(self.model.map_model.filenames)
         self.widget.control_widget.file_list.setCurrentRow(0)
 
     def update_map(self):
         if self.model.map_model.map is None:
             # clear image
-            self.widget.map_plot_widget.plot_image(np.array([[],[]])) 
+            self.widget.map_plot_widget.plot_image(np.array([[], []]))
         else:
             self.widget.map_plot_widget.plot_image(
-                self.model.map_model.map.T, auto_level=True
+                np.flipud(self.model.map_model.map), auto_level=True
             )
 
     def update_image(self):
         if self.model.img_model.img_data is None:
             # clear image
-            self.widget.img_plot_widget.plot_image(np.array([[],[]])) 
+            self.widget.img_plot_widget.plot_image(np.array([[], []]))
         else:
             self.widget.img_plot_widget.plot_image(
                 self.model.img_model.img_data, auto_level=True
@@ -92,10 +92,12 @@ class MapController(object):
             self.model.pattern.x, self.model.pattern.y
         )
 
-    def map_point_selected(self, x, y):
-        x, y = np.floor(x), np.floor(y)
-        self.model.map_model.select_point(x, y)
-        ind = self.model.map_model.get_point_index(x, y)
+    def map_point_selected(self, clicked_x, clicked_y):
+        clicked_x, clicked_y = np.floor(clicked_x), np.floor(clicked_y)
+        row = self.model.map_model.map.shape[0] - int(clicked_y) - 1
+        col = int(clicked_x)
+        self.model.map_model.select_point(row, col)
+        ind = self.model.map_model.get_point_index(row, col)
         self.widget.control_widget.file_list.setCurrentRow(ind)
 
     def pattern_clicked(self, x, _):
