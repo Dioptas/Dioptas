@@ -27,10 +27,15 @@ map_img_file_paths = [
 
 
 @pytest.fixture
-def map_controller(qapp):
+def dioptas_model():
+    return DioptasModel()
+
+
+@pytest.fixture
+def map_controller(qapp, dioptas_model):
     """Fixture providing a MainController instance"""
     widget = MapWidget()
-    model = DioptasModel()
+    model = dioptas_model
     controller = MapController(widget, model)
     # controller.show_window()
     controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -170,8 +175,46 @@ def test_click_in_pattern_will_update_region_of_interest(map_controller):
 
 
 def test_map_interactive_roi_updates_map(map_controller):
-    map_controller.map_model.set_window = MagicMock()
+    map_controller.model.map_model.set_window = MagicMock()
     map_controller.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.emit(
         SymmetricModifiedLinearRegionItem((10, 11))
     )
-    map_controller.map_model.set_window.assert_called_once_with((10, 11))
+    map_controller.model.map_model.set_window.assert_called_once_with((10, 11))
+
+
+def test_changing_configuration_updates_gui(map_controller, dioptas_model):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    map_controller.load_btn_clicked()
+
+    map_config0 = map_controller.widget.map_plot_widget.img_data.copy()
+
+    dioptas_model.add_configuration()
+    assert dioptas_model.map_model.map is None
+
+    load_calibration(map_controller)
+    mock_open_filenames(list(reversed(map_img_file_paths)))
+    map_controller.load_btn_clicked()
+
+    assert dioptas_model.configurations[1].map_model.map is not None
+    map_config1 = map_controller.widget.map_plot_widget.img_data.copy()
+    assert np.array_equal(map_config1, map_config1)
+
+    dioptas_model.select_configuration(0)
+    assert map_controller.widget.map_plot_widget.img_data is not None
+    assert np.array_equal(map_controller.widget.map_plot_widget.img_data, map_config0)
+
+    items_text = [
+        map_controller.widget.control_widget.file_list.item(i).text()
+        for i in range(map_controller.widget.control_widget.file_list.count())
+    ]
+    assert items_text == map_img_file_paths
+
+    dioptas_model.select_configuration(1)
+    assert np.array_equal(map_controller.widget.map_plot_widget.img_data, map_config1)
+
+    items_text = [
+        map_controller.widget.control_widget.file_list.item(i).text()
+        for i in range(map_controller.widget.control_widget.file_list.count())
+    ]
+    assert items_text == list(reversed(map_img_file_paths))
