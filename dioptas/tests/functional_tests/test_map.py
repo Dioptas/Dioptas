@@ -22,6 +22,9 @@ import os
 import numpy as np
 from qtpy import QtWidgets
 from mock import MagicMock
+from pytest import approx
+
+from dioptas.controller.MainController import MainController
 
 from ..utility import click_button
 
@@ -41,7 +44,7 @@ def mock_open_filenames(filepaths):
     QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=filepaths)
 
 
-def test_map(main_controller):
+def test_map(main_controller: MainController):
     # Herbert has recently collected a large map of his sample and wants to visualize
     # and explore it in Dioptas.
 
@@ -91,9 +94,21 @@ def test_map(main_controller):
 
     # He clicks on individual points of the map and sees that the corresponding image and pattern
     # is shown in the right side of the GUI.
-    map_widget.map_plot_widget.mouse_left_clicked.emit(2, 0)
+    map_widget.map_plot_widget.mouse_left_clicked.emit(0, 2)
     loaded_filename = main_controller.model.current_configuration.img_model.filename
     assert loaded_filename == map_img_file_paths[2]
     assert map_widget.control_widget.file_list.currentRow() == 2
 
-    # He clicks into the Pattern and realizes that the map is updating depending on where he clicks.
+    # Suddenly he realizes that there is an interactive ROI in the pattern view.
+    assert (
+        map_widget.pattern_plot_widget.map_interactive_roi
+        in map_widget.pattern_plot_widget.pattern_plot.items
+    )
+
+    # click anywhere in the pattern view moves the roi and updates the map
+    pattern = main_controller.model.current_configuration.pattern_model.pattern
+    center_x = np.mean(pattern.x)
+    center_y = np.mean(pattern.y)
+    map_widget.pattern_plot_widget.mouse_left_clicked.emit(center_x, center_y)
+
+    assert map_widget.pattern_plot_widget.map_interactive_roi.center == approx(center_x)

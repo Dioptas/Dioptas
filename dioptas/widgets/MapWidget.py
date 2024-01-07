@@ -49,6 +49,7 @@ class MapWidget(QtWidgets.QWidget):
 
         self.pattern_pg_layout = GraphicsLayoutWidget()
         self.pattern_plot_widget = PatternWidget(self.pattern_pg_layout)
+        self.pattern_plot_widget.show_map_interactive_roi()
 
         self.control_widget = MapControlWidget()
 

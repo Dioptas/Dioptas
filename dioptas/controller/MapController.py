@@ -38,8 +38,10 @@ class MapController(object):
         self.widget.control_widget.file_list.currentRowChanged.connect(
             self.map_model.select_point_by_index
         )
-        self.widget.map_plot_widget.mouse_left_clicked.connect(
-            self.map_point_selected
+        self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
+        self.widget.pattern_plot_widget.mouse_left_clicked.connect(self.pattern_clicked)
+        self.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.connect(
+            self.pattern_roi_changed
         )
 
         self.map_model.filenames_changed.connect(self.update_file_list)
@@ -76,7 +78,7 @@ class MapController(object):
         self.widget.pattern_plot_widget.plot_data(
             self.model.pattern.x, self.model.pattern.y
         )
-    
+
     def map_point_selected(self, x, y):
         print(x, y)
         x, y = np.floor(x), np.floor(y)
@@ -84,3 +86,9 @@ class MapController(object):
         ind = self.map_model.get_point_index(x, y)
         self.widget.control_widget.file_list.setCurrentRow(ind)
 
+    def pattern_clicked(self, x, _):
+        self.widget.pattern_plot_widget.map_interactive_roi.setCenter(x)
+
+    def pattern_roi_changed(self, interactive_roi):
+        region = interactive_roi.getRegion()
+        self.map_model.set_window(region)
