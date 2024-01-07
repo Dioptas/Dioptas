@@ -151,40 +151,21 @@ class MainController(object):
         self.current_tab_index = ind
 
         # get the old view range
-        old_view_range = None
+        old_display_state = None
         if old_index == 0:  # calibration tab
-            old_view_range = (
-                self.widget.calibration_widget.img_widget.img_view_box.targetRange()
-            )
-            old_hist_levels = (
-                self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.getExpLevels()
-            )
-            normalization = (
-                self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.getNormalization()
-            )
+            old_display_state = self.widget.calibration_widget.img_widget.get_display_state()
         elif old_index == 1:  # mask tab
-            old_view_range = (
-                self.widget.mask_widget.img_widget.img_view_box.targetRange()
-            )
-            old_hist_levels = (
-                self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.getExpLevels()
-            )
-            normalization = (
-                self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.getNormalization()
-            )
-        elif old_index == 2:
-            old_view_range = (
-                self.widget.integration_widget.img_widget.img_view_box.targetRange()
-            )
-            old_hist_levels = (
-                self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.getExpLevels()
-            )
-            normalization = (
-                self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.getNormalization()
-            )
+            old_display_state = self.widget.mask_widget.img_widget.get_display_state()
+        elif old_index == 2: # integration tab
+            old_display_state = self.widget.integration_widget.img_widget.get_display_state()
+        elif old_index == 3: # map tab
+            old_display_state = self.widget.map_widget.img_plot_widget.get_display_state()
 
-            # update the GUI
-        if ind == 2:  # integration tab
+        # update the GUI
+        if ind == 3:  # map tab
+            if old_display_state is not None:
+                self.widget.map_widget.img_plot_widget.set_display_state(*old_display_state)
+        elif ind == 2:  # integration tab
             self.integration_controller.image_controller.plot_mask()
             self.integration_controller.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name
@@ -203,45 +184,17 @@ class MainController(object):
                     self.model.current_configuration.integrate_image_2d()
             else:
                 self.model.pattern_changed.emit()
-            self.widget.integration_widget.img_widget.set_range(
-                x_range=old_view_range[0], y_range=old_view_range[1]
-            )
-            self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.setNormalization(
-                normalization
-            )
-            self.widget.integration_widget.img_widget.img_histogram_LUT_horizontal.setLevels(
-                *old_hist_levels
-            )
-            self.widget.integration_widget.img_widget.img_histogram_LUT_vertical.setLevels(
-                *old_hist_levels
-            )
+            if old_display_state is not None:
+                self.widget.integration_widget.img_widget.set_display_state(*old_display_state)
         elif ind == 1:  # mask tab
             self.mask_controller.plot_mask()
             self.mask_controller.plot_image()
-            self.widget.mask_widget.img_widget.set_range(
-                x_range=old_view_range[0], y_range=old_view_range[1]
-            )
-            self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.setNormalization(
-                normalization
-            )
-            self.widget.mask_widget.img_widget.img_histogram_LUT_vertical.setLevels(
-                *old_hist_levels
-            )
+            if old_display_state is not None:
+                self.widget.mask_widget.img_widget.set_display_state(*old_display_state)
         elif ind == 0:  # calibration tab
             self.calibration_controller.plot_mask()
-            try:
-                self.calibration_controller.update_calibration_parameter_in_view()
-            except (TypeError, AttributeError):
-                pass
-            self.widget.calibration_widget.img_widget.set_range(
-                x_range=old_view_range[0], y_range=old_view_range[1]
-            )
-            self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.setNormalization(
-                normalization
-            )
-            self.widget.calibration_widget.img_widget.img_histogram_LUT_vertical.setLevels(
-                *old_hist_levels
-            )
+            if old_display_state is not None:
+                self.widget.calibration_widget.img_widget.set_display_state(*old_display_state)
 
     def update_title(self):
         """
