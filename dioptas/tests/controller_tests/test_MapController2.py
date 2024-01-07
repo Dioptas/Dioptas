@@ -218,11 +218,3 @@ def test_changing_configuration_updates_gui(map_controller, dioptas_model):
         for i in range(map_controller.widget.control_widget.file_list.count())
     ]
     assert items_text == list(reversed(map_img_file_paths))
-
-
-def test_create_dummy_images():
-    from tifffile import imsave
-    data = np.ones((1000, 1000))
-    for i in range(25):
-        imsave(os.path.join(map_img_path, f"dummy_{i}.tif"), data * i)
-
