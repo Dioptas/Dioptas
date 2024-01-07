@@ -77,6 +77,11 @@ def test_map(main_controller: MainController):
     # generates a map of something on the left side of the GUI.
 
     assert map_widget.control_widget.file_list.count() == len(map_img_file_names)
+    file_list_strings = [
+        map_widget.control_widget.file_list.item(i).text()
+        for i in range(map_widget.control_widget.file_list.count())
+    ]
+    assert map_img_file_names == file_list_strings
     assert map_widget.map_plot_widget.img_data is not None
 
     # He notices that the first image is loaded in the corresponding image view
@@ -94,7 +99,7 @@ def test_map(main_controller: MainController):
 
     # He clicks on individual points of the map and sees that the corresponding image and pattern
     # is shown in the right side of the GUI.
-    map_widget.map_plot_widget.mouse_left_clicked.emit(0, 2)
+    map_widget.map_plot_widget.mouse_left_clicked.emit(2, 2)
     loaded_filename = main_controller.model.current_configuration.img_model.filename
     assert loaded_filename == map_img_file_paths[2]
     assert map_widget.control_widget.file_list.currentRow() == 2

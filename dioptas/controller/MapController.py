@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import numpy as np
+import os
 
 from dioptas.model import DioptasModel
 from dioptas.widgets.MapWidget import MapWidget
@@ -35,7 +36,9 @@ class MapController(object):
     def create_signals(self):
         self.widget.control_widget.load_btn.clicked.connect(self.load_btn_clicked)
         self.widget.control_widget.file_list.currentRowChanged.connect(
-            self.model.map_model.select_point_by_index
+            self.file_list_row_changed
+            # needs to be its own function, to always recall the model.map_model
+            # this ensures, that the currently selected configuration is used
         )
         self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
         self.widget.pattern_plot_widget.mouse_left_clicked.connect(self.pattern_clicked)
@@ -43,7 +46,7 @@ class MapController(object):
             self.pattern_roi_changed
         )
 
-        self.model.map_model.filenames_changed.connect(self.update_file_list)
+        self.model.map_model.filepaths_changed.connect(self.update_file_list)
         self.model.map_model.map_changed.connect(self.update_map)
         self.model.img_changed.connect(self.update_image)
         self.model.pattern_changed.connect(self.update_pattern)
@@ -64,9 +67,10 @@ class MapController(object):
 
     def update_file_list(self):
         self.widget.control_widget.file_list.clear()
-        if self.model.map_model.filenames is None:
+        if self.model.map_model.filepaths is None:
             return
-        self.widget.control_widget.file_list.addItems(self.model.map_model.filenames)
+        filenames = [os.path.basename(f) for f in self.model.map_model.filepaths]
+        self.widget.control_widget.file_list.addItems(filenames)
         self.widget.control_widget.file_list.setCurrentRow(0)
 
     def update_map(self):
@@ -91,6 +95,9 @@ class MapController(object):
         self.widget.pattern_plot_widget.plot_data(
             self.model.pattern.x, self.model.pattern.y
         )
+
+    def file_list_row_changed(self, row):
+        self.model.map_model.select_point_by_index(row)
 
     def map_point_selected(self, clicked_x, clicked_y):
         clicked_x, clicked_y = np.floor(clicked_x), np.floor(clicked_y)

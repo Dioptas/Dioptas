@@ -26,7 +26,7 @@ def map_model(configuration: Configuration) -> MapModel2:
 def test_create_map(map_model: MapModel2, configuration: Configuration):
     configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
     map_model.load(map_img_file_paths)
-    assert map_model.filenames == map_img_file_paths
+    assert map_model.filepaths == map_img_file_paths
     assert len(map_model.pattern_intensities) == len(map_img_file_paths)
     assert map_model.dimension == (3, 3)
     assert map_model.map.shape == (3, 3)
