@@ -106,6 +106,8 @@ class MapModel2:
 
     def set_window(self, window: tuple[float, float]):
         self.window = window
+        if self.pattern_x is None:
+            return
         self.window_intensities = get_window_intensities(
             self.pattern_x, self.pattern_intensities, self.window
         )
