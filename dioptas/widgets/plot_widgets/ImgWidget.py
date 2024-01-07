@@ -305,10 +305,10 @@ class ImgWidget(QtCore.QObject):
         """
         view_range = self.img_view_box.viewRange()
         if self.orientation == "horizontal":
-            hist_level = self.img_histogram_LUT_horizontal.getLevels()
+            hist_level = self.img_histogram_LUT_horizontal.getExpLevels()
             hist_normalization = self.img_histogram_LUT_horizontal.getNormalization()
         elif self.orientation == "vertical":
-            hist_level = self.img_histogram_LUT_vertical.getLevels()
+            hist_level = self.img_histogram_LUT_vertical.getExpLevels()
             hist_normalization = self.img_histogram_LUT_vertical.getNormalization()
         return view_range, hist_level, hist_normalization
 
