@@ -212,8 +212,8 @@ class IntegrationControllerTest(QtTest):
         #                  self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
         self.widget.integration_image_widget.mode_btn.click()  # change to cake mode
         self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
-        self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_cake,
-                         self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+        self.assertEqual(self.widget.integration_image_widget.cake_view.left_axis_cake,
+                         self.widget.integration_image_widget.cake_view.pg_layout.getItem(1, 0))
 
     def test_disable_solid_angle_correction(self):
         click_checkbox(self.widget.integration_control_widget.integration_options_widget.correct_solid_angle_cb)

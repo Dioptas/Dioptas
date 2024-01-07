@@ -98,7 +98,7 @@ class IntegrationBackgroundControllerTest(QtTest):
         enter_value_into_text_field(self.widget.bkg_pattern_x_min_txt, '5')
         enter_value_into_text_field(self.widget.bkg_pattern_x_max_txt, '11')
 
-        x_min, x_max = self.widget.pattern_widget.linear_region_item.getRegion()
+        x_min, x_max = self.widget.pattern_widget.bkg_roi.getRegion()
 
         self.assertAlmostEqual(x_min, 5,  delta=0.02)
         self.assertAlmostEqual(x_max, 11, delta=0.02)

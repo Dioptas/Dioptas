@@ -255,8 +255,6 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
-            self.map_controller.convert_all_units(previous_unit, self.integration_unit,
-                                                  self.model.calibration_model.wavelength)  # MAP2D
 
         # self.finish_update_bg_linear_region()
 
@@ -273,8 +271,6 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
-            self.map_controller.convert_all_units(previous_unit, self.integration_unit,
-                                                  self.model.calibration_model.wavelength)  # MAP2D
 
     def set_unit_d(self):
         previous_unit = self.integration_unit
@@ -288,8 +284,6 @@ class PatternController(object):
         if self.model.calibration_model.is_calibrated:
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
-            self.map_controller.convert_all_units(previous_unit, self.integration_unit,
-                                                  self.model.calibration_model.wavelength)  # MAP2D
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.pattern_plot.viewRange()[0]
