@@ -252,8 +252,7 @@ class ImageController(object):
                         self.model.img_model.add(filenames[ind])
                     self.model.img_model.blockSignals(False)
                     self.model.img_model.img_changed.emit()
-                elif self.widget.img_batch_mode_integrate_rb.isChecked() or \
-                        self.widget.img_batch_mode_map_rb.isChecked():
+                elif self.widget.img_batch_mode_integrate_rb.isChecked():
                     self._load_multiple_files(filenames)
                 elif self.widget.img_batch_mode_image_save_rb.isChecked():
                     self._save_multiple_image_files(filenames)

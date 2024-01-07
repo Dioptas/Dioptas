@@ -250,9 +250,9 @@ class BackgroundController(object):
         self.bkg_pattern_parameters_changed()
 
     def update_bkg_pattern_linear_region(self):
-        self.widget.pattern_widget.linear_region_item.blockSignals(True)
+        self.widget.pattern_widget.bkg_roi.blockSignals(True)
         bkg_roi = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_roi()
-        self.widget.pattern_widget.set_linear_region(*bkg_roi)
+        self.widget.pattern_widget.set_bkg_roi(*bkg_roi)
 
         if self.model.batch_model.binning is not None:
             start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
@@ -263,7 +263,7 @@ class BackgroundController(object):
             x_min_bin = int((bkg_roi[0] - binning[0]) / scale)
             x_max_bin = int((bkg_roi[1] - binning[0]) / scale)
             self.widget.batch_widget.stack_plot_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
-        self.widget.pattern_widget.linear_region_item.blockSignals(False)
+        self.widget.pattern_widget.bkg_roi.blockSignals(False)
 
     def update_bkg_image_widgets(self):
         self.update_background_image_filename()

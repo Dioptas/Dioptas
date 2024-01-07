@@ -52,6 +52,7 @@ jobs:
         py.test dioptas/tests/controller_tests/test_IntegrationController.py
         py.test dioptas/tests/controller_tests/test_JcpdsEditorController.py
         py.test dioptas/tests/controller_tests/test_MaskController.py
+        py.test dioptas/tests/controller_tests/test_MapController2.py
         py.test dioptas/tests/controller_tests/test_OptionsController.py
         py.test dioptas/tests/controller_tests/test_OverlayController.py
         py.test dioptas/tests/controller_tests/test_PatternController.py
