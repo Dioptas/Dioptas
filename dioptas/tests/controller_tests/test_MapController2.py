@@ -150,7 +150,8 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
 
-    current_img = map_controller.widget.map_plot_widget.img_data.copy()
+    # cache current image
+    current_img = map_controller.widget.img_plot_widget.img_data.copy()
 
     # select second file in file list
     map_controller.widget.control_widget.file_list.setCurrentRow(1)
@@ -159,7 +160,8 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
         == map_img_file_paths[1]
     )
 
-    assert not np.array_equal(map_controller.widget.map_plot_widget.img_data, current_img)
+    # check that image has changed
+    assert not np.array_equal(map_controller.widget.img_plot_widget.img_data, current_img)
 
 
 def test_click_in_map_image_will_update_gui(map_controller):
