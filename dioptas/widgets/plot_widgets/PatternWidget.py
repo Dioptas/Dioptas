@@ -676,4 +676,5 @@ class SymmetricModifiedLinearRegionItem(pg.LinearRegionItem):
         previous_width = self.lines[1].value() - self.lines[0].value()
         new_left = center - previous_width / 2
         new_right = center + previous_width / 2
+        self.center = center
         self.setRegion([new_left, new_right])

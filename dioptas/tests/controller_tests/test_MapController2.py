@@ -181,10 +181,11 @@ def test_click_in_map_image_will_update_gui(map_controller):
 
 
 def test_click_in_pattern_will_update_region_of_interest(map_controller):
-    map_controller.widget.pattern_plot_widget.mouse_left_clicked.emit(10, 10)
+    click_pos = 30
+    map_controller.widget.pattern_plot_widget.mouse_left_clicked.emit(click_pos, 10)
     assert (
         map_controller.widget.pattern_plot_widget.map_interactive_roi.center
-        == approx(10)
+        == approx(click_pos)
     )
 
 
