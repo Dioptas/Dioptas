@@ -114,7 +114,7 @@ class MapModel2:
         self.map = create_map(self.window_intensities, self.dimension)
         self.map_changed.emit()
 
-    def set_dimensions(self, dimension: (float, float)):
+    def set_dimension(self, dimension: (float, float)):
         if dimension not in self.possible_dimensions:
             return
         self.dimension = dimension
