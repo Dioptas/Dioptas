@@ -96,10 +96,12 @@ class PatternWidget(QtCore.QObject):
         self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
 
         self.bkg_roi = ModifiedLinearRegionItem(
-            [5, 20], pg.LinearRegionItem.Vertical, 
+            [5, 20],
+            pg.LinearRegionItem.Vertical,
         )
         self.map_interactive_roi = SymmetricModifiedLinearRegionItem(
-            [5, 7], pg.LinearRegionItem.Vertical, 
+            [5, 7],
+            pg.LinearRegionItem.Vertical,
         )
 
     @property
@@ -663,59 +665,15 @@ class ModifiedLinearRegionItem(pg.LinearRegionItem):
         return
 
 
-class SymmetricModifiedLinearRegionItem(ModifiedLinearRegionItem):
+class SymmetricModifiedLinearRegionItem(pg.LinearRegionItem):
     def __init__(self, *args, **kwargs):
         super(SymmetricModifiedLinearRegionItem, self).__init__(*args, **kwargs)
         self.center = (
             self.lines[1].getXPos() - self.lines[0].getXPos()
         ) / 2 + self.lines[0].getXPos()
 
-    def setRegion(self, rgn):
-        """Set the values for the edges of the region.
-
-        ==============   ==============================================
-        **Arguments:**
-        rgn              A list or tuple of the lower and upper values.
-        ==============   ==============================================
-        """
-        if self.lines[0].value() == rgn[0] and self.lines[1].value() == rgn[1]:
-            return
-        self.blockLineSignal = True
-        self.lines[0].setValue(rgn[0])
-        self.lines[1].setValue(rgn[1])
-        self.blockLineSignal = False
-
-        self.center = np.mean((self.lines[0].value(), self.lines[1].value()))
-        self.sigRegionChanged.emit(self)
-
     def setCenter(self, center):
-        hwhm = self.center - self.lines[0].value()
-        new_left = center - hwhm
-        new_right = center + hwhm
+        previous_width = self.lines[1].value() - self.lines[0].value()
+        new_left = center - previous_width / 2
+        new_right = center + previous_width / 2
         self.setRegion([new_left, new_right])
-
-    def lineMoved(self, i):
-        if self.blockLineSignal:
-            return
-        self.blockLineSignal = True
-        # symmetric part
-        if i == 0:
-            left_diff = self.center - self.lines[0].value()
-            self.lines[1].setValue(self.center + left_diff)
-        if i == 1:
-            right_diff = self.lines[1].value() - self.center
-            self.lines[0].setValue(self.center - right_diff)
-        self.center = np.mean((self.lines[0].value(), self.lines[1].value()))
-        # lines swapped
-        if self.lines[0].value() > self.lines[1].value():
-            val_0, val_1 = self.lines[0].value(), self.lines[1].value()
-            self.lines[1].setValue(val_0)
-            self.lines[0].setValue(val_1)
-            # if self.swapMode == 'block':
-            #     self.lines[i].setValue(self.lines[1 - i].value())
-            # elif self.swapMode == 'push':
-            #     self.lines[1 - i].setValue(self.lines[i].value())
-
-        self.blockLineSignal = False
-        self.prepareGeometryChange()
-        self.sigRegionChanged.emit(self)
