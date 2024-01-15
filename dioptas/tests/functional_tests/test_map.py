@@ -117,3 +117,46 @@ def test_map(main_controller: MainController):
     map_widget.pattern_plot_widget.mouse_left_clicked.emit(center_x, center_y)
 
     assert map_widget.pattern_plot_widget.map_interactive_roi.center == approx(center_x)
+
+
+def test_map_with_different_dimension(main_controller: MainController):
+    # Herbert has collected another large map of his sample and wants to visualize
+    # and explore it in Dioptas. This time the map is not rectangular but has a
+    # different dimension (4x2)
+
+    # He opens Dioptas loads his calibration file and is curious to see that there
+    # is a mode on the left side which is called "Map".
+    main_controller.model.current_configuration.img_model.load(map_img_file_paths[0])
+    main_controller.model.current_configuration.calibration_model.load(
+        os.path.join(data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_widget = main_controller.widget.map_widget
+
+    # He clicks on the map mode and loads his images.
+
+    click_button(main_controller.widget.map_mode_btn)
+    mock_open_filenames(map_img_file_paths[0:8])
+
+    click_button(map_widget.control_widget.load_btn)
+
+    # He realizes that the resulting map has a 4x2 dimension.
+
+    assert map_widget.map_plot_widget.img_data.shape == (2, 4)
+
+    # however, it is obvious that he actually needs a 4x2 map. He sees, that there are
+    # multiple possible dimensions available below the image widget. He clicks on the
+    # 2x4 dimension and sees that the map is updated.
+
+    assert map_widget.img_control_widget.map_dimension_cb.currentText() == "2x4"
+    dim_cb = map_widget.img_control_widget.map_dimension_cb
+    dim_cb_str_list = [dim_cb.itemText(i) for i in range(dim_cb.count())]
+    dim_model_str_list = [f"{x}x{y}" for x, y in main_controller.model.current_configuration.map_model.possible_dimensions]
+    assert dim_cb.count() == 4
+    assert dim_cb_str_list == dim_model_str_list
+
+    index_4x2 = dim_cb_str_list.index("4x2")
+    dim_cb.setCurrentIndex(index_4x2)
+    assert map_widget.map_plot_widget.img_data.shape == (4, 2)
+
+    # He is satisfied and can go on exploring his map of the sample.
+    

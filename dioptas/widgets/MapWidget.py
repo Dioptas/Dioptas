@@ -21,8 +21,9 @@
 from qtpy import QtWidgets, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 from dioptas.widgets.plot_widgets import PatternWidget
-
 from dioptas.widgets.plot_widgets.ImgWidget import IntegrationImgWidget
+
+from .CustomWidgets import HorizontalSpacerItem
 
 
 class MapWidget(QtWidgets.QWidget):
@@ -46,6 +47,7 @@ class MapWidget(QtWidgets.QWidget):
         self.img_plot_widget = IntegrationImgWidget(
             self.img_pg_layout, orientation="horizontal"
         )
+        self.img_control_widget = MapImgControlWidget()
 
         self.pattern_pg_layout = GraphicsLayoutWidget()
         self.pattern_plot_widget = PatternWidget(self.pattern_pg_layout)
@@ -62,6 +64,7 @@ class MapWidget(QtWidgets.QWidget):
         self._left_widget = QtWidgets.QWidget()
         self._left_widget.setLayout(self._left_layout)
         self._left_layout.addWidget(self.map_pg_layout)
+        self._left_layout.addWidget(self.img_control_widget)
 
         self._upper_right_widget = QtWidgets.QWidget()
         self._upper_right_widget.setLayout(self._upper_right_layout)
@@ -121,6 +124,28 @@ class MapControlWidget(QtWidgets.QWidget):
         self._outer_layout.addWidget(self.load_btn)
         self._outer_layout.addWidget(self.file_list)
 
+        self.setLayout(self._outer_layout)
+
+    def style_widgets(self):
+        pass
+
+
+class MapImgControlWidget(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(MapImgControlWidget, self).__init__(*args, **kwargs)
+
+        self.create_widgets()
+        self.create_layout()
+        self.style_widgets()
+
+    def create_widgets(self):
+        self.map_dimension_cb = QtWidgets.QComboBox()
+
+    def create_layout(self):
+        self._outer_layout = TightHBoxLayout()
+        self._outer_layout.addSpacerItem(HorizontalSpacerItem())
+        self._outer_layout.addWidget(QtWidgets.QLabel("Map dimension: "))
+        self._outer_layout.addWidget(self.map_dimension_cb)
         self.setLayout(self._outer_layout)
 
     def style_widgets(self):

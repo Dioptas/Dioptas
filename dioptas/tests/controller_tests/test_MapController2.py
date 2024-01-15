@@ -9,7 +9,7 @@ from mock import MagicMock
 from dioptas.controller.MapController import MapController
 from dioptas.model.DioptasModel import DioptasModel
 
-from dioptas.model.MapModel2 import MapModel2
+from dioptas.model.MapModel2 import MapModel2, create_map
 from dioptas.widgets.MapWidget import MapWidget
 from dioptas.widgets.plot_widgets.PatternWidget import SymmetricModifiedLinearRegionItem
 
@@ -85,7 +85,7 @@ def test_click_load_fills_file_list_without_calibration(
         map_controller.widget.control_widget.file_list.item(i).text()
         for i in range(map_controller.widget.control_widget.file_list.count())
     ]
-    assert file_list_strings == map_img_file_names 
+    assert file_list_strings == map_img_file_names
 
 
 def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
@@ -161,7 +161,9 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
     )
 
     # check that image has changed
-    assert not np.array_equal(map_controller.widget.img_plot_widget.img_data, current_img)
+    assert not np.array_equal(
+        map_controller.widget.img_plot_widget.img_data, current_img
+    )
 
 
 def test_click_in_map_image_will_update_gui(map_controller):
@@ -192,6 +194,28 @@ def test_map_interactive_roi_updates_map(map_controller):
         SymmetricModifiedLinearRegionItem((10, 11))
     )
     map_controller.model.map_model.set_window.assert_called_once_with((10, 11))
+
+
+def test_map_dimension_cb_updates_correctly(map_controller, map_model):
+    map_model.window_intensities = np.array([1, 2, 3, 4, 5, 6])
+    map_model.map = create_map(map_model.window_intensities, (2, 3))
+    map_model.possible_dimensions = [(1, 6), (2, 3), (3, 2), (6, 1)]
+    map_model.dimension = (2, 3)
+    map_model.map_changed.emit()
+
+    dim_cb = map_controller.widget.img_control_widget.map_dimension_cb
+    assert dim_cb.currentText() == "2x3"
+    assert dim_cb.count() == 4
+    assert dim_cb.currentIndex() == 1
+
+    cb_items = [dim_cb.itemText(i) for i in range(dim_cb.count())]
+    dimension_str = [f"{x}x{y}" for x, y in map_model.possible_dimensions]
+    assert cb_items == dimension_str
+
+    # changing dimensions:
+    dim_cb.setCurrentIndex(2)
+    assert map_model.dimension == (3, 2)
+    assert map_model.map.shape == (3, 2)
 
 
 def test_changing_configuration_updates_gui(map_controller, dioptas_model):

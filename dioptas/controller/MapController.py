@@ -45,6 +45,9 @@ class MapController(object):
         self.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.connect(
             self.pattern_roi_changed
         )
+        self.widget.img_control_widget.map_dimension_cb.currentIndexChanged.connect(
+            self.map_dimension_cb_changed
+        )
 
         self.model.map_model.filepaths_changed.connect(self.update_file_list)
         self.model.map_model.map_changed.connect(self.update_map)
@@ -81,6 +84,18 @@ class MapController(object):
             self.widget.map_plot_widget.plot_image(
                 np.flipud(self.model.map_model.map), auto_level=True
             )
+            self.update_dimension_cb()
+    
+    def update_dimension_cb(self):
+        dim_cb = self.widget.img_control_widget.map_dimension_cb
+        dim_cb.blockSignals(True)
+        dim_cb.clear()
+        possible_dimensions_str = [f"{x}x{y}" for x, y in self.model.map_model.possible_dimensions]
+        dim_cb.addItems(possible_dimensions_str)
+        current_dimension_index = self.model.map_model.possible_dimensions.index(self.model.map_model.dimension)
+        dim_cb.setCurrentIndex(current_dimension_index)
+        dim_cb.blockSignals(False)
+
 
     def update_image(self):
         if self.model.img_model.img_data is None:
@@ -106,6 +121,11 @@ class MapController(object):
         self.model.map_model.select_point(row, col)
         ind = self.model.map_model.get_point_index(row, col)
         self.widget.control_widget.file_list.setCurrentRow(ind)
+    
+    def map_dimension_cb_changed(self, _):
+        dimension_str = self.widget.img_control_widget.map_dimension_cb.currentText()
+        dimension = tuple([int(x) for x in dimension_str.split("x")])
+        self.model.map_model.set_dimension(dimension)
 
     def pattern_clicked(self, x, _):
         self.widget.pattern_plot_widget.map_interactive_roi.setCenter(x)

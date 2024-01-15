@@ -39,11 +39,11 @@ def test_set_dimensions(map_model: MapModel2, configuration: Configuration):
     assert map_model.dimension == (2, 3)
     assert map_model.map.shape == (2, 3)
 
-    map_model.set_dimensions((3, 2))
+    map_model.set_dimension((3, 2))
     assert map_model.dimension == (3, 2)
     assert map_model.map.shape == (3, 2)
 
-    map_model.set_dimensions((1, 6))
+    map_model.set_dimension((1, 6))
     assert map_model.dimension == (1, 6)
     assert map_model.map.shape == (1, 6)
 
@@ -55,7 +55,7 @@ def test_set_wrong_dimensions(map_model: MapModel2, configuration: Configuration
     assert map_model.dimension == (2, 3)
     assert map_model.map.shape == (2, 3)
 
-    map_model.set_dimensions((3, 3))
+    map_model.set_dimension((3, 3))
     assert map_model.dimension == (2, 3)
     assert map_model.map.shape == (2, 3)
 
