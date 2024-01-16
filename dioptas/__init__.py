@@ -32,6 +32,7 @@ if "QT_API" not in os.environ:
         pass
 
 from qtpy import QtWidgets
+from qt_material import apply_stylesheet
 
 __version__ = "0.5.9"
 
@@ -43,11 +44,10 @@ from .controller.MainController import MainController
 
 def main():
     app = QtWidgets.QApplication([])
+    apply_stylesheet(app, theme='dark_blue.xml', invert_secondary=False, extra={'font': 'Roboto', 'density_scale': -2})
     sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
 
-    if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
-        app.setStyle('plastique')
 
     if len(sys.argv) == 1:  # normal start
         controller = MainController()
