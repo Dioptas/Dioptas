@@ -42,9 +42,11 @@ from ._desktop_shortcuts import make_shortcut
 from .controller.MainController import MainController
 
 
+theme_path = 'dioptas/resources/style/light_orange.xml'
+
 def main():
     app = QtWidgets.QApplication([])
-    apply_stylesheet(app, theme='dark_blue.xml', invert_secondary=False, extra={'font': 'Roboto', 'density_scale': -2})
+    apply_stylesheet(app, theme='dark_orange.xml', invert_secondary=False, extra={'font': 'Roboto', 'density_scale': -2})
     sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
 
