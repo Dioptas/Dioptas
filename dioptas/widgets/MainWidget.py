@@ -105,7 +105,6 @@ class MainWidget(QtWidgets.QWidget):
         self.tabWidget.setCurrentIndex(0)
 
         self.main_frame = QtWidgets.QFrame(self)
-        self.main_frame.setObjectName("main_frame")
         self._layout_main_frame = QtWidgets.QVBoxLayout()
         self._layout_main_frame.setContentsMargins(6, 10, 6, 6)
         self._layout_main_frame.setSpacing(0)
@@ -126,8 +125,8 @@ class MainWidget(QtWidgets.QWidget):
         self._outer_layout.addLayout(self._inner_layout)
         self.setLayout(self._outer_layout)
 
-        self.set_system_dependent_stylesheet()
-        self.set_stylesheet()
+        # self.set_system_dependent_stylesheet()
+        # self.set_stylesheet()
         self.style_widgets()
         self.add_tooltips()
 
