@@ -32,7 +32,7 @@ class MapPointInfo:
     filename: str
     frame_index: int
 
-    def __init__(self, filepath, frame_index):
+    def __init__(self, filepath, frame_index=0):
         self.filepath = filepath
         self.filename = os.path.basename(filepath)
         self.frame_index = frame_index

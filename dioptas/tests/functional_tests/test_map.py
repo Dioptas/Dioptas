@@ -44,6 +44,17 @@ def mock_open_filenames(filepaths):
     QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=filepaths)
 
 
+def prepare_map_gui(main_controller: MainController):
+    main_controller.model.current_configuration.img_model.load(map_img_file_paths[0])
+    main_controller.model.current_configuration.calibration_model.load(
+        os.path.join(data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_widget = main_controller.widget.map_widget
+    click_button(main_controller.widget.map_mode_btn)
+    mock_open_filenames(map_img_file_paths)
+    click_button(map_widget.control_widget.load_btn)
+
+
 def test_map(main_controller: MainController):
     # Herbert has recently collected a large map of his sample and wants to visualize
     # and explore it in Dioptas.
@@ -97,6 +108,13 @@ def test_map(main_controller: MainController):
     loaded_filename = main_controller.model.current_configuration.img_model.filename
     assert loaded_filename == map_img_file_paths[1]
 
+    # Moving his mouse over the map on the right, he sees that the x, y indices of the map
+    # are shown on the bottom of the map.
+
+    map_widget.map_plot_widget.mouse_moved.emit(2, 1)
+    assert map_widget.map_plot_control_widget.mouse_x_label.text() == "X: 2"
+    assert map_widget.map_plot_control_widget.mouse_y_label.text() == "Y: 1"
+
     # He clicks on individual points of the map and sees that the corresponding image and pattern
     # is shown in the right side of the GUI.
     map_widget.map_plot_widget.mouse_left_clicked.emit(2, 2)
@@ -147,10 +165,13 @@ def test_map_with_different_dimension(main_controller: MainController):
     # multiple possible dimensions available below the image widget. He clicks on the
     # 2x4 dimension and sees that the map is updated.
 
-    assert map_widget.img_control_widget.map_dimension_cb.currentText() == "2x4"
-    dim_cb = map_widget.img_control_widget.map_dimension_cb
+    assert map_widget.map_plot_control_widget.map_dimension_cb.currentText() == "2x4"
+    dim_cb = map_widget.map_plot_control_widget.map_dimension_cb
     dim_cb_str_list = [dim_cb.itemText(i) for i in range(dim_cb.count())]
-    dim_model_str_list = [f"{x}x{y}" for x, y in main_controller.model.current_configuration.map_model.possible_dimensions]
+    dim_model_str_list = [
+        f"{x}x{y}"
+        for x, y in main_controller.model.current_configuration.map_model.possible_dimensions
+    ]
     assert dim_cb.count() == 4
     assert dim_cb_str_list == dim_model_str_list
 
@@ -159,4 +180,3 @@ def test_map_with_different_dimension(main_controller: MainController):
     assert map_widget.map_plot_widget.img_data.shape == (4, 2)
 
     # He is satisfied and can go on exploring his map of the sample.
-    

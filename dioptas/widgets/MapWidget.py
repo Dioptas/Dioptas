@@ -47,7 +47,9 @@ class MapWidget(QtWidgets.QWidget):
         self.img_plot_widget = IntegrationImgWidget(
             self.img_pg_layout, orientation="horizontal"
         )
-        self.img_control_widget = MapImgControlWidget()
+        self.map_plot_control_widget = (
+            MapPlotControlWidget()
+        )  # widget below the map image
 
         self.pattern_pg_layout = GraphicsLayoutWidget()
         self.pattern_plot_widget = PatternWidget(self.pattern_pg_layout)
@@ -64,7 +66,7 @@ class MapWidget(QtWidgets.QWidget):
         self._left_widget = QtWidgets.QWidget()
         self._left_widget.setLayout(self._left_layout)
         self._left_layout.addWidget(self.map_pg_layout)
-        self._left_layout.addWidget(self.img_control_widget)
+        self._left_layout.addWidget(self.map_plot_control_widget)
 
         self._upper_right_widget = QtWidgets.QWidget()
         self._upper_right_widget.setLayout(self._upper_right_layout)
@@ -89,9 +91,6 @@ class MapWidget(QtWidgets.QWidget):
 class TightHBoxLayout(QtWidgets.QHBoxLayout):
     def __init__(self, *args, **kwargs):
         super(TightHBoxLayout, self).__init__(*args, **kwargs)
-
-    def setGeometry(self, rect):
-        super(TightHBoxLayout, self).setGeometry(rect)
         self.setContentsMargins(0, 0, 0, 0)
         self.setSpacing(0)
 
@@ -99,9 +98,6 @@ class TightHBoxLayout(QtWidgets.QHBoxLayout):
 class TightVBoxLayout(QtWidgets.QVBoxLayout):
     def __init__(self, *args, **kwargs):
         super(TightVBoxLayout, self).__init__(*args, **kwargs)
-
-    def setGeometry(self, rect):
-        super(TightVBoxLayout, self).setGeometry(rect)
         self.setContentsMargins(0, 0, 0, 0)
         self.setSpacing(0)
 
@@ -130,9 +126,9 @@ class MapControlWidget(QtWidgets.QWidget):
         pass
 
 
-class MapImgControlWidget(QtWidgets.QWidget):
+class MapPlotControlWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(MapImgControlWidget, self).__init__(*args, **kwargs)
+        super(MapPlotControlWidget, self).__init__(*args, **kwargs)
 
         self.create_widgets()
         self.create_layout()
@@ -140,13 +136,29 @@ class MapImgControlWidget(QtWidgets.QWidget):
 
     def create_widgets(self):
         self.map_dimension_cb = QtWidgets.QComboBox()
+        self.mouse_x_label = QtWidgets.QLabel("X: ")
+        self.mouse_y_label = QtWidgets.QLabel("Y: ")
+        self.mouse_int_label = QtWidgets.QLabel("I: ")
+        self.filename_label = QtWidgets.QLabel("")
 
     def create_layout(self):
         self._outer_layout = TightHBoxLayout()
+
+        self._left_layout = TightVBoxLayout()
+        self._mouse_pos_layout = TightHBoxLayout()
+        self._mouse_pos_layout.addWidget(self.mouse_x_label)
+        self._mouse_pos_layout.addWidget(self.mouse_y_label)
+        self._mouse_pos_layout.addWidget(self.mouse_int_label)
+        self._mouse_pos_layout.addSpacerItem(HorizontalSpacerItem())
+        self._left_layout.addLayout(self._mouse_pos_layout)
+        self._left_layout.addWidget(self.filename_label)
+        self._outer_layout.addLayout(self._left_layout)
         self._outer_layout.addSpacerItem(HorizontalSpacerItem())
-        self._outer_layout.addWidget(QtWidgets.QLabel("Map dimension: "))
+        self._outer_layout.addWidget(QtWidgets.QLabel("Dim: "))
         self._outer_layout.addWidget(self.map_dimension_cb)
         self.setLayout(self._outer_layout)
 
     def style_widgets(self):
-        pass
+        self._outer_layout.setContentsMargins(6, 6, 0, 6)
+        self.mouse_x_label.setMinimumWidth(50)
+        self.mouse_y_label.setMinimumWidth(50)
