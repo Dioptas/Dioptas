@@ -45,9 +45,12 @@ class MapController(object):
         self.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.connect(
             self.pattern_roi_changed
         )
-        self.widget.img_control_widget.map_dimension_cb.currentIndexChanged.connect(
+        self.widget.map_plot_control_widget.map_dimension_cb.currentIndexChanged.connect(
             self.map_dimension_cb_changed
         )
+        self.widget.map_plot_widget.mouse_moved.connect(
+            self.map_plot_mouse_moved
+        ) 
 
         self.model.map_model.filepaths_changed.connect(self.update_file_list)
         self.model.map_model.map_changed.connect(self.update_map)
@@ -87,7 +90,7 @@ class MapController(object):
             self.update_dimension_cb()
     
     def update_dimension_cb(self):
-        dim_cb = self.widget.img_control_widget.map_dimension_cb
+        dim_cb = self.widget.map_plot_control_widget.map_dimension_cb
         dim_cb.blockSignals(True)
         dim_cb.clear()
         possible_dimensions_str = [f"{x}x{y}" for x, y in self.model.map_model.possible_dimensions]
@@ -114,18 +117,73 @@ class MapController(object):
     def file_list_row_changed(self, row):
         self.model.map_model.select_point_by_index(row)
 
+    def _get_mouse_row_col(self, x, y):
+        x, y = np.floor(x), np.floor(y)
+        row = self.widget.map_plot_widget.img_data.shape[0] - int(y) - 1
+        col = int(x)
+        return row, col
+
+    def _row_col_in_map(self, row, col):
+        map_shape = self.widget.map_plot_widget.img_data.shape
+        if row < 0 or col < 0 or row >= map_shape[0] or col >= map_shape[1]:
+            return False
+        return True
+
     def map_point_selected(self, clicked_x, clicked_y):
-        clicked_x, clicked_y = np.floor(clicked_x), np.floor(clicked_y)
-        row = self.model.map_model.map.shape[0] - int(clicked_y) - 1
-        col = int(clicked_x)
+        # skip when now map is loaded
+        if self.model.map_model.map is None:
+            return
+
+        row, col = self._get_mouse_row_col(clicked_x, clicked_y)
+
+        # skip when the mouse is outside of the map
+        if not self._row_col_in_map(row, col):
+            return
+
         self.model.map_model.select_point(row, col)
         ind = self.model.map_model.get_point_index(row, col)
         self.widget.control_widget.file_list.setCurrentRow(ind)
     
     def map_dimension_cb_changed(self, _):
-        dimension_str = self.widget.img_control_widget.map_dimension_cb.currentText()
+        dimension_str = self.widget.map_plot_control_widget.map_dimension_cb.currentText()
         dimension = tuple([int(x) for x in dimension_str.split("x")])
         self.model.map_model.set_dimension(dimension)
+
+    def map_plot_mouse_moved(self, x, y):
+        # shows the information for a point inside of the map
+        # since pyqtgraph gives the coordinates in the image coordinate system
+        # we need to flip the y axis
+
+        # skip when no image is loaded
+        if self.widget.map_plot_widget.img_data is None:
+            return
+
+        row, col = self._get_mouse_row_col(x, y)
+
+        # if the mouse is outside of the image, we don't want to show any information
+        if not self._row_col_in_map(row, col):
+            self.widget.map_plot_control_widget.mouse_x_label.setText(f"X: ")
+            self.widget.map_plot_control_widget.mouse_y_label.setText(f"Y: ")
+            self.widget.map_plot_control_widget.mouse_int_label.setText(f"I: ")
+            self.widget.map_plot_control_widget.filename_label.setText(f"")
+            return
+
+        self.widget.map_plot_control_widget.mouse_x_label.setText(f"X: {col:.0f}")
+        self.widget.map_plot_control_widget.mouse_y_label.setText(f"Y: {row:.0f}")
+        self.widget.map_plot_control_widget.mouse_int_label.setText(
+            f"I: {self.model.map_model.map[row, col]:.0f}"
+        )
+
+        point_info = self.model.map_model.get_point_info(row, col)  
+        if point_info.frame_index == 0:
+            self.widget.map_plot_control_widget.filename_label.setText(
+                f"{point_info.filename}"
+            )
+        else:
+            self.widget.map_plot_control_widget.filename_label.setText(
+                f"{point_info.filename} - Frame: {point_info.frame_index}"
+            )
+
 
     def pattern_clicked(self, x, _):
         self.widget.pattern_plot_widget.map_interactive_roi.setCenter(x)

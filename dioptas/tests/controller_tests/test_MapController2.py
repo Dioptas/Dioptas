@@ -9,7 +9,7 @@ from mock import MagicMock
 from dioptas.controller.MapController import MapController
 from dioptas.model.DioptasModel import DioptasModel
 
-from dioptas.model.MapModel2 import MapModel2, create_map
+from dioptas.model.MapModel2 import MapModel2, MapPointInfo, create_map
 from dioptas.widgets.MapWidget import MapWidget
 from dioptas.widgets.plot_widgets.PatternWidget import SymmetricModifiedLinearRegionItem
 
@@ -61,6 +61,15 @@ def load_calibration(map_controller: MapController):
 
 def mock_open_filenames(filepaths):
     QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=filepaths)
+
+
+def mock_map_model(map_model: MapModel2):
+    map_model.map = create_map(np.array([1, 2, 3, 4, 5, 6]), (2, 3))
+    map_model.filepaths = map_img_file_paths
+    map_model.possible_dimensions = [(1, 6), (2, 3), (3, 2), (6, 1)]
+    map_model.point_infos = [MapPointInfo(f) for f in map_img_file_paths]
+    map_model.dimension = (2, 3)
+    map_model.map_changed.emit()
 
 
 def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
@@ -189,12 +198,50 @@ def test_click_in_pattern_will_update_region_of_interest(map_controller):
     )
 
 
-def test_map_interactive_roi_updates_map(map_controller):
+def test_pattern_interactive_roi_updates_map(map_controller):
     map_controller.model.map_model.set_window = MagicMock()
     map_controller.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.emit(
         SymmetricModifiedLinearRegionItem((10, 11))
     )
     map_controller.model.map_model.set_window.assert_called_once_with((10, 11))
+
+
+def test_mouse_move_in_map_image_will_update_xyI(map_controller, map_model):
+    mock_map_model(map_model)
+
+    map_widget = map_controller.widget
+    map_plot_widget = map_widget.map_plot_widget
+    map_plot_control_widget = map_widget.map_plot_control_widget
+
+    map_plot_widget.mouse_moved.emit(0, 1)
+    assert map_plot_control_widget.mouse_x_label.text() == "X: 0"
+    assert map_plot_control_widget.mouse_y_label.text() == "Y: 0"
+    assert map_plot_control_widget.mouse_int_label.text() == "I: 1"
+
+    # even when it is on fractional coordinates it should be rounded down
+    map_plot_widget.mouse_moved.emit(0.7, 1.8)
+    assert map_plot_control_widget.mouse_x_label.text() == "X: 0"
+    assert map_plot_control_widget.mouse_y_label.text() == "Y: 0"
+    assert map_plot_control_widget.mouse_int_label.text() == "I: 1"
+
+    map_plot_widget.mouse_moved.emit(1, 0.7)
+    assert map_plot_control_widget.mouse_x_label.text() == "X: 1"
+    assert map_plot_control_widget.mouse_y_label.text() == "Y: 1"
+
+    # it does not give coordinates, when outside of the map dimensions
+    map_plot_widget.mouse_moved.emit(10, 10)
+    assert map_plot_control_widget.mouse_x_label.text() == "X: "
+    assert map_plot_control_widget.mouse_y_label.text() == "Y: "
+
+
+def test_mouse_move_in_map_will_update_filename(map_controller, map_model):
+    mock_map_model(map_model)
+    map_controller.widget.map_plot_widget.mouse_moved.emit(0, 1)
+    assert map_controller.widget.map_plot_control_widget.filename_label.text() == map_img_file_names[0]
+    map_controller.widget.map_plot_widget.mouse_moved.emit(1, 1)
+    assert map_controller.widget.map_plot_control_widget.filename_label.text() == map_img_file_names[1]
+    map_controller.widget.map_plot_widget.mouse_moved.emit(0, 0)
+    assert map_controller.widget.map_plot_control_widget.filename_label.text() == map_img_file_names[3]
 
 
 def test_map_dimension_cb_updates_correctly(map_controller, map_model):
@@ -204,7 +251,7 @@ def test_map_dimension_cb_updates_correctly(map_controller, map_model):
     map_model.dimension = (2, 3)
     map_model.map_changed.emit()
 
-    dim_cb = map_controller.widget.img_control_widget.map_dimension_cb
+    dim_cb = map_controller.widget.map_plot_control_widget.map_dimension_cb
     assert dim_cb.currentText() == "2x3"
     assert dim_cb.count() == 4
     assert dim_cb.currentIndex() == 1
