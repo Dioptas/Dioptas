@@ -73,6 +73,7 @@ class Configuration(object):
         self._integration_rad_points = None
         self._integration_unit = "2th_deg"
         self._oned_azimuth_range = None
+        self.trim_trailing_zeros = True
 
         self._cake_azimuth_points = 360
         self._cake_azimuth_range = None
@@ -111,6 +112,7 @@ class Configuration(object):
                 mask=mask,
                 unit=self.integration_unit,
                 num_points=self.integration_rad_points,
+                trim_zeros=self.trim_trailing_zeros,
             )
 
             self.pattern_model.set_pattern(

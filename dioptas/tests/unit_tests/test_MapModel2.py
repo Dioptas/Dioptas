@@ -12,6 +12,8 @@ map_pattern_path = os.path.join(unittest_data_path, 'map', 'xy')
 map_img_file_names = [f for f in os.listdir(map_img_path) if os.path.isfile(os.path.join(map_img_path, f))]
 map_img_file_paths = [os.path.join(map_img_path, filename) for filename in map_img_file_names]
 
+multi_file_img_path = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs')
+
 
 @pytest.fixture
 def configuration() -> Configuration:
@@ -81,3 +83,14 @@ def test_get_point_information(map_model: MapModel2, configuration: Configuratio
         row_index = i // 3
         point_info = map_model.get_point_info(row_index, column_index)
         assert point_info.filename == map_img_file_names[i]
+
+
+def test_use_multi_file_img(map_model: MapModel2, configuration: Configuration):
+    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    map_model.load([multi_file_img_path])
+
+    img_model = configuration.img_model
+
+    assert map_model.filepaths == [multi_file_img_path]
+    assert img_model.series_max == 10
+    assert map_model.pattern_intensities.shape[0] == 10

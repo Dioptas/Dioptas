@@ -40,7 +40,6 @@ class MapPointInfo:
 
 class MapModel2:
     map_changed = Signal()
-    filepaths_changed = Signal()
 
     def __init__(self, configuration: "Configuration"):
         """
@@ -61,8 +60,8 @@ class MapModel2:
         self.map = None
 
     def load(self, filepaths: list[str]):
+        """Loads a list of files, integrates them and creates a map"""
         self.filepaths = filepaths
-        self.filepaths_changed.emit()
 
         self.integrate()
 
@@ -84,27 +83,39 @@ class MapModel2:
         self.map_changed.emit()
 
     def integrate(self):
+        """Integrates all files in the filepaths list and stores the results"""
         if not self.configuration.calibration_model.is_calibrated:
             raise ValueError("Configuration is not calibrated")
 
+        # initialize data structures
         self.pattern_x = []
         self.pattern_intensities = []
         self.point_infos = []
 
-        for ind, filename in enumerate(self.filepaths):
-            self.configuration.img_model.load(filename)
-            frame_ind = 0  # currently we are not handling multi frames yet
-            if ind == 0:
-                x, y = self.configuration.integrate_image_1d()
-                self.pattern_x = x
-            else:
-                _, y = self.configuration.integrate_image_1d()
-            self.point_infos.append(MapPointInfo(filename, frame_ind))
+        # disable trimming trailing zeros for integration, otherwise the
+        # integration will result in patterns with different length, which
+        # will cause problems when creating the map
+        trim_trailing_zeros_backup = self.configuration.trim_trailing_zeros
+        self.configuration.trim_trailing_zeros = False
 
-            self.pattern_intensities.append(y)
+        for file_ind, filepath in enumerate(self.filepaths):
+            self.configuration.img_model.load(filepath)
+
+            for frame_ind in range(self.configuration.img_model.series_max):
+                self.configuration.img_model.load_series_img(frame_ind + 1)
+                x, y = self.configuration.integrate_image_1d()
+                if file_ind == 0:
+                    self.pattern_x = x
+                self.point_infos.append(MapPointInfo(filepath, frame_ind))
+                self.pattern_intensities.append(y)
+
         self.pattern_intensities = np.array(self.pattern_intensities)
+        self.configuration.trim_trailing_zeros = trim_trailing_zeros_backup
 
     def set_window(self, window: tuple[float, float]):
+        """Sets the window in the pattern for generating the map
+        :param window: tuple/list of lower value and upper value of the window
+        """
         self.window = window
         if self.pattern_x is None:
             return
@@ -115,6 +126,7 @@ class MapModel2:
         self.map_changed.emit()
 
     def set_dimension(self, dimension: (float, float)):
+        """Sets the dimension of the map"""
         if dimension not in self.possible_dimensions:
             return
         self.dimension = dimension
@@ -122,23 +134,41 @@ class MapModel2:
         self.map_changed.emit()
 
     def get_point_info(self, row_index: float, column_index: float) -> MapPointInfo:
+        """Returns the point info for the specified row and column index"""
         if self.dimension is None:
             return None
         ind = self.get_point_index(row_index, column_index)
         return self.point_infos[ind]
 
     def get_point_index(self, row_index: int, column_index: int) -> int:
+        """Returns the point index inside the list of integrated images for the specified row and column index"""
         if self.dimension is None:
             return None
         return int(column_index + self.dimension[1] * row_index)
 
+    def get_filenames(self) -> list[str]:
+        """Returns a list of filenames for the integrated images, it will add the frame index if it is not 0"""
+        filenames = []
+        for point_info in self.point_infos:
+            if point_info.frame_index == 0:
+                filenames.append(point_info.filename)
+            else:
+                filenames.append(
+                    f"{point_info.filename}:{point_info.frame_index}"
+                )
+        return filenames
+
     def select_point(self, row_index: int, column_index: int):
+        """Selects the point at the specified row and column index, will trigger a load of the image through the
+        configuration. Thus the image_changed signal will be sent to all listeners"""
         point_ind = self.get_point_index(row_index, column_index)
         if point_ind is None:
             return
         self.select_point_by_index(point_ind)
 
     def select_point_by_index(self, index: int):
+        """Selects the point at the specified index (considering the list of images), will trigger a load of the 
+        image through the configuration. Thus the image_changed signal will be sent to all listeners"""
         if index < 0 or index >= len(self.point_infos):
             return
         point_info = self.point_infos[index]
