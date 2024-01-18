@@ -79,22 +79,13 @@ def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
     map_model.load.assert_called_once_with(map_img_file_paths)
 
 
-def test_click_load_fills_file_list_without_calibration(
+def test_click_load_empties_file_list_without_calibration(
     map_controller, map_model: MapModel2
 ):
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
 
-    assert map_model.filepaths == map_img_file_paths
-    assert map_controller.widget.control_widget.file_list.count() == len(
-        map_img_file_paths
-    )
-
-    file_list_strings = [
-        map_controller.widget.control_widget.file_list.item(i).text()
-        for i in range(map_controller.widget.control_widget.file_list.count())
-    ]
-    assert file_list_strings == map_img_file_names
+    assert map_controller.widget.control_widget.file_list.count() == 0
 
 
 def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
@@ -237,11 +228,20 @@ def test_mouse_move_in_map_image_will_update_xyI(map_controller, map_model):
 def test_mouse_move_in_map_will_update_filename(map_controller, map_model):
     mock_map_model(map_model)
     map_controller.widget.map_plot_widget.mouse_moved.emit(0, 1)
-    assert map_controller.widget.map_plot_control_widget.filename_label.text() == map_img_file_names[0]
+    assert (
+        map_controller.widget.map_plot_control_widget.filename_label.text()
+        == map_img_file_names[0]
+    )
     map_controller.widget.map_plot_widget.mouse_moved.emit(1, 1)
-    assert map_controller.widget.map_plot_control_widget.filename_label.text() == map_img_file_names[1]
+    assert (
+        map_controller.widget.map_plot_control_widget.filename_label.text()
+        == map_img_file_names[1]
+    )
     map_controller.widget.map_plot_widget.mouse_moved.emit(0, 0)
-    assert map_controller.widget.map_plot_control_widget.filename_label.text() == map_img_file_names[3]
+    assert (
+        map_controller.widget.map_plot_control_widget.filename_label.text()
+        == map_img_file_names[3]
+    )
 
 
 def test_map_dimension_cb_updates_correctly(map_controller, map_model):

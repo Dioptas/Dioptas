@@ -52,8 +52,8 @@ class MapController(object):
             self.map_plot_mouse_moved
         ) 
 
-        self.model.map_model.filepaths_changed.connect(self.update_file_list)
         self.model.map_model.map_changed.connect(self.update_map)
+        self.model.map_model.map_changed.connect(self.update_file_list)
         self.model.img_changed.connect(self.update_image)
         self.model.pattern_changed.connect(self.update_pattern)
 
@@ -73,11 +73,13 @@ class MapController(object):
 
     def update_file_list(self):
         self.widget.control_widget.file_list.clear()
-        if self.model.map_model.filepaths is None:
+        filenames = self.model.map_model.get_filenames()
+        if len(filenames) == 0: # no files loaded
             return
-        filenames = [os.path.basename(f) for f in self.model.map_model.filepaths]
         self.widget.control_widget.file_list.addItems(filenames)
+        self.widget.control_widget.file_list.blockSignals(True)
         self.widget.control_widget.file_list.setCurrentRow(0)
+        self.widget.control_widget.file_list.blockSignals(False)
 
     def update_map(self):
         if self.model.map_model.map is None:
