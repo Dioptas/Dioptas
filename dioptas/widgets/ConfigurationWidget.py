@@ -34,6 +34,7 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.create_widgets()
         self.create_layout()
         self.style_widgets()
+        self.add_tooltips()
 
     def create_widgets(self):
         self.configuration_lbl = LabelAlignRight("Configuration:")
@@ -117,9 +118,18 @@ class ConfigurationWidget(QtWidgets.QWidget):
         for ind, configuration in enumerate(configurations):
             new_button = CheckableFlatButton(str(ind + 1))
             new_button.setFixedSize(25, 25)
+            new_button.setToolTip("Switch to configuration {}".format(ind + 1))
             self.configuration_btn_group.addButton(new_button)
             self.configuration_btns.append(new_button)
             self.configurations_btn_layout.addWidget(new_button)
             if ind == cur_ind:
                 new_button.setChecked(True)
             new_button.clicked.connect(partial(self.configuration_selected.emit, ind))
+
+    def add_tooltips(self):
+        self.add_configuration_btn.setToolTip("Add configuration")
+        self.remove_configuration_btn.setToolTip("Remove configuration")
+        self.next_file_btn.setToolTip("Next file")
+        self.previous_file_btn.setToolTip("Previous file")
+        self.next_folder_btn.setToolTip("Next folder")
+        self.previous_folder_btn.setToolTip("Previous folder")
