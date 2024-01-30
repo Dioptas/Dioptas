@@ -66,7 +66,6 @@ class ConfigurationWidget(QtWidgets.QWidget):
 
     def create_layout(self):
         self.main_layout = QtWidgets.QHBoxLayout()
-        self.main_layout.setContentsMargins(7, 0, 0, 0)
         self.main_layout.addWidget(self.configuration_lbl)
         self.main_layout.addWidget(self.add_configuration_btn)
         self.main_layout.addWidget(self.remove_configuration_btn)
@@ -95,15 +94,17 @@ class ConfigurationWidget(QtWidgets.QWidget):
 
     def style_widgets(self):
         self.main_layout.setSpacing(6)
-        self.next_file_btn.setMaximumWidth(25)
-        self.file_iterator_pos_txt.setMaximumWidth(25)
-        self.next_folder_btn.setMaximumWidth(25)
-        self.previous_folder_btn.setMaximumWidth(25)
-        self.previous_file_btn.setMaximumWidth(25)
-        self.factor_txt.setMaximumWidth(35)
+        self.main_layout.setContentsMargins(6, 0, 6, 0)
+        self.configurations_btn_layout.setSpacing(0)
+        self.configurations_btn_layout.setContentsMargins(0, 0, 0, 0)
+
+        btns = [self.add_configuration_btn, self.remove_configuration_btn, self.next_file_btn, self.previous_file_btn,
+                self.next_folder_btn, self.previous_folder_btn, self.saved_combined_patterns_btn]
+
+        for btn in btns:
+            btn.setFixedSize(25, 25)
 
         self.saved_combined_patterns_btn.setIconSize(QtCore.QSize(13, 13))
-        self.saved_combined_patterns_btn.setMaximumWidth(25)
 
     def update_configuration_btns(self, configurations, cur_ind):
         for btn in self.configuration_btns:
@@ -115,6 +116,7 @@ class ConfigurationWidget(QtWidgets.QWidget):
 
         for ind, configuration in enumerate(configurations):
             new_button = CheckableFlatButton(str(ind + 1))
+            new_button.setFixedSize(25, 25)
             self.configuration_btn_group.addButton(new_button)
             self.configuration_btns.append(new_button)
             self.configurations_btn_layout.addWidget(new_button)

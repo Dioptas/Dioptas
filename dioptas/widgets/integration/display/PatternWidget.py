@@ -32,7 +32,7 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
     def __init__(self):
         super(IntegrationPatternWidget, self).__init__()
 
-        self.frame = QtWidgets.QFrame()
+        self.frame = QtWidgets.QWidget()
         self.frame.setObjectName('pattern_frame')
 
         self._frame_layout = QtWidgets.QVBoxLayout()

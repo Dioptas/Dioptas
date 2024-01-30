@@ -49,7 +49,7 @@ class MaskWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
     def create_display_widget(self):
-        self._display_widget = QtWidgets.QFrame(self)
+        self._display_widget = QtWidgets.QWidget(self)
         self._display_layout = QtWidgets.QVBoxLayout()
         self._display_layout.setContentsMargins(0, 0, 0, 0)
         self.img_layout_widget = GraphicsLayoutWidget()

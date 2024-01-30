@@ -1,0 +1,38 @@
+QFrame {{
+    border: 0px solid #5B5B5B;
+}}
+
+QGroupBox {{
+    border: 1px solid {QTMATERIAL_SECONDARYCOLOR};
+}}
+
+QGroupBox::title {{
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+QComboBox {{
+    selection-background-color: {QTMATERIAL_SECONDARYCOLOR};
+}}
+
+QComboBox::item:selected {{
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+}}
+
+
+QPushButton {{
+    border: 0.5px solid {QTMATERIAL_SECONDARYCOLOR};
+    border-radius: 0px;
+}}
+
+QPushButton:hover {{
+    border: 1px solid {QTMATERIAL_PRIMARYCOLOR};
+}}
+
+#menu_btn {{
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    border-radius: 15px;
+}}
+
+#menu_btn:hover {{
+    border-color: {QTMATERIAL_PRIMARYCOLOR};
+}}

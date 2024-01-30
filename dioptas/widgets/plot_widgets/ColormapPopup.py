@@ -56,9 +56,9 @@ class ColormapPopup(QtWidgets.QFrame):
         self.setWindowTitle("Colormap configuration")
         self.setWindowFlags(QtCore.Qt.Popup)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setStyleSheet(
-            pathlib.Path(style_path, "stylesheet.qss").read_text()
-        )
+        # self.setStyleSheet(
+            # pathlib.Path(style_path, "stylesheet.qss").read_text()
+        # )
         self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
         self.setLineWidth(2)
 
