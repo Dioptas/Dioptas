@@ -36,3 +36,9 @@ QPushButton:hover {{
 #menu_btn:hover {{
     border-color: {QTMATERIAL_PRIMARYCOLOR};
 }}
+
+QToolTip {{
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    border-width: 0px;
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
