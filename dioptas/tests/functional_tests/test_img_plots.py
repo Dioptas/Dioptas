@@ -50,6 +50,7 @@ def test_synchronization_of_view_range(main_controller):
     integration_img_vb = (
         main_controller.widget.integration_widget.img_widget.img_view_box
     )
+    map_img_vb = main_controller.widget.map_widget.img_plot_widget.img_view_box
 
     calibration_img_vb.setRange(QtCore.QRectF(-10, -10, 20, 20))
     click_button(main_controller.widget.mask_mode_btn)
@@ -80,6 +81,25 @@ def test_synchronization_of_view_range(main_controller):
     )
 
     assert range_diff == approx(0)
+
+    # then he checks the map view and see that the range is also the same there.
+    click_button(main_controller.widget.map_mode_btn)
+    range_diff = np.sum(
+        np.array(calibration_img_vb.targetRange()) - np.array(map_img_vb.targetRange())
+    )
+
+    assert range_diff == approx(0)
+
+    # He zooms out of the image in the map view and sees that the range is also the same in the other views.
+    map_img_vb.setRange(QtCore.QRectF(-10, -10, 20, 20))
+
+    click_button(main_controller.widget.calibration_mode_btn)
+    range_diff = np.sum(
+        np.array(calibration_img_vb.targetRange()) - np.array(map_img_vb.targetRange())
+    )
+
+    assert range_diff == approx(0)
+
 
 
 def test_remove_img_background_in_view(main_controller):

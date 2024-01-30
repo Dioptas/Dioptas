@@ -45,7 +45,7 @@ class IntegrationController(object):
     This controller hosts all the Subcontroller of the integration tab.
     """
 
-    def __init__(self, widget, dioptas_model):
+    def __init__(self, widget: IntegrationWidget, dioptas_model: DioptasModel):
         """
         :param widget: Reference to an IntegrationWidget
         :param dioptas_model: Reference to a DioptasModel object

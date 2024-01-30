@@ -1119,17 +1119,11 @@ class BatchController(object):
             self.widget.show_error_msg("No images loaded for integration")
             return
 
-        if not self.widget.automatic_binning_cb.isChecked():
-            num_points = int(str(self.widget.bin_count_txt.text()))
-        else:
-            num_points = None
-
         if self.widget.batch_widget.mode_widget.view_f_btn.isChecked():
             start, stop, step = self.widget.batch_widget.position_widget.step_raw_widget.get_image_range()
         else:
             start, stop, step = self.widget.batch_widget.position_widget.step_series_widget.get_image_range()
 
-        self.model.img_model.blockSignals(True)
         n_int = (stop - start) / step
         progress_dialog = self.create_progress_dialog("Integrating multiple images.", "Abort Integration", n_int)
 
@@ -1140,15 +1134,13 @@ class BatchController(object):
             QtWidgets.QApplication.processEvents()
             return ~progress_dialog.wasCanceled()
 
-        self.model.batch_model.integrate_raw_data(num_points, start, stop + 1, step,
+        self.model.batch_model.integrate_raw_data(start, stop + 1, step,
                                                   self.widget.batch_widget.mode_widget.view_f_btn.isChecked(),
-                                                  callback_fn=callback_fn,
-                                                  use_mask=self.model.use_mask)
+                                                  callback_fn=callback_fn)
 
         progress_dialog.close()
         self.show_metadata_info()
 
-        self.model.img_model.blockSignals(False)
         n_img = self.model.batch_model.n_img
         n_img_all = self.model.batch_model.n_img_all
         self.widget.batch_widget.position_widget.step_series_widget.pos_label.setText(f"Frame({n_img}/{n_img_all}):")

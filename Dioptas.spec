@@ -91,7 +91,7 @@ a = Analysis(['run.py'],
                            fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
-             excludes=['PyQt4', 'PySide'],
+             excludes=['PyQt4', 'PySide', 'pyepics'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)

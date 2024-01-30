@@ -26,12 +26,15 @@ from .ConfigurationWidget import ConfigurationWidget
 from .CalibrationWidget import CalibrationWidget
 from .MaskWidget import MaskWidget
 from .integration import IntegrationWidget
+from .MapWidget import MapWidget
 from .CustomWidgets import (
+    RotatedCheckableFlatButton,
     VerticalSpacerItem,
     CheckableFlatButton,
     FlatButton,
-    HorizontalLine,
-    VerticalLine,
+    SaveIconButton,
+    OpenIconButton,
+    ResetIconButton,
 )
 
 from .. import style_path, icons_path
@@ -104,6 +107,16 @@ class MainWidget(QtWidgets.QWidget):
         self.mode_btn_group.addButton(self.calibration_mode_btn)
         self.mode_btn_group.addButton(self.mask_mode_btn)
         self.mode_btn_group.addButton(self.integration_mode_btn)
+        self.mode_btn_group.addButton(self.map_mode_btn)
+
+        self._menu_layout.addWidget(self.show_configuration_menu_btn)
+        self._menu_layout.addSpacerItem(
+            QtWidgets.QSpacerItem(15, 15, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed))
+        self._menu_layout.addWidget(self.load_btn)
+        self._menu_layout.addWidget(self.save_btn)
+        self._menu_layout.addSpacerItem(
+            QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed))
+        self._menu_layout.addWidget(self.reset_btn)
 
         self._mode_layout.addWidget(self.calibration_mode_btn)
         self._mode_layout.addWidget(HorizontalLine())
@@ -139,19 +152,42 @@ class MainWidget(QtWidgets.QWidget):
         self.calibration_widget = CalibrationWidget(self)
         self.mask_widget = MaskWidget(self)
         self.integration_widget = IntegrationWidget(self)
+        self.map_widget = MapWidget(self)
 
         self._layout_main_frame.addWidget(self.calibration_widget)
         self._layout_main_frame.addWidget(self.mask_widget)
         self._layout_main_frame.addWidget(self.integration_widget)
+        self._layout_main_frame.addWidget(self.map_widget)
 
         self.mask_widget.setVisible(False)
         self.integration_widget.setVisible(False)
+        self.map_widget.setVisible(False)
+
+        self._inner_layout.addWidget(self.main_frame)
+        self._outer_layout.addLayout(self._inner_layout)
+        self.setLayout(self._outer_layout)
+
+        self.set_system_dependent_stylesheet()
+        self.set_stylesheet()
+        self.style_widgets()
+        self.add_tooltips()
+
+        self.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, 'icon.svg')))
 
     def set_stylesheet(self):
         file = open(os.path.join(style_path, "stylesheet.qss"))
         stylesheet = file.read()
         self.setStyleSheet(stylesheet)
         file.close()
+
+    def set_system_dependent_stylesheet(self):
+        from sys import platform
+        if platform == "darwin":
+            self.tabWidget.setStyleSheet(
+                "QDoubleSpinBox, QSpinBox {padding-right: -8px;}")
+        else:
+            self.tabWidget.setStyleSheet(
+                "QDoubleSpinBox, QSpinBox {padding-right: -3px;}")
 
     def style_widgets(self):
         self._style_mode_btns()
