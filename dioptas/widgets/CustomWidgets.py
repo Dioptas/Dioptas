@@ -216,6 +216,11 @@ class FlatButton(QtWidgets.QPushButton):
         self.setMinimumWidth(width)
         self.setMaximumWidth(width)
 
+class CheckableButton(QtWidgets.QPushButton):
+    def __init__(self, *args):
+        super(CheckableButton, self).__init__(*args)
+        self.setCheckable(True)
+
 
 class CheckableFlatButton(FlatButton):
     def __init__(self, *args):
