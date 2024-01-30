@@ -768,6 +768,7 @@ class ImgModel(object):
         reads the file info from tif_tags and returns a file info
         """
         result = ""
+        end_result = ""
         tags = image.tag
         useful_keys = []
         for key in tags.keys():
@@ -780,8 +781,11 @@ class ImgModel(object):
             if isinstance(tag, basestring):
                 new_line = str(tag) + "\n"
                 new_line = new_line.replace(":", ":\t", 1)
-                result += new_line
-        return result
+                if 'TIFFImageDescription' in new_line:
+                    end_result = new_line
+                else:
+                    result += new_line
+        return result + end_result
 
     def _get_motors_info(self, image):
         """

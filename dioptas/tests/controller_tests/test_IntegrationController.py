@@ -205,3 +205,30 @@ class IntegrationControllerTest(QtTest):
                 return True
         return False
 
+
+    def test_cake_changes_axes(self):
+        # self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Cake')
+        # self.assertEqual(self.widget.integration_image_widget.img_view.left_axis_image,
+        #                  self.widget.integration_image_widget.img_view.pg_layout.getItem(1, 0))
+        self.widget.integration_image_widget.mode_btn.click()  # change to cake mode
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
+        self.assertEqual(self.widget.integration_image_widget.cake_view.left_axis_cake,
+                         self.widget.integration_image_widget.cake_view.pg_layout.getItem(1, 0))
+
+    def test_disable_solid_angle_correction(self):
+        click_checkbox(self.widget.integration_control_widget.integration_options_widget.correct_solid_angle_cb)
+        self.assertFalse(self.model.calibration_model.correct_solid_angle)
+
+    @unittest.skip("Axes are currently not used for 'Image' mode")
+    def test_cake_zoom_changes_axes_scale(self):
+        self.widget.integration_image_widget.mode_btn.click()
+        self.assertEqual(self.widget.integration_image_widget.mode_btn.text(), 'Image')
+        # print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
+        rect = QtCore.QRectF(512, 512, 512, 512)
+        self.widget.integration_image_widget.img_view.img_view_box.setRange(rect)
+
+        # print(self.widget.integration_image_widget.img_view.left_axis_cake.range)
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRange())
+        # print(self.widget.integration_image_widget.img_view.img_view_box.viewRect())
+        self.assertEqual(self.widget.integration_image_widget.img_view.img_view_box.viewRect(), rect)

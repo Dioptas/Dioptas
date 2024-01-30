@@ -28,7 +28,8 @@ from .util import Signal
 from .util import jcpds
 from .util.Pattern import Pattern, combine_patterns
 from .Configuration import Configuration
-from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel, BatchModel
+from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel, MapModel, BatchModel
+from .MapModel2 import MapModel2
 from .. import __version__
 
 
@@ -313,6 +314,13 @@ class DioptasModel(object):
         :rtype: BatchModel
         """
         return self.configurations[self.configuration_ind].batch_model
+
+    @property
+    def map_model(self) -> MapModel2:
+        """
+        :rtype: MapModel2
+        """
+        return self.configurations[self.configuration_ind].map_model
 
     @property
     def use_mask(self):

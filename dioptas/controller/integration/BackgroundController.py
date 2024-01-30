@@ -148,7 +148,7 @@ class BackgroundController(object):
         else:
             self.widget.bkg_pattern_inspect_btn.setChecked(False)
             self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)
-            self.widget.pattern_widget.hide_linear_region()
+            self.widget.pattern_widget.hide_bkg_roi()
             self.model.pattern_model.unset_auto_background_subtraction()
 
     def bkg_pattern_parameters_changed(self):
@@ -162,10 +162,10 @@ class BackgroundController(object):
             self.background_widget.set_bkg_pattern_parameters(self.model.pattern.auto_background_subtraction_parameters)
             self.background_widget.set_bkg_pattern_roi(self.model.pattern.auto_background_subtraction_roi)
 
-            self.widget.pattern_widget.linear_region_item.blockSignals(True)
+            self.widget.pattern_widget.bkg_roi.blockSignals(True)
             bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
-            self.widget.pattern_widget.set_linear_region(*bkg_roi)
-            self.widget.pattern_widget.linear_region_item.blockSignals(False)
+            self.widget.pattern_widget.set_bkg_roi(*bkg_roi)
+            self.widget.pattern_widget.bkg_roi.blockSignals(False)
 
             if self.model.batch_model.binning is not None:
                 start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
@@ -187,8 +187,8 @@ class BackgroundController(object):
         self.widget.qa_bkg_pattern_inspect_btn.blockSignals(False)
 
         if checked:
-            self.widget.pattern_widget.show_linear_region()
-            self.widget.pattern_widget.linear_region_item.sigRegionChanged.connect(
+            self.widget.pattern_widget.show_bkg_roi()
+            self.widget.pattern_widget.bkg_roi.sigRegionChanged.connect(
                 self.bkg_pattern_linear_region_callback
             )
             self.widget.bkg_pattern_x_min_txt.editingFinished.connect(self.update_bkg_pattern_linear_region)
@@ -200,8 +200,8 @@ class BackgroundController(object):
             )
 
         else:
-            self.widget.pattern_widget.hide_linear_region()
-            self.widget.pattern_widget.linear_region_item.sigRegionChanged.disconnect(
+            self.widget.pattern_widget.hide_bkg_roi()
+            self.widget.pattern_widget.bkg_roi.sigRegionChanged.disconnect(
                 self.bkg_pattern_linear_region_callback
             )
 
@@ -228,7 +228,7 @@ class BackgroundController(object):
         self.model.overlay_model.add_overlay_pattern(self.model.pattern.auto_background_pattern)
 
     def bkg_pattern_linear_region_callback(self):
-        x_min, x_max = self.widget.pattern_widget.get_linear_region()
+        x_min, x_max = self.widget.pattern_widget.get_bkg_roi()
         self.widget.bkg_pattern_x_min_txt.setText('{:.3f}'.format(x_min))
         self.widget.bkg_pattern_x_max_txt.setText('{:.3f}'.format(x_max))
         self.bkg_pattern_parameters_changed()
@@ -250,9 +250,9 @@ class BackgroundController(object):
         self.bkg_pattern_parameters_changed()
 
     def update_bkg_pattern_linear_region(self):
-        self.widget.pattern_widget.linear_region_item.blockSignals(True)
+        self.widget.pattern_widget.bkg_roi.blockSignals(True)
         bkg_roi = self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_roi()
-        self.widget.pattern_widget.set_linear_region(*bkg_roi)
+        self.widget.pattern_widget.set_bkg_roi(*bkg_roi)
 
         if self.model.batch_model.binning is not None:
             start_x, stop_x = self.widget.batch_widget.stack_plot_widget.img_view.x_bin_range
@@ -263,7 +263,7 @@ class BackgroundController(object):
             x_min_bin = int((bkg_roi[0] - binning[0]) / scale)
             x_max_bin = int((bkg_roi[1] - binning[0]) / scale)
             self.widget.batch_widget.stack_plot_widget.img_view.set_linear_region(x_min_bin, x_max_bin)
-        self.widget.pattern_widget.linear_region_item.blockSignals(False)
+        self.widget.pattern_widget.bkg_roi.blockSignals(False)
 
     def update_bkg_image_widgets(self):
         self.update_background_image_filename()
