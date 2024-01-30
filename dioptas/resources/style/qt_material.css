@@ -1,3 +1,6 @@
+QWidget {{
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
 QFrame {{
     border: 0px solid #5B5B5B;
 }}
