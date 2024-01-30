@@ -1,5 +1,5 @@
 QWidget {{
-    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+    color: #F1F1F1;
 }}
 QFrame {{
     border: 0px solid #5B5B5B;
@@ -26,11 +26,12 @@ QPushButton {{
     border: none;
     background-color: {QTMATERIAL_SECONDARYCOLOR};
     border-radius: 5px;
-    font-weight: 400;
+    font-weight: 550;
 }}
 
 QPushButton:hover {{
     border: 1px solid {QTMATERIAL_PRIMARYCOLOR};
+    padding: 0px;
 }}
 
 #menu_btn {{
