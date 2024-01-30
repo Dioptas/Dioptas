@@ -20,8 +20,10 @@ QComboBox::item:selected {{
 
 
 QPushButton {{
-    border: 0.5px solid {QTMATERIAL_SECONDARYCOLOR};
-    border-radius: 0px;
+    border: none;
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    border-radius: 5px;
+    font-weight: 400;
 }}
 
 QPushButton:hover {{
@@ -37,8 +39,22 @@ QPushButton:hover {{
     border-color: {QTMATERIAL_PRIMARYCOLOR};
 }}
 
+#menu_btn:pressed {{
+    background-color: {QTMATERIAL_PRIMARYCOLOR};
+}}
+
+#calibration_mode_btn, #mask_mode_btn, #integration_mode_btn {{
+    border-radius: 0;
+}}
+
 QToolTip {{
     background-color: {QTMATERIAL_SECONDARYCOLOR};
     border-width: 0px;
     color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+QScrollBar:vertical {{
+    border: none;
+    width: 8px;
+    margin: 0px 0px 0px 0px;
 }}
