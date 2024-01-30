@@ -55,15 +55,17 @@ class LabelAlignRight(QtWidgets.QLabel):
 class LabelExpandable(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(LabelExpandable, self).__init__(*args, **kwargs)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             color: #F1F1F1;
             background: #3C3C3C;
-        """)
+        """
+        )
         self.setReadOnly(True)
 
 
 class CleanLooksComboBox(QtWidgets.QComboBox):
-    cleanlooks = QtWidgets.QStyleFactory.create('motif')
+    cleanlooks = QtWidgets.QStyleFactory.create("motif")
 
     def __init__(self, *args, **kwargs):
         super(CleanLooksComboBox, self).__init__(*args, **kwargs)
@@ -157,6 +159,7 @@ class ConservativeSpinBox(QtWidgets.QSpinBox):
     This Spinbox is intended for usage with applications were the change in the spinbox value causes long calculations
     and does a valueChanged signal on every keypress results in a strange behavior.
     """
+
     valueChanged = QtCore.Signal()
 
     def __init__(self):
@@ -169,12 +172,22 @@ class ConservativeSpinBox(QtWidgets.QSpinBox):
         opt = QtWidgets.QStyleOptionSpinBox()
         self.initStyleOption(opt)
 
-        if self.style().subControlRect(QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxUp).contains(
-                e.pos()):
+        if (
+            self.style()
+            .subControlRect(
+                QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxUp
+            )
+            .contains(e.pos())
+        ):
             self.setValue(self.value() + 1)
             self.valueChanged.emit()
-        elif self.style().subControlRect(QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxDown).contains(
-                e.pos()):
+        elif (
+            self.style()
+            .subControlRect(
+                QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxDown
+            )
+            .contains(e.pos())
+        ):
             self.setValue(self.value() - 1)
             self.valueChanged.emit()
 
@@ -186,6 +199,14 @@ class FlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):
         super(FlatButton, self).__init__(*args)
         self.setFlat(True)
+        self.setStyleSheet(
+            """
+            QPushButton {
+                border: none;
+                padding: 5px;
+             
+            }"""
+        )
 
     def setHeight(self, height):
         self.setMinimumHeight(height)
@@ -252,19 +273,19 @@ class RotatedCheckableFlatButton(CheckableFlatButton):
 class SaveIconButton(FlatButton):
     def __init__(self):
         super(SaveIconButton, self).__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "save.ico")))
 
 
 class OpenIconButton(FlatButton):
     def __init__(self):
         super(OpenIconButton, self).__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
 
 
 class ResetIconButton(FlatButton):
     def __init__(self):
         super(ResetIconButton, self).__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset.ico")))
 
 
 class HorizontalLine(QtWidgets.QFrame):
@@ -272,6 +293,7 @@ class HorizontalLine(QtWidgets.QFrame):
         super(HorizontalLine, self).__init__()
         self.setFrameShape(QtWidgets.QFrame.HLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.setFixedHeight(1)
 
 
 class VerticalLine(QtWidgets.QFrame):
@@ -279,6 +301,7 @@ class VerticalLine(QtWidgets.QFrame):
         super(VerticalLine, self).__init__()
         self.setFrameShape(QtWidgets.QFrame.VLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.setFixedWidth(1)
 
 
 class ListTableWidget(QtWidgets.QTableWidget):
@@ -304,9 +327,15 @@ class NoRectDelegate(QtWidgets.QItemDelegate):
 
 
 def HorizontalSpacerItem(minimum_width=0):
-    return QtWidgets.QSpacerItem(minimum_width, 0, QtWidgets.QSizePolicy.MinimumExpanding,
-                                 QtWidgets.QSizePolicy.Minimum)
+    return QtWidgets.QSpacerItem(
+        minimum_width,
+        0,
+        QtWidgets.QSizePolicy.MinimumExpanding,
+        QtWidgets.QSizePolicy.Minimum,
+    )
 
 
 def VerticalSpacerItem():
-    return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)
+    return QtWidgets.QSpacerItem(
+        0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
+    )

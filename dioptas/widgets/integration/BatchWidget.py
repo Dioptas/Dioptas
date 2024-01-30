@@ -26,7 +26,7 @@ class BatchWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(BatchWidget, self).__init__(parent)
 
-        self.frame = QtWidgets.QFrame()
+        self.frame = QtWidgets.QWidget()
         self.frame.setObjectName('batch_frame')
 
         self._frame_layout = QtWidgets.QVBoxLayout()

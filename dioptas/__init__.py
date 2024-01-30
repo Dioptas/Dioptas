@@ -42,25 +42,35 @@ from ._desktop_shortcuts import make_shortcut
 from .controller.MainController import MainController
 
 
-theme_path = 'dioptas/resources/style/light_orange.xml'
+theme_path = "dioptas/resources/style/light_orange.xml"
+qss_path = "dioptas/resources/style/qt_material.css"
+
 
 def main():
     app = QtWidgets.QApplication([])
-    apply_stylesheet(app, theme='dark_orange.xml', invert_secondary=False, extra={'font': 'Roboto', 'density_scale': -2})
+    apply_stylesheet(
+        app,
+        theme="dark_orange.xml",
+        css_file=qss_path,
+        extra={"density_scale": -2},
+    )
     sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
-
 
     if len(sys.argv) == 1:  # normal start
         controller = MainController()
         controller.show_window()
         app.exec_()
     else:  # with command line arguments
-        if sys.argv[1] == 'test':
+        if sys.argv[1] == "test":
             controller = MainController(use_settings=False)
             controller.show_window()
-        elif sys.argv[1].startswith('makeshortcut'):
-            make_shortcut('Dioptas', 'dioptas.py', description='Dioptas 2D XRD {}'.format(__version__),
-                          icon_path=icons_path, icon='icon')
+        elif sys.argv[1].startswith("makeshortcut"):
+            make_shortcut(
+                "Dioptas",
+                "dioptas.py",
+                description="Dioptas 2D XRD {}".format(__version__),
+                icon_path=icons_path,
+                icon="icon",
+            )
     del app
-

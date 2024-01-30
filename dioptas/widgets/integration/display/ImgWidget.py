@@ -33,7 +33,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
     def __init__(self):
         super(IntegrationImgDisplayWidget, self).__init__()
 
-        self.frame = QtWidgets.QFrame()
+        self.frame = QtWidgets.QWidget()
         self.frame.setObjectName('img_frame')
 
         self._frame_layout = QtWidgets.QVBoxLayout()
