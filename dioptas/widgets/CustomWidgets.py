@@ -228,6 +228,22 @@ class CheckableFlatButton(FlatButton):
         self.setCheckable(True)
 
 
+class DarkCheckableFlatButton(QtWidgets.QPushButton):
+    def __init__(self, *args):
+        super(DarkCheckableFlatButton, self).__init__(*args)
+        self.setObjectName("dark_checkable_flat_btn")
+        self.setCheckable(True)
+        self.setFlat(True)
+
+    def setHeight(self, height):
+        self.setMinimumHeight(height)
+        self.setMaximumHeight(height)
+
+    def setWidth(self, width):
+        self.setMinimumWidth(width)
+        self.setMaximumWidth(width)
+
+
 class RotatedCheckableFlatButton(CheckableFlatButton):
     def __init__(self, *args):
         super(RotatedCheckableFlatButton, self).__init__(*args)

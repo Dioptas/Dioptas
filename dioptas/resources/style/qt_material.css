@@ -47,7 +47,7 @@ QPushButton:hover {{
     background-color: {QTMATERIAL_PRIMARYCOLOR};
 }}
 
-#calibration_mode_btn, #mask_mode_btn, #integration_mode_btn {{
+#calibration_mode_btn, #mask_mode_btn, #integration_mode_btn, #map_mode_btn {{
     border-radius: 0;
 }}
 

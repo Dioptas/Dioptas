@@ -125,15 +125,16 @@ class MouseUnitWidget(QtWidgets.QWidget):
             self.azi_lbl.setStyleSheet(style_str)
 
 
-class BrowseFileWidget(QtWidgets.QGroupBox):
+class BrowseFileWidget(QtWidgets.QWidget):
     def __init__(self, files, checkbox_text):
         super(BrowseFileWidget, self).__init__()
 
         self._layout = QtWidgets.QGridLayout()
-        self._layout.setContentsMargins(5, 8, 5, 7)
-        # self._layout.setSpacing(3)
+        self._layout.setContentsMargins(5, 5, 5, 5)
+        self._layout.setVerticalSpacing(3)
+        self._layout.setHorizontalSpacing(3)
 
-        self.load_btn = FlatButton('Load {}(s)'.format(files))
+        self.load_btn = QtWidgets.QPushButton('Load {}(s)'.format(files))
         self.file_cb = QtWidgets.QCheckBox(checkbox_text)
 
         self._load_layout = QtWidgets.QVBoxLayout()
@@ -144,7 +145,7 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
         self._layout.addLayout(self._load_layout, 0, 0, 2, 1)
 
         self.directory_txt = QtWidgets.QLineEdit('')
-        self.directory_btn = FlatButton('...')
+        self.directory_btn = QtWidgets.QPushButton('...')
         self.file_txt = QtWidgets.QLineEdit('')
 
         self.step_file_widget = StepFileWidget()
@@ -158,6 +159,7 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
         self._directory_layout = QtWidgets.QHBoxLayout()
         self._directory_layout.addWidget(self.directory_txt)
         self._directory_layout.addWidget(self.directory_btn)
+        self._directory_layout.setSpacing(3)
         self._layout.addLayout(self._directory_layout, 3, 0, 1, 5)
 
         self.sources_widget = QtWidgets.QWidget()
@@ -208,9 +210,9 @@ class StepWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
     def init_navigator(self):
-        self.next_btn = FlatButton('>')
+        self.next_btn = QtWidgets.QPushButton('>')
         self.next_btn.setToolTip('Loads next {}'.format(self.iteration_name))
-        self.previous_btn = FlatButton('<')
+        self.previous_btn = QtWidgets.QPushButton('<')
         self.previous_btn.setToolTip(('Loads previous {}'.format(self.iteration_name)))
         self.step_txt = QtWidgets.QSpinBox()
         self.step_txt.setValue(1)
