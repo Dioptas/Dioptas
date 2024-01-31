@@ -24,7 +24,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationCakeWidget
-from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, SaveIconButton
+from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, SaveIconButton, DarkCheckableFlatButton
 from ..CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .. import CLICKED_COLOR
 
