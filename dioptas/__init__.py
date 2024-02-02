@@ -42,21 +42,19 @@ from ._desktop_shortcuts import make_shortcut
 from .controller.MainController import MainController
 
 
-theme_path = "dioptas/resources/style/dark_orange.xml"
-qss_path = "dioptas/resources/style/qt_material.css"
-
+theme_path = os.path.join(style_path, "dark_orange.xml")
+qss_path = os.path.join(style_path, "qt_material.css")
+css_out_path = os.path.join(style_path, "dioptas.css")
 
 def main():
     app = QtWidgets.QApplication([])
-    print(os.path.abspath(os.path.curdir))
-
 
     apply_stylesheet(
         app,
         theme=theme_path,
         css_file=qss_path,
         extra={"density_scale": -2},
-        # save_as="dioptas.css",
+        save_as=css_out_path
     )
     # sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
