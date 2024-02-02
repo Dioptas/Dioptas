@@ -90,8 +90,8 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._waterfall_gb = QtWidgets.QWidget()
         self.waterfall_separation_msb = DoubleMultiplySpinBoxAlignRight()
-        self.waterfall_btn = FlatButton('Waterfall')
-        self.waterfall_reset_btn = FlatButton('Reset')
+        self.waterfall_btn = QtWidgets.QPushButton('Waterfall')
+        self.waterfall_reset_btn = QtWidgets.QPushButton('Reset')
 
         self._waterfall_layout = QtWidgets.QVBoxLayout()
         self._waterfall_layout.setContentsMargins(0, 0, 0, 0)
@@ -105,7 +105,8 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._parameter_layout.addItem(VerticalSpacerItem())
 
-        self.set_as_bkg_btn = CheckableFlatButton('Set as\nBackground')
+        self.set_as_bkg_btn = QtWidgets.QPushButton('As Bkg')
+        self.set_as_bkg_btn.setCheckable(True)
         self._background_layout = QtWidgets.QHBoxLayout()
         self._background_layout.setContentsMargins(0, 0, 0, 0)
         self._background_layout.addSpacerItem(HorizontalSpacerItem())
@@ -168,10 +169,7 @@ class OverlayWidget(QtWidgets.QWidget):
         def modify_btn_to_icon_size(btn):
             button_height = 25
             button_width = 25
-            btn.setMinimumHeight(button_height)
-            btn.setMaximumHeight(button_height)
-            btn.setMinimumWidth(button_width)
-            btn.setMaximumWidth(button_width)
+            btn.setFixedSize(button_width, button_height)
 
         modify_btn_to_icon_size(self.add_btn)
         modify_btn_to_icon_size(self.delete_btn)
@@ -180,10 +178,9 @@ class OverlayWidget(QtWidgets.QWidget):
         modify_btn_to_icon_size(self.move_down_btn)
 
         step_txt_width = 70
-        self.scale_step_msb.setMaximumWidth(step_txt_width)
-        self.scale_step_msb.setMinimumWidth(step_txt_width)
-        self.offset_step_msb.setMaximumWidth(step_txt_width)
-        self.waterfall_separation_msb.setMaximumWidth(step_txt_width)
+        self.scale_step_msb.setFixedWidth(step_txt_width)
+        self.offset_step_msb.setFixedWidth(step_txt_width)
+        self.waterfall_separation_msb.setFixedWidth(step_txt_width)
 
         self.scale_step_msb.setMaximum(10.0)
         self.scale_step_msb.setMinimum(0.01)
@@ -198,11 +195,9 @@ class OverlayWidget(QtWidgets.QWidget):
         self.waterfall_separation_msb.setValue(100.0)
 
         self.set_as_bkg_btn.setStyleSheet('font-size: 11px')
-        self.waterfall_btn.setMaximumWidth(step_txt_width)
-        self.waterfall_reset_btn.setMaximumWidth(step_txt_width)
-
-        self.set_as_bkg_btn.setMinimumHeight(40)
-        self.set_as_bkg_btn.setMaximumHeight(40)
+        self.waterfall_btn.setFixedWidth(step_txt_width)
+        self.waterfall_reset_btn.setFixedWidth(step_txt_width)
+        self.set_as_bkg_btn.setFixedWidth(step_txt_width)
 
         self.overlay_header_btn.setStyleSheet("border-radius: 0px")
 
@@ -210,6 +205,9 @@ class OverlayWidget(QtWidgets.QWidget):
         self.add_btn.setToolTip('Loads Overlay(s) from file(s)')
         self.delete_btn.setToolTip('Removes currently selected overlay')
         self.clear_btn.setToolTip('Removes all overlays')
+        self.set_as_bkg_btn.setToolTip('Set selected overlay as background')
+        self.waterfall_reset_btn.setToolTip('Reset waterfall separation')
+        self.waterfall_btn.setToolTip('Apply waterfall separation')
 
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()
