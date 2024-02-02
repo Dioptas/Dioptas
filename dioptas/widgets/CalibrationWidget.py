@@ -41,6 +41,8 @@ class CalibrationWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(CalibrationWidget, self).__init__(*args, **kwargs)
 
+        self.setObjectName('calibration_widget')
+
         self.calibration_display_widget = CalibrationDisplayWidget(self)
         self.calibration_control_widget = CalibrationControlWidget(self)
 

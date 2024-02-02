@@ -94,14 +94,14 @@ class MainWidget(QtWidgets.QWidget):
 
     def _create_mode_menu(self):
         self.mode_btn_group = QtWidgets.QButtonGroup()
-        self.calibration_mode_btn = CheckableFlatButton("Calib", self)
+        self.calibration_mode_btn = CheckableFlatButton("CALIB", self)
         self.calibration_mode_btn.setObjectName("calibration_mode_btn")
         self.calibration_mode_btn.setChecked(True)
-        self.mask_mode_btn = CheckableFlatButton("Mask", self)
+        self.mask_mode_btn = CheckableFlatButton("MASK", self)
         self.mask_mode_btn.setObjectName("mask_mode_btn")
-        self.integration_mode_btn = CheckableFlatButton("Int", self)
+        self.integration_mode_btn = CheckableFlatButton("INT", self)
         self.integration_mode_btn.setObjectName("integration_mode_btn")
-        self.map_mode_btn = CheckableFlatButton("Map", self)
+        self.map_mode_btn = CheckableFlatButton("MAP", self)
         self.map_mode_btn.setObjectName("map_mode_btn")
 
         self.mode_btn_group.addButton(self.calibration_mode_btn)

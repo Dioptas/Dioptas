@@ -36,6 +36,7 @@ class MaskWidget(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(MaskWidget, self).__init__(*args, **kwargs)
+        self.setObjectName('mask_widget')
         self._layout = QtWidgets.QHBoxLayout()
         self.create_display_widget()
         self.create_control_widget()

@@ -24,6 +24,7 @@ QComboBox::item:selected {{
 
 QPushButton {{
     border: none;
+    text-transform: none;
     background-color: {QTMATERIAL_SECONDARYCOLOR};
     border-radius: 5px;
     font-weight: 550;
@@ -61,4 +62,12 @@ QScrollBar:vertical {{
     border: none;
     width: 8px;
     margin: 0px 0px 0px 0px;
+}}
+
+QGroupBox {{
+    padding-top: 20px;
+}}
+
+#mask_widget QPushButton, #calibration_widget QPushButton, #integration_widget QPushButton {{
+    height: 15px;
 }}
