@@ -244,6 +244,12 @@ class StepFileWidget(StepWidget):
         self._layout.addWidget(self.browse_by_name_rb, 0, 2)
         self._layout.addWidget(self.browse_by_time_rb, 1, 2)
 
+        self.set_tooltips()
+
+    def set_tooltips(self):
+        self.browse_by_name_rb.setToolTip('Browse files by name')
+        self.browse_by_time_rb.setToolTip('Browse files by time')
+
 
 class StepFrameWidget(StepWidget):
     iteration_name = 'frame'

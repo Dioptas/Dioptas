@@ -47,7 +47,7 @@ class ImageWidget(QtWidgets.QWidget):
 
     def _create_layout(self):
         self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(5, 0, 5, 5)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(5)
 
         self._layout.addWidget(self.file_widget)
