@@ -593,6 +593,8 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         super(RefinementOptionsGroupBox, self).__init__('Refinement Options')
 
         self._layout = QtWidgets.QGridLayout()
+        self._layout.setSpacing(3)
+        self._layout.setContentsMargins(6, 0, 6, 0)
 
         self.automatic_refinement_cb = QtWidgets.QCheckBox('automatic refinement')
         self.automatic_refinement_cb.setChecked(True)
