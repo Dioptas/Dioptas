@@ -64,6 +64,10 @@ QScrollBar:vertical {{
     margin: 0px 0px 0px 0px;
 }}
 
+QScrollBar::horizontal {{
+    width: 8px;
+}}
+
 QGroupBox {{
     padding-top: 20px;
 }}
