@@ -46,8 +46,8 @@ class PhaseWidget(QtWidgets.QWidget):
         self.edit_btn = FlatButton()
         self.delete_btn = FlatButton()
         self.clear_btn = FlatButton()
-        self.save_list_btn = FlatButton('Save List')
-        self.load_list_btn = FlatButton('Load List')
+        self.save_list_btn = QtWidgets.QPushButton('Save List')
+        self.load_list_btn = QtWidgets.QPushButton('Load List')
 
         self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('phase_control_button_widget')
@@ -157,7 +157,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
 
-        step_txt_width = 70
+        step_txt_width = 80
 
         self.pressure_step_msb.setMinimumWidth(step_txt_width)
         self.pressure_step_msb.setMaximumWidth(step_txt_width)
