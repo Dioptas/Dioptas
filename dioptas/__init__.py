@@ -56,6 +56,7 @@ def main():
         theme=theme_path,
         css_file=qss_path,
         extra={"density_scale": -2},
+        # save_as="dioptas.css",
     )
     # sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))

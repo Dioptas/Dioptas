@@ -45,6 +45,8 @@ class IntegrationWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(IntegrationWidget, self).__init__(*args, **kwargs)
 
+        self.setObjectName('integration_widget')
+
         self.integration_image_widget = IntegrationImgDisplayWidget()
         self.integration_control_widget = IntegrationControlWidget()
         self.integration_pattern_widget = IntegrationPatternWidget()
