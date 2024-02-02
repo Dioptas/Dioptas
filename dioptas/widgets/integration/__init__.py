@@ -51,7 +51,7 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.integration_status_widget = IntegrationStatusWidget()
 
         self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setSpacing(6)
+        self._layout.setSpacing(0)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.vertical_splitter = QtWidgets.QSplitter(self)
@@ -109,7 +109,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.move_widget_btn = self.integration_control_widget.img_control_widget.move_btn
         self.img_batch_mode_integrate_rb = self.integration_control_widget.img_control_widget.batch_mode_integrate_rb
         self.img_batch_mode_add_rb = self.integration_control_widget.img_control_widget.batch_mode_add_rb
-        self.map_btn = self.integration_control_widget.img_control_widget.map_2D_btn  # MAP2D
         self.img_batch_mode_image_save_rb = self.integration_control_widget.img_control_widget.batch_mode_image_save_rb
 
         pattern_file_widget = self.integration_control_widget.pattern_control_widget.file_widget
