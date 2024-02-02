@@ -199,14 +199,6 @@ class FlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):
         super(FlatButton, self).__init__(*args)
         self.setFlat(True)
-        self.setStyleSheet(
-            """
-            QPushButton {
-                border: none;
-                padding: 5px;
-             
-            }"""
-        )
 
     def setHeight(self, height):
         self.setMinimumHeight(height)

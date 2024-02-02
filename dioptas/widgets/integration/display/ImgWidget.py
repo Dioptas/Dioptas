@@ -120,3 +120,9 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
 
         self.save_image_btn.setIconSize(QtCore.QSize(13, 13))
         self.save_image_btn.setWidth(25)
+
+        # btns = [self.roi_btn, self.mode_btn, self.mask_btn, self.transparent_cb, self.show_background_subtracted_img_btn, 
+        #         self.autoscale_btn, self.undock_btn]
+        
+        # for btn in btns:
+        #     btn.setFixedHeight(25)
