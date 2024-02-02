@@ -128,6 +128,12 @@ class ConfigurationWidget(QtWidgets.QWidget):
             btn.setFixedSize(self.btn_size)
 
         self.saved_combined_patterns_btn.setIconSize(QtCore.QSize(13, 13))
+        self.saved_combined_patterns_btn.setToolTip("Save combined pattern")
+        self.saved_combined_patterns_btn.setFixedSize(25, 25)
+
+        self.combine_cakes_btn.setFixedHeight(25)
+        self.combine_patterns_btn.setFixedHeight(25)
+
 
     def update_configuration_btns(self, configurations, cur_ind):
         for btn in self.configuration_btns:
