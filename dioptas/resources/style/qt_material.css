@@ -96,7 +96,7 @@ QPushButton:flat:checked:hover {{
     padding: 0px;
 }}
 
-#MenuTabWidgetMenu QPushButton {{
+#MenuTabWidgetMenu QPushButton, #batch_mode_widget QPushButton {{
     border-radius: 0;
     border: none;
     background-color: transparent;
@@ -105,18 +105,18 @@ QPushButton:flat:checked:hover {{
     font-weight: bold;
 }} 
 
-#MenuTabWidgetMenu QPushButton:hover {{
+#MenuTabWidgetMenu QPushButton:hover, #batch_mode_widget QPushButton:hover  {{
     background-color: rgba(255, 149, 0, 0.1);
     color: {QTMATERIAL_PRIMARYTEXTCOLOR};
 }}
 
-#MenuTabWidgetMenu QPushButton:checked {{
+#MenuTabWidgetMenu QPushButton:checked, #batch_mode_widget QPushButton:checked {{
     border-radius: 0;
     background-color: rgba(255, 149, 0, 0.2);
     color: {QTMATERIAL_PRIMARYTEXTCOLOR};
 }}
 
-#MenuTabWidgetMenu QPushButton:pressed {{
+#MenuTabWidgetMenu QPushButton:pressed, #batch_mode_widget QPushButton:pressed {{
     border-radius: 0;
     background-color: rgba(255, 149, 0, 0.3);
     color: {QTMATERIAL_PRIMARYTEXTCOLOR};
@@ -173,5 +173,10 @@ QGroupBox {{
 }}
 
 #mask_widget QPushButton, #calibration_widget QPushButton, #integration_widget QPushButton {{
+    height: 15px;
+}}
+
+QSplitter {{
+    width: 15px;
     height: 15px;
 }}

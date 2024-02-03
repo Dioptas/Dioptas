@@ -32,7 +32,7 @@ from .CustomWidgets import (
     CheckableFlatButton,
     FlatButton,
     VerticalLine,
-    HorizontalLine
+    HorizontalLine,
 )
 
 from .. import style_path, icons_path
@@ -161,7 +161,7 @@ class MainWidget(QtWidgets.QWidget):
         self.style_widgets()
         self.add_tooltips()
 
-        self.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, 'icon.svg')))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, "icon.svg")))
 
     def style_widgets(self):
         self._style_mode_btns()
@@ -187,7 +187,7 @@ class MainWidget(QtWidgets.QWidget):
             self.calibration_mode_btn,
             self.mask_mode_btn,
             self.integration_mode_btn,
-            self.map_mode_btn
+            self.map_mode_btn,
         ]
         for btn in mode_btns:
             # btn.setCheckable(True)
@@ -212,7 +212,6 @@ class MainWidget(QtWidgets.QWidget):
         self.calibration_mode_btn.setToolTip("Calibration Mode")
         self.mask_mode_btn.setToolTip("Mask Mode")
         self.integration_mode_btn.setToolTip("Integration Mode")
-
 
 
 class MenuPopup(QtWidgets.QFrame):
