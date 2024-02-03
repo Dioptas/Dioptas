@@ -18,13 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtCore
 
 from ...CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
     CheckableFlatButton, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
     DoubleMultiplySpinBoxAlignRight, SaveIconButton
-from .... import icons_path
 
 
 class BackgroundWidget(QtWidgets.QWidget):
@@ -40,9 +38,9 @@ class BackgroundWidget(QtWidgets.QWidget):
         self._image_background_gb_layout.setContentsMargins(5, 8, 5, 7)
         self._image_background_gb_layout.setSpacing(5)
 
-        self.load_image_btn = FlatButton('Load')
+        self.load_image_btn = QtWidgets.QPushButton('Load')
         self.filename_lbl = QtWidgets.QLabel('None')
-        self.remove_image_btn = FlatButton('Remove')
+        self.remove_image_btn = QtWidgets.QPushButton('Remove')
         self.scale_sb = DoubleSpinBoxAlignRight()
         self.offset_sb = DoubleSpinBoxAlignRight()
 
@@ -77,7 +75,7 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.x_range_max_txt = NumberTextField('50')
         self.inspect_btn = CheckableFlatButton('Inspect')
         self.save_btn = SaveIconButton()
-        self.as_overlay = FlatButton('As Overlay')
+        self.as_overlay = QtWidgets.QPushButton('As Overlay')
 
         self._pattern_bkg_layout.addWidget(LabelAlignRight('Smooth Width:'), 0, 0)
         self._pattern_bkg_layout.addWidget(self.smooth_with_sb, 0, 1)

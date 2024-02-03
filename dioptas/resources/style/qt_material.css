@@ -37,6 +37,10 @@ QPushButton:flat {{
     padding: 4px 8px;
 }}
 
+QPushButton:disabled {{
+    border: none;
+}}
+
 QPushButton:hover {{
     border: 1px solid {QTMATERIAL_PRIMARYCOLOR};
 }}
