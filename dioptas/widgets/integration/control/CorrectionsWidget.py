@@ -20,15 +20,22 @@
 
 from qtpy import QtWidgets, QtCore
 
-from ...CustomWidgets import NumberTextField, CheckableFlatButton, ListTableWidget, FlatButton
+from ...CustomWidgets import (
+    HorizontalSpacerItem,
+    NumberTextField,
+    ListTableWidget,
+    CheckableButton,
+    CheckableFlatButton,
+    VerticalSpacerItem,
+)
 
 
 class CorrectionsWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(CorrectionsWidget, self).__init__(*args, **kwargs)
 
-        self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(5, 5, 5, 5)
+        self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(0, 5, 0, 0)
 
         self.create_cbn_correction_widgets()
         self.create_cbn_correction_layout()
@@ -39,51 +46,41 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.create_transfer_widgets()
         self.create_transfer_layout()
 
-        vertical_layout_1 = QtWidgets.QHBoxLayout()
-        vertical_layout_1.addWidget(self.cbn_seat_gb)
-        vertical_layout_1.addStretch(1)
-        self._layout.addLayout(vertical_layout_1, 2)
-
-        vertical_layout_2 = QtWidgets.QHBoxLayout()
-        vertical_layout_2.addWidget(self.oiadac_gb)
-        vertical_layout_2.addStretch(1)
-        self._layout.addLayout(vertical_layout_2, 2)
-
-        vertical_layout_3 = QtWidgets.QHBoxLayout()
-        vertical_layout_3.addWidget(self.transfer_gb)
-        vertical_layout_3.addStretch(1)
-        self._layout.addLayout(vertical_layout_3, 2)
-
-        self._layout.addStretch(1)
-
         self.setLayout(self._layout)
+
+        self.menu_tab_widget = MenuTabWidget()
+        self.menu_tab_widget.add_menu_button("cBN Seat", self.cbn_seat_gb)
+        self.menu_tab_widget.add_menu_button("Inc. Abs.", self.oiadac_gb)
+        self.menu_tab_widget.add_menu_button("Transfer", self.transfer_gb)
+        self.menu_tab_widget.select_tab(0)
+
+        self._layout.addWidget(self.menu_tab_widget)
+
         self.style_widgets()
 
-        self.hide_cbn_widgets()
-        self.hide_oiadac_widgets()
-        self.hide_transfer_widgets()
-
     def create_cbn_correction_widgets(self):
-        self.cbn_seat_gb = QtWidgets.QGroupBox('cBN Seat Correction')
-        self.cbn_seat_plot_btn = CheckableFlatButton('Plot')
+        self.cbn_seat_gb = QtWidgets.QGroupBox("cBN Seat Correction")
+        self.cbn_seat_plot_btn = CheckableButton("Plot")
 
         self.cbn_param_tw = ListTableWidget()
         self.cbn_param_tw.setColumnCount(3)
 
-        self.cbn_param_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.cbn_param_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Stretch
+        )
         self.cbn_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 
         cbn_parameters = [
-            ['Anvil thickness', 2.3, 'mm'],
-            ['Seat thickness', 5.3, 'mm'],
-            ['Inner seat radius', 0.4, 'mm'],
-            ['Outer seat radius', 1.95, 'mm'],
-            ['Cell tilt', 0.0, u'°'],
-            ['Cell tilt rotation', 0, u'°'],
-            ['Center offset', 0, 'mm'],
-            ['Center offset rotation', 0, u'°'],
-            ['Anvil absorption length', 13.7, 'mm'],
-            ['Seat absorption length', 12, 'mm'],
+            ["Anvil thickness", 2.3, "mm"],
+            ["Seat thickness", 5.3, "mm"],
+            ["Inner seat radius", 0.4, "mm"],
+            ["Outer seat radius", 1.95, "mm"],
+            ["Cell tilt", 0.0, "°"],
+            ["Cell tilt rotation", 0, "°"],
+            ["Center offset", 0, "mm"],
+            ["Center offset rotation", 0, "°"],
+            ["Anvil absorption length", 13.7, "mm"],
+            ["Seat absorption length", 12, "mm"],
         ]
 
         for cbn_parameter in cbn_parameters:
@@ -95,12 +92,12 @@ class CorrectionsWidget(QtWidgets.QWidget):
         new_row_ind = int(tw.rowCount())
         tw.setRowCount(new_row_ind + 1)
 
-        name_item = QtWidgets.QTableWidgetItem(name + ':')
+        name_item = QtWidgets.QTableWidgetItem(name + ":")
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         name_item.setTextAlignment(int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter))
         tw.setItem(new_row_ind, 0, name_item)
 
-        value_item = NumberTextField('{:g}'.format(value))
+        value_item = NumberTextField("{:g}".format(value))
         tw.setCellWidget(new_row_ind, 1, value_item)
 
         unit_item = QtWidgets.QTableWidgetItem(unit)
@@ -127,26 +124,28 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.cbn_seat_gb.setLayout(self._cbn_seat_layout)
 
     def create_oiadac_widgets(self):
-        self.oiadac_gb = QtWidgets.QGroupBox('Detector Incidence Absorption Correction')
+        self.oiadac_gb = QtWidgets.QGroupBox("Detector Incidence Absorption Correction")
 
         self.oiadac_param_tw = ListTableWidget()
         self.oiadac_param_tw.setColumnCount(3)
 
-        self.oiadac_param_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.oiadac_param_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Stretch
+        )
         self.oiadac_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
 
-        self.detector_thickness_txt = NumberTextField('40')
-        self.detector_absorption_length_txt = NumberTextField('465.5')
+        self.detector_thickness_txt = NumberTextField("40")
+        self.detector_absorption_length_txt = NumberTextField("465.5")
 
         oiadac_parameters = [
-            ['Detector thickness', 40, 'mm'],
-            ['Detector absorption length', 465.5, 'um'],
+            ["Detector thickness", 40, "mm"],
+            ["Detector absorption length", 465.5, "um"],
         ]
 
         for param in oiadac_parameters:
             self.add_param_to_tw(self.oiadac_param_tw, *param)
 
-        self.oiadac_plot_btn = CheckableFlatButton('Plot')
+        self.oiadac_plot_btn = CheckableButton("Plot")
 
     def create_oiadac_layout(self):
         self._oiadac_layout = QtWidgets.QHBoxLayout()
@@ -162,12 +161,12 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.oiadac_gb.setLayout(self._oiadac_layout)
 
     def create_transfer_widgets(self):
-        self.transfer_gb = QtWidgets.QGroupBox('Transfer Correction')
-        self.transfer_load_original_btn = FlatButton('Load Original')
-        self.transfer_load_response_btn = FlatButton('Load Response')
-        self.transfer_original_filename_lbl = QtWidgets.QLabel('None')
-        self.transfer_response_filename_lbl = QtWidgets.QLabel('None')
-        self.transfer_plot_btn = CheckableFlatButton('Plot')
+        self.transfer_gb = QtWidgets.QGroupBox("Transfer Correction")
+        self.transfer_load_original_btn = QtWidgets.QPushButton("Load Original")
+        self.transfer_load_response_btn = QtWidgets.QPushButton("Load Response")
+        self.transfer_original_filename_lbl = QtWidgets.QLabel("None")
+        self.transfer_response_filename_lbl = QtWidgets.QLabel("None")
+        self.transfer_plot_btn = CheckableButton("Plot")
 
     def create_transfer_layout(self):
         self._transfer_layout = QtWidgets.QGridLayout()
@@ -177,6 +176,12 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._transfer_layout.addWidget(self.transfer_original_filename_lbl, 0, 1)
         self._transfer_layout.addWidget(self.transfer_response_filename_lbl, 1, 1)
         self._transfer_layout.addWidget(self.transfer_plot_btn, 0, 2)
+        self._transfer_layout.setColumnStretch(0, 0)
+        self._transfer_layout.setColumnStretch(1, 1)
+        self._transfer_layout.setColumnStretch(2, 0)
+        self._transfer_layout.setRowStretch(0, 0)
+        self._transfer_layout.setRowStretch(1, 0)
+        self._transfer_layout.setRowStretch(2, 1)
         self.transfer_gb.setLayout(self._transfer_layout)
 
     def style_widgets(self):
@@ -187,85 +192,70 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.transfer_gb.setCheckable(True)
         self.transfer_gb.setChecked(False)
 
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
                     QLineEdit {
                         min-width: 50 px;
                         min-height: 26 px;
                         max-height: 26 px;
                     }
-                    
-                    QPushButton {
-                        min-width: 50 px;
-                        max-width: 90 px;
-                        min-height: 30 px;
-                        max-height: 30 px;
-                    }
-                    """)
+                    """
+        )
 
-        self.oiadac_param_tw.setMinimumWidth(280)
-        self.cbn_param_tw.setMinimumWidth(280)
 
-        self.oiadac_param_tw.setMinimumHeight(65)
-        self.oiadac_param_tw.setMaximumHeight(80)
+class MenuTabWidget(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(MenuTabWidget, self).__init__(*args, **kwargs)
 
-        self.cbn_param_tw.setMaximumHeight(500)
+        self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
-        self.cbn_seat_gb.setMinimumWidth(380)
-        self.oiadac_gb.setMinimumWidth(380)
-        self.transfer_gb.setMinimumWidth(380)
-        self.transfer_plot_btn.setMinimumWidth(35)
-        self.transfer_plot_btn.setMaximumWidth(35)
+        self._menu_layout = QtWidgets.QVBoxLayout()
+        self._menu_layout.setContentsMargins(0, 0, 0, 0)
+        self._menu_layout.setSpacing(0)
+        self._menu_btn_widget = QtWidgets.QWidget()
+        self._menu_btn_widget.setObjectName("MenuTabWidgetMenu")
+        self._menu_btn_layout = QtWidgets.QVBoxLayout()
+        self._menu_btn_layout.setContentsMargins(0, 0, 0, 0)
+        self._menu_btn_layout.setSpacing(0)
+        self._menu_btn_widget.setLayout(self._menu_btn_layout)
+        self._menu_layout.addWidget(self._menu_btn_widget)
+        self._menu_layout.addStretch()
 
-    def hide_cbn_widgets(self):
-        self.cbn_seat_plot_btn.hide()
-        self.cbn_param_tw.hide()
-        self.cbn_seat_gb.setMaximumHeight(20)
+        self._menu_button_group = QtWidgets.QButtonGroup()
 
-    def show_cbn_widgets(self):
-        self.cbn_seat_plot_btn.show()
-        self.cbn_param_tw.show()
-        self.cbn_seat_gb.setMaximumHeight(999999)
+        self._layout.addLayout(self._menu_layout)
+        self.setLayout(self._layout)
 
-    def hide_oiadac_widgets(self):
-        self.oiadac_plot_btn.hide()
-        self.oiadac_param_tw.hide()
-        self.oiadac_gb.setMaximumHeight(20)
+        self.menu_btns = []
+        self.tab_widgets = []
 
-    def show_oiadac_widgets(self):
-        self.oiadac_plot_btn.show()
-        self.oiadac_param_tw.show()
-        self.oiadac_gb.setMaximumHeight(999999)
+        self.style_widgets()
 
-    def hide_transfer_widgets(self):
-        self.transfer_plot_btn.hide()
-        self.transfer_original_filename_lbl.hide()
-        self.transfer_load_original_btn.hide()
-        self.transfer_response_filename_lbl.hide()
-        self.transfer_load_response_btn.hide()
-        self.transfer_gb.setMaximumHeight(20)
+    def add_tab(self, widget, title):
+        self._tab_widget.addTab(widget, title)
 
-    def show_transfer_widgets(self):
-        self.transfer_plot_btn.show()
-        self.transfer_original_filename_lbl.show()
-        self.transfer_load_original_btn.show()
-        self.transfer_response_filename_lbl.show()
-        self.transfer_load_response_btn.show()
-        self.transfer_gb.setMaximumHeight(99999)
+    def add_menu_button(self, title, widget):
+        btn = CheckableFlatButton(title)
+        btn.clicked.connect(lambda: self.show_tab(widget))
+        btn.setFixedHeight(30)
+        self.menu_btns.append(btn)
+        self._menu_button_group.addButton(btn)
+        self._menu_btn_layout.addWidget(btn)
+        self.tab_widgets.append(widget)
+        self._layout.addWidget(widget)
+        widget.hide()
 
-    def toggle_cbn_widget_visibility(self, flag):
-        if flag:
-            self.show_cbn_widgets()
-        else:
-            self.hide_cbn_widgets()
+    def show_tab(self, widget):
+        for tab_widget in self.tab_widgets:
+            tab_widget.hide()
+        widget.show()
 
-    def toggle_oiadac_widget_visibility(self, flag):
-        if flag:
-            self.show_oiadac_widgets()
-        else:
-            self.hide_oiadac_widgets()
+    def select_tab(self, index):
+        self.menu_btns[index].setChecked(True)
+        self.show_tab(self.tab_widgets[index])
 
-    def toggle_transfer_widget_visibility(self, flag):
-        if flag:
-            self.show_transfer_widgets()
-        else:
-            self.hide_transfer_widgets()
+    def style_widgets(self):
+        self._menu_btn_widget.setFixedWidth(100)
+        pass
+

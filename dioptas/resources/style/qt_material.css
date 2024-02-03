@@ -96,6 +96,32 @@ QPushButton:flat:checked:hover {{
     padding: 0px;
 }}
 
+#MenuTabWidgetMenu QPushButton {{
+    border-radius: 0;
+    border: none;
+    background-color: transparent;
+    text-transform: uppercase;
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+    font-weight: bold;
+}} 
+
+#MenuTabWidgetMenu QPushButton:hover {{
+    background-color: rgba(255, 149, 0, 0.1);
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+#MenuTabWidgetMenu QPushButton:checked {{
+    border-radius: 0;
+    background-color: rgba(255, 149, 0, 0.2);
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+#MenuTabWidgetMenu QPushButton:pressed {{
+    border-radius: 0;
+    background-color: rgba(255, 149, 0, 0.3);
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
 #overlay_header_btn, #phase_header_btn {{
     border: none;
     background-color: transparent;
