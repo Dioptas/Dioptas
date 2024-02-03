@@ -28,7 +28,7 @@ QComboBox::item:selected {{
 QPushButton {{
     border: none;
     text-transform: none;
-    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    background-color: #253031;
     border-radius: 5px;
     font-weight: 550;
 }}
@@ -59,7 +59,6 @@ QPushButton:flat:checked:hover {{
 
 
 #menu_btn {{
-    background-color: {QTMATERIAL_SECONDARYCOLOR};
     border-radius: 15px;
 }}
 
@@ -98,6 +97,23 @@ QToolTip {{
     border-width: 0px;
     color: {QTMATERIAL_PRIMARYTEXTCOLOR};
 }}
+
+/* QToolBox */
+
+QToolBox::tab {{
+    border-radius: 2;
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+QToolBox::tab:selected {{
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    border: 1px solid  rgb(128, 75, 0);
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+
+/* QScrollBar */
 
 QScrollBar:vertical {{
     border: none;
