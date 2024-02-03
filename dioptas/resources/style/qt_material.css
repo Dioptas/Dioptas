@@ -92,6 +92,15 @@ QPushButton:flat:checked:hover {{
     padding: 0px;
 }}
 
+#overlay_header_btn, #phase_header_btn {{
+    border: none;
+    background-color: transparent;
+    text-transform: uppercase;
+    color: {QTMATERIAL_PRIMARYCOLOR};
+    font-weight: bold;
+    border-bottom: 2px solid {QTMATERIAL_PRIMARYCOLOR};
+}}
+
 QToolTip {{
     background-color: {QTMATERIAL_SECONDARYCOLOR};
     border-width: 0px;
