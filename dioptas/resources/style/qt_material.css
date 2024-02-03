@@ -110,9 +110,11 @@ QToolTip {{
 /* QToolBox */
 
 QToolBox::tab {{
+    text-transform: none;
     border-radius: 2;
     background-color: {QTMATERIAL_SECONDARYCOLOR};
     color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+    font-weight: 550;
 }}
 
 QToolBox::tab:selected {{
@@ -136,6 +138,8 @@ QScrollBar::horizontal {{
 
 QGroupBox {{
     padding-top: 20px;
+    text-transform: none;
+    font-weight: 750;
 }}
 
 #mask_widget QPushButton, #calibration_widget QPushButton, #integration_widget QPushButton {{
