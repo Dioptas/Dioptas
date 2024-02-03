@@ -49,8 +49,8 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.create_pattern_background_layout()
 
         self._tab_widget = MenuTabWidget()
-        self._tab_widget.add_menu_button("Image Bkg", self.image_background_gb)
-        self._tab_widget.add_menu_button("Pattern Bkg", self.pattern_background_gb)
+        self._tab_widget.add_tab("Image Bkg", self.image_background_gb)
+        self._tab_widget.add_tab("Pattern Bkg", self.pattern_background_gb)
         self._layout.addWidget(self._tab_widget)
 
         self.style_widgets()
@@ -167,6 +167,8 @@ class BackgroundWidget(QtWidgets.QWidget):
             """
             QSpinBox, QDoubleSpinBox, QLineEdit {
                 width: 60px;
+                min-width: 30px;
+                max-width: 80px;
             } 
         """
         )

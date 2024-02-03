@@ -356,6 +356,18 @@ def VerticalSpacerItem():
 
 
 class MenuTabWidget(QtWidgets.QWidget):
+    """
+    A widget that switches between added widgets using a menu on the left.
+    This is used to substitute the built-in tab widget, because we need horizontal text buttons on the left.
+
+    Example:
+    ```
+    menu_tab_widget = MenuTabWidget()
+    menu_tab_widget.add_tab("Tab 1", QtWidgets.QWidget())
+    menu_tab_widget.add_tab("Tab 2", QtWidgets.QWidget())
+    ```
+    """
+
     def __init__(self, *args, **kwargs):
         super(MenuTabWidget, self).__init__(*args, **kwargs)
 
@@ -382,12 +394,14 @@ class MenuTabWidget(QtWidgets.QWidget):
         self.menu_btns = []
         self.tab_widgets = []
 
-        self.style_widgets()
+        self.set_menu_width()
 
-    def add_tab(self, widget, title):
-        self._tab_widget.addTab(widget, title)
-
-    def add_menu_button(self, title, widget):
+    def add_tab(self, title: str, widget: QtWidgets.QWidget):
+        """
+        Add a tab to the tab widget.
+        :param title: The title of the tab.
+        :param widget: The widget that should be shown when the tab is selected.
+        """
         btn = CheckableFlatButton(title)
         btn.clicked.connect(lambda: self.show_tab(widget))
         btn.setFixedHeight(30)
@@ -401,14 +415,23 @@ class MenuTabWidget(QtWidgets.QWidget):
         if len(self.menu_btns) == 1:
             self.select_tab(0)
 
-    def show_tab(self, widget):
+    def show_tab(self, widget: QtWidgets.QWidget):
+        """
+        Show the widget. Widg must habe been added with add_tab before.
+        """
         for tab_widget in self.tab_widgets:
             tab_widget.hide()
         widget.show()
 
     def select_tab(self, index):
+        """
+        Select the tab with the given index.
+        """
         self.menu_btns[index].setChecked(True)
         self.show_tab(self.tab_widgets[index])
 
-    def style_widgets(self):
-        self._menu_btn_widget.setFixedWidth(100)
+    def set_menu_width(self, width: int = 100):
+        """
+        Set the width of the menu on the left.
+        """
+        self._menu_btn_widget.setFixedWidth(width)
