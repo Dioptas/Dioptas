@@ -41,6 +41,7 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(5, 5, 5, 5)
+        self._layout.setSpacing(5)
 
         self.add_btn = FlatButton()
         self.edit_btn = FlatButton()
@@ -58,9 +59,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.edit_btn)
         self._button_layout.addWidget(HorizontalLine())
-        self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.delete_btn)
-        self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.clear_btn)
         self._button_layout.addSpacerItem(VerticalSpacerItem())
