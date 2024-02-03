@@ -50,9 +50,9 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
         self.menu_tab_widget = MenuTabWidget()
-        self.menu_tab_widget.add_menu_button("cBN Seat", self.cbn_seat_gb)
-        self.menu_tab_widget.add_menu_button("Inc. Abs.", self.oiadac_gb)
-        self.menu_tab_widget.add_menu_button("Transfer", self.transfer_gb)
+        self.menu_tab_widget.add_tab("cBN Seat", self.cbn_seat_gb)
+        self.menu_tab_widget.add_tab("Inc. Abs.", self.oiadac_gb)
+        self.menu_tab_widget.add_tab("Transfer", self.transfer_gb)
         self.menu_tab_widget.select_tab(0)
 
         self._layout.addWidget(self.menu_tab_widget)
