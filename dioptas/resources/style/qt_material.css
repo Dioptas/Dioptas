@@ -180,3 +180,11 @@ QSplitter {{
     width: 15px;
     height: 15px;
 }}
+
+QComboBox QAbstractItemView {{
+    border: none;
+}}
+
+QListView::item:selected:focus {{
+    background-color: rgba(255, 149, 0, 0.1);
+}}
