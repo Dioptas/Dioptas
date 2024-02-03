@@ -5,7 +5,14 @@ from pyqtgraph import GraphicsLayoutWidget, ColorButton
 
 from ..plot_widgets.ImgWidget import IntegrationBatchWidget
 from .CustomWidgets import MouseCurrentAndClickedWidget
-from ..CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, LabelAlignRight, LabelExpandable
+from ..CustomWidgets import (
+    FlatButton,
+    CheckableFlatButton,
+    HorizontalSpacerItem,
+    VerticalSpacerItem,
+    LabelAlignRight,
+    LabelExpandable,
+)
 
 from . import CLICKED_COLOR
 from ... import icons_path
@@ -27,7 +34,7 @@ class BatchWidget(QtWidgets.QWidget):
         super(BatchWidget, self).__init__(parent)
 
         self.frame = QtWidgets.QWidget()
-        self.frame.setObjectName('batch_frame')
+        self.frame.setObjectName("batch_frame")
 
         self._frame_layout = QtWidgets.QVBoxLayout()
         self._top_layout = QtWidgets.QHBoxLayout()
@@ -80,14 +87,23 @@ class BatchWidget(QtWidgets.QWidget):
 
         self._frame_layout.addWidget(self.black_container)
         self._frame_layout.addWidget(self.position_widget)
+        
+        self._frame_layout.setStretchFactor(self.black_container, 1)
+        self._frame_layout.setStretchFactor(self.position_widget, 0)
+        self._frame_layout.setStretchFactor(self._top_layout, 0)
 
         self.frame.setLayout(self._frame_layout)
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.addWidget(self.frame)
 
     def style_widgets(self):
-        zero_spacing_layouts = [self._frame_layout, self._top_layout, self._layout,
-                                self._central_layout, self._black_container_layout]
+        zero_spacing_layouts = [
+            self._frame_layout,
+            self._top_layout,
+            self._layout,
+            self._central_layout,
+            self._black_container_layout,
+        ]
 
         for layout in zero_spacing_layouts:
             layout.setContentsMargins(0, 0, 0, 0)
@@ -159,7 +175,9 @@ class BatchWidget(QtWidgets.QWidget):
 
     def raise_widget(self):
         self.show()
-        self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.setWindowState(
+            self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive
+        )
         self.activateWindow()
         self.raise_()
 
@@ -174,7 +192,7 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         QTreeView: raw files
     """
 
-    iteration_name = ''
+    iteration_name = ""
 
     def __init__(self):
         super(BatchFileViewWidget, self).__init__()
@@ -183,11 +201,11 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         self._file_lbl_widget = QtWidgets.QWidget()
         self._file_lbl_layout = QtWidgets.QGridLayout()
 
-        self.cal_file_lbl = LabelExpandable('undefined')
-        self.mask_file_lbl = LabelExpandable('undefined')
+        self.cal_file_lbl = LabelExpandable("undefined")
+        self.mask_file_lbl = LabelExpandable("undefined")
 
         self.treeView = QtWidgets.QTreeView()
-        self.treeView.setObjectName('treeView')
+        self.treeView.setObjectName("treeView")
 
         self.tree_model = QtGui.QStandardItemModel()
         self.treeView.setModel(self.tree_model)
@@ -214,12 +232,14 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         self._file_lbl_layout.setSpacing(0)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             #treeView {
                 background: black;
                 color: yellow;
             }
-        """)
+        """
+        )
 
     def set_raw_files(self, files, images):
         self.tree_model.clear()
@@ -233,13 +253,13 @@ class BatchFileViewWidget(QtWidgets.QWidget):
 
     def set_cal_file(self, file_path):
         if file_path is None:
-            file_path = 'undefined'
+            file_path = "undefined"
         self.cal_file_lbl.setText(file_path)
         self.cal_file_lbl.setToolTip("Calibration used for integration")
 
     def set_mask_file(self, file_path):
         if file_path is None:
-            file_path = 'undefined'
+            file_path = "undefined"
         self.mask_file_lbl.setText(file_path)
         self.mask_file_lbl.setToolTip("Mask used for integration")
 
@@ -252,19 +272,19 @@ class BatchFileControlWidget(QtWidgets.QWidget):
 
         self.load_btn = FlatButton()
         self.load_btn.setToolTip("Load raw/proc data")
-        self.load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
         self.load_btn.setIconSize(QtCore.QSize(13, 13))
         self.load_btn.setMaximumWidth(25)
 
-        self.load_previous_folder_btn = FlatButton('<')
+        self.load_previous_folder_btn = FlatButton("<")
         self.load_previous_folder_btn.setToolTip("Load files in previous folder")
 
-        self.load_next_folder_btn = FlatButton('>')
+        self.load_next_folder_btn = FlatButton(">")
         self.load_next_folder_btn.setToolTip("Loads files in next folder")
 
         self.save_btn = FlatButton()
         self.save_btn.setToolTip("Save data")
-        self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
+        self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "save.ico")))
         self.save_btn.setIconSize(QtCore.QSize(13, 13))
         self.save_btn.setMaximumWidth(25)
 
@@ -285,6 +305,7 @@ class BatchFileControlWidget(QtWidgets.QWidget):
 class BatchModeWidget(QtWidgets.QWidget):
     def __init__(self):
         super(BatchModeWidget, self).__init__()
+        self.setObjectName("batch_mode_widget")
         self._layout = QtWidgets.QHBoxLayout()
 
         self.view_f_btn = CheckableFlatButton("Files")
@@ -314,27 +335,8 @@ class BatchModeWidget(QtWidgets.QWidget):
         mode_btns = [self.view_f_btn, self.view_2d_btn, self.view_3d_btn]
 
         for btn in mode_btns:
-            btn.setMinimumWidth(mode_btn_width)
-            btn.setMaximumWidth(mode_btn_width)
-
-            btn.setMinimumHeight(mode_btn_height)
-            btn.setMaximumHeight(mode_btn_height)
-
-        self.view_f_btn.setObjectName("file_btn")
-
-        self.setStyleSheet("""
-            QPushButton {
-               font: normal 12px;
-                border-radius: 0px;
-            }
-            
-            #file_btn {
-                border-radius: 0px;
-                border-top-left-radius: 8px;
-                border-bottom-left-radius: 8px;
-            }
-            
-        """)
+            btn.setWidth(mode_btn_width)
+            btn.setHeight(mode_btn_height)
 
 
 class BatchStackWidget(QtWidgets.QWidget):
@@ -344,7 +346,9 @@ class BatchStackWidget(QtWidgets.QWidget):
         self._layout = QtWidgets.QHBoxLayout()
 
         self.img_pg_layout = GraphicsLayoutWidget()
-        self.img_view = IntegrationBatchWidget(self.img_pg_layout, orientation='horizontal')
+        self.img_view = IntegrationBatchWidget(
+            self.img_pg_layout, orientation="horizontal"
+        )
 
         self._layout.addWidget(self.img_pg_layout)
         self.setLayout(self._layout)
@@ -356,17 +360,19 @@ class BatchOptionsWidget(QtWidgets.QWidget):
         super(BatchOptionsWidget, self).__init__()
         self._layout = QtWidgets.QVBoxLayout()
 
-        self.tth_btn = CheckableFlatButton(u"2θ")
+        self.tth_btn = CheckableFlatButton("2θ")
         self.tth_btn.setChecked(True)
-        self.q_btn = CheckableFlatButton('Q')
-        self.d_btn = CheckableFlatButton('d')
+        self.q_btn = CheckableFlatButton("Q")
+        self.d_btn = CheckableFlatButton("d")
         self.unit_btn_group = QtWidgets.QButtonGroup()
         self.unit_btn_group.addButton(self.tth_btn)
         self.unit_btn_group.addButton(self.q_btn)
         self.unit_btn_group.addButton(self.d_btn)
-        self.background_btn = CheckableFlatButton('bg')
-        self.bkg_cut_btn = CheckableFlatButton('T')
-        self.bkg_cut_btn.setToolTip("Trim data to show only region where background is calculated")
+        self.background_btn = CheckableFlatButton("bg")
+        self.bkg_cut_btn = CheckableFlatButton("T")
+        self.bkg_cut_btn.setToolTip(
+            "Trim data to show only region where background is calculated"
+        )
 
         self.scale_log_btn = CheckableFlatButton("log")
         self.scale_sqrt_btn = CheckableFlatButton("√")
@@ -406,7 +412,8 @@ class BatchOptionsWidget(QtWidgets.QWidget):
                 padding-right: 1px;
                 border-radius: 3px;
             }
-            """)
+            """
+        )
 
     def set_tooltips(self):
         self.scale_log_btn.setToolTip("Change scale to log")
@@ -442,14 +449,14 @@ class BatchSurfaceViewNavigationWidget(QtWidgets.QWidget):
         self.view3d_t_btn = FlatButton("T")
         self.view3d_i_btn = FlatButton("I")
 
-        self.scale_x_btn = CheckableFlatButton('x')
-        self.scale_y_btn = CheckableFlatButton('y')
-        self.scale_z_btn = CheckableFlatButton('z')
-        self.scale_s_btn = CheckableFlatButton('s')
-        self.trim_h_btn = CheckableFlatButton('h')
-        self.trim_l_btn = CheckableFlatButton('l')
-        self.move_g_btn = CheckableFlatButton('g')
-        self.move_m_btn = CheckableFlatButton('m')
+        self.scale_x_btn = CheckableFlatButton("x")
+        self.scale_y_btn = CheckableFlatButton("y")
+        self.scale_z_btn = CheckableFlatButton("z")
+        self.scale_s_btn = CheckableFlatButton("s")
+        self.trim_h_btn = CheckableFlatButton("h")
+        self.trim_l_btn = CheckableFlatButton("l")
+        self.move_g_btn = CheckableFlatButton("g")
+        self.move_m_btn = CheckableFlatButton("m")
         self.scale_s_btn.setChecked(True)
 
         self.scroll_btn_group = QtWidgets.QButtonGroup()
@@ -511,7 +518,7 @@ class BatchSurfaceViewNavigationWidget(QtWidgets.QWidget):
         self._layout.setContentsMargins(4, 6, 4, 6)
         self._layout.setSpacing(4)
 
-        self.setObjectName('pattern_left_control_widget')
+        self.setObjectName("pattern_left_control_widget")
         self.setMaximumWidth(30)
         self.setMinimumWidth(30)
 
@@ -525,7 +532,8 @@ class BatchSurfaceViewNavigationWidget(QtWidgets.QWidget):
                     padding-left: 1px;
                     border-radius: 3px;
                 }
-            """)
+            """
+        )
 
 
 class BatchControlWidget(QtWidgets.QWidget):
@@ -538,7 +546,7 @@ class BatchControlWidget(QtWidgets.QWidget):
 
         self.calc_bkg_btn = FlatButton("Calc bkg")
 
-        self.phases_btn = CheckableFlatButton('Show Phases')
+        self.phases_btn = CheckableFlatButton("Show Phases")
         self.autoscale_btn = FlatButton("AutoScale")
         self.normalize_btn = FlatButton("Normalize")
 
@@ -582,27 +590,19 @@ class BatchImgPositionWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QHBoxLayout()
         self.create_layout()
-        self.style_widgets()
 
     def create_layout(self):
         self._layout.setContentsMargins(4, 4, 4, 4)
         self._layout.addWidget(self.step_series_widget)
         self._layout.addWidget(self.step_raw_widget)
         self._layout.addSpacerItem(HorizontalSpacerItem())
-        self._layout.addWidget(self.mouse_pos_widget)
+        self._layout_mouse_pos = QtWidgets.QVBoxLayout()
+        self._layout_mouse_pos.setContentsMargins(0, 0, 0, 0)
+        self._layout_mouse_pos.addWidget(self.mouse_pos_widget)
+        self._layout_mouse_pos.addStretch()
+        self._layout.addLayout(self._layout_mouse_pos)
 
         self.setLayout(self._layout)
-
-    def style_widgets(self):
-        self.setStyleSheet(
-            """
-                QPushButton{
-                    padding: 0px;
-                    padding-right: 5px;
-                    padding-left: 5px;
-                    border-radius: 3px;
-                }
-            """)
 
 
 class StepBatchWidget(QtWidgets.QWidget):
@@ -614,9 +614,10 @@ class StepBatchWidget(QtWidgets.QWidget):
         slider
         fields: step, min, max, current
     """
+
     switch_frame = QtCore.Signal(int)
 
-    iteration_name = ''
+    iteration_name = ""
 
     def __init__(self):
         super(StepBatchWidget, self).__init__()
@@ -632,10 +633,10 @@ class StepBatchWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
     def init_navigator(self):
-        self.next_btn = FlatButton('>')
-        self.next_btn.setToolTip('Loads next {}'.format(self.iteration_name))
-        self.previous_btn = FlatButton('<')
-        self.previous_btn.setToolTip(('Loads previous {}'.format(self.iteration_name)))
+        self.next_btn = FlatButton(">")
+        self.next_btn.setToolTip("Loads next {}".format(self.iteration_name))
+        self.previous_btn = FlatButton("<")
+        self.previous_btn.setToolTip(("Loads previous {}".format(self.iteration_name)))
 
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
 
@@ -663,21 +664,21 @@ class StepBatchWidget(QtWidgets.QWidget):
         self._navigator_layout.addWidget(self.next_btn, 0, 2)
 
         self._step_layout = QtWidgets.QHBoxLayout()
-        self._step_layout.addWidget(LabelAlignRight('Start:'))
+        self._step_layout.addWidget(LabelAlignRight("Start:"))
         self._step_layout.addWidget(self.start_txt)
-        self._step_layout.addWidget(LabelAlignRight('Stop:'))
+        self._step_layout.addWidget(LabelAlignRight("Stop:"))
         self._step_layout.addWidget(self.stop_txt)
-        self._step_layout.addWidget(LabelAlignRight('Step:'))
+        self._step_layout.addWidget(LabelAlignRight("Step:"))
         self._step_layout.addWidget(self.step_txt)
         self._navigator_layout.addLayout(self._step_layout, 1, 0, 1, 3)
         self._layout.addLayout(self._navigator_layout)
 
         self.pos_txt = QtWidgets.QLineEdit()
         self.pos_validator = QtGui.QIntValidator(1, 1)
-        self.pos_txt.setText('0')
+        self.pos_txt.setText("0")
         self.pos_txt.setValidator(self.pos_validator)
-        self.pos_txt.setToolTip('Currently loaded frame')
-        self.pos_label = QtWidgets.QLabel('Frame:')
+        self.pos_txt.setToolTip("Currently loaded frame")
+        self.pos_label = QtWidgets.QLabel("Frame:")
         self.pos_label.setToolTip("Number of frames: integrated/raw")
         self.pos_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom)
 
@@ -686,7 +687,9 @@ class StepBatchWidget(QtWidgets.QWidget):
         self._pos_layout.addWidget(self.pos_txt)
         self._layout.addLayout(self._pos_layout)
 
-        self.pos_txt.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Maximum)
+        self.pos_txt.setSizePolicy(
+            QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Maximum
+        )
 
         self.next_btn.clicked.connect(self.process_next_img)
         self.previous_btn.clicked.connect(self.process_prev_img)
