@@ -20,9 +20,17 @@
 
 from qtpy import QtWidgets, QtCore
 
-from ...CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, FlatButton, \
-    CheckableFlatButton, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
-    DoubleMultiplySpinBoxAlignRight, SaveIconButton
+from ...CustomWidgets import (
+    MenuTabWidget,
+    NumberTextField,
+    LabelAlignRight,
+    SpinBoxAlignRight,
+    CheckableFlatButton,
+    DoubleSpinBoxAlignRight,
+    HorizontalSpacerItem,
+    DoubleMultiplySpinBoxAlignRight,
+    SaveIconButton,
+)
 
 
 class BackgroundWidget(QtWidgets.QWidget):
@@ -30,40 +38,60 @@ class BackgroundWidget(QtWidgets.QWidget):
         super(BackgroundWidget, self).__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
-        self._layout.setContentsMargins(5, 5 , 5, 5)
+        self._layout.setContentsMargins(0, 5, 0, 0)
         self._layout.setSpacing(5)
+        self.setLayout(self._layout)
 
-        self.image_background_gb = QtWidgets.QGroupBox('Image Background', self)
-        self._image_background_gb_layout = QtWidgets.QGridLayout(self.image_background_gb)
+        self.create_image_background_widgets()
+        self.create_image_background_layout()
+
+        self.create_pattern_background_widgets()
+        self.create_pattern_background_layout()
+
+        self._tab_widget = MenuTabWidget()
+        self._tab_widget.add_menu_button("Image Bkg", self.image_background_gb)
+        self._tab_widget.add_menu_button("Pattern Bkg", self.pattern_background_gb)
+        self._layout.addWidget(self._tab_widget)
+
+        self.style_widgets()
+
+    def create_image_background_widgets(self):
+        self.image_background_gb = QtWidgets.QGroupBox("Image Background", self)
+        self._image_background_gb_layout = QtWidgets.QGridLayout(
+            self.image_background_gb
+        )
         self._image_background_gb_layout.setContentsMargins(5, 8, 5, 7)
         self._image_background_gb_layout.setSpacing(5)
 
-        self.load_image_btn = QtWidgets.QPushButton('Load')
-        self.filename_lbl = QtWidgets.QLabel('None')
-        self.remove_image_btn = QtWidgets.QPushButton('Remove')
+        self.load_image_btn = QtWidgets.QPushButton("Load")
+        self.filename_lbl = QtWidgets.QLabel("None")
+        self.remove_image_btn = QtWidgets.QPushButton("Remove")
         self.scale_sb = DoubleSpinBoxAlignRight()
         self.offset_sb = DoubleSpinBoxAlignRight()
 
         self.scale_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.offset_step_msb = DoubleMultiplySpinBoxAlignRight()
 
+    def create_image_background_layout(self):
         self._image_background_gb_layout.addWidget(self.load_image_btn, 0, 0)
         self._image_background_gb_layout.addWidget(self.remove_image_btn, 1, 0)
         self._image_background_gb_layout.addWidget(self.filename_lbl, 0, 1, 1, 8)
-        self._image_background_gb_layout.addWidget(LabelAlignRight('Scale:'), 1, 1)
+        self._image_background_gb_layout.addWidget(LabelAlignRight("Scale:"), 1, 1)
         self._image_background_gb_layout.addWidget(self.scale_sb, 1, 2)
         self._image_background_gb_layout.addWidget(self.scale_step_msb, 1, 3)
         self._image_background_gb_layout.addItem(HorizontalSpacerItem(), 1, 4)
-        self._image_background_gb_layout.addWidget(LabelAlignRight('Offset:'), 2, 1)
+        self._image_background_gb_layout.addWidget(LabelAlignRight("Offset:"), 2, 1)
         self._image_background_gb_layout.addWidget(self.offset_sb, 2, 2)
         self._image_background_gb_layout.addWidget(self.offset_step_msb, 2, 3)
-        self._image_background_gb_layout.addItem(HorizontalSpacerItem(), 2, 4)
+        self._image_background_gb_layout.setRowStretch(0, 0)
+        self._image_background_gb_layout.setRowStretch(1, 0)
+        self._image_background_gb_layout.setRowStretch(2, 0)
+        self._image_background_gb_layout.setRowStretch(3, 1)
 
         self.image_background_gb.setLayout(self._image_background_gb_layout)
 
-        self.setLayout(self._layout)
-
-        self.pattern_background_gb = QtWidgets.QGroupBox('Pattern Background')
+    def create_pattern_background_widgets(self):
+        self.pattern_background_gb = QtWidgets.QGroupBox("Pattern Background")
         self._pattern_bkg_layout = QtWidgets.QGridLayout()
         self._pattern_bkg_layout.setContentsMargins(5, 8, 5, 7)
         self._pattern_bkg_layout.setSpacing(5)
@@ -71,45 +99,45 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.smooth_with_sb = DoubleSpinBoxAlignRight()
         self.iterations_sb = SpinBoxAlignRight()
         self.poly_order_sb = SpinBoxAlignRight()
-        self.x_range_min_txt = NumberTextField('0')
-        self.x_range_max_txt = NumberTextField('50')
-        self.inspect_btn = CheckableFlatButton('Inspect')
+        self.x_range_min_txt = NumberTextField("0")
+        self.x_range_max_txt = NumberTextField("50")
+        self.inspect_btn = CheckableFlatButton("Inspect")
         self.save_btn = SaveIconButton()
-        self.as_overlay = QtWidgets.QPushButton('As Overlay')
+        self.as_overlay = QtWidgets.QPushButton("As Overlay")
 
-        self._pattern_bkg_layout.addWidget(LabelAlignRight('Smooth Width:'), 0, 0)
+    def create_pattern_background_layout(self):
+        self._pattern_bkg_layout.addWidget(LabelAlignRight("Smooth Width:"), 0, 0)
         self._pattern_bkg_layout.addWidget(self.smooth_with_sb, 0, 1)
-        self._pattern_bkg_layout.addWidget(LabelAlignRight('Iterations:'), 0, 2)
+        self._pattern_bkg_layout.addWidget(LabelAlignRight("Iterations:"), 0, 2)
         self._pattern_bkg_layout.addWidget(self.iterations_sb, 0, 3)
-        self._pattern_bkg_layout.addItem(HorizontalSpacerItem(), 0, 4)
-        self._pattern_bkg_layout.addWidget(LabelAlignRight('Order:'), 0, 5)
-        self._pattern_bkg_layout.addWidget(self.poly_order_sb, 0, 6)
+        self._pattern_bkg_layout.addWidget(LabelAlignRight("Order:"), 1, 0)
+        self._pattern_bkg_layout.addWidget(self.poly_order_sb, 1, 1)
 
-        self._pattern_bkg_layout.addWidget(LabelAlignRight('X-Range:'), 1, 0)
+        self._pattern_bkg_layout.addWidget(LabelAlignRight("X-Range:"), 2, 0)
         self._range_layout = QtWidgets.QHBoxLayout()
         self._range_layout.addWidget(self.x_range_min_txt)
-        self._range_layout.addWidget(QtWidgets.QLabel('-'))
+        self._range_layout.addWidget(QtWidgets.QLabel("-"))
         self._range_layout.addWidget(self.x_range_max_txt)
         self._range_layout.addItem(HorizontalSpacerItem())
-        self._pattern_bkg_layout.addLayout(self._range_layout, 1, 1, 1, 3)
+        self._pattern_bkg_layout.addLayout(self._range_layout, 2, 1, 1, 3)
         self._button_layout = QtWidgets.QHBoxLayout()
-        self._button_layout.addStretch(1)
+        self._button_layout.addStretch()
         self._button_layout.addWidget(self.inspect_btn)
         self._button_layout.addWidget(self.as_overlay)
         self._button_layout.addWidget(self.save_btn)
-        self._pattern_bkg_layout.addLayout(self._button_layout, 2, 0, 1, 7)
+        self._pattern_bkg_layout.addLayout(self._button_layout, 3, 0, 1, 4)
+
+        self._pattern_bkg_layout.setRowStretch(0, 0)
+        self._pattern_bkg_layout.setRowStretch(1, 0)
+        self._pattern_bkg_layout.setRowStretch(2, 0)
+        self._pattern_bkg_layout.setRowStretch(5, 1)
+        self._pattern_bkg_layout.setColumnStretch(0, 0)
+        self._pattern_bkg_layout.setColumnStretch(1, 0)
+        self._pattern_bkg_layout.setColumnStretch(2, 0)
+        self._pattern_bkg_layout.setColumnStretch(3, 0)
+        self._pattern_bkg_layout.setColumnStretch(4, 1)
 
         self.pattern_background_gb.setLayout(self._pattern_bkg_layout)
-
-        self._left_layout = QtWidgets.QVBoxLayout()
-        self._left_layout.addWidget(self.image_background_gb)
-        self._left_layout.addWidget(self.pattern_background_gb)
-        self._left_layout.addStretch(1)
-        self._layout.addLayout(self._left_layout)
-        self._layout.addStretch(1)
-
-        self.setLayout(self._layout)
-        self.style_widgets()
 
     def style_widgets(self):
         self.style_image_background_widgets()
@@ -135,12 +163,13 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.offset_sb.setMaximum(999999998)
         self.offset_sb.setMinimum(-99999999)
 
-        self.setStyleSheet("""
-            QSpinBox,  QDoubleSpinBox,QLineEdit {
-                min-width: 50px;
-                max-width: 50px;
+        self.setStyleSheet(
+            """
+            QSpinBox, QDoubleSpinBox, QLineEdit {
+                width: 60px;
             } 
-        """)
+        """
+        )
 
     def style_pattern_background_widgets(self):
         self.smooth_with_sb.setValue(0.100)
@@ -156,12 +185,7 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.poly_order_sb.setMaximum(999999)
         self.poly_order_sb.setMinimum(1)
         self.poly_order_sb.setValue(50)
-        self.poly_order_sb.setToolTip('Set the Polynomial order')
-
-        self.x_range_min_txt.setMaximumWidth(70)
-        self.x_range_max_txt.setMaximumWidth(70)
-
-        self.inspect_btn.setMaximumHeight(150)
+        self.poly_order_sb.setToolTip("Set the Polynomial order")
 
         self.save_btn.setToolTip("Save generated background pattern")
         self.save_btn.setIconSize(QtCore.QSize(13, 13))
@@ -195,8 +219,8 @@ class BackgroundWidget(QtWidgets.QWidget):
         self.x_range_min_txt.blockSignals(True)
         self.x_range_max_txt.blockSignals(True)
 
-        self.x_range_min_txt.setText('{:.3f}'.format(roi[0]))
-        self.x_range_max_txt.setText('{:.3f}'.format(roi[1]))
+        self.x_range_min_txt.setText("{:.3f}".format(roi[0]))
+        self.x_range_max_txt.setText("{:.3f}".format(roi[1]))
 
         self.x_range_min_txt.blockSignals(False)
         self.x_range_max_txt.blockSignals(False)

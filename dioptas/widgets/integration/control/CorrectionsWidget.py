@@ -22,6 +22,7 @@ from qtpy import QtWidgets, QtCore
 
 from ...CustomWidgets import (
     HorizontalSpacerItem,
+    MenuTabWidget,
     NumberTextField,
     ListTableWidget,
     CheckableButton,
@@ -201,61 +202,3 @@ class CorrectionsWidget(QtWidgets.QWidget):
                     }
                     """
         )
-
-
-class MenuTabWidget(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(MenuTabWidget, self).__init__(*args, **kwargs)
-
-        self._layout = QtWidgets.QHBoxLayout()
-        self._layout.setContentsMargins(0, 0, 0, 0)
-
-        self._menu_layout = QtWidgets.QVBoxLayout()
-        self._menu_layout.setContentsMargins(0, 0, 0, 0)
-        self._menu_layout.setSpacing(0)
-        self._menu_btn_widget = QtWidgets.QWidget()
-        self._menu_btn_widget.setObjectName("MenuTabWidgetMenu")
-        self._menu_btn_layout = QtWidgets.QVBoxLayout()
-        self._menu_btn_layout.setContentsMargins(0, 0, 0, 0)
-        self._menu_btn_layout.setSpacing(0)
-        self._menu_btn_widget.setLayout(self._menu_btn_layout)
-        self._menu_layout.addWidget(self._menu_btn_widget)
-        self._menu_layout.addStretch()
-
-        self._menu_button_group = QtWidgets.QButtonGroup()
-
-        self._layout.addLayout(self._menu_layout)
-        self.setLayout(self._layout)
-
-        self.menu_btns = []
-        self.tab_widgets = []
-
-        self.style_widgets()
-
-    def add_tab(self, widget, title):
-        self._tab_widget.addTab(widget, title)
-
-    def add_menu_button(self, title, widget):
-        btn = CheckableFlatButton(title)
-        btn.clicked.connect(lambda: self.show_tab(widget))
-        btn.setFixedHeight(30)
-        self.menu_btns.append(btn)
-        self._menu_button_group.addButton(btn)
-        self._menu_btn_layout.addWidget(btn)
-        self.tab_widgets.append(widget)
-        self._layout.addWidget(widget)
-        widget.hide()
-
-    def show_tab(self, widget):
-        for tab_widget in self.tab_widgets:
-            tab_widget.hide()
-        widget.show()
-
-    def select_tab(self, index):
-        self.menu_btns[index].setChecked(True)
-        self.show_tab(self.tab_widgets[index])
-
-    def style_widgets(self):
-        self._menu_btn_widget.setFixedWidth(100)
-        pass
-
