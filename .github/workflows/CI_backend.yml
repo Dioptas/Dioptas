@@ -27,7 +27,7 @@ jobs:
         sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
 
     - name: Install poetry dependencies
-      run: poetry install
+      run: poetry install --with test
 
     - name: Run tests
       run: |
