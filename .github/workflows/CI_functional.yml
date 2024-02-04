@@ -37,6 +37,6 @@ jobs:
 
     - name: Run tests
       run: |
-        poetry run py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
-        poetry run py.test dioptas/tests/functional_tests/test_img_plots.py
-        poetry run py.test dioptas/tests/functional_tests/test_functional_integration.py
+        xvfb-run poetry run py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
+        xvfb-run poetry run py.test dioptas/tests/functional_tests/test_img_plots.py
+        xvfb-run poetry run py.test dioptas/tests/functional_tests/test_functional_integration.py
