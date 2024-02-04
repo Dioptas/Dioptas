@@ -27,26 +27,26 @@ jobs:
         sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
 
     - name: Install poetry dependencies
-      run: poetry install --with test
+      run: poetry install
 
     - name: Run tests
       run: |
-        py.test dioptas/tests/unit_tests/test_AutoLevel.py
-        py.test dioptas/tests/unit_tests/test_background_extraction.py
-        py.test dioptas/tests/unit_tests/test_BatchModel.py
-        py.test dioptas/tests/unit_tests/test_calc.py
-        py.test dioptas/tests/unit_tests/test_CalibrationModel.py
-        py.test dioptas/tests/unit_tests/test_cif.py
-        py.test dioptas/tests/unit_tests/test_DioptasModel.py
-        py.test dioptas/tests/unit_tests/test_FileNameIterator.py
-        py.test dioptas/tests/unit_tests/test_HelperModule.py
-        py.test dioptas/tests/unit_tests/test_ImgCorrections.py
-        py.test dioptas/tests/unit_tests/test_ImgModel.py
-        py.test dioptas/tests/unit_tests/test_Jcpds.py
-        py.test dioptas/tests/unit_tests/test_MaskModel.py
-        py.test dioptas/tests/unit_tests/test_NewFileInDirectoryWatcher.py
-        py.test dioptas/tests/unit_tests/test_OverlayModel.py
-        py.test dioptas/tests/unit_tests/test_Pattern.py
-        py.test dioptas/tests/unit_tests/test_PatternModel.py
-        py.test dioptas/tests/unit_tests/test_PhaseModel.py
-        py.test dioptas/tests/unit_tests/test_Signal.py
+        poetry run py.test dioptas/tests/unit_tests/test_AutoLevel.py
+        poetry run py.test dioptas/tests/unit_tests/test_background_extraction.py
+        poetry run py.test dioptas/tests/unit_tests/test_BatchModel.py
+        poetry run py.test dioptas/tests/unit_tests/test_calc.py
+        poetry run py.test dioptas/tests/unit_tests/test_CalibrationModel.py
+        poetry run py.test dioptas/tests/unit_tests/test_cif.py
+        poetry run py.test dioptas/tests/unit_tests/test_DioptasModel.py
+        poetry run py.test dioptas/tests/unit_tests/test_FileNameIterator.py
+        poetry run py.test dioptas/tests/unit_tests/test_HelperModule.py
+        poetry run py.test dioptas/tests/unit_tests/test_ImgCorrections.py
+        poetry run py.test dioptas/tests/unit_tests/test_ImgModel.py
+        poetry run py.test dioptas/tests/unit_tests/test_Jcpds.py
+        poetry run py.test dioptas/tests/unit_tests/test_MaskModel.py
+        poetry run py.test dioptas/tests/unit_tests/test_NewFileInDirectoryWatcher.py
+        poetry run py.test dioptas/tests/unit_tests/test_OverlayModel.py
+        poetry run py.test dioptas/tests/unit_tests/test_Pattern.py
+        poetry run py.test dioptas/tests/unit_tests/test_PatternModel.py
+        poetry run py.test dioptas/tests/unit_tests/test_PhaseModel.py
+        poetry run py.test dioptas/tests/unit_tests/test_Signal.py
