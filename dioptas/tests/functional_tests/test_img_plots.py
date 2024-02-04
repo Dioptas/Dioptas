@@ -101,7 +101,6 @@ def test_synchronization_of_view_range(main_controller):
     assert range_diff == approx(0)
 
 
-
 def test_remove_img_background_in_view(main_controller):
     # Herbert opens an image in the integration view and wants to remove the background signal.
     mock_open_filename(os.path.join(data_path, "image_001.tif"))
@@ -114,8 +113,15 @@ def test_remove_img_background_in_view(main_controller):
     data_before_bg = image_widget.data_img_item.image.copy()
 
     # He clicks the background subtraction button and sees that the image does not change and wonders why.
+    integration_widget.integration_control_widget.tab_widget_1.setCurrentIndex(5)
     mock_open_filename(os.path.join(data_path, "image_002.tif"))
-    click_button(integration_widget.bkg_image_load_btn)
+    click_button(
+        integration_widget.integration_control_widget.background_control_widget.load_image_btn
+    )
+    assert (
+        integration_widget.integration_control_widget.background_control_widget.filename_lbl.text()
+        == "image_002.tif"
+    )
 
     data_after_bg = image_widget.data_img_item.image.copy()
     assert np.array_equal(data_before_bg, data_after_bg)
@@ -124,6 +130,9 @@ def test_remove_img_background_in_view(main_controller):
     # With satisfaction he sees the background subtracted image
     click_button(
         integration_widget.integration_image_widget.show_background_subtracted_img_btn
+    )
+    assert (
+        integration_widget.integration_image_widget.show_background_subtracted_img_btn.isChecked()
     )
     data_before_bg = image_widget.data_img_item.image.copy()
     assert not np.array_equal(data_before_bg, data_after_bg)

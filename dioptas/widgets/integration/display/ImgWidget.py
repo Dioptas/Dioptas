@@ -76,7 +76,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.cake_shift_azimuth_sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.mask_btn = CheckableFlatButton('Mask')
         self.phases_btn = CheckableFlatButton('Show Phases')
-        self.show_background_subtracted_img_btn = CheckableFlatButton('bg')
+        self.show_background_subtracted_img_btn = CheckableFlatButton('bkg')
         self.transparent_cb = QtWidgets.QCheckBox('trans')
         self.autoscale_btn = CheckableFlatButton('AutoScale')
         self.undock_btn = FlatButton('Undock')
@@ -104,6 +104,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
         self.style_widgets()
+        self.set_tooltips()
         self.cake_shift_azimuth_sl.setVisible(False)
         self.show_background_subtracted_img_btn.setVisible(False)
 
@@ -126,3 +127,9 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         
         # for btn in btns:
         #     btn.setFixedHeight(25)
+
+    def set_tooltips(self):
+        self.show_background_subtracted_img_btn.setToolTip("Toggle background subtraction")
+        self.mask_btn.setToolTip("Toggle mask")
+        self.mode_btn.setToolTip("Toggle between image and cake mode")
+        self.undock_btn.setToolTip("Undock image to new window")
