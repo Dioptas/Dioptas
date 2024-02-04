@@ -34,7 +34,7 @@ jobs:
       run: poetry install
 
     - name: Install pyepics
-      run: pip install pyepics
+      run: poetry run pip install pyepics
 
     - name: Run tests
       run: |
