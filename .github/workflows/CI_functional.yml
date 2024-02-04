@@ -9,7 +9,7 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     env:
-      DISPLAY: ':99.0'
+      QT_QPA_PLATFORM: offscreen
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -25,16 +25,18 @@ jobs:
         python-version: '3.11'
         cache: 'poetry'
 
-    - name: Install QT Dependencies
+    - name: Install Apt Dependencies
       run: |
-        sudo apt install python3-opengl libgl1-mesa-dev libglib2.0-0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
-        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
+        sudo apt-get update
+        sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0 libxkbcommon-x11-dev libxcb-xinerama0  \
+          libxcb-keysyms1-dev libxcb-image0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev \
+          libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-cursor0 libopengl0
 
     - name: Install poetry dependencies
       run: poetry install
 
     - name: Run tests
       run: |
-        poetry run py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
-        poetry run py.test dioptas/tests/functional_tests/test_img_plots.py
-        poetry run py.test dioptas/tests/functional_tests/test_functional_integration.py
+        xvfb-run poetry run py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
+        xvfb-run poetry run py.test dioptas/tests/functional_tests/test_img_plots.py
+        xvfb-run poetry run py.test dioptas/tests/functional_tests/test_functional_integration.py
