@@ -31,22 +31,4 @@ jobs:
 
     - name: Run tests
       run: |
-        poetry run py.test dioptas/tests/unit_tests/test_AutoLevel.py
-        poetry run py.test dioptas/tests/unit_tests/test_background_extraction.py
-        poetry run py.test dioptas/tests/unit_tests/test_BatchModel.py
-        poetry run py.test dioptas/tests/unit_tests/test_calc.py
-        poetry run py.test dioptas/tests/unit_tests/test_CalibrationModel.py
-        poetry run py.test dioptas/tests/unit_tests/test_cif.py
-        poetry run py.test dioptas/tests/unit_tests/test_DioptasModel.py
-        poetry run py.test dioptas/tests/unit_tests/test_FileNameIterator.py
-        poetry run py.test dioptas/tests/unit_tests/test_HelperModule.py
-        poetry run py.test dioptas/tests/unit_tests/test_ImgCorrections.py
-        poetry run py.test dioptas/tests/unit_tests/test_ImgModel.py
-        poetry run py.test dioptas/tests/unit_tests/test_Jcpds.py
-        poetry run py.test dioptas/tests/unit_tests/test_MaskModel.py
-        poetry run py.test dioptas/tests/unit_tests/test_NewFileInDirectoryWatcher.py
-        poetry run py.test dioptas/tests/unit_tests/test_OverlayModel.py
-        poetry run py.test dioptas/tests/unit_tests/test_Pattern.py
-        poetry run py.test dioptas/tests/unit_tests/test_PatternModel.py
-        poetry run py.test dioptas/tests/unit_tests/test_PhaseModel.py
-        poetry run py.test dioptas/tests/unit_tests/test_Signal.py
+        poetry run py.test dioptas/tests/unit_tests/
