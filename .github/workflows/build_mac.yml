@@ -36,6 +36,9 @@ jobs:
     - name: Compile Smooth Bruckner
       run: poetry run cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
 
+    - name: Add Dynamic Versioning Plugin
+      run: poetry self add poetry-dynamic-versioning[plugin]
+
     - name: Update the Version
       run: poetry dynamic-versioning
 
