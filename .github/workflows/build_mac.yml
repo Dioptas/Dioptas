@@ -33,12 +33,6 @@ jobs:
     - name: Install PyInstaller
       run: poetry run pip install pyinstaller
 
-    - name: Downgrade Scikit-Image
-      run: poetry run pip install scikit-image==0.19.3
-
-    - name: Compile Smooth Bruckner
-      run: poetry run cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
-
     - name: Add Dynamic Versioning Plugin
       run: poetry self add poetry-dynamic-versioning[plugin]
 
