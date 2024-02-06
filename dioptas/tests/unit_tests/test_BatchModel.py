@@ -4,8 +4,7 @@ import pytest
 import numpy as np
 
 from ...model.CalibrationModel import CalibrationModel
-from ...model.ImgModel import ImgModel
-from ...model.MaskModel import MaskModel
+from ...model.Configuration import Configuration
 from ...model.BatchModel import BatchModel, iterate_folder
 from ...model.util.Pattern import Pattern
 
@@ -20,36 +19,21 @@ files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'
 cal_file = os.path.join(data_path, 'lambda/L2.poni')
 
 
-@pytest.fixture()
-def img_model():
-    img_model = ImgModel()
-    yield img_model
-
 
 @pytest.fixture()
-def batch_model(img_model):
-    calibration_model = CalibrationModel(img_model)
-    calibration_model.load(cal_file)
-    mask_model = MaskModel()
-    mask_model.mode = False
-    batch_model = BatchModel(calibration_model, mask_model)
+def configuration():
+    configuration = Configuration()
+    yield configuration
+
+@pytest.fixture()
+def batch_model(configuration):
+    configuration.calibration_model.load(cal_file)
+    batch_model = BatchModel(configuration)
     batch_model.set_image_files(files)
 
     pattern = Pattern().load(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
-    calibration_model.integrate_1d = MagicMock(return_value=(pattern.x, pattern.y))
-
+    configuration.calibration_model.integrate_1d = MagicMock(return_value=(pattern.x, pattern.y))
     yield batch_model
-
-    reset_calibration_model(calibration_model)
-
-
-def reset_calibration_model(calibration_model):
-    calibration_model.pattern_geometry.reset()
-    del calibration_model.pattern_geometry
-    if calibration_model.cake_geometry is not None:
-        calibration_model.cake_geometry.reset()
-        del calibration_model.cake_geometry
-    gc.collect()
 
 
 def test_init_state(batch_model):
@@ -60,12 +44,11 @@ def test_init_state(batch_model):
 
 
 def test_integrate_raw_data(batch_model):
-    num_points = 1500
     start = 2
     stop = 18
     step = 2
 
-    batch_model.integrate_raw_data(num_points, start, stop, step, use_all=True)
+    batch_model.integrate_raw_data(start, stop, step, use_all=True)
 
     assert batch_model.data.shape[0] == 8
     assert batch_model.n_img == 8
@@ -80,10 +63,10 @@ def test_get_image_info(batch_model):
     assert pos == 0
 
 
-def test_load_image(batch_model, img_model):
+def test_load_image(batch_model, configuration):
     index = 10
     batch_model.load_image(index, use_all=True)
-    assert img_model.img_data.shape == (1833, 1556)
+    assert configuration.img_model.img_data.shape == (1833, 1556)
 
 
 def test_saving_loading(batch_model, tmp_path):
@@ -92,7 +75,7 @@ def test_saving_loading(batch_model, tmp_path):
     stop = 18
     step = 2
 
-    batch_model.integrate_raw_data(num_points, start, stop, step, use_all=True)
+    batch_model.integrate_raw_data(start, stop, step, use_all=True)
     batch_model.save_proc_data(os.path.join(tmp_path, "test_save_proc.nxs"))
     batch_model.reset_data()
     batch_model.load_proc_data(os.path.join(tmp_path, "test_save_proc.nxs"))
@@ -104,13 +87,13 @@ def test_saving_loading(batch_model, tmp_path):
 
 
 def test_save_as_csv(batch_model, tmp_path):
-    batch_model.integrate_raw_data(num_points=1000, start=5, stop=10, step=2, use_all=True)
+    batch_model.integrate_raw_data(start=5, stop=10, step=2, use_all=True)
     batch_model.save_as_csv(os.path.join(tmp_path, "test_save.csv"))
     assert os.path.exists(os.path.join(tmp_path, "test_save.csv"))
 
 
 def test_extract_background(batch_model):
-    batch_model.integrate_raw_data(num_points=1000, start=5, stop=10, step=2, use_all=True)
+    batch_model.integrate_raw_data(start=5, stop=10, step=2, use_all=True)
     batch_model.extract_background(parameters=(0.1, 150, 50))
     assert batch_model.bkg.shape[0] == 3
 

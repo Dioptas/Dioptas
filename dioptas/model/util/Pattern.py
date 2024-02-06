@@ -63,12 +63,24 @@ class Pattern(QtCore.QObject):
         self._auto_background_pattern = None
 
     def load(self, filename, skiprows=0):
+        factor = 1.0
         try:
             if filename.endswith('.chi'):
                 skiprows = 4
+            if filename.endswith('fxye'):
+                factor = 1.0/100.0
+                with open(filename, 'r') as fxye_file:
+                    skiprows = 0
+                    for line in fxye_file:
+                        skiprows += 1
+                        if "BANK" in line:
+                            if "CONQ" in line:
+                                factor = 1.0
+                            break
+
             data = np.loadtxt(filename, skiprows=skiprows)
             self.filename = filename
-            self._original_x = data.T[0]
+            self._original_x = data.T[0]*factor
             self._original_y = data.T[1]
             self.name = os.path.basename(filename).split('.')[:-1][0]
             self.recalculate_pattern()
@@ -77,6 +89,12 @@ class Pattern(QtCore.QObject):
         except ValueError:
             print('Wrong data format for pattern file! - ' + filename)
             return -1
+
+    @classmethod
+    def from_file(cls, filename):
+        pattern = cls()
+        pattern.load(filename)
+        return pattern
 
     def save(self, filename, header='', subtract_background=False, unit='2th_deg'):
         """

@@ -28,9 +28,7 @@ from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
 from ..widgets.plot_widgets import PatternWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
-    DoubleSpinBoxAlignRight, FlatButton, OpenIconButton, ResetIconButton
-
-from .. import icons_path
+    DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton
 
 
 class CalibrationWidget(QtWidgets.QWidget):
@@ -42,6 +40,8 @@ class CalibrationWidget(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(CalibrationWidget, self).__init__(*args, **kwargs)
+
+        self.setObjectName('calibration_widget')
 
         self.calibration_display_widget = CalibrationDisplayWidget(self)
         self.calibration_control_widget = CalibrationControlWidget(self)
@@ -329,8 +329,9 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.tab_widget)
 
         self._status_layout = QtWidgets.QHBoxLayout()
-        self.calibrate_btn = FlatButton("Calibrate")
-        self.refine_btn = FlatButton("Refine")
+        self._status_layout.setContentsMargins(6, 0, 0, 0)
+        self.calibrate_btn = QtWidgets.QPushButton("Calibrate")
+        self.refine_btn = QtWidgets.QPushButton("Refine")
         self.position_lbl = QtWidgets.QLabel("position_lbl")
 
         self._status_layout.addWidget(self.calibrate_btn)
@@ -357,9 +358,9 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self._file_layout = QtWidgets.QHBoxLayout()
-        self.load_img_btn = FlatButton("Load Image File", self)
-        self.load_previous_img_btn = FlatButton("<", self)
-        self.load_next_img_btn = FlatButton(">", self)
+        self.load_img_btn = QtWidgets.QPushButton("Load Image File", self)
+        self.load_previous_img_btn = QtWidgets.QPushButton("<", self)
+        self.load_next_img_btn = QtWidgets.QPushButton(">", self)
 
         self._file_layout.addWidget(self.load_img_btn)
         self._file_layout.addWidget(self.load_previous_img_btn)
@@ -381,8 +382,8 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.toolbox)
 
         self._bottom_layout = QtWidgets.QHBoxLayout()
-        self.load_calibration_btn = FlatButton('Load Calibration')
-        self.save_calibration_btn = FlatButton('Save Calibration')
+        self.load_calibration_btn = QtWidgets.QPushButton('Load Calibration')
+        self.save_calibration_btn = QtWidgets.QPushButton('Save Calibration')
         self._bottom_layout.addWidget(self.load_calibration_btn)
         self._bottom_layout.addWidget(self.save_calibration_btn)
         self._layout.addLayout(self._bottom_layout)
@@ -521,17 +522,17 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
         self._grid_layout2 = QtWidgets.QGridLayout()
         self._grid_layout2.setSpacing(6)
 
-        self.rotate_p90_btn = FlatButton('Rotate +90')
-        self.rotate_m90_btn = FlatButton('Rotate -90', self)
+        self.rotate_p90_btn = QtWidgets.QPushButton('Rotate +90')
+        self.rotate_m90_btn = QtWidgets.QPushButton('Rotate -90', self)
         self._grid_layout2.addWidget(self.rotate_p90_btn, 1, 0)
         self._grid_layout2.addWidget(self.rotate_m90_btn, 1, 1)
 
-        self.flip_horizontal_btn = FlatButton('Flip horizontal', self)
-        self.flip_vertical_btn = FlatButton('Flip vertical', self)
+        self.flip_horizontal_btn = QtWidgets.QPushButton('Flip horizontal', self)
+        self.flip_vertical_btn = QtWidgets.QPushButton('Flip vertical', self)
         self._grid_layout2.addWidget(self.flip_horizontal_btn, 2, 0)
         self._grid_layout2.addWidget(self.flip_vertical_btn, 2, 1)
 
-        self.reset_transformations_btn = FlatButton('Reset transformations', self)
+        self.reset_transformations_btn = QtWidgets.QPushButton('Reset transformations', self)
         self._grid_layout2.addWidget(self.reset_transformations_btn, 3, 0, 1, 2)
 
         self._layout.addLayout(self._grid_layout1)
@@ -545,6 +546,8 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         super(PeakSelectionGroupBox, self).__init__('Peak Selection')
 
         self._layout = QtWidgets.QGridLayout()
+        self._layout.setVerticalSpacing(3)
+        self._layout.setHorizontalSpacing(6)
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                    QtWidgets.QSizePolicy.Minimum), 0, 0)
         self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
@@ -573,10 +576,11 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                    QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
 
-        self.undo_peaks_btn = FlatButton("Undo")
-        self.clear_peaks_btn = FlatButton("Clear All Peaks")
+        self.undo_peaks_btn = QtWidgets.QPushButton("Undo")
+        self.clear_peaks_btn = QtWidgets.QPushButton("Clear All Peaks")
 
         self._peak_btn_layout = QtWidgets.QHBoxLayout()
+        self._peak_btn_layout.setSpacing(6)
         self._peak_btn_layout.addWidget(self.undo_peaks_btn)
         self._peak_btn_layout.addWidget(self.clear_peaks_btn)
         self._layout.addLayout(self._peak_btn_layout, 5, 0, 1, 4)
@@ -589,6 +593,8 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         super(RefinementOptionsGroupBox, self).__init__('Refinement Options')
 
         self._layout = QtWidgets.QGridLayout()
+        self._layout.setSpacing(3)
+        self._layout.setContentsMargins(6, 0, 6, 0)
 
         self.automatic_refinement_cb = QtWidgets.QCheckBox('automatic refinement')
         self.automatic_refinement_cb.setChecked(True)
@@ -697,7 +703,7 @@ class PyfaiParametersWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.pixel_height_txt, 9, 1)
         self._layout.addWidget(QtWidgets.QLabel('um'))
 
-        self.update_btn = FlatButton('update')
+        self.update_btn = QtWidgets.QPushButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
         self._layout.addItem(
@@ -762,7 +768,7 @@ class Fit2dParametersWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.pixel_height_txt, 9, 1)
         self._layout.addWidget(QtWidgets.QLabel('um'))
 
-        self.update_btn = FlatButton('update')
+        self.update_btn = QtWidgets.QPushButton('update')
         self._layout.addWidget(self.update_btn, 10, 0, 1, 4)
 
         self._layout.addItem(

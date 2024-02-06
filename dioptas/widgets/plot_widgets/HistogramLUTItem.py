@@ -40,19 +40,29 @@ from ..CustomWidgets import FlatButton
 from ... import icons_path, style_path
 
 
-__all__ = ['HistogramLUTItem']
+__all__ = ["HistogramLUTItem"]
 
 # add grey_inverse to the list of color gradients:
-pyqtgraph.graphicsItems.GradientEditorItem.Gradients['grey_inverse'] = \
-    {'ticks': [(0.0, (255, 255, 255, 255)), (1.0, (0, 0, 0, 255))], 'mode': 'rgb'}
+pyqtgraph.graphicsItems.GradientEditorItem.Gradients["grey_inverse"] = {
+    "ticks": [(0.0, (255, 255, 255, 255)), (1.0, (0, 0, 0, 255))],
+    "mode": "rgb",
+}
 
-pyqtgraph.graphicsItems.GradientEditorItem.Gradients['jet'] = \
-    {'ticks': [(0.0, (0, 0, 128, 255)), (0.1, (0, 0, 255, 255)),
-               (0.4, (0, 255, 255, 255)), (0.5, (0, 255, 0, 255)),
-               (0.6, (255, 255, 0, 255)), (0.9, (255, 0, 0, 255)), (1.0, (128, 0, 0, 255))], 'mode': 'rgb'}
+pyqtgraph.graphicsItems.GradientEditorItem.Gradients["jet"] = {
+    "ticks": [
+        (0.0, (0, 0, 128, 255)),
+        (0.1, (0, 0, 255, 255)),
+        (0.4, (0, 255, 255, 255)),
+        (0.5, (0, 255, 0, 255)),
+        (0.6, (255, 255, 0, 255)),
+        (0.9, (255, 0, 0, 255)),
+        (1.0, (128, 0, 0, 255)),
+    ],
+    "mode": "rgb",
+}
 
 # set the error handling for numpy
-np.seterr(divide='ignore', invalid='ignore')
+np.seterr(divide="ignore", invalid="ignore")
 
 
 class HistogramLUTItem(GraphicsWidget):
@@ -60,7 +70,7 @@ class HistogramLUTItem(GraphicsWidget):
     This is a graphicsWidget which provides controls for adjusting the display of an image.
     Includes:
 
-    - Image histogram 
+    - Image histogram
     - Movable region over histogram to select black/white levels
     - Gradient editor to define color lookup table for single-channel images
     """
@@ -69,7 +79,9 @@ class HistogramLUTItem(GraphicsWidget):
     sigLevelsChanged = QtCore.Signal(object)
     sigLevelChangeFinished = QtCore.Signal(object)
 
-    def __init__(self, image=None, fillHistogram=False, orientation='horizontal', autoLevel=None):
+    def __init__(
+        self, image=None, fillHistogram=False, orientation="horizontal", autoLevel=None
+    ):
         """
         If *image* (ImageItem) is provided, then the control will be automatically linked to the image and changes to the control will be immediately reflected in the image's appearance.
         By default, the histogram is rendered with a fill. For performance, set *fillHistogram* = False.
@@ -91,29 +103,27 @@ class HistogramLUTItem(GraphicsWidget):
         self.vb = ViewBox()
 
         self.gradient = GradientEditorItem()
-        self.gradient.loadPreset('grey')
+        self.gradient.loadPreset("grey")
 
         self._normalizationLabel = pg.LabelItem("")
 
         configurationButton = FlatButton()
         configurationButton.setWidth(30)
         configurationButton.setHeight(30)
-        configurationButton.setStyleSheet(
-            pathlib.Path(style_path, "stylesheet.qss").read_text()
-        )
         configurationButton.setIcon(
-            QtGui.QIcon(str(pathlib.Path(icons_path) / "settings.png")))
+            QtGui.QIcon(str(pathlib.Path(icons_path) / "settings.png"))
+        )
         configurationButton.setToolTip("Configure colormap")
         configurationButton.clicked.connect(self._configurationButtonClicked)
 
         proxy = QtWidgets.QGraphicsProxyWidget()
         proxy.setWidget(configurationButton)
 
-        if orientation == 'horizontal':
+        if orientation == "horizontal":
             self.vb.setMouseEnabled(x=True, y=False)
             self.vb.setMaximumHeight(30)
             self.vb.setMinimumHeight(45)
-            self.gradient.setOrientation('top')
+            self.gradient.setOrientation("top")
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Vertical)
             self.layout.addItem(self.vb, 1, 0)
             self.layout.addItem(self.gradient, 0, 0)
@@ -121,11 +131,11 @@ class HistogramLUTItem(GraphicsWidget):
             self.layout.addItem(proxy, 0, 1)
             self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
             self.vb.setFlag(self.gradient.ItemStacksBehindParent)
-        elif orientation == 'vertical':
+        elif orientation == "vertical":
             self.vb.setMouseEnabled(x=False, y=True)
             self.vb.setMaximumWidth(30)
             self.vb.setMinimumWidth(45)
-            self.gradient.setOrientation('right')
+            self.gradient.setOrientation("right")
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
             self.layout.addItem(self.gradient, 0, 1)
@@ -176,22 +186,30 @@ class HistogramLUTItem(GraphicsWidget):
     def paint(self, p, *args):
         pen = self.region.lines[0].pen
         rgn = self.getLevels()
-        if self.orientation == 'horizontal':
-            p1 = self.vb.mapFromViewToItem(self, Point(rgn[0], self.vb.viewRect().center().y()))
-            p2 = self.vb.mapFromViewToItem(self, Point(rgn[1], self.vb.viewRect().center().y()))
+        if self.orientation == "horizontal":
+            p1 = self.vb.mapFromViewToItem(
+                self, Point(rgn[0], self.vb.viewRect().center().y())
+            )
+            p2 = self.vb.mapFromViewToItem(
+                self, Point(rgn[1], self.vb.viewRect().center().y())
+            )
             gradRect = self.gradient.mapRectToParent(self.gradient.gradRect.rect())
-            for pen in [fn.mkPen('k', width=3), pen]:
+            for pen in [fn.mkPen("k", width=3), pen]:
                 p.setPen(pen)
                 p.drawLine(p1, gradRect.bottomLeft())
                 p.drawLine(p2, gradRect.bottomRight())
                 p.drawLine(gradRect.bottomLeft(), gradRect.topLeft())
                 p.drawLine(gradRect.bottomRight(), gradRect.topRight())
 
-        elif self.orientation == 'vertical':
-            p1 = self.vb.mapFromViewToItem(self, Point(self.vb.viewRect().center().x(), rgn[0]))
-            p2 = self.vb.mapFromViewToItem(self, Point(self.vb.viewRect().center().x(), rgn[1]))
+        elif self.orientation == "vertical":
+            p1 = self.vb.mapFromViewToItem(
+                self, Point(self.vb.viewRect().center().x(), rgn[0])
+            )
+            p2 = self.vb.mapFromViewToItem(
+                self, Point(self.vb.viewRect().center().x(), rgn[1])
+            )
             gradRect = self.gradient.mapRectToParent(self.gradient.gradRect.rect())
-            for pen in [fn.mkPen('k', width=3), pen]:
+            for pen in [fn.mkPen("k", width=3), pen]:
                 p.setPen(pen)
                 p.drawLine(p1, gradRect.bottomLeft())
                 p.drawLine(p2, gradRect.topLeft())
@@ -201,9 +219,9 @@ class HistogramLUTItem(GraphicsWidget):
     def setHistogramRange(self, mn, mx, padding=0.1):
         """Set the Y range on the histogram plot. This disables auto-scaling."""
         self.vb.enableAutoRange(self.vb.YAxis, False)
-        if self.orientation == 'horizontal':
+        if self.orientation == "horizontal":
             self.vb.setXRange(mn, mx, padding)
-        elif self.orientation == 'vertical':
+        elif self.orientation == "vertical":
             self.vb.setYrange(mn, mx, padding)
             # mn -= d*padding
             # mx += d*padding
@@ -232,7 +250,9 @@ class HistogramLUTItem(GraphicsWidget):
         self.imageItem = img
         self._updateNormalizationLabel(self.getNormalization())
         img.sigImageChanged.connect(self.imageChanged)
-        img.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
+        img.setLookupTable(
+            self.getLookupTable
+        )  ## send function pointer, not the result
         # self.gradientChanged()
         self.regionChanged()
         self.imageChanged()
@@ -243,7 +263,9 @@ class HistogramLUTItem(GraphicsWidget):
             if self.gradient.isLookupTrivial():
                 self.imageItem.setLookupTable(None)  # lambda x: x.astype(np.uint8))
             else:
-                self.imageItem.setLookupTable(self.getLookupTable)  ## send function pointer, not the result
+                self.imageItem.setLookupTable(
+                    self.getLookupTable
+                )  ## send function pointer, not the result
 
         self.lut = None
         # if self.imageItem is not None:
@@ -289,9 +311,9 @@ class HistogramLUTItem(GraphicsWidget):
         hist_nonzero = hist[mask_nonzero]
 
         log_hist_nonzero = np.log(hist_nonzero)
-        if self.orientation == 'horizontal':
+        if self.orientation == "horizontal":
             self.plot.setData(left_edges_nonzero, log_hist_nonzero)
-        elif self.orientation == 'vertical':
+        elif self.orientation == "vertical":
             self.plot.setData(log_hist_nonzero, left_edges_nonzero)
 
     def getImageData(self, copy: bool = True) -> Optional[np.ndarray]:
@@ -344,18 +366,21 @@ class HistogramLUTItem(GraphicsWidget):
         widget.setData(data=self.getImageData(copy=False), copy=False)
         widget.sigCurrentGradientChanged.connect(self._configurationGradientChanged)
         widget.sigCurrentNormalizationChanged.connect(self._normalizationChanged)
+
         def rangeChanged(minimum, maximum):
             self.setLevels(minimum, maximum)
             # Update displayed range since it can differ from the provided one
             widget.setRange(*self.getExpLevels())
+
         widget.sigRangeChanged.connect(rangeChanged)
         button = self.sender()
-        if self.orientation == 'horizontal':
+        if self.orientation == "horizontal":
             position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, 0))
         else:  # vertical
             widget.adjustSize()  # For retrieving dialog size
-            position = button.mapToGlobal(QtCore.QPoint(button.width() + 5, button.height())) - \
-                QtCore.QPoint(0, widget.frameGeometry().height())
+            position = button.mapToGlobal(
+                QtCore.QPoint(button.width() + 5, button.height())
+            ) - QtCore.QPoint(0, widget.frameGeometry().height())
         widget.move(position)
         widget.show()
 
@@ -365,7 +390,9 @@ class HistogramLUTItem(GraphicsWidget):
 
     def _updateNormalizationLabel(self, normalization: str):
         shortname = NormalizedImageItem.getNormalizationShortname(normalization)
-        description = NormalizedImageItem.getNormalizationDescription(normalization).capitalize()
+        description = NormalizedImageItem.getNormalizationDescription(
+            normalization
+        ).capitalize()
         self._normalizationLabel.setText(f"<small>{shortname}</small>")
         self._normalizationLabel.setToolTip(f"{description} colormap normalization")
 
@@ -379,8 +406,12 @@ class HistogramLUTItem(GraphicsWidget):
 
 
 class LogarithmRegionItem(LinearRegionItem):
-    def __contains__(self, values=[0, 1], orientation=None, brush=None, movable=True, bounds=None):
-        super(LogarithmRegionItem, self).__init__(values, orientation, brush, movable, bounds)
+    def __contains__(
+        self, values=[0, 1], orientation=None, brush=None, movable=True, bounds=None
+    ):
+        super(LogarithmRegionItem, self).__init__(
+            values, orientation, brush, movable, bounds
+        )
 
     def getRegion(self):
         """Return the values at the edges of the region."""

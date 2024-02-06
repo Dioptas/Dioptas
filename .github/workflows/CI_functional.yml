@@ -6,26 +6,22 @@ on: [push, pull_request]
 
 jobs:
   test:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v3
-    - run: git fetch --prune --unshallow
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install poetry
+      run: pip install poetry
+
     - name: Setup Python 3.11
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-
-    - name: Use Python Dependency Cache
-      id: pip-cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-c3
-        restore-keys: |
-          ${{ runner.os }}-pip-c3
+        cache: 'poetry'
 
     - name: Install Apt Dependencies
       run: |
@@ -34,14 +30,11 @@ jobs:
           libxcb-keysyms1-dev libxcb-image0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev \
           libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-cursor0 libopengl0
 
-    - name: Install Pip Dependencies
-      run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt6 cython future qtpy pyfai lmfit \
-                    pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph \
-                    mock pytest pytest-xvfb pytest-qt
+    - name: Install poetry dependencies
+      run: poetry install
 
     - name: Run tests
       run: |
-        py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
-        py.test dioptas/tests/functional_tests/test_img_plots.py
-        py.test dioptas/tests/functional_tests/test_functional_integration.py
+        poetry run py.test dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
+        poetry run py.test dioptas/tests/functional_tests/test_img_plots.py
+        poetry run py.test dioptas/tests/functional_tests/test_functional_integration.py

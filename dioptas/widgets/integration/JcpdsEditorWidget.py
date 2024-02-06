@@ -22,7 +22,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
 
 from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
-    VerticalSpacerItem, FlatButton, CleanLooksComboBox
+    VerticalSpacerItem, CleanLooksComboBox
 
 from ...model.util.HelperModule import convert_d_to_two_theta
 
@@ -149,9 +149,9 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.reflection_table_model = ReflectionTableModel()
         self.reflection_table_view.setModel(self.reflection_table_model)
         # self.reflection_table.setColumnCount(10)
-        self.reflections_add_btn = FlatButton('Add')
-        self.reflections_delete_btn = FlatButton('Delete')
-        self.reflections_clear_btn = FlatButton('Clear')
+        self.reflections_add_btn = QtWidgets.QPushButton('Add')
+        self.reflections_delete_btn = QtWidgets.QPushButton('Delete')
+        self.reflections_clear_btn = QtWidgets.QPushButton('Clear')
 
         self._reflection_layout.addWidget(self.reflection_table_view, 0, 0, 1, 3)
         self._reflection_layout.addWidget(self.reflections_add_btn, 1, 0)
@@ -166,8 +166,8 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self._body_layout.addWidget(self.reflections_gb, 0, 1, 2, 1)
 
         self._button_layout = QtWidgets.QHBoxLayout()
-        self.save_as_btn = FlatButton('Save As')
-        self.reload_file_btn = FlatButton('Reload File')
+        self.save_as_btn = QtWidgets.QPushButton('Save As')
+        self.reload_file_btn = QtWidgets.QPushButton('Reload File')
 
         self._button_layout.addWidget(self.save_as_btn)
         self._button_layout.addWidget(self.reload_file_btn)

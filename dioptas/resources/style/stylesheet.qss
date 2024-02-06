@@ -126,6 +126,10 @@ QRadioButton, QCheckBox {
     height: 15px;
 }
 
+QListWidget::item:selected{
+    background: #F100F1;
+}
+
 QLineEdit  {
     border-radius: 2px;
     background: #F1F1F1;
@@ -421,7 +425,7 @@ QFrame#main_frame {
    border-bottom-right-radius: 8px;
 }
 
-#integration_mode_btn {
+#map_mode_btn {
    border-top-left-radius:8px;
    border-bottom-left-radius: 8px;
 }

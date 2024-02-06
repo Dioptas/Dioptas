@@ -24,7 +24,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationCakeWidget
-from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, SaveIconButton
+from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, SaveIconButton, DarkCheckableFlatButton
 from ..CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .. import CLICKED_COLOR
 
@@ -33,7 +33,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
     def __init__(self):
         super(IntegrationImgDisplayWidget, self).__init__()
 
-        self.frame = QtWidgets.QFrame()
+        self.frame = QtWidgets.QWidget()
         self.frame.setObjectName('img_frame')
 
         self._frame_layout = QtWidgets.QVBoxLayout()
@@ -76,7 +76,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.cake_shift_azimuth_sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.mask_btn = CheckableFlatButton('Mask')
         self.phases_btn = CheckableFlatButton('Show Phases')
-        self.show_background_subtracted_img_btn = CheckableFlatButton('bg')
+        self.show_background_subtracted_img_btn = CheckableFlatButton('bkg')
         self.transparent_cb = QtWidgets.QCheckBox('trans')
         self.autoscale_btn = CheckableFlatButton('AutoScale')
         self.undock_btn = FlatButton('Undock')
@@ -104,12 +104,13 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
         self.style_widgets()
+        self.set_tooltips()
         self.cake_shift_azimuth_sl.setVisible(False)
         self.show_background_subtracted_img_btn.setVisible(False)
 
     def style_widgets(self):
         self.setStyleSheet("""
-            #img_frame, #img_position_and_unit_widget, QLabel, QCheckBox {
+            #img_frame, #img_position_and_unit_widget {
                 background: black;
             }
             """)
@@ -120,3 +121,15 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
 
         self.save_image_btn.setIconSize(QtCore.QSize(13, 13))
         self.save_image_btn.setWidth(25)
+
+        # btns = [self.roi_btn, self.mode_btn, self.mask_btn, self.transparent_cb, self.show_background_subtracted_img_btn, 
+        #         self.autoscale_btn, self.undock_btn]
+        
+        # for btn in btns:
+        #     btn.setFixedHeight(25)
+
+    def set_tooltips(self):
+        self.show_background_subtracted_img_btn.setToolTip("Toggle background subtraction")
+        self.mask_btn.setToolTip("Toggle mask")
+        self.mode_btn.setToolTip("Toggle between image and cake mode")
+        self.undock_btn.setToolTip("Undock image to new window")

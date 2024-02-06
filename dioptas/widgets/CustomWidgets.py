@@ -55,15 +55,17 @@ class LabelAlignRight(QtWidgets.QLabel):
 class LabelExpandable(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
         super(LabelExpandable, self).__init__(*args, **kwargs)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             color: #F1F1F1;
             background: #3C3C3C;
-        """)
+        """
+        )
         self.setReadOnly(True)
 
 
 class CleanLooksComboBox(QtWidgets.QComboBox):
-    cleanlooks = QtWidgets.QStyleFactory.create('motif')
+    cleanlooks = QtWidgets.QStyleFactory.create("motif")
 
     def __init__(self, *args, **kwargs):
         super(CleanLooksComboBox, self).__init__(*args, **kwargs)
@@ -157,6 +159,7 @@ class ConservativeSpinBox(QtWidgets.QSpinBox):
     This Spinbox is intended for usage with applications were the change in the spinbox value causes long calculations
     and does a valueChanged signal on every keypress results in a strange behavior.
     """
+
     valueChanged = QtCore.Signal()
 
     def __init__(self):
@@ -169,12 +172,22 @@ class ConservativeSpinBox(QtWidgets.QSpinBox):
         opt = QtWidgets.QStyleOptionSpinBox()
         self.initStyleOption(opt)
 
-        if self.style().subControlRect(QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxUp).contains(
-                e.pos()):
+        if (
+            self.style()
+            .subControlRect(
+                QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxUp
+            )
+            .contains(e.pos())
+        ):
             self.setValue(self.value() + 1)
             self.valueChanged.emit()
-        elif self.style().subControlRect(QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxDown).contains(
-                e.pos()):
+        elif (
+            self.style()
+            .subControlRect(
+                QtWidgets.QStyle.CC_SpinBox, opt, QtWidgets.QStyle.SC_SpinBoxDown
+            )
+            .contains(e.pos())
+        ):
             self.setValue(self.value() - 1)
             self.valueChanged.emit()
 
@@ -196,10 +209,32 @@ class FlatButton(QtWidgets.QPushButton):
         self.setMaximumWidth(width)
 
 
+class CheckableButton(QtWidgets.QPushButton):
+    def __init__(self, *args):
+        super(CheckableButton, self).__init__(*args)
+        self.setCheckable(True)
+
+
 class CheckableFlatButton(FlatButton):
     def __init__(self, *args):
         super(CheckableFlatButton, self).__init__(*args)
         self.setCheckable(True)
+
+
+class DarkCheckableFlatButton(QtWidgets.QPushButton):
+    def __init__(self, *args):
+        super(DarkCheckableFlatButton, self).__init__(*args)
+        self.setObjectName("dark_checkable_flat_btn")
+        self.setCheckable(True)
+        self.setFlat(True)
+
+    def setHeight(self, height):
+        self.setMinimumHeight(height)
+        self.setMaximumHeight(height)
+
+    def setWidth(self, width):
+        self.setMinimumWidth(width)
+        self.setMaximumWidth(width)
 
 
 class RotatedCheckableFlatButton(CheckableFlatButton):
@@ -252,19 +287,19 @@ class RotatedCheckableFlatButton(CheckableFlatButton):
 class SaveIconButton(FlatButton):
     def __init__(self):
         super(SaveIconButton, self).__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'save.ico')))
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "save.ico")))
 
 
 class OpenIconButton(FlatButton):
     def __init__(self):
         super(OpenIconButton, self).__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
 
 
 class ResetIconButton(FlatButton):
     def __init__(self):
         super(ResetIconButton, self).__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset.ico')))
+        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset.ico")))
 
 
 class HorizontalLine(QtWidgets.QFrame):
@@ -272,6 +307,7 @@ class HorizontalLine(QtWidgets.QFrame):
         super(HorizontalLine, self).__init__()
         self.setFrameShape(QtWidgets.QFrame.HLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.setFixedHeight(1)
 
 
 class VerticalLine(QtWidgets.QFrame):
@@ -279,6 +315,7 @@ class VerticalLine(QtWidgets.QFrame):
         super(VerticalLine, self).__init__()
         self.setFrameShape(QtWidgets.QFrame.VLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.setFixedWidth(1)
 
 
 class ListTableWidget(QtWidgets.QTableWidget):
@@ -304,9 +341,97 @@ class NoRectDelegate(QtWidgets.QItemDelegate):
 
 
 def HorizontalSpacerItem(minimum_width=0):
-    return QtWidgets.QSpacerItem(minimum_width, 0, QtWidgets.QSizePolicy.MinimumExpanding,
-                                 QtWidgets.QSizePolicy.Minimum)
+    return QtWidgets.QSpacerItem(
+        minimum_width,
+        0,
+        QtWidgets.QSizePolicy.MinimumExpanding,
+        QtWidgets.QSizePolicy.Minimum,
+    )
 
 
 def VerticalSpacerItem():
-    return QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)
+    return QtWidgets.QSpacerItem(
+        0, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
+    )
+
+
+class MenuTabWidget(QtWidgets.QWidget):
+    """
+    A widget that switches between added widgets using a menu on the left.
+    This is used to substitute the built-in tab widget, because we need horizontal text buttons on the left.
+
+    Example:
+    ```
+    menu_tab_widget = MenuTabWidget()
+    menu_tab_widget.add_tab("Tab 1", QtWidgets.QWidget())
+    menu_tab_widget.add_tab("Tab 2", QtWidgets.QWidget())
+    ```
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(MenuTabWidget, self).__init__(*args, **kwargs)
+
+        self._layout = QtWidgets.QHBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+
+        self._menu_layout = QtWidgets.QVBoxLayout()
+        self._menu_layout.setContentsMargins(0, 0, 0, 0)
+        self._menu_layout.setSpacing(0)
+        self._menu_btn_widget = QtWidgets.QWidget()
+        self._menu_btn_widget.setObjectName("MenuTabWidgetMenu")
+        self._menu_btn_layout = QtWidgets.QVBoxLayout()
+        self._menu_btn_layout.setContentsMargins(0, 0, 0, 0)
+        self._menu_btn_layout.setSpacing(0)
+        self._menu_btn_widget.setLayout(self._menu_btn_layout)
+        self._menu_layout.addWidget(self._menu_btn_widget)
+        self._menu_layout.addStretch()
+
+        self._menu_button_group = QtWidgets.QButtonGroup()
+
+        self._layout.addLayout(self._menu_layout)
+        self.setLayout(self._layout)
+
+        self.menu_btns = []
+        self.tab_widgets = []
+
+        self.set_menu_width()
+
+    def add_tab(self, title: str, widget: QtWidgets.QWidget):
+        """
+        Add a tab to the tab widget.
+        :param title: The title of the tab.
+        :param widget: The widget that should be shown when the tab is selected.
+        """
+        btn = CheckableFlatButton(title)
+        btn.clicked.connect(lambda: self.show_tab(widget))
+        btn.setFixedHeight(30)
+        self.menu_btns.append(btn)
+        self._menu_button_group.addButton(btn)
+        self._menu_btn_layout.addWidget(btn)
+        self.tab_widgets.append(widget)
+        self._layout.addWidget(widget)
+        widget.hide()
+
+        if len(self.menu_btns) == 1:
+            self.select_tab(0)
+
+    def show_tab(self, widget: QtWidgets.QWidget):
+        """
+        Show the widget. Widg must habe been added with add_tab before.
+        """
+        for tab_widget in self.tab_widgets:
+            tab_widget.hide()
+        widget.show()
+
+    def select_tab(self, index):
+        """
+        Select the tab with the given index.
+        """
+        self.menu_btns[index].setChecked(True)
+        self.show_tab(self.tab_widgets[index])
+
+    def set_menu_width(self, width: int = 100):
+        """
+        Set the width of the menu on the left.
+        """
+        self._menu_btn_widget.setFixedWidth(width)

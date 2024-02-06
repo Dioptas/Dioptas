@@ -22,8 +22,15 @@ from functools import partial
 
 from qtpy import QtWidgets, QtCore
 
-from .CustomWidgets import LabelAlignRight, HorizontalSpacerItem, CheckableFlatButton, FlatButton, NumberTextField, \
-    IntegerTextField, VerticalLine, SaveIconButton
+from .CustomWidgets import (
+    LabelAlignRight,
+    HorizontalSpacerItem,
+    CheckableButton,
+    NumberTextField,
+    IntegerTextField,
+    VerticalLine,
+    SaveIconButton,
+)
 
 
 class ConfigurationWidget(QtWidgets.QWidget):
@@ -31,9 +38,12 @@ class ConfigurationWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super(ConfigurationWidget, self).__init__(parent)
+        self.btn_size = QtCore.QSize(20, 20)
+
         self.create_widgets()
         self.create_layout()
         self.style_widgets()
+        self.add_tooltips()
 
     def create_widgets(self):
         self.configuration_lbl = LabelAlignRight("Configuration:")
@@ -42,31 +52,30 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.configurations_btn_widget = QtWidgets.QWidget()
         self.configuration_btn_group = QtWidgets.QButtonGroup()
 
-        self.add_configuration_btn = FlatButton("+")
-        self.remove_configuration_btn = FlatButton("-")
+        self.add_configuration_btn = QtWidgets.QPushButton("+")
+        self.remove_configuration_btn = QtWidgets.QPushButton("-")
 
         self.factor_lbl = LabelAlignRight("Factor: ")
         self.factor_txt = NumberTextField("1")
 
         self.file_lbl = LabelAlignRight("File: ")
-        self.previous_file_btn = FlatButton("<")
-        self.next_file_btn = FlatButton(">")
+        self.previous_file_btn = QtWidgets.QPushButton("<")
+        self.next_file_btn = QtWidgets.QPushButton(">")
         self.file_iterator_pos_lbl = LabelAlignRight(" Pos: ")
         self.file_iterator_pos_txt = IntegerTextField("1")
 
         self.folder_lbl = LabelAlignRight(" Folder:")
-        self.next_folder_btn = FlatButton(">")
-        self.previous_folder_btn = FlatButton("<")
+        self.next_folder_btn = QtWidgets.QPushButton(">")
+        self.previous_folder_btn = QtWidgets.QPushButton("<")
         self.mec_cb = QtWidgets.QCheckBox("MEC")
 
-        self.combine_patterns_btn = CheckableFlatButton("Combine Patterns")
-        self.combine_cakes_btn = CheckableFlatButton("Combine Cakes")
+        self.combine_patterns_btn = CheckableButton("Combine Patterns")
+        self.combine_cakes_btn = CheckableButton("Combine Cakes")
         self.saved_combined_patterns_btn = SaveIconButton()
         self.saved_combined_patterns_btn.setToolTip("Save combined pattern")
 
     def create_layout(self):
         self.main_layout = QtWidgets.QHBoxLayout()
-        self.main_layout.setContentsMargins(7, 0, 0, 0)
         self.main_layout.addWidget(self.configuration_lbl)
         self.main_layout.addWidget(self.add_configuration_btn)
         self.main_layout.addWidget(self.remove_configuration_btn)
@@ -85,25 +94,46 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.main_layout.addSpacerItem(HorizontalSpacerItem())
         self.main_layout.addWidget(self.factor_lbl)
         self.main_layout.addWidget(self.factor_txt)
-        self.main_layout.addSpacerItem(QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum))
+        self.main_layout.addSpacerItem(
+            QtWidgets.QSpacerItem(
+                20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+            )
+        )
         self.main_layout.addWidget(self.combine_patterns_btn)
         self.main_layout.addWidget(self.saved_combined_patterns_btn)
         self.main_layout.addWidget(self.combine_cakes_btn)
         self.setLayout(self.main_layout)
 
-        self.configurations_btn_layout = QtWidgets.QHBoxLayout(self.configurations_btn_widget)
+        self.configurations_btn_layout = QtWidgets.QHBoxLayout(
+            self.configurations_btn_widget
+        )
 
     def style_widgets(self):
         self.main_layout.setSpacing(6)
-        self.next_file_btn.setMaximumWidth(25)
-        self.file_iterator_pos_txt.setMaximumWidth(25)
-        self.next_folder_btn.setMaximumWidth(25)
-        self.previous_folder_btn.setMaximumWidth(25)
-        self.previous_file_btn.setMaximumWidth(25)
-        self.factor_txt.setMaximumWidth(35)
+        self.main_layout.setContentsMargins(6, 0, 6, 0)
+        self.configurations_btn_layout.setSpacing(3)
+        self.configurations_btn_layout.setContentsMargins(0, 0, 0, 0)
+
+        btns = [
+            self.add_configuration_btn,
+            self.remove_configuration_btn,
+            self.next_file_btn,
+            self.previous_file_btn,
+            self.next_folder_btn,
+            self.previous_folder_btn,
+            self.saved_combined_patterns_btn,
+        ]
+
+        for btn in btns:
+            btn.setFixedSize(self.btn_size)
 
         self.saved_combined_patterns_btn.setIconSize(QtCore.QSize(13, 13))
-        self.saved_combined_patterns_btn.setMaximumWidth(25)
+        self.saved_combined_patterns_btn.setToolTip("Save combined pattern")
+        self.saved_combined_patterns_btn.setFixedSize(25, 25)
+
+        self.combine_cakes_btn.setFixedHeight(25)
+        self.combine_patterns_btn.setFixedHeight(25)
+
 
     def update_configuration_btns(self, configurations, cur_ind):
         for btn in self.configuration_btns:
@@ -114,10 +144,20 @@ class ConfigurationWidget(QtWidgets.QWidget):
         self.configuration_btns = []
 
         for ind, configuration in enumerate(configurations):
-            new_button = CheckableFlatButton(str(ind + 1))
+            new_button = CheckableButton(str(ind + 1))
+            new_button.setFixedSize(25, 25)
+            new_button.setToolTip("Switch to configuration {}".format(ind + 1))
             self.configuration_btn_group.addButton(new_button)
             self.configuration_btns.append(new_button)
             self.configurations_btn_layout.addWidget(new_button)
             if ind == cur_ind:
                 new_button.setChecked(True)
             new_button.clicked.connect(partial(self.configuration_selected.emit, ind))
+
+    def add_tooltips(self):
+        self.add_configuration_btn.setToolTip("Add configuration")
+        self.remove_configuration_btn.setToolTip("Remove configuration")
+        self.next_file_btn.setToolTip("Next file")
+        self.previous_file_btn.setToolTip("Previous file")
+        self.next_folder_btn.setToolTip("Next folder")
+        self.previous_folder_btn.setToolTip("Previous folder")
