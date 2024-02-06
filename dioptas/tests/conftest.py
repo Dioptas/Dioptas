@@ -95,15 +95,6 @@ def main_controller(qapp):
 def dioptas_model():
     model = DioptasModel()
     yield model
-    calibration_model = dioptas_model.calibration_model
-    yield calibration_model
-    calibration_model.pattern_geometry.reset()
-    if calibration_model.cake_geometry is not None:
-        calibration_model.cake_geometry.reset()
-        del calibration_model.cake_geometry
-    del calibration_model.pattern_geometry
-    del calibration_model
-    gc.collect()
 
 
 @pytest.fixture
