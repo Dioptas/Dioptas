@@ -67,10 +67,12 @@ pyqtgraph_hiddenimports += [
 import pyFAI
 import matplotlib
 import lib2to3
+import qt_material
 
 pyFAI_path = os.path.dirname(pyFAI.__file__)
 matplotlib_path = os.path.dirname(matplotlib.__file__)
 lib2to3_path = os.path.dirname(lib2to3.__file__)
+qt_material_path = os.path.dirname(qt_material.__file__)
 
 extra_datas = [
     ("dioptas/resources", "dioptas/resources"),
@@ -78,8 +80,8 @@ extra_datas = [
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
+    (os.path.join(qt_material_path, 'fonts'), os.path.join('qt_material', 'fonts')),
     (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), os.path.join('hdf5plugin', 'plugins')),
-    (os.path.join(site_packages_path, 'qt_material', 'fonts', 'roboto', "*"), os.path.join('qt_material', 'fonts', 'roboto'))
 ]
 
 a = Analysis(['run.py'],
