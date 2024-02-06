@@ -125,26 +125,28 @@ class MouseUnitWidget(QtWidgets.QWidget):
             self.azi_lbl.setStyleSheet(style_str)
 
 
-class BrowseFileWidget(QtWidgets.QGroupBox):
+class BrowseFileWidget(QtWidgets.QWidget):
     def __init__(self, files, checkbox_text):
         super(BrowseFileWidget, self).__init__()
 
         self._layout = QtWidgets.QGridLayout()
-        self._layout.setContentsMargins(5, 8, 5, 7)
-        # self._layout.setSpacing(3)
+        self._layout.setContentsMargins(0, 5, 5, 0)
+        self._layout.setVerticalSpacing(3)
+        self._layout.setHorizontalSpacing(3)
 
-        self.load_btn = FlatButton('Load {}(s)'.format(files))
+        self.load_btn = QtWidgets.QPushButton('Load {}(s)'.format(files))
         self.file_cb = QtWidgets.QCheckBox(checkbox_text)
 
         self._load_layout = QtWidgets.QVBoxLayout()
-        self._load_layout.setContentsMargins(5, 0, 0, 5)
+        self._load_layout.setContentsMargins(0, 0, 0, 0)
+        self._load_layout.setSpacing(3)
         self._load_layout.addWidget(self.load_btn)
         self._load_layout.addWidget(self.file_cb)
 
         self._layout.addLayout(self._load_layout, 0, 0, 2, 1)
 
         self.directory_txt = QtWidgets.QLineEdit('')
-        self.directory_btn = FlatButton('...')
+        self.directory_btn = QtWidgets.QPushButton('...')
         self.file_txt = QtWidgets.QLineEdit('')
 
         self.step_file_widget = StepFileWidget()
@@ -158,6 +160,7 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
         self._directory_layout = QtWidgets.QHBoxLayout()
         self._directory_layout.addWidget(self.directory_txt)
         self._directory_layout.addWidget(self.directory_btn)
+        self._directory_layout.setSpacing(3)
         self._layout.addLayout(self._directory_layout, 3, 0, 1, 5)
 
         self.sources_widget = QtWidgets.QWidget()
@@ -176,17 +179,10 @@ class BrowseFileWidget(QtWidgets.QGroupBox):
     def style_widgets(self):
         self.load_btn.setMaximumWidth(120)
         self.load_btn.setMinimumWidth(120)
-        self.load_btn.setMinimumHeight(22)
+        self.load_btn.setFixedHeight(25)
 
-        small_btn_width = 35
-        self.directory_btn.setMaximumWidth(small_btn_width)
-        self.directory_btn.setMinimumWidth(small_btn_width)
-
-        self.setStyleSheet("""
-               QPushButton {
-                   height: 22 px;
-               }
-               """)
+        small_btn_width = 25 
+        self.directory_btn.setFixedSize(small_btn_width, small_btn_width)
         self.sources_widget.hide()
 
 
@@ -198,38 +194,42 @@ class StepWidget(QtWidgets.QWidget):
         super(StepWidget, self).__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
-        self.small_btn_max_width = 50
-        self.small_btn_min_width = 20
-
-        self._layout = QtWidgets.QHBoxLayout()
-        self._layout.setContentsMargins(5, 0, 0, 5)
+        self._layout = QtWidgets.QGridLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(3)
         self.init_navigator()
 
         self.setLayout(self._layout)
+        self.style_widgets()
 
     def init_navigator(self):
-        self.next_btn = FlatButton('>')
+        self.next_btn = QtWidgets.QPushButton('>')
         self.next_btn.setToolTip('Loads next {}'.format(self.iteration_name))
-        self.previous_btn = FlatButton('<')
+        self.previous_btn = QtWidgets.QPushButton('<')
         self.previous_btn.setToolTip(('Loads previous {}'.format(self.iteration_name)))
         self.step_txt = QtWidgets.QSpinBox()
         self.step_txt.setValue(1)
         self.step_txt.setRange(1, 10000)
+        self.step_txt.setToolTip('Step size')
 
-        self.next_btn.setMaximumWidth(self.small_btn_max_width)
-        self.previous_btn.setMaximumWidth(self.small_btn_max_width)
-        self.next_btn.setMinimumWidth(self.small_btn_min_width)
-        self.previous_btn.setMinimumWidth(self.small_btn_min_width)
-        self.step_txt.setMinimumWidth(25)
-
-        self._navigator_layout = QtWidgets.QGridLayout()
-        self._navigator_layout.addWidget(self.previous_btn, 0, 0)
-        self._navigator_layout.addWidget(self.next_btn, 0, 1)
+        self._layout.addWidget(self.previous_btn, 0, 0)
+        self._layout.addWidget(self.next_btn, 0, 1)
         self._step_layout = QtWidgets.QHBoxLayout()
         self._step_layout.addWidget(LabelAlignRight('Step:'))
         self._step_layout.addWidget(self.step_txt)
-        self._navigator_layout.addLayout(self._step_layout, 1, 0, 1, 2)
-        self._layout.addLayout(self._navigator_layout)
+        self._layout.addLayout(self._step_layout, 1, 0, 1, 2)
+        
+
+    def style_widgets(self):
+        self.step_txt.setMaximumWidth(53)
+        self.step_txt.setFixedHeight(25)
+
+        small_btn_width = 40 
+        small_btn_height = 25
+        btns = [self.next_btn, self.previous_btn]
+        for btn in btns:
+            btn.setFixedHeight(small_btn_height)
+            btn.setFixedWidth(small_btn_width)
 
 
 class StepFileWidget(StepWidget):
@@ -241,10 +241,14 @@ class StepFileWidget(StepWidget):
         self.browse_by_name_rb.setChecked(True)
         self.browse_by_time_rb = QtWidgets.QRadioButton('By Time')
 
-        self._step_by_layout = QtWidgets.QVBoxLayout()
-        self._step_by_layout.addWidget(self.browse_by_name_rb)
-        self._step_by_layout.addWidget(self.browse_by_time_rb)
-        self._layout.addLayout(self._step_by_layout)
+        self._layout.addWidget(self.browse_by_name_rb, 0, 2)
+        self._layout.addWidget(self.browse_by_time_rb, 1, 2)
+
+        self.set_tooltips()
+
+    def set_tooltips(self):
+        self.browse_by_name_rb.setToolTip('Browse files by name')
+        self.browse_by_time_rb.setToolTip('Browse files by time')
 
 
 class StepFrameWidget(StepWidget):
@@ -262,6 +266,6 @@ class StepFrameWidget(StepWidget):
         self._pos_layout = QtWidgets.QVBoxLayout()
         self._pos_layout.addWidget(self.pos_label)
         self._pos_layout.addWidget(self.pos_txt)
-        self._layout.addLayout(self._pos_layout)
+        self._layout.addLayout(self._pos_layout, 0, 2, 2, 2)
 
         self.pos_txt.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Maximum)

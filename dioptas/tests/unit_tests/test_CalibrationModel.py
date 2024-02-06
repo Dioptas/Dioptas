@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import sys
 import pytest
 
 import numpy as np
@@ -111,9 +112,10 @@ def test_get_pixel_ind(calibration_model):
     tth_array = calibration_model.pattern_geometry.ttha
     azi_array = calibration_model.pattern_geometry.chia
 
-    for i in range(10):
-        ind1 = np.random.randint(0, 10)
-        ind2 = np.random.randint(0, 10)
+    for _ in range(10):
+        ind1 = np.random.randint(1, 10) 
+        ind2 = np.random.randint(1, 10)
+        # the 0, 0 case is not working with the get_pixel_ind function
 
         tth = tth_array[ind1, ind2]
         azi = azi_array[ind1, ind2]

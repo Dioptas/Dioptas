@@ -14,42 +14,38 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: git fetch --prune --unshallow
-    - name: Setup Python 3.10
+
+    - name: Install poetry
+      run: pipx install poetry
+
+    - name: Setup Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: '3.11'
+        cache: 'poetry'
 
-    - name: Use Python Dependency Cache
-      id: pip-cache
-      uses: actions/cache@v1
-      with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-v3
-        restore-keys: |
-          ${{ runner.os }}-pip-c3
+    - name: Install poetry dependencies
+      run: poetry install
 
-    - name: Install Pip Dependencies
-      run: |
-        pip install pycifrw pandas numpy python-dateutil h5py cython scikit-image==0.19.3 pyqt6 future qtpy pyfai lmfit pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph sharedmem poetry poetry-dynamic-versioning
-      # we have to use scikit-image==0.19.3 because of a new loading mechanism in 0.20.0 which does currently not work
-      # with pyinstaller
+    - name: Install PyInstaller
+      run: poetry run pip install pyinstaller
 
-    - name: Compile Smooth Bruckner
-      run: cythonize -a -i dioptas\model\util\smooth_bruckner_cython.pyx
+    - name: Add Dynamic Versioning Plugin
+      run: poetry self add poetry-dynamic-versioning[plugin]
 
     - name: Update the Version
       run: poetry dynamic-versioning
 
     - name: Run Dioptas from source to test
-      run: python run.py test
+      run: poetry run python run.py test
 
     - name: Run PyInstaller
       shell: cmd
-      run: pyinstaller Dioptas.spec
+      run: poetry run pyinstaller Dioptas.spec
 
-    - name: Run Dioptas Executable
+    - name: Run Dioptas Executable from Dist Folder
       shell: cmd
       run: |
         cd dist\Dioptas*

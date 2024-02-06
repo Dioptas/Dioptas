@@ -30,7 +30,8 @@ class IntegrationStatusWidget(QtWidgets.QWidget):
         super(IntegrationStatusWidget, self).__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
-        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setContentsMargins(6, 3, 6, 0)
+        self._layout.setSpacing(6)
 
         self.mouse_pos_widget = MouseCurrentAndClickedWidget(CLICKED_COLOR)
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget(CLICKED_COLOR)

@@ -256,6 +256,8 @@ class PatternController(object):
             self.update_x_range(previous_unit, self.integration_unit)
             self.update_line_position(previous_unit, self.integration_unit)
 
+        # self.finish_update_bg_linear_region()
+
     def set_unit_q(self):
         previous_unit = self.integration_unit
         if previous_unit == 'q_A^-1':
@@ -319,6 +321,12 @@ class PatternController(object):
         self.widget.click_d_lbl.setText(self.widget.mouse_d_lbl.text())
         self.widget.click_q_lbl.setText(self.widget.mouse_q_lbl.text())
         self.widget.click_azi_lbl.setText(self.widget.mouse_azi_lbl.text())
+
+        self.model.map_model.theta_center = tth_clicked
+        try:
+            self.model.map_model.wavelength = self.model.calibration_model.wavelength
+        except RuntimeWarning:
+            self.model.map_model.wavelength = 3.344e-11
 
     def set_line_position(self, tth):
         x = self.convert_x_value(tth, '2th_deg', self.model.current_configuration.integration_unit)

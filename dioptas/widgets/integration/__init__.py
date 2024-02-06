@@ -45,13 +45,15 @@ class IntegrationWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(IntegrationWidget, self).__init__(*args, **kwargs)
 
+        self.setObjectName('integration_widget')
+
         self.integration_image_widget = IntegrationImgDisplayWidget()
         self.integration_control_widget = IntegrationControlWidget()
         self.integration_pattern_widget = IntegrationPatternWidget()
         self.integration_status_widget = IntegrationStatusWidget()
 
         self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setSpacing(6)
+        self._layout.setSpacing(0)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.vertical_splitter = QtWidgets.QSplitter(self)
@@ -86,6 +88,7 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self.file_info_widget = FileInfoWidget(self)
         self.move_widget = MoveStageWidget(self)
+        # self.map_2D_widget = Map2DWidget(self)
         self.batch_widget = BatchWidget(self)
 
         self.img_frame_size = QtCore.QSize(400, 500)
@@ -125,6 +128,11 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.pattern_header_chi_cb = self.integration_control_widget.pattern_control_widget.chi_cb
         self.pattern_header_dat_cb = self.integration_control_widget.pattern_control_widget.dat_cb
         self.pattern_header_fxye_cb = self.integration_control_widget.pattern_control_widget.fxye_cb
+        self.pattern_headers = []
+        self.pattern_headers.append(self.pattern_header_xy_cb)
+        self.pattern_headers.append(self.pattern_header_chi_cb)
+        self.pattern_headers.append(self.pattern_header_dat_cb)
+        self.pattern_headers.append(self.pattern_header_fxye_cb)
 
         phase_control_widget = self.integration_control_widget.phase_control_widget
         self.phase_widget = phase_control_widget
@@ -220,6 +228,10 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.pattern_tth_btn = pattern_widget.tth_btn
         self.pattern_q_btn = pattern_widget.q_btn
         self.pattern_d_btn = pattern_widget.d_btn
+        self.qa_bkg_pattern_btn = pattern_widget.background_btn
+        self.qa_bkg_pattern_inspect_btn = pattern_widget.background_inspect_btn
+        self.set_wavelnegth_btn = pattern_widget.set_wavelength_btn
+        self.wavelength_lbl = pattern_widget.wavelength_lbl
         self.qa_bkg_pattern_btn = pattern_widget.background_btn
         self.qa_bkg_pattern_inspect_btn = pattern_widget.background_inspect_btn
         self.antialias_btn = pattern_widget.antialias_btn

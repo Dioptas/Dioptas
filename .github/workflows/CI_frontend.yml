@@ -6,26 +6,22 @@ on: [push, pull_request]
 
 jobs:
   test:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v3
-    - run: git fetch --prune --unshallow
-    - name: Setup Python 3.9
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-    - name: Use Python Dependency Cache
-      id: pip-cache
-      uses: actions/cache@v3
+    - name: Install poetry
+      run: pip install poetry
+
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v4
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('Dioptas.spec') }}-c3
-        restore-keys: |
-          ${{ runner.os }}-pip-c3
+        python-version: '3.11'
+        cache: 'poetry'
 
     - name: Install Apt Dependencies
       run: |
@@ -34,27 +30,28 @@ jobs:
           libxcb-keysyms1-dev libxcb-image0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev \
           libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-cursor0 libopengl0
 
-    - name: Install Pip Dependencies
-      run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image pyqt6 cython future qtpy pyfai lmfit \
-                    pyepics extra_data pyinstaller watchdog pyopengl pyopengl-accelerate h5py hdf5plugin pyqtgraph \
-                    mock pytest pytest-xvfb pytest-qt
+    - name: Install poetry dependencies
+      run: poetry install
+
+    - name: Install pyepics
+      run: poetry run pip install pyepics
 
     - name: Run tests
       run: |
-        py.test dioptas/tests/controller_tests/test_BackgroundController.py
-        py.test dioptas/tests/controller_tests/test_CalibrationController.py
-        py.test dioptas/tests/controller_tests/test_ConfigurationController.py
-        py.test dioptas/tests/controller_tests/test_CorrectionController.py
-        py.test dioptas/tests/controller_tests/test_EpicsController.py
-        py.test dioptas/tests/controller_tests/test_ImageController.py
-        py.test dioptas/tests/controller_tests/test_IntegrationBackgroundController.py
-        py.test dioptas/tests/controller_tests/test_IntegrationController.py
-        py.test dioptas/tests/controller_tests/test_JcpdsEditorController.py
-        py.test dioptas/tests/controller_tests/test_MaskController.py
-        py.test dioptas/tests/controller_tests/test_OptionsController.py
-        py.test dioptas/tests/controller_tests/test_OverlayController.py
-        py.test dioptas/tests/controller_tests/test_PatternController.py
-        py.test dioptas/tests/controller_tests/test_PhaseController.py
-        py.test dioptas/tests/controller_tests/test_PhaseInCakeController.py
-        py.test dioptas/tests/controller_tests/test_PhaseInPatternController.py
+        poetry run py.test dioptas/tests/controller_tests/test_BackgroundController.py
+        poetry run py.test dioptas/tests/controller_tests/test_CalibrationController.py
+        poetry run py.test dioptas/tests/controller_tests/test_ConfigurationController.py
+        poetry run py.test dioptas/tests/controller_tests/test_CorrectionController.py
+        poetry run py.test dioptas/tests/controller_tests/test_EpicsController.py
+        poetry run py.test dioptas/tests/controller_tests/test_ImageController.py
+        poetry run py.test dioptas/tests/controller_tests/test_IntegrationBackgroundController.py
+        poetry run py.test dioptas/tests/controller_tests/test_IntegrationController.py
+        poetry run py.test dioptas/tests/controller_tests/test_JcpdsEditorController.py
+        poetry run py.test dioptas/tests/controller_tests/test_MaskController.py
+        poetry run py.test dioptas/tests/controller_tests/test_MapController2.py
+        poetry run py.test dioptas/tests/controller_tests/test_OptionsController.py
+        poetry run py.test dioptas/tests/controller_tests/test_OverlayController.py
+        poetry run py.test dioptas/tests/controller_tests/test_PatternController.py
+        poetry run py.test dioptas/tests/controller_tests/test_PhaseController.py
+        poetry run py.test dioptas/tests/controller_tests/test_PhaseInCakeController.py
+        poetry run py.test dioptas/tests/controller_tests/test_PhaseInPatternController.py
