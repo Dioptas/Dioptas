@@ -14,34 +14,38 @@ jobs:
       folder_name: 'DioptasLinux'
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v3
     - run: git fetch --prune --unshallow
 
-    - name: Use Miniconda
-      uses: s-weigand/setup-conda@v1
-
-    - name: switch to python=3.10 and install pip
-      run: conda install python=3.10 pip -y
+    - name: Install poetry
+      run: pip install poetry
 
     - name: Install Apt Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
 
-    - name: Install Pip Dependencies
-      run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image==0.19.3 pyqt6 cython future qtpy pyfai lmfit \
-                    pyepics extra_data pyinstaller pyopengl pyopengl-accelerate watchdog h5py hdf5plugin pyqtgraph \
-                    mock pytest pytest-xvfb pytest-qt poetry poetry-dynamic-versioning qt_material
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'poetry'
 
-    - name: Compile Smooth Bruckner
-      run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
+    - name: Install poetry dependencies
+      run: poetry install
+
+    - name: Install PyInstaller
+      run: poetry run pip install pyinstaller
+
+    - name: Add Dynamic Versioning Plugin
+      run: poetry self add poetry-dynamic-versioning[plugin]
 
     - name: Update the Version
       run: poetry dynamic-versioning
 
     - name: Run Dioptas from source to test
-      run: xvfb-run -e /dev/stdout python run.py test
+      run: poetry run python run.py test
         
     - name: Run PyInstaller
       run: bash create_executable.sh
