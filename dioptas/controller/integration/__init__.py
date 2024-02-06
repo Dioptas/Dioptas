@@ -27,5 +27,6 @@ from .phase.PhaseController import PhaseController
 from .phase.PhaseController import PhaseInPatternController
 from .phase.PhaseInCakeController import PhaseInCakeController
 from .PatternController import PatternController
+from .MapController import MapController
 from .OptionsController import OptionsController
 from .BatchController import BatchController

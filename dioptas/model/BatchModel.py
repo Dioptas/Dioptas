@@ -19,7 +19,7 @@ class BatchModel(QtCore.QObject):
     Class describe a model for batch integration
     """
 
-    def __init__(self, calibration_model, mask_model):
+    def __init__(self, configuration):
         super(BatchModel, self).__init__()
 
         self.data = None
@@ -33,8 +33,7 @@ class BatchModel(QtCore.QObject):
         self.n_img_all = None
         self.raw_available = False
 
-        self.calibration_model = calibration_model
-        self.mask_model = mask_model
+        self.configuration = configuration
         self.used_mask = None
         self.used_mask_shape = None
         self.used_calibration = None
@@ -68,6 +67,9 @@ class BatchModel(QtCore.QObject):
         pos_map = []
         file_map = [0]
         image_counter = 0
+
+        self.configuration.img_model.blockSignals(True)
+
         for i, file in enumerate(files):
             # Assume tif file contains only one image
             if file[-4:] == '.tif':
@@ -75,11 +77,13 @@ class BatchModel(QtCore.QObject):
             else:
                 if not os.path.exists(file):
                     return
-                self.calibration_model.img_model.load(file)
-                n_img = self.calibration_model.img_model.series_max
+                self.configuration.img_model.load(file)
+                n_img = self.configuration.img_model.series_max
             image_counter += n_img
             pos_map += list(zip([i] * n_img, range(n_img)))
             file_map.append(image_counter)
+
+        self.configuration.img_model.blockSignals(False)
 
         self.files = np.array(files)
         self.n_img_all = image_counter
@@ -142,19 +146,19 @@ class BatchModel(QtCore.QObject):
             else:
                 self.used_calibration = str(data_file['processed/process/cal_file'][()])
             if os.path.isfile(self.used_calibration):
-                self.calibration_model.load(self.used_calibration)
+                self.configuration.calibration_model.load(self.used_calibration)
 
             if 'mask' in data_file['processed/process/']:
                 mask = data_file['processed/process/mask'][()]
-                self.mask_model.set_dimension(mask.shape)
-                self.mask_model.set_mask(mask)
+                self.configuration.mask_model.set_dimension(mask.shape)
+                self.configuration.mask_model.set_mask(mask)
 
             if 'mask_file' in data_file['processed/process/']:
                 try:
                     self.used_mask = str(data_file['processed/process/mask_file'][()])
                     mask_data = np.array(Image.open(self.used_mask))
-                    self.mask_model.set_dimension(mask_data.shape)
-                    self.mask_model.load_mask(self.used_mask)
+                    self.configuration.mask_model.set_dimension(mask_data.shape)
+                    self.configuration.mask_model.load_mask(self.used_mask)
                 except FileNotFoundError:
                     logger.info(f"Mask file {self.used_mask} is not found")
 
@@ -215,8 +219,7 @@ class BatchModel(QtCore.QObject):
         y = np.arange(self.n_img)[None, :].repeat(self.binning.shape[0], axis=0).flatten()
         np.savetxt(filename, np.array(list(zip(x, y, self.data.T.flatten()))), delimiter=',', fmt='%f')
 
-    def integrate_raw_data(self, num_points, start, stop, step, use_all=False, callback_fn=None,
-                           use_mask=False):
+    def integrate_raw_data(self, start, stop, step, use_all=False, callback_fn=None):
         """
         Integrate images from given file
 
@@ -227,21 +230,20 @@ class BatchModel(QtCore.QObject):
         :param use_all: Use all images. If False use only images, that were already integrated.
         :param callback_fn: callback function which is called each iteration with the current image number as parameter,
                             if it returns False the integration will be aborted.
-        :param use_mask: use mask if True
         """
         intensity_data = []
         binning_data = []
         pos_map = []
         image_counter = 0
         current_file = ''
-        if use_mask:
-            if self.mask_model.filename != '':
-                self.used_mask = self.mask_model.filename
-            mask = self.mask_model.get_mask()
-            self.used_mask_shape = mask.shape
-        else:
-            mask = None
 
+        if self.configuration.use_mask:
+            if self.configuration.mask_model.filename != '':
+                self.used_mask = self.configuration.mask_model.filename
+            mask = self.configuration.mask_model.get_mask()
+            self.used_mask_shape = mask.shape
+
+        self.configuration.img_model.blockSignals(True)
         for index in range(start, stop, step):
             if use_all:
                 file_index, pos = self.pos_map_all[index]
@@ -249,13 +251,12 @@ class BatchModel(QtCore.QObject):
                 file_index, pos = self.pos_map[index]
             if file_index != current_file:
                 current_file = file_index
-                self.calibration_model.img_model.load(self.files[file_index])
+                self.configuration.calibration_model.img_model.load(self.files[file_index])
 
-            self.calibration_model.img_model.load_series_img(pos + 1)
-            self.mask_model.set_dimension(self.calibration_model.img_model.img_data.shape)
+            self.configuration.img_model.load_series_img(pos + 1)
+            self.configuration.mask_model.set_dimension(self.configuration.img_model.img_data.shape)
 
-            binning, intensity = self.calibration_model.integrate_1d(num_points=num_points,
-                                                                     mask=mask)
+            binning, intensity = self.configuration.integrate_image_1d()
             image_counter += 1
             pos_map.append((file_index, pos))
             intensity_data.append(intensity)
@@ -264,6 +265,8 @@ class BatchModel(QtCore.QObject):
             if callback_fn is not None:
                 if not callback_fn(image_counter):
                     break
+
+        self.configuration.img_model.blockSignals(False)
 
         # deal with different x lengths due to trimmed zeros:
         binning_lengths = [len(binning) for binning in binning_data]
@@ -277,8 +280,8 @@ class BatchModel(QtCore.QObject):
 
         # finish and save everything
 
-        if self.calibration_model.filename != '':
-            self.used_calibration = self.calibration_model.filename
+        if self.configuration.calibration_model.filename != '':
+            self.used_calibration = self.configuration.calibration_model.filename
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = np.array(intensity_data)
@@ -334,7 +337,7 @@ class BatchModel(QtCore.QObject):
         if not self.raw_available:
             return
         filename, pos = self.get_image_info(index, use_all)
-        self.calibration_model.img_model.load(filename, pos)
+        self.configuration.calibration_model.img_model.load(filename, pos)
 
     def get_next_folder_filenames(self):
         """

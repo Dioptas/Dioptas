@@ -35,9 +35,9 @@ class ImageWidget(QtWidgets.QWidget):
 
     def _create_widgets(self):
         self.file_widget = BrowseFileWidget(files='Image', checkbox_text='autoprocess')
-        self.file_info_btn = FlatButton('File Info')
-        self.move_btn = FlatButton('Position')
-        self.batch_btn = FlatButton('Batch view')
+        self.file_info_btn = QtWidgets.QPushButton('File Info')
+        self.move_btn = QtWidgets.QPushButton('Position')
+        self.batch_btn = QtWidgets.QPushButton('Batch view')
 
         self.batch_mode_widget = QtWidgets.QWidget()
         self.batch_mode_lbl = LabelAlignRight("Batch Mode:")
@@ -47,7 +47,7 @@ class ImageWidget(QtWidgets.QWidget):
 
     def _create_layout(self):
         self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(5, 0, 5, 5)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(5)
 
         self._layout.addWidget(self.file_widget)
@@ -59,11 +59,8 @@ class ImageWidget(QtWidgets.QWidget):
         self._batch_layout.addWidget(self.batch_mode_image_save_rb)
         self._batch_layout.addItem(HorizontalSpacerItem())
         self._batch_layout.addWidget(self.batch_btn)
-        self._batch_layout.addItem(HorizontalSpacerItem())
         self.batch_mode_widget.setLayout(self._batch_layout)
         self._layout.addWidget(self.batch_mode_widget)
-
-        self._layout.addWidget(HorizontalLine())
 
         self._file_info_layout = QtWidgets.QHBoxLayout()
         self._file_info_layout.addWidget(self.file_info_btn)
@@ -78,3 +75,4 @@ class ImageWidget(QtWidgets.QWidget):
     def _style_widgets(self):
         self._batch_layout.setContentsMargins(0, 0, 0, 0)
         self.batch_mode_integrate_rb.setChecked(True)
+        self.batch_btn.setFixedHeight(25)
