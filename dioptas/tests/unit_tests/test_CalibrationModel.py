@@ -37,14 +37,6 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-@pytest.fixture
-def img_model():
-    img_model = ImgModel()
-    yield img_model
-    del img_model
-    gc.collect()
-
-
 def load_pilatus_1M(img_model):
     img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
@@ -365,6 +357,7 @@ def test_calibration1(calibration_model, img_model):
     img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
     calibration_model.find_peaks_automatic(1179.6, 1129.4, 0)
     calibration_model.find_peaks_automatic(1268.5, 1119.8, 1)
+
     calibration_model.set_calibrant(os.path.join(calibrants_path, 'LaB6.D'))
     calibration_model.calibrate()
 

@@ -27,19 +27,22 @@ from dioptas.tests.utility import enter_value_into_text_field, QtTest, click_but
 from dioptas.model.util.Pattern import Pattern
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, os.pardir, 'data')
+data_path = os.path.join(unittest_path, os.pardir, "data")
 
 
 @pytest.fixture
 def mock_integration(dioptas_model):
-    pattern = Pattern().load(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
-    dioptas_model.calibration_model.integrate_1d = MagicMock(return_value=(pattern.x, pattern.y))
-    dioptas_model.calibration_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.poni'))
-    dioptas_model.img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
+    pattern = Pattern().load(os.path.join(data_path, "CeO2_Pilatus1M.xy"))
+    dioptas_model.calibration_model.integrate_1d = MagicMock(
+        return_value=(pattern.x, pattern.y)
+    )
+    dioptas_model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    dioptas_model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
 
 
-def test_1D_integration_with_azimuth_limits(integration_controller, integration_widget, dioptas_model,
-                                            mock_integration):
+def test_1D_integration_with_azimuth_limits(
+    integration_controller, integration_widget, dioptas_model, mock_integration
+):
     # Edith wants to perform 1D integration within a certain range of azimuthal angles. She sees there is an option
     # in the X tab and deselects the Full Range button, enabling the text edits and then manually inputs -100, 80
     assert not integration_widget.oned_azimuth_min_txt.isEnabled()
@@ -51,12 +54,18 @@ def test_1D_integration_with_azimuth_limits(integration_controller, integration_
     enter_value_into_text_field(integration_widget.oned_azimuth_min_txt, -100)
     enter_value_into_text_field(integration_widget.oned_azimuth_max_txt, 80)
 
-    dioptas_model.calibration_model.integrate_1d.assert_called_with(mask=None, num_points=None, unit='2th_deg',
-                                                                    azi_range=(-100, 80))
+    dioptas_model.calibration_model.integrate_1d.assert_called_with(
+        mask=None,
+        num_points=None,
+        unit="2th_deg",
+        azi_range=(-100, 80),
+        trim_zeros=True,
+    )
 
 
-def test_changing_number_of_integration_bins(integration_controller, integration_widget, dioptas_model,
-                                             mock_integration):
+def test_changing_number_of_integration_bins(
+    integration_controller, integration_widget, dioptas_model, mock_integration
+):
     # Edith wants to change the number of integration bins in order to see the effect of binning onto her line
     # shape. She sees that there is an option in the X tab and deselects automatic and sees that the spinbox
     # becomes editable.
@@ -67,20 +76,29 @@ def test_changing_number_of_integration_bins(integration_controller, integration
     # she sees that the current value and wants to double it and notices that the pattern looks a little bit
     # smoother
     previous_number_of_points = len(dioptas_model.pattern.x)
-    enter_value_into_text_field(integration_widget.bin_count_txt, 2 * previous_number_of_points)
+    enter_value_into_text_field(
+        integration_widget.bin_count_txt, 2 * previous_number_of_points
+    )
 
-    dioptas_model.calibration_model.integrate_1d.assert_called_with(num_points=2 * previous_number_of_points,
-                                                                    azi_range=None, mask=None, unit='2th_deg')
+    dioptas_model.calibration_model.integrate_1d.assert_called_with(
+        num_points=2 * previous_number_of_points,
+        azi_range=None,
+        mask=None,
+        unit="2th_deg",
+        trim_zeros=True,
+    )
 
     # then she decides that having an automatic estimation may probably be better and changes back to automatic.
     # immediately the number is restored and the image looks like when she started
     integration_widget.automatic_binning_cb.setChecked(True)
-    dioptas_model.calibration_model.integrate_1d.assert_called_with(num_points=None, azi_range=None,
-                                                                    mask=None, unit='2th_deg')
+    dioptas_model.calibration_model.integrate_1d.assert_called_with(
+        num_points=None, azi_range=None, mask=None, unit="2th_deg", trim_zeros=True
+    )
 
 
-def test_changing_supersampling_amount_integrating_to_cake_with_mask(integration_controller, integration_widget,
-                                                                     dioptas_model, mock_integration):
+def test_changing_supersampling_amount_integrating_to_cake_with_mask(
+    integration_controller, integration_widget, dioptas_model, mock_integration
+):
     # Edith opens the program, calibrates everything and looks in to the options menu. She sees that there is a
     # miraculous parameter called supersampling. It is currently set to 1 which seems to be normal
     assert integration_widget.supersampling_sb.value() == 1
@@ -99,22 +117,33 @@ def test_changing_supersampling_amount_integrating_to_cake_with_mask(integration
     assert dioptas_model.calibration_model.cake_geometry.pixel2 == 0.5 * px2
 
 
-def test_saving_image(integration_controller, integration_widget, dioptas_model, mock_integration, tmpdir):
+def test_saving_image(
+    integration_controller, integration_widget, dioptas_model, mock_integration, tmpdir
+):
     # the widget has to be shown to be able to save the image:
     integration_widget.show()
     # Tests if the image save procedures are working for the different possible file endings
-    QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(tmpdir, 'Test_img.png'))
+    QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+        return_value=os.path.join(tmpdir, "Test_img.png")
+    )
     click_button(integration_widget.qa_save_img_btn)
-    QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(tmpdir, 'Test_img.tiff'))
+    QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+        return_value=os.path.join(tmpdir, "Test_img.tiff")
+    )
     click_button(integration_widget.qa_save_img_btn)
 
-    assert os.path.exists(os.path.join(tmpdir, 'Test_img.png'))
-    assert os.path.exists(os.path.join(tmpdir, 'Test_img.tiff'))
+    assert os.path.exists(os.path.join(tmpdir, "Test_img.png"))
+    assert os.path.exists(os.path.join(tmpdir, "Test_img.tiff"))
 
 
 @pytest.mark.parametrize("integration_variable", ["2th", "q", "d"])
-def test_saving_pattern(integration_controller, integration_widget, dioptas_model, mock_integration, tmpdir,
-                        integration_variable):
+def test_saving_pattern(
+    integration_controller,
+    integration_widget,
+    mock_integration,
+    tmpdir,
+    integration_variable,
+):
     # the widget has to be shown to be able to save the image:
     integration_widget.show()
     pattern_controller = integration_controller.pattern_controller
@@ -133,3 +162,44 @@ def test_saving_pattern(integration_controller, integration_widget, dioptas_mode
         save_pattern(filename)
         assert os.path.exists(filename)
         assert os.stat(filename).st_size > 1
+
+
+def test_undocking_and_docking_img_frame(
+    integration_controller, integration_widget, mock_integration
+):
+    # we click the dock btn twice to undock and dock the image widget
+    click_button(integration_widget.img_dock_btn)
+    click_button(integration_widget.img_dock_btn)
+
+
+def test_loading_multiple_images_and_batch_integrate_them(
+    integration_widget, integration_controller, mock_integration, tmp_path
+):
+    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+        return_value=[
+            os.path.join(data_path, "image_001.tif"),
+            os.path.join(data_path, "image_002.tif"),
+        ]
+    )
+    QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=str(tmp_path))
+    click_button(integration_widget.load_img_btn)
+
+    assert os.path.exists(os.path.join(tmp_path, "image_001.xy"))
+    assert os.path.exists(os.path.join(tmp_path, "image_002.xy"))
+
+
+def test_loading_multiple_images_and_batch_save_them(
+    integration_widget, integration_controller, mock_integration, tmp_path
+):
+    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+        return_value=[
+            os.path.join(data_path, "image_001.tif"),
+            os.path.join(data_path, "image_002.tif"),
+        ]
+    )
+    QtWidgets.QFileDialog.getExistingDirectory = MagicMock(return_value=str(tmp_path))
+    integration_widget.img_batch_mode_image_save_rb.setChecked(True)
+    click_button(integration_widget.load_img_btn)
+
+    assert os.path.exists(os.path.join(tmp_path, "batch_image_001.tif"))
+    assert os.path.exists(os.path.join(tmp_path, "batch_image_002.tif"))
