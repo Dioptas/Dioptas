@@ -80,8 +80,8 @@ extra_datas = [
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
-    (os.path.join(qt_material_path, 'fonts'), os.path.join('qt_material', 'fonts')),
-    (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), os.path.join('hdf5plugin', 'plugins')),
+    (os.path.join(qt_material_path, 'fonts'), 'qt_material/fonts'),
+    (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), 'hdf5plugin/plugins'),
 ]
 
 a = Analysis(['run.py'],
@@ -91,7 +91,7 @@ a = Analysis(['run.py'],
              hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
                             'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
                             'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
-                           fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
+                             fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=['PyQt4', 'PySide', 'pyepics'],
@@ -113,17 +113,10 @@ a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
 
 exclude_datas = [
     "IPython",
-    #   "matplotlib",
-    #   "mpl-data", #needs to be included
-    #   "_MEI",
-    #   "docutils",
-    #   "pytz",
-    #   "lib",
+    "matplotlib/mpl-data",
     "include",
     "sphinx",
-    #   ".py",
     "tests",
-    "skimage",
     "alabaster",
     "boto",
     "jsonschema",
@@ -132,6 +125,9 @@ exclude_datas = [
     "requests",
     "qt4_plugins",
     "qt5_plugins"
+    "PyQt6/Qt6/translations",
+    "PyQt6/Qt6/plugins/imageformats",
+    "tcl/tzdata",
 ]
 
 for exclude_data in exclude_datas:
