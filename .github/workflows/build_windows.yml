@@ -39,13 +39,13 @@ jobs:
       run: poetry dynamic-versioning
 
     - name: Run Dioptas from source to test
-      run: python run.py test
+      run: poetry run python run.py test
 
     - name: Run PyInstaller
       shell: cmd
-      run: pyinstaller Dioptas.spec
+      run: poetry run pyinstaller Dioptas.spec
 
-    - name: Run Dioptas Executable
+    - name: Run Dioptas Executable from Dist Folder
       shell: cmd
       run: |
         cd dist\Dioptas*
