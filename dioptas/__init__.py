@@ -20,11 +20,21 @@
 
 from __future__ import absolute_import
 
+import os
 import sys
 from sys import platform as _platform
-from qtpy import QtWidgets
 
-__version__ = "0.5.7-post.50+255788ee"
+# If QT_API is not set, use PyQt6 by default
+if "QT_API" not in os.environ:
+    try:
+        import PyQt6.QtCore
+    except ImportError:
+        pass
+
+from qtpy import QtWidgets
+from qt_material import apply_stylesheet
+
+__version__ = "0.5.9"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
@@ -32,24 +42,37 @@ from ._desktop_shortcuts import make_shortcut
 from .controller.MainController import MainController
 
 
+theme_path = os.path.join(style_path, "dark_orange.xml")
+qss_path = os.path.join(style_path, "qt_material.css")
+css_out_path = os.path.join(style_path, "dioptas.css")
+
 def main():
     app = QtWidgets.QApplication([])
-    sys.excepthook = excepthook
-    print("Dioptas {}".format(__version__))
 
-    if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
-        app.setStyle('plastique')
+    apply_stylesheet(
+        app,
+        theme=theme_path,
+        css_file=qss_path,
+        extra={"density_scale": -2},
+        save_as=css_out_path
+    )
+    # sys.excepthook = excepthook
+    print("Dioptas {}".format(__version__))
 
     if len(sys.argv) == 1:  # normal start
         controller = MainController()
         controller.show_window()
         app.exec_()
     else:  # with command line arguments
-        if sys.argv[1] == 'test':
+        if sys.argv[1] == "test":
             controller = MainController(use_settings=False)
             controller.show_window()
-        elif sys.argv[1].startswith('makeshortcut'):
-            make_shortcut('Dioptas', 'dioptas.py', description='Dioptas 2D XRD {}'.format(__version__),
-                          icon_path=icons_path, icon='icon')
+        elif sys.argv[1].startswith("makeshortcut"):
+            make_shortcut(
+                "Dioptas",
+                "dioptas.py",
+                description="Dioptas 2D XRD {}".format(__version__),
+                icon_path=icons_path,
+                icon="icon",
+            )
     del app
-

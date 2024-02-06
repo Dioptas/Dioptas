@@ -367,7 +367,20 @@ class CalibrationModel(object):
         return img_data, mask
 
     def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='csr', azi_range=None):
+                     unit='2th_deg', method='csr', azi_range=None, trim_zeros=True):
+        """
+        :param num_points: number of points for the integration
+        :param mask: mask for the integration
+        :param polarization_factor: polarization factor for the integration
+        :param filename: filename for saving the integration
+        :param unit: unit for the integration, possible values are '2th_deg', 'q_A^-1', 'r_mm', 'r_m', 'd_A'
+        :param method: method for the integration, possible values are 'csr', 'splitbbox', 'lut', 'nosplit_csr',
+                          'full_csr', 'numpy', 'cython', 'BBox', 'splitPixel', 'lut_ocl', 'csr_ocl', 'csr_ocl_memsave',
+                            'csr_ocl_lut', 'csr_ocl_lut_memsave', 'csr_numpy', 'csr_numpy_memsave'
+        :param azi_range: azimuthal range for the integration
+        :param trim_zeros: if True, the trailing zeros in the integration will be trimmed
+        :return: tth, intensity
+        """
         if np.sum(mask) == self.img_model.img_data.shape[0] * self.img_model.img_data.shape[1]:
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
@@ -433,7 +446,7 @@ class CalibrationModel(object):
                                                                        filename=filename)
         logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
 
-        if np.sum(self.int) != 0:  # only trim zeros if not everything is 0 (e.g. bkg-subtraction of the same image)
+        if np.sum(self.int) != 0 and trim_zeros:  # only trim zeros if not everything is 0 (e.g. bkg-subtraction of the same image)
             self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
 
         return self.tth, self.int

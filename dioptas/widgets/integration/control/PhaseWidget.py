@@ -41,13 +41,14 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(5, 5, 5, 5)
+        self._layout.setSpacing(5)
 
         self.add_btn = FlatButton()
         self.edit_btn = FlatButton()
         self.delete_btn = FlatButton()
         self.clear_btn = FlatButton()
-        self.save_list_btn = FlatButton('Save List')
-        self.load_list_btn = FlatButton('Load List')
+        self.save_list_btn = QtWidgets.QPushButton('Save List')
+        self.load_list_btn = QtWidgets.QPushButton('Load List')
 
         self.button_widget = QtWidgets.QWidget(self)
         self.button_widget.setObjectName('phase_control_button_widget')
@@ -58,9 +59,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self._button_layout.addWidget(self.add_btn)
         self._button_layout.addWidget(self.edit_btn)
         self._button_layout.addWidget(HorizontalLine())
-        self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.delete_btn)
-        self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.clear_btn)
         self._button_layout.addSpacerItem(VerticalSpacerItem())
@@ -109,11 +108,18 @@ class PhaseWidget(QtWidgets.QWidget):
 
         # label for alternative view:
         self.phase_header_btn = FlatButton('Phase')
+        self.phase_header_btn.setObjectName('phase_header_btn')
         self.phase_header_btn.setEnabled(False)
         self.phase_header_btn.setVisible(False)
         self._main_layout = QtWidgets.QVBoxLayout()
         self._main_layout.setContentsMargins(0, 0, 0, 0)
-        self._main_layout.addWidget(self.phase_header_btn)
+        self._main_layout.setSpacing(0)
+        self._header_layout = QtWidgets.QHBoxLayout()
+        self._header_layout.setContentsMargins(0, 0, 0, 0)
+        self._header_layout.setSpacing(0)
+        self._header_layout.addWidget(self.phase_header_btn)
+        self._header_layout.addStretch()
+        self._main_layout.addLayout(self._header_layout)
         self._main_layout.addLayout(self._layout)
         self.setLayout(self._main_layout)
         self.style_widgets()
@@ -157,7 +163,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
 
-        step_txt_width = 70
+        step_txt_width = 80
 
         self.pressure_step_msb.setMinimumWidth(step_txt_width)
         self.pressure_step_msb.setMaximumWidth(step_txt_width)

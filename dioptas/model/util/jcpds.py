@@ -537,7 +537,7 @@ class jcpds(object):
                                method='Nelder-Mead')
                 if not res.success:
                     raise ArithmeticError("minimize didn't find a minimum!\n" + str(res))
-                self.params['v'] = self.params['v0'] / float(res.x)
+                self.params['v'] = self.params['v0'] / float(res.x[0])
 
     def bm3_inverse(self, v0_v, k0, k0p, pressure):
         """

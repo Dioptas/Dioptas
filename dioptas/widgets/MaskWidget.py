@@ -24,7 +24,7 @@ from pyqtgraph import GraphicsLayoutWidget
 from .plot_widgets import MaskImgWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, HorizontalSpacerItem, \
-    CheckableFlatButton, FlatButton, VerticalSpacerItem, HorizontalLine
+    CheckableButton, VerticalSpacerItem, HorizontalLine
 
 
 class MaskWidget(QtWidgets.QWidget):
@@ -36,6 +36,7 @@ class MaskWidget(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(MaskWidget, self).__init__(*args, **kwargs)
+        self.setObjectName('mask_widget')
         self._layout = QtWidgets.QHBoxLayout()
         self.create_display_widget()
         self.create_control_widget()
@@ -49,7 +50,7 @@ class MaskWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
     def create_display_widget(self):
-        self._display_widget = QtWidgets.QFrame(self)
+        self._display_widget = QtWidgets.QWidget(self)
         self._display_layout = QtWidgets.QVBoxLayout()
         self._display_layout.setContentsMargins(0, 0, 0, 0)
         self.img_layout_widget = GraphicsLayoutWidget()
@@ -81,12 +82,12 @@ class MaskWidget(QtWidgets.QWidget):
         self._control_layout.addWidget(HorizontalLine())
 
         self._geometry_layout = QtWidgets.QGridLayout()
-        self.circle_btn = CheckableFlatButton('Circle')
-        self.rectangle_btn = CheckableFlatButton('Rectangle')
-        self.point_btn = CheckableFlatButton('Point')
+        self.circle_btn = CheckableButton('Circle')
+        self.rectangle_btn = CheckableButton('Rectangle')
+        self.point_btn = CheckableButton('Point')
         self.point_size_sb = SpinBoxAlignRight()
-        self.polygon_btn = CheckableFlatButton('Polygon')
-        self.arc_btn = CheckableFlatButton('Arc')
+        self.polygon_btn = CheckableButton('Polygon')
+        self.arc_btn = CheckableButton('Arc')
         self._geometry_layout.addWidget(self.circle_btn, 0, 0)
         self._geometry_layout.addWidget(self.rectangle_btn, 0, 1)
         self._geometry_layout.addWidget(self.point_btn, 1, 0)
@@ -98,8 +99,8 @@ class MaskWidget(QtWidgets.QWidget):
         self._control_layout.addWidget(HorizontalLine())
 
         self._threshold_layout = QtWidgets.QGridLayout()
-        self.above_thresh_btn = FlatButton('Above Thresh')
-        self.below_thresh_btn = FlatButton('Below Thresh')
+        self.above_thresh_btn = QtWidgets.QPushButton('Above Thresh')
+        self.below_thresh_btn = QtWidgets.QPushButton('Below Thresh')
         self.above_thresh_txt = NumberTextField('')
         self.below_thresh_txt = NumberTextField('')
         self._threshold_layout.addWidget(self.above_thresh_btn, 0, 0)
@@ -111,12 +112,12 @@ class MaskWidget(QtWidgets.QWidget):
         self._control_layout.addWidget(HorizontalLine())
 
         self._action_layout = QtWidgets.QGridLayout()
-        self.grow_btn = FlatButton('Grow')
-        self.shrink_btn = FlatButton('Shrink')
-        self.invert_mask_btn = FlatButton('Invert')
-        self.clear_mask_btn = FlatButton('Clear')
-        self.undo_btn = FlatButton('Undo')
-        self.redo_btn = FlatButton('Redo')
+        self.grow_btn = QtWidgets.QPushButton('Grow')
+        self.shrink_btn = QtWidgets.QPushButton('Shrink')
+        self.invert_mask_btn = QtWidgets.QPushButton('Invert')
+        self.clear_mask_btn = QtWidgets.QPushButton('Clear')
+        self.undo_btn = QtWidgets.QPushButton('Undo')
+        self.redo_btn = QtWidgets.QPushButton('Redo')
         self._action_layout.addWidget(self.grow_btn, 0, 0)
         self._action_layout.addWidget(self.shrink_btn, 0, 1)
         self._action_layout.addWidget(self.invert_mask_btn, 1, 0)
@@ -127,7 +128,7 @@ class MaskWidget(QtWidgets.QWidget):
 
         self._control_layout.addWidget(HorizontalLine())
 
-        self.cosmic_btn = FlatButton('Cosmic Removal')
+        self.cosmic_btn = QtWidgets.QPushButton('Cosmic Removal')
         self._control_layout.addWidget(self.cosmic_btn)
 
         self._control_layout.addWidget(HorizontalLine())
@@ -144,9 +145,9 @@ class MaskWidget(QtWidgets.QWidget):
         self._control_layout.addSpacerItem(VerticalSpacerItem())
 
         self._file_layout = QtWidgets.QGridLayout()
-        self.save_mask_btn = FlatButton('Save Mask')
-        self.load_mask_btn = FlatButton('Load Mask')
-        self.add_mask_btn = FlatButton('Add Mask')
+        self.save_mask_btn = QtWidgets.QPushButton('Save Mask')
+        self.load_mask_btn = QtWidgets.QPushButton('Load Mask')
+        self.add_mask_btn = QtWidgets.QPushButton('Add Mask')
         self._file_layout.addWidget(self.save_mask_btn, 0, 0, 1, 2)
         self._file_layout.addWidget(self.load_mask_btn, 1, 0)
         self._file_layout.addWidget(self.add_mask_btn, 1, 1)

@@ -24,6 +24,7 @@ from functools import partial
 import numpy as np
 from PIL import Image
 from qtpy import QtWidgets, QtCore
+import pyqtgraph as pg
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -77,7 +78,7 @@ class ImageController(object):
         """
         Plots the current image loaded in self.img_data.
         :param auto_scale:
-            Determines if intensities shouldk be auto-scaled. If value is None it will use the parameter saved in the
+            Determines if intensities should be auto-scaled. If value is None it will use the parameter saved in the
             Object (self._auto_scale)
         """
         if auto_scale is None:
@@ -213,6 +214,7 @@ class ImageController(object):
 
         self.widget.qa_save_img_btn.clicked.connect(self.save_img)
         self.widget.load_calibration_btn.clicked.connect(self.load_calibration)
+        self.widget.set_wavelnegth_btn.clicked.connect(self.set_wavelength)
 
         # signals
         self.widget.change_view_btn.clicked.connect(self.change_view_btn_clicked)
@@ -468,7 +470,7 @@ class ImageController(object):
         new_filename = str(self.widget.img_filename_txt.text())
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
-                self.load_file(filename=os.path.join(current_directory, new_filename))
+                self.load_file(filename=os.path.join(current_directory, new_filename).replace('\\', '/'))
             except TypeError:
                 self.widget.img_filename_txt.setText(current_filename)
         else:
@@ -926,6 +928,14 @@ class ImageController(object):
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
+            self.model.img_model.img_changed.emit()
+
+    def set_wavelength(self):
+        wavelength, ok = QtWidgets.QInputDialog.getText(self.widget, 'Set Wavelength', 'Wavelength in Angstroms:')
+        if ok:
+            self.model.calibration_model.pattern_geometry.wavelength = float(wavelength)*1e-10
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength*1e10) + ' A')
             self.model.img_model.img_changed.emit()
 
     def auto_process_cb_click(self):
