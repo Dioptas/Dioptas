@@ -19,7 +19,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from functools import partial
 
 import numpy as np
 from PIL import Image
@@ -123,6 +122,9 @@ class ImageController(object):
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         self.widget.cake_widget.plot_cake_integral(x, np.roll(y, shift_amount))
 
+    def _update_cake_integral(self):
+        self.plot_cake_integral()
+
     def save_cake_integral(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
         filename = save_file_dialog(
@@ -191,15 +193,14 @@ class ImageController(object):
         ###
         # Image Widget cake specific controls
         self.widget.img_phases_btn.clicked.connect(self.toggle_show_phases)
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake_integral, None))
+        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.cake_shift_changed)
         self.widget.integration_image_widget.cake_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
-        self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
-        self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
+        self.widget.pattern_q_btn.clicked.connect(self.set_cake_axis_to_q)
+        self.widget.pattern_tth_btn.clicked.connect(self.set_cake_axis_to_2th)
         self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.valueChanged. \
-            connect(partial(self.plot_cake_integral, None))
+            connect(self._update_cake_integral)
+        self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.editingFinished. \
+            connect(self._update_cake_integral)
         self.widget.integration_control_widget.integration_options_widget.cake_save_integral_btn.clicked. \
             connect(self.save_cake_integral)
 
@@ -582,6 +583,12 @@ class ImageController(object):
         elif str(self.widget.img_phases_btn.text()) == 'Hide Phases':
             self.widget.integration_image_widget.cake_view.hide_all_cake_phases()
             self.widget.img_phases_btn.setText('Show Phases')
+    
+    def cake_shift_changed(self):
+        self.plot_cake()
+        self._update_cake_mouse_click_pos()
+        self.update_cake_azimuth_axis()
+        self.plot_cake_integral(None)
 
     def activate_cake_mode(self):
         if self.model.calibration_model.cake_geometry is None:
@@ -734,11 +741,12 @@ class ImageController(object):
                 self.convert_x_value(min_tth, '2th_deg', 'q_A^-1'),
                 self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
 
-    def set_cake_axis_unit(self, unit='2th_deg'):
-        if unit == '2th_deg':
-            self.widget.integration_image_widget.cake_view.bottom_axis_cake.setLabel(u'2θ', u'°')
-        elif unit == 'q_A^-1':
-            self.widget.integration_image_widget.cake_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
+    def set_cake_axis_to_2th(self):
+        self.widget.integration_image_widget.cake_view.bottom_axis_cake.setLabel(u'2θ', u'°')
+        self.update_cake_x_axis()
+
+    def set_cake_axis_to_q(self):
+        self.widget.integration_image_widget.cake_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
         self.update_cake_x_axis()
 
     def show_img_mouse_position(self, x, y):

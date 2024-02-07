@@ -24,19 +24,12 @@ from unittest.mock import MagicMock
 
 import numpy as np
 
-
 from ..utility import click_button
-from ...controller.integration import PhaseController
 from ...model.util.HelperModule import get_partial_value
 from .test_BatchController_part1 import *
 
 unittest_data_path = os.path.join(os.path.dirname(__file__), '../data')
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')
-
-
-@pytest.fixture
-def phase_controller(integration_widget, dioptas_model):
-    return PhaseController(integration_widget, dioptas_model)
 
 
 def test_set_unit(batch_controller, batch_widget, integration_widget, dioptas_model, load_proc_data):

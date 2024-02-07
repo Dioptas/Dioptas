@@ -19,35 +19,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import gc
 
 import numpy as np
 import pytest
 from mock import MagicMock
 
-from ...model.DioptasModel import DioptasModel
 from ...model.util import Pattern
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
-
-
-@pytest.fixture(scope="function")
-def dioptas_model():
-    model = DioptasModel()
-    yield model
-    clear_model_memory(model)
-
-
-def clear_model_memory(model):
-    for config in model.configurations:
-        config.calibration_model.pattern_geometry.reset()
-        del config.calibration_model.pattern_geometry
-
-        if config.calibration_model.cake_geometry:
-            config.calibration_model.cake_geometry.reset()
-            del config.calibration_model.cake_geometry
-    gc.collect()
 
 
 def test_add_configuration(dioptas_model):
