@@ -32,6 +32,7 @@ from dioptas.controller.integration import (
     BackgroundController,
     IntegrationController,
 )
+from dioptas.controller.integration.ImageController import ImageController
 
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.widgets.integration import IntegrationWidget
@@ -138,6 +139,9 @@ def batch_widget(integration_widget):
 def background_controller(integration_widget, dioptas_model, qtbot):
     return BackgroundController(integration_widget, dioptas_model)
 
+@pytest.fixture
+def image_controller(integration_widget, dioptas_model, qtbot):
+    return ImageController(integration_widget, dioptas_model)
 
 @pytest.fixture
 def calibration_model(dioptas_model):
