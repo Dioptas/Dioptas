@@ -253,6 +253,15 @@ class ImageController(object):
                         self.model.img_model.add(filenames[ind])
                     self.model.img_model.blockSignals(False)
                     self.model.img_model.img_changed.emit()
+                if self.widget.img_batch_mode_average_rb.isChecked():
+                    self.model.img_model.blockSignals(True)
+                    self.model.img_model.load(str(filenames[0]))
+                    for ind in range(1, len(filenames)):
+                        self.model.img_model.add(filenames[ind])
+                    self.model.img_model._img_data = self.model.img_model._img_data / len(filenames)
+                    self.model.img_model._calculate_img_data()
+                    self.model.img_model.blockSignals(False)
+                    self.model.img_model.img_changed.emit()
                 elif self.widget.img_batch_mode_integrate_rb.isChecked():
                     self._load_multiple_files(filenames)
                 elif self.widget.img_batch_mode_image_save_rb.isChecked():

@@ -209,6 +209,30 @@ def test_adding_images(integration_widget, image_controller):
     assert np.array_equal(2 * data1, integration_widget.img_widget.img_data)
 
 
+def test_average_images(integration_widget, image_controller):
+    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+        return_value=[os.path.join(unittest_data_path, "image_001.tif")]
+    )
+    click_button(integration_widget.load_img_btn)
+    data1 = np.copy(integration_widget.img_widget.img_data).astype(np.uint32)
+
+    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+        return_value=[os.path.join(unittest_data_path, "image_002.tif")]
+    )
+    click_button(integration_widget.load_img_btn)
+    data2 = np.copy(integration_widget.img_widget.img_data).astype(np.uint32)
+
+    click_checkbox(integration_widget.img_batch_mode_average_rb)
+    QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
+        return_value=[
+            os.path.join(unittest_data_path, "image_001.tif"),
+            os.path.join(unittest_data_path, "image_002.tif"),
+        ]
+    )
+    click_button(integration_widget.load_img_btn)
+    assert np.array_equal((data1+data2)/2, integration_widget.img_widget.img_data)
+
+
 def test_load_image_with_manual_input_file_name(
     integration_widget, dioptas_model, image_controller
 ):
