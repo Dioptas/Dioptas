@@ -37,27 +37,6 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
 
-@pytest.fixture
-def img_model():
-    img_model = ImgModel()
-    yield img_model
-    del img_model
-    gc.collect()
-
-
-@pytest.fixture
-def calibration_model(img_model):
-    calibration_model = CalibrationModel(img_model)
-    yield calibration_model
-    calibration_model.pattern_geometry.reset()
-    if calibration_model.cake_geometry is not None:
-        calibration_model.cake_geometry.reset()
-        del calibration_model.cake_geometry
-    del calibration_model.pattern_geometry
-    del calibration_model
-    gc.collect()
-
-
 def load_pilatus_1M(img_model):
     img_model.load(os.path.join(data_path, 'CeO2_Pilatus1M.tif'))
 
@@ -378,6 +357,7 @@ def test_calibration1(calibration_model, img_model):
     img_model.load(os.path.join(data_path, 'LaB6_40keV_MarCCD.tif'))
     calibration_model.find_peaks_automatic(1179.6, 1129.4, 0)
     calibration_model.find_peaks_automatic(1268.5, 1119.8, 1)
+
     calibration_model.set_calibrant(os.path.join(calibrants_path, 'LaB6.D'))
     calibration_model.calibrate()
 
