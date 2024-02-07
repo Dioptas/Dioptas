@@ -35,7 +35,7 @@ from .CustomWidgets import (
     HorizontalLine,
 )
 
-from .. import style_path, icons_path
+from .. import icons_path
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -131,9 +131,9 @@ class MainWidget(QtWidgets.QWidget):
         self._menu_layout.addWidget(self.menu_btn)
         self._menu_layout.addWidget(self.show_configuration_menu_btn)
 
-        self.save_btn = FlatButton("Save Project", self)
-        self.load_btn = FlatButton("Open Project", self)
-        self.reset_btn = FlatButton("Reset Project", self)
+        self.save_btn = FlatButton("Save Project")
+        self.load_btn = FlatButton("Open Project")
+        self.reset_btn = FlatButton("Reset Project")
 
     def _create_main_frame(self):
         self.main_frame = QtWidgets.QWidget(self)
@@ -196,7 +196,6 @@ class MainWidget(QtWidgets.QWidget):
 
     def add_menu_popup(self):
         self.menu_btn.clicked.connect(self.show_menu_popup)
-        self.show_menu_popup()
 
     def show_menu_popup(self):
         widget = MenuPopup(self, [self.load_btn, self.save_btn, self.reset_btn])
