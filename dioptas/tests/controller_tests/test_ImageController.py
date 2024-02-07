@@ -37,7 +37,9 @@ from ...model.DioptasModel import DioptasModel
 unittest_data_path = os.path.join(os.path.dirname(__file__), "../data")
 
 
-def test_automatic_file_processing(integration_widget, dioptas_model, image_controller):
+def test_automatic_file_processing(
+    integration_widget, dioptas_model, image_controller, qapp
+):
     # get into a specific folder
     QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
         return_value=[os.path.join(unittest_data_path, "image_001.tif")]
@@ -61,7 +63,8 @@ def test_automatic_file_processing(integration_widget, dioptas_model, image_cont
         os.path.join(unittest_data_path, "image_003.tif")
     )
     assert "image_003.tif" == str(integration_widget.img_filename_txt.text())
-    
+    qapp.processEvents()
+
     # clean up
     os.remove(os.path.join(unittest_data_path, "image_003.tif"))
 
