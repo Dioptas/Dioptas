@@ -37,11 +37,8 @@ def map_controller(qapp, dioptas_model):
     widget = MapWidget()
     model = dioptas_model
     controller = MapController(widget, model)
-    # controller.show_window()
     controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
     QTest.qWaitForWindowExposed(controller.widget)
-    # controller.widget.activateWindow()
-    # controller.widget.raise_()
     try:
         yield controller
     finally:
@@ -87,6 +84,11 @@ def test_click_load_empties_file_list_without_calibration(
 
     assert map_controller.widget.control_widget.file_list.count() == 0
 
+def test_load_empty_filelist(map_controller, map_model: MapModel2):
+    mock_open_filenames([])
+    map_controller.load_btn_clicked()
+
+    assert map_controller.widget.control_widget.file_list.count() == 0
 
 def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
     load_calibration(map_controller)

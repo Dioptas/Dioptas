@@ -6,13 +6,19 @@ from dioptas.model.MapModel2 import MapModel2
 from dioptas.tests.utility import unittest_data_path
 import numpy as np
 
-jcpds_path = os.path.join(unittest_data_path, 'jcpds')
-map_img_path = os.path.join(unittest_data_path, 'map')
-map_pattern_path = os.path.join(unittest_data_path, 'map', 'xy')
-map_img_file_names = [f for f in os.listdir(map_img_path) if os.path.isfile(os.path.join(map_img_path, f))]
-map_img_file_paths = [os.path.join(map_img_path, filename) for filename in map_img_file_names]
+jcpds_path = os.path.join(unittest_data_path, "jcpds")
+map_img_path = os.path.join(unittest_data_path, "map")
+map_pattern_path = os.path.join(unittest_data_path, "map", "xy")
+map_img_file_names = [
+    f for f in os.listdir(map_img_path) if os.path.isfile(os.path.join(map_img_path, f))
+]
+map_img_file_paths = [
+    os.path.join(map_img_path, filename) for filename in map_img_file_names
+]
 
-multi_file_img_path = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs')
+multi_file_img_path = os.path.join(
+    unittest_data_path, "lambda", "testasapo1_1009_00002_m1_part00000.nxs"
+)
 
 
 @pytest.fixture
@@ -26,7 +32,9 @@ def map_model(configuration: Configuration) -> MapModel2:
 
 
 def test_create_map(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths)
     assert map_model.filepaths == map_img_file_paths
     assert len(map_model.pattern_intensities) == len(map_img_file_paths)
@@ -34,8 +42,15 @@ def test_create_map(map_model: MapModel2, configuration: Configuration):
     assert map_model.map.shape == (3, 3)
 
 
+def test_load_empty_filelist(map_model: MapModel2, configuration: Configuration):
+    with pytest.raises(ValueError):
+        map_model.load([])
+
+
 def test_set_dimensions(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths[:6])
     assert len(map_model.pattern_intensities) == 6
     assert map_model.dimension == (2, 3)
@@ -51,7 +66,9 @@ def test_set_dimensions(map_model: MapModel2, configuration: Configuration):
 
 
 def test_set_wrong_dimensions(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths[:6])
     assert len(map_model.pattern_intensities) == 6
     assert map_model.dimension == (2, 3)
@@ -63,7 +80,9 @@ def test_set_wrong_dimensions(map_model: MapModel2, configuration: Configuration
 
 
 def test_set_different_window(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths[:6])
 
     map_model.set_window((15, 16))
@@ -74,7 +93,9 @@ def test_set_different_window(map_model: MapModel2, configuration: Configuration
 
 
 def test_get_point_information(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths[:6])
 
     assert map_model.dimension == (2, 3)
@@ -86,7 +107,9 @@ def test_get_point_information(map_model: MapModel2, configuration: Configuratio
 
 
 def test_use_multi_file_img(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load([multi_file_img_path])
 
     img_model = configuration.img_model
